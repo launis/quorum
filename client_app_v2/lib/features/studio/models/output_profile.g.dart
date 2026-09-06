@@ -83,6 +83,9 @@ _OutputProfile _$OutputProfileFromJson(
         'strictness_level',
         'scoring_strategy',
         'synthesis_length_constraint',
+        'row_explanation_length_constraint',
+        'xai_length_constraint',
+        'variance_length_constraint',
         'max_quotes_per_matrix',
         'max_unmet_criteria',
         'tone_instruction',
@@ -201,6 +204,18 @@ _OutputProfile _$OutputProfileFromJson(
         'synthesis_length_constraint',
         (v) => (v as num?)?.toInt(),
       ),
+      rowExplanationLengthConstraint: $checkedConvert(
+        'row_explanation_length_constraint',
+        (v) => (v as num?)?.toInt(),
+      ),
+      xaiLengthConstraint: $checkedConvert(
+        'xai_length_constraint',
+        (v) => (v as num?)?.toInt(),
+      ),
+      varianceLengthConstraint: $checkedConvert(
+        'variance_length_constraint',
+        (v) => (v as num?)?.toInt(),
+      ),
       maxQuotesPerMatrix: $checkedConvert(
         'max_quotes_per_matrix',
         (v) => (v as num?)?.toInt(),
@@ -209,41 +224,38 @@ _OutputProfile _$OutputProfileFromJson(
         'max_unmet_criteria',
         (v) => (v as num?)?.toInt(),
       ),
-      toneInstruction: $checkedConvert(
-        'tone_instruction',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
+      toneInstruction: $checkedConvert('tone_instruction', (v) => v as String?),
       executiveSummaryDirective: $checkedConvert(
         'executive_summary_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       matrix1dSynthesisDirective: $checkedConvert(
         'matrix_1d_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       matrix2dSynthesisDirective: $checkedConvert(
         'matrix_2d_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       matrix3dSynthesisDirective: $checkedConvert(
         'matrix_3d_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       matrixTextSynthesisDirective: $checkedConvert(
         'matrix_text_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       rowExplanationDirective: $checkedConvert(
         'row_explanation_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       xaiSynthesisDirective: $checkedConvert(
         'xai_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       varianceSynthesisDirective: $checkedConvert(
         'variance_synthesis_directive',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+        (v) => v as String?,
       ),
       language: $checkedConvert(
         'language',
@@ -322,6 +334,9 @@ _OutputProfile _$OutputProfileFromJson(
     'strictnessLevel': 'strictness_level',
     'scoringStrategy': 'scoring_strategy',
     'synthesisLengthConstraint': 'synthesis_length_constraint',
+    'rowExplanationLengthConstraint': 'row_explanation_length_constraint',
+    'xaiLengthConstraint': 'xai_length_constraint',
+    'varianceLengthConstraint': 'variance_length_constraint',
     'maxQuotesPerMatrix': 'max_quotes_per_matrix',
     'maxUnmetCriteria': 'max_unmet_criteria',
     'toneInstruction': 'tone_instruction',
@@ -368,21 +383,20 @@ Map<String, dynamic> _$OutputProfileToJson(
   'strictness_level': instance.strictnessLevel,
   'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'synthesis_length_constraint': instance.synthesisLengthConstraint,
+  'row_explanation_length_constraint': instance.rowExplanationLengthConstraint,
+  'xai_length_constraint': instance.xaiLengthConstraint,
+  'variance_length_constraint': instance.varianceLengthConstraint,
   'max_quotes_per_matrix': instance.maxQuotesPerMatrix,
   'max_unmet_criteria': instance.maxUnmetCriteria,
-  'tone_instruction': instance.toneInstruction?.toJson(),
-  'executive_summary_directive': instance.executiveSummaryDirective?.toJson(),
-  'matrix_1d_synthesis_directive': instance.matrix1dSynthesisDirective
-      ?.toJson(),
-  'matrix_2d_synthesis_directive': instance.matrix2dSynthesisDirective
-      ?.toJson(),
-  'matrix_3d_synthesis_directive': instance.matrix3dSynthesisDirective
-      ?.toJson(),
-  'matrix_text_synthesis_directive': instance.matrixTextSynthesisDirective
-      ?.toJson(),
-  'row_explanation_directive': instance.rowExplanationDirective?.toJson(),
-  'xai_synthesis_directive': instance.xaiSynthesisDirective?.toJson(),
-  'variance_synthesis_directive': instance.varianceSynthesisDirective?.toJson(),
+  'tone_instruction': instance.toneInstruction,
+  'executive_summary_directive': instance.executiveSummaryDirective,
+  'matrix_1d_synthesis_directive': instance.matrix1dSynthesisDirective,
+  'matrix_2d_synthesis_directive': instance.matrix2dSynthesisDirective,
+  'matrix_3d_synthesis_directive': instance.matrix3dSynthesisDirective,
+  'matrix_text_synthesis_directive': instance.matrixTextSynthesisDirective,
+  'row_explanation_directive': instance.rowExplanationDirective,
+  'xai_synthesis_directive': instance.xaiSynthesisDirective,
+  'variance_synthesis_directive': instance.varianceSynthesisDirective,
   'language': _$SystemLocaleEnumMap[instance.language],
   'matrix_synthesis_groups': instance.matrixSynthesisGroups
       .map((e) => e.toJson())

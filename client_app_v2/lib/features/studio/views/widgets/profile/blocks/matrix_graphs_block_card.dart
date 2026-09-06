@@ -66,40 +66,91 @@ class MatrixGraphsBlockCard extends StatelessWidget {
               ),
             )
           else
-            ...groups.asMap().entries.map((entry) {
-              final idx = entry.key;
-              final group = entry.value;
+            ReorderableListView(
+              buildDefaultDragHandles: false,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              onReorder: (oldIndex, newIndex) {
+                final newGroups = List<MatrixSynthesisGroup>.from(
+                  payload.matrixSynthesisGroups,
+                );
+                if (newIndex > oldIndex) {
+                  newIndex -= 1;
+                }
+                final item = newGroups.removeAt(oldIndex);
+                newGroups.insert(newIndex, item);
+                updatePayload(
+                  payload.copyWith(matrixSynthesisGroups: newGroups),
+                );
+              },
+              children: groups.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final group = entry.value;
 
-              return MatrixGraphItemEditor(
-                key: ValueKey('matrix_group_${idx}_${group.id}'),
-                index: idx,
-                group: group,
-                allowedBlockIds: allowedBlockIds,
-                promptBlocksState: promptBlocksState,
-                onUpdate: (updatedGroup) {
-                  final newGroups = List<MatrixSynthesisGroup>.from(
-                    payload.matrixSynthesisGroups,
-                  );
-                  final targetIdx = newGroups.indexOf(group);
-                  if (targetIdx >= 0) {
-                    newGroups[targetIdx] = updatedGroup;
-                  }
-                  updatePayload(
-                    payload.copyWith(matrixSynthesisGroups: newGroups),
-                  );
-                },
-                onDelete: () {
-                  final newGroups = List<MatrixSynthesisGroup>.from(
-                    payload.matrixSynthesisGroups,
-                  );
-                  newGroups.remove(group);
-                  updatePayload(
-                    payload.copyWith(matrixSynthesisGroups: newGroups),
-                  );
-                },
-              );
-            }),
-          const SizedBox(height: AppSpacing.s8),
+                return MatrixGraphItemEditor(
+                  key: ValueKey(group.id),
+                  index: idx,
+                  group: group,
+                  allowedBlockIds: allowedBlockIds,
+                  promptBlocksState: promptBlocksState,
+                  dragHandle: ReorderableDragStartListener(
+                    index: idx,
+                    child: const IconButton(
+                      icon: Icon(Icons.drag_handle, size: 20),
+                      onPressed: null,
+                    ),
+                  ),
+                  onMoveUp: idx > 0
+                      ? () {
+                          final newGroups = List<MatrixSynthesisGroup>.from(
+                            payload.matrixSynthesisGroups,
+                          );
+                          final item = newGroups.removeAt(idx);
+                          newGroups.insert(idx - 1, item);
+                          updatePayload(
+                            payload.copyWith(matrixSynthesisGroups: newGroups),
+                          );
+                        }
+                      : null,
+                  onMoveDown: idx < groups.length - 1
+                      ? () {
+                          final newGroups = List<MatrixSynthesisGroup>.from(
+                            payload.matrixSynthesisGroups,
+                          );
+                          final item = newGroups.removeAt(idx);
+                          newGroups.insert(idx + 1, item);
+                          updatePayload(
+                            payload.copyWith(matrixSynthesisGroups: newGroups),
+                          );
+                        }
+                      : null,
+                  onUpdate: (updatedGroup) {
+                    final newGroups = List<MatrixSynthesisGroup>.from(
+                      payload.matrixSynthesisGroups,
+                    );
+                    final targetIdx = newGroups.indexWhere(
+                      (g) => g.id == group.id,
+                    );
+                    if (targetIdx >= 0) {
+                      newGroups[targetIdx] = updatedGroup;
+                    }
+                    updatePayload(
+                      payload.copyWith(matrixSynthesisGroups: newGroups),
+                    );
+                  },
+                  onDelete: () {
+                    final newGroups = List<MatrixSynthesisGroup>.from(
+                      payload.matrixSynthesisGroups,
+                    );
+                    newGroups.removeWhere((g) => g.id == group.id);
+                    updatePayload(
+                      payload.copyWith(matrixSynthesisGroups: newGroups),
+                    );
+                  },
+                );
+              }).toList(),
+            ),
+          AppSpacing.h8,
           Align(
             alignment: Alignment.centerLeft,
             child: FilledButton.tonalIcon(

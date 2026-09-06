@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
@@ -182,15 +182,43 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
             ],
           ),
           AppSpacing.h16,
-          I18nTextField(
-            label: l10n.profileXaiSynthesisDirectiveLabel,
-            initialData: payload.xaiSynthesisDirective,
+          TextFormField(
+            key: const Key('profile_xai_synthesis_directive_field'),
+            initialValue: payload.xaiSynthesisDirective,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText: l10n.profileXaiSynthesisDirectiveLabel,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (val) {
-              final isEmpty =
-                  val.translations.isEmpty ||
-                  val.translations.values.every((v) => v.trim().isEmpty);
+              final trimmed = val.trim();
               updatePayload(
-                payload.copyWith(xaiSynthesisDirective: isEmpty ? null : val),
+                payload.copyWith(
+                  xaiSynthesisDirective: trimmed.isEmpty ? null : trimmed,
+                ),
+              );
+            },
+          ),
+          AppSpacing.h16,
+          TextFormField(
+            key: const Key('profile_xai_length_constraint_field'),
+            initialValue: payload.xaiLengthConstraint?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: l10n.profileXaiLengthLabel,
+              hintText: l10n.profileXaiLengthHint,
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              final trimmed = val.trim();
+              updatePayload(
+                payload.copyWith(
+                  xaiLengthConstraint: trimmed.isNotEmpty
+                      ? int.tryParse(trimmed)
+                      : null,
+                ),
               );
             },
           ),

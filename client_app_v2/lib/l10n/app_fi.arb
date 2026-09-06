@@ -1660,5 +1660,32 @@
   "workflowIdMissingError": "Työnkulun ID puuttuu",
   "groupVisualChartTitle": "Visualisoinnin asetukset (Visual Chart Setup)",
   "groupSynthesisDirectiveTitle": "Tekoälyn synteesiohje (AI Synthesis Directive)",
-  "groupSynthesisDirectiveHelper": "PAKOLLINEN ENGLANTI. Jos ohje jätetään tyhjäksi, synteesiä ei ajeta tälle ryhmälle."
+  "groupSynthesisDirectiveHelper": "PAKOLLINEN ENGLANTI. Jos ohje jätetään tyhjäksi, synteesiä ei ajeta tälle ryhmälle.",
+  "profileSynthesisLengthHint": "esim. 1000 merkkiä",
+  "profileRowExplanationLengthLabel": "Riviselityksen tavoitepituus (merkkiä)",
+  "profileRowExplanationLengthHint": "esim. 250 merkkiä",
+  "profileXaiLengthLabel": "XAI-korostusten tavoitepituus (merkkiä)",
+  "profileXaiLengthHint": "esim. 300 merkkiä",
+  "profileVarianceLengthLabel": "Varianssin tavoitepituus (merkkiä)",
+  "profileVarianceLengthHint": "esim. 500 merkkiä",
+  "profileMatrixViewDirectivesTitle": "Matriisinäkymien synteesiohjeet",
+  "profileMatrixViewDirectivesSubtitle": "Määritä uudelleenkäytettävät englanninkieliset ohjeet 1D-, 2D-, 3D- ja tekstipohjaisille matriisivisualisoinneille.",
+  "viewType1dMetricsLabel": "1D Mittari",
+  "viewType2dCompareLabel": "2D Vertailu",
+  "viewType3dRadarLabel": "3D Tutka",
+  "viewTypeTextOnlyLabel": "Teksti",
+  "noMatricesAvailableInWorkflow": "Ei matriiseja valittavissa työnkulussa.",
+  "matrixGroupMoveUp": "Siirrä ylös",
+  "matrixGroupMoveDown": "Siirrä alas",
+  "matrixBlocksSelectedCount": "{count} / {max} valittu",
+  "@matrixBlocksSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }

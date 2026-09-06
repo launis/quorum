@@ -4684,4 +4684,63 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get groupSynthesisDirectiveHelper =>
       'REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group.';
+
+  @override
+  String get profileSynthesisLengthHint => 'e.g. 1000 characters';
+
+  @override
+  String get profileRowExplanationLengthLabel =>
+      'Row explanation target length (characters)';
+
+  @override
+  String get profileRowExplanationLengthHint => 'e.g. 250 characters';
+
+  @override
+  String get profileXaiLengthLabel =>
+      'XAI highlights target length (characters)';
+
+  @override
+  String get profileXaiLengthHint => 'e.g. 300 characters';
+
+  @override
+  String get profileVarianceLengthLabel =>
+      'Variance target length (characters)';
+
+  @override
+  String get profileVarianceLengthHint => 'e.g. 500 characters';
+
+  @override
+  String get profileMatrixViewDirectivesTitle =>
+      'Matrix View Type Synthesis Directives';
+
+  @override
+  String get profileMatrixViewDirectivesSubtitle =>
+      'Configure reusable English prompt directives for 1D, 2D, 3D, and text matrix visualizations.';
+
+  @override
+  String get viewType1dMetricsLabel => '1D Metric';
+
+  @override
+  String get viewType2dCompareLabel => '2D Compare';
+
+  @override
+  String get viewType3dRadarLabel => '3D Radar';
+
+  @override
+  String get viewTypeTextOnlyLabel => 'Text';
+
+  @override
+  String get noMatricesAvailableInWorkflow =>
+      'No matrices available in workflow.';
+
+  @override
+  String get matrixGroupMoveUp => 'Move up';
+
+  @override
+  String get matrixGroupMoveDown => 'Move down';
+
+  @override
+  String matrixBlocksSelectedCount(int count, int max) {
+    return '$count / $max selected';
+  }
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
-import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/block_card_registry.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -152,16 +152,42 @@ class VarianceBlockCard extends ConsumerWidget {
             },
           ),
           AppSpacing.h16,
-          I18nTextField(
-            label: l10n.profileVarianceDirectiveLabel,
-            initialData: payload.varianceSynthesisDirective,
+          TextFormField(
+            key: const Key('profile_variance_directive_field'),
+            initialValue: payload.varianceSynthesisDirective,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText: l10n.profileVarianceDirectiveLabel,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (val) {
-              final isEmpty =
-                  val.translations.isEmpty ||
-                  val.translations.values.every((v) => v.trim().isEmpty);
+              final trimmed = val.trim();
               updatePayload(
                 payload.copyWith(
-                  varianceSynthesisDirective: isEmpty ? null : val,
+                  varianceSynthesisDirective: trimmed.isEmpty ? null : trimmed,
+                ),
+              );
+            },
+          ),
+          AppSpacing.h16,
+          TextFormField(
+            key: const Key('profile_variance_length_constraint_field'),
+            initialValue: payload.varianceLengthConstraint?.toString() ?? '',
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: l10n.profileVarianceLengthLabel,
+              hintText: l10n.profileVarianceLengthHint,
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            onChanged: (val) {
+              final trimmed = val.trim();
+              updatePayload(
+                payload.copyWith(
+                  varianceLengthConstraint: trimmed.isNotEmpty
+                      ? int.tryParse(trimmed)
+                      : null,
                 ),
               );
             },

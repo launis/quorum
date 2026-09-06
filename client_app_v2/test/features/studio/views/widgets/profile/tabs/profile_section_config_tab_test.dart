@@ -152,9 +152,11 @@ void main() {
         await tester.tap(find.text('Executive Summary'));
         await tester.pumpAndSettle();
 
-        // Detail View: Should show Back button and ExecutiveSummaryBlockCard
+        // Detail View: Should show Back button and ExecutiveSummaryBlockCard with fields
         expect(find.text('All Sections'), findsOneWidget);
         expect(find.byType(ExecutiveSummaryBlockCard), findsOneWidget);
+        expect(find.byKey(const Key('profile_executive_summary_directive_field')), findsOneWidget);
+        expect(find.byType(TextFormField), findsNWidgets(2));
 
         // Tap Back button
         await tester.tap(find.text('All Sections'));

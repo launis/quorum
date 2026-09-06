@@ -8465,6 +8465,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group.'**
   String get groupSynthesisDirectiveHelper;
+
+  /// No description provided for @profileSynthesisLengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 1000 characters'**
+  String get profileSynthesisLengthHint;
+
+  /// No description provided for @profileRowExplanationLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Row explanation target length (characters)'**
+  String get profileRowExplanationLengthLabel;
+
+  /// No description provided for @profileRowExplanationLengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 250 characters'**
+  String get profileRowExplanationLengthHint;
+
+  /// No description provided for @profileXaiLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI highlights target length (characters)'**
+  String get profileXaiLengthLabel;
+
+  /// No description provided for @profileXaiLengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 300 characters'**
+  String get profileXaiLengthHint;
+
+  /// No description provided for @profileVarianceLengthLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Variance target length (characters)'**
+  String get profileVarianceLengthLabel;
+
+  /// No description provided for @profileVarianceLengthHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 500 characters'**
+  String get profileVarianceLengthHint;
+
+  /// No description provided for @profileMatrixViewDirectivesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix View Type Synthesis Directives'**
+  String get profileMatrixViewDirectivesTitle;
+
+  /// No description provided for @profileMatrixViewDirectivesSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure reusable English prompt directives for 1D, 2D, 3D, and text matrix visualizations.'**
+  String get profileMatrixViewDirectivesSubtitle;
+
+  /// No description provided for @viewType1dMetricsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'1D Metric'**
+  String get viewType1dMetricsLabel;
+
+  /// No description provided for @viewType2dCompareLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'2D Compare'**
+  String get viewType2dCompareLabel;
+
+  /// No description provided for @viewType3dRadarLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'3D Radar'**
+  String get viewType3dRadarLabel;
+
+  /// No description provided for @viewTypeTextOnlyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get viewTypeTextOnlyLabel;
+
+  /// No description provided for @noMatricesAvailableInWorkflow.
+  ///
+  /// In en, this message translates to:
+  /// **'No matrices available in workflow.'**
+  String get noMatricesAvailableInWorkflow;
+
+  /// No description provided for @matrixGroupMoveUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get matrixGroupMoveUp;
+
+  /// No description provided for @matrixGroupMoveDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get matrixGroupMoveDown;
+
+  /// No description provided for @matrixBlocksSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} / {max} selected'**
+  String matrixBlocksSelectedCount(int count, int max);
 }
 
 class _AppLocalizationsDelegate

@@ -16,6 +16,9 @@ class MatrixGraphItemEditor extends StatelessWidget {
   final VoidCallback onDelete;
   final Set<String> allowedBlockIds;
   final AsyncValue<List<PromptBlock>> promptBlocksState;
+  final Widget? dragHandle;
+  final VoidCallback? onMoveUp;
+  final VoidCallback? onMoveDown;
 
   const MatrixGraphItemEditor({
     super.key,
@@ -25,6 +28,9 @@ class MatrixGraphItemEditor extends StatelessWidget {
     required this.onDelete,
     required this.allowedBlockIds,
     required this.promptBlocksState,
+    this.dragHandle,
+    this.onMoveUp,
+    this.onMoveDown,
   });
 
   @override
@@ -74,9 +80,31 @@ class MatrixGraphItemEditor extends StatelessWidget {
               'Group ${index + 1}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
         ),
-        trailing: IconButton(
-          icon: Icon(Icons.delete_outline, color: colorScheme.error, size: 20),
-          onPressed: onDelete,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (onMoveUp != null)
+              IconButton(
+                icon: const Icon(Icons.arrow_upward, size: 20),
+                tooltip: l10n.matrixGroupMoveUp,
+                onPressed: onMoveUp,
+              ),
+            if (onMoveDown != null)
+              IconButton(
+                icon: const Icon(Icons.arrow_downward, size: 20),
+                tooltip: l10n.matrixGroupMoveDown,
+                onPressed: onMoveDown,
+              ),
+            IconButton(
+              icon: Icon(
+                Icons.delete_outline,
+                color: colorScheme.error,
+                size: 20,
+              ),
+              onPressed: onDelete,
+            ),
+            if (dragHandle != null) dragHandle!,
+          ],
         ),
         childrenPadding: AppSpacing.p12,
         children: [
@@ -119,33 +147,33 @@ class MatrixGraphItemEditor extends StatelessWidget {
                 ),
                 AppSpacing.h8,
                 Text(
-                  'Näkymätyyppi (View Type)',
+                  l10n.groupVisualChartTitle,
                   style: theme.textTheme.labelSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.s4),
                 SegmentedButton<PresetView>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: PresetView.metrics1d,
-                      label: Text('1D Mittari'),
-                      icon: Icon(Icons.speed),
+                      label: Text(l10n.viewType1dMetricsLabel),
+                      icon: const Icon(Icons.speed),
                     ),
                     ButtonSegment(
                       value: PresetView.compare2d,
-                      label: Text('2D Vertailu'),
-                      icon: Icon(Icons.scatter_plot),
+                      label: Text(l10n.viewType2dCompareLabel),
+                      icon: const Icon(Icons.scatter_plot),
                     ),
                     ButtonSegment(
                       value: PresetView.matrix3d,
-                      label: Text('3D Tutka'),
-                      icon: Icon(Icons.radar),
+                      label: Text(l10n.viewType3dRadarLabel),
+                      icon: const Icon(Icons.radar),
                     ),
                     ButtonSegment(
                       value: PresetView.textOnly,
-                      label: Text('Teksti'),
-                      icon: Icon(Icons.article_outlined),
+                      label: Text(l10n.viewTypeTextOnlyLabel),
+                      icon: const Icon(Icons.article_outlined),
                     ),
                   ],
                   selected: {currentViewType},
@@ -182,7 +210,10 @@ class MatrixGraphItemEditor extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${targetBlocks.length} / $maxSlots valittu',
+                      l10n.matrixBlocksSelectedCount(
+                        targetBlocks.length,
+                        maxSlots,
+                      ),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: targetBlocks.length == maxSlots
                             ? colorScheme.primary
@@ -199,7 +230,7 @@ class MatrixGraphItemEditor extends StatelessWidget {
                       vertical: AppSpacing.s8,
                     ),
                     child: Text(
-                      'Ei matriiseja valittavissa työnkulussa.',
+                      l10n.noMatricesAvailableInWorkflow,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.error,
                       ),
@@ -215,23 +246,32 @@ class MatrixGraphItemEditor extends StatelessWidget {
                       final label =
                           block.label.translations['en'] ?? block.slug;
 
+                      final onSelectedCallback =
+                          (isSelected || canSelectMore || maxSlots == 1)
+                          ? (bool selected) {
+                              final newTargets = List<String>.from(
+                                targetBlocks,
+                              );
+                              if (selected) {
+                                if (maxSlots == 1) {
+                                  newTargets.clear();
+                                  newTargets.add(block.id);
+                                } else if (canSelectMore) {
+                                  newTargets.add(block.id);
+                                }
+                              } else {
+                                newTargets.remove(block.id);
+                              }
+                              onUpdate(
+                                group.copyWith(targetBlocks: newTargets),
+                              );
+                            }
+                          : null;
+
                       return FilterChip(
                         label: Text('$label (${block.id})'),
                         selected: isSelected,
-                        onSelected: (selected) {
-                          final newTargets = List<String>.from(targetBlocks);
-                          if (selected) {
-                            if (maxSlots == 1) {
-                              newTargets.clear();
-                              newTargets.add(block.id);
-                            } else if (canSelectMore) {
-                              newTargets.add(block.id);
-                            }
-                          } else {
-                            newTargets.remove(block.id);
-                          }
-                          onUpdate(group.copyWith(targetBlocks: newTargets));
-                        },
+                        onSelected: onSelectedCallback,
                       );
                     }).toList(),
                   ),

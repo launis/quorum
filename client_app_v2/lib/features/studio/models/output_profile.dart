@@ -64,24 +64,27 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
     @JsonKey(name: 'synthesis_length_constraint')
     int? synthesisLengthConstraint,
+    @JsonKey(name: 'row_explanation_length_constraint')
+    int? rowExplanationLengthConstraint,
+    @JsonKey(name: 'xai_length_constraint') int? xaiLengthConstraint,
+    @JsonKey(name: 'variance_length_constraint') int? varianceLengthConstraint,
     @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
     @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
-    @JsonKey(name: 'tone_instruction') I18nText? toneInstruction,
+    @JsonKey(name: 'tone_instruction') String? toneInstruction,
     @JsonKey(name: 'executive_summary_directive')
-    I18nText? executiveSummaryDirective,
+    String? executiveSummaryDirective,
     @JsonKey(name: 'matrix_1d_synthesis_directive')
-    I18nText? matrix1dSynthesisDirective,
+    String? matrix1dSynthesisDirective,
     @JsonKey(name: 'matrix_2d_synthesis_directive')
-    I18nText? matrix2dSynthesisDirective,
+    String? matrix2dSynthesisDirective,
     @JsonKey(name: 'matrix_3d_synthesis_directive')
-    I18nText? matrix3dSynthesisDirective,
+    String? matrix3dSynthesisDirective,
     @JsonKey(name: 'matrix_text_synthesis_directive')
-    I18nText? matrixTextSynthesisDirective,
-    @JsonKey(name: 'row_explanation_directive')
-    I18nText? rowExplanationDirective,
-    @JsonKey(name: 'xai_synthesis_directive') I18nText? xaiSynthesisDirective,
+    String? matrixTextSynthesisDirective,
+    @JsonKey(name: 'row_explanation_directive') String? rowExplanationDirective,
+    @JsonKey(name: 'xai_synthesis_directive') String? xaiSynthesisDirective,
     @JsonKey(name: 'variance_synthesis_directive')
-    I18nText? varianceSynthesisDirective,
+    String? varianceSynthesisDirective,
     SystemLocale? language,
     @JsonKey(name: 'matrix_synthesis_groups')
     @Default([])

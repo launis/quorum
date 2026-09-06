@@ -4717,4 +4717,61 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get groupSynthesisDirectiveHelper =>
       'PAKOLLINEN ENGLANTI. Jos ohje jätetään tyhjäksi, synteesiä ei ajeta tälle ryhmälle.';
+
+  @override
+  String get profileSynthesisLengthHint => 'esim. 1000 merkkiä';
+
+  @override
+  String get profileRowExplanationLengthLabel =>
+      'Riviselityksen tavoitepituus (merkkiä)';
+
+  @override
+  String get profileRowExplanationLengthHint => 'esim. 250 merkkiä';
+
+  @override
+  String get profileXaiLengthLabel => 'XAI-korostusten tavoitepituus (merkkiä)';
+
+  @override
+  String get profileXaiLengthHint => 'esim. 300 merkkiä';
+
+  @override
+  String get profileVarianceLengthLabel => 'Varianssin tavoitepituus (merkkiä)';
+
+  @override
+  String get profileVarianceLengthHint => 'esim. 500 merkkiä';
+
+  @override
+  String get profileMatrixViewDirectivesTitle =>
+      'Matriisinäkymien synteesiohjeet';
+
+  @override
+  String get profileMatrixViewDirectivesSubtitle =>
+      'Määritä uudelleenkäytettävät englanninkieliset ohjeet 1D-, 2D-, 3D- ja tekstipohjaisille matriisivisualisoinneille.';
+
+  @override
+  String get viewType1dMetricsLabel => '1D Mittari';
+
+  @override
+  String get viewType2dCompareLabel => '2D Vertailu';
+
+  @override
+  String get viewType3dRadarLabel => '3D Tutka';
+
+  @override
+  String get viewTypeTextOnlyLabel => 'Teksti';
+
+  @override
+  String get noMatricesAvailableInWorkflow =>
+      'Ei matriiseja valittavissa työnkulussa.';
+
+  @override
+  String get matrixGroupMoveUp => 'Siirrä ylös';
+
+  @override
+  String get matrixGroupMoveDown => 'Siirrä alas';
+
+  @override
+  String matrixBlocksSelectedCount(int count, int max) {
+    return '$count / $max valittu';
+  }
 }

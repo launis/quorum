@@ -2360,6 +2360,33 @@
   "workflowIdMissingError": "Workflow ID is missing",
   "groupVisualChartTitle": "Visual Chart Configuration",
   "groupSynthesisDirectiveTitle": "AI Synthesis Directive",
-  "groupSynthesisDirectiveHelper": "REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group."
+  "groupSynthesisDirectiveHelper": "REQUIRED ENGLISH. If left empty, synthesis will not be executed for this group.",
+  "profileSynthesisLengthHint": "e.g. 1000 characters",
+  "profileRowExplanationLengthLabel": "Row explanation target length (characters)",
+  "profileRowExplanationLengthHint": "e.g. 250 characters",
+  "profileXaiLengthLabel": "XAI highlights target length (characters)",
+  "profileXaiLengthHint": "e.g. 300 characters",
+  "profileVarianceLengthLabel": "Variance target length (characters)",
+  "profileVarianceLengthHint": "e.g. 500 characters",
+  "profileMatrixViewDirectivesTitle": "Matrix View Type Synthesis Directives",
+  "profileMatrixViewDirectivesSubtitle": "Configure reusable English prompt directives for 1D, 2D, 3D, and text matrix visualizations.",
+  "viewType1dMetricsLabel": "1D Metric",
+  "viewType2dCompareLabel": "2D Compare",
+  "viewType3dRadarLabel": "3D Radar",
+  "viewTypeTextOnlyLabel": "Text",
+  "noMatricesAvailableInWorkflow": "No matrices available in workflow.",
+  "matrixGroupMoveUp": "Move up",
+  "matrixGroupMoveDown": "Move down",
+  "matrixBlocksSelectedCount": "{count} / {max} selected",
+  "@matrixBlocksSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  }
 }
 

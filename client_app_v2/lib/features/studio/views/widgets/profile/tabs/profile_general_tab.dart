@@ -213,15 +213,20 @@ class ProfileGeneralTab extends ConsumerWidget {
                   ),
                 ),
                 AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileToneInstructionLabel,
-                  initialData: payload.toneInstruction,
+                TextFormField(
+                  key: const Key('profile_tone_instruction_field'),
+                  initialValue: payload.toneInstruction,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileToneInstructionLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 3,
                   onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
+                    final trimmed = val.trim();
                     updatePayload(
-                      payload.copyWith(toneInstruction: isEmpty ? null : val),
+                      payload.copyWith(
+                        toneInstruction: trimmed.isEmpty ? null : trimmed,
+                      ),
                     );
                   },
                 ),
@@ -256,7 +261,7 @@ class ProfileGeneralTab extends ConsumerWidget {
           ),
         ),
 
-        // Card 3: AI Synthesis Directives
+        // Card 3: Matrix View Type Directives
         Card(
           elevation: 2,
           margin: const EdgeInsets.only(bottom: AppSpacing.s16),
@@ -269,128 +274,95 @@ class ProfileGeneralTab extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  l10n.profileAiSynthesisDirectivesTitle,
+                  l10n.profileMatrixViewDirectivesTitle,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.s4),
+                Text(
+                  l10n.profileMatrixViewDirectivesSubtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
                 AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileExecutiveSummaryDirectiveLabel,
-                  initialData: payload.executiveSummaryDirective,
+                TextFormField(
+                  key: const Key('profile_matrix_1d_directive_field'),
+                  initialValue: payload.matrix1dSynthesisDirective,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileMatrix1dDirectiveLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
                   onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
+                    final trimmed = val.trim();
                     updatePayload(
                       payload.copyWith(
-                        executiveSummaryDirective: isEmpty ? null : val,
+                        matrix1dSynthesisDirective: trimmed.isEmpty
+                            ? null
+                            : trimmed,
                       ),
                     );
                   },
                 ),
                 AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileMatrix1dDirectiveLabel,
-                  initialData: payload.matrix1dSynthesisDirective,
+                TextFormField(
+                  key: const Key('profile_matrix_2d_directive_field'),
+                  initialValue: payload.matrix2dSynthesisDirective,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileMatrix2dDirectiveLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
                   onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
+                    final trimmed = val.trim();
                     updatePayload(
                       payload.copyWith(
-                        matrix1dSynthesisDirective: isEmpty ? null : val,
+                        matrix2dSynthesisDirective: trimmed.isEmpty
+                            ? null
+                            : trimmed,
                       ),
                     );
                   },
                 ),
                 AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileMatrix2dDirectiveLabel,
-                  initialData: payload.matrix2dSynthesisDirective,
+                TextFormField(
+                  key: const Key('profile_matrix_3d_directive_field'),
+                  initialValue: payload.matrix3dSynthesisDirective,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileMatrix3dDirectiveLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
                   onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
+                    final trimmed = val.trim();
                     updatePayload(
                       payload.copyWith(
-                        matrix2dSynthesisDirective: isEmpty ? null : val,
+                        matrix3dSynthesisDirective: trimmed.isEmpty
+                            ? null
+                            : trimmed,
                       ),
                     );
                   },
                 ),
                 AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileMatrix3dDirectiveLabel,
-                  initialData: payload.matrix3dSynthesisDirective,
+                TextFormField(
+                  key: const Key('profile_matrix_text_directive_field'),
+                  initialValue: payload.matrixTextSynthesisDirective,
+                  decoration: InputDecoration(
+                    labelText: l10n.profileMatrixTextDirectiveLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  maxLines: 4,
                   onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
+                    final trimmed = val.trim();
                     updatePayload(
                       payload.copyWith(
-                        matrix3dSynthesisDirective: isEmpty ? null : val,
-                      ),
-                    );
-                  },
-                ),
-                AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileMatrixTextDirectiveLabel,
-                  initialData: payload.matrixTextSynthesisDirective,
-                  onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
-                    updatePayload(
-                      payload.copyWith(
-                        matrixTextSynthesisDirective: isEmpty ? null : val,
-                      ),
-                    );
-                  },
-                ),
-                AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileRowExplanationDirectiveLabel,
-                  initialData: payload.rowExplanationDirective,
-                  onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
-                    updatePayload(
-                      payload.copyWith(
-                        rowExplanationDirective: isEmpty ? null : val,
-                      ),
-                    );
-                  },
-                ),
-                AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileXaiSynthesisDirectiveLabel,
-                  initialData: payload.xaiSynthesisDirective,
-                  onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
-                    updatePayload(
-                      payload.copyWith(
-                        xaiSynthesisDirective: isEmpty ? null : val,
-                      ),
-                    );
-                  },
-                ),
-                AppSpacing.h16,
-                I18nTextField(
-                  label: l10n.profileVarianceDirectiveLabel,
-                  initialData: payload.varianceSynthesisDirective,
-                  onChanged: (val) {
-                    final isEmpty =
-                        val.translations.isEmpty ||
-                        val.translations.values.every((v) => v.trim().isEmpty);
-                    updatePayload(
-                      payload.copyWith(
-                        varianceSynthesisDirective: isEmpty ? null : val,
+                        matrixTextSynthesisDirective: trimmed.isEmpty
+                            ? null
+                            : trimmed,
                       ),
                     );
                   },

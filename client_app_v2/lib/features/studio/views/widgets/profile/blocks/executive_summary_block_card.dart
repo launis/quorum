@@ -4,7 +4,6 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
-import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Config card for executiveSummaryBlock with dedicated synthesis directives and length constraint.
@@ -48,16 +47,19 @@ class ExecutiveSummaryBlockCard extends StatelessWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          I18nTextField(
-            label: l10n.profileExecutiveSummaryDirectiveLabel,
-            initialData: payload.executiveSummaryDirective,
+          TextFormField(
+            key: const Key('profile_executive_summary_directive_field'),
+            initialValue: payload.executiveSummaryDirective,
+            maxLines: 4,
+            decoration: InputDecoration(
+              labelText: l10n.profileExecutiveSummaryDirectiveLabel,
+              border: const OutlineInputBorder(),
+            ),
             onChanged: (val) {
-              final isEmpty =
-                  val.translations.isEmpty ||
-                  val.translations.values.every((v) => v.trim().isEmpty);
+              final trimmed = val.trim();
               updatePayload(
                 payload.copyWith(
-                  executiveSummaryDirective: isEmpty ? null : val,
+                  executiveSummaryDirective: trimmed.isEmpty ? null : trimmed,
                 ),
               );
             },
@@ -69,7 +71,7 @@ class ExecutiveSummaryBlockCard extends StatelessWidget {
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: InputDecoration(
               labelText: l10n.profileSynthesisLengthLabel,
-              hintText: 'esim. 1000 merkkiä',
+              hintText: l10n.profileSynthesisLengthHint,
               border: const OutlineInputBorder(),
               isDense: true,
             ),

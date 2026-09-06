@@ -14,8 +14,10 @@ void main() {
     required MatrixSynthesisGroup group,
     required ValueChanged<MatrixSynthesisGroup> onUpdate,
     required List<PromptBlock> blocks,
+    Locale locale = const Locale('fi'),
   }) {
     return MaterialApp(
+      locale: locale,
       localizationsDelegates: const [
         AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
@@ -181,5 +183,80 @@ void main() {
         expect(currentGroup.targetBlocks, ['blk_mat_1']);
       },
     );
+
+    testWidgets('Unselected FilterChips are disabled when max quota is reached', (
+      tester,
+    ) async {
+      MatrixSynthesisGroup currentGroup = MatrixSynthesisGroup(
+        id: 'grp_test',
+        title: const I18nText(translations: {'en': 'Test Group'}),
+        targetBlocks: ['blk_mat_1', 'blk_mat_2'],
+        viewType: PresetView.compare2d,
+      );
+
+      await tester.pumpWidget(
+        buildTestableWidget(
+          group: currentGroup,
+          onUpdate: (updated) => currentGroup = updated,
+          blocks: allBlocks,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 / 2 valittu'), findsOneWidget);
+
+      // Verify Matrix 3 FilterChip is disabled (onSelected is null)
+      final chipFinder = find.widgetWithText(FilterChip, 'Matrix 3 (blk_mat_3)');
+      expect(chipFinder, findsOneWidget);
+      final FilterChip chipWidget = tester.widget(chipFinder);
+      expect(chipWidget.onSelected, isNull);
+    });
+
+    testWidgets('Move up and move down callbacks trigger properly', (tester) async {
+      bool movedUp = false;
+      bool movedDown = false;
+
+      final group = MatrixSynthesisGroup(
+        id: 'grp_test',
+        title: const I18nText(translations: {'en': 'Test Group'}),
+        targetBlocks: ['blk_mat_1'],
+        viewType: PresetView.metrics1d,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [Locale('en'), Locale('fi')],
+          home: Scaffold(
+            body: MatrixGraphItemEditor(
+              index: 1,
+              group: group,
+              onUpdate: (_) {},
+              onDelete: () {},
+              allowedBlockIds: const {},
+              promptBlocksState: AsyncValue.data(allBlocks),
+              onMoveUp: () => movedUp = true,
+              onMoveDown: () => movedDown = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap move up
+      await tester.tap(find.byIcon(Icons.arrow_upward));
+      await tester.pumpAndSettle();
+      expect(movedUp, isTrue);
+
+      // Tap move down
+      await tester.tap(find.byIcon(Icons.arrow_downward));
+      await tester.pumpAndSettle();
+      expect(movedDown, isTrue);
+    });
   });
 }
