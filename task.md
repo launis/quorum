@@ -17,13 +17,13 @@
 Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ae970c14-42ca-4c7c-8448-845d85a77ea7\implementation_plan.md]
 
 ## Pre-Flight Checklist (<constraint> tags)
-- [ ] Constraint: `feature_sovereignty_mandate` - Preserve all cognitive features, metrics, and matrix metadata.
-- [ ] Constraint: `the_zero_compromise_pledge` - Strict Pydantic V2 / Freezed schemas with extra='forbid' and zero naked dicts.
-- [ ] Constraint: `zero_service_layer_fallbacks` - No fallback defaults; log warning and skip empty cosmetic directives without crashing.
-- [ ] Constraint: `tripartite_phase_isolation` - Strict segregation: Phase 1 execution prompts in execution/, cross-phase in common/, Phase 2 in synthesis/.
-- [ ] Constraint: `backwards_compat_barrel_reexport` - common/__init__.py must re-export relocated execution symbols for 1-hop callers.
-- [ ] Constraint: `two_stage_testing` - Run isolated unit tests first, then backend_audit_loop and flutter_audit_loop.
-- [ ] Constraint: `step_by_step_mode` - Stop after each cohesive milestone and request user approval before proceeding.
+- [x] Constraint: `feature_sovereignty_mandate` - Preserve all cognitive features, metrics, and matrix metadata.
+- [x] Constraint: `the_zero_compromise_pledge` - Strict Pydantic V2 / Freezed schemas with extra='forbid' and zero naked dicts.
+- [x] Constraint: `zero_service_layer_fallbacks` - No fallback defaults; log warning and skip empty cosmetic directives without crashing.
+- [x] Constraint: `tripartite_phase_isolation` - Strict segregation: Phase 1 execution prompts in execution/, cross-phase in common/, Phase 2 in synthesis/.
+- [x] Constraint: `backwards_compat_barrel_reexport` - common/__init__.py must re-export relocated execution symbols for 1-hop callers.
+- [x] Constraint: `two_stage_testing` - Run isolated unit tests first, then backend_audit_loop and flutter_audit_loop.
+- [x] Constraint: `step_by_step_mode` - Stop after each cohesive milestone and request user approval before proceeding.
 
 ## Execution Tasks
 

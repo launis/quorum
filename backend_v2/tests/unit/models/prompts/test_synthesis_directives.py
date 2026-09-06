@@ -1,6 +1,5 @@
 """Unit tests for synthesis prompt directives and factory defaults."""
 
-import xml.etree.ElementTree as ET
 
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.prompts.synthesis.synthesis_directives import (

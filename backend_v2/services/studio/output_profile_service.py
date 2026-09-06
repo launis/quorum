@@ -7,8 +7,9 @@ import logging
 from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import I18nText, generate_opaque_id
-from backend_v2.models.enums import EntityPrefix, TargetBlockType
+from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.enums import EntityPrefix
+from backend_v2.models.v2_core import OutputProfile
 from backend_v2.services.factories.output_profile_factory import build_draft_output_profile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
@@ -177,7 +178,10 @@ class StudioOutputProfileService:
         """
         workflows = await self.workflow_service.list_workflows(initiator)
         if not workflows:
-            msg = f"No workflows available to associate with new OutputProfile for organization '{initiator.organization_id}'."
+            msg = (
+                f"No workflows available to associate with new OutputProfile for organization "
+                f"'{initiator.organization_id}'."
+            )
             logger.error("[StudioOutputProfileService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise ResourceNotFoundError(resource_type="workflow", resource_id="primary_default")
         target_wf = workflows[0]
