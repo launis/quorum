@@ -38,6 +38,7 @@ from backend_v2.models.domain.prompt_blocks import (
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
+    LlmSduiBlock,
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
     MatrixExplanationsResult,
@@ -61,14 +62,12 @@ from backend_v2.models.prompts import (
     EXECUTIVE_SUMMARY_SECTION_ID,
     GLOBAL_MANDATES_XML,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
+    STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
     SYNTHESIS_XAI_CURATION,
-    VARIANCE_EXPLANATION_DIRECTIVE,
-    XAI_EXPLANATIONS_DIRECTIVE,
-    SynthesisPromptRegistry,
-    build_linguistic_context,
+    build_linguistic_parameters,
 )
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TombstoneEvent, TraceEvent
 from backend_v2.models.v2_core import (
@@ -82,11 +81,11 @@ from backend_v2.models.v2_core import (
     Workflow,
     WorkflowInputs,
 )
-from backend_v2.models.view.sdui import AnySduiBlock
+from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.blueprint import BlueprintTransformer
+from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
@@ -1041,9 +1040,7 @@ async def generate_profile_synthesis_and_pdf_task(
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
                 # sys_prompt MUST remain 100% static for cache prefix survival
-                sys_prompt = (
-                    f"{DEFAULT_SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}"
-                )
+                sys_prompt = f"{DEFAULT_SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                 # Dynamic context parts injected into user message <dynamic_context>
                 base_dynamic_parts: list[str] = [
@@ -1051,12 +1048,8 @@ async def generate_profile_synthesis_and_pdf_task(
                     DEFAULT_COACHING_TONE_MANDATE,
                     SYNTHESIS_CITATION_RULES_HARVARD,
                 ]
-                lang_ctx = build_linguistic_context(
-                    source_language="Unknown", target_locale=accept_language, include_mandate=True
-                )
-                base_dynamic_parts.append(lang_ctx)
-
-                compiler = PromptCompiler()
+                lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
+                base_dynamic_parts.append(lang_params)
 
                 if active_profile_dto and active_profile_dto.synthesis_length_constraint:
                     base_dynamic_parts.append(
@@ -1064,7 +1057,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                 if active_profile_dto and active_profile_dto.tone_instruction:
-                    tone = compiler.resolve_i18n(active_profile_dto.tone_instruction, accept_language)
+                    tone = active_profile_dto.tone_instruction.strip()
                     if tone:
                         base_dynamic_parts.append(f"<tone_instruction>{tone}</tone_instruction>")
 
@@ -1077,13 +1070,24 @@ async def generate_profile_synthesis_and_pdf_task(
                 # 1. Dedicated Executive Summary task
                 if active_profile_dto is None or active_profile_dto.requires_executive_synthesis:
                     exec_directive = None
-                    if active_profile_dto and active_profile_dto.executive_summary_directive:
-                        exec_directive = compiler.resolve_i18n(
-                            active_profile_dto.executive_summary_directive, accept_language
-                        )
+                    if active_profile_dto:
+                        if (
+                            not active_profile_dto.executive_summary_directive
+                            or not active_profile_dto.executive_summary_directive.strip()
+                        ):
+                            raise AppException(
+                                message=f"OutputProfile '{active_profile_dto.id}' is missing required executive_summary_directive.",
+                                status_code=400,
+                                details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                            )
+                        exec_directive = active_profile_dto.executive_summary_directive.strip()
 
                     if exec_directive:
                         exec_dynamic_parts = list(base_dynamic_parts)
+                        if active_profile_dto and active_profile_dto.synthesis_length_constraint:
+                            exec_dynamic_parts.append(
+                                f"<section_budget>{active_profile_dto.synthesis_length_constraint}</section_budget>"
+                            )
                         exec_section_rule = (
                             f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
                             f"{exec_directive}\n"
@@ -1123,30 +1127,29 @@ async def generate_profile_synthesis_and_pdf_task(
                         grp_id = grp.id
                         grp_title = grp.title.resolve(language) if grp.title else grp_id
 
-                        directive_i18n = None
+                        directive_content = None
                         match grp.view_type:
                             case PresetView.METRICS_1D | "1d_metrics":
-                                directive_i18n = active_profile_dto.matrix_1d_synthesis_directive
+                                directive_content = active_profile_dto.matrix_1d_synthesis_directive
                             case PresetView.COMPARE_2D | "2d_compare":
-                                directive_i18n = active_profile_dto.matrix_2d_synthesis_directive
+                                directive_content = active_profile_dto.matrix_2d_synthesis_directive
                             case PresetView.MATRIX_3D | "3d_matrix":
-                                directive_i18n = active_profile_dto.matrix_3d_synthesis_directive
+                                directive_content = active_profile_dto.matrix_3d_synthesis_directive
                             case PresetView.TEXT_ONLY | "text_only":
-                                directive_i18n = active_profile_dto.matrix_text_synthesis_directive
+                                directive_content = active_profile_dto.matrix_text_synthesis_directive
+                            case _:
+                                directive_content = None
 
-                        directive_content = None
-                        if directive_i18n:
-                            directive_content = compiler.resolve_i18n(directive_i18n, accept_language)
-
-                        if not directive_content:
-                            logger.warning(
-                                "[generate_profile_synthesis_and_pdf_task] Matrix synthesis group '%s' ('%s') with view_type '%s' has no corresponding synthesis directive in OutputProfile '%s'. Skipping group synthesis.",
-                                grp_id,
-                                grp_title,
-                                grp.view_type,
-                                active_profile_dto.id,
+                        if not directive_content or not directive_content.strip():
+                            raise AppException(
+                                message=(
+                                    f"OutputProfile '{active_profile_dto.id}' is missing required matrix synthesis directive "
+                                    f"for view_type '{grp.view_type}' (group '{grp_id}')."
+                                ),
+                                status_code=400,
+                                details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
                             )
-                            continue
+                        directive_content = directive_content.strip()
 
                         target_titles = []
                         if grp.target_blocks:
@@ -1201,13 +1204,17 @@ async def generate_profile_synthesis_and_pdf_task(
                         wf_exts.extend(active_profile_dto.visible_block_extensions)
                     wf_exts = list(dict.fromkeys(wf_exts))
                     req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
-                    xai_directive_str = None
-                    if active_profile_dto.xai_synthesis_directive:
-                        xai_directive_str = compiler.resolve_i18n(
-                            active_profile_dto.xai_synthesis_directive, accept_language
+
+                    if (
+                        not active_profile_dto.xai_synthesis_directive
+                        or not active_profile_dto.xai_synthesis_directive.strip()
+                    ):
+                        raise AppException(
+                            message=f"OutputProfile '{active_profile_dto.id}' is missing required xai_synthesis_directive.",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
                         )
-                    if not xai_directive_str:
-                        xai_directive_str = XAI_EXPLANATIONS_DIRECTIVE
+                    xai_directive_str = active_profile_dto.xai_synthesis_directive.strip()
 
                     xai_cur = (
                         f"{xai_directive_str}\n\n"
@@ -1215,6 +1222,10 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                     xai_dynamic_parts = list(base_dynamic_parts)
+                    if active_profile_dto.xai_length_constraint:
+                        xai_dynamic_parts.append(
+                            f"<section_budget>{active_profile_dto.xai_length_constraint}</section_budget>"
+                        )
                     xai_dynamic_parts.append(xai_cur)
                     xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
 
@@ -1238,21 +1249,38 @@ async def generate_profile_synthesis_and_pdf_task(
 
             if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
                 client = await LLMClient.from_strategy("strict", repository=repo)
-                row_sys_prompt = DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT
+                row_sys_prompt = f"{DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
-                row_lang_ctx = build_linguistic_context(
-                    source_language="Unknown", target_locale=accept_language, include_mandate=True
-                )
-                row_directive_str = None
-                if active_profile_dto and active_profile_dto.row_explanation_directive:
-                    row_directive_str = compiler.resolve_i18n(
-                        active_profile_dto.row_explanation_directive, accept_language
+                row_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
+                if active_profile_dto:
+                    if (
+                        not active_profile_dto.row_explanation_directive
+                        or not active_profile_dto.row_explanation_directive.strip()
+                    ):
+                        raise AppException(
+                            message=f"OutputProfile '{active_profile_dto.id}' is missing required row_explanation_directive.",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
+                        )
+                    row_directive_str = active_profile_dto.row_explanation_directive.strip()
+                else:
+                    raise AppException(
+                        message="Cannot synthesize row explanations without an active OutputProfile.",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
                     )
-                if not row_directive_str:
-                    row_directive_str = SynthesisPromptRegistry.get_row_explanation_directive()
-                row_dynamic_ctx = (
-                    f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{row_lang_ctx}\n\n{row_directive_str}"
-                )
+
+                row_dynamic_parts = [
+                    GLOBAL_MANDATES_XML,
+                    DEFAULT_COACHING_TONE_MANDATE,
+                    row_lang_params,
+                    row_directive_str,
+                ]
+                if active_profile_dto and active_profile_dto.row_explanation_length_constraint:
+                    row_dynamic_parts.append(
+                        f"<section_budget>{active_profile_dto.row_explanation_length_constraint}</section_budget>"
+                    )
+                row_dynamic_ctx = "\n\n".join(row_dynamic_parts)
 
                 row_messages: list[dict[str, Any]] = [
                     {"role": "system", "content": row_sys_prompt},
@@ -1369,20 +1397,33 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                     client_var = await LLMClient.from_strategy("strict", repository=repo)
-                    var_sys_prompt = DEFAULT_VARIANCE_SYSTEM_PROMPT
+                    var_sys_prompt = f"{DEFAULT_VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
-                    var_lang_ctx = build_linguistic_context(
-                        source_language="Unknown", target_locale=accept_language, include_mandate=True
+                    var_lang_params = build_linguistic_parameters(
+                        source_language="Unknown", target_locale=accept_language
                     )
-                    var_directive_str = None
-                    if active_profile_dto and active_profile_dto.variance_synthesis_directive:
-                        var_directive_str = compiler.resolve_i18n(
-                            active_profile_dto.variance_synthesis_directive, accept_language
+                    if (
+                        not active_profile_dto.variance_synthesis_directive
+                        or not active_profile_dto.variance_synthesis_directive.strip()
+                    ):
+                        raise AppException(
+                            message=f"OutputProfile '{active_profile_dto.id}' is missing required variance_synthesis_directive.",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.OUTPUT_PROFILE_INCOMPLETE.value},
                         )
-                    if not var_directive_str:
-                        var_directive_str = VARIANCE_EXPLANATION_DIRECTIVE
+                    var_directive_str = active_profile_dto.variance_synthesis_directive.strip()
 
-                    var_dynamic_ctx = f"{GLOBAL_MANDATES_XML}\n\n{DEFAULT_COACHING_TONE_MANDATE}\n\n{var_lang_ctx}\n\n{var_directive_str}"
+                    var_dynamic_parts = [
+                        GLOBAL_MANDATES_XML,
+                        DEFAULT_COACHING_TONE_MANDATE,
+                        var_lang_params,
+                        var_directive_str,
+                    ]
+                    if active_profile_dto.variance_length_constraint:
+                        var_dynamic_parts.append(
+                            f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>"
+                        )
+                    var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
 
                     var_messages: list[dict[str, Any]] = [
                         {"role": "system", "content": var_sys_prompt},
@@ -1413,9 +1454,17 @@ async def generate_profile_synthesis_and_pdf_task(
             exec_res, usage = t_exec_summary.result()
             exec_dto = exec_res
             if exec_dto and exec_dto.executive_summary:
-                sec_dict[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value] = cast(
-                    list[AnySduiBlock], exec_dto.executive_summary
-                )
+                summary_blocks = exec_dto.executive_summary
+                if active_profile_dto and active_profile_dto.synthesis_length_constraint:
+                    budget = active_profile_dto.synthesis_length_constraint
+                    budgeted_blocks: list[LlmSduiBlock] = []
+                    for blk in summary_blocks:
+                        if isinstance(blk, ParagraphBlock) and len(blk.text) > budget:
+                            blk = blk.model_copy(update={"text": enforce_sentence_boundary_budget(blk.text, budget)})
+                        budgeted_blocks.append(blk)
+                    summary_blocks = budgeted_blocks
+                    exec_dto = exec_dto.model_copy(update={"executive_summary": summary_blocks})
+                sec_dict[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value] = cast(list[AnySduiBlock], summary_blocks)
             if usage:
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
@@ -1439,6 +1488,14 @@ async def generate_profile_synthesis_and_pdf_task(
             xai_res, usage = t_xai.result()
             if xai_res and isinstance(xai_res, XaiHighlightsResult):
                 xai_highlights_list = xai_res.xai_highlights
+                if active_profile_dto and active_profile_dto.xai_length_constraint:
+                    xai_budget = active_profile_dto.xai_length_constraint
+                    xai_highlights_list = [
+                        item.model_copy(update={"content": enforce_sentence_boundary_budget(item.content, xai_budget)})
+                        if len(item.content) > xai_budget
+                        else item
+                        for item in xai_highlights_list
+                    ]
             if usage:
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
@@ -1455,6 +1512,11 @@ async def generate_profile_synthesis_and_pdf_task(
         if t_variance and t_variance.result():
             var_dto, usage = t_variance.result()
             variance_expl = var_dto.row_explanation
+            if variance_expl and active_profile_dto and active_profile_dto.variance_length_constraint:
+                if len(variance_expl) > active_profile_dto.variance_length_constraint:
+                    variance_expl = enforce_sentence_boundary_budget(
+                        variance_expl, active_profile_dto.variance_length_constraint
+                    )
             if usage:
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
@@ -1480,6 +1542,17 @@ async def generate_profile_synthesis_and_pdf_task(
                 else:
                     # Fail-Fast protection: If the LLM omits a matrix, provide a fallback to prevent pipeline crash
                     expl = " - "
+
+                if (
+                    expl
+                    and expl.strip() not in {"-", " - "}
+                    and active_profile_dto
+                    and active_profile_dto.row_explanation_length_constraint
+                ):
+                    if len(expl) > active_profile_dto.row_explanation_length_constraint:
+                        expl = enforce_sentence_boundary_budget(
+                            expl, active_profile_dto.row_explanation_length_constraint
+                        )
 
                 cache_row_explanations[real_id] = expl
 

@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
+from backend_v2.models.prompts.common import DESC_CONTEXTUAL_OVERRIDE, DESC_EXACT_QUOTES
 
 
 class BaseExtractionDTO(V2CoreBase):

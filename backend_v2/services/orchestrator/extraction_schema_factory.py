@@ -11,7 +11,7 @@ from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
-from backend_v2.models.prompts.field_prompts import DESC_CONTEXTUAL_OVERRIDE
+from backend_v2.models.prompts.common import DESC_CONTEXTUAL_OVERRIDE
 
 
 class ExtractedFactsDTOBase(BaseModel):

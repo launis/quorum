@@ -1,15 +1,23 @@
-"""SDUI structural and layout-routing prompt mandates.
+"""SDUI structural and layout-routing prompt mandates (Synthesis Layer).
 
 Single Source of Truth (SSOT) for structural presentation rules, allowed block discriminators,
 section placement instructions, and historical context state isolation.
 """
 
 __all__ = [
+    "SDUI_BLOCK_STRUCTURE_MANDATE",
     "SDUI_SYNTHESIS_MANDATE_BLOCK",
     "SECTION_SYNTHESIS_DIRECTIVE_BLOCK",
     "STATE_ISOLATION_BLOCK",
     "SYNTHESIS_SDUI_MANDATES",
 ]
+
+SDUI_BLOCK_STRUCTURE_MANDATE: str = (
+    "<sdui_block_structure_mandate>\n"
+    "- UNIVERSAL SDUI PRESENTATION RULE: Structure all report findings directly as Server-Driven UI (SDUI) blocks.\n"
+    "- Format each analytical observation into an allowed block type ('paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card').\n"
+    "</sdui_block_structure_mandate>"
+)
 
 SYNTHESIS_SDUI_MANDATES: str = (
     "<sdui_mandate>\n"
@@ -23,8 +31,6 @@ SYNTHESIS_SDUI_MANDATES: str = (
     "text fields. The UI will render text structurally.\n"
     "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
     "integers in the `citations: list[int]` field for each block that uses sources.\n"
-    "- USER ROLE EXTRACTION (CRITICAL): You MUST deduce the user's role (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT) and output it EXACTLY as the uppercase enum constant in the JSON field `user_role`. Provide reasoning in `user_role_justification`.\n"
-    "- ROLE TRANSLATION: Do NOT translate role constants. Output them exactly as they are so the UI can translate and format them.\n"
     "</sdui_mandate>"
 )
 

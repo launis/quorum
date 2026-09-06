@@ -20,8 +20,11 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+from backend_v2.models.prompts.common import (
+    GLOBAL_MANDATES_XML,
+    STATIC_LINGUISTIC_PROTOCOL,
+    build_linguistic_parameters,
+)
 from backend_v2.services.orchestrator.strategies.llm_execution.execution_time_resolver import (
     ExecutionTimeResolver,
 )
@@ -117,7 +120,7 @@ class PromptFactory:
             anchors_xml = anchors_payload.to_xml()
 
         # Layer 1: Global Mandates static caching prefix
-        base_system_prompt = GLOBAL_MANDATES_XML.strip()
+        base_system_prompt = f"{GLOBAL_MANDATES_XML.strip()}\n\n{STATIC_LINGUISTIC_PROTOCOL.strip()}"
 
         # Persona instruction or fallback base instruction (Phase 8 pattern matching)
         persona = "You are a highly accurate, structured evaluation assistant."
@@ -158,10 +161,10 @@ class PromptFactory:
             base_system_prompt += f"\n\n{mcp_instruction}"
 
         # Dynamic user payload (Layer 4 / dynamic inputs isolated at tail)
-        linguistic_ctx = build_linguistic_context(target_locale=target_locale, include_mandate=True)
+        linguistic_params = build_linguistic_parameters(target_locale=target_locale)
 
         exec_params = f"<execution_context>\n<target_locale>{target_locale}</target_locale>\n"
-        exec_params += f"{linguistic_ctx}\n"
+        exec_params += f"{linguistic_params}\n"
         if execution_time:
             exec_params += f"<document_date>{execution_time}</document_date>\n"
         if anchors_xml:

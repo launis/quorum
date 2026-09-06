@@ -9,7 +9,6 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.prompts.linguistic_directives import DESC_TRANSLATION_MANDATE
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,
@@ -57,7 +56,7 @@ class XaiHighlightItem(V2CoreBase):
     ]
     content: Annotated[
         str,
-        Field(description=f"The synthesized, deduplicated insight or tip. Max 2 sentences. {DESC_TRANSLATION_MANDATE}"),
+        Field(description="The synthesized, deduplicated insight or tip. Max 2 sentences."),
     ]
 
 
@@ -98,7 +97,7 @@ class SynthesisRowExplanationDTO(V2CoreBase):
     matrix_id: Annotated[str, Field(description="The ID of the matrix")]
     row_explanation: Annotated[
         str,
-        Field(description=f"The ultra-short synthesized explanation. {DESC_TRANSLATION_MANDATE}"),
+        Field(description="The ultra-short synthesized explanation."),
     ]
     curated_quotes: Annotated[
         list[str],
@@ -140,15 +139,15 @@ class ExecutiveSummarySectionResult(V2CoreBase):
     user_role: Annotated[
         str,
         Field(
-            description=f"Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). {DESC_TRANSLATION_MANDATE}",
+            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
         ),
     ]
     user_role_justification: Annotated[
-        str, Field(description=f"LLM justification for role mapping. {DESC_TRANSLATION_MANDATE}")
+        str, Field(description="LLM justification for role mapping.")
     ]
     cited_sources: Annotated[
         list[str],
-        Field(default_factory=list, description=f"List of references or citations found. {DESC_TRANSLATION_MANDATE}"),
+        Field(default_factory=list, description="List of references or citations found."),
     ]
     executive_summary: Annotated[
         list[LlmSduiBlock],
@@ -214,16 +213,16 @@ class SynthesisOutputDTO(V2CoreBase):
     user_role: Annotated[
         str,
         Field(
-            description=f"Extracted targeted user role for the output (e.g. ROLE_ARCHITECT). {DESC_TRANSLATION_MANDATE}",
+            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
         ),
     ]
     user_role_justification: Annotated[
-        str, Field(description=f"LLM justification for role mapping. {DESC_TRANSLATION_MANDATE}")
+        str, Field(description="LLM justification for role mapping.")
     ]
 
     cited_sources: Annotated[
         list[str],
-        Field(default_factory=list, description=f"List of references or citations found. {DESC_TRANSLATION_MANDATE}"),
+        Field(default_factory=list, description="List of references or citations found."),
     ]
     section_syntheses: Annotated[
         list[SynthesisSectionDTO],

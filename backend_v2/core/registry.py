@@ -19,7 +19,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.field_prompts import (
+from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
     DESC_EXACT_QUOTES,

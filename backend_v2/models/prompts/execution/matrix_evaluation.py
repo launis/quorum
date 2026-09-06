@@ -1,4 +1,7 @@
-"""Prompt definitions for Matrix Evaluation (Phase 5 Sensor Re-Architecture)."""
+"""Prompt definitions for Matrix Evaluation (Execution Layer).
+
+Sensor Decision Protocol and Contextual Override Directives.
+"""
 
 __all__ = [
     "CONTEXTUAL_OVERRIDE_DIRECTIVE",

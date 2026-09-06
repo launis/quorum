@@ -1,12 +1,13 @@
-"""Tone, style, and qualitative coaching behavioral prompt directives.
+"""Tone, style, and qualitative coaching behavioral prompt directives (Synthesis Layer).
 
 Single Source of Truth (SSOT) for Senior Executive Coach tone instructions,
-anti-jargon guidelines, sparse data handling, and citation rules.
+anti-jargon guidelines, sparse data handling, and presentation posture.
 """
 
 __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
     "DEFAULT_COACHING_TONE_MANDATE",
+    "SDUI_BLOCK_STRUCTURE_MANDATE",
     "SPARSE_DATA_SYNTHESIS_MANDATE",
     "SYNTHESIS_CITATION_RULES",
     "SYNTHESIS_CITATION_RULES_HARVARD",
@@ -39,6 +40,13 @@ SPARSE_DATA_SYNTHESIS_MANDATE: str = (
     "- Do NOT invent narrative filler, do NOT guess, and do NOT generate generic consultant advice.\n"
     "- If a matrix dimension or report section lacks observations, output an empty structure according to schema.\n"
     "</sparse_data_synthesis_mandate>"
+)
+
+SDUI_BLOCK_STRUCTURE_MANDATE: str = (
+    "<sdui_block_structure_mandate>\n"
+    "- UNIVERSAL SDUI PRESENTATION RULE: Structure all report findings directly as Server-Driven UI (SDUI) blocks.\n"
+    "- Format each analytical observation into an allowed block type ('paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card').\n"
+    "</sdui_block_structure_mandate>"
 )
 
 SYNTHESIS_LENGTH_CONSTRAINT: str = (

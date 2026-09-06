@@ -248,6 +248,18 @@ class Settings(BaseSettings):
     schema_max_localized_anchors: Annotated[int, Field(description="Max localized anchors")] = 15
     schema_max_quotes_target: Annotated[int, Field(description="Target quotes count")] = 5
     schema_max_quote_length: Annotated[int, Field(description="Target quote length")] = 150
+    default_synthesis_length_constraint: Annotated[
+        int, Field(description="Default character length constraint for Executive Summary.")
+    ] = 1000
+    default_row_explanation_length_constraint: Annotated[
+        int, Field(description="Default character length constraint for Matrix Summary Table rows.")
+    ] = 250
+    default_xai_length_constraint: Annotated[
+        int, Field(description="Default character length constraint for XAI Highlight items.")
+    ] = 300
+    default_variance_length_constraint: Annotated[
+        int, Field(description="Default character length constraint for Variance Validation.")
+    ] = 500
 
     llm_max_retries: Annotated[int, Field(description="Dynamic retries based on execution mode")] = 2
     ensemble_parallelism: Annotated[int, Field(description="Dynamic parallel BoX calls based on execution mode")] = 3

@@ -448,7 +448,7 @@ class LLMNodeStrategy(NodeStrategy):
         if output_profile:
             exec_params = ["\n<execution_parameters>"]
             if output_profile.tone_instruction:
-                tone = output_profile.tone_instruction.resolve(target_locale)
+                tone = output_profile.tone_instruction.strip()
                 if tone:
                     exec_params.append(f"  <tone_instruction>{tone}</tone_instruction>")
             if output_profile.matrix_synthesis_groups:

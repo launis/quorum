@@ -16753,7 +16753,7 @@
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": false,
-      "instruction_text": "SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\nALLOWED SDUI BLOCKS: 'ParagraphBlock', 'BulletListBlock', 'AlertBlock', 'QuoteBlock'. NO OTHER TYPES ARE ALLOWED.\nNO RECURSION: Nested blocks inside blocks are strictly banned.\nNO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.\nCITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.\nXAI HIGHLIGHTS CURATION: Review the XML block. Synthesize and combine all insights across all inputs for each extension category. Create up to {{ max_extensions }} MOST CRITICAL items for each individual category (meaning up to {{ max_extensions }} items of type 'justification', up to {{ max_extensions }} items of type 'coaching', etc.). The total length of the `xai_highlights` array may be up to `max_extension_items * number_of_categories`. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\nOmit internal system identifiers or raw JSON keys. When referring to information, use inline numerical tags like [1], [2].\nCRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using it.\nSTATE ISOLATION MANDATE: If is provided, use it ONLY to understand the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, or report on the substantive topics, subjects, or domains discussed in the historical context. Your output must be STRICTLY based on the current ."
+      "instruction_text": "SDUI POLYMORPHIC SYNTHESIS MANDATE: You must structure your entire response by mapping your output directly into the section_syntheses dictionary according to the requested layout IDs.\nALLOWED SDUI BLOCKS: 'paragraph', 'bullet_list', 'alert_box', 'quote_card', 'warning_card'. NO OTHER TYPES ARE ALLOWED.\nNO RECURSION: Nested blocks inside blocks are strictly banned.\nNO MARKDOWN: Do not use markdown syntax (like **bold**, *italic*, # headers) inside text fields. The UI will render text structurally.\nCITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of integers in the `citations: list[int]` field for each block that uses sources.\nXAI HIGHLIGHTS CURATION: Synthesize and combine all insights across all inputs for each extension category. Create up to {{ max_extensions }} MOST CRITICAL items for each individual category. Format them as objects in the `xai_highlights` array, ensuring each has an `extension_type` and `content`. Make each item's content an ultra-short, punchy bullet point (max 1 sentence).\nOmit internal system identifiers or raw JSON keys. When referring to information, use inline numerical tags like [1], [2].\nCRITICAL RULE FOR CITATIONS: The numbers in your inline tags MUST perfectly correspond to the items in the `cited_sources` list (1-indexed). ONLY create a numerical citation tag AND add an entry to `cited_sources` if the source is an actual literary reference, empirical citation, methodology framework, or external document (e.g., 'Toulmin 2003', 'Sitra Report'). DO NOT use citation tags for general analysis sections, step titles, or internal data dumps. If you mention internal findings, state them directly without using it.\nSTATE ISOLATION MANDATE: If historical context is provided, use it ONLY to understand the user's past trajectory, growth, or recurring blind spots. YOU MUST NOT synthesize, summarize, or report on the substantive topics, subjects, or domains discussed in the historical context. Your output must be STRICTLY based on the current context."
     },
     {
       "id": "blk_34def5d628ba4ed4",
@@ -18189,61 +18189,19 @@
           "fi": "**Raportti tekoälytaidoistasi**\n\nTämä raportti analysoi tapaasi hyödyntää tekoälyä ja auttaa sinua kehittymään sen strategiseksi ohjaajaksi. Arvioinnissa keskitytään kolmeen osa-alueeseen:\n\n- **Oivalluskyky**: Pureudutko syvälle aiheeseen vai jäätkö pintatasolle?\n- **Logiikka ja päättely**: Miten perustelet väitteesi ja haastat tekoälyn vastauksia?\n- **Luotettavuus**: Miten hallitset prosessia ja sen läpinäkyvyyttä?\n\nAnalyysi perustuu tieteellisiin malleihin (mm. Kahneman, Toulmin ja Popper). Lopussa olevan pisteytyksen avulla voit tunnistaa vahvuutesi ja rakentaa itsellesi tavoitteellisen kehityspolun."
         }
       },
-      "tone_instruction": {
-        "translations": {
-          "en": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
-          "fi": "Toimi ylemmän johdon valmentajana (Senior Executive Coach). Tarjoa syvällistä, provosoivaa ja strategista analyysiä pelkän datan luettelemisen sijaan."
-        }
-      },
-      "executive_summary_directive": {
-        "translations": {
-          "en": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs using SDUI ParagraphBlocks.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.",
-          "fi": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs using SDUI ParagraphBlocks.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data."
-        }
-      },
-      "matrix_1d_synthesis_directive": {
-        "translations": {
-          "en": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.\n- Structure your findings directly as SDUI blocks.",
-          "fi": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.\n- Structure your findings directly as SDUI blocks."
-        }
-      },
-      "matrix_2d_synthesis_directive": {
-        "translations": {
-          "en": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.\n- Structure your findings directly as SDUI blocks.",
-          "fi": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.\n- Structure your findings directly as SDUI blocks."
-        }
-      },
-      "matrix_3d_synthesis_directive": {
-        "translations": {
-          "en": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all evaluated dimensions in the radar geometry.\n- Synthesize macro patterns, capability imbalances, and systemic maturity.\n- Structure your findings directly as SDUI blocks.",
-          "fi": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all evaluated dimensions in the radar geometry.\n- Synthesize macro patterns, capability imbalances, and systemic maturity.\n- Structure your findings directly as SDUI blocks."
-        }
-      },
-      "matrix_text_synthesis_directive": {
-        "translations": {
-          "en": "TEXT SYNTHESIS MANDATE:\n- Formulate a narrative, qualitative deep-dive synthesis based on the textual evidence and qualitative observations.\n- Highlight nuances, contextual subtleties, and qualitative coaching takeaways.\n- Structure your findings directly as SDUI blocks.",
-          "fi": "TEXT SYNTHESIS MANDATE:\n- Formulate a narrative, qualitative deep-dive synthesis based on the textual evidence and qualitative observations.\n- Highlight nuances, contextual subtleties, and qualitative coaching takeaways.\n- Structure your findings directly as SDUI blocks."
-        }
-      },
-      "row_explanation_directive": {
-        "translations": {
-          "en": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground the explanation directly in the verified quotes and concrete textual evidence.\n- Explain why the score is justified based on the presence or absence of core criteria.",
-          "fi": "RIVIRAPORTOINNIN OHJEISTUS:\n- Muotoile selkeä ja tiivis kausaalinen perustelu kullekin arvioidulle matriisiriville annetulle pisteytykselle.\n- Ankkuroi selitys suoraan todennettuihin lainauksiin ja konkreettiseen tekstinäyttöön.\n- Selitä miksi pistemäärä on perusteltu ydinkriteerien täyttymisen tai puuttumisen perusteella."
-        }
-      },
-      "xai_synthesis_directive": {
-        "translations": {
-          "en": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize explainable AI highlights, diagnostic extensions, and remediation recommendations.\n- Highlight actionable development points, key risks, and concrete next steps.\n- Structure your findings directly as SDUI blocks.",
-          "fi": "XAI-LAAJENNUSTEN OHJEISTUS:\n- Tiivistä selitettävän tekoälyn (XAI) kohokohdat, diagnostiset laajennukset ja kehityssuositukset.\n- Korosta konkreettisia kehityskohteita, keskeisiä riskejä ja suositeltavia toimenpiteitä.\n- Muotoile löydökset suoraan SDUI-lohkoina."
-        }
-      },
-      "variance_synthesis_directive": {
-        "translations": {
-          "en": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate the cognitive variance, performativity risk, and authenticity of the analyzed text.\n- Assess whether responses reflect authentic cognitive reasoning versus performative keyword compliance.\n- Provide an objective summary of linguistic signals and authenticity scores.",
-          "fi": "VARIANSSIN JA AITOUDEN ARVIOINTIOHJE:\n- Arvioi analysoidun tekstin kognitiivista varianssia, performatiivisuusriskiä ja aitoutta.\n- Analysoi heijastavatko vastaukset aitoa kognitiivista päättelyä vai pelkkää mekaanista avainsanojen toistoa.\n- Tarjoa objektiivinen tiivistelmä kielellisistä signaaleista ja aitouspisteistä."
-        }
-      },
+      "tone_instruction": "Act as a Senior Executive Coach. Provide deep, provocative, and strategic analysis rather than merely listing data.",
+      "executive_summary_directive": "EXECUTIVE SUMMARY SYNTHESIS MANDATE:\n- Synthesize the high-level findings, systemic implications, and strategic executive coaching advice.\n- Structure the narrative into clear, logical paragraphs.\n- Reference key strengths, vulnerabilities, and strategic focus areas from the evaluated data.",
+      "matrix_1d_synthesis_directive": "1D METRICS SYNTHESIS MANDATE:\n- Focus on individual metric thresholds, isolated strengths, and isolated anomalies.\n- Provide clear, concise analytical takeaway for each evaluated dimension.",
+      "matrix_2d_synthesis_directive": "2D COMPARISON SYNTHESIS MANDATE:\n- Analyze the cross-dimensional interactions, trade-offs, and tensions between the two evaluated axes.\n- Identify systemic correlations, divergence points, and strategic balance.",
+      "matrix_3d_synthesis_directive": "3D RADAR SYNTHESIS MANDATE:\n- Provide a holistic multi-dimensional synthesis across all evaluated dimensions in the radar geometry.\n- Synthesize macro patterns, capability imbalances, and systemic maturity.",
+      "matrix_text_synthesis_directive": "TEXT SYNTHESIS MANDATE:\n- Formulate a narrative, qualitative deep-dive synthesis based on the textual evidence and qualitative observations.\n- Highlight nuances, contextual subtleties, and qualitative coaching takeaways.",
+      "row_explanation_directive": "ROW EXPLANATION SYNTHESIS MANDATE:\n- Formulate a clear, concise causal explanation for the score assigned to each evaluated matrix row.\n- Ground the explanation directly in the verified quotes and concrete textual evidence.\n- Explain why the score is justified based on the presence or absence of core criteria.",
+      "xai_synthesis_directive": "XAI EXTENSIONS SYNTHESIS MANDATE:\n- Synthesize explainable AI highlights, diagnostic extensions, and remediation recommendations.\n- Highlight actionable development points, key risks, and concrete next steps.",
+      "variance_synthesis_directive": "VARIANCE EVALUATION SYNTHESIS MANDATE:\n- Evaluate the cognitive variance, performativity risk, and authenticity of the analyzed text.\n- Assess whether responses reflect authentic cognitive reasoning versus performative keyword compliance.\n- Provide an objective summary of linguistic signals and authenticity scores.",
       "synthesis_length_constraint": 1000,
+      "row_explanation_length_constraint": 250,
+      "xai_length_constraint": 300,
+      "variance_length_constraint": 500,
       "visible_metadata": [
         "date",
         "execution_id",
@@ -18299,7 +18257,7 @@
             "blk_440a5fef9331451b",
             "blk_f921c7c0989b47e8"
           ],
-          "view_type": "1d_metrics"
+          "view_type": "2d_compare"
         },
         {
           "id": "grp_c5804a9143c34cb1",
@@ -18313,7 +18271,7 @@
             "blk_c5804a9143c34cb1",
             "blk_b476f89fb732448c"
           ],
-          "view_type": "1d_metrics"
+          "view_type": "2d_compare"
         },
         {
           "id": "grp_6b8c766185294f7e",
@@ -18327,7 +18285,7 @@
             "blk_6b8c766185294f7e",
             "blk_f6e286f050c94d60"
           ],
-          "view_type": "1d_metrics"
+          "view_type": "2d_compare"
         }
       ],
       "content_blocks": [],

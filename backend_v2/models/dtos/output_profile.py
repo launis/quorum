@@ -76,34 +76,34 @@ class OutputProfileCreateDTO(V2CoreBase):
         ),
     ]
     tone_instruction: Annotated[
-        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
-    ]
+        str | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+    ] = None
     executive_summary_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
     ] = None
     matrix_1d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
     ] = None
     matrix_2d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
     ] = None
     matrix_3d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
     ] = None
     matrix_text_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
     ] = None
     row_explanation_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
     ] = None
     xai_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
     ] = None
     variance_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(
             default=None,
             description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
@@ -179,7 +179,19 @@ class OutputProfileCreateDTO(V2CoreBase):
     ]
     synthesis_length_constraint: Annotated[
         int | None,
-        Field(default=None, description="Optional length constraint for synthesized text."),
+        Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
+    ] = None
+    row_explanation_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each row causal explanation."),
+    ] = None
+    xai_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each XAI extension highlight."),
+    ] = None
+    variance_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
@@ -284,34 +296,34 @@ class OutputProfileUpdateDTO(V2CoreBase):
         ),
     ]
     tone_instruction: Annotated[
-        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
-    ]
+        str | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+    ] = None
     executive_summary_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
     ] = None
     matrix_1d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
     ] = None
     matrix_2d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
     ] = None
     matrix_3d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
     ] = None
     matrix_text_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
     ] = None
     row_explanation_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
     ] = None
     xai_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
     ] = None
     variance_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(
             default=None,
             description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
@@ -377,7 +389,19 @@ class OutputProfileUpdateDTO(V2CoreBase):
     ]
     synthesis_length_constraint: Annotated[
         int | None,
-        Field(default=None, description="Optional length constraint for synthesized text."),
+        Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
+    ] = None
+    row_explanation_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each row causal explanation."),
+    ] = None
+    xai_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each XAI extension highlight."),
+    ] = None
+    variance_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=2000, description="Max character length for variance evaluation."),
     ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
@@ -459,25 +483,25 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     description: I18nText | None = None
     custom_preface: I18nText | None = None
     user_role_label: I18nText | None = None
-    tone_instruction: I18nText | None = None
-    executive_summary_directive: I18nText | None = None
-    matrix_1d_synthesis_directive: I18nText | None = None
-    matrix_2d_synthesis_directive: I18nText | None = None
-    matrix_3d_synthesis_directive: I18nText | None = None
+    tone_instruction: str | None = None
+    executive_summary_directive: str | None = None
+    matrix_1d_synthesis_directive: str | None = None
+    matrix_2d_synthesis_directive: str | None = None
+    matrix_3d_synthesis_directive: str | None = None
     matrix_text_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
     ] = None
     row_explanation_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
     ] = None
     xai_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
     ] = None
     variance_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(
             default=None,
             description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
@@ -538,6 +562,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     strictness_level: Literal[85, 100] | None = None
     scoring_strategy: LaxScoringStrategy | None = None
     synthesis_length_constraint: int | None = None
+    row_explanation_length_constraint: int | None = None
+    xai_length_constraint: int | None = None
+    variance_length_constraint: int | None = None
     max_quotes_per_matrix: int | None = None
     max_unmet_criteria: int | None = None
     matrix_synthesis_groups: Annotated[

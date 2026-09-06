@@ -184,25 +184,13 @@ async def test_save_output_profile_invalid_target_component_raises_app_exception
 
 
 @pytest.mark.asyncio
-async def test_create_output_profile_draft_fallback_to_default_workflow_when_no_workflows(
+async def test_create_output_profile_draft_raises_when_no_workflows(
     service: StudioOutputProfileService, mock_workflow_service: AsyncMock
 ) -> None:
-    """Test that when list_workflows returns empty, draft binds to default workflow wf_9d68c573802341db."""
+    """Test that when list_workflows returns empty, draft raises ResourceNotFoundError."""
     initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
-
     mock_workflow_service.list_workflows.return_value = []
-    default_workflow = AsyncMock()
-    default_workflow.id = "wf_9d68c573802341db"
-    default_workflow.steps = []
-    default_workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
-    mock_workflow_service.get_workflow.return_value = default_workflow
-    mock_workflow_service.list_steps.return_value = []
 
-    async def mock_get_by_id(pid: str) -> OutputProfile | None:
-        return _make_valid_profile(pid, pid, "wf_9d68c573802341db", "org_1", "Created")
-
-    service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
-
-    draft = await service.create_output_profile_draft(initiator)
-    assert draft.id.startswith("prf_")
-    assert draft.workflow_id == "wf_9d68c573802341db"
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await service.create_output_profile_draft(initiator)
+    assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value

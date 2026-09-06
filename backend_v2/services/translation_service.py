@@ -8,7 +8,10 @@ from typing import Any
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.prompt_builder import build_system_directive
-from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
+from backend_v2.models.prompts.common import (
+    STATIC_LINGUISTIC_PROTOCOL,
+    build_linguistic_parameters,
+)
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
@@ -37,14 +40,13 @@ async def translate_text(
         return text
 
     try:
-        linguistic_context = build_linguistic_context(
+        linguistic_params = build_linguistic_parameters(
             target_locale=target_lang,
             source_language=source_language,
-            include_mandate=True,
         )
         translation_system_prompt = build_system_directive(
             objective="Translate the provided text directly into the target language.",
-            linguistic_context=linguistic_context,
+            linguistic_context=f"{STATIC_LINGUISTIC_PROTOCOL}\n{linguistic_params}",
             rules=[
                 "Maintain the original meaning, tone, and facts.",
                 "Output ONLY the translated text without any explanations, tags, prefix, suffix, or extra commentary.",

@@ -1,7 +1,8 @@
-"""Global System Mandates for LLM Execution.
+"""Global System Mandates for LLM Execution (Common Layer).
 
-This module acts as the Single Source of Truth (SSOT) for global LLM behavioral constraints,
-ensuring strict DRY compliance across PromptCompiler, Synthesis Hooks, and MCP executions.
+This module acts as the Single Source of Truth (SSOT) for global Layer 1 epistemic
+invariants, ensuring strict DRY compliance across PromptCompiler, Synthesis Hooks,
+and MCP executions.
 """
 
 __all__ = [
@@ -11,28 +12,11 @@ __all__ = [
     "EPISTEMIC_GLOSSARY_MANDATE",
     "EXTENSION_ANCHORING_MANDATE",
     "GLOBAL_MANDATES_XML",
-    "LANGUAGE_MANDATE",
     "NULL_HYPOTHESIS_MANDATE",
     "SCHEMA_PURITY_MANDATE",
     "SEMANTIC_BLEED_MANDATE",
-    "TONE_MANDATE",
     "VERBATIM_EXTRACTION_MANDATE",
 ]
-
-LANGUAGE_MANDATE = (
-    "<language_mandate>\n"
-    "- CRITICAL LANGUAGE MANDATE: You must generate ALL string values in your JSON output "
-    "exclusively in the language specified in <required_output_language>.\n"
-    "- CRITICAL EXCEPTION 1: Internal reasoning fields (e.g., `reasoning_trace`) MUST remain in "
-    "English for maximum analytical depth. However, all user-facing justification and explanation fields (specifically "
-    "`row_explanation`, and `reasoning` or `semantic_reasoning` in scorecard atoms, particularly contextual override explanations) MUST follow the target output language.\n"
-    "- CRITICAL EXCEPTION 2: The JSON fields `exact_quotes` and `source_quote` MUST ALWAYS remain in the raw, "
-    "original language of the source text. NEVER translate, paraphrase, or modify the language "
-    "of the extracted quotes.\n"
-    "- CRITICAL EXCEPTION 3: System identifiers (e.g., `atom_id`, ENUM strings, category keys) "
-    "MUST remain exactly as defined in the schema and MUST NOT be translated.\n"
-    "</language_mandate>"
-)
 
 ANTI_SCORE_MANDATE = (
     "<anti_score_mandate>\n"
@@ -119,13 +103,6 @@ EXTENSION_ANCHORING_MANDATE = (
     "</extension_anchoring_mandate>"
 )
 
-TONE_MANDATE = (
-    "<tone_mandate>\n"
-    "- CRITICAL TONE: Address the user directly (e.g., 'You stated...', 'Your approach...', 'Your text...'). "
-    "- Focus entirely on the user's input. Do not use passive voice.\n"
-    "</tone_mandate>"
-)
-
 SCHEMA_PURITY_MANDATE = (
     "<schema_purity_mandate>\n"
     "- CRITICAL SCHEMA RULE: You MUST strictly adhere to the provided JSON schema.\n"
@@ -139,7 +116,6 @@ SCHEMA_PURITY_MANDATE = (
     "</schema_purity_mandate>"
 )
 
-
 CONTEXT_SEGREGATION_MANDATE = (
     "<context_segregation_mandate>\n"
     "CRITICAL PROVENANCE RULE: You must clearly distinguish between human text and AI-generated text to avoid misattribution.\n"
@@ -148,11 +124,8 @@ CONTEXT_SEGREGATION_MANDATE = (
     "</context_segregation_mandate>"
 )
 
-
 GLOBAL_MANDATES_XML = f"""
 <global_system_mandates>
-{LANGUAGE_MANDATE.strip()}
-
 {ANTI_SCORE_MANDATE.strip()}
 
 {ANTI_ID_MANDATE.strip()}
@@ -165,12 +138,8 @@ GLOBAL_MANDATES_XML = f"""
 
 {VERBATIM_EXTRACTION_MANDATE.strip()}
 
-{EXTENSION_ANCHORING_MANDATE.strip()}
-
-{TONE_MANDATE.strip()}
-
 {SCHEMA_PURITY_MANDATE.strip()}
 
 {CONTEXT_SEGREGATION_MANDATE.strip()}
 </global_system_mandates>
-"""
+""".strip()

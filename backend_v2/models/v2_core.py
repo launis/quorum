@@ -922,6 +922,44 @@ class MatrixSynthesisGroup(V2CoreBase):
         ),
     )
 
+    @model_validator(mode="after")
+    def validate_dimensional_cardinality(self) -> Self:
+        """Enforce strict dimensional cardinality coupling between view_type and target_blocks."""
+        num_blocks = len(self.target_blocks)
+        if self.view_type == PresetView.METRICS_1D:
+            if num_blocks != 1:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '1d_metrics' requires exactly 1 target block, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.COMPARE_2D:
+            if num_blocks != 2:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '2d_compare' requires exactly 2 target blocks, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.MATRIX_3D:
+            if num_blocks != 3:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '3d_matrix' requires exactly 3 target blocks, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.TEXT_ONLY:
+            if num_blocks < 1:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type 'text_only' requires at least 1 target block, "
+                    f"but received {num_blocks}."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        return self
+
 
 class OutputProfile(V2CoreBase):
     """A distinct report variant containing a sequence of layout blocks."""
@@ -942,34 +980,34 @@ class OutputProfile(V2CoreBase):
     )
     language: LaxSystemLocale | None = Field(default=None, description="Target output language.")
     tone_instruction: Annotated[
-        I18nText | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
+        str | None, Field(default=None, description="Dynamic tone instruction for synthesis.")
     ] = None
     executive_summary_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for executive summary synthesis.")
     ] = None
     matrix_1d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 1D metrics synthesis.")
     ] = None
     matrix_2d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 2D comparison synthesis.")
     ] = None
     matrix_3d_synthesis_directive: Annotated[
-        I18nText | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
+        str | None, Field(default=None, description="Dedicated prompt directive for 3D radar synthesis.")
     ] = None
     matrix_text_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for text-only matrix synthesis."),
     ] = None
     row_explanation_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for matrix summary table row causal explanations."),
     ] = None
     xai_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(default=None, description="Dedicated prompt directive for XAI highlights and extensions synthesis."),
     ] = None
     variance_synthesis_directive: Annotated[
-        I18nText | None,
+        str | None,
         Field(
             default=None,
             description="Dedicated prompt directive for variance and cognitive authenticity evaluation synthesis.",
@@ -1028,7 +1066,19 @@ class OutputProfile(V2CoreBase):
     scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
     synthesis_length_constraint: Annotated[
         int | None,
-        Field(default=None, description="Optional length constraint for synthesized text."),
+        Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
+    ] = None
+    row_explanation_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each row causal explanation."),
+    ] = None
+    xai_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=1000, description="Max character length for each XAI extension highlight."),
+    ] = None
+    variance_length_constraint: Annotated[
+        int | None,
+        Field(default=None, ge=50, le=2000, description="Max character length for variance evaluation."),
     ] = None
     max_quotes_per_matrix: Annotated[
         int | None,
@@ -1152,6 +1202,24 @@ class OutputProfile(V2CoreBase):
         if not self.matrix_visible_columns:
             return False
         return "row_explanation" in self.matrix_visible_columns
+
+    @model_validator(mode="after")
+    def validate_matrix_group_ids_unique(self) -> Self:
+        """Enforce that all MatrixSynthesisGroup IDs in matrix_synthesis_groups are strictly unique."""
+        seen_ids: set[str] = set()
+        duplicate_ids: list[str] = []
+        for grp in self.matrix_synthesis_groups:
+            if grp.id in seen_ids:
+                duplicate_ids.append(grp.id)
+            seen_ids.add(grp.id)
+        if duplicate_ids:
+            msg = (
+                f"OutputProfile '{self.id}': Duplicate synthesis group IDs detected in "
+                f"matrix_synthesis_groups: {duplicate_ids}. All group IDs must be strictly unique."
+            )
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+        return self
 
     @property
     def is_synthesis_expected(self) -> bool:

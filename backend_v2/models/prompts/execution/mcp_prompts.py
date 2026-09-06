@@ -1,4 +1,4 @@
-"""Centralized prompt instructions and mandates for MCP tools and Source Verification.
+"""Centralized prompt instructions and mandates for MCP tools and Source Verification (Execution Layer).
 
 Single Source of Truth (SSOT) for external tool extraction, verification,
 and citation self-correction directives.

@@ -318,3 +318,90 @@ def test_output_profile_rejects_purged_legacy_fields(purged_field: str) -> None:
     with pytest.raises(ValidationError) as exc_info:
         OutputProfile.model_validate(payload)
     assert "Extra inputs are not permitted" in str(exc_info.value)
+
+
+def test_matrix_synthesis_group_cardinality_validation() -> None:
+    """Verify strict dimensional cardinality coupling on MatrixSynthesisGroup."""
+    from backend_v2.models.enums import PresetView
+    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup
+
+    title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
+
+    # 1D metrics: exactly 1 block
+    MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D)
+    with pytest.raises(ValidationError) as exc:
+        MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1", "b2"], view_type=PresetView.METRICS_1D)
+    assert "view_type '1d_metrics' requires exactly 1 target block" in str(exc.value)
+
+    # 2D compare: exactly 2 blocks
+    MatrixSynthesisGroup(id="grp_2222222222222222", title=title, target_blocks=["b1", "b2"], view_type=PresetView.COMPARE_2D)
+    with pytest.raises(ValidationError) as exc:
+        MatrixSynthesisGroup(id="grp_2222222222222222", title=title, target_blocks=["b1"], view_type=PresetView.COMPARE_2D)
+    assert "view_type '2d_compare' requires exactly 2 target blocks" in str(exc.value)
+
+    # 3D radar: exactly 3 blocks
+    MatrixSynthesisGroup(id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3"], view_type=PresetView.MATRIX_3D)
+    with pytest.raises(ValidationError) as exc:
+        MatrixSynthesisGroup(id="grp_3333333333333333", title=title, target_blocks=["b1", "b2"], view_type=PresetView.MATRIX_3D)
+    assert "view_type '3d_matrix' requires exactly 3 target blocks" in str(exc.value)
+
+    # Text only: at least 1 block
+    MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY)
+    MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1", "b2"], view_type=PresetView.TEXT_ONLY)
+
+
+def test_output_profile_unique_group_ids_validation() -> None:
+    """Verify OutputProfile enforces unique MatrixSynthesisGroup IDs."""
+    from backend_v2.models.enums import PresetView, TargetBlockType
+    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
+
+    title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
+    grp1 = MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D)
+    grp2 = MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b2"], view_type=PresetView.METRICS_1D)
+
+    with pytest.raises(ValidationError) as exc:
+        OutputProfile(
+            id="prf_1234567890123456",
+            slug="test-profile",
+            workflow_id="wf_1234567890123456",
+            name=title,
+            target_block_order=[TargetBlockType.MATRIX_GRAPHS_BLOCK],
+            matrix_synthesis_groups=[grp1, grp2],
+        )
+    assert "Duplicate synthesis group IDs detected in matrix_synthesis_groups" in str(exc.value)
+
+
+def test_output_profile_plain_string_directives_and_length_constraints() -> None:
+    """Verify OutputProfile accepts English plain strings for all 9 prompt directives and length constraints."""
+    from backend_v2.models.enums import TargetBlockType
+    from backend_v2.models.v2_core import I18nText, OutputProfile
+
+    title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
+    profile = OutputProfile(
+        id="prf_1234567890123456",
+        slug="test-profile",
+        workflow_id="wf_1234567890123456",
+        name=title,
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+        tone_instruction="Act as a Senior Executive Coach.",
+        executive_summary_directive="EXECUTIVE SUMMARY MANDATE",
+        matrix_1d_synthesis_directive="1D MANDATE",
+        matrix_2d_synthesis_directive="2D MANDATE",
+        matrix_3d_synthesis_directive="3D MANDATE",
+        matrix_text_synthesis_directive="TEXT MANDATE",
+        row_explanation_directive="ROW MANDATE",
+        xai_synthesis_directive="XAI MANDATE",
+        variance_synthesis_directive="VARIANCE MANDATE",
+        synthesis_length_constraint=1000,
+        row_explanation_length_constraint=250,
+        xai_length_constraint=300,
+        variance_length_constraint=500,
+    )
+
+    assert profile.tone_instruction == "Act as a Senior Executive Coach."
+    assert profile.executive_summary_directive == "EXECUTIVE SUMMARY MANDATE"
+    assert profile.synthesis_length_constraint == 1000
+    assert profile.row_explanation_length_constraint == 250
+    assert profile.xai_length_constraint == 300
+    assert profile.variance_length_constraint == 500
+

@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.enums import BlockDataType, XaiExtensionType
-from backend_v2.models.prompts.field_prompts import (
+from backend_v2.models.prompts.common import (
     XAI_DESC_CITATION,
     XAI_DESC_COACHING,
     XAI_DESC_CONFIDENCE,

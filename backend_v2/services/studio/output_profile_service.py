@@ -9,7 +9,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.enums import EntityPrefix, TargetBlockType
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.services.factories.output_profile_factory import build_draft_output_profile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
@@ -176,23 +176,23 @@ class StudioOutputProfileService:
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
         workflows = await self.workflow_service.list_workflows(initiator)
-        if workflows:
-            target_wf_id = workflows[0].id
-        else:
-            target_wf_id = "wf_9d68c573802341db"
+        if not workflows:
+            msg = f"No workflows available to associate with new OutputProfile for organization '{initiator.organization_id}'."
+            logger.error("[StudioOutputProfileService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise ResourceNotFoundError(resource_type="workflow", resource_id="primary_default")
+        target_wf = workflows[0]
+        target_wf_id = target_wf.id
+        all_steps = await self.workflow_service.list_steps(initiator)
+        allowed_blocks = target_wf.get_allowed_layout_targets(all_steps)
+        matrix_block = next((b for b in allowed_blocks if not b.startswith("glb_")), None)
+
         new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id
-        draft = OutputProfile(
-            id=new_id,
-            slug=new_id,
+        draft = build_draft_output_profile(
+            profile_id=new_id,
             workflow_id=target_wf_id,
-            name=I18nText(translations={"en": "New Profile", "fi": "Uusi profiili"}),
             organization_id=target_org,
-            target_block_order=[
-                TargetBlockType.METADATA_BLOCK,
-                TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
-                TargetBlockType.SYNTHESIS_TEXT_BLOCK,
-            ],
+            initial_target_block=matrix_block,
         )
         return await self.save_output_profile(initiator, new_id, draft)
 

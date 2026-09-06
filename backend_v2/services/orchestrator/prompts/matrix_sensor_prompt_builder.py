@@ -13,9 +13,12 @@ from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.prompts.global_mandates import GLOBAL_MANDATES_XML
-from backend_v2.models.prompts.linguistic_directives import build_linguistic_context
-from backend_v2.models.prompts.matrix_evaluation import MATRIX_SENSOR_SYSTEM_PROMPT
+from backend_v2.models.prompts.common import (
+    GLOBAL_MANDATES_XML,
+    STATIC_LINGUISTIC_PROTOCOL,
+    build_linguistic_parameters,
+)
+from backend_v2.models.prompts.execution import MATRIX_SENSOR_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,7 @@ class MatrixSensorPromptBuilder:
         # 1. Compile 100% Static System Instructions using Direct TemplateProcessor Assembly
         sections: list[str] = [
             GLOBAL_MANDATES_XML.strip(),
+            STATIC_LINGUISTIC_PROTOCOL.strip(),
             MATRIX_SENSOR_SYSTEM_PROMPT.strip(),
         ]
 
@@ -214,8 +218,8 @@ class MatrixSensorPromptBuilder:
         exec_params = TemplateProcessor.safe_interpolate(
             "<execution_parameters>\n{c}\n</execution_parameters>", c=claims_str
         )
-        linguistic_context = build_linguistic_context(target_locale=target_locale.strip(), include_mandate=True)
-        user_content = f"{linguistic_context}\n\n{exec_params}"
+        linguistic_params = build_linguistic_parameters(target_locale=target_locale.strip())
+        user_content = f"{linguistic_params}\n\n{exec_params}"
 
         # 3. Assemble CompiledPrompt properly (Context text in static user message!)
         context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)

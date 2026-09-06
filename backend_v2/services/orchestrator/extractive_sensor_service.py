@@ -20,7 +20,7 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.field_prompts import DESC_SEMANTIC_REASONING
+from backend_v2.models.prompts.common import DESC_SEMANTIC_REASONING
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService

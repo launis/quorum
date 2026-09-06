@@ -52,7 +52,6 @@ class MatrixGraphsAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
         """
         blocks: list[AnySduiBlock] = []
-        seen_axes: set[str] = set()
 
         if context.is_data_starved or not context.profile.matrix_synthesis_groups:
             return blocks
@@ -67,14 +66,11 @@ class MatrixGraphsAdapter:
             if target_blocks and "*" not in target_blocks:
                 for target_k in target_blocks:
                     matched = next((axis for axis in all_parsed_matrices.values() if axis.block_id == target_k), None)
-                    if matched and matched.block_id not in seen_axes:
+                    if matched:
                         axes.append(matched)
-                        seen_axes.add(matched.block_id)
             else:
                 for axis in all_parsed_matrices.values():
-                    if axis.block_id not in seen_axes:
-                        axes.append(axis)
-                        seen_axes.add(axis.block_id)
+                    axes.append(axis)
 
             group_id = grp.id
             section_blocks: list[AnySduiBlock] | None = None

@@ -13,7 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.dtos.trace import DataStarvationEvent
-from backend_v2.models.prompts.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
+from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.settings import get_settings
