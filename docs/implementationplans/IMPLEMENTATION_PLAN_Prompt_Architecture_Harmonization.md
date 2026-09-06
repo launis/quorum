@@ -57,23 +57,23 @@ Specifically:
 - [DELETE] `@[backend_v2/models/prompts/sdui_directives.py]`
 - [DELETE] `@[backend_v2/models/prompts/synthesis_directives.py]`
 - [DELETE] `@[backend_v2/models/prompts/synthesis_registry.py]`
-- [MODIFY] `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py#L25-L229]`
-- [MODIFY] `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L49-L222]`
-- [MODIFY] `@[backend_v2/worker.py#L758-L1655]`
-- [MODIFY] `@[backend_v2/hooks/interaction_hook.py#L40-L148]`
-- [MODIFY] `@[backend_v2/services/orchestrator/extraction_schema_factory.py#L115-L180]`
-- [MODIFY] `@[backend_v2/services/orchestrator/extractive_sensor_service.py#L90-L529]`
-- [MODIFY] `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L240]`
-- [MODIFY] `@[backend_v2/services/translation_service.py#L18-L76]`
-- [MODIFY] `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py#L36-L109]`
-- [MODIFY] `@[backend_v2/services/studio/output_profile_service.py#L22-L236]`
-- [MODIFY] `@[backend_v2/models/dtos/evaluation_steps.py#L16-L75]`
-- [MODIFY] `@[backend_v2/models/dtos/synthesis.py#L44-L61]`, `@[backend_v2/models/dtos/synthesis.py#L87-L106]`, `@[backend_v2/models/dtos/synthesis.py#L128-L159]`, `@[backend_v2/models/dtos/synthesis.py#L198-L241]`
-- [MODIFY] `@[backend_v2/models/dtos/output_profile.py#L40-L238]`, `@[backend_v2/models/dtos/output_profile.py#L241-L427]`, `@[backend_v2/models/dtos/output_profile.py#L430-L562]`
+- [MODIFY] `@[backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py]`
+- [MODIFY] `@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]`
+- [MODIFY] `@[backend_v2/worker.py]`
+- [MODIFY] `@[backend_v2/hooks/interaction_hook.py]`
+- [MODIFY] `@[backend_v2/services/orchestrator/extraction_schema_factory.py]`
+- [MODIFY] `@[backend_v2/services/orchestrator/extractive_sensor_service.py]`
+- [MODIFY] `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]`
+- [MODIFY] `@[backend_v2/services/translation_service.py]`
+- [MODIFY] `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]`
+- [MODIFY] `@[backend_v2/services/studio/output_profile_service.py]`
+- [MODIFY] `@[backend_v2/models/dtos/evaluation_steps.py]`
+- [MODIFY] `@[backend_v2/models/dtos/synthesis.py]`
+- [MODIFY] `@[backend_v2/models/dtos/output_profile.py]`
 - [MODIFY] `@[backend_v2/models/domain/output_profile.py]`
-- [MODIFY] `@[backend_v2/models/v2_core.py#L906-L923]`, `@[backend_v2/models/v2_core.py#L926-L1159]`
-- [MODIFY] `@[backend_v2/llm/schema_builder.py#L20-L202]`
-- [MODIFY] `@[backend_v2/core/registry.py#L75-L159]`
+- [MODIFY] `@[backend_v2/models/v2_core.py]`
+- [MODIFY] `@[backend_v2/llm/schema_builder.py]`
+- [MODIFY] `@[backend_v2/core/registry.py]`
 - [MODIFY] `@[backend_v2/tests/unit/test_ast_prompt_xml_sovereignty.py]`
 - [MODIFY] `@[backend_v2/tests/unit/models/prompts/test_global_mandates.py]`
 - [MODIFY] `@[backend_v2/tests/unit/models/prompts/test_linguistic_directives.py]`
@@ -145,11 +145,11 @@ Per the System 2 Feature Audit findings in `feature_audit_sdui_directives_and_da
 
 ### 5. Matrix Synthesis Group Cardinality, Seed Data Incoherence & Seen Axes Anti-Pattern
 - **Absolute Ban on Client-Side "Auto-Clamping on Load"**: Attempting to "auto-clamp on load" (specifically: silently slicing or discarding invalid matrix block selections during Flutter widget initialization, `initState`, or `build` in `matrix_graph_item_editor.dart`) is a catastrophic duct-tape anti-pattern. It masks corrupted database records, introduces unprompted client-side mutations, violates CQRS and Dumb Screen invariants, and leaves external REST API callers completely unprotected. Quality assurance and data integrity MUST be locked 100% into the backend via `@model_validator(mode="after")` and database seed sanitization. The frontend UI remains strictly a dumb interactive reflection of backend state.
-- **Missing Group ID Uniqueness Validation on `OutputProfile`**: `OutputProfile` in `@[backend_v2/models/v2_core.py#L926-L1159]` previously lacked validation asserting that all `MatrixSynthesisGroup.id` entries in `matrix_synthesis_groups` are distinct. If an external API client or cloned draft payload submits duplicate group IDs (specifically: `grp_440a5fef9331451b` duplicated), client-side Flutter widgets (`ReorderableListView`, `Key`, state tracking) and backend adapters suffer key collisions, race conditions, and silent data corruption. An explicit `@model_validator(mode="after")` must enforce unique group IDs.
-- **Headless Incomplete Draft Anti-Pattern in `output_profile_service.py`**: In `@[backend_v2/services/studio/output_profile_service.py#L22-L236]`, `create_output_profile_draft` (`#L166-L197`) previously instantiated an empty skeleton `OutputProfile` with null substantive directives. When an external API client (or CLI script) invokes `POST /api/v2/studio/profiles/draft` and attempts runtime synthesis, execution immediately crashes with `AppException(ErrorCodes.OUTPUT_PROFILE_INCOMPLETE)`. The draft service MUST bind `output_profile_factory.py` (`build_draft_output_profile`) to pre-populate all 8 substantive directives (English `str`), valid default length constraints, a valid `target_block_order`, and an initial valid `MatrixSynthesisGroup`, guaranteeing that draft profiles created headlessly via REST API are 100% complete, valid, and runnable out-of-the-box without requiring UI interaction.
-- **Missing Backend Model Validation on `MatrixSynthesisGroup`**: `MatrixSynthesisGroup` in `@[backend_v2/models/v2_core.py#L906-L923]` only asserts `target_blocks: list[str] = Field(min_length=1)`. It lacks an explicit `@model_validator(mode="after")` asserting that `len(target_blocks)` strictly satisfies the dimensional requirements of `view_type`. Backend validation must enforce: 1D == 1, 2D == 2, 3D == 3, Text >= 1.
-- **Seed Data Incoherence in `seed_data.json`**: Lines 18289-18331 of `output_profiles` (`prf_5d6e7f8091a2b3c4`) in `@[backend_v2/seed/seed_data.json#L18289-L18331]` define 3 matrix groups with `"view_type": "1d_metrics"` while assigning 2 target blocks to each group (specifically: Toulmin and Bloom in Group 1, Causal Inference and Falsification in Group 2, XAI and Explainability in Group 3). This is the direct root cause of the visual glitch `2 / 1 valittu` in the Studio editor. The seed file must be sanitized by setting `view_type: "2d_compare"` for these 3 comparative groups.
-- **`seen_axes` Cross-Group Drop Bug in `matrix_graphs_adapter.py`**: Forensic Tier 0 inspection verified that `seen_axes: set[str] = set()` in `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py#L36-L109]` was declared outside the `context.profile.matrix_synthesis_groups` iteration loop. When multiple matrix synthesis groups target overlapping prompt blocks, downstream groups are starved of axes and silently fail to emit graphs. The `seen_axes` set must be eliminated or scoped locally within each group so each visual group independently accesses its configured target blocks.
+- **Missing Group ID Uniqueness Validation on `OutputProfile`**: `OutputProfile` in `@[backend_v2/models/v2_core.py]` previously lacked validation asserting that all `MatrixSynthesisGroup.id` entries in `matrix_synthesis_groups` are distinct. If an external API client or cloned draft payload submits duplicate group IDs (specifically: `grp_440a5fef9331451b` duplicated), client-side Flutter widgets (`ReorderableListView`, `Key`, state tracking) and backend adapters suffer key collisions, race conditions, and silent data corruption. An explicit `@model_validator(mode="after")` must enforce unique group IDs.
+- **Headless Incomplete Draft Anti-Pattern in `output_profile_service.py`**: In `@[backend_v2/services/studio/output_profile_service.py]`, `create_output_profile_draft` previously instantiated an empty skeleton `OutputProfile` with null substantive directives. When an external API client (or CLI script) invokes `POST /api/v2/studio/profiles/draft` and attempts runtime synthesis, execution immediately crashes with `AppException(ErrorCodes.OUTPUT_PROFILE_INCOMPLETE)`. The draft service MUST bind `output_profile_factory.py` (`build_draft_output_profile`) to pre-populate all 8 substantive directives (English `str`), valid default length constraints, a valid `target_block_order`, and an initial valid `MatrixSynthesisGroup`, guaranteeing that draft profiles created headlessly via REST API are 100% complete, valid, and runnable out-of-the-box without requiring UI interaction.
+- **Missing Backend Model Validation on `MatrixSynthesisGroup`**: `MatrixSynthesisGroup` in `@[backend_v2/models/v2_core.py]` only asserts `target_blocks: list[str] = Field(min_length=1)`. It lacks an explicit `@model_validator(mode="after")` asserting that `len(target_blocks)` strictly satisfies the dimensional requirements of `view_type`. Backend validation must enforce: 1D == 1, 2D == 2, 3D == 3, Text >= 1.
+- **Seed Data Incoherence in `seed_data.json`**: Lines of `output_profiles` (`prf_5d6e7f8091a2b3c4`) in `@[backend_v2/seed/seed_data.json]` define 3 matrix groups with `"view_type": "1d_metrics"` while assigning 2 target blocks to each group (specifically: Toulmin and Bloom in Group 1, Causal Inference and Falsification in Group 2, XAI and Explainability in Group 3). This is the direct root cause of the visual glitch `2 / 1 valittu` in the Studio editor. The seed file must be sanitized by setting `view_type: "2d_compare"` for these 3 comparative groups.
+- **`seen_axes` Cross-Group Drop Bug in `matrix_graphs_adapter.py`**: Forensic Tier 0 inspection verified that `seen_axes: set[str] = set()` in `@[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]` was declared outside the `context.profile.matrix_synthesis_groups` iteration loop. When multiple matrix synthesis groups target overlapping prompt blocks, downstream groups are starved of axes and silently fail to emit graphs. The `seen_axes` set must be eliminated or scoped locally within each group so each visual group independently accesses its configured target blocks.
 - **Missing Reorder Functionality in `MatrixGraphsBlockCard`**: `MatrixGraphsBlockCard` maps groups to a static `Column`. Users cannot change the display order of matrix groups within the card. Furthermore, line 83 executes `newGroups.indexOf(group)`, which relies on referential identity on `@Freezed(equal: false)` models.
 - **Unselected Chip Lockout & Missing Radio Behavior in `MatrixGraphItemEditor`**: In 1D mode, selecting a block does not replace the active selection if existing data exceeded 1 block. When `targetBlocks.length >= maxSlots`, unselected chips remain enabled but unresponsive on click, causing user confusion.
 

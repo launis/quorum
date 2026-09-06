@@ -90,30 +90,31 @@ Implementation Plan: @[docs/implementationplans/IMPLEMENTATION_PLAN_Prompt_Archi
   - [x] Update `matrix_graphs_block_card.dart` (`ReorderableListView` + Up/Down buttons).
   - [x] Update `.arb` files and Flutter unit tests.
 
-- [ ] **Step 8: Caller Harmonization and Budget Injection**
-  - [ ] Update `matrix_sensor_prompt_builder.py`.
-  - [ ] Update `prompt_factory.py`.
-  - [ ] Update `worker.py` (purge `resolve_i18n`, inject `<section_budget>`, budget enforcer, Fail-Fast).
-  - [ ] Normalize imports in 1-hop caller modules.
+- [x] **Step 8: Caller Harmonization and Budget Injection**
+  - [x] Update `matrix_sensor_prompt_builder.py`.
+  - [x] Update `prompt_factory.py`.
+  - [x] Update `worker.py` (purge `resolve_i18n`, inject `<section_budget>`, budget enforcer, Fail-Fast).
+  - [x] Normalize imports in 1-hop caller modules.
 
-- [ ] **Step 9: AST Guardrails and Test Suite Validation**
-  - [ ] Update `test_ast_prompt_xml_sovereignty.py`.
-  - [ ] Update and run all unit, integration, and parity test suites.
-  - [ ] Run backend and flutter audit loops.
+- [x] **Step 9: AST Guardrails and Test Suite Validation**
+  - [x] Update `test_ast_prompt_xml_sovereignty.py`.
+  - [x] Update and run all unit, integration, and parity test suites.
+  - [x] Run backend and flutter audit loops.
 
 ## # Session Handover Context
 - **Achieved:**
-  - Steps 1 through 7 of `IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization.md` implemented and verified.
-  - Converted all 9 prompt directives in Flutter Freezed `OutputProfile` from `I18nText?` to `String?` and added 3 section length constraints (`rowExplanationLengthConstraint`, `xaiLengthConstraint`, `varianceLengthConstraint`).
-  - Re-generated Freezed models via `build_runner` with zero issues.
-  - Studio UI directive segregation: pruned 1:1 section directives from `ProfileGeneralTab` Card 3; retained 4 reusable view type directives as single-language English `TextFormField`s with `profileMatrixViewDirectivesTitle`.
-  - Updated Tab 3 section cards (`ExecutiveSummaryBlockCard`, `MatrixSummaryTableCard`, `XaiExtensionsBlockCard`, `VarianceBlockCard`) with single-language English `TextFormField`s and dedicated numeric length constraint inputs.
-  - Upgraded `MatrixGraphsBlockCard` to `ReorderableListView` with `ReorderableDragStartListener` drag handles and Up/Down `IconButton` controls.
-  - Passed all unit tests in `profile_general_tab_test.dart`, `profile_section_config_tab_test.dart`, and `matrix_graph_editor_test.dart` (10/10 passed).
-  - Flutter audit loop passed with 0 issues (code 0).
+  - All 9 Steps of `IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization.md` implemented, audited, and committed to `main` across 4 atomic commits.
+  - Converted all 9 prompt directives across Python backend, database seed, and Flutter Studio to single-language English `str | None` / `String?` (excising `resolve_i18n` runtime overhead).
+  - Replaced legacy `SYNTHESIS_PROMPT_REGISTRY` fallback dictionary with runtime Dynamic Directive Resolution and Fail-Fast on missing substantive directives (`OUTPUT_PROFILE_INCOMPLETE`).
+  - Purged 10 legacy prompt root files and established Tripartite Domain Partitioning (`common/`, `execution/`, `synthesis/`) with strict architectural subpackage boundaries verified by AST guardrails.
+  - Implemented length budgeting engine (`enforce_sentence_boundary_budget`) in `backend_v2/services/length_budget_enforcer.py` respecting linguistic sentence boundaries.
+  - Added section length constraint inputs and view type directive editors across Flutter Studio UI tabs with reorderable matrix graph list.
+  - Expanded AST guardrail engine with 6 new rules asserting no `SYNTHESIS_PROMPT_REGISTRY`, no `include_mandate`, `str` directives in `v2_core.py`, no `DESC_TRANSLATION_MANDATE` in DTOs, and prompt subpackage isolation.
+  - All 31 subpackage prompt tests, 24 AST guardrails, and 148 caller/integration tests passing 100%.
+  - Universal Quality Gates (`backend_audit_loop.py` with 100% coverage and `flutter_audit_loop.py`) passed cleanly.
 - **Learned:**
-  - `scrollUntilVisible` in Flutter widget tests fails with `Bad state: Too many elements` if multiple Scrollables exist on screen without passing an explicit `scrollable:` finder. In desktop viewports (`physicalSize = const Size(1920, 3000)` and `devicePixelRatio = 1.0`), scrolling via `tester.drag(find.byType(ListView), const Offset(0, -600))` brings lower cards cleanly into the viewport.
-  - Flutter `MaterialApp` in unit tests defaults to `supportedLocales.first` (`Locale('en')`) unless explicit `locale:` is passed.
-  - Step 8: Caller Harmonization and Budget Injection completed (`matrix_sensor_prompt_builder.py`, `prompt_factory.py`, `translation_service.py`, `worker.py` purged `resolve_i18n`, injected `<section_budget>` and `enforce_sentence_boundary_budget`, Fail-Fast `OUTPUT_PROFILE_INCOMPLETE` on missing substantive directives, 100% audit passed).
+  - `TaskGroup` in Python 3.14 wraps unhandled child task exceptions in `ExceptionGroup`. Unit tests testing worker Fail-Fast must assert `(AppException, ExceptionGroup)` or inspect `exc_group.exceptions`.
+  - `MatrixSynthesisGroup` cardinality is strictly coupled to `view_type`: 1D (1 target block), 2D (2 target blocks), 3D (3 target blocks), text_only (>=1 target blocks).
+  - Removing fallback dictionaries requires test fixtures to either provide fully formed output profiles (via `build_draft_output_profile`) or explicitly test Fail-Fast exception paths.
 - **Remaining:**
-  - Step 9: AST Guardrails and Test Suite Validation.
+  - All implementation plan steps completed. Ready for walkthrough presentation and user review.
