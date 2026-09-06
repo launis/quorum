@@ -13,9 +13,6 @@ from backend_v2.models.prompts.synthesis.style_directives import (
     SYNTHESIS_NO_CITATION_RULES,
 )
 from backend_v2.models.prompts.synthesis.synthesis_directives import (
-    DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
-    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
-    DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_SECTION_ID,
     ROW_EXPLANATION_SYSTEM_PROMPT,
     SYNTHESIS_SECTION_RULES_PREFIX,
@@ -26,9 +23,6 @@ from backend_v2.models.prompts.synthesis.synthesis_directives import (
 
 __all__ = [
     "ANTI_JARGON_MANDATE_BLOCK",
-    "DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT",
-    "DEFAULT_SYNTHESIS_SYSTEM_PROMPT",
-    "DEFAULT_VARIANCE_SYSTEM_PROMPT",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "ROW_EXPLANATION_SYSTEM_PROMPT",
     "SDUI_BLOCK_STRUCTURE_MANDATE",

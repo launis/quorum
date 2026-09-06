@@ -11,12 +11,12 @@ from backend_v2.models.dtos.output_profile import (
 from backend_v2.models.enums import PresetView
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
-    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     SPARSE_DATA_SYNTHESIS_MANDATE,
     STATE_ISOLATION_BLOCK,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_SDUI_MANDATES,
+    SYNTHESIS_SYSTEM_PROMPT,
 )
 from backend_v2.models.v2_core import (
     I18nText,
@@ -46,7 +46,7 @@ def test_prompt_architecture_segregation() -> None:
     assert "ANTI-JARGON MANDATE" in ANTI_JARGON_MANDATE_BLOCK
     assert "sparse_data_synthesis_mandate" in SPARSE_DATA_SYNTHESIS_MANDATE
     assert "citation_rules" in SYNTHESIS_CITATION_RULES_HARVARD
-    assert "Senior Executive Coach and Strategic Evaluator" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
+    assert "Strategic Report Evaluator" in SYNTHESIS_SYSTEM_PROMPT
 
 
 def test_output_profile_substantive_directives_database_sovereignty() -> None:

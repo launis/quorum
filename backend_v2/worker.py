@@ -55,16 +55,16 @@ from backend_v2.models.enums import ExecutionStatus, PresetView, StrictnessAncho
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
-    DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
-    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
-    DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_SECTION_ID,
+    ROW_EXPLANATION_SYSTEM_PROMPT,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     STATIC_LINGUISTIC_PROTOCOL,
     SYNTHESIS_CITATION_RULES_HARVARD,
     SYNTHESIS_SDUI_MANDATES,
     SYNTHESIS_SECTION_RULES_PREFIX,
+    SYNTHESIS_SYSTEM_PROMPT,
     SYNTHESIS_XAI_CURATION,
+    VARIANCE_SYSTEM_PROMPT,
     build_linguistic_parameters,
 )
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TombstoneEvent, TraceEvent
@@ -1038,7 +1038,7 @@ async def generate_profile_synthesis_and_pdf_task(
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
                 # sys_prompt MUST remain 100% static for cache prefix survival
-                sys_prompt = f"{DEFAULT_SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
+                sys_prompt = f"{SYNTHESIS_SYSTEM_PROMPT}\n\n{SYNTHESIS_SDUI_MANDATES}\n\n{ANTI_JARGON_MANDATE_BLOCK}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                 # Dynamic context parts injected into user message <dynamic_context>
                 base_dynamic_parts: list[str] = [
@@ -1259,7 +1259,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
             if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
                 client = await LLMClient.from_strategy("strict", repository=repo)
-                row_sys_prompt = f"{DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
+                row_sys_prompt = f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                 row_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
                 row_directive_str = None
@@ -1409,7 +1409,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     )
 
                     client_var = await LLMClient.from_strategy("strict", repository=repo)
-                    var_sys_prompt = f"{DEFAULT_VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
+                    var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                     var_lang_params = build_linguistic_parameters(
                         source_language="Unknown", target_locale=accept_language

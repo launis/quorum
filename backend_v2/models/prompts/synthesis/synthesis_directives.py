@@ -7,9 +7,6 @@ Substantive prompt directives are derived 100% dynamically from database OutputP
 from backend_v2.models.enums import TargetBlockType
 
 __all__ = [
-    "DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT",
-    "DEFAULT_SYNTHESIS_SYSTEM_PROMPT",
-    "DEFAULT_VARIANCE_SYSTEM_PROMPT",
     "EXECUTIVE_SUMMARY_SECTION_ID",
     "ROW_EXPLANATION_SYSTEM_PROMPT",
     "SYNTHESIS_SECTION_RULES_PREFIX",
@@ -19,9 +16,8 @@ __all__ = [
 ]
 
 SYNTHESIS_SYSTEM_PROMPT: str = (
-    "You are a Senior Executive Coach and Strategic Evaluator. Synthesize the evaluated "
-    "cognitive matrix data into structured Server-Driven UI (SDUI) blocks with executive rigor, "
-    "mathematical clarity, and actionable developmental feedback."
+    "You are a Strategic Report Evaluator. Synthesize the evaluated cognitive matrix data "
+    "into structured Server-Driven UI (SDUI) blocks with executive rigor and mathematical clarity."
 )
 
 ROW_EXPLANATION_SYSTEM_PROMPT: str = (
@@ -34,11 +30,6 @@ VARIANCE_SYSTEM_PROMPT: str = (
     "the Cognitive (authenticity and reasoning depth) and Mechanical (performative language patterns) "
     "evaluation scores in concise, evidence-grounded prose."
 )
-
-# Backwards-compatible aliases
-DEFAULT_SYNTHESIS_SYSTEM_PROMPT: str = SYNTHESIS_SYSTEM_PROMPT
-DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT: str = ROW_EXPLANATION_SYSTEM_PROMPT
-DEFAULT_VARIANCE_SYSTEM_PROMPT: str = VARIANCE_SYSTEM_PROMPT
 
 EXECUTIVE_SUMMARY_SECTION_ID: str = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
 

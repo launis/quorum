@@ -3,12 +3,12 @@
 
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.prompts.synthesis.synthesis_directives import (
-    DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT,
-    DEFAULT_SYNTHESIS_SYSTEM_PROMPT,
-    DEFAULT_VARIANCE_SYSTEM_PROMPT,
     EXECUTIVE_SUMMARY_SECTION_ID,
+    ROW_EXPLANATION_SYSTEM_PROMPT,
     SYNTHESIS_SECTION_RULES_PREFIX,
+    SYNTHESIS_SYSTEM_PROMPT,
     SYNTHESIS_XAI_CURATION,
+    VARIANCE_SYSTEM_PROMPT,
 )
 from backend_v2.services.factories.output_profile_factory import (
     DEFAULT_FACTORY_EXECUTIVE_SUMMARY_DIRECTIVE,
@@ -29,11 +29,11 @@ def test_executive_summary_section_id_ssot_parity() -> None:
     assert EXECUTIVE_SUMMARY_SECTION_ID == TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
 
 
-def test_default_synthesis_prompts_content() -> None:
-    """Verify default system prompts have substantive instructions."""
-    assert "Senior Executive Coach" in DEFAULT_SYNTHESIS_SYSTEM_PROMPT
-    assert "Forensic Evidence Analyst" in DEFAULT_ROW_EXPLANATION_SYSTEM_PROMPT
-    assert "Cognitive Evaluator" in DEFAULT_VARIANCE_SYSTEM_PROMPT
+def test_synthesis_system_prompts_content() -> None:
+    """Verify system prompts have substantive instructions."""
+    assert "Strategic Report Evaluator" in SYNTHESIS_SYSTEM_PROMPT
+    assert "Forensic Evidence Analyst" in ROW_EXPLANATION_SYSTEM_PROMPT
+    assert "Cognitive Evaluator" in VARIANCE_SYSTEM_PROMPT
     assert "<xai_curation_mandate>" in SYNTHESIS_XAI_CURATION
     assert "<section_rules>" in SYNTHESIS_SECTION_RULES_PREFIX
 
