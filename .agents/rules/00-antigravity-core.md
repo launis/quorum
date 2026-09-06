@@ -50,7 +50,13 @@ trigger: always_on
         <mandate>Explicitly DELETE or OVERWRITE old versions of code when modifying a file. NEVER append new code to the end of a file while leaving broken versions intact.</mandate>
     </rule_block>
     <rule_block id="atomic_checkpoint_mandate">
-        <mandate>After ANY successful run of the `universal_quality_gate` audit script, ALWAYS instruct the user to perform an atomic `git commit` with English messages before proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., breaking circular imports) before the system compiles, modify that specific batch concurrently before running the quality gate and instructing the commit. NEVER propose `git add .` or modify multiple architectural domains (UI and Backend) concurrently without a save state.</mandate>
+        <mandate>After ANY successful run of the `universal_quality_gate` audit script, ALWAYS instruct the user to perform an atomic `git commit` with English messages before proceeding to the next file or logic block. Exception: If a structural refactor mathematically requires modifying a coupled set of files (e.g., breaking circular imports) before the system compiles, modify that specific batch concurrently before running the quality gate and instructing the commit. NEVER propose `git add .` or modify multiple architectural domains (UI and Backend) concurrently without a save state.
+
+        COMMIT INSTRUCTION FORMATTING MANDATE: When instructing the user to commit, you MUST:
+        1. Use strict Conventional Commits syntax (`<type>(<scope>): <imperative summary in lowercase, max 72 chars, no trailing period>`).
+        2. Specifically list the exact staged files in the `git add` command.
+        3. Accompany the command EXCLUSIVELY with a concise, factual, and strictly objective bulleted list of physical changes made per file or component (using imperative present tense: "Add X", "Fix Y", "Remove Z").
+        4. NEVER include conversational filler, meta-narratives, subjective adjectives ("comprehensive", "great"), or historical development stages in the commit message or accompanying change summary.</mandate>
     </rule_block>
     <rule_block id="context_amnesia_prevention">
         <mandate>Proactively suggest executing `/tier5-session-handover` if you process >8 user prompts in a session, complete 3 atomic `git commit` operations, or modify >5 distinct complex files. NEVER silently persist across heavy multi-directory refactors.</mandate>
