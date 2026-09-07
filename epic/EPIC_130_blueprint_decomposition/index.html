@@ -1,0 +1,9948 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Enterprise AI Orchestration Engine (2026 SOTA)">
+      
+      
+      
+      
+        <link rel="prev" href="../EPIC_123_tracker/">
+      
+      
+        <link rel="next" href="../EPIC_130_tracker/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters - Cognitive Quorum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#epic-130-blueprint-transformer-decomposition-into-modular-sdui-adapters" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Cognitive Quorum" class="md-header__button md-logo" aria-label="Cognitive Quorum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Cognitive Quorum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Etusivu
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/00_executive_summary.md" class="md-tabs__link">
+          
+  
+  
+  🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Holistinen Mestaruus.md" class="md-tabs__link">
+          
+  
+  
+  🧠 Kognitiivinen Orkestraatio (Teoria)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../BACKLOG_ALIAS_ENGINE_AND_DICT_PURGE/" class="md-tabs__link">
+          
+  
+  
+  🚀 Epics & Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../swagger/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  ⚙️ API Swagger Docs
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Cognitive Quorum" class="md-nav__button md-logo" aria-label="Cognitive Quorum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Cognitive Quorum
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Etusivu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/00_executive_summary.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    00. Yhteenveto & Säännöt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/01_backend_api_and_core.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01. API-kerros ja Asynkroninen Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/02_domain_models.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02. Pydantic-tietomalli & Fail-Fast
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/03_business_services_and_dag.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03. Työnkulkujen Orkestraatio (DAG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/04_hooks_and_llm.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04. Tekoälyn Hooks & LLM Päätepisteet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/05_data_persistence_and_seeding.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05. Yhteystasot, CQRS & The Seed Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/06_desktop_first_flutter_client.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06. Esityskerros (Desktop-first Flutter)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/07_infrastructure_and_observability.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07. Infrastruktuuri & Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧠 Kognitiivinen Orkestraatio (Teoria)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🧠 Kognitiivinen Orkestraatio (Teoria)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Holistinen Mestaruus.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Holistinen Mestaruus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Agent_Workflows_Opas.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Workflows Opas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Epics & Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🚀 Epics & Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../BACKLOG_ALIAS_ENGINE_AND_DICT_PURGE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog: AliasEngine Refactoring &amp; Complete Dict Traversal Purge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CLEAN_PYDANTIC_TRANSITION_CATALOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clean Pydantic Transition Catalog &amp; Refactoring Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arkkitehtuurin_elinkaari/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arkkitehtuurin ja Dokumentaation Elinkaari (The Antigravity Way)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arkkitehtuurin_parannuskohteet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arkkitehtuurin ja Tietomallien Parannuskohteet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_dict_leakage_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Syvyysauditointi: Dict-Vuotovektorit Nykyisen Suunnitelman Ohitse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plan_workflow_step_controls_restructuring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Workflow Step Controls &amp; Terminology Restructuring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../teoreettinen_ja_kaupallinen_positiointi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quorumin Tieteellinen ja Kaupallinen Positiointi (2024–2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tier3_decomposition_instructions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ohje: Miten käyttää /tier3-god-code-decomposition -työnkulkua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_9" id="__nav_4_9_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/00_README_META_ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    META-GOVERNANCE: THE DUAL-AXIS DOCUMENTATION PARADIGM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/01_system_context_and_invariants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Context &amp; Core Invariants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/02_data_seeding_and_ontology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Seeding &amp; Ontology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/03_cognitive_orchestration_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cognitive Orchestration Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/04_server_driven_ui_and_presentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server-Driven UI &amp; Presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/05_resilience_and_observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilience &amp; Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/06_enriched_atom_graph_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06. Enriched Atom Graph Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/07_eu_ai_act_compliance_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EU AI Act Compliance &amp; Governance Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/08_matrix_explanations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matrix Theory Explanations Compendium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_10" id="__nav_4_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Audit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_bipolar_matrix_scores/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System 2 Feature &amp; Phenomenon Audit: Polarisoituneet 0/5 ja 5/5 Matriisitasot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_context_target_inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature &amp; Architectural Audit: Context Target Input Routing &amp; "Lopputuote" Badge Hardcoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_theory_grounding_calibration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Audit Report: Theory-Grounding Matrix Calibration &amp; Diagnostic Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/red_team_audit_modern_python_typing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit: Modern Python Typing, 100% Protocol Reconstitution, Dict Eradication &amp; Strict Boundary Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/red_team_audit_scoring_double_inversion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit: Scoring Double-Inversion Elimination, Multi-Input Context Target Routing &amp; Verbatim Quote Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_11" id="__nav_4_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Epic
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2%20-%20Osa%201%20%28Valmistelu%29/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: B2B SaaS IAM-arkkitehtuuri 2026 - Osa 1 (Valmistelu)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2%20-%20Osa%202%20%28Integraatio%29/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: B2B SaaS IAM-arkkitehtuuri 2026 - Osa 2 (Integraatio)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: IAM, Hybrid-Organisaatiomalli &amp; Enterprise Hardening (SaaS 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../B2B%20SaaS%20IAM-arkkitehtuuri%202026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: IAM &amp; Organisaatiomalli (SaaS 2026 - Nykyarkkitehtuurin Vahvistus)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_101_Global_Extraction_Node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 101: RAG Pre-Flight Pipeline &amp; Deterministic Anchoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_102_structured_provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 102: Structured Provenance &amp; Context Segregation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_102_structured_provenance_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 102: Structured Provenance &amp; Context Segregation - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_103_tda_best_of_three_flash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 103: TDA Best-Of-Three Flash Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_103_tda_best_of_three_flash_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 103: TDA Best-Of-Three Flash Architecture Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_104_tda_pipeline_extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 104: TDA Pipeline Extraction &amp; Strategy Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_104_tda_pipeline_extraction_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 104: TDA Pipeline Extraction — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_105_synthesis_engine_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 105: Synthesis Engine Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_105_synthesis_engine_unification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 105: Synthesis Engine Unification — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_106_output_profile_simplification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 106: OutputProfile Simplification &amp; SDUI Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_106_output_profile_simplification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 106 Tracker: OutputProfile Simplification &amp; SDUI Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_107_execution_pipeline_optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 107: Execution Pipeline Optimization &amp; Pacing Lock Resolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_107_execution_pipeline_optimization_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 107 Tracker: Execution Pipeline Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_108_cognitive_pagination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 108: Cognitive Pagination &amp; Semantic Anchor Extraction (Atomizer NLP Optimization)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_108_cognitive_pagination_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 108 Tracker: Cognitive Pagination &amp; Semantic Anchor Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_109_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_109_output_profile_ui_and_i18n_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109: Output Profile UI and i18n Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_109_output_profile_ui_and_i18n_unification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109: Output Profile UI and i18n Unification Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_110_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_110_dumb_painter_sdui_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110: Dumb Painter SDUI Architecture (Zero Intelligence Rendering)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_110_dumb_painter_sdui_architecture_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110: Dumb Painter SDUI Architecture Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_111_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111: Final Audit Report (Tier 8)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_111_sdui_legacy_eradication_and_ui_refactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111: Eradicate Legacy SDUI Fields &amp; Output Profile Refactoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_111_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111 TRACKER: Eradicate Legacy SDUI Fields &amp; Output Profile Refactoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_114_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114: Shift-Left Testing &amp; QA Architecture - Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_114_shift_left_testing_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114: Shift-Left Testing &amp; QA Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_114_shift_left_testing_architecture_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114 Tracker: Shift-Left Testing &amp; QA Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_115_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 115: Timeless Architecture Documentation Reform - Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_115_timeless_architecture_documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 115: Timeless Architecture Documentation Reform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_115_timeless_architecture_documentation_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: EPIC 115 - Timeless Architecture Documentation Reform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_116_tda_context_enriched_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 116: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_117_Dynamic_Tool_Registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 117: Dynamic Tool Registry &amp; SRP Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_118_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118 Audit Report: Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_118_tda_context_enriched_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_118_tda_context_enriched_pipeline_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118 Tracker: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_119_XML_Sandwich_Standardization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119: Universal XML Sandwich &amp; Context Quarantine Standardization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_119_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119 Audit Report (System 2 Reverse Epic Analysis)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_119_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119: Universal XML Sandwich &amp; Context Quarantine Standardization Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_120_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120 Final Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_120_database_driven_sdui_templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120: SDUI Strictness Hardening — Eradicating Unstructured Presentation Fields
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_120_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120 Tracker: SDUI Strictness Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_121_admin_studio_sdui_template_editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 121: Admin Studio Output Profile SDUI Template Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_122_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_122_legacy_parity_output_profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122: Legacy Parity Output Profile (Strict SDUI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_122_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122: Legacy Parity Output Profile (Strict SDUI) - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_123_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123 Audit Report: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_123_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123 Tracker: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-goal-description-background-objective-problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Goal Description &amp; Background (Objective &amp; Problem Statement)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Goal Description &amp; Background (Objective &amp; Problem Statement)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#business-objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Business Objective
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#root-cause-gap-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Root Cause / Gap Analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#strategic-scope" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strategic Scope
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architectural-impact-compliance-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architectural Impact &amp; Compliance Matrix
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Architectural Impact &amp; Compliance Matrix">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#deprecations-sunset-list-what-we-will-remove" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecations &amp; Sunset List (What We Will REMOVE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#retained-ssot-invariants-what-we-will-retain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retained SSOT Invariants (What We Will RETAIN)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pre-existing-code-smells-discovered-out-of-scope-handled-naturally" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-Existing Code Smells Discovered (Out of Scope / Handled Naturally)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compliance-modernity-gates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Compliance &amp; Modernity Gates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#producer-consumer-integration-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Producer-Consumer Integration Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#namespace-clarification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace Clarification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-phased-execution-plan-implementation-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Phased Execution Plan (Implementation Strategy)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Phased Execution Plan (Implementation Strategy)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-foundation-new-directory-structure-typed-protocol-adaptercontext-dto" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Foundation — New Directory Structure, Typed Protocol &amp; AdapterContext DTO
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-extract-xai-highlights-adapter-proof-of-concept" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Extract XAI Highlights Adapter (Proof of Concept)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-extract-penalties-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Extract Penalties Adapter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-extract-executive-summary-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Extract Executive Summary Adapter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-extract-printable-sources-adapter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Extract Printable Sources Adapter
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5a-deferred-placeholder-adapters-no-extraction-until-real-logic-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5a: DEFERRED — Placeholder Adapters (No Extraction Until Real Logic Exists)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6a-decompose-god-method-xai-extensions-fail-fast-refactor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6A: Decompose God Method (XAI Extensions &amp; Fail-Fast Refactor)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6b-matrix-adapters-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6B: Matrix Adapters Extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-7-sdui-layout-flattening-dumb-painter-architecture-strict-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 7: SDUI Layout Flattening (Dumb Painter Architecture &amp; Strict Ordering)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-8-verification-e2e-integration-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 8: Verification &amp; E2E Integration Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-definition-of-done-dod-verification-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Definition of Done (DoD) &amp; Verification Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Definition of Done (DoD) &amp; Verification Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#definition-of-done-dod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition of Done (DoD)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#automated-unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated Unit Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-verification-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Verification Steps
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mandatory-final-e2e-rest-api-verification-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MANDATORY Final E2E REST API Verification Gate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-knowledge-item-mandate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Knowledge Item Mandate
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_130_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 130 Tracker: Blueprint Transformer Decomposition into Modular SDUI Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_131_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131 AUDIT REPORT: SDUI Layout Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_131_sdui_layout_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131: SDUI Layout Unification — Flat Polymorphic Block Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_131_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131: SDUI Layout Unification Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_132_sdui_pre_computation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 132: SDUI Pre-computation &amp; Dynamic Workflow Extensions Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_133A_lightweight_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133A: Lightweight Matrix God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_133A_lightweight_matrix_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133A Tracker: Lightweight Matrix God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_133B_tripartite_pipeline_strictness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133B: Tripartite Pipeline Strictness (Regex &amp; JSON Mapping Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_133C_domain_model_sdui_localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133C: Domain Model &amp; SDUI Localization (Enums &amp; "N/A" Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_133_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ylätason suunnitelma: God Code -tiedostojen refaktorointi (Tier 2 &amp; Tier 3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_134_v2_core_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 134: v2_core.py God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_134_v2_core_god_code_decomposition_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 134: v2_core.py God Code Decomposition - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_135_Schema_Convergence_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_135_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication - Final Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_135_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_136_Test_Expansion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 136: Comprehensive Test Expansion &amp; AST Guardrails — Implementation Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_136_Test_Expansion_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: EPIC 136 Comprehensive Test Expansion &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_136_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Report: EPIC 136 Comprehensive Test Expansion &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_Qualitative_Depth_Restoration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137: Qualitative Depth Restoration &amp; TDA Extraction Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 Tracker: Qualitative Depth Restoration &amp; TDA Extraction Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_138_TDA_Engine_DTO_Projection_Refactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 138: TDA Engine DTO Projection Refactor (ResultProjector Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_139_Strict_Type_Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 139: Strict Service Layer Type Checking (Replacing hasattr Duck Typing)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_140_Matrix_Scoring_Reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 140: Matrix Scoring Reliability &amp; Protocol Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_141_Holistic_Executive_Synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 141: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_141_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 141 Audit Report: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_141_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 141: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142: Matrix Atom Boolean Evaluation Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142 Tracker: Matrix Atom Boolean Evaluation Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_143_Synthesis_Matrix_Explanation_Fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_143_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143 Audit Report: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_143_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143 Tracker: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_144_Output_Profile_Studio_UI_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization &amp; Visual Block Builder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_144_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization — Forensic Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_144_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization — Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_145_Workflow_Context_Governance_and_Studio_UX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_145_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145 Audit Report: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_145_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145 Tracker: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146: Unified Prompt Orchestration and Cognitive Instruction Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_146_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146 Retrospective Audit Report: Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_146_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146 Tracker: Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_147_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Audit Report: Engine Dispatch, Strategy Container &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_147_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Tracker: Engine Dispatch, Strategy Container &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_148_Domain_Model_SSOT_and_Localization_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 Domain Model SSOT and Localization Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_148_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 Audit Report: Domain Model SSOT &amp; Presentation Localization Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_148_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_149_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SYSTEM 2 ARCHITECTURAL RESEARCH &amp; AUDIT REPORT: EPIC 149
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_149_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 149 Tracker: Clean Pydantic V2 Full Codebase Transition &amp; AST Guardrails Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_150_Zero_Permissive_Typing_Lockdown/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 150 Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_150_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 150: FINAL SYSTEM 2 REVERSE EPIC AUDIT REPORT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_150_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 150 Tracker: Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_72_PostgreSQL_Driver_and_Data_Layer_Migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 72: PostgreSQL Driver ja Datakerroksen Migraatio
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_73_CICD_Pipeline_and_Automated_Quality_Assurance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 73: CI/CD Pipeline ja Automaattinen Laadunvarmistus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_74_Production_Deployment_GCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 74: Production Deployment — Google Cloud Platform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_89_Dynamic_Tool_Registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC 89: Dynamic Tool Registry &amp; SRP Hardening (V2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_91_5_DTO_Bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 91.5: The Universal DTO Bridge (Vaihe 1/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_92_Enriched_Atom_Graph_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 92: Enriched Atom Graph Architecture (Vaihe 2/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_93_SDUI_Output_Rendering_Unification%202/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 93: SDUI Output Rendering Unification (Vaihe 3/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_94_Frontend_SDUI_Synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 94: Frontend SDUI Synchronization (Flutter V2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_94_Module_Decomposition_Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 94: God Code Module Decomposition Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_94_SDUI_Output_Rendering_Unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSA 1: Alkuperäinen Luonnos ja Nykytilan Kartoitus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_95_Go_Live_Readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 95: Quorum V2 Go-Live Readiness &amp; Production Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_95_Verification_Bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TIER 5 SESSION HANDOVER: Verification &amp; Testing Pyramid Epic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_95_Verification_Testing_Pyramid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 95: Verification Testing Pyramid &amp; End-to-End Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../HOWTO_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KÄYTTÖOHJE: Massiivisten "God Code" -tiedostojen purkaminen (Tier 3 &amp; Tier 2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../component_decomposition_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic Tracker: component.py Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epic_100/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 100: Radical Speedup &amp; DAG Scalability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epic_100_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 100 Tracker: Radical Speedup &amp; DAG Scalability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../epic_101_global_extraction_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 101: Global Extraction Node — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quorum_architecture_post_epic_101/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quorum Core Architecture &amp; Invariants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_126" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_126" id="__nav_4_11_126_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 plans
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_126_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_126">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EPIC 137 plans
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 phase1 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 phase2 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 phase3 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 phase4 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/05_phase5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 phase5 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_137_plans/06_phase6_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 phase6 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_127" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_127" id="__nav_4_11_127_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_127_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_127">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EPIC 142
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_1_5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 5 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: DTO Boundary Lockdown &amp; Pre-flight Coercion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: MatrixDomainParser Scoring Fix (Pure Domain Logic &amp; Denominator Correction)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Synthesis Context Preservation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142: Phase 4 - Atomic Test Alignment (Test Expansion)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../EPIC_142/phase_5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142 Phase 5: Pydantic Schema CoT Ordering Audit &amp; Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_128" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_128" id="__nav_4_11_128_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 141
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_128_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_128">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 141
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_141/Phase_1_DAG_Engine_Strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 DAG Engine Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_141/Phase_2_Distiller_Extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Distiller Extraction &amp; Payload Compression Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_141/Phase_3_Sensor_Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Sensor Routing &amp; Matrix Explanation Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_141/Phase_4_Automated_Testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Automated Testing Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_141/Phase_5_Post_Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Post-Implementation Final Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_129" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_129" id="__nav_4_11_129_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 143
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_129_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_129">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 143
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Foundation &amp; SSOT Utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Distiller Unfiltered Context Pipeline &amp; Locale Hoisting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Matrix Explanation Service Hardening &amp; Dual Reporting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: SDUI Presentation &amp; XAI Highlights Fair Distribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/red_team_audit_01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red-Team Audit Report: EPIC 143 Phase 1 (Foundation &amp; SSOT Utilities)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/red_team_audit_02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit Report: Phase 2 (Distiller Unfiltered Context Pipeline &amp; Locale Hoisting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/red_team_audit_03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System 2 Red-Team Audit Report: Phase 3 (Matrix Explanation Service Hardening &amp; Dual Reporting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_143/red_team_audit_04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tier 8 Red Team Plan Audit Report: Phase 4 (SDUI Presentation &amp; XAI Highlights Fair Distribution)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_130" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_130" id="__nav_4_11_130_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 144
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_130_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_130">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 144
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/01_p0_backend_config_enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-A: Backend Config, Enums &amp; Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/02_p0_seed_sanitization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-B: Master Seed Sanitization &amp; Local Reseed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/03_p0_backend_models_dto_purge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-C: Backend Models &amp; DTO Strict Purge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/04_p0_backend_test_fixtures_batch1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-D: Backend Test Fixtures Alignment Batch 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/05_p0_backend_test_fixtures_batch2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-E: Backend Test Fixtures Alignment Batch 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/06_p0_openapi_sync_gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-F: OpenAPI Synchronization Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/07_p0_frontend_enums_freezed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-G: Frontend Enum &amp; Freezed Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/08_p0_frontend_test_fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-H: Frontend Test Fixtures &amp; Negative Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/09_p0_integration_checkpoint/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-I: Integration Checkpoint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/10_p1_golden_master_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1-A: Golden Master Test Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/11_p1_tab_scaffold_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1-B: 3-Tab Scaffold Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/12_placeholder_phase2_block_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Visual Block Builder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/13_placeholder_phase3_backend_alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Execution, Synthesis Alignment &amp; Prompt DRY Simplification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/14_placeholder_phase4_localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Localization Synchronization &amp; Freezed Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_144/15_placeholder_phase5_quality_gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Quality Gates &amp; Anti-Happy-Path Falsification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_131" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_131" id="__nav_4_11_131_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 145 Workflow Context Governance and Studio UX
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_131_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_131">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 145 Workflow Context Governance and Studio UX
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Cross-Domain DTO Parity, Freezed Code Generation Lock &amp; Pre-Implementation Tech Debt Cleanups (Contract First &amp; Zero Duct-Tape)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Atomic Seed Data Migration &amp; Database Re-seeding Gate (Vault Protocol)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Domain &amp; Synthesis Payload Compression Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Studio Workflow &amp; Step Blueprint UX Restructuring (3-Zone Management &amp; Core Protection)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/05_phase5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Verification, Widget Testing &amp; E2E Integration Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_132" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_132" id="__nav_4_11_132_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 146 Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_132_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_132">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 146 Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/01_phase1_backend_tech_debt_and_ast_guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Requisite Technical Debt Cleanups &amp; AST Guardrails (Backend)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/02_phase1_frontend_tech_debt_cleanups/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Requisite Technical Debt Cleanups (Frontend Studio Views)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/03_phase2_seed_data_verification_and_reseed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Seed Data Migration &amp; Vault Mutation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/04_placeholder_phase3_backend_domain_and_service_harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Domain &amp; Service Harmonization (and Test Fixtures Harmonization)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/05_placeholder_phase4_flutter_studio_client_harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Flutter Studio Client Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/06_placeholder_phase6_layer1_global_mandates_and_compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6: Layer 1 Global Mandates Injection &amp; Compiler Foundation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7: Polymorphic AnyPromptBlock Discriminated Union &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/08_placeholder_phase8_clean_stack_compiler_assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 8: Clean Stack Compiler Layer Assembly
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/09_placeholder_phase9_flutter_studio_zero_xml_ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 9: Flutter Studio Zero-XML UI Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/10_placeholder_phase10_seed_vault_pruning_and_reseeding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 10: Seed Vault Pruning &amp; Database Reseeding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 11: End-to-End Live Integration Verification Gate &amp; Knowledge Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_133" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_133" id="__nav_4_11_133_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_133_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_133">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/01_phase1_tech_debt_dtos_repositories_and_strategy_registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Implementation Technical Debt Cleanups, DTOs, Repository Interfaces &amp; Strategy Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/02_phase2_engine_architecture_node_executor_and_dag_concurrency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Engine Architecture, NodeExecutor Decomposition, Single-Fetch DI &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Ghost Execution Elimination &amp; Source Verification Hook Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/04_placeholder_phase4_ast_guardrails_unit_test_suites_and_e2e_gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: AST Guardrails, Unit Test Suites, Mock Migrations &amp; E2E Integration Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_134" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_134" id="__nav_4_11_134_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 148
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_134_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_134">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 148
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_148/01_phase1_theory_grounding_and_epistemic_anchor_sanitization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Theory Grounding &amp; Epistemic Anchor Sanitization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: ATOMIC I18nText Modernization &amp; Systemic Fixture Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: ATOMIC OutputProfile, SDUI Dumb Painter &amp; Localization Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: AST Guardrails, Parity Suites &amp; Final Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_135" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_135" id="__nav_4_11_135_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_135_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_135">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/01_phase1_seed_vault_ssot_foundation_and_client_ingress/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Seed Vault Sanitization, Pre-Implementation Cleanups &amp; SSOT Foundation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/02_phase2_repository_reconstitution_and_dal_tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Repository Reconstitution, Storage Blob Hydration &amp; DAL Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/03_placeholder_phase3a_scoring_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3A: scoring.py God Code Decomposition (Strangler Fig Proxy Pattern)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3B: Full Hooks Pydantic V2 Migration &amp; Hook Tests (PRODUCERS FIRST)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Orchestration &amp; Strategy Core Refactoring &amp; Tests (CONSUMERS SECOND)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Service Layer, Utility Services &amp; Service Tests (CONSUMERS SECOND)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6: Background Workers, Typed Cache Boundary &amp; Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7: AST Guardrail Hardening (Mathematical Drift Prevention)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_136" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_136" id="__nav_4_11_136_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 150 Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_136_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_136">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 150 Zero Permissive Typing Lockdown
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/01_phase1a_llm_models_and_prompt_dto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 phase1a llm models and prompt dto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 phase1b llm adapters and provider pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 phase1c coupled tests and seed validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 phase2a service and progress dto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 phase2b studio and seed models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 phase3a hooks suppression eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 phase3b orchestrator suppression eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 phase3c repositories and domain models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 phase4 ast hardening and governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_11_137" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_11_137" id="__nav_4_11_137_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks tda pipeline extraction
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_11_137_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_11_137">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tasks tda pipeline extraction
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0: Protocol Prerequisites &amp; Directory Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_tda_pipeline_extraction/phase_1_tda_engine_extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: TDA Engine Extraction &amp; Settings Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_tda_pipeline_extraction/phase_2_strategy_refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 &amp; 3: LLMNodeStrategy Refactoring, Engine Delegation, &amp; DAG Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: DAG Executor Wiring &amp; Fail-Fast Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tasks_tda_pipeline_extraction/phase_4_testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Engine Unit Tests &amp; Post-Extraction Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_12" id="__nav_4_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementationplans
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementationplans
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/FEATURE_AUDIT_API_Bypass_and_UI_Matrix_Linter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FEATURE AUDIT API Bypass and UI Matrix Linter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_AI_Studio_Native_Context_Caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN AI Studio Native Context Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_AST_Codebase_Guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN AST Codebase Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Circuit_Breaker_Sparse_Data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Circuit Breaker Sparse Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Cognitive_Instruction_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Cognitive Instruction Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Data_Flow_Strictness_and_State_Transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Data Flow Strictness and State Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Engine_Dispatch_and_Node_Executor_Decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Engine Dispatch and Node Executor Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Execution_Record_Hardening_and_Tech_Debt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Execution Record Hardening and Tech Debt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Flutter_Schema_Hardening_and_Parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Flutter Schema Hardening and Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Full_Database_Verification_Engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Full Database Verification Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Gemini_37_Flash_Migration_and_Model_Registry_Normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Gemini 37 Flash Migration and Model Registry Normalization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Harvard_Bibliography_and_Source_Verification_Config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Harvard Bibliography and Source Verification Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Matrix_Causal_DAG_Integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Matrix Causal DAG Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Modern_Python_Typing_and_Protocol_Enforcement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Modern Python Typing and Protocol Enforcement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_PostgreSQL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN PostgreSQL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN: Prompt Architecture Harmonization (Tripartite Subpackage Topology, FinOps Caching, Studio UI 1:1 Parity &amp; SSOT Length Budgeting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Scoring_Double_Inversion_Elimination_Context_Targets_and_Quote_Extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Scoring Double Inversion Elimination Context Targets and Quote Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Tavily_Source_Bibliography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Tavily Source Bibliography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Test_Architecture_Lockdown_and_Mock_Eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Test Architecture Lockdown and Mock Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Theory_Grounding_Dual_Injection_Elimination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Theory Grounding Dual Injection Elimination
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Theory_Grounding_Matrix_Calibration_and_Micro_Slice_Engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Theory Grounding Matrix Calibration and Micro Slice Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Token_Counter_SSOT_and_FinOps_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Token Counter SSOT and FinOps Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Typing_Syntax_and_Interface_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Typing Syntax and Interface Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Unified_Model_Registry_Multi_Region_Discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Unified Model Registry Multi Region Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Unified_Prompt_Orchestration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Unified Prompt Orchestration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Wikipedia MCP Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Workflow_MCP_Gateway_and_Output_Profile_Relations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Workflow MCP Gateway and Output Profile Relations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/IMPLEMENTATION_PLAN_Zero_Variance_Engine_Hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Zero Variance Engine Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../implementationplans/implementation_plan_vertex_cache_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation plan vertex cache hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ⚙️ API Swagger Docs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="epic-130-blueprint-transformer-decomposition-into-modular-sdui-adapters">EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters</h1>
+<blockquote>
+<p>[!NOTE]
+<strong>Scientific &amp; Industrial Validation (2025-2026)</strong></p>
+<p>Modern SDUI (Server-Driven UI) architecture in 2025-2026 mandates that the backend constructs explicit UI component blocks and ships them to thin rendering clients. Industry best practice (Clean Architecture + Interface Adapter Layer) dictates that the transformation from domain data to UI blocks MUST be isolated in dedicated <strong>Presentation Adapters</strong> — not inlined in a monolithic orchestrator. The "Anti-Corruption Layer" (ACL) pattern prevents dynamic JSON schemas from infecting business logic. Component-Based Decomposition ("Lego Blocks") treats each UI element as an independent, self-contained module encapsulating its own rendering rules and adapter logic. This document applies these principles to decompose <code>blueprint.py</code>'s God Method into modular, self-contained adapter files.</p>
+</blockquote>
+<hr />
+<h2 id="1-goal-description-background-objective-problem-statement">1. Goal Description &amp; Background (Objective &amp; Problem Statement)</h2>
+<h3 id="business-objective">Business Objective</h3>
+<p>Decompose the monolithic <code>BlueprintTransformer</code> service (@[c:\src\quorum\backend_v2\services\blueprint.py]) from a 2012-line God Class into a clean, modular architecture where each report output block (executive summary, XAI extensions, penalties, matrices, audit trail, jargon ratio, printable sources) is handled by its own self-contained adapter file within a new <code>backend_v2/services/sdui/adapters/</code> directory.</p>
+<h3 id="problem-statement">Problem Statement</h3>
+<p>The <code>_extract_matrices_and_extensions</code> method (lines 223-782, approximately 560 lines) and the various <code>_hydrate_*</code> methods (lines 783-840) currently inline ALL of the following concerns into a single file:</p>
+<ol>
+<li><strong>Data Hydration</strong>: Fetching and combining data from multiple caches (<code>profile_cache</code>, <code>row_explanations_cache</code>, <code>results</code> trace).</li>
+<li><strong>Business Logic</strong>: Score normalization, scale calculations, collision tracking, atom evaluation.</li>
+<li><strong>Presentation Rules</strong>: Determining which icon, color, and severity to assign to each SDUI component via hardcoded <code>if/else</code> chains.</li>
+<li><strong>UI Construction</strong>: Instantiating <code>AccordionBlock</code>, <code>AlertBlock</code>, <code>ParagraphBlock</code>, and <code>HeroInsightBlock</code> objects inline.</li>
+</ol>
+<p>This violates the Open-Closed Principle (adding a new report section requires modifying <code>blueprint.py</code>), the Single Responsibility Principle (one file handles parsing, math, theming, and UI construction), and makes unit testing extremely difficult (testing icon color selection requires bootstrapping the entire Blueprint pipeline).</p>
+<h3 id="root-cause-gap-analysis">Root Cause / Gap Analysis</h3>
+<ul>
+<li><strong>God Method Anti-Pattern (Root Cause 1):</strong> <code>_extract_matrices_and_extensions</code> (560 lines) combines LLM trace parsing, Pydantic validation, mathematical normalization, scale calculations, name collision resolution, atom evaluation mapping, and SDUI block construction in a single method with 15 parameters.</li>
+<li><strong>Hardcoded Presentation Rules (Root Cause 2):</strong> Aesthetic decisions (icon names, severity colors) are embedded as <code>if "risk" in lower_ext</code> chains inside <code>_hydrate_grouped_extensions_block</code> (lines 830-841). Adding a new extension category requires editing this method.</li>
+<li><strong>Missing Adapter Layer (Root Cause 3):</strong> The system lacks a dedicated Presentation Adapter layer between domain DTOs (specifically ALL input state models mapped from the execution trace) and SDUI view models (specifically ALL presentation models inheriting from the <code>AnySduiBlock</code> discriminated union defined in <code>models/view/sdui.py</code>). <code>blueprint.py</code> currently acts as both orchestrator AND adapter.</li>
+<li><strong>Untestable Theming Logic (Root Cause 4):</strong> To test whether a "risk_flag" extension gets a "warning" severity and "balance" icon, a developer must mock 7+ repository dependencies and run the entire <code>build_report_dto</code> pipeline. The theming logic is not independently testable.</li>
+</ul>
+<h3 id="strategic-scope">Strategic Scope</h3>
+<p>This Epic introduces a <strong>self-contained adapter pattern</strong> where each report output block is a single Python file containing BOTH its aesthetic rules (as a module-level dictionary) AND its adapter class (with a single <code>build()</code> method). The orchestrator (<code>blueprint.py</code>) is reduced to a thin dispatcher that calls each adapter in sequence. No new external dependencies are introduced.</p>
+<hr />
+<h2 id="2-architectural-impact-compliance-matrix">2. Architectural Impact &amp; Compliance Matrix</h2>
+<h3 id="deprecations-sunset-list-what-we-will-remove">Deprecations &amp; Sunset List (What We Will REMOVE)</h3>
+<ul>
+<li><strong>Inline Presentation Logic in <code>blueprint.py</code></strong>: All <code>if "risk" in lower_ext</code> chains, icon/severity selection logic, and direct <code>AccordionBlock</code>/<code>AlertBlock</code> instantiation inside <code>_hydrate_grouped_extensions_block</code>, <code>_hydrate_penalties_block</code>, and the inline executive summary construction (lines 1079-1095) will be INTENTIONALLY MOVED to their respective adapter files.</li>
+<li><strong><code>_extract_matrices_and_extensions</code> God Method</strong>: This 560-line method (lines 222-782) will be decomposed in two sub-phases. Phase 6A strips extension formatting and moves it to <code>xai_highlights_adapter.py</code>. Phase 6B extracts the remaining matrix parsing logic into <code>matrix_graphs_adapter.py</code> and <code>matrix_summary_table_adapter.py</code>, completely eliminating the God Method.</li>
+<li><strong>Legacy Layout Models</strong>: <code>the historically removed Report Layout Data Transfer Object</code> has already been DEPRECATED and REMOVED. <code>OutputLayoutBlock</code> MUST BE RETAINED as it is part of the <code>OutputProfile</code> SSOT for database persistence, but its <code>preset_view</code> logic is ignored during presentation. The system transitions to a purely flat <code>inner_sdui_blocks</code> sequence containing <code>AnySduiBlock</code> types (specifically: <code>SduiRadarChartBlock</code>, <code>SduiScatterPlotBlock</code>) within <code>ReportDataDTO</code>, completely eliminating nested UI structure in the final client payload.</li>
+<li><strong>Placeholder Methods</strong>: The empty placeholder methods <code>_hydrate_global_score_block</code>, <code>_hydrate_audit_trail_block</code>, and <code>_hydrate_jargon_ratio_block</code> (lines 802-812) will remain deferred until actual logic is introduced. The <code>_hydrate_printable_sources_block</code> (lines 814-828) is extracted to its own adapter.</li>
+</ul>
+<h3 id="retained-ssot-invariants-what-we-will-retain">Retained SSOT Invariants (What We Will RETAIN)</h3>
+<ul>
+<li><strong>Existing Base DTOs</strong>: <code>MatrixScorecardRowDTO</code>, <code>XaiHighlightItem</code>, and all models in <code>@[c:\src\quorum\backend_v2\models\view\sdui.py]</code> remain completely unchanged. No internal fields of these components are altered.</li>
+<li><strong><code>build_report_dto</code> Orchestration Contract</strong>: The public async method signature returns <code>ReportDataDTO</code>, but its contents are MIGRATED to use the flat <code>inner_sdui_blocks: list[AnySduiBlock]</code> architecture exclusively. External callers (specifically <code>@[c:\src\quorum\backend_v2\services\execution.py]</code>, <code>@[c:\src\quorum\backend_v2\worker.py]</code>) require zero changes as they simply pass the DTO to the DB.</li>
+<li><strong>SDUI Polymorphic Serialization</strong>: <code>AnySduiBlock</code> discriminated union remains the SSOT for all UI blocks.</li>
+<li><strong>Strict ICU Markdown Parity</strong>: The Jinja template (<code>@[c:\src\quorum\backend_v2\templates\report_template.jinja2]</code>) continues to render via <code>render_sdui_blocks()</code> macro, updated to iterate over the flat block array.</li>
+<li><strong>Flutter Frontend</strong>: Dart/Freezed models (<code>Sdui Block DTO</code>) are naturally aligned with the flat array approach. The UI is a "Dumb Painter" that renders the array sequentially.</li>
+</ul>
+<h3 id="pre-existing-code-smells-discovered-out-of-scope-handled-naturally">Pre-Existing Code Smells Discovered (Out of Scope / Handled Naturally)</h3>
+<ul>
+<li><strong><code>VisualIntent.CRITICAL_OVERRIDE.value</code> at L794</strong>: The <code>_hydrate_penalties_block</code> passes <code>.value</code> to the <code>AlertBlock</code> severity field instead of the native enum object. Per <code>strict_enum_hydration_and_validation</code>, this should be <code>VisualIntent.CRITICAL_OVERRIDE</code> directly. The Epic's Phase 3 extraction will naturally fix this.</li>
+<li><strong><code>"default"</code> severity literal at L716</strong>: The Literal type annotation includes <code>"default"</code> but <code>VisualIntent</code> enum has no <code>DEFAULT</code> member. It has <code>NEUTRAL = "NEUTRAL"</code>. This is a pre-existing enum gap. (This will be naturally resolved in Phase 6 when replacing the string literals with <code>VisualIntent</code> enum).</li>
+<li><strong><code>workflow_steps: dict[str, StepRule]</code></strong>: Resolved. The type hint was corrected from <code>dict[str, Any]</code> to <code>dict[str, StepRule]</code> and the <code>.get()</code> anti-pattern was replaced with Fail-Fast direct subscript access. No new DTO was needed — <code>StepRule</code> was already the runtime type.</li>
+<li><strong>Phase 3 Strict Enum Hydration (Lax Pattern)</strong>: Legacy SDUI models (specifically <code>AlertBlock</code>) were found using <code>Literal</code> string typing instead of Enums, causing MyPy crashes when passing native Enum objects. Fixed upstream by converting model fields to use <code>LaxVisualIntent</code> (<code>Annotated[VisualIntent, Field(strict=False)]</code>), ensuring Pydantic coerces JSON strings while MyPy enforces native Enums in Python.</li>
+</ul>
+<h3 id="compliance-modernity-gates">Compliance &amp; Modernity Gates</h3>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pydantic V2 Strictness</td>
+<td>✅ <code>AdapterContext</code> MUST use <code>model_config = ConfigDict(strict=True, extra='forbid', frozen=True)</code></td>
+</tr>
+<tr>
+<td>Cross-Domain DTO Parity</td>
+<td>✅ No DTO changes — Flutter untouched</td>
+</tr>
+<tr>
+<td>Fail-Fast SDUI Serialization</td>
+<td>✅ Maintained — adapters produce strictly typed <code>AnySduiBlock</code></td>
+</tr>
+<tr>
+<td>Zero Duct Tape Rule</td>
+<td>✅ Adapter rules are explicit dictionaries, not <code>.get()</code> fallbacks. All <code>**kwargs: Any</code> signatures MUST be replaced with typed <code>AdapterContext</code> DTO parameters</td>
+</tr>
+<tr>
+<td>RFC-7807 Dual-Reporting</td>
+<td>✅ All <code>AppException</code> raises preceded by <code>logger.error</code>. All bare <code>except Exception:</code> catch-alls in extracted code MUST be replaced with typed exception handlers</td>
+</tr>
+<tr>
+<td>PEP 257 &amp; Docstring Fail-Fast</td>
+<td>✅ All new adapter classes and functions documented using Google-style docstrings. Explicit <code>Raises:</code> blocks are REQUIRED. Do NOT repeat type hints in text descriptions</td>
+</tr>
+<tr>
+<td>Terminology Ban</td>
+<td>✅ The word "Epic" (or "EPIC") MUST NOT be used in any source code comments, docstrings, or logs</td>
+</tr>
+<tr>
+<td><code>type: ignore</code> Zero-Tolerance</td>
+<td>✅ Extracted adapter code MUST NOT carry forward any <code># type: ignore</code> annotations from <code>blueprint.py</code>. Specifically, <code>severity</code> parameters MUST use <code>VisualIntent</code> enum values instead of bare strings</td>
+</tr>
+<tr>
+<td><code>inline_imports_ban</code></td>
+<td>✅ All adapter files MUST place imports at the top of the file. Inline imports from <code>blueprint.py</code> MUST NOT be perpetuated</td>
+</tr>
+</tbody>
+</table>
+<h3 id="producer-consumer-integration-check">Producer-Consumer Integration Check</h3>
+<table>
+<thead>
+<tr>
+<th>Producer</th>
+<th>Consumer</th>
+<th>Contract</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Adapter <code>xai_highlights_adapter.py</code></td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>AccordionBlock</code> with nested <code>AlertBlock</code> children)</td>
+</tr>
+<tr>
+<td>Adapter <code>penalties_adapter.py</code></td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>AlertBlock</code> with <code>CRITICAL_OVERRIDE</code> severity)</td>
+</tr>
+<tr>
+<td>Adapter <code>executive_summary_adapter.py</code></td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>ParagraphBlock</code> instances)</td>
+</tr>
+<tr>
+<td>Adapter <code>printable_sources_adapter.py</code></td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>MarkdownBlock</code> instances)</td>
+</tr>
+<tr>
+<td>Adapter <code>matrix_graphs_adapter.py</code> (PHASE 6B)</td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>SduiRadarChartBlock</code>, <code>SduiScatterPlotBlock</code>)</td>
+</tr>
+<tr>
+<td>Adapter <code>matrix_summary_table_adapter.py</code> (PHASE 6B)</td>
+<td><code>blueprint.py</code> orchestrator</td>
+<td>Returns <code>list[AnySduiBlock]</code> (<code>SduiMatrixTableBlock</code>)</td>
+</tr>
+<tr>
+<td><code>blueprint.py</code> orchestrator</td>
+<td><code>pdf_generator.py</code>, Flutter client</td>
+<td>Returns <code>ReportDataDTO</code> (unchanged contract)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="namespace-clarification">Namespace Clarification</h3>
+<ul>
+<li><strong><code>backend_v2/services/sdui_mapper_service.py</code></strong> remains at its current location. It handles a different concern (Report View mapping for the Flutter SDUI client) than the adapter layer (individual block construction). These are intentionally separate namespaces and MUST NOT be merged.</li>
+</ul>
+<hr />
+<h2 id="3-phased-execution-plan-implementation-strategy">3. Phased Execution Plan (Implementation Strategy)</h2>
+<h3 id="phase-1-foundation-new-directory-structure-typed-protocol-adaptercontext-dto">Phase 1: Foundation — New Directory Structure, Typed Protocol &amp; AdapterContext DTO</h3>
+<p><strong>Target Directory</strong>: <code>backend_v2/services/sdui/adapters/</code>
+1. Create <code>@[c:\src\quorum\backend_v2\services\sdui\__init__.py]</code> [NEW]
+2. Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\__init__.py]</code> [NEW]
+3. Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\base_adapter.py]</code> [NEW] defining:
+   - A frozen Pydantic DTO <code>AdapterContext</code> containing the strictly typed fields that adapters need (specifically: <code>execution: ExecutionRecord | None</code>, <code>locale: str</code>, <code>penalties_applied: list[str]</code>, <code>mcp_audit_map: dict[str, MCPAuditTrace] | None</code>, <code>global_score: float | None</code>, <code>accumulated_extensions: dict[str, list[AnySduiBlock]]</code>, <code>profile: OutputProfile</code>, <code>profile_cache: RenderedSynthesisCache | None</code>).
+   - <strong>MANDATORY</strong>: <code>AdapterContext</code> MUST use <code>model_config = ConfigDict(frozen=True, strict=True, extra="forbid")</code> to adhere to the <code>frozen_state_mutability</code> invariant, preventing downstream side effects.
+   - A <code>Protocol</code> class <code>SduiAdapterProtocol</code> with a single <code>@staticmethod build(context: AdapterContext) -&gt; list[AnySduiBlock]</code> method.
+   - <strong>MANDATORY</strong>: The dispatch table in <code>blueprint.py</code> (<code>_target_block_hydrators</code> at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L104-L111">blueprint.py#L104-L111</a>) MUST be refactored to <code>dict[str, Callable[[AdapterContext], list[AnySduiBlock]]]</code> using a uniform calling convention. Adapter classes MUST be registered via lambda wrappers (specifically <code>lambda ctx: XaiHighlightsAdapter.build(ctx)</code>) to avoid <code>isinstance</code> branching at the call site. Deferred placeholder methods MUST be wrapped identically (specifically <code>lambda ctx: []</code>). This supersedes the old <code>Callable[..., list[AnySduiBlock]]</code> signature. <strong>NOTE</strong>: The <code>from collections.abc import Callable</code> inline import at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L102">blueprint.py#L102</a> inside <code>__init__</code> MUST be moved to the top-level imports per the <code>inline_imports_ban</code>.
+   - <strong>MANDATORY CALL-SITE MIGRATION</strong>: The hydrator dispatch loop at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L1948-L1960">blueprint.py#L1948-L1960</a> MUST be refactored from the current keyword-argument scatter pattern (<code>execution=execution, locale=locale, penalties_applied=penalties_applied, ...</code>) to <code>adapter_fn(context)</code> where <code>context</code> is a pre-constructed <code>AdapterContext</code> instance. The current scatter-pattern MUST be replaced with a single DTO construction before the dispatch loop.
+   - <strong>MANDATORY NAMING BRIDGE</strong>: The dispatch call site at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L1953">blueprint.py#L1953</a> passes the kwarg <code>mcp_audit_data</code> as a list, but the <code>AdapterContext</code> field is named <code>mcp_audit_map</code> and typed as a dict. When constructing <code>AdapterContext</code>, the executing agent MUST bridge this AND convert the list to a dictionary: <code>AdapterContext(..., mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None, ...)</code>.
+4. <strong>MANDATORY CODE QUALITY GATE</strong>: All adapter files MUST:
+   - Include negative tests for <code>AdapterContext</code> that explicitly assert <code>pytest.raises(ValidationError)</code> when attempting to pass unexpected kwargs or mutate frozen fields, to mathematically guarantee <code>extra="forbid"</code> and <code>frozen=True</code> mutability locks work natively in Rust.
+   - Verify that <code>test_blueprint.py</code> and <code>test_blueprint_sdui_crash.py</code> still pass after <code>AdapterContext</code> injection, ensuring orchestration pipelines are not broken by the strict context switch.
+   - Place ALL imports at the top of the file (no inline imports) and explicitly define them (no ambiguous "e.g." shorthand).
+   - Use typed exception handlers (specifically <code>except ValueError</code>, <code>except ValidationError</code>, or <code>except KeyError</code>) — bare <code>except Exception:</code> is strictly forbidden.
+   - Use <code>VisualIntent</code> enum values for severity parameters — bare string literals with <code># type: ignore[arg-type]</code> are strictly forbidden.
+   - Use strict dictionary key access (<code>RULES[key]</code>) — <code>.get(key, default)</code> fallbacks are strictly forbidden.</p>
+<h3 id="phase-2-extract-xai-highlights-adapter-proof-of-concept">Phase 2: Extract XAI Highlights Adapter (Proof of Concept)</h3>
+<ol>
+<li>Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]</code> [NEW].</li>
+<li><strong>MANDATORY</strong>: Lookups for aesthetics and profile mappings MUST use strict dictionary key access (specifically <code>XAI_AESTHETICS_RULES[extension_type]</code> and <code>profile.extension_labels[ext_enum]</code>). Fallbacks using <code>.get()</code> are strictly forbidden to ensure Fail-Fast <code>KeyError</code> crashes on unknown extension types.</li>
+<li><strong>MANDATORY</strong>: All imports MUST be explicitly listed at the top of the file without ambiguity. You MUST explicitly import <code>AppException</code>, <code>VisualIntent</code>, <code>ErrorCodes</code>, and <code>XaiExtensionType</code>.</li>
+<li>Modify <code>@[c:\src\quorum\backend_v2\services\blueprint.py]</code>: Delete <code>_hydrate_grouped_extensions_block</code> and route to the new adapter using <code>build(context)</code>.</li>
+<li><strong>NOTE</strong>: The actual complex <code>_add_ext</code> closure (where extensions are accumulated) lives inside the God Method. Extraction of <code>_add_ext</code> belongs to <strong>Phase 6</strong>. Phase 2 only extracts the simple flat-mapping done in <code>_hydrate_grouped_extensions_block</code>.</li>
+<li><strong>ATOMIC TEST MIGRATION</strong>: You MUST physically move all existing tests related to <code>_hydrate_grouped_extensions_block</code> from <code>@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]</code> into a new <code>@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_xai_highlights_adapter.py]</code> [NEW] file. You MUST NOT mock or delete the old tests.</li>
+<li><strong>MANDATORY NEGATIVE TESTS</strong>: You MUST write a negative test asserting that an unknown extension triggers <code>AppException</code> (coercion failure) and another asserting that an unmapped aesthetic key triggers a native <code>KeyError</code>.</li>
+</ol>
+<h3 id="phase-3-extract-penalties-adapter">Phase 3: Extract Penalties Adapter</h3>
+<ol>
+<li>Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\penalties_adapter.py]</code> [NEW].</li>
+<li>Create a <code>PenaltiesAdapter</code> class with a static method <code>build(context: AdapterContext) -&gt; list[AnySduiBlock]</code>.</li>
+<li>Move the exact logic from <code>_hydrate_penalties_block</code> into this method.</li>
+<li>Ensure strict typing and imports for <code>AnySduiBlock</code>, <code>AlertBlock</code>, and <code>VisualIntent</code>.</li>
+<li>Modify <code>@[c:\src\quorum\backend_v2\services\blueprint.py]</code>:</li>
+<li>Import <code>PenaltiesAdapter</code> and wire it into the <code>_target_block_hydrators</code> registry in <code>__init__</code>.</li>
+<li>Delete <code>_hydrate_penalties_block</code> entirely.</li>
+<li><strong>ATOMIC TEST MIGRATION</strong>: You MUST physically move all existing tests related to <code>_hydrate_penalties_block</code> from <code>@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]</code> into a new <code>@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_penalties_adapter.py]</code> [NEW] file. You MUST NOT mock or delete the old tests.</li>
+<li><strong>MANDATORY NEGATIVE TESTS</strong>: Assert that <code>AdapterContext</code> correctly raises <code>ValidationError</code> if <code>penalties_applied</code> is entirely missing from instantiation, and that passing an empty list <code>[]</code> safely returns <code>[]</code> from the adapter.</li>
+<li><strong>Positive Test</strong>: Assert string mapping into <code>AlertBlock(severity=VisualIntent.CRITICAL_OVERRIDE)</code>.</li>
+</ol>
+<h3 id="phase-4-extract-executive-summary-adapter">Phase 4: Extract Executive Summary Adapter</h3>
+<ol>
+<li>Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\executive_summary_adapter.py]</code> [NEW].</li>
+<li><strong>Strict Role Validation:</strong> Enforce <code>RoleClassification(context.profile.user_role)</code>. Catch <code>ValueError</code> and raise <code>AppException</code>. No <code>except Exception:</code> duct-tape.</li>
+<li><strong>Fail-Fast L10N Prefix:</strong> Enforce <code>context.profile.user_role_label.resolve(context.locale)</code>. If <code>user_role_label</code> is missing, raise a Fail-Fast <code>AppException</code> rather than hardcoding English <code>"User Role"</code>.</li>
+<li><strong>MANDATORY</strong>: The bare <code>except Exception:</code> catch-all currently at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L1085">blueprint.py#L1085</a> MUST be replaced with a typed handler (specifically <code>except KeyError</code> or <code>except ValueError</code>).</li>
+<li><strong>MANDATORY .get() ERADICATION</strong>: The <code>profile.user_role_mappings.get(profile_cache.user_role)</code> at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L1080">blueprint.py#L1080</a> MUST be replaced with strict key access <code>profile.user_role_mappings[profile_cache.user_role]</code>, with <code>KeyError</code> handled explicitly via <code>AppException</code>.</li>
+<li><strong>ADAPTER SCOPE CLARIFICATION</strong>: <code>ExecutiveSummaryAdapter.build()</code> returns ONLY the role-prefix <code>ParagraphBlock</code> (specifically the <code>**{prefix}:** {role_val}</code> block). It does NOT handle <code>synthesis_md</code> resolution, <code>content_blocks</code> aggregation, or <code>section_syntheses</code> mapping. These remain in <code>blueprint.py</code>'s orchestration flow at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L1060-L1077">blueprint.py#L1060-L1077</a>.</li>
+<li>Modify <code>@[c:\src\quorum\backend_v2\services\blueprint.py]</code> (within <code>build_report_dto</code>): </li>
+<li>Delete inline executive summary role-mapping logic (starting at the <code>if profile_cache.user_role:</code> block at L1078) and route to <code>ExecutiveSummaryAdapter.build(context)</code>. The <code>synthesis_md</code> resolution at L1077 remains in <code>blueprint.py</code> as part of the orchestration flow.</li>
+<li><strong>ATOMIC TEST MIGRATION</strong>: You MUST physically move all existing tests related to the executive summary from <code>@[c:\src\quorum\backend_v2\tests\unit\services\test_blueprint.py]</code> into a new <code>@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_executive_summary_adapter.py]</code> [NEW] file. You MUST NOT mock or delete the old tests.</li>
+<li><strong>MANDATORY NEGATIVE TESTS</strong>: Assert invalid <code>user_role</code> string triggers <code>AppException</code>. Assert missing <code>user_role_label</code> triggers <code>AppException</code>. Assert missing <code>user_role_mappings</code> key triggers <code>AppException</code>.</li>
+</ol>
+<h3 id="phase-5-extract-printable-sources-adapter">Phase 5: Extract Printable Sources Adapter</h3>
+<ol>
+<li>Create <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\printable_sources_adapter.py]</code> [NEW].</li>
+<li>Create a <code>PrintableSourcesAdapter</code> class with a static method <code>build(context: AdapterContext) -&gt; list[AnySduiBlock]</code>.</li>
+<li>Move the logic from <code>_hydrate_printable_sources_block</code> into this method.</li>
+<li>Modify <code>@[c:\src\quorum\backend_v2\services\blueprint.py]</code>:</li>
+<li>Import <code>PrintableSourcesAdapter</code> and wire it into the <code>_target_block_hydrators</code> registry in <code>__init__</code>.</li>
+<li>Delete <code>_hydrate_printable_sources_block</code> entirely.</li>
+<li><strong>ATOMIC TEST MIGRATION</strong>: You MUST physically move any tests related to <code>_hydrate_printable_sources_block</code> into a new <code>@[c:\src\quorum\backend_v2\tests\unit\services\sdui\adapters\test_printable_sources_adapter.py]</code> [NEW] file.</li>
+</ol>
+<h3 id="phase-5a-deferred-placeholder-adapters-no-extraction-until-real-logic-exists">Phase 5a: DEFERRED — Placeholder Adapters (No Extraction Until Real Logic Exists)</h3>
+<p><strong>STATUS: DEFERRED.</strong> The methods <code>_hydrate_global_score_block</code>, <code>_hydrate_audit_trail_block</code>, and <code>_hydrate_jargon_ratio_block</code> at <a href="file:///c:/src/quorum/backend_v2/services/blueprint.py#L802-L812">blueprint.py#L802-L812</a> are currently empty placeholders returning <code>[]</code> or dummy text. Extracting empty methods into separate adapter files is pure churn with zero architectural value.</p>
+<p><strong>STRICT EXECUTION DIRECTIVE:</strong>
+- The execution agent MUST NOT attempt to extract or touch <code>_hydrate_global_score_block</code>, <code>_hydrate_audit_trail_block</code>, or <code>_hydrate_jargon_ratio_block</code> during this phase.
+- Simply acknowledge this deferral and immediately proceed to Phase 6 or complete the current execution step.</p>
+<h3 id="phase-6a-decompose-god-method-xai-extensions-fail-fast-refactor">Phase 6A: Decompose God Method (XAI Extensions &amp; Fail-Fast Refactor)</h3>
+<p><strong>Architectural Pivot</strong>: Extracting the Matrix logic was found to be premature because chart-type routing (3D vs 2D) is layout-coupled, not domain-coupled, risking the introduction of duct-tape fallbacks. Thus, Phase 6 is split. Phase 6A focuses solely on extracting the extension formatting from the God Method and refactoring the <code>XaiHighlightsAdapter</code>.</p>
+<ol>
+<li>Refactor <code>@[c:\src\quorum\backend_v2\services\sdui\adapters\xai_highlights_adapter.py]</code> (created in Phase 2) to directly read from <code>context.execution.results</code> and extract the <code>_add_ext</code> logic natively, removing the need for any upstream pre-processing of extensions.</li>
+<li><strong>MANDATORY</strong>: Because extensions are now parsed directly from results, the <code>accumulated_extensions</code> field MUST be removed from <code>AdapterContext</code> during this phase.</li>
+<li><strong>MANDATORY SEVERITY ENUM MIGRATION</strong>: The bare string severity literals (<code>"info"</code>, <code>"success"</code>, <code>"error"</code>, <code>"warning"</code>) inside the <code>_add_ext</code> closure MUST be replaced with <code>VisualIntent</code> enum values (<code>VisualIntent.INFO</code>, etc.).</li>
+<li><strong>MANDATORY SILENT SWALLOW ERADICATION</strong>: Replace <code>except ValueError: pass</code> with <code>logger.error</code> + <code>raise AppException</code> for unknown extensions.</li>
+</ol>
+<blockquote>
+<p>[!WARNING]
+<strong>DELIBERATE BEHAVIORAL CHANGE</strong>: This is NOT a pure structural refactoring. Previously, unknown extension types were silently ignored (<code>except ValueError: pass</code>). After this change, they will crash immediately per the Fail-Fast mandate.</p>
+<p><strong>MANDATORY BLOCKING PREREQUISITE (Must Execute BEFORE Enabling Crash Path)</strong>:
+1. Enumerate ALL extension type strings currently used in <code>seed_data.json</code> and cross-reference them against <code>XaiExtensionType</code> enum members.
+2. Add missing strings to the enum BEFORE enabling the crash path.
+3. Write a specific negative test asserting the <code>AppException</code> crash for an unknown extension string.</p>
+</blockquote>
+<ul>
+<li><strong>MANDATORY DUCK-TYPING ERADICATION</strong>: Ensure no <code>hasattr</code> or <code>getattr</code> with default fallbacks are used in the refactored code. Use strict typed attribute access.</li>
+<li>Modify <code>@[c:\src\quorum\backend_v2\services\blueprint.py]</code>: Rename <code>_extract_matrices_and_extensions</code> to <code>_parse_matrix_trace_results</code>. Strip ALL extension logic (<code>_add_ext</code> closure, iteration over highlights) from this method. It now ONLY returns the raw matrix payloads.</li>
+<li><strong>ATOMIC TEST MIGRATION</strong>: You MUST physically move all existing tests related to <code>_add_ext</code> and extension formatting from <code>test_blueprint.py</code> into <code>test_xai_highlights_adapter.py</code>.</li>
+</ul>
+<h3 id="phase-6b-matrix-adapters-extraction">Phase 6B: Matrix Adapters Extraction</h3>
+<p><strong>Architectural Pivot Reversed</strong>: The Red-Team identified that skipping Matrix Adapters violates the Single Responsibility Principle and breaks the Dumb Painter layout flattening in Phase 7A. We MUST extract these adapters now.</p>
+<ol>
+<li>Create <code>MatrixGraphsAdapter</code> to map <code>TraceMatrixPayloadDTO</code> into <code>SduiRadarChartBlock</code>, <code>SduiScatterPlotBlock</code>, and <code>SduiMetrics1DBlock</code> based on <code>profile.layouts</code>.</li>
+<li>Create <code>MatrixSummaryTableAdapter</code> to aggregate scorecard atoms into <code>SduiMatrixTableBlock</code>. Ensure the AI justification text (reasoning) from the evaluation atom is explicitly mapped into the table row data as the explanation column.</li>
+<li>Modify <code>blueprint.py</code>: Delete <code>_parse_matrix_trace_results</code> and wire the new adapters into the dispatch loop.</li>
+</ol>
+<h3 id="phase-7-sdui-layout-flattening-dumb-painter-architecture-strict-ordering">Phase 7: SDUI Layout Flattening (Dumb Painter Architecture &amp; Strict Ordering)</h3>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>MANDATORY TIER 1 SUB-PHASE SPLIT</strong>: This phase is the largest in the Epic and combines dispatch configuration with block ordering logic. The <code>/tier1-planner</code> MUST split Phase 7 into at minimum 2 separate implementation plans: (7A) Dispatch loop refactoring and adapter wiring, and (7B) Block ordering configuration and PDF/Jinja parity verification. This prevents context saturation during execution.</p>
+</blockquote>
+<ol>
+<li><strong>CRITICAL GUARDRAIL</strong>: <code>ReportDataDTO</code> in <code>@[c:\src\quorum\backend_v2\models\v2_core.py#L1125-L1199]</code> ALREADY uses <code>inner_sdui_blocks</code> and <code>the historically removed Report Layout Data Transfer Object</code> has already been removed. You MUST NOT delete <code>OutputLayoutBlock</code> from <code>backend_v2/models/v2_core.py</code> because it is an SSOT entity required by <code>OutputProfile.layouts</code> for database authoring.</li>
+<li><strong>PRIORITY TARGET</strong>: The Flutter/UI rendering is the primary presentation target. It MUST be fixed and verified first to achieve parity with <code>raportti 2.pdf</code>. Modify <code>blueprint.py</code>'s final assembly to concatenate all extracted adapter blocks directly into a single <code>inner_sdui_blocks</code> list. <strong>MANDATORY ARCHITECTURE FIX</strong>: You MUST ensure that ZERO blocks bypass the adapter pipeline. You MUST create a <code>MetadataAdapter</code> for the HeaderBlock and a <code>SynthesisTextAdapter</code> for the core LLM Markdown blocks. You MUST configure the dispatch loop execution order to exactly match <code>raportti 2.pdf</code>:</li>
+<li><strong>Step 1 (Metadata):</strong> <code>HeaderBlock</code> from <code>metadata_adapter</code>.<ul>
+<li><em>Source</em>: Derived from <code>context.execution</code> metadata (specifically <code>created_at</code> and <code>org_name</code>).</li>
+</ul>
+</li>
+<li><strong>Step 2 (Executive Summary):</strong> Blocks from <code>executive_summary_adapter</code> (<code>HeroInsightBlock</code> / <code>MarkdownBlock</code>).<ul>
+<li><em>Source</em>: Read directly from <code>context.profile_cache.synthesis_blocks</code> or <code>execution.global_synthesis</code>.</li>
+<li><em>LLM Instruction Mandate</em>: <strong>CRITICAL</strong>: The genuine LLM instruction rule MUST be applied exactly as before. The output must strictly follow the existing instruction, where output is adjusted by paragraphs and <code>user_role</code> is declared at the end.</li>
+</ul>
+</li>
+<li><strong>Step 3 (Matrix Graphs &amp; Justifications):</strong> For every matrix, output the elements in a strictly flattened Dumb Painter sequence using ONLY these exact block types:<ol>
+<li><strong>Title Block</strong>: MUST be exactly a <code>MarkdownBlock</code> (formatted as <code>### {title}</code>).</li>
+<li><strong>Explanation Block</strong>: MUST be exactly a <code>ParagraphBlock</code> containing the LLM synthesis text.</li>
+<li><strong>Graph/Data Block</strong>: MUST be exactly one of <code>SduiRadarChartBlock</code>, <code>SduiScatterPlotBlock</code>, or <code>SduiMetrics1DBlock</code> (with its internal <code>title</code> explicitly set to <code>None</code>). If the matrix is <code>text_only</code> (or gracefully degraded to <code>text_only</code>/<code>1d_metrics</code> due to missing axes), this third step is omitted entirely (or just unpacks inner blocks), leaving only <code>MarkdownBlock</code> -&gt; <code>ParagraphBlock</code>.</li>
+</ol>
+</li>
+<li><strong>Step 4 (Extensions):</strong> Blocks from <code>xai_highlights_adapter</code> and <code>penalties_adapter</code> (<code>AccordionBlock</code>, <code>AlertBlock</code>).<ul>
+<li><em>Source</em>: Read mapped data directly from <code>context.accumulated_extensions</code> and <code>context.penalties_applied</code>.</li>
+<li><em>LLM Instruction Mandate</em>: <strong>CRITICAL</strong>: The genuine LLM instruction rule MUST be applied. The text content, explicit rows per extension, and exact data fetch patterns are tightly regulated and must be executed by the LLM exactly as currently implemented.</li>
+</ul>
+</li>
+<li><strong>Step 5 (Matrix Summary Table):</strong> <code>SduiMatrixSummaryTableBlock</code> from <code>matrix_summary_table_adapter</code>.<ul>
+<li><em>Source</em>: Dynamically aggregated directly from <code>context.execution.results</code> by the matrix summary table adapter.</li>
+<li><em>LLM Instruction Mandate</em>: <strong>CRITICAL</strong>: The genuine LLM instruction rule MUST be applied. The explanation column must be formed AI-assisted exactly as before.</li>
+</ul>
+</li>
+<li><strong>Step 6 (Sources):</strong> <code>PrintableSourcesBlock</code> from <code>printable_sources_adapter</code>.<ul>
+<li><em>Source</em>: Mapped directly from <code>context.profile_cache.cited_sources</code>. Furthermore, MUST extract <code>source_urls</code> from <code>context.mcp_audit_map</code> traces and forcibly inject them as bullet points at the end of the bibliography to guarantee MCP tool links (specifically: Tavily Search) are printed.</li>
+<li><em>LLM Instruction Mandate</em>: <strong>CRITICAL</strong>: The genuine LLM instruction rule MUST be applied. This must be processed taking language into account as always before.
+   The flattening is achieved by using <code>.extend()</code> on the adapter results during the configured loop.</li>
+</ul>
+</li>
+<li><strong>GLOBAL LINGUISTIC MANDATE</strong>: Always fetch the language and format strictly according to <code>@[c:\src\quorum\backend_v2\models\prompts\global_mandates.py]</code> and <code>@[c:\src\quorum\backend_v2\models\prompts\linguistic_directives.py]</code>, exactly as done previously.</li>
+<li><strong>GLOBAL ANTI-TRUNCATION MANDATE (NO SHORTENING)</strong>: Under NO circumstances may the executing LLM shorten, summarize, simplify, or truncate any of the textual content, paragraphs, or logic defined in the steps above. You MUST pass the generated texts through identically. The tendency to "tighten" text is strictly forbidden.</li>
+<li><strong>PHASE 7B (100% PURE SDUI PARITY)</strong>: You MUST completely eradicate manual UI layout logic from both the Flutter client and the PDF template. To achieve this:</li>
+<li>Extract <code>SduiMetadataBlock</code>, <code>SduiScoreCardBlock</code>, and <code>SduiAuditTrailBlock</code> in <code>backend_v2/models/view/sdui.py</code>.</li>
+<li>Update <code>blueprint.py</code> to push these new blocks directly into the <code>inner_sdui_blocks</code> sequence (Metadata at index 0, Score and Audit at the end).</li>
+<li>In Flutter (<code>client_app_v2</code>), execute <code>build_runner</code> and modify <code>report_renderer_v2_widget.dart</code> to DELETE all explicit rendering of <code>globalScore</code> and <code>visibleMetadata</code>. The Flutter widget MUST become a single loop over <code>innerSduiBlocks</code>.</li>
+<li>In Python (<code>pdf_generator.py</code> and <code>report_template.jinja2</code>), DELETE the legacy 481-line monolithic matrix routing logic. The Jinja template MUST become a single <code>for block in report_data.inner_sdui_blocks:</code> loop that maps to dedicated macros, perfectly mirroring Flutter's Dumb Painter architecture.</li>
+<li>Modify <code>pdf_generator.py</code> and the Jinja macros to expect the flat layout structure sequentially, eliminating legacy <code>preset_view</code> strings.</li>
+</ol>
+<h3 id="phase-8-verification-e2e-integration-gate">Phase 8: Verification &amp; E2E Integration Gate</h3>
+<ol>
+<li>Run backend tests: <code>uv run python scripts/backend_audit_loop.py backend_v2 --test</code></li>
+<li>Run frontend compilation: <code>uv run python scripts/flutter_audit_loop.py client_app_v2 --build</code></li>
+<li>Execute parity check: <code>uv run python scripts/run_e2e_variance_test.py</code></li>
+<li><strong>Linguistic Mandates Fix (Post-Execution Issue):</strong> Ensure all <code>SynthesisOutputDTO</code> fields involving text synthesis (specifically: <code>cited_sources</code>, <code>row_explanation</code>) strictly include <code>DESC_TRANSLATION_MANDATE</code> inside the Pydantic field description to prevent English language bleed. Document this requirement as an architectural rule in <code>ki_domain_model_prompt_separation.md</code>.</li>
+</ol>
+<hr />
+<h2 id="4-definition-of-done-dod-verification-plan">4. Definition of Done (DoD) &amp; Verification Plan</h2>
+<h3 id="definition-of-done-dod">Definition of Done (DoD)</h3>
+<ol>
+<li><code>blueprint.py</code> contains ZERO direct <code>AccordionBlock</code>, <code>AlertBlock</code>, <code>ParagraphBlock</code>, or <code>MarkdownBlock</code> instantiation for the extracted adapters.</li>
+<li><code>blueprint.py</code> is reduced from 2012 lines to approximately 1200-1300 lines.</li>
+<li>Every adapter file in <code>backend_v2/services/sdui/adapters/</code> is self-contained: it has its own module-level rules dictionary and strictly uses explicit Key-Access (<code>RULES[key]</code>) rather than <code>.get()</code>.</li>
+<li><strong>Atomic Test Migration</strong>: Any tests previously asserting on private methods are updated in the exact same phase. No test suite breakage between phases.</li>
+<li>The <code>ReportDataDTO</code> JSON output is MIGRATED to the flat <code>inner_sdui_blocks</code> architecture (as per <code>output_profile_layout_v2.md</code>), entirely eliminating <code>the historically removed Report Layout Data Transfer Object</code>. Snapshot tests must be explicitly rewritten to expect the flat <code>AnySduiBlock</code> output.</li>
+<li>MyPy strict passes with zero new <code># type: ignore</code> annotations.</li>
+<li>Zero bare <code>except Exception:</code> catch-alls in any adapter file. All exception handlers MUST use typed exceptions and explicitly state them in the <code>Raises:</code> section of the Google-style docstring.</li>
+<li>The word "Epic" (or "EPIC") does NOT appear in any added code, docstrings, or comments.</li>
+<li>Zero inline imports in any adapter file. All imports MUST be at the top of the file.</li>
+<li>The dispatch table <code>_target_block_hydrators</code> uses <code>dict[str, Callable[[AdapterContext], list[AnySduiBlock]]]</code> with uniform lambda-wrapped calling convention for both adapter classes and deferred placeholders.</li>
+</ol>
+<h3 id="automated-unit-tests">Automated Unit Tests</h3>
+<pre><code class="language-bash">uv run python scripts/backend_audit_loop.py backend_v2 --test
+</code></pre>
+<p>New unit tests to be added:
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_xai_highlights_adapter.py</code>: Tests aesthetic rule lookup independently (no Blueprint dependencies).
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_penalties_adapter.py</code>: Tests penalty block construction independently.
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py</code>: Tests summary block construction independently.
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_printable_sources_adapter.py</code>: Tests printable sources formatting independently.
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_matrix_graphs_adapter.py</code>: Tests matrix graph construction independently.
+- <code>backend_v2/tests/unit/services/sdui/adapters/test_matrix_summary_table_adapter.py</code>: Tests matrix summary table construction independently.</p>
+<h3 id="manual-verification-steps">Manual Verification Steps</h3>
+<ol>
+<li>Run a full execution and generate a PDF report. Visually compare against <code>@[c:\src\quorum\docs\jwvastaus\raportti 2.pdf]</code> to confirm identical output.</li>
+<li>Verify the Flutter app renders the report identically (no Dart changes, same JSON contract).</li>
+</ol>
+<h3 id="mandatory-final-e2e-rest-api-verification-gate">MANDATORY Final E2E REST API Verification Gate</h3>
+<pre><code class="language-bash">$env:RUN_LIVE_E2E=&quot;true&quot;; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py
+</code></pre>
+<hr />
+<h2 id="5-knowledge-item-mandate">5. Knowledge Item Mandate</h2>
+<p>This Epic introduces a new architectural pattern (Self-Contained SDUI Adapter with Co-Located Rules). The Knowledge Item has been <strong>pre-created before execution</strong> to serve as a canonical reference template during all phases:
+- <strong>KI Name</strong>: <code>sdui_adapter_decomposition</code>
+- <strong>KI Title</strong>: SDUI Self-Contained Adapter Pattern
+- <strong>Summary</strong>: Defines the locked two-section file structure (Section 1: AESTHETICS_RULES dictionary, Section 2: Adapter class), locked terminology (<code>build</code>, <code>context</code>, <code>AdapterContext</code>, <code>_RULES</code>, <code>blocks</code>), canonical reference implementation, forbidden anti-patterns, and AdapterContext schema.</p>
+<p><strong>MANDATORY COMPLIANCE DIRECTIVE</strong>: The executing agent MUST read KI <code>sdui_adapter_decomposition</code> (specifically <code>ki_sdui_adapter_pattern.md</code>) BEFORE creating any adapter file in Phases 1–6. Every adapter file MUST be structurally identical to the canonical reference template defined in the KI. Deviation from the locked terminology or two-section structure is a blocking failure.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
