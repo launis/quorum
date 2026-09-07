@@ -10,7 +10,7 @@ Step failed because LLM returned 12 localized_anchors_found items
 (e.g., 'Koska', 'johtaneet', etc.), but Pydantic enforced max_length=10.
 """
 
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings
 
 # The exact payload from the new production crash log
 SITRA_ANCHORS_12 = [
@@ -53,8 +53,8 @@ def test_localized_anchors_accepts_12_items() -> None:
 
 
 def test_schema_max_localized_anchors_is_at_least_15() -> None:
-    """Verify the settings constant allows sufficient anchors."""
-    settings = get_settings()
+    """Verify the settings constant allows sufficient anchors in production."""
+    settings = Settings(environment="production")
     assert settings.schema_max_localized_anchors >= 15, (
         f"SCHEMA_MAX_LOCALIZED_ANCHORS={settings.schema_max_localized_anchors} should be >= 15 for the overflow test."
     )

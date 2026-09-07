@@ -984,9 +984,9 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
 
     assert len(dto.inner_sdui_blocks) >= 2
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiScatterPlotBlock
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiQuadrantMatrixBlock
 
-    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiScatterPlotBlock)]
+    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiQuadrantMatrixBlock)]
     assert len(scatter_blocks) >= 1
     scatter_block = scatter_blocks[-1]
     assert len(scatter_block.axes) == 2
@@ -1272,9 +1272,9 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 
     assert len(dto.inner_sdui_blocks) >= 2
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiScatterPlotBlock
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiQuadrantMatrixBlock
 
-    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiScatterPlotBlock)]
+    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiQuadrantMatrixBlock)]
     assert len(scatter_blocks) >= 1
     scatter_block = scatter_blocks[-1]
     assert len(scatter_block.axes) == 2

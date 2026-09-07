@@ -20,6 +20,7 @@ from backend_v2.services.orchestrator.extractive_sensor_service import (
     BooleanEvaluationResult,
     ExtractiveSensorService,
 )
+from backend_v2.settings import get_settings
 
 
 def test_extractive_sensor_service_fallback_llm() -> None:
@@ -211,7 +212,8 @@ async def test_extractive_sensor_service_batch_pre_evaluate() -> None:
     assert decided["tda_22222222222222222222222222222222"].status == ExecutionStatus.FAILED
 
 
-def test_extractive_sensor_service_resolve_majority_vote() -> None:
+def test_extractive_sensor_service_resolve_majority_vote(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(get_settings(), "ensemble_min_consensus", 2)
 
     # Success case (2 PASS)
     results: list[dict[str, AtomEvaluationResultDTO] | None] = [
@@ -272,8 +274,9 @@ def test_extractive_sensor_service_resolve_majority_vote() -> None:
     assert resolved_split["tda_11111111111111111111111111111111"].status == ExecutionStatus.SYSTEM_ERROR
 
 
-def test_extractive_sensor_service_resolve_majority_vote_tie_breaker() -> None:
+def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifies Null Hypothesis tie-breaker logic across 6 ISTQB equivalence partitions."""
+    monkeypatch.setattr(get_settings(), "ensemble_min_consensus", 2)
     tda_id = "tda_11111111111111111111111111111111"
 
     # 1. Partition A (Positive Claim Split: 1 PASSED, 1 FAILED, is_inverse=False -> FAILED)
@@ -381,7 +384,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
         assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
         assert results["tda_11111111111111111111111111111111"].extensions["coaching"] == "tip"
         assert results["tda_11111111111111111111111111111111"].extensions["contextual_override"] == "True"
-        assert usage.total_tokens == 180
+        assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
 
 def test_extractive_sensor_service_allow_contextual_override() -> None:
@@ -464,7 +467,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory
 
         assert "tda_11111111111111111111111111111111" in results
         assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
-        assert usage.total_tokens == 180
+        assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
 
 @pytest.mark.asyncio
@@ -530,7 +533,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.PASSED
         assert results[tda_id].reasoning == "No penalty found"
-        assert usage.total_tokens == 180
+        assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
 
 @pytest.mark.asyncio
@@ -596,7 +599,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         assert tda_id in results
         assert results[tda_id].status == ExecutionStatus.FAILED
         assert results[tda_id].reasoning == "Penalty detected in text"
-        assert usage.total_tokens == 180
+        assert usage.total_tokens == 60 * get_settings().ensemble_parallelism
 
 
 def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:

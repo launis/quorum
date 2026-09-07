@@ -345,8 +345,7 @@ async def test_worker_synthesis_extracts_metrics_misaligned_sycophancy(
         mock_repo,
         trace_content_ling={
             "performative_patterns": [
-                {"pattern_id": f"{i}", "detected_phrase": f"phrase{i}", "category": "cat"}
-                for i in range(5)
+                {"pattern_id": f"{i}", "detected_phrase": f"phrase{i}", "category": "cat"} for i in range(5)
             ]
         },
         trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),

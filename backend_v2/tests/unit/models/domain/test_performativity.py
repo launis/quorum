@@ -137,5 +137,3 @@ def test_performativity_output_authenticity_score_property() -> None:
     }
     output = PerformativityOutput.model_validate(data)
     assert output.authenticity_score == 2.5
-
-
