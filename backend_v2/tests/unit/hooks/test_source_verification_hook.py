@@ -478,4 +478,3 @@ async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
         assert result.state_delta is not None
         assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
         assert result.state_delta.delta == {"external_evidence": ""}
-

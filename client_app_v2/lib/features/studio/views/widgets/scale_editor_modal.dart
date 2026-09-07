@@ -33,7 +33,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
             tda.aggregationMode == AggregationMode.allMustComply) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Virhetutka vaatii 'Yksikin havainto riittää' -tilan."),
+              content: Text(
+                "Virhetutka vaatii 'Yksikin havainto riittää' -tilan.",
+              ),
             ),
           );
           return;
@@ -41,7 +43,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
         if (tda.enforcePreFlight && tda.syntacticAnchors.isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Pikahylkäys vaatii vähintään yhden tunnistussanan."),
+              content: Text(
+                "Pikahylkäys vaatii vähintään yhden tunnistussanan.",
+              ),
             ),
           );
           return;
@@ -560,11 +564,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         });
                                       },
                                     ),
-                                    if (RegExp(r'[äöåÄÖÅ]').hasMatch(tda.extractionRule ?? '')) ...[
+                                    if (RegExp(
+                                      r'[äöåÄÖÅ]',
+                                    ).hasMatch(tda.extractionRule ?? '')) ...[
                                       AppSpacing.h4,
                                       const Text(
                                         'Huom: Kehotteiden ja esimerkkien tulee olla englanniksi (System Language).',
-                                        style: TextStyle(color: Colors.amber, fontSize: 11),
+                                        style: TextStyle(
+                                          color: Colors.amber,
+                                          fontSize: 11,
+                                        ),
                                       ),
                                     ],
                                     AppSpacing.h8,
@@ -656,11 +665,16 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         });
                                       },
                                     ),
-                                    if (RegExp(r'[äöåÄÖÅ]').hasMatch(tda.contrastiveExample ?? '')) ...[
+                                    if (RegExp(r'[äöåÄÖÅ]').hasMatch(
+                                      tda.contrastiveExample ?? '',
+                                    )) ...[
                                       AppSpacing.h4,
                                       const Text(
                                         'Huom: Kehotteiden ja esimerkkien tulee olla englanniksi (System Language).',
-                                        style: TextStyle(color: Colors.amber, fontSize: 11),
+                                        style: TextStyle(
+                                          color: Colors.amber,
+                                          fontSize: 11,
+                                        ),
                                       ),
                                     ],
                                     AppSpacing.h8,
@@ -814,12 +828,15 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                         ),
                                       ],
                                     ),
-                                    if (tda.enforcePreFlight && tda.syntacticAnchors.isEmpty) ...[
+                                    if (tda.enforcePreFlight &&
+                                        tda.syntacticAnchors.isEmpty) ...[
                                       AppSpacing.h4,
                                       Text(
                                         'Pikahylkäys vaatii vähintään yhden tunnistussanan',
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.error,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
                                           fontSize: 11,
                                         ),
                                       ),
@@ -841,7 +858,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                             ),
                                       ),
                                       items: AggregationMode.values.map((mode) {
-                                        final isDisabled = tda.inverseEvidence && mode == AggregationMode.allMustComply;
+                                        final isDisabled =
+                                            tda.inverseEvidence &&
+                                            mode ==
+                                                AggregationMode.allMustComply;
                                         return DropdownMenuItem<
                                           AggregationMode
                                         >(
@@ -851,7 +871,13 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                             mode == AggregationMode.exists
                                                 ? l10n.scaleAggExists
                                                 : '${l10n.scaleAggAllMustComply}${isDisabled ? ' (Estetty virhetutkassa)' : ''}',
-                                            style: isDisabled ? TextStyle(color: Theme.of(context).disabledColor) : null,
+                                            style: isDisabled
+                                                ? TextStyle(
+                                                    color: Theme.of(
+                                                      context,
+                                                    ).disabledColor,
+                                                  )
+                                                : null,
                                           ),
                                         );
                                       }).toList(),
@@ -883,7 +909,9 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                                       Text(
                                         "Virhetutka vaatii 'Yksikin havainto riittää' -tilan",
                                         style: TextStyle(
-                                          color: Theme.of(context).colorScheme.primary,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
                                           fontSize: 11,
                                         ),
                                       ),

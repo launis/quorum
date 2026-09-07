@@ -20,4 +20,3 @@ def test_system_concurrency_fast_mode_limits() -> None:
     assert dev_settings.llm_max_retries == 0
     assert dev_settings.ensemble_parallelism == 1
     assert dev_settings.matrix_sampling_limit == 1
-

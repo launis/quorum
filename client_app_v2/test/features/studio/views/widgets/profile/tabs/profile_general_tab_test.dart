@@ -103,25 +103,46 @@ void main() {
       await tester.pumpAndSettle();
 
       // Card 2: Tone instruction TextFormField
-      expect(find.byKey(const Key('profile_tone_instruction_field')), findsOneWidget);
+      expect(
+        find.byKey(const Key('profile_tone_instruction_field')),
+        findsOneWidget,
+      );
 
       await tester.drag(find.byType(ListView), const Offset(0, -600));
       await tester.pumpAndSettle();
 
       // Card 3: Matrix View Directives title
-      expect(find.text('Matrix View Type Synthesis Directives'), findsOneWidget);
+      expect(
+        find.text('Matrix View Type Synthesis Directives'),
+        findsOneWidget,
+      );
 
       // Card 3: 4 Reusable View Type TextFormFields
-      expect(find.byKey(const Key('profile_matrix_1d_directive_field')), findsOneWidget);
-      expect(find.byKey(const Key('profile_matrix_2d_directive_field')), findsOneWidget);
-      expect(find.byKey(const Key('profile_matrix_3d_directive_field')), findsOneWidget);
-      expect(find.byKey(const Key('profile_matrix_text_directive_field')), findsOneWidget);
+      expect(
+        find.byKey(const Key('profile_matrix_1d_directive_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('profile_matrix_2d_directive_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('profile_matrix_3d_directive_field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('profile_matrix_text_directive_field')),
+        findsOneWidget,
+      );
 
       // Invariant: Pruned 1:1 Section Directives must NOT exist on Tab 1
       expect(find.text('Executive summary synthesis directive'), findsNothing);
       expect(find.text('Row explanation synthesis directive'), findsNothing);
       expect(find.text('XAI highlights synthesis directive'), findsNothing);
-      expect(find.text('Variance validation synthesis directive'), findsNothing);
+      expect(
+        find.text('Variance validation synthesis directive'),
+        findsNothing,
+      );
     },
   );
 }

@@ -311,4 +311,3 @@ async def test_run_full_verification_bypasses_when_tavily_max_results_zero(
         assert result.audit_traces == []
         assert result.verification_timestamp != ""
         mock_task_executor.execute_structured_task.assert_not_called()
-

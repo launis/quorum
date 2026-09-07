@@ -136,22 +136,10 @@ void main() {
       expect(profile.maxUnmetCriteria, 3);
       expect(profile.matrixGraphLengthConstraint, 400);
       expect(profile.toneInstruction, 'Formal');
-      expect(
-        profile.matrix1dSynthesisDirective,
-        '1D Directive',
-      );
-      expect(
-        profile.matrix2dSynthesisDirective,
-        '2D Directive',
-      );
-      expect(
-        profile.matrix3dSynthesisDirective,
-        '3D Directive',
-      );
-      expect(
-        profile.matrixTextSynthesisDirective,
-        'Text Directive',
-      );
+      expect(profile.matrix1dSynthesisDirective, '1D Directive');
+      expect(profile.matrix2dSynthesisDirective, '2D Directive');
+      expect(profile.matrix3dSynthesisDirective, '3D Directive');
+      expect(profile.matrixTextSynthesisDirective, 'Text Directive');
       expect(profile.targetBlockOrder.length, 12);
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);

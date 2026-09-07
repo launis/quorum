@@ -319,4 +319,3 @@ async def test_batch_tavily_search_bypasses_when_max_results_zero() -> None:
 
         assert results == []
         task_executor.execute_structured_task.assert_not_called()
-

@@ -37,9 +37,7 @@ def _create_profile(extensions: list[XaiExtensionType] | None = None) -> OutputP
         name=I18nText(translations={"en": "Test"}),
         content_blocks=[],
         target_block_order=[],
-        visible_workflow_extensions=extensions
-        if extensions is not None
-        else [XaiExtensionType.VARIANCE_VALIDATION],
+        visible_workflow_extensions=extensions if extensions is not None else [XaiExtensionType.VARIANCE_VALIDATION],
     )
 
 

@@ -1385,10 +1385,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                         extra={"error": str(e), "execution_id": execution.id},
                                     )
 
-                            if any(
-                                any(marker in cid for marker in _DETECTOR_STEP_MARKERS)
-                                for cid in candidate_ids
-                            ):
+                            if any(any(marker in cid for marker in _DETECTOR_STEP_MARKERS) for cid in candidate_ids):
                                 is_match = True
 
                             if is_match and out_content:

@@ -184,35 +184,41 @@ void main() {
       },
     );
 
-    testWidgets('Unselected FilterChips are disabled when max quota is reached', (
+    testWidgets(
+      'Unselected FilterChips are disabled when max quota is reached',
+      (tester) async {
+        MatrixSynthesisGroup currentGroup = MatrixSynthesisGroup(
+          id: 'grp_test',
+          title: const I18nText(translations: {'en': 'Test Group'}),
+          targetBlocks: ['blk_mat_1', 'blk_mat_2'],
+          viewType: PresetView.compare2d,
+        );
+
+        await tester.pumpWidget(
+          buildTestableWidget(
+            group: currentGroup,
+            onUpdate: (updated) => currentGroup = updated,
+            blocks: allBlocks,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('2 / 2 valittu'), findsOneWidget);
+
+        // Verify Matrix 3 FilterChip is disabled (onSelected is null)
+        final chipFinder = find.widgetWithText(
+          FilterChip,
+          'Matrix 3 (blk_mat_3)',
+        );
+        expect(chipFinder, findsOneWidget);
+        final FilterChip chipWidget = tester.widget(chipFinder);
+        expect(chipWidget.onSelected, isNull);
+      },
+    );
+
+    testWidgets('Move up and move down callbacks trigger properly', (
       tester,
     ) async {
-      MatrixSynthesisGroup currentGroup = MatrixSynthesisGroup(
-        id: 'grp_test',
-        title: const I18nText(translations: {'en': 'Test Group'}),
-        targetBlocks: ['blk_mat_1', 'blk_mat_2'],
-        viewType: PresetView.compare2d,
-      );
-
-      await tester.pumpWidget(
-        buildTestableWidget(
-          group: currentGroup,
-          onUpdate: (updated) => currentGroup = updated,
-          blocks: allBlocks,
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('2 / 2 valittu'), findsOneWidget);
-
-      // Verify Matrix 3 FilterChip is disabled (onSelected is null)
-      final chipFinder = find.widgetWithText(FilterChip, 'Matrix 3 (blk_mat_3)');
-      expect(chipFinder, findsOneWidget);
-      final FilterChip chipWidget = tester.widget(chipFinder);
-      expect(chipWidget.onSelected, isNull);
-    });
-
-    testWidgets('Move up and move down callbacks trigger properly', (tester) async {
       bool movedUp = false;
       bool movedDown = false;
 

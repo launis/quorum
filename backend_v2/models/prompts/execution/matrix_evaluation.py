@@ -82,9 +82,7 @@ MATRIX_SENSOR_SYSTEM_PROMPT: str = (
     "you MUST set `source_quote` to null.\n"
     "- CHIMERA BAN: Quotes must exist character-for-character within the source context. "
     "Do not invent, splice, or alter quotes.\n"
-    "</evidence_extraction_mandate>\n"
-    + CONTEXTUAL_OVERRIDE_DIRECTIVE
-    + "\n"
+    "</evidence_extraction_mandate>\n" + CONTEXTUAL_OVERRIDE_DIRECTIVE + "\n"
     "<output_mandate>\n"
     "- Complete all required schema fields (`alias`, `reasoning`, `is_true`, `source_quote`) "
     "for every single requested claim.\n"

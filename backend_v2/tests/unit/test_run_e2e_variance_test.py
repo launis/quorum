@@ -703,4 +703,3 @@ def test_run_variance_test_diff_execution_utf8_handling(monkeypatch: pytest.Monk
     diff_kwargs = captured_subprocess_kwargs[-1]
     assert diff_kwargs.get("encoding") == "utf-8"
     assert diff_kwargs.get("errors") == "replace"
-
