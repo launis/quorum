@@ -8,7 +8,8 @@ Usage Examples:
     uv run python scripts/diff_executions.py exe_6c9e2f3b2ea14f9d exe_f16d8b0e40e44316
 
     # 2. Compare executions by directory path:
-    uv run python scripts/diff_executions.py data/files/executions/exe_6c9e2f3b2ea14f9d data/files/executions/exe_f16d8b0e40e44316
+    uv run python scripts/diff_executions.py \
+        data/files/executions/exe_6c9e2f3b2ea14f9d data/files/executions/exe_f16d8b0e40e44316
 
     # 3. Compare latest 3 executions automatically:
     uv run python scripts/diff_executions.py
@@ -148,18 +149,18 @@ class MacroBlockScoreDTO(BaseModel):
     delta_pass_rate: float
 
 
-def _inspect_input_file(file_path: Path) -> dict[str, str]:
-    """Compute SHA-256 hash and detect injected Unicode noise variants in an input file.
+def _inspect_input_file(file_path: Path) -> dict[str, Any]:
+    """Compute SHA-256 hash, detect injected Unicode noise variants, and analyze text volume/structure.
 
     Args:
         file_path: Path to the input file.
 
     Returns:
-        Dictionary containing 'sha256' and 'noise' description.
+        Dictionary containing file inspection metadata, counts, and normalized text.
     """
     raw_bytes = file_path.read_bytes()
     sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
-    text = raw_bytes.decode("utf-8", errors="replace")
+    text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
 
     known_variants = {
         "\u00a0": "No-Break Space (U+00A0)",
@@ -173,9 +174,30 @@ def _inspect_input_file(file_path: Path) -> dict[str, str]:
             found_variants.append(name)
 
     noise_desc = ", ".join(found_variants) if found_variants else "Standard ASCII"
+
+    char_count = len(text)
+    word_count = len(text.split())
+    sentences = [s for s in text.replace("!", ".").replace("?", ".").split(".") if s.strip()]
+    sentence_count = len(sentences)
+    paragraphs = [p for p in text.split("\n\n") if p.strip()]
+    paragraph_count = len(paragraphs) if paragraphs else (1 if text.strip() else 0)
+    bullet_count = sum(
+        1
+        for line in text.splitlines()
+        if line.strip().startswith(("-", "*", "•"))
+        or (len(line.strip()) > 2 and line.strip()[:2].isdigit() and line.strip()[2] == ".")
+    )
+    normalized_text = "".join(text.split())
+
     return {
         "sha256": sha256_hash,
         "noise": noise_desc,
+        "char_count": char_count,
+        "word_count": word_count,
+        "sentence_count": sentence_count,
+        "paragraph_count": paragraph_count,
+        "bullet_count": bullet_count,
+        "normalized_text": normalized_text,
     }
 
 
@@ -569,11 +591,12 @@ def extract_block_normalized_scores(trace_path: Path) -> dict[str, float]:
     return scores
 
 
-def run_diff(execution_ids: list[str] | None = None) -> str:
+def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | None = None) -> str:
     """Perform differential analysis between execution traces and generate Markdown report.
 
     Args:
         execution_ids: Optional list of execution IDs or directory paths to compare.
+        output_file: Optional explicit file path to write the differential Markdown report.
 
     Returns:
         Path to the generated report file.
@@ -687,6 +710,7 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                         "anchor_target": anchor,
                         "contrastive_example": contrastive,
                         "inverse_evidence": tda.get("inverse_evidence", False),
+                        "bounding_box_scope": tda.get("bounding_box_scope", "sentence"),
                     }
                     if bid:
                         atom_to_block[tid] = bid
@@ -779,9 +803,13 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
         total_mismatches=len(mismatching_atoms),
     )
 
-    Path("scratch").mkdir(exist_ok=True)
-    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
-    report_path = Path(f"scratch/diff_report_{timestamp_str}.md")
+    if output_file:
+        report_path = Path(output_file)
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+    else:
+        Path("scratch").mkdir(exist_ok=True)
+        timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d_%H%M")
+        report_path = Path(f"scratch/diff_report_{timestamp_str}.md")
 
     git_info = "Ei saatavilla"
     try:
@@ -797,14 +825,17 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             sys.path.insert(0, ".")
         import backend_v2.models.enums as enums
 
-        ensemble_v: str = str(enums.EvaluationRunCount.ENSEMBLE.value)
-        standard_v: str = str(enums.EvaluationRunCount.STANDARD.value)
-        pass_v: str = str(enums.VerificationResult.VERIFIED.value)
-        fail_v: str = str(enums.VerificationResult.DEBUNKED.value)
+        def _format_enum(enum_cls: Any) -> str:
+            return ", ".join(f"{item.name} = {item.value}" for item in enum_cls)
 
         sys_enums = (
-            f"  - **EvaluationRunCount**: ENSEMBLE = {ensemble_v}, STANDARD = {standard_v}\n"
-            f"  - **VerificationResult**: VERIFIED = {pass_v}, DEBUNKED = {fail_v}"
+            f"  - **ExecutionStatus**: {_format_enum(enums.ExecutionStatus)}\n"
+            f"  - **VerificationResult**: {_format_enum(enums.VerificationResult)}\n"
+            f"  - **EvaluationRunCount**: {_format_enum(enums.EvaluationRunCount)}\n"
+            f"  - **EvaluationCategory**: {_format_enum(enums.EvaluationCategory)}\n"
+            f"  - **ScoringStrategy**: {_format_enum(enums.ScoringStrategy)}\n"
+            f"  - **LLMProviderName**: {_format_enum(enums.LLMProviderName)}\n"
+            f"  - **LLMCachingStrategy**: {_format_enum(enums.LLMCachingStrategy)}"
         )
 
         try:
@@ -1151,9 +1182,9 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
 
         if isolation_audit.is_fully_isolated:
             f.write(
-                "> **[ERISTETTY] TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet "
-                "poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut "
-                "siirtyä ajosta toiseen.\n\n"
+                "> **[ERISTETTY] TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** "
+                "Kaikkien syötetiedostojen SHA-256-tiivisteet poikkesivat toisistaan ajojen välillä. "
+                "Googlen prefiksipohjainen KV-välimuisti ei ole voinut siirtyä ajosta toiseen.\n\n"
             )
         else:
             shared_files_str = ", ".join(isolation_audit.shared_identical_files)
@@ -1264,19 +1295,23 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 models_formatted = "gemini/gemini-3.7-flash"
 
             sys_snap = exec_summary.get("system_concurrency_snapshot", {})
-            snap_str = ""
-            if sys_snap:
-                c_size = sys_snap.get("LLM_MAX_CHUNK_SIZE")
-                m_eval = sys_snap.get("SCHEMA_MAX_EVALUATIONS")
-                s_lim = sys_snap.get("MATRIX_SAMPLING_LIMIT")
-                snap_str = f" (Chunk size: {c_size}, Max Evals: {m_eval}, Sampling: {s_lim})"
+            c_size = sys_snap.get("LLM_MAX_CHUNK_SIZE")
+            m_eval = sys_snap.get("SCHEMA_MAX_EVALUATIONS")
+            s_lim = sys_snap.get("MATRIX_SAMPLING_LIMIT")
+            snap_str = f" (Chunk size: {c_size}, Max Evals: {m_eval}, Sampling: {s_lim})" if sys_snap else ""
 
             with exe_path.open("r", encoding="utf-8") as exe_f:
                 raw_data = exe_f.read()
             error_count = raw_data.count("Chunk Processing Failed") + raw_data.count("SYSTEM ERROR")
             dlq_count = raw_data.count('"_dlq_status": "FAILED/DLQ"')
 
+            dev_mode = run_record.get("dev_execution_mode") or meta.get("dev_execution_mode") or "standard"
+            retries = run_record.get("llm_max_retries") or meta.get("llm_max_retries") or 2
             f.write(f"  - **Malli(t):** `{models_formatted}`{snap_str}\n")
+            f.write(
+                f"  - **Ajotila ja Rinnakkaisuus:** Tila: `{dev_mode}`, Max retries: `{retries}`, "
+                f"Chunk size: `{c_size or '-'}`, Max Evals: `{m_eval or '-'}`, Sampling: `{s_lim or '-'}`\n"
+            )
             f.write(f"  - **Kesto:** `{duration_str}`\n")
             f.write(f"  - **API-kutsut:** `{total_calls}` kpl (Välimuistiosumat: `{cache_hit_count}/{total_calls}`)\n")
             f.write(
@@ -1324,6 +1359,57 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 }
             )
         f.write("\n")
+
+        # Input Corpus Profiling & Structural Volume Table
+        all_input_files: dict[str, dict[str, dict[str, Any]]] = {}
+        for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
+            r_in_dir = p.parent / "inputs"
+            if r_in_dir.is_dir():
+                for in_f in sorted(r_in_dir.iterdir()):
+                    if in_f.is_file():
+                        if in_f.name not in all_input_files:
+                            all_input_files[in_f.name] = {}
+                        all_input_files[in_f.name][r_name] = _inspect_input_file(in_f)
+
+        if all_input_files:
+            f.write("### Syöteaineiston Profiili ja Rakenneanalyysi (Input Corpus Profile)\n\n")
+            f.write(
+                "Taulukko erittelee syötetiedostojen volyymin (sanat, lauseet, merkit) ja "
+                "rakenteen (kappaleet, luetelmat) kustakin ajosta. Tämä todentaa aineiston riittävyyden "
+                "(Data Sparsity vs. Cognitive Failure) sekä semanttisen ekvivalenssin.\n\n"
+            )
+            f.write("| Ajo | Tiedosto | Sanat | Lauseet | Merkit | Kappaleet | Luetelmat | Variaatio / Kohina |\n")
+            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n")
+            for fname, run_dict in all_input_files.items():
+                for r_idx, r_name in enumerate(loaded_runs):
+                    if r_name in run_dict:
+                        fi = run_dict[r_name]
+                        f.write(
+                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {fi['word_count']:,} | "
+                            f"{fi['sentence_count']:,} | {fi['char_count']:,} | {fi['paragraph_count']} | "
+                            f"{fi['bullet_count']} | {fi['noise']} |\n"
+                        )
+            f.write("\n")
+
+            if len(loaded_runs) >= 2:
+                all_identities: list[bool] = []
+                for _fname, run_dict in all_input_files.items():
+                    texts = [run_dict[r]["normalized_text"] for r in loaded_runs if r in run_dict]
+                    if len(texts) >= 2:
+                        all_identities.append(all(t == texts[0] for t in texts))
+
+                if all_identities and all(all_identities):
+                    f.write(
+                        "> **[100% SEMANTTINEN IDENTTISYYS]:** Kaikkien syötetiedostojen teksti on 100% "
+                        "identtistä normalisoidun tekstivertailun (whitespace-stripped) perusteella. "
+                        "Syötteiden sanallinen sisältö on identtinen riippumatta injektoiduista Unicode-välimerkeistä "
+                        "(Data Sparsity poissuljettu).\n\n"
+                    )
+                elif all_identities:
+                    f.write(
+                        "> **[HUOMIO]:** Syötetiedostoissa havaittiin asiasisällöllisiä eroja "
+                        "normalisoidun tekstivertailun perusteella.\n\n"
+                    )
 
         # Global Metrics & Benchmark Section
         f.write("## Globaalit Metriikat & Tieteellinen Luotettavuus (Kappa Benchmark)\n")
@@ -1428,6 +1514,14 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             "Lohkokohtaiset pistemäärät perustuvat ajojen `normalized_score` -kenttään (0–100 asteikko) "
             "sekä atomitason läpäisyasteeseen.\n\n"
         )
+        valid_score_deltas = [
+            abs(ms.delta_normalized_score) for ms in macro_block_scores if ms.delta_normalized_score is not None
+        ]
+        mad_score = (sum(valid_score_deltas) / len(valid_score_deltas)) if valid_score_deltas else 0.0
+        max_drift = max(valid_score_deltas) if valid_score_deltas else 0.0
+
+        f.write(f"- **Keskimääräinen itseisarvopoikkeama (MAD - Mean Absolute Delta):** `{mad_score:.2f}` pistettä\n")
+        f.write(f"- **Suurin yksittäisen lohkon poikkeama (Max Drift):** `{max_drift:.2f}` pistettä\n\n")
         f.write(
             "| Lohko / Matriisi | Run 1 Pisteet (0–100) | Run 2 Pisteet (0–100) | $\\Delta$ Pisteet | "
             "Run 1 Läpäisy | Run 2 Läpäisy | $\\Delta$ Läpäisy |\n"
@@ -1521,8 +1615,11 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 bid = det.get("block_id", "-")
                 sname = det.get("scale_name", "-")
                 sscore = det.get("scale_score", "-")
+                scope = det.get("bounding_box_scope", "sentence")
+                inv = "Kyllä (True)" if det.get("inverse_evidence") else "Ei (False)"
                 f.write(f"- **Lohko / Matriisi:** `{bname}` (`{bid}`)\n")
                 f.write(f"- **Skaala / Taso:** `{sname}` (Arvo: `{sscore}`)\n")
+                f.write(f"- **Skooppi (Scope):** `{scope}` | **Käänteinen evidenssi (Inverse):** `{inv}`\n")
                 if det.get("concept_description"):
                     f.write(f"- **Kysymys / Konsepti:** {det['concept_description']}\n")
                 if det.get("extraction_rule"):
@@ -1534,13 +1631,28 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
             else:
                 f.write(f"**Arviointisääntö:** {atom_rules.get(atom, 'Unknown')}\n")
 
-            f.write("\n**Havaitut tilat ja mallin perustelut ajoittain:**\n")
+            f.write("\n**Havaitut tilat, sitaatit ja perustelut ajoittain:**\n")
             for run_idx, (run_name, state) in enumerate(zip(loaded_runs, states, strict=False)):
                 eval_item = evals_list[run_idx][atom]
                 trace_content = get_trace(eval_item).replace("\n", " ")
                 override_tag = " **[CONTEXTUAL OVERRIDE]**" if uses_contextual_override(eval_item) else ""
+                quote_present = has_quote(eval_item)
+                eq = eval_item.get("exact_quote", eval_item.get("exact_quotes", eval_item.get("source_quote")))
+                if isinstance(eq, list):
+                    eq_text = " ".join(str(x) for x in eq)
+                elif eq is not None:
+                    eq_text = str(eq)
+                else:
+                    eq_text = ""
+                quote_len = len(eq_text)
+                quote_status = "Löytyi" if quote_present else "Ei sitaattia"
+
                 f.write(f"- **Run {run_idx + 1} ({run_name}) - [{state.upper()}]{override_tag}:**\n")
-                f.write(f"  > *{trace_content}*\n")
+                if quote_present:
+                    f.write(f"  - **Sitaatti ({quote_status}, {quote_len} merkkiä):** `{eq_text}`\n")
+                else:
+                    f.write(f"  - **Sitaatti ({quote_status}):** -\n")
+                f.write(f"  - **Perustelu:** *{trace_content}*\n")
             f.write("\n---\n\n")
 
     print(f"Done! Evaluated {len(common_atoms)} common atoms.")

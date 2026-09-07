@@ -360,10 +360,15 @@ class TestInspectInputFile:
         from scripts.diff_executions import _inspect_input_file
 
         f_ascii = tmp_path / "ascii.txt"
-        f_ascii.write_text("Hello world", encoding="utf-8")
+        f_ascii.write_text("Hello world.\n\n- Bullet 1\n- Bullet 2", encoding="utf-8")
         info_ascii = _inspect_input_file(f_ascii)
         assert info_ascii["noise"] == "Standard ASCII"
         assert len(info_ascii["sha256"]) == 64
+        assert info_ascii["word_count"] == 8
+        assert info_ascii["sentence_count"] == 2
+        assert info_ascii["paragraph_count"] == 2
+        assert info_ascii["bullet_count"] == 2
+        assert info_ascii["normalized_text"] == "Helloworld.-Bullet1-Bullet2"
 
         f_nobreak = tmp_path / "nobreak.txt"
         f_nobreak.write_text("Hello\u00a0world", encoding="utf-8")
@@ -539,7 +544,7 @@ class TestRunDiffIntegration:
         ]
         (dir2 / "execution_trace.json").write_text(json.dumps(trace_data_2), encoding="utf-8")
 
-        report_path_str = run_diff([str(dir1), str(dir2)])
+        report_path_str = run_diff([str(dir1), str(dir2)], output_file=tmp_path / "test_report.md")
         report_file = Path(report_path_str)
 
         assert report_file.exists()
@@ -559,6 +564,35 @@ class TestRunDiffIntegration:
         assert "## FinOps & Välimuistisäästöt (Cache Economics & Cost Drift)" in content
         assert "## Lainausten Aitoustarkastus (Lexical Grounding Audit)" in content
         assert "Aitoustaso" in content
+
+        # Assert Critical System Enums SSOT
+        assert "ExecutionStatus" in content
+        assert "VerificationResult" in content
+        assert "EvaluationRunCount" in content
+        assert "EvaluationCategory" in content
+        assert "ScoringStrategy" in content
+        assert "LLMProviderName" in content
+        assert "LLMCachingStrategy" in content
+        assert "SystemConcurrency (Settings)" in content
+
+        # Assert Input Corpus Profile & Semantic Identity Table
+        assert "Input Corpus Profile" in content
+        assert "doc.txt" in content
+        assert "SEMANTTINEN IDENTTISYYS" in content
+
+        # Assert Per-run Concurrency Snapshot & Execution Mode
+        assert "Ajotila ja Rinnakkaisuus" in content
+
+        # Assert Score Delta Statistics (MAD & Max Drift)
+        assert "MAD - Mean Absolute Delta" in content
+        assert "Max Drift" in content
+
+        # Assert Quote Side-by-Side Comparison & Atom Metadata
+        assert "Havaitut tilat, sitaatit ja perustelut ajoittain" in content
+        assert "Sitaatti (Löytyi" in content
+        assert "Sitaatti (Ei sitaattia" in content
+        assert "Skooppi (Scope):" in content
+        assert "Käänteinen evidenssi (Inverse):" in content
 
     def test_main_cli_execution(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify main() function executes without error when called with CLI arguments."""
@@ -647,5 +681,8 @@ class TestRunDiffIntegration:
         )
 
         # Include a non-existent path in arguments to cover path-not-found branch
-        report_str = run_diff([str(dir1), str(dir2), "nonexistent_exe_99999"])
+        report_str = run_diff(
+            [str(dir1), str(dir2), "nonexistent_exe_99999"],
+            output_file=tmp_path / "mock_diff_report.md",
+        )
         assert Path(report_str).exists()
