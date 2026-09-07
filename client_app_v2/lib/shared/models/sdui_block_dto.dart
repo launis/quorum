@@ -131,6 +131,7 @@ sealed class SduiBlockDTO with _$SduiBlockDTO {
     String? id,
     I18nText? title,
     @Default([]) List<MatrixScorecardRowDto> axes,
+    @JsonKey(name: 'show_quadrants') @Default(false) bool showQuadrants,
   }) = SduiScatterPlotBlock;
 
   @JsonSerializable(disallowUnrecognizedKeys: true)

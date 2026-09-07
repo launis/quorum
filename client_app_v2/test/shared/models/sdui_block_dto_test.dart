@@ -169,6 +169,16 @@ void main() {
       final block = SduiBlockDTO.fromJson(json);
 
       expect(block, isA<SduiScatterPlotBlock>());
+      expect((block as SduiScatterPlotBlock).showQuadrants, isFalse);
+    });
+
+    test('parses compare2d block with show_quadrants correctly', () {
+      final json = {'block_type': '2d_compare', 'show_quadrants': true};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiScatterPlotBlock>());
+      expect((block as SduiScatterPlotBlock).showQuadrants, isTrue);
     });
 
     test('throws exception on compare2d unrecognized key', () {

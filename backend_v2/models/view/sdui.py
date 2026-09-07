@@ -678,6 +678,13 @@ class SduiScatterPlotBlock(SduiBlockBase):
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
+    show_quadrants: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="Whether to render shaded diagnostic quadrants and labels.",
+        ),
+    ] = False
 
 
 class SduiMatrixTableBlock(SduiBlockBase):

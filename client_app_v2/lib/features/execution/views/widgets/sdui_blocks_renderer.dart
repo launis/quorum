@@ -65,6 +65,7 @@ class SduiBlocksRenderer extends StatelessWidget {
               xAxis: block.axes[0],
               yAxis: block.axes[1],
               zAxis: block.axes.length > 2 ? block.axes[2] : null,
+              showQuadrants: block.showQuadrants,
             ),
           ),
           SduiMetrics1DBlock() => _buildChartWithTitle(

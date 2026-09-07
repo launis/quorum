@@ -69,17 +69,23 @@ def test_generate_scatter_chart_bounded_scale_fi_and_en() -> None:
         ),
     ]
 
-    # Test Finnish generation
-    result_fi = generate_scatter_chart(axes, locale="fi")
+    # Test Finnish generation with quadrants
+    result_fi = generate_scatter_chart(axes, locale="fi", show_quadrants=True)
     assert result_fi.startswith("iVBORw0KGgo") or len(result_fi) > 100
     decoded_fi = base64.b64decode(result_fi)
     assert len(decoded_fi) > 1000
 
-    # Test English generation
-    result_en = generate_scatter_chart(axes, locale="en")
+    # Test English generation with quadrants
+    result_en = generate_scatter_chart(axes, locale="en", show_quadrants=True)
     assert result_en.startswith("iVBORw0KGgo") or len(result_en) > 100
     decoded_en = base64.b64decode(result_en)
     assert len(decoded_en) > 1000
+
+    # Test standard 2D Cartesian scatter chart without quadrants (default)
+    result_no_quadrants = generate_scatter_chart(axes, locale="fi", show_quadrants=False)
+    assert result_no_quadrants.startswith("iVBORw0KGgo") or len(result_no_quadrants) > 100
+    decoded_no_quadrants = base64.b64decode(result_no_quadrants)
+    assert len(decoded_no_quadrants) > 1000
 
 
 def test_generate_scatter_chart_with_z_axis_bubble_sizing() -> None:

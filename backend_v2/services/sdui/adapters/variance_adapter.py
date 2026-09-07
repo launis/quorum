@@ -246,6 +246,7 @@ class VarianceAdapter:
         scatter_block = SduiScatterPlotBlock(
             title=None,
             axes=[x_axis, y_axis],
+            show_quadrants=True,
         )
 
         # 5. CONSTRUCT 4-METRIC SUMMARY GRID

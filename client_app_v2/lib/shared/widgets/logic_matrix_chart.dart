@@ -11,11 +11,13 @@ class LogicMatrixChart extends StatelessWidget {
     required this.xAxis,
     required this.yAxis,
     this.zAxis,
+    this.showQuadrants = false,
   });
 
   final MatrixScorecardRowDto xAxis;
   final MatrixScorecardRowDto yAxis;
   final MatrixScorecardRowDto? zAxis;
+  final bool showQuadrants;
 
   double _calculateMarginRatio(double min, double max) {
     final double range = max - min;
@@ -149,12 +151,13 @@ class LogicMatrixChart extends StatelessWidget {
           child: ExcludeSemantics(
             child: Stack(
               children: [
-                Positioned.fill(
-                  child: Padding(
-                    padding: plotAreaInsets,
-                    child: quadrantBackground,
+                if (showQuadrants)
+                  Positioned.fill(
+                    child: Padding(
+                      padding: plotAreaInsets,
+                      child: quadrantBackground,
+                    ),
                   ),
-                ),
                 ScatterChart(
                   ScatterChartData(
                     scatterSpots: [
@@ -177,11 +180,13 @@ class LogicMatrixChart extends StatelessWidget {
                     maxY: yMax + yMargin,
                     backgroundColor: Colors.transparent,
                     gridData: FlGridData(
-                      show: true,
-                      drawHorizontalLine: true,
-                      drawVerticalLine: true,
-                      checkToShowHorizontalLine: (value) => value == yMid,
-                      checkToShowVerticalLine: (value) => value == xMid,
+                      show: showQuadrants,
+                      drawHorizontalLine: showQuadrants,
+                      drawVerticalLine: showQuadrants,
+                      checkToShowHorizontalLine: (value) =>
+                          showQuadrants && value == yMid,
+                      checkToShowVerticalLine: (value) =>
+                          showQuadrants && value == xMid,
                       getDrawingHorizontalLine: (value) => FlLine(
                         color: Theme.of(
                           context,
