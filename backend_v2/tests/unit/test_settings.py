@@ -196,7 +196,7 @@ def test_test_settings_factory_inherits_base_with_differential_delta() -> None:
     assert test_settings.rag_preflight_chunk_size == 4000
     assert test_settings.max_precedent_scan_depth == 0
     assert test_settings.max_precedent_return_count == 0
-    assert test_settings.tavily_max_results == 0
+    assert test_settings.tavily_max_results == 1
     assert test_settings.tda_linker_window_size == 2
     assert test_settings.tda_linker_overlap == 0
     assert test_settings.strategy_aliases["reasoning"] == "fast"
@@ -222,12 +222,14 @@ def test_settings_binary_environment_validation() -> None:
     assert dev_settings.llm_max_retries == 0
     assert dev_settings.ensemble_parallelism == 1
     assert dev_settings.matrix_sampling_limit == 1
+    assert dev_settings.tavily_max_results == 1
 
     prod_settings = Settings(use_mock_llm=True, environment="production")
     assert prod_settings.environment == "production"
     assert prod_settings.llm_max_retries == 2
     assert prod_settings.ensemble_parallelism == 3
     assert prod_settings.matrix_sampling_limit == 0
+    assert prod_settings.tavily_max_results == 5
 
     # Invalid environments must fail validation
     with pytest.raises(ValidationError):

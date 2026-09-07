@@ -652,7 +652,7 @@ class Settings(BaseSettings):
             self.schema_max_quote_length = 50
             self.schema_max_evaluations = 1
             if "tavily_max_results" not in self.model_fields_set:
-                self.tavily_max_results = 0
+                self.tavily_max_results = 1
             if "max_precedent_scan_depth" not in self.model_fields_set:
                 self.max_precedent_scan_depth = 0
             if "max_precedent_return_count" not in self.model_fields_set:
