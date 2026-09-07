@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import (
     ExecutionRecord,
@@ -42,7 +43,7 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
         workflow_id="wf_1234567812345678",
         output_profile_id="prf_1234567812345678",
         status=ExecutionStatus.PASSED,
-        context_variables={"step_detector": json.dumps({"raw_score": 75.0})},
+        context_variables={"step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json")},
         execution_trace=[],
         profile_syntheses={
             "prf_1234567812345678": RenderedSynthesisCache(

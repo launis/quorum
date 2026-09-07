@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
@@ -694,7 +695,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "context_variables": {
                     "step_linguistics": {
                         "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
-                    }
+                    },
+                    "step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
                 },
                 "execution_trace": [
                     {
@@ -1905,3 +1907,27 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
         await generate_profile_synthesis_and_pdf_task(
             "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
         )
+
+
+def test_ast_guardrail_no_detector_step_markers() -> None:
+    """Verify that _DETECTOR_STEP_MARKERS has been completely eradicated across the backend codebase."""
+    import ast
+    from pathlib import Path
+
+    backend_dir = Path("backend_v2")
+    offenders: list[str] = []
+    target_var = "_DETECTOR_STEP_MARKERS"
+
+    for p in backend_dir.rglob("*.py"):
+        if p.name == "test_worker.py":
+            continue
+        try:
+            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name) and node.id == target_var:
+                    offenders.append(str(p))
+                    break
+        except SyntaxError:
+            continue
+
+    assert not offenders, f"Found target variable in: {offenders}"

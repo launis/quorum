@@ -111,3 +111,31 @@ def test_performativity_output_frozen_and_strict() -> None:
     }
     with pytest.raises(ValidationError):
         PerformativityOutput.model_validate(data)
+
+
+def test_performativity_output_authenticity_score_property() -> None:
+    """Test that PerformativityOutput.authenticity_score exposes score from analysis."""
+    data = {
+        "thought_process": "Thought process analysis.",
+        "conclusion": "Conclusion analysis.",
+        "confidence_score": 0.9,
+        "performativity_analysis": {
+            "performativity_heuristics": [
+                {
+                    "heuristic_name": "Test",
+                    "flag_raised": False,
+                    "description": "Test",
+                }
+            ],
+            "pre_mortem_analysis": {
+                "performed": True,
+                "weak_signals": ["Signal"],
+            },
+            "authenticity_assessment": "AUTH_PERFORMATIVE",
+            "authenticity_score": 2.5,
+        },
+    }
+    output = PerformativityOutput.model_validate(data)
+    assert output.authenticity_score == 2.5
+
+

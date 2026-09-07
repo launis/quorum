@@ -230,6 +230,11 @@ class PerformativityOutput(PerformativityDTO, ReasoningTrace):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
+    @property
+    def authenticity_score(self) -> float:
+        """Convenience property for extracting authenticity score from performativity analysis."""
+        return self.performativity_analysis.authenticity_score
+
 
 class PerformativePattern(V2CoreBase):
     """A single detected performative pattern.
