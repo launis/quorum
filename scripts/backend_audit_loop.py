@@ -73,7 +73,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
         parts = target_clean.split("/")
         filename = parts[-1]
 
-        if filename.startswith("test_") or "tests" in parts:
+        if "tests" in parts:
             test_path = target_clean
             clean_name = filename.replace("test_", "", 1).removesuffix(".py")
             if "scripts" in parts:
@@ -121,6 +121,8 @@ def run_tests_with_strict_coverage(target: str) -> None:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
                 clean_base = filename.removesuffix(".py").lstrip("_")
                 candidates = [f"test_{clean_base}.py", f"test__{clean_base}.py", f"test_{filename}"]
+                if clean_base.startswith("test_"):
+                    candidates.append(f"{clean_base}.py")
             cov_filter_name = filename
 
             test_path = ""
