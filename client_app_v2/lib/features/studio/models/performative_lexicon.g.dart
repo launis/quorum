@@ -64,7 +64,7 @@ _SystemConfigPerformativeLexicons _$SystemConfigPerformativeLexiconsFromJson(
     );
     final val = _SystemConfigPerformativeLexicons(
       id: $checkedConvert('id', (v) => v as String),
-      slug: $checkedConvert('slug', (v) => v as String),
+      slug: $checkedConvert('slug', (v) => v as String?),
       type: $checkedConvert('type', (v) => v as String),
       lexiconConfigs: $checkedConvert(
         'lexicon_configs',

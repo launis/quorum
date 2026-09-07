@@ -22,7 +22,7 @@ abstract class SystemConfigPerformativeLexicons
     with _$SystemConfigPerformativeLexicons {
   const factory SystemConfigPerformativeLexicons({
     required String id,
-    required String slug,
+    String? slug,
     required String type,
     @JsonKey(name: 'lexicon_configs')
     @Default({})

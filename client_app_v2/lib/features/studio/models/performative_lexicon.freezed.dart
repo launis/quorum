@@ -293,7 +293,7 @@ as List<String>,
 /// @nodoc
 mixin _$SystemConfigPerformativeLexicons {
 
- String get id; String get slug; String get type;@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> get lexiconConfigs;
+ String get id; String? get slug; String get type;@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> get lexiconConfigs;
 /// Create a copy of SystemConfigPerformativeLexicons
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -326,7 +326,7 @@ abstract mixin class $SystemConfigPerformativeLexiconsCopyWith<$Res>  {
   factory $SystemConfigPerformativeLexiconsCopyWith(SystemConfigPerformativeLexicons value, $Res Function(SystemConfigPerformativeLexicons) _then) = _$SystemConfigPerformativeLexiconsCopyWithImpl;
 @useResult
 $Res call({
- String id, String slug, String type,@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> lexiconConfigs
+ String id, String? slug, String type,@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> lexiconConfigs
 });
 
 
@@ -343,11 +343,11 @@ class _$SystemConfigPerformativeLexiconsCopyWithImpl<$Res>
 
 /// Create a copy of SystemConfigPerformativeLexicons
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = null,Object? type = null,Object? lexiconConfigs = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? lexiconConfigs = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,lexiconConfigs: null == lexiconConfigs ? _self.lexiconConfigs : lexiconConfigs // ignore: cast_nullable_to_non_nullable
 as Map<String, LexiconConfigPayload>,
   ));
@@ -434,7 +434,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String? slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _SystemConfigPerformativeLexicons() when $default != null:
 return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
@@ -455,7 +455,7 @@ return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String? slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)  $default,) {final _that = this;
 switch (_that) {
 case _SystemConfigPerformativeLexicons():
 return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
@@ -475,7 +475,7 @@ return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String? slug,  String type, @JsonKey(name: 'lexicon_configs')  Map<String, LexiconConfigPayload> lexiconConfigs)?  $default,) {final _that = this;
 switch (_that) {
 case _SystemConfigPerformativeLexicons() when $default != null:
 return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
@@ -490,11 +490,11 @@ return $default(_that.id,_that.slug,_that.type,_that.lexiconConfigs);case _:
 @JsonSerializable()
 
 class _SystemConfigPerformativeLexicons implements SystemConfigPerformativeLexicons {
-  const _SystemConfigPerformativeLexicons({required this.id, required this.slug, required this.type, @JsonKey(name: 'lexicon_configs') final  Map<String, LexiconConfigPayload> lexiconConfigs = const {}}): _lexiconConfigs = lexiconConfigs;
+  const _SystemConfigPerformativeLexicons({required this.id, this.slug, required this.type, @JsonKey(name: 'lexicon_configs') final  Map<String, LexiconConfigPayload> lexiconConfigs = const {}}): _lexiconConfigs = lexiconConfigs;
   factory _SystemConfigPerformativeLexicons.fromJson(Map<String, dynamic> json) => _$SystemConfigPerformativeLexiconsFromJson(json);
 
 @override final  String id;
-@override final  String slug;
+@override final  String? slug;
 @override final  String type;
  final  Map<String, LexiconConfigPayload> _lexiconConfigs;
 @override@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> get lexiconConfigs {
@@ -537,7 +537,7 @@ abstract mixin class _$SystemConfigPerformativeLexiconsCopyWith<$Res> implements
   factory _$SystemConfigPerformativeLexiconsCopyWith(_SystemConfigPerformativeLexicons value, $Res Function(_SystemConfigPerformativeLexicons) _then) = __$SystemConfigPerformativeLexiconsCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String slug, String type,@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> lexiconConfigs
+ String id, String? slug, String type,@JsonKey(name: 'lexicon_configs') Map<String, LexiconConfigPayload> lexiconConfigs
 });
 
 
@@ -554,11 +554,11 @@ class __$SystemConfigPerformativeLexiconsCopyWithImpl<$Res>
 
 /// Create a copy of SystemConfigPerformativeLexicons
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = null,Object? type = null,Object? lexiconConfigs = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? lexiconConfigs = null,}) {
   return _then(_SystemConfigPerformativeLexicons(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
-as String,slug: null == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
-as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
+as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,lexiconConfigs: null == lexiconConfigs ? _self._lexiconConfigs : lexiconConfigs // ignore: cast_nullable_to_non_nullable
 as Map<String, LexiconConfigPayload>,
   ));

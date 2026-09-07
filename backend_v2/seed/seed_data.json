@@ -105,6 +105,7 @@
     },
     {
       "id": "sys_e0b2a3c4d5e6f7a8",
+      "slug": "performative_lexicons",
       "type": "performative_lexicons",
       "lexicon_configs": {
         "en": {
