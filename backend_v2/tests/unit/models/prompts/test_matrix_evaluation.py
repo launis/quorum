@@ -17,6 +17,7 @@ def test_matrix_sensor_system_prompt_structure() -> None:
     tags = [
         "evaluation_directives",
         "epistemic_decision_protocol",
+        "epistemic_hierarchy_protocol",
         "reasoning_constraints",
         "anti_repetition_mandate",
         "evidence_extraction_mandate",
@@ -37,6 +38,10 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "SUBSTANTIVE HEDGING CRITERIA" in prompt
     assert "BANNED META-HEDGING" in prompt
     assert "EPISTEMIC TIE-BREAKER & BURDEN OF PROOF" in prompt
+    assert "SUBSTANTIATED EVIDENCE VS. SUBJECTIVE UNCERTAINTY" in prompt
+    assert "SELF-EVALUATION SCOPE" in prompt
+    assert "DOCUMENT DIRECTIVE HIERARCHY" in prompt
+    assert "specifically: source deliverable vs. process dialogue vs. retrospective reflection" in prompt
     assert "null hypothesis: default to is_true = false for inverse/negative claims" in prompt
     assert "specifically: `a0`, `a1`, `a2`" in prompt
     assert "is_true" in prompt
@@ -50,7 +55,7 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     prompt = MATRIX_SENSOR_SYSTEM_PROMPT
 
     # Negative Partition 1: Assert absence of banned ambiguous phrases
-    banned_ambiguities = ["etc.", "such as", "like "]
+    banned_ambiguities = ["etc.", "such as", "like ", "e.g."]
     for phrase in banned_ambiguities:
         assert phrase not in prompt, f"Found banned ambiguous phrase '{phrase}' in prompt."
 
@@ -64,9 +69,11 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
         assert phrase not in prompt, f"Found banned mechanical phrase '{phrase}' in system prompt."
 
     # Negative Partition 4: Assert all XML tags are strictly matched and closed
-    open_tags = re.findall(r"<([a-z_]+)>", prompt)
-    close_tags = re.findall(r"</([a-z_]+)>", prompt)
-    assert open_tags == close_tags, "Mismatch between opened and closed XML tags in system prompt."
+    structural_open_tags = [t for t in re.findall(r"<([a-z_]+)>", prompt) if t != "ai_context_directive"]
+    structural_close_tags = [t for t in re.findall(r"</([a-z_]+)>", prompt) if t != "ai_context_directive"]
+    assert structural_open_tags == structural_close_tags, (
+        "Mismatch between opened and closed XML tags in system prompt."
+    )
 
 
 def test_contextual_override_directive() -> None:

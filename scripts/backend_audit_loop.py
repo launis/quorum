@@ -89,7 +89,19 @@ def run_tests_with_strict_coverage(target: str) -> None:
             elif parts[0] == "backend_v2" and "unit" in parts:
                 unit_idx = parts.index("unit")
                 rel_parts = parts[unit_idx + 1 : -1] + [clean_name]
-                cov_target = "backend_v2." + ".".join(rel_parts)
+                expected_src = Path("backend_v2") / ("/".join(rel_parts) + ".py")
+                if not expected_src.exists():
+                    glob_pattern = "/".join(parts[unit_idx + 1 : -1]) + f"/**/{clean_name}.py"
+                    found = list(Path("backend_v2").glob(glob_pattern))
+                    if found:
+                        rel_found = found[0].relative_to("backend_v2")
+                        cov_target = "backend_v2." + str(rel_found).removesuffix(".py").replace("\\", ".").replace(
+                            "/", "."
+                        )
+                    else:
+                        cov_target = "backend_v2." + ".".join(rel_parts)
+                else:
+                    cov_target = "backend_v2." + ".".join(rel_parts)
                 cov_filter_name = f"{clean_name}.py"
             else:
                 cov_target = target_clean.removesuffix(".py").replace("/", ".")
@@ -125,6 +137,14 @@ def run_tests_with_strict_coverage(target: str) -> None:
                     if p.exists():
                         test_path = str(p).replace("\\", "/")
                         break
+                    # 1b. Parent package subfolder test file (e.g. backend_v2/models/prompts/execution/matrix_evaluation.py -> tests/unit/models/prompts/test_matrix_evaluation.py)
+                    for i in range(len(parts) - 2, 0, -1):
+                        parent_cand = Path("backend_v2/tests/unit") / "/".join(parts[1:i]) / cand
+                        if parent_cand.exists():
+                            test_path = str(parent_cand).replace("\\", "/")
+                            break
+                    if test_path:
+                        break
                     # 2. Parent package test file (e.g. backend_v2/hooks/scoring/passivity_hook.py -> test_scoring.py or test_hooks.py)
                     for i in range(len(parts) - 2, 0, -1):
                         parent_pkg = parts[i]
@@ -132,6 +152,8 @@ def run_tests_with_strict_coverage(target: str) -> None:
                         if parent_cand.exists():
                             test_path = str(parent_cand).replace("\\", "/")
                             break
+                    if test_path:
+                        break
                     # 3. Flat unit test match (direct or package-prefixed like test_hooks_validation.py)
                     flat = Path("backend_v2/tests/unit") / cand
                     if flat.exists():
