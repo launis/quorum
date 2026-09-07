@@ -1136,9 +1136,6 @@ class OutputProfile(V2CoreBase):
             description="Display mode for the bibliography and source verification section.",
         ),
     ] = SourcesDisplayMode.VERIFIED_EVIDENCE
-    performativity_detector_step_id: str | None = Field(
-        default=None, description="Optional step ID for the performativity detector"
-    )
 
     @model_validator(mode="after")
     def validate_matrix_graphs_coherence(self) -> Self:

@@ -124,7 +124,6 @@ void main() {
           'global_score_block',
           'audit_trail_block',
         ],
-        'performativity_detector_step_id': 'step_perf_1',
       };
 
       final profile = OutputProfile.fromJson(jsonPayload);

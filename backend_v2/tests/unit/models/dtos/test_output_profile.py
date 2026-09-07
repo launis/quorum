@@ -25,13 +25,11 @@ def test_output_profile_create_dto_strictness() -> None:
             **_VALID_CREATE_PAYLOAD,
             "visible_block_extensions": [XaiExtensionType.CITATION, XaiExtensionType.JUSTIFICATION],
             "visible_workflow_extensions": [],
-            "performativity_detector_step_id": "sp_123",
             "display_scale": DisplayScale.ORIGINAL,
         }
     )
     assert dto.slug == "my-profile"
     assert XaiExtensionType.CITATION in dto.visible_block_extensions
-    assert dto.performativity_detector_step_id == "sp_123"
     assert dto.display_scale == DisplayScale.ORIGINAL
 
     # Server ID Authority: Reject client-provided ID
@@ -56,12 +54,12 @@ def test_output_profile_create_dto_strictness() -> None:
             }
         )
 
-    # Negative test for performativity_detector_step_id
-    with pytest.raises(ValidationError, match="Input should be a valid string"):
+    # Negative test for purged performativity_detector_step_id (must be rejected as extra)
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         OutputProfileCreateDTO.model_validate(
             {
                 **_VALID_CREATE_PAYLOAD,
-                "performativity_detector_step_id": 123,
+                "performativity_detector_step_id": "sp_123",
             }
         )
 

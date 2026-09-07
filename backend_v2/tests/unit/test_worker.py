@@ -585,7 +585,16 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                         "is_active": True,
                         "tpm_limit": 100000,
                         "rpm_limit": 1000,
-                    }
+                    },
+                    "fast": {
+                        "provider": "mock_llm_99",
+                        "model_name": "gemini-2.5-pro",
+                        "temperature": 0.0,
+                        "max_tokens": 1024,
+                        "is_active": True,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 1000,
+                    },
                 },
             }
 
@@ -729,7 +738,6 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "target_block_order": ["matrix_graphs_block"],
                 "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
                 "max_extension_items": 3,
-                "performativity_detector_step_id": "step_perf",
             }
 
             async def mock_get_pb(pb_id: str) -> dict[str, Any] | None:
@@ -771,6 +779,15 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                         "rpm_limit": 1000,
                     },
                     "strict": {
+                        "provider": "mock_llm_99",
+                        "model_name": "gemini-2.5-pro",
+                        "temperature": 0.0,
+                        "max_tokens": 1024,
+                        "is_active": True,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 1000,
+                    },
+                    "fast": {
                         "provider": "mock_llm_99",
                         "model_name": "gemini-2.5-pro",
                         "temperature": 0.0,
@@ -1031,7 +1048,16 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                         "is_active": True,
                         "tpm_limit": 100000,
                         "rpm_limit": 1000,
-                    }
+                    },
+                    "fast": {
+                        "provider": "mock_llm_99",
+                        "model_name": "gemini-2.5-pro",
+                        "temperature": 0.0,
+                        "max_tokens": 1024,
+                        "is_active": True,
+                        "tpm_limit": 100000,
+                        "rpm_limit": 1000,
+                    },
                 },
             }
 
@@ -1334,7 +1360,16 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
                 "is_active": True,
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
-            }
+            },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
     mock_repo.get_execution.return_value = {
@@ -1471,7 +1506,16 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
                 "is_active": True,
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
-            }
+            },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
     mock_repo.get_execution.return_value = {
@@ -1542,6 +1586,15 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
             },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
 
@@ -1586,7 +1639,6 @@ def _get_base_profile_dict() -> dict[str, Any]:
         "target_block_order": ["matrix_graphs_block"],
         "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
         "max_extension_items": 3,
-        "performativity_detector_step_id": "step_perf",
     }
 
 

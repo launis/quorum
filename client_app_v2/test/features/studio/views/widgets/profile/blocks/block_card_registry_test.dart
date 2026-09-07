@@ -66,7 +66,7 @@ void main() {
     });
 
     test(
-      'test_block_card_registry_sync_map_contains_exact_variance_and_authenticity_mappings',
+      'test_block_card_registry_sync_map_contains_exact_variance_mapping',
       () {
         expect(
           BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
@@ -76,7 +76,7 @@ void main() {
         expect(
           BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
               .authenticityEvaluationBlock],
-          equals([XaiExtensionType.authenticityEvaluation]),
+          isNull,
         );
         expect(
           BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType

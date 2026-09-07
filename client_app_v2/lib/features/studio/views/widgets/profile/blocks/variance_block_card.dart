@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
-import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
-import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/block_card_registry.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Dedicated configuration card for TargetBlockType.varianceValidationBlock in Tab 3 (Section Config).
-/// Allows configuring the performativity detector step ID and localized variance synthesis directive.
-class VarianceBlockCard extends ConsumerWidget {
+/// Allows configuring the localized variance synthesis directive and length constraint.
+class VarianceBlockCard extends StatelessWidget {
   final OutputProfile payload;
   final void Function(OutputProfile) updatePayload;
   final Widget? dragHandle;
@@ -25,41 +22,11 @@ class VarianceBlockCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.varianceValidationBlock,
     );
-
-    final workflowsState = ref.watch(workflowsControllerProvider);
-    final stepsState = ref.watch(stepsControllerProvider);
-
-    final List<NodeStrategy> availableSteps = [];
-    if (payload.workflowId.isNotEmpty &&
-        workflowsState.hasValue &&
-        stepsState.hasValue) {
-      final workflows = workflowsState.value!.cast<Workflow>();
-      final steps = stepsState.value!.cast<NodeStrategy>();
-      final workflow = workflows
-          .where((w) => w.id == payload.workflowId)
-          .firstOrNull;
-
-      if (workflow != null) {
-        final taskBlueprintIds = workflow.steps
-            .map((s) => s.taskBlueprint)
-            .toSet();
-        for (final step in steps) {
-          if (taskBlueprintIds.contains(step.id)) {
-            availableSteps.add(step);
-          }
-        }
-      }
-    }
-
-    final selectedStepId = payload.performativityDetectorStepId;
-    final isValidSelection =
-        selectedStepId != null &&
-        availableSteps.any((s) => s.id == selectedStepId);
 
     return BaseBlockCard(
       blockType: TargetBlockType.varianceValidationBlock,
@@ -106,52 +73,6 @@ class VarianceBlockCard extends ConsumerWidget {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            l10n.variancePerformativityDetectorStepLabel,
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          AppSpacing.h8,
-          DropdownButtonFormField<String?>(
-            initialValue: isValidSelection ? selectedStepId : null,
-            isExpanded: true,
-            decoration: InputDecoration(
-              border: const OutlineInputBorder(),
-              isDense: true,
-              hintText: l10n.variancePerformativityDetectorStepHint,
-            ),
-            items: [
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(
-                  l10n.variancePerformativityDetectorNone,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              ...availableSteps.map((step) {
-                final localizedName =
-                    step.name.translations[l10n.localeName] ??
-                    step.name.translations['en'] ??
-                    step.slug;
-                return DropdownMenuItem<String?>(
-                  value: step.id,
-                  child: Text(
-                    '$localizedName (${step.slug})',
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                );
-              }),
-            ],
-            onChanged: (val) {
-              updatePayload(
-                payload.copyWith(performativityDetectorStepId: val),
-              );
-            },
-          ),
-          AppSpacing.h16,
           TextFormField(
             key: const Key('profile_variance_directive_field'),
             initialValue: payload.varianceSynthesisDirective,

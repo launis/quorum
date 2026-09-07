@@ -18227,8 +18227,7 @@
         "remediation_steps"
       ],
       "visible_workflow_extensions": [
-        "variance_validation",
-        "authenticity_evaluation"
+        "variance_validation"
       ],
       "max_extension_items": 4,
       "display_scale": "normalized_100",
@@ -18243,7 +18242,6 @@
         "penalties_block",
         "matrix_summary_table_block",
         "variance_validation_block",
-        "authenticity_evaluation_block",
         "printable_sources_block"
       ],
       "matrix_synthesis_groups": [
@@ -18292,8 +18290,7 @@
       ],
       "content_blocks": [],
       "show_sources_summary_box": true,
-      "sources_display_mode": "verified_evidence",
-      "performativity_detector_step_id": "sp_7f9649114d2344dc"
+      "sources_display_mode": "verified_evidence"
     }
   ]
 }

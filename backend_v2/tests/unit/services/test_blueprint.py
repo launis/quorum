@@ -1255,7 +1255,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
-                "performativity_detector_step_id": "sr_1d7e6d26b02b457b",
             }
         ]
     )
@@ -1620,7 +1619,6 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
                 max_extension_items=2,
                 strictness_level=85,
-                performativity_detector_step_id="stp_1234abcd1234abcd",
             )
         ]
     )

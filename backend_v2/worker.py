@@ -119,6 +119,8 @@ class VarianceExplanationResult(BaseModel):
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
+_DETECTOR_STEP_MARKERS: tuple[str, ...] = ("perf", "det", "authenticity", "sp_7f9649114d2344dc")
+
 # Pre-register all hooks for background execution
 # --- Worker Job Tasks ---
 
@@ -1334,8 +1336,6 @@ async def generate_profile_synthesis_and_pdf_task(
                             performative_phrases_count = len(patterns)
 
                 # 2. Performativity Detector comes from the DAG step output in the trace
-                perf_step_id = active_profile_dto.performativity_detector_step_id
-
                 # Dynamically resolve missing values from execution trace
                 if authenticity_score is None or performative_phrases_count is None:
                     for event in reversed(execution.execution_trace):
@@ -1358,8 +1358,8 @@ async def generate_profile_synthesis_and_pdf_task(
                                     extra={"error": str(e), "execution_id": execution.id},
                                 )
 
-                        # Extract Performativity Detector output using the canonical step_id from profile
-                        if event.event_type == "output" and perf_step_id and authenticity_score is None:
+                        # Extract Performativity Detector output by matching step identifiers dynamically
+                        if event.event_type == "output" and authenticity_score is None:
                             is_match = False
                             out_content: dict[str, Any] | None = None
                             try:
@@ -1371,18 +1371,25 @@ async def generate_profile_synthesis_and_pdf_task(
                                 )
                                 out_content = None
 
-                            if event.step_name == perf_step_id:
-                                is_match = True
-                            elif out_content and "_step_metadata" in out_content:
+                            candidate_ids: list[str] = []
+                            if event.step_name and not event.step_name.startswith("sr_"):
+                                candidate_ids.append(event.step_name.lower())
+                            if out_content and "_step_metadata" in out_content:
                                 try:
                                     step_meta = StepTraceMetadataDTO.model_validate(out_content["_step_metadata"])
-                                    if step_meta.task_blueprint == perf_step_id:
-                                        is_match = True
+                                    if step_meta.task_blueprint:
+                                        candidate_ids.append(step_meta.task_blueprint.lower())
                                 except (ValidationError, TypeError, ValueError) as e:
                                     logger.warning(
                                         "Failed to parse step trace metadata from detector output",
                                         extra={"error": str(e), "execution_id": execution.id},
                                     )
+
+                            if any(
+                                any(marker in cid for marker in _DETECTOR_STEP_MARKERS)
+                                for cid in candidate_ids
+                            ):
+                                is_match = True
 
                             if is_match and out_content:
                                 for key, val in out_content.items():

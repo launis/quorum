@@ -104,7 +104,6 @@ abstract class OutputProfile with _$OutputProfile {
       TargetBlockType.penaltiesBlock,
       TargetBlockType.matrixSummaryTableBlock,
       TargetBlockType.varianceValidationBlock,
-      TargetBlockType.authenticityEvaluationBlock,
       TargetBlockType.printableSourcesBlock,
       TargetBlockType.globalScoreBlock,
       TargetBlockType.auditTrailBlock,
@@ -116,8 +115,6 @@ abstract class OutputProfile with _$OutputProfile {
     @Default(SourcesDisplayMode.verifiedEvidence)
     @JsonKey(name: 'sources_display_mode')
     SourcesDisplayMode sourcesDisplayMode,
-    @JsonKey(name: 'performativity_detector_step_id')
-    String? performativityDetectorStepId,
   }) = _OutputProfile;
 
   factory OutputProfile.fromJson(Map<String, dynamic> json) =>

@@ -16,14 +16,14 @@ async def test_blueprint_variance_validation_crash():
         "id": "prf_5d6e7f8091a2b3c4",
         "slug": "test",
         "workflow_id": "wf_test",
-        "name": {"default_locale": "en", "translations": {"en": "Test Profile"}},
+        "name": {"translations": {"en": "Test Profile"}},
         "visible_workflow_extensions": ["variance_validation"],
         "content_blocks": [],
-        "layouts": [],
+        "matrix_synthesis_groups": [],
+        "target_block_order": [],
         "visible_metadata": ["date"],
         "scoring_strategy": "PURE_MATH",
         "strictness_level": 100,
-        "performativity_detector_step_id": None,  # The root cause of the crash
     }
 
     output_profile_repo = AsyncMock()

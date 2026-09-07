@@ -113,7 +113,25 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
                 "is_active": True,
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
-            }
+            },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
+            "strict": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
 
@@ -243,6 +261,15 @@ def _setup_mock_repo_for_metrics(
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
             },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
     mock_repo.get_all_prompt_blocks.return_value = []
@@ -273,7 +300,6 @@ def _setup_mock_repo_for_metrics(
         "variance_synthesis_directive": "VARIANCE DIRECTIVE",
         "max_extension_items": 3,
         "visible_workflow_extensions": ["variance_validation"],
-        "performativity_detector_step_id": "sp_det_step",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
     }
@@ -989,7 +1015,6 @@ async def test_worker_synthesis_custom_directives_resolution(
         "xai_synthesis_directive": "CUSTOM XAI SYNTHESIS DIRECTIVE",
         "variance_synthesis_directive": "CUSTOM VARIANCE DIRECTIVE",
         "visible_workflow_extensions": ["variance_validation"],
-        "performativity_detector_step_id": "sp_det_step",
         "matrix_visible_columns": ["label", "row_explanation"],
         "matrix_synthesis_groups": [],
         "target_block_order": ["variance_validation_block", "matrix_summary_table_block"],

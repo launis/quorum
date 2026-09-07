@@ -104,7 +104,6 @@ _OutputProfile _$OutputProfileFromJson(
         'target_block_order',
         'show_sources_summary_box',
         'sources_display_mode',
-        'performativity_detector_step_id',
       ],
     );
     final val = _OutputProfile(
@@ -300,7 +299,6 @@ _OutputProfile _$OutputProfileFromJson(
               TargetBlockType.penaltiesBlock,
               TargetBlockType.matrixSummaryTableBlock,
               TargetBlockType.varianceValidationBlock,
-              TargetBlockType.authenticityEvaluationBlock,
               TargetBlockType.printableSourcesBlock,
               TargetBlockType.globalScoreBlock,
               TargetBlockType.auditTrailBlock,
@@ -315,10 +313,6 @@ _OutputProfile _$OutputProfileFromJson(
         (v) =>
             $enumDecodeNullable(_$SourcesDisplayModeEnumMap, v) ??
             SourcesDisplayMode.verifiedEvidence,
-      ),
-      performativityDetectorStepId: $checkedConvert(
-        'performativity_detector_step_id',
-        (v) => v as String?,
       ),
     );
     return val;
@@ -359,7 +353,6 @@ _OutputProfile _$OutputProfileFromJson(
     'targetBlockOrder': 'target_block_order',
     'showSourcesSummaryBox': 'show_sources_summary_box',
     'sourcesDisplayMode': 'sources_display_mode',
-    'performativityDetectorStepId': 'performativity_detector_step_id',
   },
 );
 
@@ -415,7 +408,6 @@ Map<String, dynamic> _$OutputProfileToJson(
   'show_sources_summary_box': instance.showSourcesSummaryBox,
   'sources_display_mode':
       _$SourcesDisplayModeEnumMap[instance.sourcesDisplayMode]!,
-  'performativity_detector_step_id': instance.performativityDetectorStepId,
 };
 
 const _$XaiExtensionTypeEnumMap = {
