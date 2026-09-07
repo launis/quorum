@@ -51,6 +51,7 @@ from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
+from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
 
@@ -124,18 +125,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         inputs_unwrapped = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
 
-        texts: list[str] = []
-        if isinstance(inputs_unwrapped, str):
-            texts.append(inputs_unwrapped)
-        elif not isinstance(inputs_unwrapped, (int, float, bool)) and inputs_unwrapped is not None:
-            try:
-                for v in inputs_unwrapped.values():
-                    if isinstance(v, str):
-                        texts.append(v)
-            except AttributeError, TypeError:
-                pass
-
-        global_source_text = "\n\n".join(texts)
+        global_source_text = SourceDocumentPacker.pack(inputs_unwrapped, context.expected_inputs)
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
             "inputs": inputs_unwrapped,
