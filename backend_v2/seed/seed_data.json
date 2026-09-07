@@ -553,16 +553,16 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "The text presents an absolute claim using dogmatic universal quantifiers while ignoring necessary modal qualifiers.",
-                  "anchor_target": "Find tautological justification loops.",
+                  "anchor_target": "Find dogmatic universal quantifiers asserting unhedged causal certainty.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The argument uses categorical quantifiers like 'always', 'in every case', or 'universally' without probabilistic qualifiers.",
+                  "extraction_rule": "The argument uses explicit unhedged categorical quantifiers (specifically: 'always', 'never', 'universally', 'in all circumstances', 'ehdottomasti') making an absolute causal claim without modal qualifiers.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Detect absolute quantifiers including 'always', 'never', 'universally', or 'invariably'.",
+                      "instruction": "Detect explicit unhedged categorical quantifiers including 'always', 'never', 'universally', 'in all circumstances', or 'ehdottomasti'.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm the absence of epistemic qualifiers such as 'typically', 'in most conditions', or 'under high loads'.",
+                      "instruction": "Confirm the absence of epistemic modal qualifiers such as 'typically', 'in most conditions', or 'under high loads'.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -1365,16 +1365,16 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "The argument represents a complete Toulmin hexad (Claim, Data, Warrant, Backing, Qualifier, Rebuttal) with airtight validity.",
-                  "anchor_target": "Find precise causal language.",
+                  "anchor_target": "Find explicit Toulmin hexad containing both an operational Qualifier and a concrete Rebuttal condition.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "All six Toulmin components are explicitly articulated, mutually consistent, and mathematically and logically complete.",
+                  "extraction_rule": "All six Toulmin components (Claim, Data, Warrant, Backing, Qualifier, Rebuttal) are explicitly articulated, with specific physical verification that both a modal Qualifier and a counter-scenario Rebuttal condition are explicitly present in the evaluated passage.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Verify the simultaneous presence of Claim, Data, Warrant, Backing, Qualifier, and Rebuttal.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that all components form a cohesive, mutually reinforcing logical structure.",
+                      "instruction": "Confirm physical verification that both an operational modal Qualifier and a concrete counter-scenario Rebuttal condition are explicitly articulated.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -4082,16 +4082,16 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "Author restricts feedback exclusively to cosmetic, stylistic, or formatting adjustments without challenging underlying logic.",
-                  "anchor_target": "Find feedback restricted to formatting, tone polish, or cosmetic revisions.",
+                  "anchor_target": "Find feedback strictly and exclusively limited to cosmetic formatting without any substantive inquiries.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author restricts feedback purely to stylistic, typographical, or formatting adjustments without evaluating or challenging underlying logical frameworks.",
+                  "extraction_rule": "Locate and extract evidence demonstrating that 100% of the author feedback in the evaluated interaction is strictly restricted to formatting, typographical styling, or visual polish. If the author introduces any substantive inquiry, counter-argument, or direction change, this atom MUST evaluate to FAILED.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Identify author interventions targeting layout, bullet points, grammar, or cosmetic tone.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that no substantive premises, causal mechanisms, or evidentiary gaps are addressed.",
+                      "instruction": "Verify that 100% of author feedback is strictly limited to cosmetic formatting, with zero substantive inquiries, counter-arguments, or direction changes present.",
                       "requires_contextual_override": false
                     },
                     {
@@ -4854,20 +4854,20 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "Author restricts analysis strictly to external, verifiable empirical evidence, actively rejecting ungrounded assumptions.",
-                  "anchor_target": "Find commands mandating external empirical grounding and verifiable source citations.",
+                  "anchor_target": "Find explicit imperative commands mandating external empirical grounding and rejecting assumptions.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate and extract substantive evidence demonstrating that the author explicitly restricts the analysis to external, verifiable empirical sources, industry benchmarks, or peer-reviewed evidence, actively rejecting ungrounded assumptions.",
+                  "extraction_rule": "Locate and extract evidence demonstrating an explicit imperative directive commanding the model to ground analysis solely in external empirical evidence, audited benchmarks, or named research sources, actively rejecting ungrounded assumptions. General open-ended curiosity does not qualify.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify author directives requiring factual claims to be anchored to verifiable external sources.",
+                      "instruction": "Identify explicit imperative directives commanding factual claims to be anchored solely to external empirical sources, audited benchmarks, or named research sources.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that ungrounded generative conjectures or unsubstantiated internal heuristics are explicitly barred.",
+                      "instruction": "Verify that ungrounded generative conjectures or unsubstantiated internal heuristics are explicitly barred and rejected.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that specific citations, audited benchmarks, or empirical registries are mandated.",
+                      "instruction": "Confirm that specific citations, audited benchmarks, or empirical registries are mandated rather than general open-ended curiosity.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -9102,12 +9102,12 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "Specifies the exact organizational framing, target stakeholder audience, and situational context prior to generation.",
-                  "anchor_target": "Identify explicit stakeholder personas, organizational posture, and contextual objectives.",
+                  "anchor_target": "Identify explicit stakeholder audience definitions and organizational postures established prior to generation.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text explicitly articulates the operational role, situational background, or stakeholder audience governing the analysis.",
+                  "extraction_rule": "The evaluated text contains an explicit antecedent directive defining the target stakeholder audience (specifically: board of directors, audit committee, or leadership team) and operational role prior to content generation.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify statements defining the operational setting, organizational role, or target readership.",
+                      "instruction": "Identify explicit antecedent statements defining the target stakeholder audience (specifically: board of directors, audit committee, or leadership team) and operational role prior to content generation.",
                       "requires_contextual_override": false
                     },
                     {
@@ -9324,16 +9324,16 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "Deconstructs complex workflows into discrete phases and enforces explicit halt points requiring human review and authorization before proceeding.",
-                  "anchor_target": "Identify staged milestone gates requiring human validation between sequential phases.",
+                  "anchor_target": "Identify explicit staged execution gates requiring human sign-off before proceeding.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text establishes sequential execution gates with mandatory halt points, requiring human review of intermediate findings prior to continuing.",
+                  "extraction_rule": "The evaluated text establishes an explicit staged execution gate with a mandatory pause or sign-off instruction (specifically: 'halt and await review', 'pysähdy tähän ennen jatkamista') requiring human sign-off before proceeding rather than informal conversational turn-taking.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify explicit phase boundaries and halt points within the analytical workflow.",
+                      "instruction": "Identify explicit phase boundaries with a mandatory pause or sign-off instruction (specifically: 'halt and await review', 'pysähdy tähän ennen jatkamista').",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that progression to subsequent stages is contingent on human inspection and approval.",
+                      "instruction": "Verify that progression to subsequent stages is contingent on explicit human inspection and sign-off rather than informal turn-taking.",
                       "requires_contextual_override": false
                     },
                     {
@@ -9623,16 +9623,16 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "Audits synthesized findings across conflicting analyses, resolves strategic trade-offs, and assumes ultimate accountability for the final executive decision.",
-                  "anchor_target": "Identify executive synthesis resolving trade-offs and explicit assumption of ultimate decision ownership.",
+                  "anchor_target": "Identify explicit human synthesis reconciling analytical trade-offs and asserting personal decision accountability.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text demonstrates complete process ownership where the author reconciles conflicting analytical streams and formulates the definitive executive decision within the final deliverable.",
+                  "extraction_rule": "The evaluated text demonstrates that the human author explicitly reconciles competing analytical trade-offs and assumes personal ownership of the final recommendation, rather than delegating the strategic synthesis to the AI.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify synthesis and evaluation of conflicting recommendations or analytical models.",
+                      "instruction": "Identify synthesis and evaluation where the human author reconciles conflicting recommendations or competing analytical trade-offs.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that the author makes the final executive determination resolving strategic trade-offs within the substantive deliverable, which satisfies the criterion regardless of exploratory hesitation in dialogue.",
+                      "instruction": "Verify that the author makes the final executive determination resolving strategic trade-offs within the substantive deliverable rather than delegating the synthesis to the AI.",
                       "requires_contextual_override": false
                     },
                     {
