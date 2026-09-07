@@ -847,8 +847,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_trace_fallback_for_step_detector() -> None:
-    """Verify trace extraction fallback when step_detector is absent in context_variables."""
+async def test_generate_profile_synthesis_and_pdf_task_with_context_variables_step_detector() -> None:
+    """Verify synthesis extracts step_detector strictly from context_variables without fallback."""
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
 
@@ -870,6 +870,7 @@ async def test_generate_profile_synthesis_and_pdf_task_trace_fallback_for_step_d
                     "step_linguistics": {
                         "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
                     },
+                    "step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
                 },
                 "execution_trace": [
                     {
@@ -879,7 +880,6 @@ async def test_generate_profile_synthesis_and_pdf_task_trace_fallback_for_step_d
                         "step_name": "step_perf",
                         "content": {
                             "_step_metadata": {"task_blueprint": "step_perf"},
-                            "detector_result": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
                             "blk_1111222233334444": {
                                 "raw_score": 85.0,
                                 "normalized_score": 85.0,
