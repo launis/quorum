@@ -335,7 +335,7 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_without_step_detector_in_cv_omits_variance(
-    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Verify that when step_detector is absent from context_variables, no trace fallback is performed."""
     get_settings().use_mock_llm = True
@@ -368,6 +368,7 @@ async def test_worker_synthesis_without_step_detector_in_cv_omits_variance(
     assert prof_synth is not None
     metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is None
+    assert "requests variance validation, but required inputs (step_detector) are missing" in caplog.text
 
 
 @pytest.mark.asyncio

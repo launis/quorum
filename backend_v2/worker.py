@@ -1411,6 +1411,20 @@ async def generate_profile_synthesis_and_pdf_task(
                                 mock_identity="variance_explainer",
                             )
                         )
+                else:
+                    missing_vars: list[str] = []
+                    if authenticity_score is None:
+                        missing_vars.append("step_detector")
+                    if performative_phrases_count is None:
+                        missing_vars.append("step_linguistics")
+                    logger.warning(
+                        "[generate_profile_synthesis_and_pdf_task] Profile '%s' requests variance "
+                        "validation, but required inputs (%s) are missing from context_variables. "
+                        "Skipping variance evaluation.",
+                        active_profile_dto.id,
+                        ", ".join(missing_vars),
+                        extra={"execution_id": execution.id, "missing_variables": missing_vars},
+                    )
 
         synth_cost = 0.0
         synth_tokens = 0
