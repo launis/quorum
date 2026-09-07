@@ -8,7 +8,7 @@ part 'env.g.dart';
 ///
 /// Manages environment-specific variables and configuration secrets.
 /// This abstraction ensures the app is not hardcoded to specific URLs or keys,
-/// facilitating movement between Dev (localhost), Staging, and Production.
+/// facilitating movement between Dev (localhost) and Production.
 ///
 /// **Source**:
 /// Loads values from the `.env` file via `flutter_dotenv`.

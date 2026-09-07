@@ -104,7 +104,10 @@ class SystemSettingsDTO(BaseDTO):
     type: Annotated[
         Literal["system_settings"], Field(default="system_settings", description="Config type discriminator")
     ] = "system_settings"
-    environment: Annotated[str, Field(default="development", description="Runtime environment")] = "development"
+    environment: Annotated[
+        Literal["development", "production"],
+        Field(default="development", description="Runtime environment: development or production"),
+    ] = "development"
     maintenance_mode: Annotated[bool, Field(default=False, description="Maintenance mode flag")] = False
     debug_logging: Annotated[bool, Field(default=False, description="Debug logging flag")] = False
     default_locale: Annotated[str, Field(default="fi", description="Default system locale")] = "fi"

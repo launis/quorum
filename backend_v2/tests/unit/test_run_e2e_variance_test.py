@@ -88,8 +88,8 @@ def test_pillar2_unicode_noise_hash_perturbation() -> None:
     assert "\u2002" in text_run2
 
 
-def test_pillar3_dev_execution_mode_parity_propagation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """Pillar 3: Verify DEV_EXECUTION_MODE is captured and propagated to backend subprocess."""
+def test_pillar3_environment_parity_propagation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Pillar 3: Verify ENVIRONMENT is captured and propagated to backend subprocess."""
     inputs_file = tmp_path / "inputs.json"
     with inputs_file.open("w", encoding="utf-8") as f:
         json.dump({"product_text": "Sample text"}, f)
@@ -122,11 +122,11 @@ def test_pillar3_dev_execution_mode_parity_propagation(monkeypatch: pytest.Monke
         lambda *args, **kwargs: type("Res", (), {"stdout": "OK", "stderr": ""})(),
     )
 
-    monkeypatch.setenv("DEV_EXECUTION_MODE", "full")
+    monkeypatch.setenv("ENVIRONMENT", "production")
     run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)
 
     assert len(spawned_environments) == 1
-    assert spawned_environments[0].get("DEV_EXECUTION_MODE") == "full"
+    assert spawned_environments[0].get("ENVIRONMENT") == "production"
 
 
 def test_load_inputs_from_path_json(tmp_path: Path) -> None:

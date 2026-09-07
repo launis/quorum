@@ -429,6 +429,7 @@ def run_variance_test(
     db_path: str | Path | None = None,
     no_cache: bool = False,
     cooldown_seconds: int = 0,
+    dev: bool = False,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -439,6 +440,7 @@ def run_variance_test(
         db_path: Optional path to the database file (defaults to data/db_v2.json).
         no_cache: Whether to bypass native LLM provider context cache.
         cooldown_seconds: Cool-down pause between runs in seconds.
+        dev: Whether to run in fast development mode instead of full production.
 
     Returns:
         List of generated execution IDs.
@@ -463,10 +465,10 @@ def run_variance_test(
             time.sleep(cooldown_seconds)
 
         print("Starting run_local.bat...")
-        dev_mode = os.environ.get("DEV_EXECUTION_MODE", "full")
-        os.environ["DEV_EXECUTION_MODE"] = dev_mode
+        environment = "development" if dev or os.environ.get("ENVIRONMENT") == "development" else "production"
+        os.environ["ENVIRONMENT"] = environment
         backend_env = os.environ.copy()
-        backend_env["DEV_EXECUTION_MODE"] = dev_mode
+        backend_env["ENVIRONMENT"] = environment
 
         run_bat = Path("run_local.bat").resolve()
         cmd: list[str] = [str(run_bat)]
@@ -482,7 +484,7 @@ def run_variance_test(
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
 
-        print(f"Waiting for backend to become responsive (mode: {dev_mode})...")
+        print(f"Waiting for backend to become responsive (environment: {environment})...")
         if not check_backend():
             print("Backend failed to start!")
             sys.exit(1)
@@ -587,6 +589,7 @@ def main(argv: list[str] | None = None) -> list[str]:
     parser.add_argument("--cooldown-seconds", type=int, default=0, help="Cool-down pause between runs in seconds")
     parser.add_argument("--num-runs", type=int, default=2, help="Number of consecutive runs to compare")
     parser.add_argument("--timeout-seconds", type=int, default=7200, help="Polling timeout per execution in seconds")
+    parser.add_argument("--dev", action="store_true", help="Run in fast development mode instead of full production")
 
     args = parser.parse_args(argv)
     return run_variance_test(
@@ -595,6 +598,7 @@ def main(argv: list[str] | None = None) -> list[str]:
         timeout_seconds=args.timeout_seconds,
         no_cache=args.no_cache,
         cooldown_seconds=args.cooldown_seconds,
+        dev=args.dev,
     )
 
 

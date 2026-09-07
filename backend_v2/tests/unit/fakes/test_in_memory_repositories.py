@@ -383,7 +383,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     )
     assert (await sys_repo.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
     await sys_repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
-    settings_dto = SystemSettingsDTO(environment="staging")
+    settings_dto = SystemSettingsDTO(environment="production")
     cfg_id = await sys_repo.create_system_config(SystemConfigCreateDTO(type="system_settings", content=settings_dto))
     assert await sys_repo.get_system_config(cfg_id) is not None
     assert await sys_repo.get_system_settings() is None
@@ -629,7 +629,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     await unified.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
     assert await unified.get_system_settings() is None
     await unified.update_system_settings(
-        SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(environment="staging"))
+        SystemConfigUpdateDTO(system_settings=SystemSettingsDTO(environment="production"))
     )
     assert await unified.get_system_settings() is not None
     cfg_u = await unified.create_system_config(

@@ -74,9 +74,9 @@ echo [!] Redis Queues flushed!
 echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
 echo       Mode: LOCAL
 echo       Config: LOCAL DB (db_v2.json), REAL LLM, MOCK AUTH
-echo       FastDev: ENABLED BY DEFAULT (Flash models, 5-word limit, 0 delays).
-echo                To bypass for full LLM quality (Pro models, full length), run:
-echo                $env:DEV_EXECUTION_MODE="full"; .\run_local.bat
+echo       Environment: development BY DEFAULT (Flash models, 1-atom sampling, 0 delays).
+echo                    To run in thorough production mode (Pro models, full matrices), run:
+echo                    $env:ENVIRONMENT="production"; .\run_local.bat
 
 set USE_FIREBASE_AUTH=false
 set DISABLE_VERTEX_CACHE=false
@@ -85,13 +85,13 @@ if "%1"=="--no-cache" (
     echo [!] Vertex AI Context Cache globally DISABLED via flag.
 )
 
-if "%DEV_EXECUTION_MODE%"=="" set DEV_EXECUTION_MODE=fast
+if "%ENVIRONMENT%"=="" set ENVIRONMENT=development
 
 :: Backend
-start "CQ Backend V2 (LOCAL)" cmd /k "set DEV_EXECUTION_MODE=%DEV_EXECUTION_MODE%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
+start "CQ Backend V2 (LOCAL)" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
-start "CQ Worker V2 (LOCAL)" cmd /k "set DEV_EXECUTION_MODE=%DEV_EXECUTION_MODE%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
+start "CQ Worker V2 (LOCAL)" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
 
 echo [3/3] Launching Client (Flutter)...
 if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false

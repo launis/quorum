@@ -93,7 +93,6 @@ def test_settings_properties_and_computed_fields() -> None:
         anthropic_api_key="sk-anthropic",
         use_mock_llm=True,
         environment="development",
-        dev_execution_mode="fast",
         storage_backend="FIRESTORE",
         use_json_logging=True,
     )
@@ -175,3 +174,67 @@ def test_get_lexical_fuzz_threshold() -> None:
     assert get_lexical_fuzz_threshold("en") == 92.0
     assert get_lexical_fuzz_threshold("zh") == 98.0
     assert get_lexical_fuzz_threshold("unknown") == 90.0
+
+
+def test_test_settings_factory_inherits_base_with_differential_delta() -> None:
+    """Test that get_test_settings factory inherits base defaults and applies fast overrides."""
+    from backend_v2.core.test_settings import get_test_settings, with_test_settings
+
+    test_settings = get_test_settings()
+    assert test_settings.environment == "development"
+    assert test_settings.matrix_sampling_limit == 1
+    assert test_settings.ensemble_parallelism == 1
+    assert test_settings.ensemble_min_consensus == 1
+    assert test_settings.llm_max_retries == 0
+    assert test_settings.llm_max_schema_retries == 0
+    assert test_settings.llm_max_logical_retries == 0
+    assert test_settings.llm_max_transient_retries == 0
+    assert test_settings.pacing_delay_vertex_seconds == 0
+    assert test_settings.pacing_delay_openai_seconds == 0
+    assert test_settings.pacing_delay_mock_seconds == 0
+    assert test_settings.max_development_chunks == 1
+    assert test_settings.rag_preflight_chunk_size == 4000
+    assert test_settings.max_precedent_scan_depth == 0
+    assert test_settings.max_precedent_return_count == 0
+    assert test_settings.tavily_max_results == 0
+    assert test_settings.tda_linker_window_size == 2
+    assert test_settings.tda_linker_overlap == 0
+    assert test_settings.strategy_aliases["reasoning"] == "fast"
+
+    # Verify custom overrides take precedence
+    custom = get_test_settings(llm_max_retries=3, matrix_sampling_limit=5)
+    assert custom.llm_max_retries == 3
+    assert custom.matrix_sampling_limit == 5
+
+    # Verify with_test_settings context manager
+    with with_test_settings(llm_max_retries=2) as scoped:
+        assert scoped.llm_max_retries == 2
+        assert scoped.environment == "development"
+
+
+def test_settings_binary_environment_validation() -> None:
+    """Test that Settings validates binary environment strictly and rejects invalid strings."""
+    from pydantic import ValidationError
+
+    # Valid environments
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    assert dev_settings.environment == "development"
+    assert dev_settings.llm_max_retries == 0
+    assert dev_settings.ensemble_parallelism == 1
+    assert dev_settings.matrix_sampling_limit == 1
+
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+    assert prod_settings.environment == "production"
+    assert prod_settings.llm_max_retries == 2
+    assert prod_settings.ensemble_parallelism == 3
+    assert prod_settings.matrix_sampling_limit == 0
+
+    # Invalid environments must fail validation
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, environment="staging")
+
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, environment="test")
+
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, environment="qa")

@@ -1305,7 +1305,13 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             error_count = raw_data.count("Chunk Processing Failed") + raw_data.count("SYSTEM ERROR")
             dlq_count = raw_data.count('"_dlq_status": "FAILED/DLQ"')
 
-            dev_mode = run_record.get("dev_execution_mode") or meta.get("dev_execution_mode") or "standard"
+            dev_mode = (
+                run_record.get("environment")
+                or meta.get("environment")
+                or run_record.get("dev_execution_mode")
+                or meta.get("dev_execution_mode")
+                or "production"
+            )
             retries = run_record.get("llm_max_retries") or meta.get("llm_max_retries") or 2
             f.write(f"  - **Malli(t):** `{models_formatted}`{snap_str}\n")
             f.write(

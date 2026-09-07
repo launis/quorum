@@ -88,7 +88,7 @@ class Settings(BaseSettings):
         redis_port: Connection port of cache server.
         worker_job_timeout: Safety threshold for backend arq tasks.
         storage_backend: Target strategy ('LOCAL', 'FIRESTORE').
-        environment: Platform stage ('production', 'staging', 'development').
+        environment: Platform stage ('development', 'production').
         storage_bucket_name: Google Storage Cloud bucket handle.
         api_url: Fully qualified presenting address.
         log_file_name: Base file handle for disk storage of logs.
@@ -418,10 +418,10 @@ class Settings(BaseSettings):
     storage_backend: Annotated[
         str | None, BeforeValidator(strip_whitespace), Field(description="LOCAL, NONE, or FIRESTORE")
     ] = None
-    environment: Annotated[str, Field(description="development, staging, or production")] = "production"
-    dev_execution_mode: Annotated[
-        Literal["fast", "full", "none"], Field(description="Execution Mode: fast, full, or none")
-    ] = "none"
+    environment: Annotated[
+        Literal["development", "production"],
+        Field(description="Runtime environment: 'development' (all fast) or 'production' (all thorough/accurate)"),
+    ] = "production"
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
@@ -626,43 +626,76 @@ class Settings(BaseSettings):
                 )
 
     @model_validator(mode="after")
-    def _enforce_fast_mode_limits(self) -> Self:
-        """Aggressively clamp heavy configurations during 'fast' development mode.
+    def _enforce_environment_limits(self) -> Self:
+        """Enforce strict binary environment limits.
+
+        When environment is 'development', enforce all 8 fast dimensions:
+        immediate fail-fast retries (0), single-pass ensemble (1), matrix sampling limit (1),
+        zero pacing delays, minimal development chunks, preflight chunking, zero precedent/web scans,
+        compact linker windows, and fast strategy aliases.
+        When environment is 'production', sovereign production defaults are preserved.
 
         Returns:
-            The mutated settings instance with clamped development limits.
+            The settings instance with environment invariants enforced.
         """
-        if self.environment.lower() == "development" and self.dev_execution_mode == "fast":
-            logger.info("⚡ Fast execution mode active: Clamping LLM bounds and limits to save API tokens.")
+        if self.environment == "development":
+            logger.info("⚡ Development environment active: Clamping LLM bounds and limits to fast profile.")
 
             self.max_tool_calls_per_step = 1
             self.max_development_chunks = 1
-            self.matrix_sampling_limit = 2
+            if "matrix_sampling_limit" not in self.model_fields_set:
+                self.matrix_sampling_limit = 1
+            if "rag_preflight_chunk_size" not in self.model_fields_set:
+                self.rag_preflight_chunk_size = 4000
             self.schema_max_localized_anchors = 2
             self.schema_max_quotes_target = 1
             self.schema_max_quote_length = 50
             self.schema_max_evaluations = 1
-            self.tavily_max_results = 1
-            self.max_precedent_scan_depth = 0
-            self.max_precedent_return_count = 0
-            self.tda_linker_window_size = 2
-            self.tda_linker_overlap = 0
+            if "tavily_max_results" not in self.model_fields_set:
+                self.tavily_max_results = 0
+            if "max_precedent_scan_depth" not in self.model_fields_set:
+                self.max_precedent_scan_depth = 0
+            if "max_precedent_return_count" not in self.model_fields_set:
+                self.max_precedent_return_count = 0
+            if "tda_linker_window_size" not in self.model_fields_set:
+                self.tda_linker_window_size = 2
+            if "tda_linker_overlap" not in self.model_fields_set:
+                self.tda_linker_overlap = 0
 
-            # Ensembles and Retries Overrides
-            self.llm_max_retries = 2
-            self.ensemble_parallelism = 1
-            self.ensemble_min_consensus = 1
+            # Zero Pacing Delays (Strictly typed as int)
+            if "pacing_delay_vertex_seconds" not in self.model_fields_set:
+                self.pacing_delay_vertex_seconds = 0
+            if "pacing_delay_openai_seconds" not in self.model_fields_set:
+                self.pacing_delay_openai_seconds = 0
+            if "pacing_delay_mock_seconds" not in self.model_fields_set:
+                self.pacing_delay_mock_seconds = 0
+
+            # Ensembles and Retries Overrides (Fail-Fast: 0 retries in development)
+            if "llm_max_retries" not in self.model_fields_set:
+                self.llm_max_retries = 0
+            if "llm_max_schema_retries" not in self.model_fields_set:
+                self.llm_max_schema_retries = 0
+            if "llm_max_logical_retries" not in self.model_fields_set:
+                self.llm_max_logical_retries = 0
+            if "llm_max_transient_retries" not in self.model_fields_set:
+                self.llm_max_transient_retries = 0
+            if "ensemble_parallelism" not in self.model_fields_set:
+                self.ensemble_parallelism = 1
+            if "ensemble_min_consensus" not in self.model_fields_set:
+                self.ensemble_min_consensus = 1
 
             # Strategy Aliasing
-            self.strategy_aliases = {
-                "strict_strategy": "fast",
-                "evaluation_strategy": "fast",
-                "test_strategy": "fast",
-                "strict": "fast",
-                "deep": "fast",
-                "synthesis": "fast",
-                "reasoning": "fast",
-            }
+            if "strategy_aliases" not in self.model_fields_set:
+                self.strategy_aliases = {
+                    "strict_strategy": "fast",
+                    "evaluation_strategy": "fast",
+                    "test_strategy": "fast",
+                    "strict": "fast",
+                    "deep": "fast",
+                    "sdui": "fast",
+                    "synthesis": "fast",
+                    "reasoning": "fast",
+                }
 
         return self
 
