@@ -230,7 +230,11 @@ class SourceVerificationService:
             The structured verification result containing verified claims and audit traces.
         """
         settings = get_settings()
-        if not text or len(text.strip()) < settings.source_verification_min_text_length:
+        if (
+            settings.tavily_max_results <= 0
+            or not text
+            or len(text.strip()) < settings.source_verification_min_text_length
+        ):
             return SourceVerificationResultDTO(
                 claims=[],
                 verification_timestamp=datetime.now(UTC).isoformat(),

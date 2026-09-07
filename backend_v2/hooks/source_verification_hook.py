@@ -129,6 +129,16 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
     """
     settings = get_settings()
 
+    if settings.tavily_max_results <= 0:
+        logger.info("[SourceVerificationHook] External web search bypassed (tavily_max_results <= 0).")
+        return HookResult(
+            success=True,
+            state_delta=HookDeltaDTO(
+                delta={"external_evidence": ""},
+                metadata_updates={"mcp_audit_traces": []},
+            ),
+        )
+
     if not state.inputs:
         return HookResult(
             success=True,
