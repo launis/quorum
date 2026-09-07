@@ -181,13 +181,10 @@ class AuthenticityAdapter:
             citations=[],
         )
 
+        # 7. RESOLVE SYNTHESIS EXPLANATION
         llm_explanation = ""
-        if (
-            context.profile_cache
-            and context.profile_cache.row_explanations
-            and "authenticity_evaluation" in context.profile_cache.row_explanations
-        ):
-            llm_explanation = context.profile_cache.row_explanations["authenticity_evaluation"]
+        if context.profile_cache and context.profile_cache.authenticity_explanation:
+            llm_explanation = context.profile_cache.authenticity_explanation
 
         if not llm_explanation:
             fallback_template = LocalizationService.translate("authenticity_fallback_explanation", context.locale)

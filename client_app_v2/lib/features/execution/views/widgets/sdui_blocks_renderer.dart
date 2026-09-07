@@ -7,6 +7,7 @@ import 'package:client_app/features/execution/views/widgets/sdui_alert_box_widge
 import 'package:client_app/features/execution/views/widgets/sdui_grid_widget.dart';
 import 'package:client_app/shared/widgets/logic_radar_chart.dart';
 import 'package:client_app/shared/widgets/logic_matrix_chart.dart';
+import 'package:client_app/shared/widgets/quadrant_matrix_chart.dart';
 import 'package:client_app/features/execution/views/widgets/matrix_row_item_widget.dart';
 import 'package:client_app/features/execution/views/widgets/sdui_matrix_table_widget.dart';
 import 'package:client_app/features/execution/views/widgets/xai_evidence_box.dart';
@@ -65,7 +66,15 @@ class SduiBlocksRenderer extends StatelessWidget {
               xAxis: block.axes[0],
               yAxis: block.axes[1],
               zAxis: block.axes.length > 2 ? block.axes[2] : null,
-              showQuadrants: block.showQuadrants,
+            ),
+          ),
+          SduiQuadrantMatrixBlock() => _buildChartWithTitle(
+            context,
+            block.title,
+            QuadrantMatrixChart(
+              xAxis: block.axes[0],
+              yAxis: block.axes[1],
+              zAxis: block.axes.length > 2 ? block.axes[2] : null,
             ),
           ),
           SduiMetrics1DBlock() => _buildChartWithTitle(

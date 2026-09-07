@@ -11,7 +11,11 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO
-from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
+from backend_v2.utils.static_charts import (
+    generate_quadrant_matrix_chart,
+    generate_radar_chart,
+    generate_scatter_chart,
+)
 
 
 def get_i18n(text: str) -> I18nText:
@@ -42,8 +46,48 @@ def test_generate_scatter_chart_empty() -> None:
         )
 
 
-def test_generate_scatter_chart_bounded_scale_fi_and_en() -> None:
-    """Test scatter chart with 2D bounded scale (1.0-3.0 and 0.0-2.0) across locales."""
+def test_generate_scatter_chart_bounded_scale() -> None:
+    """Test standard 2D Cartesian scatter chart with bounded scale."""
+    axes = [
+        MatrixScorecardRowDTO(
+            name="Kognitiivinen syvyys",
+            score=1.14,
+            scale_min=1.0,
+            scale_max=3.0,
+            ui_plot_ratio=0.07,
+            block_id="axis_cognitive_depth",
+            label_i18n=get_i18n("Cognitive Depth"),
+            row_explanation="Row 1 explanation",
+            is_evaluative=False,
+        ),
+        MatrixScorecardRowDTO(
+            name="Mekaaninen fraasikuorma",
+            score=2.0,
+            scale_min=0.0,
+            scale_max=2.0,
+            ui_plot_ratio=1.0,
+            block_id="axis_mechanical_load",
+            label_i18n=get_i18n("Mechanical Phrase Load"),
+            row_explanation="Row 2 explanation",
+            is_evaluative=False,
+        ),
+    ]
+
+    result = generate_scatter_chart(axes)
+    assert result.startswith("iVBORw0KGgo") or len(result) > 100
+    decoded = base64.b64decode(result)
+    assert len(decoded) > 1000
+
+
+def test_generate_quadrant_matrix_chart_empty() -> None:
+    """Test quadrant matrix chart with less than 2 axes raises AppException."""
+    with pytest.raises(AppException) as exc:
+        generate_quadrant_matrix_chart([])
+    assert "at least 2 axes" in str(exc.value)
+
+
+def test_generate_quadrant_matrix_chart_bounded_scale_fi_and_en() -> None:
+    """Test diagnostic quadrant matrix chart with bounded scale (1.0-3.0 and 0.0-2.0) across locales."""
     axes = [
         MatrixScorecardRowDTO(
             name="Kognitiivinen syvyys",
@@ -70,22 +114,16 @@ def test_generate_scatter_chart_bounded_scale_fi_and_en() -> None:
     ]
 
     # Test Finnish generation with quadrants
-    result_fi = generate_scatter_chart(axes, locale="fi", show_quadrants=True)
+    result_fi = generate_quadrant_matrix_chart(axes, locale="fi")
     assert result_fi.startswith("iVBORw0KGgo") or len(result_fi) > 100
     decoded_fi = base64.b64decode(result_fi)
     assert len(decoded_fi) > 1000
 
     # Test English generation with quadrants
-    result_en = generate_scatter_chart(axes, locale="en", show_quadrants=True)
+    result_en = generate_quadrant_matrix_chart(axes, locale="en")
     assert result_en.startswith("iVBORw0KGgo") or len(result_en) > 100
     decoded_en = base64.b64decode(result_en)
     assert len(decoded_en) > 1000
-
-    # Test standard 2D Cartesian scatter chart without quadrants (default)
-    result_no_quadrants = generate_scatter_chart(axes, locale="fi", show_quadrants=False)
-    assert result_no_quadrants.startswith("iVBORw0KGgo") or len(result_no_quadrants) > 100
-    decoded_no_quadrants = base64.b64decode(result_no_quadrants)
-    assert len(decoded_no_quadrants) > 1000
 
 
 def test_generate_scatter_chart_with_z_axis_bubble_sizing() -> None:

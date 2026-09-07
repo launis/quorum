@@ -532,50 +532,29 @@ Map<String, dynamic> _$SduiRadarChartBlockToJson(
 
 SduiScatterPlotBlock _$SduiScatterPlotBlockFromJson(
   Map<String, dynamic> json,
-) => $checkedCreate(
-  'SduiScatterPlotBlock',
-  json,
-  ($checkedConvert) {
-    $checkKeys(
-      json,
-      allowedKeys: const [
-        'id',
-        'title',
-        'axes',
-        'show_quadrants',
-        'block_type',
-      ],
-    );
-    final val = SduiScatterPlotBlock(
-      id: $checkedConvert('id', (v) => v as String?),
-      title: $checkedConvert(
-        'title',
-        (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
-      ),
-      axes: $checkedConvert(
-        'axes',
-        (v) =>
-            (v as List<dynamic>?)
-                ?.map(
-                  (e) =>
-                      MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
-                )
-                .toList() ??
-            const [],
-      ),
-      showQuadrants: $checkedConvert(
-        'show_quadrants',
-        (v) => v as bool? ?? false,
-      ),
-      $type: $checkedConvert('block_type', (v) => v as String?),
-    );
-    return val;
-  },
-  fieldKeyMap: const {
-    'showQuadrants': 'show_quadrants',
-    r'$type': 'block_type',
-  },
-);
+) => $checkedCreate('SduiScatterPlotBlock', json, ($checkedConvert) {
+  $checkKeys(json, allowedKeys: const ['id', 'title', 'axes', 'block_type']);
+  final val = SduiScatterPlotBlock(
+    id: $checkedConvert('id', (v) => v as String?),
+    title: $checkedConvert(
+      'title',
+      (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+    ),
+    axes: $checkedConvert(
+      'axes',
+      (v) =>
+          (v as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [],
+    ),
+    $type: $checkedConvert('block_type', (v) => v as String?),
+  );
+  return val;
+}, fieldKeyMap: const {r'$type': 'block_type'});
 
 Map<String, dynamic> _$SduiScatterPlotBlockToJson(
   SduiScatterPlotBlock instance,
@@ -583,7 +562,41 @@ Map<String, dynamic> _$SduiScatterPlotBlockToJson(
   'id': instance.id,
   'title': instance.title?.toJson(),
   'axes': instance.axes.map((e) => e.toJson()).toList(),
-  'show_quadrants': instance.showQuadrants,
+  'block_type': instance.$type,
+};
+
+SduiQuadrantMatrixBlock _$SduiQuadrantMatrixBlockFromJson(
+  Map<String, dynamic> json,
+) => $checkedCreate('SduiQuadrantMatrixBlock', json, ($checkedConvert) {
+  $checkKeys(json, allowedKeys: const ['id', 'title', 'axes', 'block_type']);
+  final val = SduiQuadrantMatrixBlock(
+    id: $checkedConvert('id', (v) => v as String?),
+    title: $checkedConvert(
+      'title',
+      (v) => v == null ? null : I18nText.fromJson(v as Map<String, dynamic>),
+    ),
+    axes: $checkedConvert(
+      'axes',
+      (v) =>
+          (v as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    MatrixScorecardRowDto.fromJson(e as Map<String, dynamic>),
+              )
+              .toList() ??
+          const [],
+    ),
+    $type: $checkedConvert('block_type', (v) => v as String?),
+  );
+  return val;
+}, fieldKeyMap: const {r'$type': 'block_type'});
+
+Map<String, dynamic> _$SduiQuadrantMatrixBlockToJson(
+  SduiQuadrantMatrixBlock instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'title': instance.title?.toJson(),
+  'axes': instance.axes.map((e) => e.toJson()).toList(),
   'block_type': instance.$type,
 };
 

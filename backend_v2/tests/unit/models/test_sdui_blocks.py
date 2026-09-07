@@ -5,6 +5,7 @@ from backend_v2.models.view.sdui import (
     AnySduiBlock,
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,
+    SduiQuadrantMatrixBlock,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
 )
@@ -34,22 +35,23 @@ def test_sdui_scatter_plot_roundtrip():
     }
     block = SduiScatterPlotBlock.model_validate(data)
     assert block.block_type == "2d_compare"
-    assert block.show_quadrants is False
 
     adapter = TypeAdapter(AnySduiBlock)
     union_block = adapter.validate_python(data)
     assert isinstance(union_block, SduiScatterPlotBlock)
-    assert union_block.show_quadrants is False
 
-    data_with_quadrants = {
-        "block_type": "2d_compare",
-        "show_quadrants": True,
+
+def test_sdui_quadrant_matrix_roundtrip():
+    """Positive serialization roundtrip test for SduiQuadrantMatrixBlock."""
+    data = {
+        "block_type": "quadrant_matrix",
     }
-    block_with_quadrants = SduiScatterPlotBlock.model_validate(data_with_quadrants)
-    assert block_with_quadrants.show_quadrants is True
-    union_with_quadrants = adapter.validate_python(data_with_quadrants)
-    assert isinstance(union_with_quadrants, SduiScatterPlotBlock)
-    assert union_with_quadrants.show_quadrants is True
+    block = SduiQuadrantMatrixBlock.model_validate(data)
+    assert block.block_type == "quadrant_matrix"
+
+    adapter = TypeAdapter(AnySduiBlock)
+    union_block = adapter.validate_python(data)
+    assert isinstance(union_block, SduiQuadrantMatrixBlock)
 
 
 def test_sdui_matrix_table_roundtrip():

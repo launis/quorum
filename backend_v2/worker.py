@@ -8,13 +8,13 @@ import logging
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 import logfire
 from arq.connections import RedisSettings
 from arq.typing import StartupShutdown, WorkerCoroutine
 from arq.worker import Function
-from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 import backend_v2.hooks  # noqa: F401
 import backend_v2.utils.scoring.variance_engine as variance_engine
@@ -112,7 +112,7 @@ class VarianceExplanationResult(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    row_explanation: str
+    explanation: Annotated[str, Field(description="Synthesized cognitive-mechanical variance explanation")]
 
 
 # Initialize settings
@@ -1529,7 +1529,7 @@ async def generate_profile_synthesis_and_pdf_task(
         variance_expl = None
         if t_variance and t_variance.result():
             var_dto, usage = t_variance.result()
-            variance_expl = var_dto.row_explanation
+            variance_expl = var_dto.explanation
             if variance_expl and active_profile_dto and active_profile_dto.variance_length_constraint:
                 if len(variance_expl) > active_profile_dto.variance_length_constraint:
                     variance_expl = enforce_sentence_boundary_budget(
@@ -1574,12 +1574,10 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 cache_row_explanations[real_id] = expl
 
-        if variance_expl:
-            cache_row_explanations["variance_validation"] = variance_expl
-
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
+            variance_explanation=variance_expl,
             cited_sources=exec_dto.cited_sources if exec_dto else [],
             xai_highlights=xai_highlights_list,
             user_role=exec_dto.user_role if exec_dto else None,

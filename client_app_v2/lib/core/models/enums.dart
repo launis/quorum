@@ -259,6 +259,8 @@ enum SduiBlockType {
   matrixSummary,
   @JsonValue('1d_metrics')
   metrics1d,
+  @JsonValue('quadrant_matrix')
+  quadrantMatrix,
 }
 
 /// UI intent mapping for SDUI visual rendering.

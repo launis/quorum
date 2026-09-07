@@ -18,8 +18,12 @@ from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.v2_core import ReportDataDTO
-from backend_v2.models.view.sdui import SduiRadarChartBlock, SduiScatterPlotBlock
-from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
+from backend_v2.models.view.sdui import SduiQuadrantMatrixBlock, SduiRadarChartBlock, SduiScatterPlotBlock
+from backend_v2.utils.static_charts import (
+    generate_quadrant_matrix_chart,
+    generate_radar_chart,
+    generate_scatter_chart,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,15 +138,18 @@ class PdfReportService:
                                     msg = f"generate_radar_chart returned empty data for block {idx}"
                                     raise ConfigurationError(msg)
                             case SduiScatterPlotBlock():
-                                b64_data = generate_scatter_chart(
-                                    block.axes,
-                                    locale=target_locale,
-                                    show_quadrants=block.show_quadrants,
-                                )
+                                b64_data = generate_scatter_chart(block.axes)
                                 if b64_data:
                                     charts[idx] = b64_data
                                 else:
                                     msg = f"generate_scatter_chart returned empty data for block {idx}"
+                                    raise ConfigurationError(msg)
+                            case SduiQuadrantMatrixBlock():
+                                b64_data = generate_quadrant_matrix_chart(block.axes, locale=target_locale)
+                                if b64_data:
+                                    charts[idx] = b64_data
+                                else:
+                                    msg = f"generate_quadrant_matrix_chart returned empty data for block {idx}"
                                     raise ConfigurationError(msg)
                             case _:
                                 pass

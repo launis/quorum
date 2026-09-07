@@ -26,12 +26,12 @@ void main() {
     uiPlotRatio: 0.5,
   );
 
-  Widget createChartWidget({required bool showQuadrants}) {
+  Widget createChartWidget() {
     return MaterialApp(
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       locale: const Locale('en'),
-      home: Scaffold(
+      home: const Scaffold(
         body: Center(
           child: SizedBox(
             width: 500,
@@ -39,7 +39,6 @@ void main() {
             child: LogicMatrixChart(
               xAxis: xAxis,
               yAxis: yAxis,
-              showQuadrants: showQuadrants,
             ),
           ),
         ),
@@ -48,38 +47,20 @@ void main() {
   }
 
   testWidgets(
-    'LogicMatrixChart does not render quadrant watermarks when showQuadrants is false',
+    'LogicMatrixChart renders standard 2D Cartesian chart without quadrants',
     (tester) async {
-      await tester.pumpWidget(createChartWidget(showQuadrants: false));
+      await tester.pumpWidget(createChartWidget());
       await tester.pumpAndSettle();
 
       // Axis labels must be visible
       expect(find.textContaining('Axis X'), findsOneWidget);
       expect(find.textContaining('Axis Y'), findsOneWidget);
 
-      // Quadrant labels must NOT be rendered
+      // Quadrant labels must NOT be present in pure Cartesian scatter chart
       expect(find.text('Sycophancy & Jargon'), findsNothing);
       expect(find.text('Fluent Mastery'), findsNothing);
       expect(find.text('Novice / Routine'), findsNothing);
       expect(find.text('Organic Insight'), findsNothing);
-    },
-  );
-
-  testWidgets(
-    'LogicMatrixChart renders diagnostic quadrant watermarks when showQuadrants is true',
-    (tester) async {
-      await tester.pumpWidget(createChartWidget(showQuadrants: true));
-      await tester.pumpAndSettle();
-
-      // Axis labels must be visible
-      expect(find.textContaining('Axis X'), findsOneWidget);
-      expect(find.textContaining('Axis Y'), findsOneWidget);
-
-      // Quadrant labels MUST be rendered
-      expect(find.text('Sycophancy & Jargon'), findsOneWidget);
-      expect(find.text('Fluent Mastery'), findsOneWidget);
-      expect(find.text('Novice / Routine'), findsOneWidget);
-      expect(find.text('Organic Insight'), findsOneWidget);
     },
   );
 }

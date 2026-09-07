@@ -678,13 +678,15 @@ class SduiScatterPlotBlock(SduiBlockBase):
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
     axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
-    show_quadrants: Annotated[
-        bool,
-        Field(
-            default=False,
-            description="Whether to render shaded diagnostic quadrants and labels.",
-        ),
-    ] = False
+
+
+class SduiQuadrantMatrixBlock(SduiBlockBase):
+    """Specific block for Variance and Authenticity Quadrant Matrix visualization."""
+
+    model_config = ConfigDict(title="quadrant_matrix", strict=True, extra="forbid")
+    block_type: Literal["quadrant_matrix"] = "quadrant_matrix"
+    title: I18nText | None = None
+    axes: list[MatrixScorecardRowDTO] = Field(default_factory=list)
 
 
 class SduiMatrixTableBlock(SduiBlockBase):
@@ -722,6 +724,7 @@ AnySduiBlock = Annotated[
     | SduiMetadataBlock
     | SduiRadarChartBlock
     | SduiScatterPlotBlock
+    | SduiQuadrantMatrixBlock
     | SduiMatrixTableBlock
     | SduiMetrics1DBlock
     | SduiScoreCardBlock

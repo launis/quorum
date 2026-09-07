@@ -44,7 +44,7 @@ def test_variance_adapter_metric_mappings_strip_crash():
         variance_score=15.0,
         alignment_verdict="ALIGNED"
     )
-    cache = RenderedSynthesisCache(extension_metrics=metrics, row_explanations={"variance_validation": "Test Explanation"})
+    cache = RenderedSynthesisCache(extension_metrics=metrics, variance_explanation="Test Explanation")
     exe = ExecutionRecord(
         id="exe_1234567890123456", 
         workflow_id="wor_1234567890123456", 

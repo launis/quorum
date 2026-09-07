@@ -13,6 +13,7 @@ from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
     SduiMetadataBlock,
     SduiMetrics1DBlock,
+    SduiQuadrantMatrixBlock,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
 )
@@ -112,6 +113,44 @@ async def test_pdf_generator_empty_scatter_plot_crashes() -> None:
         with pytest.raises(ConfigurationError) as exc_info:
             await svc.generate_execution_pdf(execution_id="exe_scatter22222222", report_dto=dto, locale="fi")
         assert "generate_scatter_chart returned empty data for block" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_quadrant_matrix_rendering() -> None:
+    svc = PdfReportService()
+
+    dto = ReportDataDTO(
+        execution_id="exe_quadrant1111111",
+        strictness_level=85,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
+        inner_sdui_blocks=[SduiQuadrantMatrixBlock(axes=[])],
+    )
+
+    with patch("backend_v2.services.pdf_generator.generate_quadrant_matrix_chart", return_value="fake_quadrant_b64"):
+        html = await svc.generate_execution_html(execution_id="exe_quadrant1111111", report_dto=dto, locale="fi")
+        assert "fake_quadrant_b64" in html
+
+
+@pytest.mark.asyncio
+async def test_pdf_generator_empty_quadrant_matrix_crashes() -> None:
+    svc = PdfReportService()
+
+    dto = ReportDataDTO(
+        execution_id="exe_quadrant2222222",
+        strictness_level=85,
+        workflow_id="test_wf",
+        profile_id="prf_test",
+        profile_name=I18nText(translations={"en": "Test Profile", "fi": "Test Profile"}),
+        inner_sdui_blocks=[SduiQuadrantMatrixBlock(axes=[])],
+    )
+
+    with patch("backend_v2.services.pdf_generator.generate_quadrant_matrix_chart", return_value=""):
+        with pytest.raises(ConfigurationError) as exc_info:
+            await svc.generate_execution_pdf(execution_id="exe_quadrant2222222", report_dto=dto, locale="fi")
+        assert "generate_quadrant_matrix_chart returned empty data for block" in str(exc_info.value)
+
 
 
 @pytest.mark.asyncio

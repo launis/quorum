@@ -22,7 +22,7 @@ from backend_v2.models.view.sdui import (
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
-    SduiScatterPlotBlock,
+    SduiQuadrantMatrixBlock,
 )
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -243,10 +243,9 @@ class VarianceAdapter:
             strict=False,
         )
 
-        scatter_block = SduiScatterPlotBlock(
+        scatter_block = SduiQuadrantMatrixBlock(
             title=None,
             axes=[x_axis, y_axis],
-            show_quadrants=True,
         )
 
         # 5. CONSTRUCT 4-METRIC SUMMARY GRID
@@ -270,12 +269,8 @@ class VarianceAdapter:
 
         # 7. RESOLVE SYNTHESIS EXPLANATION
         llm_explanation = ""
-        if (
-            context.profile_cache
-            and context.profile_cache.row_explanations
-            and "variance_validation" in context.profile_cache.row_explanations
-        ):
-            llm_explanation = context.profile_cache.row_explanations["variance_validation"]
+        if context.profile_cache and context.profile_cache.variance_explanation:
+            llm_explanation = context.profile_cache.variance_explanation
 
         if not llm_explanation:
             fallback_template = LocalizationService.translate("variance_fallback_explanation", context.locale)

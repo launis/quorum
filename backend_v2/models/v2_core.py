@@ -1498,6 +1498,12 @@ class RenderedSynthesisCache(V2CoreBase):
         default_factory=dict, description="Synthesized row explanations by matrix ID"
     )
     row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
+    variance_explanation: Annotated[
+        str | None, Field(default=None, description="Synthesized cognitive-mechanical variance explanation")
+    ] = None
+    authenticity_explanation: Annotated[
+        str | None, Field(default=None, description="Synthesized authenticity evaluation explanation")
+    ] = None
     cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
     xai_highlights: list[XaiHighlightItem] = Field(
         default_factory=list, description="Synthesized XAI highlights and tips"
@@ -1685,6 +1691,7 @@ _sdui_localns = {
 }
 sdui_mod.SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
+sdui_mod.SduiQuadrantMatrixBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
 sdui_mod.SduiGridBlock.model_rebuild(_types_namespace=_sdui_localns)

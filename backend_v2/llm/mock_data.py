@@ -433,7 +433,7 @@ def get_fallback_data(key: str) -> dict[str, Any]:
         }
 
     if key == "variance_explainer":
-        return {"row_explanation": "Mock explanation for variance."}
+        return {"explanation": "Mock explanation for variance."}
 
     if key == "ExecutiveSummaryTask":
         return MOCK_EXECUTIVE_SUMMARY_OUTPUT.model_dump()

@@ -38,6 +38,7 @@ from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
+    SduiQuadrantMatrixBlock,
     SduiScoreCardBlock,
     SduiWarningCard,
 )
@@ -63,6 +64,7 @@ PYDANTIC_BLOCK_MODELS: dict[str, type[BaseModel]] = {
     "metadata": SduiMetadataBlock,
     "3d_matrix": SduiRadarChartBlock,
     "2d_compare": SduiScatterPlotBlock,
+    "quadrant_matrix": SduiQuadrantMatrixBlock,
     "matrix_summary": SduiMatrixTableBlock,
     "1d_metrics": SduiMetrics1DBlock,
     "score_card": SduiScoreCardBlock,
@@ -80,6 +82,7 @@ DART_UNION_TYPE_MAP: dict[str, str] = {
     "paragraph": "SduiParagraphBlock",
     "3d_matrix": "SduiRadarChartBlock",
     "2d_compare": "SduiScatterPlotBlock",
+    "quadrant_matrix": "SduiQuadrantMatrixBlock",
     "1d_metrics": "SduiMetrics1DBlock",
     "matrix_summary": "SduiMatrixTableBlock",
     "bullet_list": "SduiBulletListBlock",
@@ -105,13 +108,13 @@ def _extract_dart_renderer_block_types(dart_content: str) -> set[str]:
 
 
 def test_all_sdui_blocks_handled_in_jinja_and_dart() -> None:
-    """TC-SDUI-01: Asserts that all 17 AnySduiBlock types are handled exhaustively in Jinja2 and Dart."""
+    """TC-SDUI-01: Asserts that all 18 AnySduiBlock types are handled exhaustively in Jinja2 and Dart."""
     # 1. Pydantic AnySduiBlock types
     # Extract discriminated union members
     union_types = get_args(get_args(AnySduiBlock)[0])
     pydantic_block_types = {model.model_fields["block_type"].default for model in union_types}
 
-    assert len(pydantic_block_types) == 17, f"Expected 17 SDUI block types, found {len(pydantic_block_types)}"
+    assert len(pydantic_block_types) == 18, f"Expected 18 SDUI block types, found {len(pydantic_block_types)}"
 
     # 2. Jinja template handled blocks
     jinja_template_file = TEMPLATES_DIR / "report_template.jinja2"

@@ -137,7 +137,7 @@ def test_build_success_with_metrics() -> None:
             variance_score=15.0,
             alignment_verdict="ALIGNED",
         ),
-        row_explanations={"authenticity_evaluation": "High degree of authenticity identified in execution traces."},
+        authenticity_explanation="High degree of authenticity identified in execution traces.",
     )
     context = AdapterContext(
         execution=execution,

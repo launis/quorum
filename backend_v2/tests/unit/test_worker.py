@@ -83,8 +83,8 @@ def test_worker_settings() -> None:
 
 def test_variance_explanation_result() -> None:
     """Verify VarianceExplanationResult model validation and serialization."""
-    dto = VarianceExplanationResult.model_validate({"row_explanation": "Consistent alignment."})
-    assert dto.row_explanation == "Consistent alignment."
+    dto = VarianceExplanationResult.model_validate({"explanation": "Consistent alignment."})
+    assert dto.explanation == "Consistent alignment."
     with pytest.raises(ValidationError):
         VarianceExplanationResult.model_validate({})
 

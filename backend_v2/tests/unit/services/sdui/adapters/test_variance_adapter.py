@@ -23,7 +23,7 @@ from backend_v2.models.view.sdui import (
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
-    SduiScatterPlotBlock,
+    SduiQuadrantMatrixBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
@@ -188,7 +188,7 @@ def test_build_aligned_success() -> None:
             variance_score=0.2,
             alignment_verdict="ALIGNED",
         ),
-        row_explanations={"variance_validation": "Model reasoning aligned closely with target assertions."},
+        variance_explanation="Model reasoning aligned closely with target assertions.",
     )
     context = AdapterContext(
         execution=execution,
@@ -211,8 +211,7 @@ def test_build_aligned_success() -> None:
     assert isinstance(blocks[1], ParagraphBlock)
     assert blocks[1].text == "Model reasoning aligned closely with target assertions."
 
-    assert isinstance(blocks[2], SduiScatterPlotBlock)
-    assert blocks[2].show_quadrants is True
+    assert isinstance(blocks[2], SduiQuadrantMatrixBlock)
     assert len(blocks[2].axes) == 2
     assert blocks[2].axes[0].block_id == "axis_cognitive_depth"
     assert blocks[2].axes[0].score == 2.8
@@ -278,8 +277,7 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
     # Fallback explanation when row_explanations omitted
     assert "Mekaanisia ja kognitiivisia" in blocks[1].text
 
-    assert isinstance(blocks[2], SduiScatterPlotBlock)
-    assert blocks[2].show_quadrants is True
+    assert isinstance(blocks[2], SduiQuadrantMatrixBlock)
     assert blocks[2].axes[0].score == 1.14
     assert blocks[2].axes[0].ui_plot_ratio == 0.07  # round((1.14 - 1.0) / 2.0, 4) == 0.07
     assert blocks[2].axes[1].score == 2.0

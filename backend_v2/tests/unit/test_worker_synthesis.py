@@ -1040,7 +1040,7 @@ async def test_worker_synthesis_custom_directives_resolution(
         if resp_model is XaiHighlightsResult:
             return (XaiHighlightsResult(xai_highlights=[]), usage)
         if resp_model is VarianceExplanationResult:
-            return (VarianceExplanationResult(row_explanation="Variance explanation result"), usage)
+            return (VarianceExplanationResult(explanation="Variance explanation result"), usage)
         if resp_model is MatrixExplanationsResult:
             return (MatrixExplanationsResult(explanations=[]), usage)
         return (None, usage)

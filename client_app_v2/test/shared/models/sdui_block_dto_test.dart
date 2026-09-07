@@ -169,20 +169,24 @@ void main() {
       final block = SduiBlockDTO.fromJson(json);
 
       expect(block, isA<SduiScatterPlotBlock>());
-      expect((block as SduiScatterPlotBlock).showQuadrants, isFalse);
-    });
-
-    test('parses compare2d block with show_quadrants correctly', () {
-      final json = {'block_type': '2d_compare', 'show_quadrants': true};
-
-      final block = SduiBlockDTO.fromJson(json);
-
-      expect(block, isA<SduiScatterPlotBlock>());
-      expect((block as SduiScatterPlotBlock).showQuadrants, isTrue);
     });
 
     test('throws exception on compare2d unrecognized key', () {
       final json = {'block_type': '2d_compare', 'invalid_key': 'should crash'};
+
+      expect(() => SduiBlockDTO.fromJson(json), throwsException);
+    });
+
+    test('parses quadrant_matrix block correctly', () {
+      final json = {'block_type': 'quadrant_matrix'};
+
+      final block = SduiBlockDTO.fromJson(json);
+
+      expect(block, isA<SduiQuadrantMatrixBlock>());
+    });
+
+    test('throws exception on quadrant_matrix unrecognized key', () {
+      final json = {'block_type': 'quadrant_matrix', 'invalid_key': 'should crash'};
 
       expect(() => SduiBlockDTO.fromJson(json), throwsException);
     });

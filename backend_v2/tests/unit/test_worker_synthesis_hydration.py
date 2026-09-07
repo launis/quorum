@@ -30,6 +30,8 @@ def test_rendered_synthesis_cache_valid_hydration() -> None:
         "section_syntheses": {"blk_34def5d628ba4ed4": [block]},
         "row_explanations": {"mat_12345678": "Explanation text"},
         "row_curated_quotes": {},
+        "variance_explanation": "Variance analysis text...",
+        "authenticity_explanation": "Authenticity analysis text...",
         "cited_sources": ["Doc 1"],
     }
 
@@ -39,6 +41,8 @@ def test_rendered_synthesis_cache_valid_hydration() -> None:
     first_block = cache.section_syntheses["blk_34def5d628ba4ed4"][0]
     assert isinstance(first_block, ParagraphBlock)
     assert first_block.text == "Analyysin sisältö..."
+    assert cache.variance_explanation == "Variance analysis text..."
+    assert cache.authenticity_explanation == "Authenticity analysis text..."
 
 
 def test_rendered_synthesis_cache_serialization_roundtrip() -> None:
@@ -47,9 +51,13 @@ def test_rendered_synthesis_cache_serialization_roundtrip() -> None:
     cache = RenderedSynthesisCache(
         section_syntheses={"layout_1": [block]},
         row_explanations={"m1": "Expl"},
+        variance_explanation="Variance roundtrip explanation",
+        authenticity_explanation="Authenticity roundtrip explanation",
     )
     raw_json = cache.model_dump_json()
     rehydrated = RenderedSynthesisCache.model_validate_json(raw_json)
     rehydrated_block = rehydrated.section_syntheses["layout_1"][0]
     assert isinstance(rehydrated_block, ParagraphBlock)
     assert rehydrated_block.text == "Roundtrip text"
+    assert rehydrated.variance_explanation == "Variance roundtrip explanation"
+    assert rehydrated.authenticity_explanation == "Authenticity roundtrip explanation"
