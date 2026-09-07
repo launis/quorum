@@ -40,10 +40,11 @@ description: Tier 2 (Matrix & Atom Hardening) - Step-by-step auditing, balancing
     </phase>
     
     <phase id="2" name="Level-by-Level Audit & Hardening">
-      <action>For the selected matrix, review each scale level against the 3 Golden Rules:
+      <action>For the selected matrix, review each scale level against the 4 Golden Rules:
         1. ATOM DENSITY: Every level MUST have $\ge 3$ atoms (ideally 3–5) to eliminate brittle 0%/50% binary cliff failures.
         2. TRI-AXIS BALANCE: Each level should combine Structural form, Substantive cognitive depth, and Error-detection (`inverse_evidence=True`).
         3. EXTRACTION PRECISION: Ensure `extraction_rule` is unambiguous with explicit ACCEPTABLE / UNACCEPTABLE contrastive examples.
+        4. ANTI-OVERFITTING & EPISTEMIC INVARIANCE: All extraction rules MUST remain strictly domain-agnostic and functional. NEVER hardcode topical keywords, organization names, or case-specific nouns into seed rules. Contrastive pairs MUST use synthetic out-of-domain analogies (e.g., database SLAs, clinical trials, cohort telemetry), and verification MUST assert self-consistency ($\kappa \ge 0.95$) across diverse holdout inputs.
       </action>
       <action>Perform surgical structural updates to `backend_v2/seed/seed_data.json` using native MCP editing tools (`replace_file_content` / `multi_replace_file_content`).</action>
       <constraint name="VALIDATION_GATE">

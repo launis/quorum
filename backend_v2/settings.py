@@ -649,7 +649,7 @@ class Settings(BaseSettings):
             self.tda_linker_overlap = 0
 
             # Ensembles and Retries Overrides
-            self.llm_max_retries = 0
+            self.llm_max_retries = 2
             self.ensemble_parallelism = 1
             self.ensemble_min_consensus = 1
 

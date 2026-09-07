@@ -1,4 +1,4 @@
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
 
 
 def test_system_concurrency_mandatory_limits() -> None:
@@ -8,3 +8,9 @@ def test_system_concurrency_mandatory_limits() -> None:
 
     # Architectural law: LLM_MAX_RETRIES is fixed at 2
     assert get_settings().llm_max_retries == 2
+
+
+def test_system_concurrency_fast_mode_limits() -> None:
+    """Verify that llm_max_retries remains clamped to >= 2 floor even in fast development mode."""
+    fast_settings = Settings(environment="development", dev_execution_mode="fast")
+    assert fast_settings.llm_max_retries == 2
