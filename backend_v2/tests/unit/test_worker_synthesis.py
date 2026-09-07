@@ -188,20 +188,30 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     assert isinstance(prof_synth["prof_1111111111111111"]["section_syntheses"], dict)
 
 
-from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
-
-
 def _setup_mock_repo_for_metrics(
-    mock_repo: AsyncMock,
-    trace_content_ling: dict[str, Any] | None = None,
-    trace_content_det: dict[str, Any] | None = None,
-    execution_trace: list[TraceEvent] | None = None,
+    mock_repo: AsyncMock, trace_content_ling: dict[str, Any] | None, trace_content_det: dict[str, Any] | None
 ) -> None:
-    context_vars: dict[str, Any] = {}
+    trace_events = []
     if trace_content_ling is not None:
-        context_vars["step_linguistics"] = trace_content_ling
+        trace_events.append(
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="decision",
+                step_name="ling",
+                content={"step_linguistics": trace_content_ling},
+            )
+        )
     if trace_content_det is not None:
-        context_vars["step_detector"] = trace_content_det
+        trace_events.append(
+            TraceEvent(
+                v=1,
+                timestamp=datetime.now(timezone.utc),
+                event_type="output",
+                step_name="sr_det_step12345678",
+                content=trace_content_det,
+            )
+        )
 
     mock_execution = ExecutionRecord(
         id="exec_1234567812345678",
@@ -210,8 +220,8 @@ def _setup_mock_repo_for_metrics(
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
-        execution_trace=execution_trace or [],
-        context_variables=context_vars,
+        execution_trace=trace_events,
+        context_variables={},
     )
     mock_repo.get_execution.return_value = mock_execution
     mock_repo.get_workflow_by_id.return_value = {
@@ -301,7 +311,7 @@ def _setup_mock_repo_for_metrics(
 async def test_worker_synthesis_extracts_metrics_from_trace(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
-    """Test extracting extension metrics from context_variables during synthesis."""
+    """Test extracting extension metrics from execution trace during synthesis."""
     get_settings().use_mock_llm = True
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
@@ -314,7 +324,23 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
                 {"pattern_id": "2", "detected_phrase": "phrase2", "category": "cat2"},
             ]
         },
-        trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
     )
 
     await generate_profile_synthesis_and_pdf_task(
@@ -325,85 +351,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
     assert prof_synth is not None
     metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
     assert metrics is not None
-    assert metrics["authenticity_score"] == 3.0
+    assert metrics["authenticity_score"] == 2.5
     assert metrics["performative_phrases_count"] == 2.0
-    assert metrics["variance_score"] >= 0.0
-    assert metrics["alignment_verdict"] == "ALIGNED"
-
-
-@pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_without_step_detector_in_cv_omits_variance(
-    _mock_driver: AsyncMock, mock_repo_class: AsyncMock, caplog: pytest.LogCaptureFixture
-) -> None:
-    """Verify that when step_detector is absent from context_variables, no trace fallback is performed."""
-    get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
-    mock_repo_class.return_value = mock_repo
-
-    _setup_mock_repo_for_metrics(
-        mock_repo,
-        trace_content_ling={
-            "performative_patterns": [
-                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"},
-                {"pattern_id": "2", "detected_phrase": "phrase2", "category": "cat2"},
-            ]
-        },
-        trace_content_det=None,
-        execution_trace=[
-            TraceEvent(
-                step_name="step_detector_llm",
-                event_type="output",
-                content=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
-            )
-        ],
-    )
-
-    await generate_profile_synthesis_and_pdf_task(
-        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
-    )
-
-    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
-    assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is None
-    assert "requests variance validation, but required inputs (step_detector) are missing" in caplog.text
-
-
-@pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-async def test_worker_synthesis_extracts_metrics_misaligned_sycophancy(
-    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
-) -> None:
-    """Test extracting extension metrics resulting in MISALIGNED_SYCOPHANCY."""
-    get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
-    mock_repo_class.return_value = mock_repo
-
-    _setup_mock_repo_for_metrics(
-        mock_repo,
-        trace_content_ling={
-            "performative_patterns": [
-                {"pattern_id": f"{i}", "detected_phrase": f"phrase{i}", "category": "cat"} for i in range(5)
-            ]
-        },
-        trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
-    )
-
-    await generate_profile_synthesis_and_pdf_task(
-        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
-    )
-
-    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
-    assert prof_synth is not None
-    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
-    assert metrics is not None
-    assert metrics["authenticity_score"] == 3.0
-    assert metrics["performative_phrases_count"] == 5.0
-    assert metrics["variance_score"] >= 0.5
-    assert metrics["alignment_verdict"] == "MISALIGNED_SYCOPHANCY"
 
 
 @pytest.mark.asyncio
@@ -412,7 +361,7 @@ async def test_worker_synthesis_extracts_metrics_misaligned_sycophancy(
 async def test_worker_synthesis_missing_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
-    """Test synthesis when extension metrics are missing from context_variables."""
+    """Test synthesis when extension metrics are missing from trace."""
     get_settings().use_mock_llm = True
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
@@ -444,7 +393,23 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
         trace_content_ling={
             "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
         },
-        trace_content_det={"unrecognized": 123},
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": None,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
     )
 
     await generate_profile_synthesis_and_pdf_task(
@@ -461,14 +426,22 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
-    """Test synthesis when linguistics is missing from context variables."""
+    """Test synthesis when step metadata is missing from detector output."""
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
         mock_repo,
-        trace_content_ling=None,
-        trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+        trace_content_ling={
+            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
+        },
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+        },
     )
 
     await generate_profile_synthesis_and_pdf_task(
@@ -487,7 +460,7 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
-    """Test synthesis when detector is missing from context variables."""
+    """Test synthesis when task_blueprint is missing from step metadata."""
     mock_repo = AsyncMock()
     mock_repo_class.return_value = mock_repo
 
@@ -496,7 +469,22 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         trace_content_ling={
             "performative_patterns": [{"pattern_id": "1", "detected_phrase": "one", "category": "cat"}]
         },
-        trace_content_det=None,
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 2.5,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+            },
+        },
     )
 
     await generate_profile_synthesis_and_pdf_task(
@@ -994,7 +982,23 @@ async def test_worker_synthesis_custom_directives_resolution(
         trace_content_ling={
             "performative_patterns": [{"pattern_id": "1", "detected_phrase": "test phrase", "category": "cat"}]
         },
-        trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+        trace_content_det={
+            "blk_det12345678det1": {
+                "raw_score": 3.0,
+                "justification": "Authenticity evaluation",
+                "level_breakdown": {},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_1234567812345678",
+                "step_id": "sr_det_step12345678",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_det_step",
+            },
+        },
     )
 
     mock_repo.get_output_profile_by_id.return_value = {

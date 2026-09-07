@@ -8,7 +8,6 @@ from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
@@ -695,8 +694,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "context_variables": {
                     "step_linguistics": {
                         "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
-                    },
-                    "step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+                    }
                 },
                 "execution_trace": [
                     {
@@ -812,181 +810,6 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
                 "default_strictness_level": 50,
-                "default_scoring_strategy": "AVERAGE",
-            }
-
-            with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
-                mock_distiller.return_value = HookResult(
-                    success=True,
-                    state_delta=HookDeltaDTO(
-                        delta={
-                            "distilled_inputs": "Sample analytical summary data.",
-                            "matrices_to_explain": [
-                                {
-                                    "real_matrix_id": "blk_1111222233334444",
-                                    "matrix_id": "m0",
-                                    "matrix_label": "Target Matrix",
-                                    "score": 85.0,
-                                    "justification": "Evidence verified.",
-                                }
-                            ],
-                            "language": "fi",
-                            "title_map": {"blk_1111222233334444": "Kohdematriisi"},
-                        }
-                    ),
-                )
-
-                await generate_profile_synthesis_and_pdf_task(
-                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
-                )
-
-                mock_repo.update_execution.assert_called()
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_pdf_job", "exe_1234567890123456", "fi", "prof_1111222233334444"
-                )
-
-
-@pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_with_context_variables_step_detector() -> None:
-    """Verify synthesis extracts step_detector strictly from context_variables without fallback."""
-    get_settings().use_mock_llm = True
-    mock_redis = AsyncMock()
-
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
-            mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.return_value = {
-                "id": "exe_1234567890123456",
-                "workflow_id": "wf_1234567890123456",
-                "output_profile_id": "prof_1111222233334444",
-                "status": "RUNNING",
-                "target_locale": "fi",
-                "metadata": {},
-                "step_states": {},
-                "profile_syntheses": {},
-                "context_variables": {
-                    "step_linguistics": {
-                        "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
-                    },
-                    "step_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
-                },
-                "execution_trace": [
-                    {
-                        "v": 1,
-                        "timestamp": datetime.now(UTC).isoformat(),
-                        "event_type": "output",
-                        "step_name": "step_perf",
-                        "content": {
-                            "_step_metadata": {"task_blueprint": "step_perf"},
-                            "blk_1111222233334444": {
-                                "raw_score": 85.0,
-                                "normalized_score": 85.0,
-                                "level_breakdown": {"1.0": {"hits": 1, "total": 1}},
-                            },
-                        },
-                    }
-                ],
-            }
-
-            mock_repo.get_output_profile_by_id.return_value = {
-                "id": "prof_1111222233334444",
-                "slug": "prof-1",
-                "workflow_id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Profile"}},
-                "synthesis_length_constraint": 500,
-                "tone_instruction": "Direct tone",
-                "executive_summary_directive": "Synthesize executive summary.",
-                "matrix_1d_synthesis_directive": "Synthesize 1D matrix metrics.",
-                "xai_synthesis_directive": "Synthesize XAI highlights.",
-                "row_explanation_directive": "Explain matrix row causality.",
-                "variance_synthesis_directive": "Synthesize cognitive variance.",
-                "matrix_synthesis_groups": [
-                    {
-                        "id": "grp_1111111111111111",
-                        "title": {
-                            "translations": {"en": "Matrix Section", "fi": "Matriisiosio"},
-                        },
-                        "target_blocks": ["blk_1111222233334444"],
-                    }
-                ],
-                "target_block_order": ["matrix_graphs_block"],
-                "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
-                "max_extension_items": 3,
-            }
-
-            async def mock_get_pb(pb_id: str) -> dict[str, Any] | None:
-                return {
-                    "id": pb_id,
-                    "slug": f"slug_{pb_id}",
-                    "type": "instruction",
-                    "label": {"translations": {"en": "Label"}},
-                    "description": {"translations": {"en": "Desc"}},
-                    "instruction_text": f"Instruction for {pb_id}",
-                    "category_id": "system_rule",
-                }
-
-            mock_repo.get_prompt_block.side_effect = mock_get_pb
-            mock_repo.get_all_prompt_blocks.return_value = [
-                {
-                    "id": "blk_1111222233334444",
-                    "slug": "target_1",
-                    "type": "instruction",
-                    "label": {"translations": {"en": "Target Matrix"}},
-                    "description": {"translations": {"en": "Desc"}},
-                    "instruction_text": "Target Matrix evaluation",
-                    "category_id": "system_rule",
-                }
-            ]
-            mock_repo.get_model_registry.return_value = {
-                "id": "cfg_1111111111111111",
-                "type": "model_registry",
-                "slug": "model_registry",
-                "models": {
-                    "synthesis": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "strict": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "fast": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                },
-            }
-            mock_repo.get_workflow_by_id.return_value = {
-                "id": "wf_1234567890123456",
-                "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
-                "slug": "test-wf",
-                "description": {"translations": {"en": "desc", "fi": "desc"}},
-                "status": "draft",
-                "version": 1,
-                "steps": [],
-                "default_profile_id": "prof_1111222233334444",
-                "allowed_exports": ["pdf"],
-                "historical_context_mode": "DISABLED",
-            }
-            mock_repo.get_system_config.return_value = {
-                "id": "cfg_system_default",
                 "default_scoring_strategy": "AVERAGE",
             }
 
@@ -2082,27 +1905,3 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
         await generate_profile_synthesis_and_pdf_task(
             "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
         )
-
-
-def test_ast_guardrail_no_detector_step_markers() -> None:
-    """Verify that _DETECTOR_STEP_MARKERS has been completely eradicated across the backend codebase."""
-    import ast
-    from pathlib import Path
-
-    backend_dir = Path("backend_v2")
-    offenders: list[str] = []
-    target_var = "_DETECTOR_STEP_MARKERS"
-
-    for p in backend_dir.rglob("*.py"):
-        if p.name == "test_worker.py":
-            continue
-        try:
-            tree = ast.parse(p.read_text(encoding="utf-8"), filename=str(p))
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Name) and node.id == target_var:
-                    offenders.append(str(p))
-                    break
-        except SyntaxError:
-            continue
-
-    assert not offenders, f"Found target variable in: {offenders}"

@@ -5,10 +5,8 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException
-from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import ExecutionStep, TraceEvent
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
 
@@ -596,12 +594,10 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
             metadata={"organization_id": "org_1111222233334444"},
             projector=projector,
             semaphore=semaphore,
-            global_context_vars={"g_key": "g_val"},
         )
         assert len(events) == 1
         assert isinstance(events[0], ErrorTraceEvent)
         assert events[0].error_code == "STEP_FAILED"
-
 
 
 @pytest.mark.asyncio
@@ -735,13 +731,6 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
-        steps=[
-            ExecutionStep(
-                id="stp_1111222233334444",
-                label="stp_1111222233334444",
-                status=ExecutionStatus.PENDING,
-            )
-        ],
         step_states={
             "stp_1111222233334444": ExecutionStepState(
                 id="stp_1111222233334444", label="Step 1", status=ExecutionStatus.FAILED
@@ -1257,7 +1246,6 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         steps=[step_rule],
     )
 
-    mock_repo.get_step_by_id.side_effect = None
     mock_repo.get_step_by_id.return_value = {
         "id": "bp_11112222333344445555666677778888",
         "type": "logic",
@@ -1301,159 +1289,3 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
 
     # Step label must be human-readable resolved Finnish name, NOT 'sr_f0a26d17cc9b48a7'
     assert record.step_states["sr_f0a26d17cc9b48a7"].label == "Johtoryhmän analyysi"
-
-
-@pytest.mark.asyncio
-async def test_dag_executor_populates_step_detector_in_context_variables(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
-    """Verify DAGExecutor populates context_variables['step_detector'] when output event contains PerformativityOutput."""
-    step = StepRule(
-        id="sr_1111222233334444",
-        task_blueprint="bp_1111222233334444",
-        depends_on=[],
-    )
-    workflow = Workflow(
-        allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
-        id="wf_1111222233334444",
-        slug="wf_detector_flow",
-        status="draft",
-        version=1,
-        default_profile_id="prof_1111111111111111",
-        name=I18nText(translations={"en": "Detector WF", "fi": "Detector WF"}),
-        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
-        steps=[step],
-    )
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_1111222233334444",
-        "type": "logic",
-        "model_strategy": "fast",
-        "slug": "detector_step",
-        "name": {"translations": {"en": "Detector Step", "fi": "Detector Step"}},
-        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-        "hook": "mock_hook",
-    }
-    mock_repo.get_execution.return_value = None
-
-    prompt_block_repo = AsyncMock()
-    prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
-
-    executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=mock_repo,
-        audit_repo=mock_repo,
-        system_repo=mock_repo,
-        prompt_compiler=mock_compiler,
-    )
-
-    with (
-        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
-        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
-    ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
-        )
-        mock_node_exec.return_value = [
-            TraceEvent(
-                step_name="sr_1111222233334444",
-                event_type="output",
-                content=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
-            )
-        ]
-        record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
-            workflow=workflow,
-            raw_inputs=WorkflowInputs(dynamic_inputs={}, language="fi"),
-        )
-
-    assert "step_detector" in record.context_variables
-    assert record.context_variables["step_detector"] is not None
-    assert record.context_variables["step_detector"]["performativity_analysis"]["authenticity_score"] == 3.0
-
-
-@pytest.mark.asyncio
-async def test_dag_executor_populates_step_detector_from_nested_output_and_handles_non_detector(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
-    """Verify DAGExecutor populates step_detector from nested output dictionary and gracefully ignores non-detector outputs."""
-    step = StepRule(
-        id="sr_1111222233334444",
-        task_blueprint="bp_1111222233334444",
-        depends_on=[],
-    )
-    workflow = Workflow(
-        allowed_exports=["pdf"],
-        historical_context_mode="DISABLED",
-        id="wf_1111222233334444",
-        slug="wf_detector_flow",
-        status="draft",
-        version=1,
-        default_profile_id="prof_1111111111111111",
-        name=I18nText(translations={"en": "Detector WF", "fi": "Detector WF"}),
-        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
-        steps=[step],
-    )
-    mock_repo.get_step_by_id.return_value = {
-        "id": "bp_1111222233334444",
-        "type": "logic",
-        "model_strategy": "fast",
-        "slug": "detector_step",
-        "name": {"translations": {"en": "Detector Step", "fi": "Detector Step"}},
-        "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
-        "hook": "mock_hook",
-    }
-    mock_repo.get_execution.return_value = None
-
-    prompt_block_repo = AsyncMock()
-    prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
-
-    executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=mock_repo,
-        audit_repo=mock_repo,
-        system_repo=mock_repo,
-        prompt_compiler=mock_compiler,
-    )
-
-    with (
-        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
-        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
-    ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
-        )
-        mock_node_exec.return_value = [
-            TraceEvent(
-                step_name="sr_1111222233334444",
-                event_type="output",
-                content={
-                    "other_unrelated_key": {"random": 123},
-                    "nested_detector": MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
-                },
-            ),
-            TraceEvent(
-                step_name="sr_1111222233334444",
-                event_type="output",
-                content={"plain_text_output": "some result"},
-            ),
-        ]
-        record = await executor.execute_workflow(
-            execution_id="exe_1111222233334444",
-            workflow=workflow,
-            raw_inputs=WorkflowInputs(dynamic_inputs={}, language="fi"),
-        )
-
-    assert "step_detector" in record.context_variables
-    assert record.context_variables["step_detector"] is not None
-    assert record.context_variables["step_detector"]["performativity_analysis"]["authenticity_score"] == 3.0

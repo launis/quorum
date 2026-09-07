@@ -31,7 +31,6 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import configure_logfire, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
-from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PromptBlockAdapter,
@@ -49,6 +48,7 @@ from backend_v2.models.dtos.synthesis import (
 )
 from backend_v2.models.dtos.trace import (
     ExecutionUpdateDTO,
+    StepTraceMetadataDTO,
     TraceEventMetadataEnvelope,
 )
 from backend_v2.models.enums import ExecutionStatus, PresetView, StrictnessAnchor, TargetBlockType
@@ -118,6 +118,8 @@ class VarianceExplanationResult(BaseModel):
 # Initialize settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+_DETECTOR_STEP_MARKERS: tuple[str, ...] = ("perf", "det", "authenticity", "sp_7f9649114d2344dc")
 
 # Pre-register all hooks for background execution
 # --- Worker Job Tasks ---
@@ -1320,34 +1322,82 @@ async def generate_profile_synthesis_and_pdf_task(
                     or "authenticity_evaluation" in active_profile_dto.visible_workflow_extensions
                 )
             ):
-                authenticity_score: float | None = None
-                performative_phrases_count: int | None = None
+                authenticity_score = None
+                performative_phrases_count = None
                 cv = execution.context_variables
 
-                if cv is not None:
-                    # 1. Linguistics comes from global_context_vars via the linguistics post-hook
-                    if "step_linguistics" in cv and cv["step_linguistics"] is not None:
-                        try:
-                            ling_out = LinguisticsResultDTO.model_validate(cv["step_linguistics"], strict=False)
-                            patterns = ling_out.performative_patterns
-                            if isinstance(patterns, list):
-                                performative_phrases_count = len(patterns)
-                        except (ValidationError, TypeError, ValueError) as e:
-                            logger.warning(
-                                "Failed to parse step_linguistics from context_variables",
-                                extra={"error": str(e), "execution_id": execution.id},
-                            )
+                # 1. Linguistics comes from global_context_vars via the linguistics post-hook
+                if cv is not None and "step_linguistics" in cv:
+                    step_ling = cv["step_linguistics"]
+                    if step_ling is not None:
+                        ling_out = LinguisticsResultDTO.model_validate(step_ling, strict=False)
+                        patterns = ling_out.performative_patterns
+                        if isinstance(patterns, list):
+                            performative_phrases_count = len(patterns)
 
-                    # 2. Performativity Detector comes strictly from context_variables["step_detector"] (Option A)
-                    if "step_detector" in cv and cv["step_detector"] is not None:
-                        try:
-                            det_out = PerformativityOutput.model_validate(cv["step_detector"], strict=False)
-                            authenticity_score = float(det_out.authenticity_score)
-                        except (ValidationError, TypeError, ValueError, AttributeError) as e:
-                            logger.warning(
-                                "Failed to parse step_detector from context_variables",
-                                extra={"error": str(e), "execution_id": execution.id},
-                            )
+                # 2. Performativity Detector comes from the DAG step output in the trace
+                # Dynamically resolve missing values from execution trace
+                if authenticity_score is None or performative_phrases_count is None:
+                    for event in reversed(execution.execution_trace):
+                        if not isinstance(event, TraceEvent):
+                            continue
+
+                        # Fallback for Linguistics (decision event with is_context_update)
+                        if event.event_type == "decision" and performative_phrases_count is None:
+                            try:
+                                dec_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                                if "step_linguistics" in dec_content:
+                                    trace_ling = dec_content["step_linguistics"]
+                                    ling_out = LinguisticsResultDTO.model_validate(trace_ling, strict=False)
+                                    patterns = ling_out.performative_patterns
+                                    if isinstance(patterns, list):
+                                        performative_phrases_count = len(patterns)
+                            except (ValidationError, TypeError, ValueError) as e:
+                                logger.warning(
+                                    "Failed to parse linguistics from decision trace event",
+                                    extra={"error": str(e), "execution_id": execution.id},
+                                )
+
+                        # Extract Performativity Detector output by matching step identifiers dynamically
+                        if event.event_type == "output" and authenticity_score is None:
+                            is_match = False
+                            out_content: dict[str, Any] | None = None
+                            try:
+                                out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                            except (ValidationError, TypeError, ValueError) as e:
+                                logger.warning(
+                                    "Failed to parse output content dictionary from trace event",
+                                    extra={"error": str(e), "execution_id": execution.id},
+                                )
+                                out_content = None
+
+                            candidate_ids: list[str] = []
+                            if event.step_name and not event.step_name.startswith("sr_"):
+                                candidate_ids.append(event.step_name.lower())
+                            if out_content and "_step_metadata" in out_content:
+                                try:
+                                    step_meta = StepTraceMetadataDTO.model_validate(out_content["_step_metadata"])
+                                    if step_meta.task_blueprint:
+                                        candidate_ids.append(step_meta.task_blueprint.lower())
+                                except (ValidationError, TypeError, ValueError) as e:
+                                    logger.warning(
+                                        "Failed to parse step trace metadata from detector output",
+                                        extra={"error": str(e), "execution_id": execution.id},
+                                    )
+
+                            if any(any(marker in cid for marker in _DETECTOR_STEP_MARKERS) for cid in candidate_ids):
+                                is_match = True
+
+                            if is_match and out_content:
+                                for key, val in out_content.items():
+                                    if key.startswith("blk_"):
+                                        det_out = LightweightMatrixOutput.model_validate(val, strict=False)
+                                        if det_out.raw_score is not None:
+                                            authenticity_score = float(det_out.raw_score)
+                                        break
+
+                        if authenticity_score is not None and performative_phrases_count is not None:
+                            break
 
                 if authenticity_score is not None and performative_phrases_count is not None:
                     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
@@ -1411,20 +1461,6 @@ async def generate_profile_synthesis_and_pdf_task(
                                 mock_identity="variance_explainer",
                             )
                         )
-                else:
-                    missing_vars: list[str] = []
-                    if authenticity_score is None:
-                        missing_vars.append("step_detector")
-                    if performative_phrases_count is None:
-                        missing_vars.append("step_linguistics")
-                    logger.warning(
-                        "[generate_profile_synthesis_and_pdf_task] Profile '%s' requests variance "
-                        "validation, but required inputs (%s) are missing from context_variables. "
-                        "Skipping variance evaluation.",
-                        active_profile_dto.id,
-                        ", ".join(missing_vars),
-                        extra={"execution_id": execution.id, "missing_variables": missing_vars},
-                    )
 
         synth_cost = 0.0
         synth_tokens = 0
