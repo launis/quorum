@@ -14,6 +14,7 @@ __all__ = [
     "PIPELINE_REGISTRY",
     "XAI_EXTENSION_SCOPE",
     "AbductiveConclusion",
+    "AlignmentVerdict",
     "AuthenticityLevel",
     "BlockDataType",
     "BloomLevel",
@@ -35,6 +36,7 @@ __all__ = [
     "LLMProviderName",
     "LabelKey",
     "LaxAbductiveConclusion",
+    "LaxAlignmentVerdict",
     "LaxAuthenticityLevel",
     "LaxBlockDataType",
     "LaxBloomLevel",
@@ -180,6 +182,14 @@ class SystemConfigID(StrEnum):
     MODEL_REGISTRY = "sys_e26807f3bfa3454d"
     MCP_GATEWAYS = "sys_8172bda70c8641c5"
     PERFORMATIVE_LEXICONS = "sys_e0b2a3c4d5e6f7a8"
+
+
+class AlignmentVerdict(StrEnum):
+    """Verdict characterizing mathematical alignment between mechanical and cognitive evaluations."""
+
+    ALIGNED = "ALIGNED"
+    MISALIGNED_SYCOPHANCY = "MISALIGNED_SYCOPHANCY"
+    MISALIGNED = "MISALIGNED"
 
 
 class DisplayScale(StrEnum):
@@ -793,6 +803,7 @@ LaxPromptBlockCategory = Annotated[PromptBlockCategory, Field(strict=False)]
 LaxEvaluationRunCount = Annotated[EvaluationRunCount, Field(strict=False)]
 LaxPlausibilityLevel = Annotated[PlausibilityLevel, Field(strict=False)]
 LaxAbductiveConclusion = Annotated[AbductiveConclusion, Field(strict=False)]
+LaxAlignmentVerdict = Annotated[AlignmentVerdict, Field(strict=False)]
 LaxFidelityLevel = Annotated[FidelityLevel, Field(strict=False)]
 LaxRiskLevel = Annotated[RiskLevel, Field(strict=False)]
 LaxSimulationType = Annotated[SimulationType, Field(strict=False)]

@@ -10,6 +10,11 @@ import math
 from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.variance import VarianceEngineResultDTO
+from backend_v2.models.enums import AlignmentVerdict
+from backend_v2.settings import get_settings
+
+__all__ = ["calculate_mechanical_cognitive_variance"]
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +22,7 @@ logger = logging.getLogger(__name__)
 def calculate_mechanical_cognitive_variance(
     llm_authenticity_score: float,
     performative_phrases_count: int,
-) -> dict[str, str | float]:
+) -> VarianceEngineResultDTO:
     """Calculate the absolute variance between mechanical linguistics and cognitive assessment.
 
     Args:
@@ -25,16 +30,20 @@ def calculate_mechanical_cognitive_variance(
         performative_phrases_count: Number of performative filler phrases detected mechanically.
 
     Returns:
-        A dictionary containing:
+        A VarianceEngineResultDTO containing:
             - mechanical_metric_ref: Reference to the mechanical key.
             - cognitive_metric_ref: Reference to the cognitive key.
             - variance_score: The absolute difference.
-            - alignment_verdict: "ALIGNED", "MISALIGNED_SYCOPHANCY", or "MISALIGNED".
+            - alignment_verdict: AlignmentVerdict enum value (ALIGNED, MISALIGNED_SYCOPHANCY, or MISALIGNED).
 
     Raises:
         AppException: If parameters fail structural or validation constraints.
     """
-    if not isinstance(performative_phrases_count, int) or performative_phrases_count < 0:
+    if (
+        isinstance(performative_phrases_count, bool)
+        or not isinstance(performative_phrases_count, int)
+        or performative_phrases_count < 0
+    ):
         logger.error(
             "Validation failed for performative_phrases_count: must be a non-negative integer",
             exc_info=True,
@@ -45,7 +54,7 @@ def calculate_mechanical_cognitive_variance(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    if not isinstance(llm_authenticity_score, (int, float)):
+    if isinstance(llm_authenticity_score, bool) or not isinstance(llm_authenticity_score, (int, float)):
         logger.error(
             "Validation failed for llm_authenticity_score: must be a float or int",
             exc_info=True,
@@ -67,34 +76,40 @@ def calculate_mechanical_cognitive_variance(
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    # Normalization mapping count from 0-10+ to 0.0-2.0 scale
-    normalized_performative_count = min((performative_phrases_count / 10.0) * 2.0, 2.0)
+    settings = get_settings()
+
+    # Normalization mapping count from 0-10+ to 0.0-2.0 scale via SSOT Settings
+    normalized_performative_count = min(
+        (performative_phrases_count / settings.variance_performative_normalizer)
+        * settings.variance_max_performative_cap,
+        settings.variance_max_performative_cap,
+    )
 
     # Dampener target value
-    target_cognitive_dampener = 3.0 - normalized_performative_count
+    target_cognitive_dampener = settings.variance_max_cognitive_score - normalized_performative_count
 
     # Absolute variance
     variance = abs(llm_authenticity_score - target_cognitive_dampener)
 
     # Alignment verdict logic matching UI localization parity
-    if variance < 0.5:
-        verdict = "ALIGNED"
-    elif variance >= 0.5 and llm_authenticity_score > target_cognitive_dampener:
-        verdict = "MISALIGNED_SYCOPHANCY"
+    if variance < settings.variance_threshold_misaligned:
+        verdict = AlignmentVerdict.ALIGNED
+    elif variance >= settings.variance_threshold_misaligned and llm_authenticity_score > target_cognitive_dampener:
+        verdict = AlignmentVerdict.MISALIGNED_SYCOPHANCY
     else:
-        verdict = "MISALIGNED"
+        verdict = AlignmentVerdict.MISALIGNED
 
     logger.info(
         "Calculated mechanical-cognitive variance: score=%s, count=%s, variance=%s, verdict=%s",
         llm_authenticity_score,
         performative_phrases_count,
         round(variance, 4),
-        verdict,
+        verdict.value,
     )
 
-    return {
-        "mechanical_metric_ref": "performative_phrases_count",
-        "cognitive_metric_ref": "llm_authenticity_score",
-        "variance_score": round(variance, 4),
-        "alignment_verdict": verdict,
-    }
+    return VarianceEngineResultDTO(
+        mechanical_metric_ref="performative_phrases_count",
+        cognitive_metric_ref="llm_authenticity_score",
+        variance_score=round(variance, 4),
+        alignment_verdict=verdict,
+    )

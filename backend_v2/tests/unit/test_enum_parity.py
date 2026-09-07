@@ -118,6 +118,11 @@ def test_target_block_type_parity() -> None:
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "TargetBlockType")
 
 
+def test_alignment_verdict_parity() -> None:
+    """Verify AlignmentVerdict members match between Python and Dart."""
+    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "AlignmentVerdict")
+
+
 def test_extract_dart_enum_json_values_not_found() -> None:
     """Negative test: Missing enum in Dart raises ValueError."""
     with pytest.raises(ValueError, match="Enum NonExistentEnum not found"):

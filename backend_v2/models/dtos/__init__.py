@@ -16,4 +16,5 @@ __all__ = [
     "synthesis",
     "system",
     "trace",
+    "variance",
 ]

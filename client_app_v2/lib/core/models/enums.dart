@@ -438,3 +438,14 @@ enum SystemLocale {
   @JsonValue('fi')
   fi,
 }
+
+/// Verdict characterizing mathematical alignment between mechanical and cognitive evaluations.
+@JsonEnum()
+enum AlignmentVerdict {
+  @JsonValue('ALIGNED')
+  aligned,
+  @JsonValue('MISALIGNED_SYCOPHANCY')
+  misalignedSycophancy,
+  @JsonValue('MISALIGNED')
+  misaligned,
+}
