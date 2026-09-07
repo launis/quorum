@@ -86,7 +86,10 @@ class TestKappaAndAgreementMetrics:
         high_agree = [["passed", "passed"]] * 9 + [["passed", "failed"]]
         dto_high = calculate_cohens_kappa(high_agree, ["failed", "passed"])
         # If expected agreement is also high, verify valid category string
-        assert any(icon in dto_high.benchmark_category for icon in ["🏆", "🟢", "🟡", "🔴"])
+        assert any(
+            label in dto_high.benchmark_category
+            for label in ["Lähes täydellinen", "Huomattava", "Kohtalainen", "Heikko"]
+        )
 
         # Empty ratings returns default fair/poor DTO
         dto_empty = calculate_cohens_kappa([], ["failed", "passed"])

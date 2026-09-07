@@ -653,3 +653,54 @@ def test_main_cli_argparse(monkeypatch: pytest.MonkeyPatch) -> None:
     assert captured_kwargs["cooldown_seconds"] == 30
     assert captured_kwargs["num_runs"] == 3
     assert captured_kwargs["timeout_seconds"] == 3600
+
+
+def test_run_variance_test_diff_execution_utf8_handling(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that subprocess.run for diff_executions handles UTF-8 output with unicode/emojis safely."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text with space"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_utf8_1": {
+                        "id": "exe_utf8_1",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    },
+                }
+            },
+            f,
+        )
+
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_utf8_1")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    class MockPopen:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+
+    captured_subprocess_kwargs: list[dict[str, Any]] = []
+
+    def mock_subprocess_run(*args: Any, **kwargs: Any) -> Any:
+        captured_subprocess_kwargs.append(kwargs)
+        # Return UTF-8 string containing trophy emoji and Greek kappa to verify handling
+        return type("Res", (), {"stdout": "🏆 Lähes täydellinen sopivuus (κ = 0.9445)", "stderr": None})()
+
+    monkeypatch.setattr("subprocess.run", mock_subprocess_run)
+
+    res = run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file)
+    assert res == ["exe_utf8_1"]
+
+    # Verify that the last subprocess.run call (diff_executions) enforced utf-8 encoding and replace error handling
+    diff_kwargs = captured_subprocess_kwargs[-1]
+    assert diff_kwargs.get("encoding") == "utf-8"
+    assert diff_kwargs.get("errors") == "replace"
+

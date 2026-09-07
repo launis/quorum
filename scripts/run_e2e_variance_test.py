@@ -216,6 +216,8 @@ def force_kill_services() -> None:
                 [str(kill_script.resolve()), "--no-pause"],
                 input="\n",
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 capture_output=True,
                 shell=True,
                 timeout=30,
@@ -238,6 +240,8 @@ def force_kill_services() -> None:
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps_cmd],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=15,
         )
         if res.stdout.strip():
@@ -268,6 +272,8 @@ def force_kill_services() -> None:
             shell=True,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         check_ps = (
             "Get-CimInstance Win32_Process | "
@@ -281,6 +287,8 @@ def force_kill_services() -> None:
             ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", check_ps],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
         )
         worker_count = 0
         try:
@@ -554,8 +562,16 @@ def run_variance_test(
     print("\n=== RUNNING DIFF EXECUTIONS ===")
     diff_script = Path("scripts/diff_executions.py").resolve()
     diff_cmd = ["uv", "run", "python", str(diff_script)] + execution_ids
-    res = subprocess.run(diff_cmd, capture_output=True, text=True, shell=True)
-    print(res.stdout)
+    res = subprocess.run(
+        diff_cmd,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        shell=True,
+    )
+    if res.stdout:
+        print(res.stdout)
     if res.stderr:
         print("STDERR:")
         print(res.stderr)

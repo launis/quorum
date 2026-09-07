@@ -272,7 +272,7 @@ def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[s
             standard_error=0.0,
             ci_lower=0.0,
             ci_upper=0.0,
-            benchmark_category="🔴 Heikko sopivuus (Fair / Poor Agreement)",
+            benchmark_category="Heikko sopivuus (Fair / Poor Agreement)",
             observed_agreement=0.0,
             expected_agreement=0.0,
             marginal_bias=None,
@@ -320,13 +320,13 @@ def calculate_cohens_kappa(atom_states_list: list[list[str]], categories: list[s
 
     # Landis & Koch benchmark categorization
     if kappa > 0.80:
-        benchmark_category = "🏆 Lähes täydellinen sopivuus (Almost Perfect Agreement)"
+        benchmark_category = "Lähes täydellinen sopivuus (Almost Perfect Agreement)"
     elif kappa >= 0.61:
-        benchmark_category = "🟢 Huomattava / Vahva sopivuus (Substantial Agreement)"
+        benchmark_category = "Huomattava / Vahva sopivuus (Substantial Agreement)"
     elif kappa >= 0.41:
-        benchmark_category = "🟡 Kohtalainen sopivuus (Moderate Agreement)"
+        benchmark_category = "Kohtalainen sopivuus (Moderate Agreement)"
     else:
-        benchmark_category = "🔴 Heikko sopivuus (Fair / Poor Agreement)"
+        benchmark_category = "Heikko sopivuus (Fair / Poor Agreement)"
 
     # Marginal bias calculation for binary/first category
     marginal_bias: float | None = None
@@ -1140,25 +1140,25 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
         f.write("## Ympäristö ja Konteksti (Execution State)\n")
         if overall_health_passed:
             f.write(
-                "> **✅ ONNISTUNUT (Kaikki kelvollista):** Kaikki vertaillut ajot ovat valmistuneet onnistuneesti "
+                "> **[ONNISTUNUT] (Kaikki kelvollista):** Kaikki vertaillut ajot ovat valmistuneet onnistuneesti "
                 "(PASSED) ilman teknisiä kaatumisia, DLQ-pudotuksia tai aineiston näivettymistä (Data Starvation).\n\n"
             )
         else:
             f.write(
-                "> **⚠️ HUOMIO (Suorituksessa havaittu poikkeamia):** Vertailluissa ajoissa havaittiin teknisiä "
+                "> **[HUOMIO] (Suorituksessa havaittu poikkeamia):** Vertailluissa ajoissa havaittiin teknisiä "
                 "virheitä, DLQ-pudotuksia, aineiston näivettymistä tai keskeneräisiä statuksia.\n\n"
             )
 
         if isolation_audit.is_fully_isolated:
             f.write(
-                "> **✅ TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet "
+                "> **[ERISTETTY] TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet "
                 "poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut "
                 "siirtyä ajosta toiseen.\n\n"
             )
         else:
             shared_files_str = ", ".join(isolation_audit.shared_identical_files)
             f.write(
-                f"> **⚠️ MAHDOLLINEN VÄLIMUISTIVUOTO:** Seuraavat syötetiedostot olivat täysin identtisiä "
+                f"> **[VAROITUS] MAHDOLLINEN VÄLIMUISTIVUOTO:** Seuraavat syötetiedostot olivat täysin identtisiä "
                 f"ajojen välillä: {shared_files_str}.\n\n"
             )
 
@@ -1295,9 +1295,9 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
                 for s in run_record.get("profile_syntheses", {}).values()
             )
             if is_starved:
-                f.write("  - **Kelvollisuus:** ⚠️ `KELVOTON (Data Starvation: Insufficient Data)`\n")
+                f.write("  - **Kelvollisuus:** [KELVOTON] (Data Starvation: Insufficient Data)\n")
             else:
-                f.write("  - **Kelvollisuus:** ✅ `KELVOLLINEN`\n")
+                f.write("  - **Kelvollisuus:** [KELVOLLINEN]\n")
 
             inputs_dir = run_dir / "inputs"
             if inputs_dir.is_dir():
@@ -1416,10 +1416,10 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
         rc_rea = root_cause_breakdown.reasoning_gap_count
         rc_ovr = root_cause_breakdown.contextual_override_count
         rc_tec = root_cause_breakdown.technical_error_count
-        f.write(f"| 🔍 **Tiedonhaun aukko (Retrieval Gap)** | {rc_ret} | {p_ret:.1f} % |\n")
-        f.write(f"| 🧠 **Päättelyn aukko (Reasoning Gap)** | {rc_rea} | {p_rea:.1f} % |\n")
-        f.write(f"| ⚡ **Kontekstuaalinen ohitus (Contextual Override)** | {rc_ovr} | {p_ovr:.1f} % |\n")
-        f.write(f"| 🛠️ **Tekninen virhe / DLQ (Technical Error)** | {rc_tec} | {p_tec:.1f} % |\n")
+        f.write(f"| **Tiedonhaun aukko (Retrieval Gap)** | {rc_ret} | {p_ret:.1f} % |\n")
+        f.write(f"| **Päättelyn aukko (Reasoning Gap)** | {rc_rea} | {p_rea:.1f} % |\n")
+        f.write(f"| **Kontekstuaalinen ohitus (Contextual Override)** | {rc_ovr} | {p_ovr:.1f} % |\n")
+        f.write(f"| **Tekninen virhe / DLQ (Technical Error)** | {rc_tec} | {p_tec:.1f} % |\n")
         f.write(f"| **Yhteensä** | **{tot_m}** | **100.0 %** |\n\n")
 
         # Macro Score Drift (0-100)
@@ -1481,7 +1481,7 @@ def run_diff(execution_ids: list[str] | None = None) -> str:
         f.write("| Ajo | Syötteet Saatavilla | Sitaatteja | Verifioidut | Vahvistamattomat | Aitoustaso (%) |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: |\n")
         for gr in grounding_results_by_run:
-            c_avail = "✅ Kyllä" if gr["has_corpus"] else "❌ Ei (Inputs-kansio puuttuu)"
+            c_avail = "Kyllä" if gr["has_corpus"] else "Ei (Inputs-kansio puuttuu)"
             f.write(
                 f"| **{gr['run_name']}** | {c_avail} | {gr['total_quotes']} | "
                 f"{gr['verified_quotes']} | {gr['unverified_quotes']} | {gr['authenticity_rate']:.1f} % |\n"
