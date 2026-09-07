@@ -56,6 +56,7 @@ def _create_execution(
 
 
 def test_build_missing_execution_raises_app_exception() -> None:
+    """Assert that build raises AppException when execution is missing."""
     profile = _create_profile()
     context = AdapterContext(
         execution=None,
@@ -78,6 +79,7 @@ def test_build_missing_execution_raises_app_exception() -> None:
 
 
 def test_build_missing_metrics_raises_app_exception() -> None:
+    """Assert that build raises AppException when extension metrics are missing in profile cache."""
     profile = _create_profile()
     execution = _create_execution()
     context = AdapterContext(
@@ -101,6 +103,7 @@ def test_build_missing_metrics_raises_app_exception() -> None:
 
 
 def test_build_incomplete_metrics_raises_app_exception() -> None:
+    """Assert that build raises AppException when extension metrics fields are incomplete."""
     profile = _create_profile()
     execution = _create_execution()
     cache = RenderedSynthesisCache(
@@ -132,6 +135,7 @@ def test_build_incomplete_metrics_raises_app_exception() -> None:
 
 
 def test_build_empty_when_extension_not_requested() -> None:
+    """Assert that build returns empty list when variance validation extension is not enabled."""
     profile = _create_profile(extensions=[])
     context = AdapterContext(
         execution=None,
@@ -150,6 +154,7 @@ def test_build_empty_when_extension_not_requested() -> None:
 
 
 def test_build_starved_returns_empty() -> None:
+    """Assert that build returns empty list when execution data is starved."""
     from backend_v2.models.dtos.trace import DataStarvationEvent
 
     profile = _create_profile()
@@ -173,6 +178,7 @@ def test_build_starved_returns_empty() -> None:
 
 
 def test_build_aligned_success() -> None:
+    """Verify that build emits flat 2D scatter plot, grid metrics, and info alert for aligned verdict."""
     profile = _create_profile()
     execution = _create_execution()
     cache = RenderedSynthesisCache(
@@ -228,6 +234,7 @@ def test_build_aligned_success() -> None:
 
 
 def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
+    """Verify that build emits warning alert and bullet list of phrases for sycophancy verdict."""
     profile = _create_profile()
     execution = _create_execution(
         context_vars={
@@ -291,6 +298,7 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
 
 
 def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Assert that build raises configuration AppException when rule mapping is missing."""
     profile = _create_profile()
     execution = _create_execution()
     cache = RenderedSynthesisCache(

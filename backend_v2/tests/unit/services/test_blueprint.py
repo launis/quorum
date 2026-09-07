@@ -983,25 +983,24 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     dto = await transformer.build_report_dto("exe_0000000000000009", accept_language="en")
 
     assert len(dto.inner_sdui_blocks) >= 2
-    print(f"DEBUG blocks: {[getattr(b, 'block_type', '') for b in dto.inner_sdui_blocks]}")
-    metrics_blocks = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
-    assert len(metrics_blocks) >= 1
-    variance_layout = metrics_blocks[-1]
+    from backend_v2.models.enums import VisualIntent
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiScatterPlotBlock
 
-    from backend_v2.models.view.sdui import SduiMetrics1DBlock
+    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiScatterPlotBlock)]
+    assert len(scatter_blocks) >= 1
+    scatter_block = scatter_blocks[-1]
+    assert len(scatter_block.axes) == 2
+    assert scatter_block.axes[0].block_id == "axis_cognitive_depth"
+    assert scatter_block.axes[1].block_id == "axis_mechanical_load"
 
-    assert isinstance(variance_layout, SduiMetrics1DBlock)
+    grid_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiGridBlock)]
+    assert len(grid_blocks) >= 1
+    grid_block = grid_blocks[-1]
+    assert len(grid_block.items) == 4
 
-    matrix = variance_layout.axes[0]
-    assert len(matrix.inner_sdui_blocks) >= 1
-
-    grid_block = matrix.inner_sdui_blocks[0]
-    alert_block = matrix.inner_sdui_blocks[1]
-
-    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock
-
-    assert isinstance(grid_block, SduiGridBlock)
-    assert isinstance(alert_block, AlertBlock)
+    alert_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, AlertBlock)]
+    assert len(alert_blocks) >= 1
+    alert_block = alert_blocks[-1]
 
     assert "Mechanical" in getattr(grid_block.items[0], "text", "") and "1" in getattr(grid_block.items[0], "text", "")
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "4.0" in getattr(grid_block.items[1], "text", "")
@@ -1010,7 +1009,7 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
         or "Variance" in getattr(grid_block.items[2], "text", "")
     ) and "1.2" in getattr(grid_block.items[2], "text", "")
 
-    assert alert_block.severity == "warning"
+    assert alert_block.severity in (VisualIntent.WARNING, "warning")
     assert "MISALIGNED" in alert_block.text.upper()
 
 
@@ -1272,24 +1271,24 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     dto = await transformer.build_report_dto("exe_0000000000000011", accept_language="en")
 
     assert len(dto.inner_sdui_blocks) >= 2
-    metrics_blocks = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
-    assert len(metrics_blocks) >= 1
-    variance_layout = metrics_blocks[-1]
+    from backend_v2.models.enums import VisualIntent
+    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock, SduiScatterPlotBlock
 
-    from backend_v2.models.view.sdui import SduiMetrics1DBlock
+    scatter_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiScatterPlotBlock)]
+    assert len(scatter_blocks) >= 1
+    scatter_block = scatter_blocks[-1]
+    assert len(scatter_block.axes) == 2
+    assert scatter_block.axes[0].block_id == "axis_cognitive_depth"
+    assert scatter_block.axes[1].block_id == "axis_mechanical_load"
 
-    assert isinstance(variance_layout, SduiMetrics1DBlock)
+    grid_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, SduiGridBlock)]
+    assert len(grid_blocks) >= 1
+    grid_block = grid_blocks[-1]
+    assert len(grid_block.items) == 4
 
-    matrix = variance_layout.axes[0]
-    assert len(matrix.inner_sdui_blocks) >= 1
-
-    grid_block = matrix.inner_sdui_blocks[0]
-    alert_block = matrix.inner_sdui_blocks[1]
-
-    from backend_v2.models.view.sdui import AlertBlock, SduiGridBlock
-
-    assert isinstance(grid_block, SduiGridBlock)
-    assert isinstance(alert_block, AlertBlock)
+    alert_blocks = [b for b in dto.inner_sdui_blocks if isinstance(b, AlertBlock)]
+    assert len(alert_blocks) >= 1
+    alert_block = alert_blocks[-1]
 
     assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "2.51" in getattr(
         grid_block.items[1], "text", ""
@@ -1299,7 +1298,7 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
         or "Variance" in getattr(grid_block.items[2], "text", "")
     ) and "0.09" in getattr(grid_block.items[2], "text", "")
 
-    assert alert_block.severity == "info"
+    assert alert_block.severity in (VisualIntent.INFO, "info")
     assert "ALIGNED" in alert_block.text.upper()
 
 
