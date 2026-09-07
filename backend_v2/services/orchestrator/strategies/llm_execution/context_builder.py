@@ -133,7 +133,7 @@ class ContextBuilder:
                         continue
                     result[k] = ContextBuilder._project_compressed(v)
                 return result
-            except AttributeError, TypeError:
+            except (AttributeError, TypeError):
                 return obj
 
     @staticmethod
@@ -255,7 +255,7 @@ class ContextBuilder:
                     dyn_inputs = state_raw.get("dynamic_inputs")
                     if dyn_inputs:
                         llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(dyn_inputs)
-            except AttributeError, TypeError:
+            except (AttributeError, TypeError):
                 pass
 
         for _logical_name, path in input_mappings.items():
@@ -318,7 +318,7 @@ class ContextBuilder:
                         resolved_value = copy.copy(resolved_value)
                         if "steps" in resolved_value:
                             resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])
-                    except AttributeError, TypeError:
+                    except (AttributeError, TypeError):
                         pass
                 elif clean_path.startswith("steps."):
                     parts = clean_path.split(".")
