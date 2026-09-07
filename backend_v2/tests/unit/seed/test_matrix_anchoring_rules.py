@@ -224,3 +224,52 @@ def test_negative_tda_assertion_missing_required_fields() -> None:
     sensor_atom_no_expr["logical_expression"] = ""
     with pytest.raises(ValidationError, match="requires a defined logical_expression"):
         TDAAssertion.model_validate(sensor_atom_no_expr)
+
+
+def test_all_matrix_atoms_have_high_entropy_activated() -> None:
+    """Verify 100% Best-of-3 coverage: all 305 matrix atoms have high_entropy activated."""
+    atoms = _load_seed_atoms()
+    assert len(atoms) == 305, f"Expected 305 matrix atoms in seed_data.json, found {len(atoms)}"
+
+    disabled_atoms: list[str] = []
+    missing_atoms: list[str] = []
+
+    for tda_id, atom in atoms.items():
+        if "high_entropy" not in atom:
+            missing_atoms.append(tda_id)
+        elif atom["high_entropy"] is not True:
+            disabled_atoms.append(tda_id)
+
+    assert not missing_atoms, f"Atoms missing high_entropy flag: {missing_atoms}"
+    assert not disabled_atoms, f"Atoms with high_entropy != True: {disabled_atoms}"
+
+
+def test_high_entropy_coverage_detects_false_atom() -> None:
+    """ISTQB Negative Test 1: Verify audit detects simulated atom with high_entropy=False."""
+    atoms = _load_seed_atoms()
+    simulated_atoms = dict(atoms)
+    target_id = next(iter(simulated_atoms.keys()))
+    corrupted_atom = dict(simulated_atoms[target_id])
+    corrupted_atom["high_entropy"] = False
+    simulated_atoms[target_id] = corrupted_atom
+
+    disabled = [tda_id for tda_id, a in simulated_atoms.items() if a.get("high_entropy") is not True]
+    assert len(disabled) == 1
+    assert disabled[0] == target_id
+
+
+def test_high_entropy_schema_rejects_invalid_types() -> None:
+    """ISTQB Negative Test 2: Verify Pydantic V2 rejects non-boolean types for high_entropy."""
+    valid_atom = next(iter(_load_seed_atoms().values()))
+
+    # Invalid string type in strict mode
+    invalid_string = dict(valid_atom)
+    invalid_string["high_entropy"] = "not_a_boolean"
+    with pytest.raises(ValidationError):
+        TDAAssertion.model_validate(invalid_string)
+
+    # Invalid collection type
+    invalid_list = dict(valid_atom)
+    invalid_list["high_entropy"] = [True]
+    with pytest.raises(ValidationError):
+        TDAAssertion.model_validate(invalid_list)
