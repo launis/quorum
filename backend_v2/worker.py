@@ -1339,6 +1339,34 @@ async def generate_profile_synthesis_and_pdf_task(
                             )
 
                     # 2. Performativity Detector comes from context_variables["step_detector"] (Option A)
+                    if "step_detector" not in cv or cv["step_detector"] is None:
+                        for event in reversed(execution.execution_trace):
+                            if event.event_type == "output":
+                                if isinstance(event.content, PerformativityOutput):
+                                    cv["step_detector"] = event.content.model_dump(mode="json")
+                                    break
+                                try:
+                                    det = PerformativityOutput.model_validate(event.content, strict=False)
+                                    cv["step_detector"] = det.model_dump(mode="json")
+                                    break
+                                except ValidationError, TypeError, ValueError:
+                                    pass
+                                try:
+                                    for val in event.content.values():
+                                        if isinstance(val, PerformativityOutput):
+                                            cv["step_detector"] = val.model_dump(mode="json")
+                                            break
+                                        try:
+                                            det = PerformativityOutput.model_validate(val, strict=False)
+                                            cv["step_detector"] = det.model_dump(mode="json")
+                                            break
+                                        except ValidationError, TypeError, ValueError:
+                                            continue
+                                except AttributeError, TypeError:
+                                    pass
+                                if "step_detector" in cv:
+                                    break
+
                     if "step_detector" in cv and cv["step_detector"] is not None:
                         try:
                             raw_det = cv["step_detector"]

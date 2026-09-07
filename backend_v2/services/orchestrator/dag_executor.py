@@ -34,6 +34,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ScoringStrategy, StepType, StrictnessAnchor
@@ -788,6 +789,23 @@ class DAGExecutor:
                         ):
                             new_cv.update(evt.content)
                             has_cv_updates = True
+                        elif evt.event_type == "output":
+                            try:
+                                det = PerformativityOutput.model_validate(evt.content, strict=False)
+                                new_cv["step_detector"] = det.model_dump(mode="json")
+                                has_cv_updates = True
+                            except ValidationError, TypeError, ValueError:
+                                try:
+                                    for val in evt.content.values():
+                                        try:
+                                            det = PerformativityOutput.model_validate(val, strict=False)
+                                            new_cv["step_detector"] = det.model_dump(mode="json")
+                                            has_cv_updates = True
+                                            break
+                                        except ValidationError, TypeError, ValueError:
+                                            continue
+                                except AttributeError, TypeError:
+                                    pass
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
                                 step_mcp_traces.extend(evt.mcp_audit_traces)

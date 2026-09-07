@@ -195,6 +195,7 @@ def _setup_mock_repo_for_metrics(
     mock_repo: AsyncMock,
     trace_content_ling: dict[str, Any] | None = None,
     trace_content_det: dict[str, Any] | None = None,
+    execution_trace: list[TraceEvent] | None = None,
 ) -> None:
     context_vars: dict[str, Any] = {}
     if trace_content_ling is not None:
@@ -209,7 +210,7 @@ def _setup_mock_repo_for_metrics(
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
-        execution_trace=[],
+        execution_trace=execution_trace or [],
         context_variables=context_vars,
     )
     mock_repo.get_execution.return_value = mock_execution
@@ -314,6 +315,49 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
             ]
         },
         trace_content_det=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is not None
+    assert metrics["authenticity_score"] == 3.0
+    assert metrics["performative_phrases_count"] == 2.0
+    assert metrics["variance_score"] >= 0.0
+    assert metrics["alignment_verdict"] == "ALIGNED"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_extracts_step_detector_from_execution_trace_fallback(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    """Test extracting step_detector from execution_trace when absent from context_variables."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [
+                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"},
+                {"pattern_id": "2", "detected_phrase": "phrase2", "category": "cat2"},
+            ]
+        },
+        trace_content_det=None,
+        execution_trace=[
+            TraceEvent(
+                step_name="step_detector_llm",
+                event_type="output",
+                content=MOCK_PERFORMATIVITY_OUTPUT.model_dump(mode="json"),
+            )
+        ],
     )
 
     await generate_profile_synthesis_and_pdf_task(
