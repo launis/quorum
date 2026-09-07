@@ -19,6 +19,31 @@ type DynamicInputValue = (
     | dict[str, DynamicInputNode]
 )
 
+__all__ = [
+    "DynamicInputNode",
+    "DynamicInputValue",
+    "DynamicLinguisticsExtractorDTO",
+    "DynamicScalar",
+    "LinguisticsPayloadDTO",
+    "LinguisticsResultDTO",
+    "PerformativePatternDTO",
+]
+
+
+class DynamicLinguisticsExtractorDTO(BaseModel):
+    """Schema for dynamic LLM extraction of performative and sycophantic phrases.
+
+    Attributes:
+        detected_phrases: List of verbatim performative phrases extracted from the text.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    detected_phrases: Annotated[
+        list[str],
+        Field(default_factory=list, description="Verbatim performative phrases extracted from the text."),
+    ]
+
 
 class PerformativePatternDTO(BaseModel):
     """Schema for a single detected performative pattern.
@@ -89,11 +114,16 @@ class LinguisticsPayloadDTO(BaseModel):
         return "en"
 
     def get_text_to_scan(self) -> str:
-        """Extracts and concatenates all string values for scanning.
+        """Extracts and returns the text to scan, prioritizing chat_log_user_only if present.
 
         Returns:
-            The concatenated text.
+            The extracted and concatenated lowercased text.
         """
+        if "chat_log_user_only" in self.dynamic_inputs:
+            user_val = self.dynamic_inputs["chat_log_user_only"]
+            if isinstance(user_val, str) and user_val.strip():
+                return user_val.strip().lower()
+
         results: list[str] = []
 
         def _extract(val: DynamicInputValue | DynamicInputNode) -> None:
