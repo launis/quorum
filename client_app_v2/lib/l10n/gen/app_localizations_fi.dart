@@ -3931,15 +3931,28 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileVarianceDirectiveLabel => 'Varianssisynteesin ohjeistus';
 
   @override
-  String get variancePerformativityDetectorStepLabel =>
-      'Performativiteetti-ilmaisimen työvaihe';
+  String get alignmentMisalignedSycophancy => 'Ristiriidassa (Mielistelyriski)';
 
   @override
-  String get variancePerformativityDetectorStepHint =>
-      'Valitse työvaihe, joka tuottaa ilmaisimen pisteytyksen';
+  String get quadrantTopLeftTitle => 'Mielistely & Korulauseet';
 
   @override
-  String get variancePerformativityDetectorNone => 'Ei mitään (pois käytöstä)';
+  String get quadrantTopRightTitle => 'Asiantunteva & Sujuva';
+
+  @override
+  String get quadrantBottomLeftTitle => 'Alkeellinen / Rutiini';
+
+  @override
+  String get quadrantBottomRightTitle => 'Aito & Omaääninen';
+
+  @override
+  String get axisCognitiveDepthTitle => 'Kognitiivinen syvyys';
+
+  @override
+  String get axisMechanicalLoadTitle => 'Mekaaninen fraasikuorma';
+
+  @override
+  String get phrasesDetectedLabel => 'Tunnistetut ammattislangifraasit';
 
   @override
   String get profileUserRoleLabelLabel => 'Kohderyhmän rooliotsikko';

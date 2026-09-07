@@ -15,6 +15,7 @@ L10N_DIR = Path(__file__).resolve().parents[2] / "l10n"
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 SERVICES_DIR = Path(__file__).resolve().parents[2] / "services"
 MODELS_DIR = Path(__file__).resolve().parents[2] / "models"
+UTILS_DIR = Path(__file__).resolve().parents[2] / "utils"
 
 
 def _load_backend_dictionaries() -> tuple[dict[str, str], dict[str, str]]:
@@ -110,6 +111,7 @@ def test_backend_json_has_no_dead_unreferenced_keys() -> None:
     python_files = (
         list(SERVICES_DIR.rglob("*.py"))
         + list(MODELS_DIR.rglob("*.py"))
+        + list(UTILS_DIR.rglob("*.py"))
         + [Path(__file__).resolve().parents[2] / "worker.py"]
     )
 

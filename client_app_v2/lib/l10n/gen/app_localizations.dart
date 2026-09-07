@@ -7128,23 +7128,53 @@ abstract class AppLocalizations {
   /// **'Variance validation synthesis directive'**
   String get profileVarianceDirectiveLabel;
 
-  /// No description provided for @variancePerformativityDetectorStepLabel.
+  /// No description provided for @alignmentMisalignedSycophancy.
   ///
   /// In en, this message translates to:
-  /// **'Performativity Detector Step'**
-  String get variancePerformativityDetectorStepLabel;
+  /// **'Misaligned (Sycophancy Risk)'**
+  String get alignmentMisalignedSycophancy;
 
-  /// No description provided for @variancePerformativityDetectorStepHint.
+  /// No description provided for @quadrantTopLeftTitle.
   ///
   /// In en, this message translates to:
-  /// **'Select workflow step providing detector scoring'**
-  String get variancePerformativityDetectorStepHint;
+  /// **'Sycophancy & Jargon'**
+  String get quadrantTopLeftTitle;
 
-  /// No description provided for @variancePerformativityDetectorNone.
+  /// No description provided for @quadrantTopRightTitle.
   ///
   /// In en, this message translates to:
-  /// **'None (disabled)'**
-  String get variancePerformativityDetectorNone;
+  /// **'Fluent Mastery'**
+  String get quadrantTopRightTitle;
+
+  /// No description provided for @quadrantBottomLeftTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Novice / Routine'**
+  String get quadrantBottomLeftTitle;
+
+  /// No description provided for @quadrantBottomRightTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Organic Insight'**
+  String get quadrantBottomRightTitle;
+
+  /// No description provided for @axisCognitiveDepthTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Depth'**
+  String get axisCognitiveDepthTitle;
+
+  /// No description provided for @axisMechanicalLoadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Mechanical Phrase Load'**
+  String get axisMechanicalLoadTitle;
+
+  /// No description provided for @phrasesDetectedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Identified Jargon Phrases'**
+  String get phrasesDetectedLabel;
 
   /// No description provided for @profileUserRoleLabelLabel.
   ///

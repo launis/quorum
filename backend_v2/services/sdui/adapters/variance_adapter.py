@@ -7,17 +7,22 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from pydantic import ValidationError
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
+    BulletListBlock,
+    BulletListItem,
     MarkdownBlock,
     ParagraphBlock,
     SduiGridBlock,
-    SduiMetrics1DBlock,
+    SduiScatterPlotBlock,
 )
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -44,6 +49,9 @@ VARIANCE_RULES: dict[str, dict[str, VisualIntent]] = {
         "severity": VisualIntent.INFO,
     },
     "misaligned": {
+        "severity": VisualIntent.WARNING,
+    },
+    "misaligned_sycophancy": {
         "severity": VisualIntent.WARNING,
     },
 }
@@ -145,16 +153,22 @@ class VarianceAdapter:
         lbl_mech = LocalizationService.translate("variance_mechanical", context.locale)
         lbl_cog = LocalizationService.translate("variance_cognitive", context.locale)
         lbl_var = LocalizationService.translate("variance_total", context.locale)
+        lbl_jargon = LocalizationService.translate("jargon_score", context.locale)
         lbl_align = LocalizationService.translate("alignment_verdict", context.locale)
 
-        auth_score_rounded = float(f"{float(authenticity_score):.2f}")
-        var_score_rounded = float(f"{float(metrics.variance_score):.2f}")
-        is_aligned = str(metrics.alignment_verdict) == "ALIGNED"
+        auth_score_rounded = round(float(authenticity_score), 2)
+        var_score_rounded = round(float(metrics.variance_score), 2)
+        phrase_count_rounded = round(float(performative_phrases_count), 2)
 
-        lvl_key = "aligned" if is_aligned else "misaligned"
-        align_val = LocalizationService.translate(f"alignment_{lvl_key}", context.locale)
+        verdict_upper = str(metrics.alignment_verdict).upper()
+        if verdict_upper == "ALIGNED":
+            lvl_key = "aligned"
+        elif verdict_upper == "MISALIGNED_SYCOPHANCY":
+            lvl_key = "misaligned_sycophancy"
+        else:
+            lvl_key = "misaligned"
 
-        # 2. TRANSFORM: Iterate, look up visual rules, assemble blocks
+        # 2. TRANSFORM: Look up visual rules
         try:
             aesthetics = VARIANCE_RULES[lvl_key]
         except KeyError as e:
@@ -167,14 +181,85 @@ class VarianceAdapter:
             ) from e
 
         alert_severity = aesthetics["severity"]
+        align_val = LocalizationService.translate(f"alignment_{lvl_key}", context.locale)
 
+        # 3. EXTRACT PERFORMATIVE PATTERNS (if available)
+        performative_patterns: list[str] = []
+        if context.execution.context_variables and "step_linguistics" in context.execution.context_variables:
+            raw_ling = context.execution.context_variables["step_linguistics"]
+            if raw_ling is not None:
+                try:
+                    ling_out = LinguisticsResultDTO.model_validate(raw_ling, strict=False)
+                    performative_patterns = [
+                        p.detected_phrase for p in ling_out.performative_patterns if p.detected_phrase
+                    ]
+                except (ValidationError, TypeError, ValueError) as e:
+                    logger.warning(
+                        "[VarianceAdapter] Failed to parse linguistics from context_variables",
+                        extra={"error": str(e)},
+                    )
+
+        # 4. CONSTRUCT 2D AXES & SCATTER PLOT BLOCK
+        axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", context.locale)
+        axis_mech_title = LocalizationService.translate("axis_mechanical_load_title", context.locale)
+
+        x_axis = MatrixScorecardRowDTO.model_validate(
+            {
+                "block_id": "axis_cognitive_depth",
+                "name": axis_cog_title,
+                "label_i18n": I18nText(
+                    translations={
+                        "fi": LocalizationService.translate("axis_cognitive_depth_title", "fi"),
+                        "en": LocalizationService.translate("axis_cognitive_depth_title", "en"),
+                    }
+                ),
+                "row_explanation": "",
+                "is_evaluative": False,
+                "score": auth_score_rounded,
+                "scale_min": 1.0,
+                "scale_max": 3.0,
+                "ui_plot_ratio": round(max(0.0, min(1.0, (auth_score_rounded - 1.0) / 2.0)), 4),
+            },
+            strict=False,
+        )
+
+        y_axis = MatrixScorecardRowDTO.model_validate(
+            {
+                "block_id": "axis_mechanical_load",
+                "name": axis_mech_title,
+                "label_i18n": I18nText(
+                    translations={
+                        "fi": LocalizationService.translate("axis_mechanical_load_title", "fi"),
+                        "en": LocalizationService.translate("axis_mechanical_load_title", "en"),
+                    }
+                ),
+                "row_explanation": "",
+                "is_evaluative": False,
+                "score": phrase_count_rounded,
+                "scale_min": 0.0,
+                "scale_max": 2.0,
+                "ui_plot_ratio": round(max(0.0, min(1.0, phrase_count_rounded / 2.0)), 4),
+            },
+            strict=False,
+        )
+
+        scatter_block = SduiScatterPlotBlock(
+            title=None,
+            axes=[x_axis, y_axis],
+        )
+
+        # 5. CONSTRUCT 4-METRIC SUMMARY GRID
+        jargon_display = len(performative_patterns) if performative_patterns else int(performative_phrases_count)
         grid_block = SduiGridBlock(
             items=[
-                ParagraphBlock(text=f"{lbl_mech}: {performative_phrases_count}", exact_quotes=[], citations=[]),
+                ParagraphBlock(text=f"{lbl_mech}: {phrase_count_rounded}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
+                ParagraphBlock(text=f"{lbl_jargon}: {jargon_display}", exact_quotes=[], citations=[]),
             ]
         )
+
+        # 6. CONSTRUCT ALERT BANNER
         alert_block = AlertBlock(
             severity=alert_severity,
             text=f"{lbl_align}: {align_val}",
@@ -182,6 +267,7 @@ class VarianceAdapter:
             citations=[],
         )
 
+        # 7. RESOLVE SYNTHESIS EXPLANATION
         llm_explanation = ""
         if (
             context.profile_cache
@@ -197,32 +283,35 @@ class VarianceAdapter:
         title_str = LocalizationService.translate(
             f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", context.locale
         )
-        variance_label = I18nText(
-            translations={
-                "fi": LocalizationService.translate(f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", "fi"),
-                "en": LocalizationService.translate(f"xai_ext_{XaiExtensionType.VARIANCE_VALIDATION.value}", "en"),
-            }
-        )
 
-        variance_kwargs = {
-            "block_id": "variance_metrics_row",
-            "name": "Variance Metrics",
-            "label_i18n": variance_label,
-            "row_explanation": "",
-            "is_evaluative": False,
-            "inner_sdui_blocks": [grid_block, alert_block],
-        }
-        row_dto = MatrixScorecardRowDTO.model_validate(variance_kwargs, strict=False)
-
-        # 3. ASSEMBLE: Canonical Dumb Painter sequence
-        # Step 1: Localized Markdown Header
+        # 8. ASSEMBLE: Canonical Flat Dumb Painter sequence
+        # Element 1: Localized Markdown Header
         blocks.append(MarkdownBlock(text=f"### {title_str}"))
 
-        # Step 2: LLM Explanation Paragraph (if present)
+        # Element 2: LLM Explanation Paragraph (if present)
         if llm_explanation:
             blocks.append(ParagraphBlock(text=llm_explanation, exact_quotes=[], citations=[]))
 
-        # Step 3: Visual Metrics Box
-        blocks.append(SduiMetrics1DBlock(axes=[row_dto]))
+        # Element 3: 2D Cartesian Quadrant Scatter Plot
+        blocks.append(scatter_block)
+
+        # Element 4: Summary 4-Metric Grid
+        blocks.append(grid_block)
+
+        # Element 5: Detected Jargon Phrases (if present)
+        if performative_patterns:
+            phrases_label = LocalizationService.translate("phrases_detected_label", context.locale)
+            bullet_items = [
+                BulletListItem(
+                    text=f"{phrases_label}: {phrase}",
+                    exact_quotes=[],
+                    citations=[],
+                )
+                for phrase in performative_patterns
+            ]
+            blocks.append(BulletListBlock(items=bullet_items))
+
+        # Element 6: Verdict Banner Alert Block
+        blocks.append(alert_block)
 
         return blocks

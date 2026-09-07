@@ -14,17 +14,19 @@ from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import MatrixScorecardRowDTO
+from backend_v2.services.localization import LocalizationService
 
 logger = logging.getLogger(__name__)
 
 
-def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
-    """Generate a Cartesian 2D scatter matrix plot from the provided axes.
+def generate_scatter_chart(axes: list[MatrixScorecardRowDTO], locale: str = "fi") -> str:
+    """Generate a Cartesian 2D scatter matrix plot with 4 diagnostic quadrants.
 
     Strict parity with Flutter's LogicMatrixChart.
 
     Args:
         axes: The validated list of axes. Minimal required length is 2.
+        locale: Target locale for quadrant titles and labels (default: "fi").
 
     Returns:
         A Base64 string literal of the generated PNG file.
@@ -71,27 +73,120 @@ def generate_scatter_chart(axes: list[MatrixScorecardRowDTO]) -> str:
 
         fig, ax = plt.subplots(figsize=(6, 4))
 
-        ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.7, edgecolors="#0D47A1", linewidths=2)
-
         x_range = x_max - x_min
-
-        x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
+        if x_range <= 5.0:
+            x_margin = 0.05 * x_range
+        else:
+            x_margin = math.pow(10, math.floor(math.log10(max(1.0, x_range - 0.001))))
 
         y_range = y_max - y_min
-        y_margin = math.pow(10, math.floor(math.log10(max(1.0, y_range - 0.001))))
+        if y_range <= 5.0:
+            y_margin = 0.05 * y_range
+        else:
+            y_margin = math.pow(10, math.floor(math.log10(max(1.0, y_range - 0.001))))
 
-        ax.set_xlim(x_min - x_margin, x_max + x_margin)
-        ax.set_ylim(y_min - y_margin, y_max + y_margin)
+        x_plot_min = x_min - x_margin
+        x_plot_max = x_max + x_margin
+        y_plot_min = y_min - y_margin
+        y_plot_max = y_max + y_margin
+
+        ax.set_xlim(x_plot_min, x_plot_max)
+        ax.set_ylim(y_plot_min, y_plot_max)
 
         x_mid = (x_min + x_max) / 2
         y_mid = (y_min + y_max) / 2
 
-        ax.axhline(y=y_mid, color="gray", linestyle="--", alpha=0.5)
-        ax.axvline(x=x_mid, color="gray", linestyle="--", alpha=0.5)
+        # 4 Diagnostic Quadrants shading
+        # Top-Left (Q2): Soft warm amber
+        ax.fill_between([x_plot_min, x_mid], y_mid, y_plot_max, color="#FFF3E0", alpha=0.6, zorder=0)
+        # Top-Right (Q1): Soft sage teal
+        ax.fill_between([x_mid, x_plot_max], y_mid, y_plot_max, color="#E0F2F1", alpha=0.6, zorder=0)
+        # Bottom-Left (Q3): Neutral light gray
+        ax.fill_between([x_plot_min, x_mid], y_plot_min, y_mid, color="#F5F5F5", alpha=0.6, zorder=0)
+        # Bottom-Right (Q4): Soft light green
+        ax.fill_between([x_mid, x_plot_max], y_plot_min, y_mid, color="#E8F5E9", alpha=0.6, zorder=0)
 
-        ax.set_xlabel(f"{x_axis.name} ({x_val} / {x_max})", fontsize=10)
-        ax.set_ylabel(f"{y_axis.name} ({y_val} / {y_max})", fontsize=10)
-        ax.grid(True, linestyle=":", alpha=0.6)
+        # Quadrant divider crosshairs
+        ax.axhline(y=y_mid, color="#9E9E9E", linestyle="--", alpha=0.6, zorder=1)
+        ax.axvline(x=x_mid, color="#9E9E9E", linestyle="--", alpha=0.6, zorder=1)
+
+        # Localized corner annotations for the 4 quadrants
+        q_tl = LocalizationService.translate("quadrant_top_left_title", locale)
+        q_tr = LocalizationService.translate("quadrant_top_right_title", locale)
+        q_bl = LocalizationService.translate("quadrant_bottom_left_title", locale)
+        q_br = LocalizationService.translate("quadrant_bottom_right_title", locale)
+
+        ax.text(
+            0.03,
+            0.96,
+            q_tl,
+            transform=ax.transAxes,
+            fontsize=8,
+            color="#555555",
+            ha="left",
+            va="top",
+            style="italic",
+            weight="bold",
+            zorder=2,
+        )
+        ax.text(
+            0.97,
+            0.96,
+            q_tr,
+            transform=ax.transAxes,
+            fontsize=8,
+            color="#555555",
+            ha="right",
+            va="top",
+            style="italic",
+            weight="bold",
+            zorder=2,
+        )
+        ax.text(
+            0.03,
+            0.04,
+            q_bl,
+            transform=ax.transAxes,
+            fontsize=8,
+            color="#555555",
+            ha="left",
+            va="bottom",
+            style="italic",
+            weight="bold",
+            zorder=2,
+        )
+        ax.text(
+            0.97,
+            0.04,
+            q_br,
+            transform=ax.transAxes,
+            fontsize=8,
+            color="#555555",
+            ha="right",
+            va="bottom",
+            style="italic",
+            weight="bold",
+            zorder=2,
+        )
+
+        # Plot data point with high-contrast edge and circular callout
+        ax.scatter([x_val], [y_val], s=area, c="#2196F3", alpha=0.85, edgecolors="#0D47A1", linewidths=2, zorder=5)
+        ax.annotate(
+            f"({x_val:.2f}, {y_val:.2f})",
+            (x_val, y_val),
+            textcoords="offset points",
+            xytext=(8, 8),
+            ha="left",
+            fontsize=9,
+            fontweight="bold",
+            color="#0D47A1",
+            bbox=dict(boxstyle="round,pad=0.2", fc="#FFFFFF", ec="#2196F3", alpha=0.9),
+            zorder=6,
+        )
+
+        ax.set_xlabel(f"{x_axis.name} ({x_val:.2f} / {x_max})", fontsize=10)
+        ax.set_ylabel(f"{y_axis.name} ({y_val:.2f} / {y_max})", fontsize=10)
+        ax.grid(True, linestyle=":", alpha=0.4, zorder=1)
 
         plt.tight_layout()
 

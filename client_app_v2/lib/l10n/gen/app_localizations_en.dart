@@ -3907,15 +3907,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'Variance validation synthesis directive';
 
   @override
-  String get variancePerformativityDetectorStepLabel =>
-      'Performativity Detector Step';
+  String get alignmentMisalignedSycophancy => 'Misaligned (Sycophancy Risk)';
 
   @override
-  String get variancePerformativityDetectorStepHint =>
-      'Select workflow step providing detector scoring';
+  String get quadrantTopLeftTitle => 'Sycophancy & Jargon';
 
   @override
-  String get variancePerformativityDetectorNone => 'None (disabled)';
+  String get quadrantTopRightTitle => 'Fluent Mastery';
+
+  @override
+  String get quadrantBottomLeftTitle => 'Novice / Routine';
+
+  @override
+  String get quadrantBottomRightTitle => 'Organic Insight';
+
+  @override
+  String get axisCognitiveDepthTitle => 'Cognitive Depth';
+
+  @override
+  String get axisMechanicalLoadTitle => 'Mechanical Phrase Load';
+
+  @override
+  String get phrasesDetectedLabel => 'Identified Jargon Phrases';
 
   @override
   String get profileUserRoleLabelLabel => 'Target audience role label';

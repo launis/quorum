@@ -134,7 +134,7 @@ class PdfReportService:
                                     msg = f"generate_radar_chart returned empty data for block {idx}"
                                     raise ConfigurationError(msg)
                             case SduiScatterPlotBlock():
-                                b64_data = generate_scatter_chart(block.axes)
+                                b64_data = generate_scatter_chart(block.axes, locale=target_locale)
                                 if b64_data:
                                     charts[idx] = b64_data
                                 else:
