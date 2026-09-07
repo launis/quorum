@@ -452,3 +452,30 @@ async def test_source_verification_hook_generic_basemodel_and_non_app_exception(
         await source_verification_hook(state_bm, mock_deps)
 
     assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
+    mock_deps: HookDependencies,
+) -> None:
+    """Test that source_verification_hook returns empty HookResult when tavily_max_results <= 0."""
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wor_1111222233334444",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={"document_text": "A very long document text exceeding the minimum length for verification."}
+        ),
+    )
+
+    with patch("backend_v2.hooks.source_verification_hook.get_settings") as mock_get:
+        mock_get.return_value.tavily_max_results = 0
+
+        result = await source_verification_hook(state, mock_deps)
+
+        assert result.success is True
+        assert result.state_delta is not None
+        assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
+        assert result.state_delta.delta == {"external_evidence": ""}
+

@@ -272,3 +272,51 @@ async def test_batch_tavily_search_dlq_on_errors(mock_settings: Any) -> None:
         assert res_map["q_validation_error"].status == SearchStatus.DLQ_ERROR
         assert res_map["q_fetch_error"].status == SearchStatus.DLQ_TIMEOUT
         assert res_map["q_unexpected_error"].status == SearchStatus.DLQ_ERROR
+
+
+@pytest.mark.asyncio
+async def test_tavily_search_sends_max_results_one_in_dev() -> None:
+    """Test that tavily_search sends max_results=1 in payload when configured."""
+    mock_response = httpx.Response(
+        status_code=200,
+        json={
+            "answer": "Dev answer",
+            "results": [{"url": "https://example.com", "content": "Dev content"}],
+        },
+        request=httpx.Request("POST", "https://api.tavily.com/search"),
+    )
+
+    with (
+        patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get,
+        patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post,
+    ):
+        mock_get.return_value.tavily_api_key = "test_key"
+        mock_get.return_value.tavily_api_url = "https://api.tavily.com/search"
+        mock_get.return_value.tavily_timeout_seconds = 15
+        mock_get.return_value.tavily_max_results = 1
+        mock_get.return_value.tavily_content_char_limit = 8000
+        mock_get.return_value.tavily_max_concurrent_requests = 3
+        mock_post.return_value = mock_response
+
+        result = await tavily_search("Test dev query")
+
+        assert result.answer == "Dev answer"
+        mock_post.assert_called_once()
+        call_kwargs = mock_post.call_args.kwargs
+        assert call_kwargs["json"]["max_results"] == 1
+
+
+@pytest.mark.asyncio
+async def test_batch_tavily_search_bypasses_when_max_results_zero() -> None:
+    """Test batch search returns empty list without calling LLM when tavily_max_results <= 0."""
+    task_executor = MagicMock()
+    llm_client = AsyncMock()
+
+    with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get:
+        mock_get.return_value.tavily_max_results = 0
+
+        results = await batch_tavily_search("Some document text", task_executor, llm_client)
+
+        assert results == []
+        task_executor.execute_structured_task.assert_not_called()
+

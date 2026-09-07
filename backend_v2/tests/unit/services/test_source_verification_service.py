@@ -290,3 +290,25 @@ async def test_verify_single_claim_passes_centralized_get_language(
     mock_execute_tool.assert_called_once()
     call_kwargs = mock_execute_tool.call_args.kwargs
     assert call_kwargs["target_language"] == "fi"
+
+
+@pytest.mark.asyncio
+async def test_run_full_verification_bypasses_when_tavily_max_results_zero(
+    service: SourceVerificationService,
+    mock_task_executor: AsyncMock,
+) -> None:
+    """Test that run_full_verification returns empty envelope without calling LLM when tavily_max_results <= 0."""
+    with patch("backend_v2.services.source_verification_service.get_settings") as mock_get:
+        mock_get.return_value.tavily_max_results = 0
+        mock_get.return_value.source_verification_min_text_length = 15
+
+        result = await service.run_full_verification("A sufficiently long document for verification testing.")
+
+        assert result.total_claims == 0
+        assert result.verified_count == 0
+        assert result.hallucination_count == 0
+        assert result.claims == []
+        assert result.audit_traces == []
+        assert result.verification_timestamp != ""
+        mock_task_executor.execute_structured_task.assert_not_called()
+
