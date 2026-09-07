@@ -58,6 +58,7 @@ async def test_tavily_search_missing_api_key() -> None:
     """Test that missing API key raises ConfigurationError."""
     with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get:
         mock_get.return_value.tavily_api_key = None
+        mock_get.return_value.tavily_max_results = 1
 
         with pytest.raises(ConfigurationError) as exc_info:
             await tavily_search("Test query")
@@ -156,6 +157,25 @@ async def test_tavily_search_empty_results_success(mock_settings: Any) -> None:
         assert result.answer == ""
         assert len(result.source_urls) == 0
         assert result.raw_content == ""
+
+
+@pytest.mark.asyncio
+async def test_tavily_search_bypasses_network_when_max_results_zero() -> None:
+    """Regression test: tavily_search must bypass external HTTP calls when tavily_max_results is zero."""
+    with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get:
+        mock_get.return_value.tavily_api_key = "test_key"
+        mock_get.return_value.tavily_api_url = "https://api.tavily.com/search"
+        mock_get.return_value.tavily_timeout_seconds = 15
+        mock_get.return_value.tavily_max_results = 0
+        mock_get.return_value.tavily_content_char_limit = 8000
+
+        with patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            result = await tavily_search("Verify claim: Stanford hybrid work study")
+            mock_post.assert_not_called()
+            assert result.query == "Verify claim: Stanford hybrid work study"
+            assert result.answer == ""
+            assert result.source_urls == []
+            assert result.raw_content == ""
 
 
 def test_is_transient_error_helper() -> None:

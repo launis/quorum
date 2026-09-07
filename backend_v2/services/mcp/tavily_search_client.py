@@ -11,6 +11,7 @@ import time
 from typing import Any
 
 import httpx
+from pydantic import ValidationError
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
@@ -23,11 +24,6 @@ from backend_v2.models.enums import SearchStatus
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
-
-# Limits are dynamically loaded via get_settings() to obey Global Config Sovereignty
-# TAVILY_TIMEOUT_SECONDS = get_settings().tavily_timeout_seconds
-# MAX_RESULTS = get_settings().tavily_max_results
-# CONTENT_CHAR_LIMIT = get_settings().tavily_content_char_limit
 
 
 def _sanitize_text(text: str) -> str:
@@ -63,6 +59,18 @@ async def tavily_search(query: str) -> TavilySearchResult:
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     settings = get_settings()
+
+    # Ingress Bypass Gate: when tavily_max_results <= 0, bypass network request
+    if settings.tavily_max_results <= 0:
+        logger.info("[TavilyClient] External web search bypassed (tavily_max_results <= 0): %s", query)
+        return TavilySearchResult(
+            query=query,
+            answer="",
+            source_urls=[],
+            raw_content="",
+            duration_ms=0,
+        )
+
     api_key = settings.tavily_api_key
 
     if not api_key:
@@ -103,7 +111,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
             data = response.json()
             # Pydantic Zero-Compromise Check
             parsed_data = TavilyApiResponseDTO.model_validate(data)
-        except Exception as e:
+        except (ValueError, ValidationError) as e:
             msg = "Tavily returned malformed JSON or failed validation."
             logger.error(
                 f"[TavilyClient] {ErrorCodes.VALIDATION_FAILED.name}: {msg}",
@@ -186,10 +194,9 @@ async def tavily_search(query: str) -> TavilySearchResult:
 
 def _is_transient_error(e: BaseException) -> bool:
     if isinstance(e, AppException):
-        err_code = e.details.get("error_code") if e.details else None
-        if err_code == ErrorCodes.VALIDATION_FAILED.value:
+        if e.error_code == ErrorCodes.VALIDATION_FAILED.value:
             return False  # Structural error, do not retry
-        if err_code == ErrorCodes.FETCH_FAILED.value:
+        if e.error_code == ErrorCodes.FETCH_FAILED.value:
             return True  # Network error, retry
     return False
 
@@ -209,6 +216,11 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
         AppException: If initial extraction fails.
     """
     if not document_text.strip():
+        return []
+
+    settings = get_settings()
+    if settings.tavily_max_results <= 0:
+        logger.info("[BatchTavily] External web search bypassed (tavily_max_results <= 0).")
         return []
 
     system_prompt = (
@@ -272,8 +284,7 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
                     )
                 )
             except AppException as e:
-                err_code = e.details.get("error_code") if e.details else None
-                if err_code == ErrorCodes.VALIDATION_FAILED.value:
+                if e.error_code == ErrorCodes.VALIDATION_FAILED.value:
                     status = SearchStatus.DLQ_ERROR
                     logger.error(
                         f"[BatchTavily] {ErrorCodes.VALIDATION_FAILED.name}: Structural validation failed for query '{norm_query}'",
