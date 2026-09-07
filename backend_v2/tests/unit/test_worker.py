@@ -1853,8 +1853,3 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
         await generate_profile_synthesis_and_pdf_task(
             "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
         )
-
-
-
-
-

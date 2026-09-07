@@ -2101,9 +2101,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     context.model_strategy = "standard"
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
-    context.prompt_blocks = [
-        PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw
-    ]
+    context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
@@ -2161,4 +2159,3 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
             '<ai_context_directive document="product_text">Candidate final deliverable.</ai_context_directive>'
             in global_source_text
         )
-

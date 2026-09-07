@@ -314,6 +314,7 @@ async def test_start_execution_success() -> None:
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
 
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
@@ -337,6 +338,46 @@ async def test_start_execution_success() -> None:
     assert result.workflow_id == "wf_1"
     assert result.status == ExecutionStatus.PENDING
     arq_pool.enqueue_job.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_start_execution_permission_denied() -> None:
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    from backend_v2.exceptions import PermissionDeniedError
+    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wf_private"
+    mock_wf.organization_id = "org_other"
+    mock_wf.is_public = False
+
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_private"}
+
+    payload = ExecutionCreate(
+        workflow_id="wf_private",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
+        target_locale="en",
+        profile_id="prof_1",
+    )
+    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_my")
+
+    from unittest.mock import patch
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        with pytest.raises(PermissionDeniedError) as exc_info:
+            await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+    assert "You do not have permission to execute this workflow." in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -873,6 +914,7 @@ async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
 
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_no_prof"}
 
@@ -925,6 +967,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
 
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 

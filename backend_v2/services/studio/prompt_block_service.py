@@ -17,6 +17,7 @@ from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
+    is_resource_accessible,
 )
 
 logger = logging.getLogger(__name__)
@@ -56,8 +57,7 @@ class StudioPromptBlockService:
         if initiator.role == UserRole.ROOT:
             return blocks
 
-        org_id = initiator.organization_id
-        return [x for x in blocks if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
+        return [x for x in blocks if is_resource_accessible(initiator, x.organization_id)]
 
     async def get_prompt_block(self, initiator: TokenData, id: str) -> PromptBlock:
         """Get prompt block.

@@ -47,4 +47,3 @@ def test_style_directives_xml_tag_closure() -> None:
         assert isinstance(directive, str)
         assert len(directive.strip()) > 0
         assert "<" in directive and ">" in directive
-

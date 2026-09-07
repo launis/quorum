@@ -86,9 +86,7 @@ class TestKappaAndAgreementMetrics:
         high_agree = [["passed", "passed"]] * 9 + [["passed", "failed"]]
         dto_high = calculate_cohens_kappa(high_agree, ["failed", "passed"])
         # If expected agreement is also high, verify valid category string
-        assert any(
-            icon in dto_high.benchmark_category for icon in ["🏆", "🟢", "🟡", "🔴"]
-        )
+        assert any(icon in dto_high.benchmark_category for icon in ["🏆", "🟢", "🟡", "🔴"])
 
         # Empty ratings returns default fair/poor DTO
         dto_empty = calculate_cohens_kappa([], ["failed", "passed"])
@@ -436,7 +434,9 @@ class TestRunDiffIntegration:
         (dir1 / "inputs").mkdir()
         (dir1 / "inputs" / "doc.txt").write_text("Verbatim quote 1 is authentic\u00a0text.", encoding="utf-8")
         (dir1 / "frozen_context.json").write_text(
-            json.dumps({"ui_hints_snapshot": {block_id: {"options": [{"label": {"translations": {"fi": "Lohko 1"}}}]}}}),
+            json.dumps(
+                {"ui_hints_snapshot": {block_id: {"options": [{"label": {"translations": {"fi": "Lohko 1"}}}]}}}
+            ),
             encoding="utf-8",
         )
         (dir1 / "llm_telemetry.jsonl").write_text(
@@ -488,7 +488,9 @@ class TestRunDiffIntegration:
         (dir2 / "inputs").mkdir()
         (dir2 / "inputs" / "doc.txt").write_text("Verbatim quote 1 is authentic\u2002text.", encoding="utf-8")
         (dir2 / "frozen_context.json").write_text(
-            json.dumps({"ui_hints_snapshot": {block_id: {"options": [{"label": {"translations": {"fi": "Lohko 1"}}}]}}}),
+            json.dumps(
+                {"ui_hints_snapshot": {block_id: {"options": [{"label": {"translations": {"fi": "Lohko 1"}}}]}}}
+            ),
             encoding="utf-8",
         )
         (dir2 / "llm_telemetry.jsonl").write_text(
@@ -558,6 +560,7 @@ class TestRunDiffIntegration:
     def test_main_cli_execution(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify main() function executes without error when called with CLI arguments."""
         import sys
+
         from scripts.diff_executions import main
 
         recorded_args: list[Any] = []
@@ -577,6 +580,7 @@ class TestRunDiffIntegration:
     def test_main_cli_execution_no_args(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify main() function handles execution without CLI arguments."""
         import sys
+
         from scripts.diff_executions import main
 
         recorded_args: list[Any] = []
@@ -608,10 +612,12 @@ class TestRunDiffIntegration:
         dir1.mkdir()
         trace1 = dir1 / "execution_trace.json"
         trace1.write_text(
-            json.dumps([
-                {"content": {"evaluations": [{"atom_id": "atom_starved", "status": "passed"}]}},
-                {"event_type": "starvation", "content": {}},
-            ]),
+            json.dumps(
+                [
+                    {"content": {"evaluations": [{"atom_id": "atom_starved", "status": "passed"}]}},
+                    {"event_type": "starvation", "content": {}},
+                ]
+            ),
             encoding="utf-8",
         )
 
@@ -619,9 +625,21 @@ class TestRunDiffIntegration:
         dir2.mkdir()
         trace2 = dir2 / "execution_trace.json"
         trace2.write_text(
-            json.dumps([
-                {"content": {"evaluations": [{"atom_id": "atom_starved", "status": "failed", "evaluation_reasoning": "[SYSTEM ERROR: Timeout]"}]}},
-            ]),
+            json.dumps(
+                [
+                    {
+                        "content": {
+                            "evaluations": [
+                                {
+                                    "atom_id": "atom_starved",
+                                    "status": "failed",
+                                    "evaluation_reasoning": "[SYSTEM ERROR: Timeout]",
+                                }
+                            ]
+                        }
+                    },
+                ]
+            ),
             encoding="utf-8",
         )
 

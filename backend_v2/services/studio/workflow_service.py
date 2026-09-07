@@ -31,6 +31,7 @@ from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
+    is_resource_accessible,
 )
 
 logger = logging.getLogger(__name__)
@@ -146,8 +147,7 @@ class StudioWorkflowService:
         if initiator.role == UserRole.ROOT:
             return await self._stitch_profiles_to_workflows(workflows)
 
-        org_id = initiator.organization_id
-        filtered = [x for x in workflows if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
+        filtered = [x for x in workflows if is_resource_accessible(initiator, x.organization_id, is_public=x.is_public)]
         return await self._stitch_profiles_to_workflows(filtered)
 
     async def get_workflow(self, initiator: TokenData, id: str) -> WorkflowResponseDTO:
@@ -174,7 +174,7 @@ class StudioWorkflowService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
         wf = Workflow.model_validate(data, strict=False)
-        enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id)
+        enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
 
         stitched = await self._stitch_profiles_to_workflows([wf])
         return stitched[0]
@@ -328,7 +328,7 @@ class StudioWorkflowService:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=id)
 
         wf = Workflow.model_validate(data, strict=False)
-        enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id)
+        enforce_tenant_isolation(initiator, wf.organization_id, "workflow", wf.id, is_public=wf.is_public)
 
         new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
         target_org_id = wf.organization_id if initiator.role == UserRole.ROOT else initiator.organization_id
@@ -421,8 +421,7 @@ class StudioWorkflowService:
         if initiator.role == UserRole.ROOT:
             return steps
 
-        org_id = initiator.organization_id
-        return [x for x in steps if x.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
+        return [x for x in steps if is_resource_accessible(initiator, x.organization_id)]
 
     async def get_step(self, initiator: TokenData, id: str) -> Step:
         """Get step.

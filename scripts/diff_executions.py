@@ -2,6 +2,16 @@
 
 Provides forensic cross-execution differential analysis, Fleiss/Cohen Kappa metrics,
 Shannon entropy calculations, and Markdown report synthesis.
+
+Usage Examples:
+    # 1. Compare specific executions by ID:
+    uv run python scripts/diff_executions.py exe_6c9e2f3b2ea14f9d exe_f16d8b0e40e44316
+
+    # 2. Compare executions by directory path:
+    uv run python scripts/diff_executions.py data/files/executions/exe_6c9e2f3b2ea14f9d data/files/executions/exe_f16d8b0e40e44316
+
+    # 3. Compare latest 3 executions automatically:
+    uv run python scripts/diff_executions.py
 """
 
 from __future__ import annotations
@@ -9,6 +19,7 @@ from __future__ import annotations
 import argparse
 import datetime
 import hashlib
+import io
 import json
 import math
 import os
@@ -42,6 +53,12 @@ __all__ = [
     "run_diff",
     "uses_contextual_override",
 ]
+
+# Force UTF-8 encoding for stdout/stderr on Windows to support emojis and international characters
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(encoding="utf-8")
+if isinstance(sys.stderr, io.TextIOWrapper):
+    sys.stderr.reconfigure(encoding="utf-8")
 
 
 class DisagreementRootCause(StrEnum):

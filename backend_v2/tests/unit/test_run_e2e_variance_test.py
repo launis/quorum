@@ -643,7 +643,9 @@ def test_main_cli_argparse(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.setattr("scripts.run_e2e_variance_test.run_variance_test", mock_run_variance_test)
 
-    res = main(["path/to/inputs", "--no-cache", "--cooldown-seconds", "30", "--num-runs", "3", "--timeout-seconds", "3600"])
+    res = main(
+        ["path/to/inputs", "--no-cache", "--cooldown-seconds", "30", "--num-runs", "3", "--timeout-seconds", "3600"]
+    )
 
     assert res == ["exe_cli_1", "exe_cli_2"]
     assert captured_kwargs["inputs_target"] == "path/to/inputs"

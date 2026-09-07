@@ -1,13 +1,17 @@
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.api.routers.iam.auth import get_my_profile, list_available_roles, list_users
 from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.models.auth import (
     Organization,
+    OrganizationCreate,
     SubscriptionStatus,
+    SystemOrganizations,
     TokenData,
     User,
     UserRole,
@@ -284,3 +288,149 @@ async def test_auth_router_list_users() -> None:
     mock_service.list_users.return_value = []
     users = await list_users(current_user=TokenData(id="usr_123", role=UserRole.MEMBER), auth_service=mock_service)
     assert users == []
+
+
+def test_system_organizations_is_system() -> None:
+    assert SystemOrganizations.is_system("org_system000000") is True
+    assert SystemOrganizations.is_system("SYSTEM") is True
+    assert SystemOrganizations.is_system(None) is True
+    assert SystemOrganizations.is_system("") is True
+    assert SystemOrganizations.is_system("org_e531d2ed8a6641f6") is False
+
+
+def test_auth_models_validation_coverage() -> None:
+    now = datetime.now(timezone.utc)
+    # Organization with datetime object and valid fields
+    org = Organization(
+        id="org_test12345",
+        name="Valid Name",
+        is_active=True,
+        tier="standard",
+        subscription_status=SubscriptionStatus.ACTIVE,
+        quota_limit=100.0,
+        tpm_limit=5000,
+        rpm_limit=10,
+        created_at=now,
+        contact_email="test@org.com",
+        billing_id="bill_12345",
+    )
+    assert org.created_at == now
+
+    # Organization validation failures
+    with pytest.raises(ValidationError):
+        Organization(
+            id="org_test12345",
+            name="Valid Name",
+            is_active=True,
+            tier="standard",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=-5.0,
+            tpm_limit=5000,
+            rpm_limit=10,
+        )
+
+    with pytest.raises(ValidationError):
+        Organization(
+            id="   ",
+            name="Valid Name",
+            is_active=True,
+            tier="standard",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=10.0,
+            tpm_limit=5000,
+            rpm_limit=10,
+        )
+
+    with pytest.raises(ValidationError):
+        Organization(
+            id="org_test12345",
+            name="Valid Name",
+            is_active=True,
+            tier="standard",
+            subscription_status=SubscriptionStatus.ACTIVE,
+            quota_limit=10.0,
+            tpm_limit=5000,
+            rpm_limit=10,
+            contact_email="   ",
+        )
+
+    # User with datetime and valid created_by
+    user = User(
+        id="usr_test12345",
+        email="user@test.com",
+        role=UserRole.ADMIN,
+        is_active=True,
+        language="en",
+        theme_mode="dark",
+        created_at=now,
+        created_by="usr_admin1234",
+        name="Valid User",
+        organization_id="org_test12345",
+    )
+    assert user.created_at == now
+
+    with pytest.raises(ValidationError):
+        User(
+            id="usr_test12345",
+            email="user@test.com",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="en",
+            theme_mode="dark",
+            created_at=now,
+            name="   ",
+        )
+
+    with pytest.raises(ValidationError):
+        User(
+            id="   ",
+            email="user@test.com",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="en",
+            theme_mode="dark",
+            created_at=now,
+        )
+
+    with pytest.raises(ValidationError):
+        User(
+            id="usr_test12345",
+            email="user@test.com",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="en",
+            theme_mode="dark",
+            created_at=now,
+            created_by="   ",
+        )
+
+    # OrganizationCreate validation
+    org_create = OrganizationCreate(
+        name="Valid Name",
+        admin_email="admin@test.com",
+        admin_password="secretpassword",
+        admin_name="Admin Name",
+        tpm_limit=5000,
+        rpm_limit=10,
+    )
+    assert org_create.name == "Valid Name"
+
+    with pytest.raises(ValidationError):
+        OrganizationCreate(
+            name="   ",
+            admin_email="admin@test.com",
+            admin_password="secretpassword",
+            admin_name="Admin Name",
+            tpm_limit=5000,
+            rpm_limit=10,
+        )
+
+    # TokenData validation
+    token = TokenData(id="usr_1234", role=UserRole.ADMIN, organization_id="org_1234", email="a@b.com")
+    assert token.id == "usr_1234"
+
+    with pytest.raises(ValidationError):
+        TokenData(id="   ", role=UserRole.ADMIN)
+
+    with pytest.raises(ValidationError):
+        TokenData(id="usr_1234", role=UserRole.ADMIN, organization_id="   ")

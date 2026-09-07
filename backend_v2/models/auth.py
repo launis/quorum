@@ -52,6 +52,12 @@ class SystemOrganizations(StrEnum):
     """Special predefined system organizations."""
 
     ROOT_SYSTEM = "org_system000000"
+    LEGACY_SYSTEM = "SYSTEM"
+
+    @classmethod
+    def is_system(cls, org_id: str | None) -> bool:
+        """Check if organization ID belongs to system/global scope."""
+        return org_id is None or org_id in (cls.ROOT_SYSTEM.value, cls.LEGACY_SYSTEM.value, "")
 
 
 LaxUserRole = Annotated[UserRole, Field(strict=False)]
@@ -263,7 +269,7 @@ class User(UserBase):
 
     @field_validator("created_by")
     @classmethod
-    def validate_non_empty_optional(cls, v: str | None) -> str | None:
+    def validate_created_by_optional(cls, v: str | None) -> str | None:
         """Validates optional string is not empty if provided.
 
         Args:

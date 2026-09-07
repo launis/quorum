@@ -330,24 +330,36 @@ def test_matrix_synthesis_group_cardinality_validation() -> None:
     # 1D metrics: exactly 1 block
     MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D)
     with pytest.raises(ValidationError) as exc:
-        MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1", "b2"], view_type=PresetView.METRICS_1D)
+        MatrixSynthesisGroup(
+            id="grp_1111111111111111", title=title, target_blocks=["b1", "b2"], view_type=PresetView.METRICS_1D
+        )
     assert "view_type '1d_metrics' requires exactly 1 target block" in str(exc.value)
 
     # 2D compare: exactly 2 blocks
-    MatrixSynthesisGroup(id="grp_2222222222222222", title=title, target_blocks=["b1", "b2"], view_type=PresetView.COMPARE_2D)
+    MatrixSynthesisGroup(
+        id="grp_2222222222222222", title=title, target_blocks=["b1", "b2"], view_type=PresetView.COMPARE_2D
+    )
     with pytest.raises(ValidationError) as exc:
-        MatrixSynthesisGroup(id="grp_2222222222222222", title=title, target_blocks=["b1"], view_type=PresetView.COMPARE_2D)
+        MatrixSynthesisGroup(
+            id="grp_2222222222222222", title=title, target_blocks=["b1"], view_type=PresetView.COMPARE_2D
+        )
     assert "view_type '2d_compare' requires exactly 2 target blocks" in str(exc.value)
 
     # 3D radar: exactly 3 blocks
-    MatrixSynthesisGroup(id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3"], view_type=PresetView.MATRIX_3D)
+    MatrixSynthesisGroup(
+        id="grp_3333333333333333", title=title, target_blocks=["b1", "b2", "b3"], view_type=PresetView.MATRIX_3D
+    )
     with pytest.raises(ValidationError) as exc:
-        MatrixSynthesisGroup(id="grp_3333333333333333", title=title, target_blocks=["b1", "b2"], view_type=PresetView.MATRIX_3D)
+        MatrixSynthesisGroup(
+            id="grp_3333333333333333", title=title, target_blocks=["b1", "b2"], view_type=PresetView.MATRIX_3D
+        )
     assert "view_type '3d_matrix' requires exactly 3 target blocks" in str(exc.value)
 
     # Text only: at least 1 block
     MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1"], view_type=PresetView.TEXT_ONLY)
-    MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=["b1", "b2"], view_type=PresetView.TEXT_ONLY)
+    MatrixSynthesisGroup(
+        id="grp_4444444444444444", title=title, target_blocks=["b1", "b2"], view_type=PresetView.TEXT_ONLY
+    )
     with pytest.raises(ValidationError) as exc:
         MatrixSynthesisGroup(id="grp_4444444444444444", title=title, target_blocks=[], view_type=PresetView.TEXT_ONLY)
     assert "List should have at least 1 item after validation" in str(exc.value)
@@ -359,8 +371,12 @@ def test_output_profile_unique_group_ids_validation() -> None:
     from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
-    grp1 = MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D)
-    grp2 = MatrixSynthesisGroup(id="grp_1111111111111111", title=title, target_blocks=["b2"], view_type=PresetView.METRICS_1D)
+    grp1 = MatrixSynthesisGroup(
+        id="grp_1111111111111111", title=title, target_blocks=["b1"], view_type=PresetView.METRICS_1D
+    )
+    grp2 = MatrixSynthesisGroup(
+        id="grp_1111111111111111", title=title, target_blocks=["b2"], view_type=PresetView.METRICS_1D
+    )
 
     with pytest.raises(ValidationError) as exc:
         OutputProfile(
@@ -443,4 +459,3 @@ def test_output_profile_matrix_graph_length_constraint_validation() -> None:
     with pytest.raises(ValidationError) as exc_high:
         OutputProfile(**base_kwargs, matrix_graph_length_constraint=2001)
     assert "Input should be less than or equal to 2000" in str(exc_high.value)
-

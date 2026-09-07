@@ -1,6 +1,5 @@
 """Unit tests for synthesis prompt directives and factory defaults."""
 
-
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.prompts.synthesis.synthesis_directives import (
     EXECUTIVE_SUMMARY_SECTION_ID,

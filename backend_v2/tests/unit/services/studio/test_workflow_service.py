@@ -164,6 +164,22 @@ async def test_list_workflows_tenant_filtering(
     assert res[0].id == "wor_0123456789abcdef"
 
 
+async def test_list_workflows_public_and_system_allowed(
+    workflow_service: StudioWorkflowService,
+    admin_token: TokenData,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+) -> None:
+    wf_public = _valid_workflow("wor_0000000000000001", org_id="org_999")
+    wf_public = wf_public.model_copy(update={"is_public": True})
+    wf_system = _valid_workflow("wor_0000000000000002", org_id="SYSTEM")
+    wf_none = _valid_workflow("wor_0000000000000003", org_id=None)  # type: ignore[arg-type]
+    mock_workflow_repo.get_all_workflows.return_value = [wf_public, wf_system, wf_none]
+    mock_output_profile_repo.get_all_output_profiles.return_value = []
+    res = await workflow_service.list_workflows(admin_token)
+    assert len(res) == 3
+
+
 async def test_get_workflow_not_found(
     workflow_service: StudioWorkflowService, root_token: TokenData, mock_workflow_repo: AsyncMock
 ) -> None:

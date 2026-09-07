@@ -67,9 +67,7 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
                 if directive:
                     prompt = directive.upper()
                     for term in execution_terms:
-                        assert term not in prompt, (
-                            f"Execution terminology '{term}' found in Root Profile {profile.id}"
-                        )
+                        assert term not in prompt, f"Execution terminology '{term}' found in Root Profile {profile.id}"
 
     if "workflows" in data:
         for raw_wf in data["workflows"]:

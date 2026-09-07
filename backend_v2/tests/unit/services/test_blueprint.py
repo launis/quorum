@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from backend_v2.models.auth import User, UserRole
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, PresetView, PromptBlockCategory
 from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion, XaiHighlightItem
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
@@ -316,6 +316,7 @@ def mock_repo_transformer() -> Any:
                         id="grp_0000000000000001",
                         title=I18nText(translations={"en": "Default", "fi": "Oletus"}),
                         target_blocks=["blk_1234abcd1234abcd", "grouped_extensions_block"],
+                        view_type=PresetView.COMPARE_2D,
                     )
                 ],
                 visible_block_extensions=[

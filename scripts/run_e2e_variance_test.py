@@ -16,6 +16,12 @@ Usage Examples:
     # 4. Optional: Run in fast development mode using environment variable:
     $env:DEV_EXECUTION_MODE="fast"; uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir"
 
+    # 5. Comparing already completed executions (without re-running pipeline):
+    #    Use scripts/diff_executions.py directly with execution IDs or directory paths:
+    uv run python scripts/diff_executions.py exe_6c9e2f3b2ea14f9d exe_f16d8b0e40e44316
+    uv run python scripts/diff_executions.py data/files/executions/exe_6c9e2f3b2ea14f9d data/files/executions/exe_f16d8b0e40e44316
+    uv run python scripts/diff_executions.py  # compares 3 latest runs automatically
+
 Input Format and Default Fixture Notice:
     - Default fixture (`backend_v2/tests/test_data/exe_c0bc_inputs.json`):
       Contains minimal mock text fields (`chat_log`, `product_text`, `reflection_text`, `document_date`).

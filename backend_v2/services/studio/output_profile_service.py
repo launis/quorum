@@ -14,6 +14,7 @@ from backend_v2.services.factories.output_profile_factory import build_draft_out
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,
     enforce_tenant_isolation,
+    is_resource_accessible,
 )
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 
@@ -54,8 +55,7 @@ class StudioOutputProfileService:
         if initiator.role == UserRole.ROOT:
             return profiles
 
-        org_id = initiator.organization_id
-        return [p for p in profiles if p.organization_id in [org_id, SystemOrganizations.ROOT_SYSTEM]]
+        return [p for p in profiles if is_resource_accessible(initiator, p.organization_id)]
 
     async def get_output_profile(self, initiator: TokenData, id: str) -> OutputProfile:
         """Get output profile.

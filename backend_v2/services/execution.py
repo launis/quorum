@@ -33,7 +33,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.hooks.scoring import recalculate
-from backend_v2.models.auth import SystemOrganizations, TokenData
+from backend_v2.models.auth import TokenData
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -83,6 +83,7 @@ from backend_v2.services.flattener import FlatFileService
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui_mapper_service import SduiMapperService
 from backend_v2.services.storage import get_storage_driver
+from backend_v2.services.studio.auth_validator import is_resource_accessible
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
 
@@ -423,12 +424,12 @@ class ExecutionService:
         workflow = Workflow.model_validate(workflow_dict)
 
         # Auth Check
-        org_id = initiator.organization_id
-        if initiator.role != "ROOT" and workflow.organization_id not in [org_id, SystemOrganizations.ROOT_SYSTEM, None]:
+        if not is_resource_accessible(initiator, workflow.organization_id, is_public=workflow.is_public):
             msg = "You do not have permission to execute this workflow."
             raise PermissionDeniedError(msg)
 
         # Circuit Breaker: Denial of Wallet Protection
+        org_id = initiator.organization_id
         if org_id:
             is_quota_safe = await self.usage_service.check_quota(org_id)
             if not is_quota_safe:

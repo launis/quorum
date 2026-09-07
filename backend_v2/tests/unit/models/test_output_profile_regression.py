@@ -20,7 +20,7 @@ def test_output_profile_response_dto_schema_parity() -> None:
             {
                 "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
-                "target_blocks": ["blk_1", "blk_2"],
+                "target_blocks": ["blk_1"],
             }
         ],
     }
@@ -57,7 +57,7 @@ def test_embedded_output_profile_schema_parity() -> None:
             {
                 "id": "grp_1111111111111111",
                 "title": {"translations": {"en": "Group 1", "fi": "Ryhmä 1"}},
-                "target_blocks": ["blk_1", "blk_2"],
+                "target_blocks": ["blk_1"],
             }
         ],
     }
