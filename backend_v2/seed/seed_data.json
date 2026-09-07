@@ -9625,14 +9625,14 @@
                   "concept_description": "Audits synthesized findings across conflicting analyses, resolves strategic trade-offs, and assumes ultimate accountability for the final executive decision.",
                   "anchor_target": "Identify executive synthesis resolving trade-offs and explicit assumption of ultimate decision ownership.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text demonstrates complete process ownership where the author reconciles conflicting analytical streams, decides the final course of action, and assumes full accountability for the outcome.",
+                  "extraction_rule": "The evaluated text demonstrates complete process ownership where the author reconciles conflicting analytical streams and formulates the definitive executive decision within the final deliverable.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Identify synthesis and evaluation of conflicting recommendations or analytical models.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that the author makes the final executive determination resolving strategic trade-offs.",
+                      "instruction": "Verify that the author makes the final executive determination resolving strategic trade-offs within the substantive deliverable, which satisfies the criterion regardless of exploratory hesitation in dialogue.",
                       "requires_contextual_override": false
                     },
                     {
@@ -16426,7 +16426,7 @@
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that at least three distinct empirical sources are cited with specific references.",
+                      "instruction": "Verify that at least three distinct empirical sources are cited with specific references. A qualifying empirical citation requires a concrete identifiable entity (specifically: named researcher, institutional research body, published report title, or specific internal organizational dataset or ledger). Generic conversational assertions without an identifiable source do not qualify as an empirical citation toward the count.",
                       "requires_contextual_override": false
                     },
                     {
