@@ -10,6 +10,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 from typing import Any
 
 from arq.connections import RedisSettings, create_pool
@@ -62,6 +63,22 @@ async def get_redis_client() -> Any:
         )
         _redis_loop = current_loop
     return _redis_pool
+
+
+def is_gemini_v3_or_higher(model_name: str) -> bool:
+    """Evaluate whether the given model name refers to a Gemini major version 3 or greater.
+
+    Args:
+        model_name: The identifier or path of the model.
+
+    Returns:
+        True if the model is Gemini 3+, False otherwise.
+    """
+    match = re.search(r"gemini-(\d+)(?:\.(\d+))?", model_name.lower())
+    if match:
+        major = int(match.group(1))
+        return major >= 3
+    return False
 
 
 class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
@@ -353,7 +370,7 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         model_name = str(
             call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
         ).lower()
-        is_gemini_3 = "gemini-3" in model_name or "gemini-3." in model_name
+        is_gemini_v3 = is_gemini_v3_or_higher(model_name)
 
         thinking_budget: int | None = None
         if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
@@ -368,21 +385,20 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
                 call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"] = {}
             call_kwargs["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] = thinking_budget
 
-        if is_gemini_3:
-            # Enforce temperature = 1.0 to prevent infinite thought loops / degradation
-            passed_temp = call_kwargs.get("temperature")
-            if passed_temp is not None and passed_temp < 1.0:
-                logger.warning(
-                    "[GoogleAIStudioCacheAdapter] Modern reasoning model (%s) requested temperature %s < 1.0. "
-                    "Enforcing temperature=1.0 per Google recommendation.",
-                    model_name,
-                    passed_temp,
-                )
-                call_kwargs["temperature"] = 1.0
+        if is_gemini_v3:
+            # Strip all deprecated and unsupported sampling parameters for Gemini 3+
+            scrubbed_keys: list[str] = []
+            for deprecated_key in ("temperature", "top_p", "top_k", "frequency_penalty", "presence_penalty"):
+                if deprecated_key in call_kwargs:
+                    call_kwargs.pop(deprecated_key, None)
+                    scrubbed_keys.append(deprecated_key)
 
-            # Strip unsupported/deprecated sampling parameters for reasoning models
-            for deprecated_key in ("top_k", "frequency_penalty", "presence_penalty"):
-                call_kwargs.pop(deprecated_key, None)
+            if scrubbed_keys:
+                logger.debug(
+                    "[GoogleAIStudioCacheAdapter] Scrubbed unsupported sampling parameters %s for Gemini 3+ model '%s'.",
+                    scrubbed_keys,
+                    model_name,
+                )
 
         if "cached_content" in call_kwargs:
             cache_id = call_kwargs["cached_content"]

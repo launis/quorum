@@ -205,7 +205,7 @@ def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
 
     result = adapter.prepare_kwargs(call_kwargs, config=config)
 
-    assert result["temperature"] == 1.0
+    assert "temperature" not in result
     assert "top_k" not in result
     assert "frequency_penalty" not in result
     assert "presence_penalty" not in result
