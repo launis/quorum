@@ -201,6 +201,12 @@ class StudioClient {
     return List<Map<String, dynamic>>.from(response.data as List);
   }
 
+  /// Retrieves all supported LLM platforms.
+  Future<List<Map<String, dynamic>>> getSupportedPlatforms() async {
+    final response = await _dio.get('studio/model-registry/platforms');
+    return List<Map<String, dynamic>>.from(response.data as List);
+  }
+
   /// Retrieves all system configs (Model Registries).
   Future<List<Map<String, dynamic>>> getSystemConfigs() async {
     final response = await _dio.get('studio/model-registry/');

@@ -205,6 +205,13 @@ Future<List<Map<String, dynamic>>> supportedLocations(Ref ref) async {
   return client.getSupportedLocations();
 }
 
+/// Fetches supported LLM platforms.
+@riverpod
+Future<List<Map<String, dynamic>>> supportedPlatforms(Ref ref) async {
+  final client = ref.watch(studioClientProvider);
+  return client.getSupportedPlatforms();
+}
+
 // --- Gold Standard Form State (Flat MVC) ---
 
 @riverpod

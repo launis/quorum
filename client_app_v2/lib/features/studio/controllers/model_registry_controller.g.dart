@@ -291,6 +291,53 @@ final class SupportedLocationsProvider
 String _$supportedLocationsHash() =>
     r'75c69997bf538d1b4d8813bb1ef83c5d407d953f';
 
+/// Fetches supported LLM platforms.
+
+@ProviderFor(supportedPlatforms)
+final supportedPlatformsProvider = SupportedPlatformsProvider._();
+
+/// Fetches supported LLM platforms.
+
+final class SupportedPlatformsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<Map<String, dynamic>>>,
+          List<Map<String, dynamic>>,
+          FutureOr<List<Map<String, dynamic>>>
+        >
+    with
+        $FutureModifier<List<Map<String, dynamic>>>,
+        $FutureProvider<List<Map<String, dynamic>>> {
+  /// Fetches supported LLM platforms.
+  SupportedPlatformsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'supportedPlatformsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$supportedPlatformsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+    return supportedPlatforms(ref);
+  }
+}
+
+String _$supportedPlatformsHash() =>
+    r'8406a5e457c8fe2041d09f748b171bc13f4765a6';
+
 @ProviderFor(ModelRegistryForm)
 final modelRegistryFormProvider = ModelRegistryFormFamily._();
 
