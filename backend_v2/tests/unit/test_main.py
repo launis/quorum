@@ -23,6 +23,12 @@ from backend_v2.main import (
     lifespan,
     validation_exception_handler,
 )
+from backend_v2.tests.unit.test_storage_audit import (
+    temp_db_and_storage,
+    test_audit_storage_and_database_sync_when_orphaned_db_record,
+    test_audit_storage_and_database_sync_when_synced,
+    test_audit_storage_and_database_sync_when_unindexed_disk_execution,
+)
 
 client = TestClient(app)
 
@@ -58,7 +64,7 @@ def test_validate_database_preflight_success() -> None:
 
     with (
         patch("pathlib.Path.exists", return_value=True),
-        patch("tinydb.TinyDB", return_value=mock_db),
+        patch("backend_v2.main.TinyDB", return_value=mock_db),
     ):
         _validate_database_preflight(logger)
         mock_db.close.assert_called_once()
@@ -74,7 +80,7 @@ def test_validate_database_preflight_corrupted_raises_runtime_error() -> None:
 
     with (
         patch("pathlib.Path.exists", return_value=True),
-        patch("tinydb.TinyDB", return_value=mock_db),
+        patch("backend_v2.main.TinyDB", return_value=mock_db),
         pytest.raises(RuntimeError) as excinfo,
     ):
         _validate_database_preflight(logger)

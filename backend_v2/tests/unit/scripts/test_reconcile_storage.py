@@ -264,4 +264,3 @@ def test_reconcile_storage_main_cli_desynced_and_fix(
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 0
-

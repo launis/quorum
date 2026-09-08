@@ -32,9 +32,9 @@ from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
+from tinydb import TinyDB
 
 import backend_v2.hooks  # noqa: F401
-from tinydb import TinyDB
 from backend_v2.api.routers.execution import router as execution_router
 from backend_v2.api.routers.iam import router as iam_router
 from backend_v2.api.routers.output_profiles import router as output_profiles_router
@@ -52,9 +52,7 @@ from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 # --- 1. Lifespan Management ---
 
 
-def _audit_storage_and_database_sync(
-    db: TinyDB, logger: logging.Logger, storage_dir: Path | None = None
-) -> None:
+def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage_dir: Path | None = None) -> None:
     """Audits synchronization between executions in TinyDB and execution artifacts on disk.
 
     Performs a strictly read-only check. Emits a structured warning with remediation instructions
@@ -63,7 +61,8 @@ def _audit_storage_and_database_sync(
     Args:
         db: Open TinyDB instance.
         logger: Application logger for emitting audit telemetry.
-        storage_dir: Optional override for the root execution artifacts directory (defaults to Path("data/files/executions")).
+        storage_dir: Optional override for the root execution artifacts directory
+            (defaults to Path("data/files/executions")).
     """
     resolved_storage_dir = storage_dir if storage_dir is not None else Path("data/files/executions")
     table = db.table("executions")
@@ -122,7 +121,8 @@ def _validate_database_preflight(logger: logging.Logger) -> None:
     db_path = Path(settings.prod_db_path)
     if not db_path.exists():
         logger.warning(
-            "[StartupAudit] Database file '%s' not found. Re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
+            "[StartupAudit] Database file '%s' not found. "
+            "Re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
             db_path,
         )
         return
@@ -143,7 +143,8 @@ def _validate_database_preflight(logger: logging.Logger) -> None:
         logger.info("[StartupAudit] Pre-flight database schema validation PASSED.")
     except Exception as exc:
         logger.critical(
-            "[StartupAudit] Database schema validation FAILED for %s: %s. Please re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
+            "[StartupAudit] Database schema validation FAILED for %s: %s. "
+            "Please re-seed via 'uv run python backend_v2/seed/run_seed.py local'.",
             db_path,
             exc,
             exc_info=True,

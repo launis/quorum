@@ -2,6 +2,7 @@
 
 import json
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -339,7 +340,7 @@ async def test_append_trace_event_errors(repo: ExecutionRepositoryImpl, mock_dri
 
 @pytest.mark.asyncio
 async def test_get_all_executions_handles_offloaded_null_frozen_context(
-    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, Any]
 ) -> None:
     """Regression: get_all_executions must successfully parse records with offloaded (null) frozen_context."""
     offloaded_doc = dict(valid_execution_doc)
@@ -351,3 +352,28 @@ async def test_get_all_executions_handles_offloaded_null_frozen_context(
     assert len(results) == 1
     assert results[0].id == "exe_1234567890abcdef"
     assert results[0].frozen_context is None
+
+
+@pytest.mark.asyncio
+async def test_get_execution_missing_offload_blob_data_corruption(
+    repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict[str, Any]
+) -> None:
+    """Regression: Missing offloaded blob file on disk raises AppException with DATA_CORRUPTION code."""
+    doc = dict(valid_execution_doc)
+    doc["execution_trace_storage_path"] = "executions/exe_1234567890abcdef/execution_trace.json"
+    mock_driver.get.return_value = doc
+
+    mock_storage = AsyncMock(spec=FileDriver)
+    mock_storage.read.side_effect = AppException(
+        message="File not found: executions/exe_1234567890abcdef/execution_trace.json",
+        status_code=404,
+        details={"error_code": "FILE_NOT_FOUND"},
+    )
+
+    with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):
+        with pytest.raises(AppException) as exc_info:
+            await repo.get_execution("exe_1234567890abcdef")
+
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.details["error_code"] == "DATA_CORRUPTION"
+        assert "Missing blob trace data for execution_trace." in exc_info.value.message
