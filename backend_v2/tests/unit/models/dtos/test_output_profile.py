@@ -211,17 +211,15 @@ def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> N
             "penalties_block",
             "matrix_summary_table_block",
             "variance_validation_block",
-            "authenticity_evaluation_block",
             "global_score_block",
             "printable_sources_block",
-            "jargon_ratio_block",
             "audit_trail_block",
         ],
     }
     dto = OutputProfileCreateDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
     assert dto.target_block_order is not None
-    assert len(dto.target_block_order) == 13
+    assert len(dto.target_block_order) == 11
     assert dto.target_block_order[0] == TargetBlockType.METADATA_BLOCK
 
 

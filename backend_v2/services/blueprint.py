@@ -39,16 +39,11 @@ from backend_v2.models.v2_core import (
     ReportDataDTO,
     SystemConfigMCPGateways,
 )
-from backend_v2.models.view.sdui import (
-    AnySduiBlock,
-    SduiRadarChartBlock,
-)
+from backend_v2.models.view.sdui import AnySduiBlock, SduiRadarChartBlock
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
-from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityAdapter
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
-from backend_v2.services.sdui.adapters.jargon_ratio_adapter import JargonRatioAdapter
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 from backend_v2.services.sdui.adapters.mcp_audit_adapter import McpAuditAdapter
@@ -101,7 +96,6 @@ class BlueprintTransformer:
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: GlobalScoreAdapter.build(ctx),
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: McpAuditAdapter.build(ctx),
-            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: JargonRatioAdapter.build(ctx),
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),
@@ -110,7 +104,6 @@ class BlueprintTransformer:
             TargetBlockType.MATRIX_GRAPHS_BLOCK: lambda ctx: MatrixGraphsAdapter.build(ctx),
             TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK: lambda ctx: MatrixSummaryTableAdapter.build(ctx),
             TargetBlockType.VARIANCE_VALIDATION_BLOCK: lambda ctx: VarianceAdapter.build(ctx),
-            TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK: lambda ctx: AuthenticityAdapter.build(ctx),
         }
 
     def _apply_pii_masking(self, text: str) -> str:
@@ -412,57 +405,6 @@ class BlueprintTransformer:
                 else "AVERAGE"
             )
         )
-
-        try:
-            adapter_ctx = AdapterContext(
-                execution=execution,
-                locale=locale,
-                penalties_applied=penalties_applied,
-                mcp_audit_map=mcp_audit_map,
-                global_score=global_score,
-                profile=profile,
-                profile_cache=profile_cache,
-                user_name=None,
-                org_name=None,
-                parsed_matrices=all_parsed_matrices,
-                mcp_tools_map=mcp_tools_map,
-                local_time_str=local_time_str,
-                scoring_engine=scoring_engine_val,
-                cost=combined_cost,
-                tokens=combined_tokens,
-            )
-
-            # Phase 1: Build temp visualization blocks for slop scanner
-            temp_visualization_blocks = []
-
-            if not adapter_ctx.is_data_starved:
-                # Map graph and table blocks via Adapters
-                temp_visualization_blocks.extend(MatrixGraphsAdapter.build(adapter_ctx))
-                temp_visualization_blocks.extend(MatrixSummaryTableAdapter.build(adapter_ctx))
-
-                variance_sdui_blocks = VarianceAdapter.build(adapter_ctx)
-                if variance_sdui_blocks:
-                    temp_visualization_blocks.extend(variance_sdui_blocks)
-
-                auth_sdui_blocks = AuthenticityAdapter.build(adapter_ctx)
-                if auth_sdui_blocks:
-                    temp_visualization_blocks.extend(auth_sdui_blocks)
-
-                if not temp_visualization_blocks:
-                    temp_visualization_blocks = [SduiRadarChartBlock(axes=evaluative_matrices)]
-
-            visualization_blocks = temp_visualization_blocks
-        except AppException:
-            raise
-        except Exception as e:
-            msg = f"Failed to build layout DTO: {e}"
-            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
-
         org_name = execution.organization_id
         if execution.organization_id:
             try:
@@ -509,12 +451,6 @@ class BlueprintTransformer:
         try:
             if combined_tokens == 0 and execution.execution_trace:
                 logger.warning("[BlueprintTransformer] ALARM: 0 tokens for %s. Telemetry missing.", execution.id)
-
-            if not visualization_blocks:
-                logger.warning(
-                    "[BlueprintTransformer] ALARM: 0 visualization blocks for execution %s.",
-                    execution.id,
-                )
 
             mcp_audit_data: list[MCPAuditTrace] = []
             if execution.frozen_context and execution.frozen_context.mcp_tool_audit:

@@ -130,15 +130,14 @@ from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 _DEFAULT_TARGET_BLOCK_ORDER = [
     TargetBlockType.METADATA_BLOCK,
     TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+    TargetBlockType.GLOBAL_SCORE_BLOCK,
     TargetBlockType.SYNTHESIS_TEXT_BLOCK,
     TargetBlockType.MATRIX_GRAPHS_BLOCK,
     TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
     TargetBlockType.PENALTIES_BLOCK,
     TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
     TargetBlockType.VARIANCE_VALIDATION_BLOCK,
-    TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK,
     TargetBlockType.PRINTABLE_SOURCES_BLOCK,
-    TargetBlockType.GLOBAL_SCORE_BLOCK,
     TargetBlockType.AUDIT_TRAIL_BLOCK,
 ]
 
@@ -1002,11 +1001,18 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     assert len(alert_blocks) >= 1
     alert_block = alert_blocks[-1]
 
-    assert "Mechanical" in getattr(grid_block.items[0], "text", "") and "1" in getattr(grid_block.items[0], "text", "")
-    assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "4.0" in getattr(grid_block.items[1], "text", "")
+    assert (
+        "Mechanical" in getattr(grid_block.items[0], "text", "")
+        or "Formulaic phrases" in getattr(grid_block.items[0], "text", "")
+    ) and "1" in getattr(grid_block.items[0], "text", "")
+    assert (
+        "Cognitive" in getattr(grid_block.items[1], "text", "")
+        or "Depth of reasoning" in getattr(grid_block.items[1], "text", "")
+    ) and "4.0" in getattr(grid_block.items[1], "text", "")
     assert (
         "Total Dispersion" in getattr(grid_block.items[2], "text", "")
         or "Variance" in getattr(grid_block.items[2], "text", "")
+        or "Form-content disparity" in getattr(grid_block.items[2], "text", "")
     ) and "1.2" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity in (VisualIntent.WARNING, "warning")
@@ -1290,12 +1296,14 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     assert len(alert_blocks) >= 1
     alert_block = alert_blocks[-1]
 
-    assert "Cognitive" in getattr(grid_block.items[1], "text", "") and "2.51" in getattr(
-        grid_block.items[1], "text", ""
-    )
+    assert (
+        "Cognitive" in getattr(grid_block.items[1], "text", "")
+        or "Depth of reasoning" in getattr(grid_block.items[1], "text", "")
+    ) and "2.51" in getattr(grid_block.items[1], "text", "")
     assert (
         "Total Dispersion" in getattr(grid_block.items[2], "text", "")
         or "Variance" in getattr(grid_block.items[2], "text", "")
+        or "Form-content disparity" in getattr(grid_block.items[2], "text", "")
     ) and "0.09" in getattr(grid_block.items[2], "text", "")
 
     assert alert_block.severity in (VisualIntent.INFO, "info")
@@ -1615,7 +1623,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                     )
                 ],
                 visible_block_extensions=[],
-                visible_workflow_extensions=[XaiExtensionType.AUTHENTICITY_EVALUATION],
+                visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
                 max_extension_items=2,
                 strictness_level=85,
             )
@@ -1636,7 +1644,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
 
     assert report_dto is not None
     assert any(
-        getattr(axis, "block_id", None) == "authenticity_metrics_row"
+        getattr(axis, "block_id", None) == "axis_cognitive_depth"
         for block in report_dto.inner_sdui_blocks
         for axis in getattr(block, "axes", []) or []
     )

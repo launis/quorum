@@ -14,7 +14,7 @@ from backend_v2.services.blueprint import BlueprintTransformer
 
 
 @pytest.mark.asyncio
-async def test_blueprint_authenticity_evaluation_success() -> None:
+async def test_blueprint_variance_validation_success() -> None:
     # Setup mock repositories
     mock_prompt_block_repo = AsyncMock()
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
@@ -46,7 +46,12 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
         execution_trace=[],
         profile_syntheses={
             "prf_1234567812345678": RenderedSynthesisCache(
-                extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
+                extension_metrics=ExtensionMetricsDTO(
+                    authenticity_score=2.5,
+                    performative_phrases_count=0.0,
+                    variance_score=0.1,
+                    alignment_verdict="ALIGNED",
+                )
             )
         },
         target_locale="fi",
@@ -59,14 +64,19 @@ async def test_blueprint_authenticity_evaluation_success() -> None:
         "slug": "test",
         "workflow_id": "wf_1234567812345678",
         "name": {"translations": {"en": "test"}},
-        "target_block_order": ["authenticity_evaluation_block"],
-        "visible_workflow_extensions": ["authenticity_evaluation"],
+        "target_block_order": ["variance_validation_block"],
+        "visible_workflow_extensions": ["variance_validation"],
     }
 
     mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]
     mock_profile_repo.get_output_profile.return_value = mock_profile_dict
     mock_profile_repo.get_profile_synthesis_cache.return_value = RenderedSynthesisCache(
-        extension_metrics=ExtensionMetricsDTO(authenticity_score=75.0)
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=75.0,
+            performative_phrases_count=0,
+            variance_score=0.1,
+            alignment_verdict="ALIGNED",
+        )
     )
 
     # Initialize transformer

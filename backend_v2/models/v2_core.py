@@ -1064,15 +1064,14 @@ class OutputProfile(V2CoreBase):
             default_factory=lambda: [
                 TargetBlockType.METADATA_BLOCK,
                 TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
+                TargetBlockType.GLOBAL_SCORE_BLOCK,
                 TargetBlockType.SYNTHESIS_TEXT_BLOCK,
                 TargetBlockType.MATRIX_GRAPHS_BLOCK,
                 TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
                 TargetBlockType.PENALTIES_BLOCK,
                 TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
                 TargetBlockType.VARIANCE_VALIDATION_BLOCK,
-                TargetBlockType.AUTHENTICITY_EVALUATION_BLOCK,
                 TargetBlockType.PRINTABLE_SOURCES_BLOCK,
-                TargetBlockType.GLOBAL_SCORE_BLOCK,
                 TargetBlockType.AUDIT_TRAIL_BLOCK,
             ],
             description=(

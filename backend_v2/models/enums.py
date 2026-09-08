@@ -252,7 +252,6 @@ class TargetBlockType(StrEnum):
     GLOBAL_SCORE_BLOCK = "global_score_block"
     PENALTIES_BLOCK = "penalties_block"
     AUDIT_TRAIL_BLOCK = "audit_trail_block"
-    JARGON_RATIO_BLOCK = "jargon_ratio_block"
     PRINTABLE_SOURCES_BLOCK = "printable_sources_block"
     GROUPED_EXTENSIONS_BLOCK = "grouped_extensions_block"
     EXECUTIVE_SUMMARY_BLOCK = "executive_summary_block"
@@ -261,7 +260,6 @@ class TargetBlockType(StrEnum):
     MATRIX_GRAPHS_BLOCK = "matrix_graphs_block"
     MATRIX_SUMMARY_TABLE_BLOCK = "matrix_summary_table_block"
     VARIANCE_VALIDATION_BLOCK = "variance_validation_block"
-    AUTHENTICITY_EVALUATION_BLOCK = "authenticity_evaluation_block"
 
 
 class SourcesDisplayMode(StrEnum):

@@ -266,6 +266,7 @@ class VarianceAdapter:
         )
 
         # 5. CONSTRUCT 4-METRIC SUMMARY GRID
+        unit_pcs = LocalizationService.translate("unit_pcs", context.locale)
         jargon_count = len(performative_patterns) if performative_patterns else int(performative_phrases_count)
         if metrics.jargon_density is not None:
             jargon_display = f"{jargon_count} ({metrics.jargon_density:.1f}/100w)"
@@ -274,8 +275,10 @@ class VarianceAdapter:
 
         grid_block = SduiGridBlock(
             items=[
-                ParagraphBlock(text=f"{lbl_mech}: {phrase_count_rounded}", exact_quotes=[], citations=[]),
-                ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded}", exact_quotes=[], citations=[]),
+                ParagraphBlock(
+                    text=f"{lbl_mech}: {int(phrase_count_rounded)} {unit_pcs}", exact_quotes=[], citations=[]
+                ),
+                ParagraphBlock(text=f"{lbl_cog}: {auth_score_rounded} / 3.0", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_var}: {var_score_rounded}", exact_quotes=[], citations=[]),
                 ParagraphBlock(text=f"{lbl_jargon}: {jargon_display}", exact_quotes=[], citations=[]),
             ]

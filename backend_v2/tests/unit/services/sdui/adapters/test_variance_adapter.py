@@ -207,7 +207,7 @@ def test_build_aligned_success() -> None:
     # Sequence: MarkdownBlock, ParagraphBlock, SduiScatterPlotBlock, SduiGridBlock, AlertBlock
     assert len(blocks) == 5
     assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "### Variance Validation"
+    assert blocks[0].text == "### Cognitive Depth & Phrase Analysis"
     assert isinstance(blocks[1], ParagraphBlock)
     assert blocks[1].text == "Model reasoning aligned closely with target assertions."
 
@@ -227,6 +227,8 @@ def test_build_aligned_success() -> None:
 
     assert isinstance(blocks[3], SduiGridBlock)
     assert len(blocks[3].items) == 4
+    assert "0 pcs" in blocks[3].items[0].text
+    assert "2.8 / 3.0" in blocks[3].items[1].text
 
     assert isinstance(blocks[4], AlertBlock)
     assert blocks[4].severity == VisualIntent.INFO
@@ -271,7 +273,7 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
     # Sequence: MarkdownBlock, ParagraphBlock, SduiScatterPlotBlock, SduiGridBlock, BulletListBlock, AlertBlock
     assert len(blocks) == 6
     assert isinstance(blocks[0], MarkdownBlock)
-    assert blocks[0].text == "### Varianssivalidointi"
+    assert blocks[0].text == "### Ajattelun syvyys ja fraasianalyysi"
 
     assert isinstance(blocks[1], ParagraphBlock)
     # Fallback explanation when row_explanations omitted
@@ -285,6 +287,8 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
 
     assert isinstance(blocks[3], SduiGridBlock)
     assert len(blocks[3].items) == 4
+    assert "2 kpl" in blocks[3].items[0].text
+    assert "1.14 / 3.0" in blocks[3].items[1].text
     assert "2" in blocks[3].items[3].text
 
     assert isinstance(blocks[4], BulletListBlock)
