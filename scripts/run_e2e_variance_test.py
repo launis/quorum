@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import copy
 import datetime
+import io
 import json
 import os
 import re
@@ -51,6 +52,17 @@ import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+# Ensure project root is in sys.path before any local or third-party project imports
+_project_root = Path(__file__).resolve().parent.parent
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
+
+if sys.platform == "win32":
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if isinstance(sys.stderr, io.TextIOWrapper):
+        sys.stderr.reconfigure(encoding="utf-8")
 
 import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -72,17 +84,6 @@ __all__ = [
     "trigger_execution",
     "validate_execution_kelvollisuus",
 ]
-
-# Ensure project root is in sys.path
-_project_root = Path(__file__).resolve().parent.parent
-if str(_project_root) not in sys.path:
-    sys.path.insert(0, str(_project_root))
-
-if sys.platform == "win32":
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-    if hasattr(sys.stderr, "reconfigure"):
-        sys.stderr.reconfigure(encoding="utf-8")
 
 
 def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int = 45) -> bool:
@@ -268,7 +269,7 @@ def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
                             ensure_ascii=False,
                         )
                     return ChatHistoryDTO(conversation=updated_turns).model_dump_json()
-        except (json.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError):
+        except json.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError:
             pass
 
     # 2. Check for explicit user role prefix labels (User:, Käyttäjä:, etc.)

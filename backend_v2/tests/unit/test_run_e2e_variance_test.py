@@ -7,6 +7,9 @@ in chat_log inputs, preventing cache collisions on downstream user-only cognitiv
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
+from pathlib import Path
 
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from scripts.run_e2e_variance_test import (
@@ -107,3 +110,64 @@ class TestRunMarkerInjection:
         assert marker_1 in marked_1
         assert marker_0 not in marked_1
         assert marker_1 not in marked_0
+
+    def test_run_e2e_variance_test_cli_standalone_invocation(self) -> None:
+        """Verify scripts/run_e2e_variance_test.py can be invoked directly as a standalone CLI script.
+
+        Regression test: sys.path bootstrap must precede project imports like backend_v2,
+        otherwise direct invocation raises ModuleNotFoundError: No module named 'backend_v2'.
+        """
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "run_e2e_variance_test.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path), "--help"],
+            capture_output=True,
+            text=True,
+            cwd=str(script_path.parent.parent),
+        )
+        assert result.returncode == 0, (
+            f"Script execution failed with returncode {result.returncode}.\n"
+            f"STDOUT:\n{result.stdout}\n"
+            f"STDERR:\n{result.stderr}"
+        )
+        assert "End-to-End Variance and Reliability Test Runner" in result.stdout
+
+    def test_run_e2e_variance_test_cli_isolated_cwd(self) -> None:
+        """Verify scripts/run_e2e_variance_test.py is invariant to working directory.
+
+        ISTQB Negative Boundary Test: When invoked with cwd=scripts/ (not repo root),
+        the deterministic Path(__file__).resolve().parent.parent bootstrap must still
+        resolve the project root and allow standalone execution without ModuleNotFoundError.
+        """
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "run_e2e_variance_test.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path), "--help"],
+            capture_output=True,
+            text=True,
+            cwd=str(script_path.parent),
+        )
+        assert result.returncode == 0, (
+            f"Script execution from scripts/ dir failed with returncode {result.returncode}.\n"
+            f"STDOUT:\n{result.stdout}\n"
+            f"STDERR:\n{result.stderr}"
+        )
+        assert "End-to-End Variance and Reliability Test Runner" in result.stdout
+
+    def test_run_e2e_variance_test_cli_unrecognized_argument(self) -> None:
+        """Verify scripts/run_e2e_variance_test.py fails fast on unrecognized CLI arguments.
+
+        ISTQB Negative Equivalence Partition: Passing an illegal flag must exit with
+        argparse returncode 2 and write 'unrecognized arguments' to stderr without crash.
+        """
+        script_path = Path(__file__).resolve().parents[3] / "scripts" / "run_e2e_variance_test.py"
+        result = subprocess.run(
+            [sys.executable, str(script_path), "--illegal-flag-xyz"],
+            capture_output=True,
+            text=True,
+            cwd=str(script_path.parent.parent),
+        )
+        assert result.returncode == 2, (
+            f"Expected argparse returncode 2 for illegal argument, got {result.returncode}.\n"
+            f"STDOUT:\n{result.stdout}\n"
+            f"STDERR:\n{result.stderr}"
+        )
+        assert "unrecognized arguments" in result.stderr
