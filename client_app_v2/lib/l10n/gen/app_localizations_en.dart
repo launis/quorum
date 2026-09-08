@@ -4765,4 +4765,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String matrixBlocksSelectedCount(int count, int max) {
     return '$count / $max selected';
   }
+
+  @override
+  String get penaltySecurityLabel => 'Security Penalty (%)';
+
+  @override
+  String get penaltyPostHocLabel => 'Post-Hoc Penalty (%)';
+
+  @override
+  String get penaltyPassivityLabel => 'Passivity Penalty (%)';
+
+  @override
+  String get penaltiesSectionTitle => 'Automated Score Penalties';
 }

@@ -108,5 +108,11 @@
   "sources_theoretical_grounding": "Theoretical framework:",
   "sources_no_observation_in_input": "No criteria-matching specification found in source material",
   "sources_direct_citations_count": "Bibliographic references:",
-  "sources_no_direct_citations": "No external bibliographic citations or fact-checking traces recorded in this execution."
+  "sources_no_direct_citations": "No external bibliographic citations or fact-checking traces recorded in this execution.",
+  "penalty_security_title": "Security Penalty",
+  "penalty_security_description": "Security or confidentiality threat detected in input data.",
+  "penalty_post_hoc_title": "Post-Hoc Rationalization",
+  "penalty_post_hoc_description": "Post-hoc rationalization or fabricated decision justification detected.",
+  "penalty_passivity_title": "Passivity Penalty",
+  "penalty_passivity_description": "Lowest possible score level or passivity detected in evaluation dimension."
 }

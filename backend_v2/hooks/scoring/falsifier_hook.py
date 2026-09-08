@@ -19,9 +19,7 @@ from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.enums import ScoringCalibrationThresholds
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +41,7 @@ class ScoringPayloadWrapper(V2CoreBase):
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: Annotated[dict[str, float] | None, Field(alias="_evaluative_matrices")] = None
+    passivity_detected: bool | None = None
 
     @property
     def has_scoring_data(self) -> bool:
@@ -54,6 +53,7 @@ class ScoringPayloadWrapper(V2CoreBase):
                 self.step_falsifier is not None,
                 self.step_panel is not None,
                 self.evaluative_matrices is not None,
+                self.passivity_detected is not None,
             )
         )
 
@@ -66,6 +66,7 @@ class StateInputWrapper(V2CoreBase):
     steps: list[StepOutputDTO] | None = None
     inputs: ExecutionInputsDTO | dict[str, Any] | None = None
     raw_inputs: ExecutionInputsDTO | dict[str, Any] | None = None
+    passivity_detected: bool | None = None
 
 
 def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[ScoringPayloadWrapper]:
@@ -206,6 +207,33 @@ def _calculate_falsifier_penalty(falsifier_data: FalsifierData | None) -> bool:
     return False
 
 
+def _extract_passivity_flag(data: ExecutionInputsDTO | dict[str, Any]) -> bool:
+    """Extracts passivity penalty detection flag from state snapshot or step payloads.
+
+    Args:
+        data: The execution inputs DTO or dictionary representation.
+
+    Returns:
+        bool: True if passivity penalty was detected, False otherwise.
+    """
+    for wrapper in _extract_payloads(data):
+        if wrapper.passivity_detected is True:
+            return True
+
+    try:
+        hydrated_state = (
+            data
+            if isinstance(data, StateInputWrapper)
+            else StateInputWrapper.model_validate(data.raw_inputs if isinstance(data, ExecutionInputsDTO) else data)
+        )
+        if hydrated_state.passivity_detected is True:
+            return True
+    except ValidationError:
+        pass
+
+    return False
+
+
 @hook_registry.register(name="apply_scoring_logic")
 def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for apply_scoring_logic.
@@ -237,7 +265,22 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     # 2. Falsifier Penalty Check
     falsifier_data = _extract_falsifier_data(lookup_ctx)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
+
+    # 3. Passivity Penalty Check
+    passivity_detected = _extract_passivity_flag(lookup_ctx)
+
     penalties: list[str] = []
+    if security_threat:
+        penalties.append("PENALTY_SECURITY")
+        logger.warning("[ScoringHook] Security threat detected; recorded PENALTY_SECURITY observation token.")
+
+    if is_post_hoc:
+        penalties.append("PENALTY_POST_HOC")
+        logger.warning("[ScoringHook] Post-hoc rationalization detected; recorded PENALTY_POST_HOC observation token.")
+
+    if passivity_detected:
+        penalties.append("PENALTY_PASSIVITY")
+        logger.warning("[ScoringHook] Passivity detected; recorded PENALTY_PASSIVITY observation token.")
 
     total_score_accum = 0.0
     count = 0
@@ -288,43 +331,8 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     else:
         average_score = total_score_accum / count
 
-    # 4. Apply Penalties
-    settings = get_settings()
-
-    final_score = average_score
-    total_penalty_factor = 0.0
-
-    if security_threat:
-        p_val = settings.scoring_security_penalty
-        if p_val > 0:
-            total_penalty_factor += p_val
-            pct_val = p_val * 100
-            penalties.append(f"PENALTY_SECURITY:{pct_val:.0f}")
-        else:
-            logger.warning("[ScoringHook] Security Threat Detected (Logged Only - Penalty Disabled in Settings)")
-
-    if is_post_hoc:
-        p_val = settings.scoring_post_hoc_penalty
-        if p_val > 0:
-            total_penalty_factor += p_val
-            pct_val = p_val * 100
-            penalties.append(f"PENALTY_POST_HOC:{pct_val:.0f}")
-        else:
-            logger.warning(
-                "[ScoringHook] Post-Hoc Rationalization Detected (Logged Only - Penalty Disabled in Settings)"
-            )
-
-    effective_penalty = min(total_penalty_factor, ScoringCalibrationThresholds.PENALTY_CAP.value)
-
-    if effective_penalty > 0:
-        final_score *= 1.0 - effective_penalty
-        logger.warning(
-            "[ScoringHook] Combined penalties applied: -%.0f%% (capped at %.0f%%).",
-            effective_penalty * 100,
-            ScoringCalibrationThresholds.PENALTY_CAP.value * 100,
-        )
-
-    final_score = max(0.0, final_score)
+    # 4. Pure Commensurate Averaging (Calibration occurs in Phase 3 Blueprint)
+    final_score = round(max(0.0, average_score), 2)
 
     # 5. Create Result with True Averaging
     result = {

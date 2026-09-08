@@ -6,6 +6,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
+from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import VisualIntent
@@ -13,6 +14,7 @@ from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
 )
+from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
@@ -26,9 +28,21 @@ logger = logging.getLogger(__name__)
 # chains for visual property selection.
 # ============================================================================
 
-PENALTIES_RULES: dict[str, dict[str, VisualIntent]] = {
-    "default_penalty": {
+PENALTIES_RULES: dict[str, dict[str, Any]] = {
+    "PENALTY_SECURITY": {
         "severity": VisualIntent.CRITICAL_OVERRIDE,
+        "title_key": "penalty_security_title",
+        "desc_key": "penalty_security_description",
+    },
+    "PENALTY_POST_HOC": {
+        "severity": VisualIntent.WARNING,
+        "title_key": "penalty_post_hoc_title",
+        "desc_key": "penalty_post_hoc_description",
+    },
+    "PENALTY_PASSIVITY": {
+        "severity": VisualIntent.WARNING,
+        "title_key": "penalty_passivity_title",
+        "desc_key": "penalty_passivity_description",
     },
 }
 
@@ -60,7 +74,7 @@ class PenaltiesAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            KeyError: If an unmapped key is encountered in PENALTIES_RULES.
+            AppException: If an unmapped penalty token is encountered in PENALTIES_RULES.
         """
         blocks: list[AnySduiBlock] = []
 
@@ -70,11 +84,16 @@ class PenaltiesAdapter:
             return blocks
 
         for p_str in source_data:
+            if ":" in p_str:
+                token, pct_str = p_str.split(":", 1)
+            else:
+                token, pct_str = p_str, None
+
             # Fail-Fast: strict key access, NO .get() fallback
             try:
-                aesthetics = PENALTIES_RULES["default_penalty"]
+                aesthetics = PENALTIES_RULES[token]
             except KeyError as e:
-                msg = "Missing rule mapping for 'default_penalty'"
+                msg = f"Missing rule mapping for penalty token: '{token}'"
                 logger.error("[PenaltiesAdapter] CONFIGURATION_ERROR: %s", msg, exc_info=True)
                 raise AppException(
                     message=msg,
@@ -82,10 +101,22 @@ class PenaltiesAdapter:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from e
 
+            title = LocalizationService.translate(aesthetics["title_key"], context.locale)
+            desc = LocalizationService.translate(aesthetics["desc_key"], context.locale)
+
+            if pct_str is not None:
+                pct_suffix = f" (-{pct_str} %)" if context.locale == "fi" else f" (-{pct_str}%)"
+                header = f"{title}{pct_suffix}"
+            else:
+                header = title
+
+            alert_text = f"{header}: {desc}"
+
             blocks.append(
                 AlertBlock(
+                    id=f"alert_penalty_{token.lower()}",
                     severity=aesthetics["severity"],
-                    text=f"Penalty applied: {p_str}",
+                    text=alert_text,
                     exact_quotes=[],
                     citations=[],
                 )

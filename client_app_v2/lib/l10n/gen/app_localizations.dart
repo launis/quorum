@@ -8615,6 +8615,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} / {max} selected'**
   String matrixBlocksSelectedCount(int count, int max);
+
+  /// No description provided for @penaltySecurityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Security Penalty (%)'**
+  String get penaltySecurityLabel;
+
+  /// No description provided for @penaltyPostHocLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Post-Hoc Penalty (%)'**
+  String get penaltyPostHocLabel;
+
+  /// No description provided for @penaltyPassivityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Passivity Penalty (%)'**
+  String get penaltyPassivityLabel;
+
+  /// No description provided for @penaltiesSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automated Score Penalties'**
+  String get penaltiesSectionTitle;
 }
 
 class _AppLocalizationsDelegate

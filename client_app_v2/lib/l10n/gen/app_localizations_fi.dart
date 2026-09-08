@@ -4798,4 +4798,16 @@ class AppLocalizationsFi extends AppLocalizations {
   String matrixBlocksSelectedCount(int count, int max) {
     return '$count / $max valittu';
   }
+
+  @override
+  String get penaltySecurityLabel => 'Tietoturvarangaistus (%)';
+
+  @override
+  String get penaltyPostHocLabel => 'Rationalisointirangaistus (%)';
+
+  @override
+  String get penaltyPassivityLabel => 'Passiivisuusrangaistus (%)';
+
+  @override
+  String get penaltiesSectionTitle => 'Automaattiset pistevähennykset';
 }

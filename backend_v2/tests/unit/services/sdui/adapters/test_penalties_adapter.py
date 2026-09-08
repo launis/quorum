@@ -30,7 +30,27 @@ def test_build_tampered_rules_dictionary_raises_app_exception(
     context = AdapterContext(
         execution=None,
         locale="en",
-        penalties_applied=["Test Penalty"],
+        penalties_applied=["PENALTY_SECURITY"],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    with pytest.raises(AppException) as excinfo:
+        PenaltiesAdapter.build(context)
+    assert excinfo.value.details["error_code"] == "CONFIGURATION_ERROR"
+
+
+def test_build_unmapped_token_raises_app_exception(
+    valid_output_profile_fixture: OutputProfile,
+) -> None:
+    """Negative: Unsupported penalty token raises AppException with CONFIGURATION_ERROR."""
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=["PENALTY_UNSUPPORTED:99"],
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
@@ -60,12 +80,44 @@ def test_build_empty_list_returns_empty(valid_output_profile_fixture: OutputProf
     assert blocks == []
 
 
-def test_build_valid_penalties_returns_alert_blocks(valid_output_profile_fixture: OutputProfile) -> None:
-    """Positive: valid penalties_applied returns AlertBlocks."""
+def test_build_valid_penalties_returns_alert_blocks_en(valid_output_profile_fixture: OutputProfile) -> None:
+    """Positive: valid penalties_applied returns localized AlertBlocks in English."""
     context = AdapterContext(
         execution=None,
         locale="en",
-        penalties_applied=["Test Penalty 1", "Test Penalty 2"],
+        penalties_applied=["PENALTY_SECURITY:20", "PENALTY_POST_HOC:15", "PENALTY_PASSIVITY:10"],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PenaltiesAdapter.build(context)
+    assert len(blocks) == 3
+
+    assert isinstance(blocks[0], AlertBlock)
+    assert blocks[0].severity == VisualIntent.CRITICAL_OVERRIDE
+    assert "Security Penalty (-20%):" in blocks[0].text
+    assert "Security or confidentiality threat detected in input data." in blocks[0].text
+
+    assert isinstance(blocks[1], AlertBlock)
+    assert blocks[1].severity == VisualIntent.WARNING
+    assert "Post-Hoc Rationalization (-15%):" in blocks[1].text
+    assert "Post-hoc rationalization or fabricated decision justification detected." in blocks[1].text
+
+    assert isinstance(blocks[2], AlertBlock)
+    assert blocks[2].severity == VisualIntent.WARNING
+    assert "Passivity Penalty (-10%):" in blocks[2].text
+    assert "Lowest possible score level or passivity detected in evaluation dimension." in blocks[2].text
+
+
+def test_build_valid_penalties_returns_alert_blocks_fi(valid_output_profile_fixture: OutputProfile) -> None:
+    """Positive: valid penalties_applied returns localized AlertBlocks in Finnish with proper spacing."""
+    context = AdapterContext(
+        execution=None,
+        locale="fi",
+        penalties_applied=["PENALTY_SECURITY:20", "PENALTY_PASSIVITY"],
         mcp_audit_map=None,
         global_score=None,
         profile=valid_output_profile_fixture,
@@ -75,7 +127,11 @@ def test_build_valid_penalties_returns_alert_blocks(valid_output_profile_fixture
     )
     blocks = PenaltiesAdapter.build(context)
     assert len(blocks) == 2
-    assert isinstance(blocks[0], AlertBlock)
+
     assert blocks[0].severity == VisualIntent.CRITICAL_OVERRIDE
-    assert blocks[0].text == "Penalty applied: Test Penalty 1"
-    assert blocks[1].text == "Penalty applied: Test Penalty 2"
+    assert "Tietoturvarangaistus (-20 %):" in blocks[0].text
+    assert "Syöteaineistossa havaittu tietoturva- tai luottamuksellisuusuhka." in blocks[0].text
+
+    assert blocks[1].severity == VisualIntent.WARNING
+    assert "Passiivisuusrangaistus:" in blocks[1].text
+    assert "Arviointidimensiossa havaittu alhaisin mahdollinen laatutaso tai passiivisuus." in blocks[1].text

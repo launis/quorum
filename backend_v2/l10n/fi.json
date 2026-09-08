@@ -108,5 +108,11 @@
   "sources_theoretical_grounding": "Teoreettinen viitekehys:",
   "sources_no_observation_in_input": "Kriteerin mukaista määrittelyä ei havaittu lähdeaineistossa",
   "sources_direct_citations_count": "Kirjallisuusviitteet:",
-  "sources_no_direct_citations": "Tässä suorituksessa ei havaittu ulkoisia kirjallisuusviitteitä tai faktantarkistuksen jälkiä."
+  "sources_no_direct_citations": "Tässä suorituksessa ei havaittu ulkoisia kirjallisuusviitteitä tai faktantarkistuksen jälkiä.",
+  "penalty_security_title": "Tietoturvarangaistus",
+  "penalty_security_description": "Syöteaineistossa havaittu tietoturva- tai luottamuksellisuusuhka.",
+  "penalty_post_hoc_title": "Post-hoc-rationalisointi",
+  "penalty_post_hoc_description": "Havaittu jälkikäteinen selittely tai päätösten tekaistu oikeutus.",
+  "penalty_passivity_title": "Passiivisuusrangaistus",
+  "penalty_passivity_description": "Arviointidimensiossa havaittu alhaisin mahdollinen laatutaso tai passiivisuus."
 }

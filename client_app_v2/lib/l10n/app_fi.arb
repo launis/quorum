@@ -1695,5 +1695,9 @@
         "type": "int"
       }
     }
-  }
+  },
+  "penaltySecurityLabel": "Tietoturvarangaistus (%)",
+  "penaltyPostHocLabel": "Rationalisointirangaistus (%)",
+  "penaltyPassivityLabel": "Passiivisuusrangaistus (%)",
+  "penaltiesSectionTitle": "Automaattiset pistevähennykset"
 }

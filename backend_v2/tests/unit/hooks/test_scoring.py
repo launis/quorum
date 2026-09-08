@@ -2766,15 +2766,8 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
     assert scoring_result["final_score"] == 80.0
 
 
-def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test that apply_scoring_logic_hook applies security and post-hoc penalties."""
-    from backend_v2.settings import get_settings
-
-    current_settings = get_settings()
-    mock_settings = current_settings.model_copy(
-        update={"scoring_security_penalty": 0.2, "scoring_post_hoc_penalty": 0.2}
-    )
-    monkeypatch.setattr("backend_v2.hooks.scoring.falsifier_hook.get_settings", lambda: mock_settings)
+def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() -> None:
+    """Test that apply_scoring_logic_hook records security and post-hoc penalty observation tokens."""
     sec_dto = InputProcessingOutputDTO(
         thought_process="Analyzing input for injection threats",
         conclusion="Threat detected in user input",
@@ -2850,9 +2843,49 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties(monkeypa
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     scoring_result = delta["scoring_result"]
-    # Final score should have penalty applied
-    assert scoring_result["final_score"] < 100.0
-    assert len(scoring_result["penalties_applied"]) >= 1
+    assert scoring_result["final_score"] == 100.0
+    assert "PENALTY_SECURITY" in scoring_result["penalties_applied"]
+    assert "PENALTY_POST_HOC" in scoring_result["penalties_applied"]
+
+
+def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
+    """Test that apply_scoring_logic_hook records passivity penalty observation token."""
+    eval_matrices = {"blk_1": 80.0}
+    inputs: dict[str, Any] = {
+        "steps": [],
+        "inputs": {
+            "_evaluative_matrices": eval_matrices,
+            "passivity_detected": True,
+        },
+    }
+
+    state = HookState(
+        execution_id="exec_0000000000000004",
+        workflow_id="wf_1",
+        step_id="step_final",
+        task_blueprint="step_final",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs=inputs),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, MockRepository()),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        audit_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    result = apply_scoring_logic_hook(state, deps)
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
+    assert scoring_result["final_score"] == 80.0
+    assert "PENALTY_PASSIVITY" in scoring_result["penalties_applied"]
 
 
 def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
@@ -3130,9 +3163,7 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "pb_1234567890123456" in delta
-    updated_matrix = delta["pb_1234567890123456"]
-    assert "PASSIVITY PENALTY" in updated_matrix["justification"]
+    assert delta == {"passivity_detected": True}
 
 
 @pytest.mark.asyncio
@@ -3229,6 +3260,88 @@ async def test_enforce_passivity_penalty_hook_missing_workflow_repo_raises() -> 
         await enforce_passivity_penalty_hook(state, deps)
 
     assert exc_info.value.error_code == "HOOK_EXECUTION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_enforce_passivity_penalty_hook_missing_state_raises() -> None:
+    """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if state is None."""
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        prompt_block_repo=cast(Any, MockRepoWaterfall()),
+        output_profile_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await enforce_passivity_penalty_hook(cast(Any, None), deps)
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_enforce_passivity_penalty_hook_missing_blueprint_id_raises() -> None:
+    """Test that enforce_passivity_penalty_hook raises VALIDATION_FAILED if blueprint_id is missing."""
+    state = HookState(
+        execution_id="exec_0000000000000013",
+        workflow_id="wf_1",
+        step_id="",
+        task_blueprint=None,
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepoWaterfall()),
+        workflow_repo=cast(Any, MockRepoWaterfall()),
+        comp_repo=cast(Any, MockRepoWaterfall()),
+        prompt_block_repo=cast(Any, MockRepoWaterfall()),
+        output_profile_repo=cast(Any, MockRepoWaterfall()),
+        identity_repo=cast(Any, MockRepoWaterfall()),
+        audit_repo=cast(Any, MockRepoWaterfall()),
+        system_repo=cast(Any, MockRepoWaterfall()),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await enforce_passivity_penalty_hook(state, deps)
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() -> None:
+    """Test that enforce_passivity_penalty_hook skips non-matrix prompt blocks."""
+    mock_workflow = MockRepoWaterfall()
+    mock_pb_repo = AsyncMock()
+    mock_pb_repo.get_prompt_block_by_id.return_value = {
+        "id": "pb_1234567890123456",
+        "slug": "instruction",
+        "category_id": "system_rule",
+        "label": {"translations": {"en": "Instruction"}},
+        "description": {"translations": {"en": "Instruction desc"}},
+        "instruction_text": "Test instruction",
+    }
+    state = HookState(
+        execution_id="exec_0000000000000014",
+        workflow_id="wf_1",
+        step_id="st_1234567890123456",
+        task_blueprint="st_1234567890123456",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"pb_1234567890123456": {"raw_score": 1.0}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_pb_repo),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    result = await enforce_passivity_penalty_hook(state, deps)
+    assert result.success is True
+    assert result.state_delta.delta == {}
 
 
 @pytest.mark.asyncio
@@ -3370,7 +3483,7 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
     res = await enforce_passivity_penalty_hook(state, deps)
     assert res.success is True
     assert res.state_delta is not None
-    assert "pb_1234567890123456" in res.state_delta.delta
+    assert res.state_delta.delta == {"passivity_detected": True}
 
 
 @pytest.mark.asyncio

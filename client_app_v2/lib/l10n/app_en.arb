@@ -2395,6 +2395,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "penaltySecurityLabel": "Security Penalty (%)",
+  "penaltyPostHocLabel": "Post-Hoc Penalty (%)",
+  "penaltyPassivityLabel": "Passivity Penalty (%)",
+  "penaltiesSectionTitle": "Automated Score Penalties"
 }
 

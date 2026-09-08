@@ -120,7 +120,6 @@ def test_get_supported_platforms_permission_denied(service: StudioSystemConfigSe
         service.get_supported_platforms(member_token)
 
 
-
 # ============================================================================
 # System Config (Model Registry) Tests
 # ============================================================================

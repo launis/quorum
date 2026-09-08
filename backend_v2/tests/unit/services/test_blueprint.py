@@ -2192,6 +2192,9 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 visible_workflow_extensions=[],
                 max_extension_items=2,
                 strictness_level=85,
+                security_penalty=0.10,
+                post_hoc_penalty=0.15,
+                passivity_penalty=0.05,
             )
         ]
     )
@@ -2213,13 +2216,21 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
         await transformer.build_report_dto("exe_0000000000000101")
     assert "Legacy or unsupported penalty string" in str(exc.value)
 
-    # Remove invalid penalty and keep only valid user-input penalties (10% + 15% = 25% penalty on 100 base)
+    # Remove invalid penalty and verify profile-governed penalties (10% + 15% = 25% penalty on 100 base)
     mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
         "penalties_applied"
-    ] = ["PENALTY_SECURITY:10", "PENALTY_POST_HOC:15"]
+    ] = ["PENALTY_SECURITY", "PENALTY_POST_HOC"]
 
     dto = await transformer.build_report_dto("exe_0000000000000101")
     assert dto.global_score == 75.0
+
+    # Add passivity penalty (10% + 15% + 5% = 30% penalty on 100 base)
+    mock_repo_transformer.get_execution.return_value.execution_trace[0].content["scoring_result"][
+        "penalties_applied"
+    ] = ["PENALTY_SECURITY", "PENALTY_POST_HOC", "PENALTY_PASSIVITY"]
+
+    dto2 = await transformer.build_report_dto("exe_0000000000000101")
+    assert dto2.global_score == 70.0
 
 
 @pytest.mark.asyncio

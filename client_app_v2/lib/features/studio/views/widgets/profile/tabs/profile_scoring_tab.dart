@@ -257,6 +257,112 @@ class ProfileScoringTab extends ConsumerWidget {
             ),
           ),
         ),
+        AppSpacing.h16,
+        Card(
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  l10n.penaltiesSectionTitle,
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                AppSpacing.h16,
+                TextFormField(
+                  initialValue: (payload.securityPenalty * 100).toStringAsFixed(
+                    payload.securityPenalty * 100 ==
+                            (payload.securityPenalty * 100).roundToDouble()
+                        ? 0
+                        : 1,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.penaltySecurityLabel,
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    suffixText: '%',
+                  ),
+                  onChanged: (val) {
+                    if (val.trim().isEmpty) {
+                      updatePayload(payload.copyWith(securityPenalty: 0.0));
+                      return;
+                    }
+                    final parsed = double.tryParse(val.trim());
+                    if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                      updatePayload(
+                        payload.copyWith(securityPenalty: parsed / 100.0),
+                      );
+                    }
+                  },
+                ),
+                AppSpacing.h16,
+                TextFormField(
+                  initialValue: (payload.postHocPenalty * 100).toStringAsFixed(
+                    payload.postHocPenalty * 100 ==
+                            (payload.postHocPenalty * 100).roundToDouble()
+                        ? 0
+                        : 1,
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.penaltyPostHocLabel,
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    suffixText: '%',
+                  ),
+                  onChanged: (val) {
+                    if (val.trim().isEmpty) {
+                      updatePayload(payload.copyWith(postHocPenalty: 0.0));
+                      return;
+                    }
+                    final parsed = double.tryParse(val.trim());
+                    if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                      updatePayload(
+                        payload.copyWith(postHocPenalty: parsed / 100.0),
+                      );
+                    }
+                  },
+                ),
+                AppSpacing.h16,
+                TextFormField(
+                  initialValue: (payload.passivityPenalty * 100)
+                      .toStringAsFixed(
+                        payload.passivityPenalty * 100 ==
+                                (payload.passivityPenalty * 100).roundToDouble()
+                            ? 0
+                            : 1,
+                      ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: l10n.penaltyPassivityLabel,
+                    isDense: true,
+                    border: const OutlineInputBorder(),
+                    suffixText: '%',
+                  ),
+                  onChanged: (val) {
+                    if (val.trim().isEmpty) {
+                      updatePayload(payload.copyWith(passivityPenalty: 0.0));
+                      return;
+                    }
+                    final parsed = double.tryParse(val.trim());
+                    if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                      updatePayload(
+                        payload.copyWith(passivityPenalty: parsed / 100.0),
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
