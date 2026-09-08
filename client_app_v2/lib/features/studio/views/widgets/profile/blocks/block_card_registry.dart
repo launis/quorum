@@ -22,6 +22,9 @@ class BlockCardRegistry {
     TargetBlockType.varianceValidationBlock: [
       XaiExtensionType.varianceValidation,
     ],
+    TargetBlockType.authenticityEvaluationBlock: [
+      XaiExtensionType.authenticityEvaluation,
+    ],
   };
 
   /// Detailed block types that require dedicated editor cards on Tab 3 (Section Config).
