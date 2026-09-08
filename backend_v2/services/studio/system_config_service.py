@@ -9,7 +9,7 @@ from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.dtos.studio import GCPLocationDTO
+from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
 from backend_v2.models.enums import EntityPrefix, GCPVertexLocation, LLMPlatformType
 from backend_v2.models.v2_core import (
     SystemConfigMCPGateways,
@@ -132,6 +132,50 @@ class StudioSystemConfigService:
                 id=GCPVertexLocation.US_EAST4.value,
                 label="Ashburn, Virginia (us-east4)",
                 description="US East enterprise corridor with extensive compute capacity.",
+            ),
+        ]
+
+    def get_supported_platforms(self, initiator: TokenData) -> list[LLMPlatformDTO]:
+        """Get all supported LLM platform providers.
+
+        Args:
+            initiator: The authenticated user initiating the request.
+
+        Returns:
+            List of supported LLM platforms.
+
+        Raises:
+            PermissionDeniedError: If user is not authorized.
+        """
+        if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
+            logger.error(
+                "[StudioSystemConfigService] %s: User %s attempted to list platforms without ROOT/ADMIN permissions.",
+                ErrorCodes.PERMISSION_DENIED.name,
+                initiator.id,
+                extra={"error_code": ErrorCodes.PERMISSION_DENIED.value},
+            )
+            raise PermissionDeniedError("Only ROOT or ADMIN can access supported platforms.")
+
+        return [
+            LLMPlatformDTO(
+                id="vertex_ai",
+                label="Google Cloud Vertex AI",
+                has_regions=True,
+            ),
+            LLMPlatformDTO(
+                id="ai_studio",
+                label="Google AI Studio",
+                has_regions=False,
+            ),
+            LLMPlatformDTO(
+                id="openai",
+                label="OpenAI",
+                has_regions=False,
+            ),
+            LLMPlatformDTO(
+                id="anthropic",
+                label="Anthropic",
+                has_regions=False,
             ),
         ]
 

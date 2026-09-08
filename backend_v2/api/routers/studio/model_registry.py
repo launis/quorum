@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioSystemConfigServiceDep
-from backend_v2.models.dtos.studio import GCPLocationDTO, ModelRegistryDeleteResponse
+from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO, ModelRegistryDeleteResponse
 from backend_v2.models.enums import LLMPlatformType
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 
@@ -62,6 +62,26 @@ def get_supported_locations(
         AppException: If user is unauthorized or listing fails.
     """
     return studio_service.get_supported_locations(current_user)
+
+
+@router.get("/platforms", response_model=list[LLMPlatformDTO])
+def get_supported_platforms(
+    current_user: CurrentUserDep,
+    studio_service: StudioSystemConfigServiceDep,
+) -> list[LLMPlatformDTO]:
+    """Retrieve all supported LLM platform providers.
+
+    Args:
+        current_user: The authenticated user making the request.
+        studio_service: The studio service dependency.
+
+    Returns:
+        A list of supported LLM platforms.
+
+    Raises:
+        AppException: If user is unauthorized or listing fails.
+    """
+    return studio_service.get_supported_platforms(current_user)
 
 
 @router.get("/", response_model=list[SystemConfigModelRegistry])

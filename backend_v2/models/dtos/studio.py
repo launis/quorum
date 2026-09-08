@@ -54,9 +54,26 @@ __all__ = [
     "WorkflowAvailableExtensionsResponse",
     "OutputProfileListResponse",
     "GCPLocationDTO",
+    "LLMPlatformDTO",
     "WorkflowUpdateDTO",
     "StepUpdateDTO",
 ]
+
+
+class LLMPlatformDTO(BaseDTO):
+    """Data Transfer Object representing a supported LLM platform provider.
+
+    Attributes:
+        id: Canonical platform identifier (e.g., 'vertex_ai', 'ai_studio').
+        label: Human-readable platform provider label.
+        has_regions: Whether the platform requires regional location selection.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    id: Annotated[str, Field(description="Canonical platform identifier")]
+    label: Annotated[str, Field(description="Human-readable regional label")]
+    has_regions: Annotated[bool, Field(description="Whether platform requires regional location selection")]
 
 
 class GCPLocationDTO(BaseDTO):

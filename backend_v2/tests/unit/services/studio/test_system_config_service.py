@@ -104,6 +104,23 @@ def test_get_supported_locations_permission_denied(service: StudioSystemConfigSe
         service.get_supported_locations(member_token)
 
 
+def test_get_supported_platforms_success(service: StudioSystemConfigService, admin_token: TokenData) -> None:
+    """Return list of supported LLM platforms."""
+    platforms = service.get_supported_platforms(admin_token)
+    assert len(platforms) == 4
+    platform_ids = [p.id for p in platforms]
+    assert platform_ids == ["vertex_ai", "ai_studio", "openai", "anthropic"]
+    assert platforms[0].has_regions is True
+    assert platforms[1].has_regions is False
+
+
+def test_get_supported_platforms_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
+    """Assert non-root/admin raises PermissionDeniedError on platforms."""
+    with pytest.raises(PermissionDeniedError):
+        service.get_supported_platforms(member_token)
+
+
+
 # ============================================================================
 # System Config (Model Registry) Tests
 # ============================================================================
