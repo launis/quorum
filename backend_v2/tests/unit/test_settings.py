@@ -101,7 +101,7 @@ def test_settings_properties_and_computed_fields() -> None:
     assert settings.is_cloud_storage is True
     assert settings.model_strategies == {}
     assert settings.log_format == "json"
-    assert settings.allow_mock_tokens is True
+    assert settings.allow_mock_tokens is False
     assert settings.schema_max_chunk_records == settings.llm_max_chunk_size + 5
     assert settings.schema_max_source_aliases == min(
         settings.schema_max_quotes_target, settings.schema_max_chunk_records
@@ -156,6 +156,54 @@ def test_settings_storage_backend_fallback_and_invalid() -> None:
 
     with pytest.raises(AppException):
         _ = Settings(storage_backend="INVALID_STORAGE", use_mock_llm=True).active_backend
+
+
+def test_settings_allow_mock_tokens_defense_in_depth() -> None:
+    """Test defense-in-depth firewall for allow_mock_tokens across storage backends."""
+    # Negative Partition 1: Cloud Firestore storage unconditionally bans mock tokens even in dev
+    s_cloud_dev = Settings(
+        use_mock_llm=True,
+        storage_backend="FIRESTORE",
+        use_firebase_auth=False,
+        environment="development",
+    )
+    assert s_cloud_dev.allow_mock_tokens is False
+
+    # Negative Partition 2: Cloud Firestore storage bans mock tokens in prod with Firebase auth
+    s_cloud_prod = Settings(
+        use_mock_llm=True,
+        storage_backend="FIRESTORE",
+        use_firebase_auth=True,
+        environment="production",
+    )
+    assert s_cloud_prod.allow_mock_tokens is False
+
+    # Negative Partition 3: Local storage with active Firebase auth bans mock tokens in production
+    s_local_prod_fb = Settings(
+        use_mock_llm=True,
+        storage_backend="LOCAL",
+        use_firebase_auth=True,
+        environment="production",
+    )
+    assert s_local_prod_fb.allow_mock_tokens is False
+
+    # Positive Partition 1: Local storage in development allows mock tokens
+    s_local_dev = Settings(
+        use_mock_llm=True,
+        storage_backend="LOCAL",
+        use_firebase_auth=True,
+        environment="development",
+    )
+    assert s_local_dev.allow_mock_tokens is True
+
+    # Positive Partition 2: Local storage with disabled Firebase auth allows mock tokens
+    s_local_no_fb = Settings(
+        use_mock_llm=True,
+        storage_backend="LOCAL",
+        use_firebase_auth=False,
+        environment="production",
+    )
+    assert s_local_no_fb.allow_mock_tokens is True
 
 
 def test_settings_model_post_init_no_credentials_raises() -> None:

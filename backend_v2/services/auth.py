@@ -37,6 +37,7 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
+from backend_v2.settings import get_settings
 
 # Secure Secret for Local Tokens (Impersonation)
 # In production, this MUST be set via environment variable.
@@ -303,29 +304,27 @@ class AuthService:
             logger.debug("PyJWT decoding failed, falling back: %s", jwt_err)
 
         # 2. Mock/Dev Mode check
-        from backend_v2.settings import get_settings
-
         settings = get_settings()
         is_mock_token = token.startswith("mock-token:")
 
-        # 1. Torjutaan mock-tokenit tuotannossa heti (Fail-Fast)
+        # 1. Reject mock tokens in production or cloud environments immediately (Fail-Fast)
         if is_mock_token and not settings.allow_mock_tokens:
             raise AuthenticationError(
                 message="Mock tokens are strictly forbidden in production.", details={"error_code": "FORBIDDEN_TOKEN"}
             )
 
         if not self.use_firebase or (is_mock_token and settings.allow_mock_tokens):
-            # Expect format "mock-token:<id>"
+            # Expect format "mock-token:<user_id>"
             if token.startswith("mock-token:"):
-                id = token.split(":")[1]
+                user_id = token.split(":")[1]
             else:
-                id = token
+                user_id = token
 
             # Check if user exists in our DB
-            user = await self.repo.get_by_id(id)
+            user = await self.repo.get_by_id(user_id)
             if not user:
                 raise AuthenticationError(
-                    message=f"Mock User not found for ID: {id}",
+                    message=f"Mock User not found for ID: {user_id}",
                     details={"error_code": ErrorCodes.PERMISSION_DENIED},  # Or similar
                 )
 
@@ -335,11 +334,11 @@ class AuthService:
         try:
             # Verify ID token
             decoded_token = self.firebase_auth.verify_id_token(token)
-            id = decoded_token["uid"]
+            user_id = decoded_token["uid"]
             email = decoded_token.get("email")
 
             # Sync/Get User from our DB
-            user = await self.repo.get_by_id(id)
+            user = await self.repo.get_by_id(user_id)
 
             if not user:
                 # Auto-registration for missing users found in Firebase
@@ -349,10 +348,10 @@ class AuthService:
                         details={"error_code": "AUTH_TOKEN_MISSING_EMAIL"},
                     )
 
-                logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", id)
+                logger.info("User %s not found in local DB. Auto-registering as MEMBER (No Org).", user_id)
 
                 new_user = User(
-                    id=id,
+                    id=user_id,
                     email=email,
                     role=UserRole.MEMBER,
                     organization_id=None,  # Orphan user
@@ -364,7 +363,7 @@ class AuthService:
                 )
 
                 await self.repo.create(new_user)
-                return TokenData(id=id, role=UserRole.MEMBER, email=email, organization_id=None)
+                return TokenData(id=user_id, role=UserRole.MEMBER, email=email, organization_id=None)
 
             return TokenData(id=user.id, role=user.role, email=user.email, organization_id=user.organization_id)
 

@@ -87,3 +87,72 @@ def test_test_environment_isolates_log_file() -> None:
         "In test environment, settings.log_file_name must not be 'backend_debug.log'. "
         "Test execution is actively polluting the development server log file!"
     )
+
+
+def test_log_startup_system_parameters_banner(caplog: pytest.LogCaptureFixture) -> None:
+    """Test that log_startup_system_parameters outputs an exhaustive ASCII table at INFO level."""
+    from backend_v2.logging_config import log_startup_system_parameters
+
+    test_logger = logging.getLogger("test.startup")
+    with caplog.at_level(logging.INFO, logger="test.startup"):
+        caplog.clear()
+        log_startup_system_parameters(test_logger, "FASTAPI TEST SERVER")
+
+    messages = [r.message for r in caplog.records if r.name == "test.startup"]
+    full_output = "\n".join(messages)
+
+    assert "[SYSTEM STARTUP CONFIGURATION] - FASTAPI TEST SERVER" in full_output
+    assert "Environment:" in full_output
+    assert "Matrix Sampling Limit:" in full_output
+    assert "Mock Tokens Allowed:" in full_output
+    assert "Storage Backend:" in full_output
+    assert "Max Concurrent LLM Steps:" in full_output
+    assert "Max Concurrent Workflows:" in full_output
+    assert "LLM Max Retries:" in full_output
+    assert "LLM Schema Retries:" in full_output
+    assert "LLM Logical Retries:" in full_output
+    assert "Disable Vertex Cache:" in full_output
+    assert "Use Vertex LLM:" in full_output
+    assert "Use Mock LLM:" in full_output
+    assert "Pacing Delays (s):" in full_output
+    assert "Scoring Penalties:" in full_output
+    assert "Security Threat Penalty:" in full_output
+    assert "Post-Hoc Penalty:" in full_output
+    assert "Passivity Multiplier:" in full_output
+
+    # Verify log level and zero secret leakage
+    for record in caplog.records:
+        if record.name == "test.startup":
+            assert record.levelno == logging.INFO
+            assert "sk-" not in record.message
+            assert "bearer" not in record.message.lower()
+
+
+def test_log_startup_system_parameters_sampling_description(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Test that log_startup_system_parameters renders accurate descriptions for prod vs dev sampling."""
+    from backend_v2.logging_config import log_startup_system_parameters
+    from backend_v2.settings import Settings
+
+    test_logger = logging.getLogger("test.startup.sampling")
+
+    # 1. Production sampling limit 0 -> All 305 atoms
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+    monkeypatch.setattr("backend_v2.logging_config.get_settings", lambda: prod_settings)
+
+    with caplog.at_level(logging.INFO, logger="test.startup.sampling"):
+        caplog.clear()
+        log_startup_system_parameters(test_logger, "PROD SERVER")
+    prod_output = "\n".join(r.message for r in caplog.records)
+    assert "All 305 atoms (Production)" in prod_output
+
+    # 2. Dev sampling limit 1 -> Dev sampling
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    monkeypatch.setattr("backend_v2.logging_config.get_settings", lambda: dev_settings)
+
+    with caplog.at_level(logging.INFO, logger="test.startup.sampling"):
+        caplog.clear()
+        log_startup_system_parameters(test_logger, "DEV SERVER")
+    dev_output = "\n".join(r.message for r in caplog.records)
+    assert "Dev sampling" in dev_output

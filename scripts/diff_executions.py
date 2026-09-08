@@ -1298,7 +1298,22 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             c_size = sys_snap.get("LLM_MAX_CHUNK_SIZE")
             m_eval = sys_snap.get("SCHEMA_MAX_EVALUATIONS")
             s_lim = sys_snap.get("MATRIX_SAMPLING_LIMIT")
-            snap_str = f" (Chunk size: {c_size}, Max Evals: {m_eval}, Sampling: {s_lim})" if sys_snap else ""
+
+            sampling_val = meta.get("matrix_sampling_strategy") if isinstance(meta, dict) else None
+            if sampling_val == 0:
+                sampling_display = "0 (Kaikki 305 atomia, Tuotanto)"
+            elif sampling_val is not None and sampling_val > 0:
+                sampling_display = f"{sampling_val} (Kehitystilan otanta)"
+            elif s_lim is not None:
+                sampling_display = str(s_lim)
+            else:
+                sampling_display = "-"
+
+            snap_str = (
+                f" (Chunk size: {c_size}, Max Evals: {m_eval}, Sampling: {sampling_display})"
+                if sys_snap or sampling_val is not None
+                else ""
+            )
 
             with exe_path.open("r", encoding="utf-8") as exe_f:
                 raw_data = exe_f.read()
@@ -1316,7 +1331,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             f.write(f"  - **Malli(t):** `{models_formatted}`{snap_str}\n")
             f.write(
                 f"  - **Ajotila ja Rinnakkaisuus:** Tila: `{dev_mode}`, Max retries: `{retries}`, "
-                f"Chunk size: `{c_size or '-'}`, Max Evals: `{m_eval or '-'}`, Sampling: `{s_lim or '-'}`\n"
+                f"Chunk size: `{c_size or '-'}`, Max Evals: `{m_eval or '-'}`, Sampling: `{sampling_display}`\n"
             )
             f.write(f"  - **Kesto:** `{duration_str}`\n")
             f.write(f"  - **API-kutsut:** `{total_calls}` kpl (Välimuistiosumat: `{cache_hit_count}/{total_calls}`)\n")

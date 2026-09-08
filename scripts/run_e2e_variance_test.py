@@ -465,13 +465,17 @@ def run_variance_test(
             time.sleep(cooldown_seconds)
 
         print("Starting run_local.bat...")
-        environment = "development" if dev or os.environ.get("ENVIRONMENT") == "development" else "production"
+        environment = "development" if dev else "production"
         os.environ["ENVIRONMENT"] = environment
         backend_env = os.environ.copy()
         backend_env["ENVIRONMENT"] = environment
 
         run_bat = Path("run_local.bat").resolve()
         cmd: list[str] = [str(run_bat)]
+        if environment == "production":
+            cmd.append("--prod")
+        else:
+            cmd.append("--dev")
 
         if no_cache:
             cmd.append("--no-cache")

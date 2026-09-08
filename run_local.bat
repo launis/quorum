@@ -1,18 +1,60 @@
 @echo off
-if "%1"=="--flush" (
+
+:: Default environment configuration
+if "%ENVIRONMENT%"=="" set ENVIRONMENT=development
+set DISABLE_VERTEX_CACHE=false
+set DO_FLUSH=false
+
+:parse_args
+if "%~1"=="" goto args_done
+if /i "%~1"=="--prod" (
+    set ENVIRONMENT=production
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--production" (
+    set ENVIRONMENT=production
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--dev" (
+    set ENVIRONMENT=development
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--no-cache" (
+    set DISABLE_VERTEX_CACHE=true
+    shift
+    goto parse_args
+)
+if /i "%~1"=="--flush" (
+    set DO_FLUSH=true
+    shift
+    goto parse_args
+)
+shift
+goto parse_args
+:args_done
+
+if "%DO_FLUSH%"=="true" (
     echo [!] Manually flushing Redis Caches...
     docker-compose exec redis redis-cli FLUSHALL >nul 2>&1
     IF %ERRORLEVEL% NEQ 0 (
         docker exec -it quorum-redis-1 redis-cli FLUSHALL
     )
     echo [!] Redis Queues and Caches flushed!
-    exit /b
+    exit /b 0
 )
 
 echo ===================================================
-echo   COGNITIVE QUORUM - LOCAL PRODUCTION LAUNCHER
-echo   (LOCAL DB: data\db_v2.json)
-echo ===================================================
+echo   COGNITIVE QUORUM - LOCAL LAUNCHER
+echo   AJOTYYPPI / ENVIRONMENT: %ENVIRONMENT%
+echo   [!] TILA: (Tuotanto: 305 atomia / Kehitys: 1 atomi)
+echo   KANTA:       PAIKALLINEN (data\db_v2.json)
+echo   AUTH:        MOCK TOKENS SALLITTU (LOCAL)
+echo   LLM:         REAL VERTEX AI (service-account.json)
+if "%DISABLE_VERTEX_CACHE%"=="true" echo   CACHE:       VERTEX AI CONTEXT CACHE DISABLED
+===================================================
 echo.
 
 :: Aggressive cleanup: Kill lingering processes that might hold file locks
@@ -60,9 +102,8 @@ IF %ERRORLEVEL% EQU 0 (
 )
 
 :: =========================================================================
-:: VÄLIAIKAINEN KORJAUS: REDIS JONON TYHJENNYS
-:: Estää aiempien kaatumisten jumiuttamat Arq-haamuajot heräämästä eloon
-:: ja tukkimasta Google Vertex AI:n 5 RPM rajoitusta heti käynnistyksessä.
+:: REDIS JONON TYHJENNYS
+:: Estää aiempien kaatumisten jumiuttamat Arq-haamuajot heräämästä eloon.
 :: =========================================================================
 echo [!] Flushing Redis Queues to clear old ghost jobs...
 docker-compose exec redis redis-cli FLUSHALL >nul 2>&1
@@ -72,30 +113,20 @@ IF %ERRORLEVEL% NEQ 0 (
 echo [!] Redis Queues flushed!
 
 echo [2/3] Launching Backend ^& Worker (Uvicorn + Arq)...
-echo       Mode: LOCAL
-echo       Config: LOCAL DB (db_v2.json), REAL LLM, MOCK AUTH
-echo       Environment: development BY DEFAULT (Flash models, 1-atom sampling, 0 delays).
-echo                    To run in thorough production mode (Pro models, full matrices), run:
-echo                    $env:ENVIRONMENT="production"; .\run_local.bat
+echo       Environment: %ENVIRONMENT%
+echo       Vertex AI Cache Disabled: %DISABLE_VERTEX_CACHE%
 
 set USE_FIREBASE_AUTH=false
-set DISABLE_VERTEX_CACHE=false
-if "%1"=="--no-cache" (
-    set DISABLE_VERTEX_CACHE=true
-    echo [!] Vertex AI Context Cache globally DISABLED via flag.
-)
-
-if "%ENVIRONMENT%"=="" set ENVIRONMENT=development
 
 :: Backend
-start "CQ Backend V2 (LOCAL)" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
+start "CQ Backend V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run uvicorn backend_v2.main:app --reload --reload-dir backend_v2 --host 0.0.0.0 --port 8000 --timeout-keep-alive 30 --log-config backend_v2/uvicorn_logging.yaml"
 
 :: Worker
-start "CQ Worker V2 (LOCAL)" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
+start "CQ Worker V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
 
 echo [3/3] Launching Client (Flutter)...
 if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false
-start "CQ Client (LOCAL)" cmd /k "cd client_app_v2 && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
+start "CQ Client [LOCAL - %ENVIRONMENT%]" cmd /k "cd client_app_v2 && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
 
 echo.
 echo ---------------------------------------------------

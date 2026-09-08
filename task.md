@@ -1,73 +1,53 @@
-# Task Tracker: Dynamic Profile-Governed Penalties & Tripartite Harmonization (Zero-Fallback Architecture)
+# Task Tracker: SSOT Environment Governance & Startup Observability
 
 <required_context_rules>
     <rule>@[.agents/rules/00-antigravity-core.md]</rule>
     <rule>@[.agents/rules/01-python-backend.md]</rule>
-    <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
-    <rule>@[.agents/rules/03_seed_vault.md]</rule>
-    <rule>@[.agents/rules/04_directory_reference.md]</rule>
-    <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
-    <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
-    <knowledge_item>@[ki_sdui_adapter_pattern.md]</knowledge_item>
-    <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
-    <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+    <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+    <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3680a9b5-579a-4799-9bb4-1e513a4082b2\implementation_plan.md]
+Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\ca3dd09b-8125-4837-89e6-87171caf3133\implementation_plan.md]
 
 ## Pre-Flight Checklist (<constraint> tags)
-- [x] Constraint: `anti_duplication` - Ensure zero dangling imports of `ScoringPenalty` across the entire codebase.
-- [x] Constraint: `zero_service_layer_fallbacks` - Fields must be non-nullable float (never float | None) on persistence and response models to prevent downstream fallback chains.
-- [x] Constraint: `zero_permissive_typing` - Ensure `model_config = ConfigDict(strict=True, extra="forbid")` remains intact on all modified models.
-- [x] Constraint: `sdui_contract_fracture_prevention` - Verify 1:1 serialization naming between Python `snake_case` and Dart `camelCase`.
-- [x] Constraint: `live_database_mutation` - Never modify `data/db_v2.json` directly. Edit `seed_data.json` and sync via seeder.
-- [x] Constraint: `the_duct_tape_ban` - Maintain raw truth purity in Phase 1 execution data; zero text mutilation or irreversible destructive math in DAG steps.
-- [x] Constraint: `universal_fail_fast` - Raise explicit `AppException` with `ErrorCodes.VALIDATION_FAILED` if state structure is corrupted.
-- [x] Constraint: `zero_service_layer_fallbacks` - Zero tolerance for fallback operators (or, .get, or global settings). If profile data is missing, fail fast.
-- [x] Constraint: `sdui_adapter_dumb_painter` - Pass pre-calculated `penalties_applied` into `AdapterContext`.
-- [x] Constraint: `cross_language_mapping_mandate` - All static localization keys defined in `en.json` and `fi.json`; no hardcoded Finnish strings in Python code.
-- [x] Constraint: `monolithic_god_widgets` - Keep widgets modular; use existing `AppSpacing` and `Theme.of(context)` tokens.
+- [x] Constraint: `inline_imports_ban` - No inline `from backend_v2.settings import get_settings` inside functions; imported globally at the top of `backend_v2/services/auth.py`.
+- [x] Constraint: `english_language_mandate` - Replaced Finnish comments in `auth.py` with concise English comments.
+- [x] Constraint: `builtin_shadowing_cleanup` - Renamed variable `id` shadowing Python builtin `id` in `auth.py`.
+- [x] Constraint: `security_defense_in_depth` - In `settings.py`, `allow_mock_tokens` strictly requires `self.active_backend == StorageBackend.LOCAL`.
+- [x] Constraint: `startup_observability_ssot` - `log_startup_system_parameters` is a pure, reusable helper logging fixed-width ASCII parameters to `backend_debug.log`.
+- [x] Constraint: `cli_environment_isolation` - `run_e2e_variance_test.py` isolates `ENVIRONMENT` from local dirty `.env` without secondary flags.
+- [x] Constraint: `metadata_ssot_governance` - `diff_executions.py` reads `matrix_sampling_strategy` directly from `ExecutionMetadata` per `ki_execution_record_ssot.md`.
+- [x] Constraint: `launcher_environment_parity` - `run_local.bat` supports `--prod` / `--production` and `--dev`, displaying dynamic environment banners and synced window titles.
 
 ## Execution Tasks
 
-- [x] **Phase 1: Technical Debt Pre-Requisites and Schema Harmonization**
-  - [x] Step 1.1: Demolish Dead ScoringPenalty Enum (`backend_v2/models/enums.py`).
-  - [x] Step 1.2: Extend Output Profile Schemas Backend Zero-Fallback (`backend_v2/models/dtos/output_profile.py`, `backend_v2/models/v2_core.py`).
-  - [x] Step 1.3: Extend Output Profile Freezed Model Frontend Zero-Fallback (`client_app_v2/lib/features/studio/models/output_profile.dart`).
-  - [x] Step 1.4: Seed Data Profile Alignment (`backend_v2/seed/seed_data.json`).
-  - [x] Quality Gate: Run backend and flutter audit loops for Phase 1.
+- [x] **Phase 1: Pre-Implementation Cleanups (Technical Debt & 1-Hop Caller Normalization)**
+  - [x] Step 1.1: Add global import `from backend_v2.settings import get_settings` at top of `backend_v2/services/auth.py`.
+  - [x] Step 1.2: Remove inline import in `verify_token` at line 306 of `backend_v2/services/auth.py`.
+  - [x] Step 1.3: Replace Finnish comment with English in `verify_token`.
+  - [x] Step 1.4: Rename local variable `id` to `user_id` in `verify_token` to avoid shadowing builtin `id`.
+  - [x] Quality Gate: Run unit tests and `backend_audit_loop.py` on `auth.py`.
 
-- [x] **Phase 2: Phase 1 Execution Hook Refactoring**
-  - [x] Step 2.1: Refactor Passivity Hook Purity (`backend_v2/hooks/scoring/passivity_hook.py`).
-  - [x] Step 2.2: Harmonize Scoring Hook Passivity Detection Zero-Fallback (`backend_v2/hooks/scoring/falsifier_hook.py`).
-  - [x] Quality Gate: Run backend audit loop for Phase 2.
+- [x] **Phase 2: IAM Defense-in-Depth Firewall**
+  - [x] Step 2.1: Update `allow_mock_tokens` in `backend_v2/settings.py` to enforce `self.active_backend == StorageBackend.LOCAL`.
+  - [x] Step 2.2: Add unit tests in `backend_v2/tests/unit/test_settings.py` covering all 4 ISTQB partitions for `allow_mock_tokens`.
+  - [x] Quality Gate: Run unit tests and `backend_audit_loop.py` on `settings.py`.
 
-- [x] **Phase 3: Phase 3 SDUI and Blueprint Dynamic Penalties**
-  - [x] Step 3.1: Dynamic Profile Penalty Calculation Zero-Fallback (`backend_v2/services/blueprint.py`).
-  - [x] Step 3.2: Localized Penalties Adapter Zero-Fallback (`backend_v2/services/sdui/adapters/penalties_adapter.py`).
-  - [x] Step 3.3: Add Localization Keys Backend (`backend_v2/l10n/fi.json`, `backend_v2/l10n/en.json`).
-  - [x] Quality Gate: Run backend audit loop and SDUI parity test for Phase 3.
+- [x] **Phase 3: Startup Parameter Logging in Backend & Worker**
+  - [x] Step 3.1: Implement `log_startup_system_parameters(logger: logging.Logger, component_name: str) -> None` in `backend_v2/logging_config.py`.
+  - [x] Step 3.2: Hook `log_startup_system_parameters` into `backend_v2/main.py` (`lifespan`).
+  - [x] Step 3.3: Hook `log_startup_system_parameters` into `backend_v2/worker.py` (`startup`).
+  - [x] Step 3.4: Add unit tests in `backend_v2/tests/unit/test_logging_isolation.py` asserting startup banner logging.
+  - [x] Quality Gate: Run unit tests and `backend_audit_loop.py` on logging and startup entrypoints.
 
-- [x] **Phase 4: Flutter Studio UI Integration**
-  - [x] Step 4.1: Add Localization Keys Frontend (`client_app_v2/lib/l10n/app_fi.arb`, `client_app_v2/lib/l10n/app_en.arb`).
-  - [x] Step 4.2: Integrate Controls into Profile Scoring Tab (`client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart`).
-  - [x] Quality Gate: Run flutter audit loop for Phase 4.
-
-- [x] **Phase 5: Quality Gates and Verification**
-  - [x] Step 5.1: Unit Test Expansion Backend (`backend_v2/tests/unit/hooks/test_scoring.py`, `backend_v2/tests/unit/services/sdui/adapters/test_penalties_adapter.py`, `backend_v2/tests/unit/services/test_blueprint.py`).
-  - [x] Step 5.2: Execute Quality Gates (Backend audit loop, Flutter audit loop, Seed dry-run, Live E2E variance verification).
+- [x] **Phase 4: Pure SSOT Environment Resolution in E2E Runner, Diff Tool & Launcher**
+  - [x] Step 4.1: Eliminate `.env` leakage in `scripts/run_e2e_variance_test.py` (`run_variance_test`).
+  - [x] Step 4.2: Update `scripts/diff_executions.py` to read `matrix_sampling_strategy` from `ExecutionMetadata`.
+  - [x] Step 4.3: Enhance `run_local.bat` with CLI argument parsing loop (`--prod`, `--dev`, `--no-cache`, `--flush`), dynamic banner, and window titles.
+  - [x] Step 4.4: Add unit tests in `backend_v2/tests/unit/test_run_e2e_variance_test.py` asserting environment isolation.
+  - [x] Step 4.5: Py_compile verification for scripts and full audit gate.
 
 ## Session Handover Context
-- **Achieved**: All 5 phases completed and verified 100% under Continuous Full-Auto Mode.
-  - Demolished dead `ScoringPenalty` Enum.
-  - Extended backend schemas (`OutputProfile`, `OutputProfileCreateDTO`, `OutputProfileResponseDTO`, `OutputProfileUpdateDTO`) and Flutter Freezed model with non-nullable default `0.0` penalties (`security_penalty`, `post_hoc_penalty`, `passivity_penalty`).
-  - Updated `seed_data.json` profile with `0.0` default penalties and verified via dry-run seeder.
-  - Preserved raw execution purity in `passivity_hook.py` (emits `HookDeltaDTO(delta={"passivity_detected": True})` without mutating raw scores or prepending strings).
-  - Recorded observation tokens (`PENALTY_SECURITY`, `PENALTY_POST_HOC`, `PENALTY_PASSIVITY`) in `falsifier_hook.py`.
-  - Calibrated dynamic profile deductions in `blueprint.py` (`effective_penalty = min(total, 0.40)`).
-  - Built localized `PenaltiesAdapter` with `PENALTIES_RULES` aesthetics mapping and Finnish/English `AlertBlock` rendering.
-  - Added localization keys to backend JSONs and frontend ARB files.
-  - Added "Automaattiset pistevähennykset" Card to `profile_scoring_tab.dart`.
-  - Quality gates verified: 3033 backend tests passing (94.22% coverage), Flutter audit loop 0 issues, seeder dry-run passed, SDUI semantic parity passed, live E2E variance test passed (0.0% variance, Fleiss Kappa 1.0000).
-- **Learned**: Profile-governed scoring penalties isolate observation registration (Phase 1) from presentation synthesis and scoring calibration (Phase 3), achieving complete tripartite pipeline decoupling and zero-fallback strict typing.
-- **Remaining**: Implementation complete. Ready for atomic git commit.
+- **Achieved**: 100% of Phases 1, 2, 3, and 4 implemented and verified. All 100 unit tests pass across `test_settings.py`, `test_logging_isolation.py`, `test_auth.py`, `test_run_e2e_variance_test.py`, and `test_diff_executions.py`. All targets pass the Universal Quality Gate loop with zero Ruff errors, zero MyPy strict errors, and clean ISTQB partition coverage.
+- **Learned**: In `Settings.allow_mock_tokens`, strictly gating on `self.active_backend == StorageBackend.LOCAL` provides defense-in-depth regardless of Firebase Auth configuration. In `scripts/run_e2e_variance_test.py`, deriving `ENVIRONMENT` purely from the `dev` CLI switch prevents dirty local `.env` files from hijacking production runs.
+- **Remaining**: Implementation 100% complete. Ready for atomic git commit and routing to `/tier8-audit-plan`.

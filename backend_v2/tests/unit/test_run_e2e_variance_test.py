@@ -703,3 +703,107 @@ def test_run_variance_test_diff_execution_utf8_handling(monkeypatch: pytest.Monk
     diff_kwargs = captured_subprocess_kwargs[-1]
     assert diff_kwargs.get("encoding") == "utf-8"
     assert diff_kwargs.get("errors") == "replace"
+
+
+def test_run_variance_test_environment_isolation_dirty_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that dirty .env (ENVIRONMENT=development) does not hijack production run when dev=False."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text with space"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_iso_1": {
+                        "id": "exe_iso_1",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    },
+                }
+            },
+            f,
+        )
+
+    # Simulate dirty .env
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_iso_1")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    captured_cmds: list[list[str]] = []
+    captured_envs: list[dict[str, str]] = []
+
+    class MockPopen:
+        def __init__(self, cmd: list[str], *args: Any, env: dict[str, str] | None = None, **kwargs: Any) -> None:
+            captured_cmds.append(cmd)
+            if env:
+                captured_envs.append(env)
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Res", (), {"stdout": "Diff passed", "stderr": None})(),
+    )
+
+    res = run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file, dev=False)
+    assert res == ["exe_iso_1"]
+
+    # Assert that despite dirty .env, spawned backend received ENVIRONMENT="production" and --prod flag
+    assert len(captured_envs) >= 1
+    assert captured_envs[0]["ENVIRONMENT"] == "production"
+    assert "--prod" in captured_cmds[0]
+    assert "--dev" not in captured_cmds[0]
+
+
+def test_run_variance_test_environment_isolation_dev_true(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """Test that dev=True correctly passes ENVIRONMENT=development and --dev flag to launcher."""
+    inputs_file = tmp_path / "inputs.json"
+    with inputs_file.open("w", encoding="utf-8") as f:
+        json.dump({"product_text": "Sample text with space"}, f)
+
+    db_file = tmp_path / "mock_db.json"
+    with db_file.open("w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "executions": {
+                    "exe_iso_2": {
+                        "id": "exe_iso_2",
+                        "status": "PASSED",
+                        "profile_syntheses": {"prf_1": {"data_starvation": None}},
+                    },
+                }
+            },
+            f,
+        )
+
+    monkeypatch.delenv("ENVIRONMENT", raising=False)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.force_kill_services", lambda: None)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.check_backend", lambda: True)
+    monkeypatch.setattr("scripts.run_e2e_variance_test.trigger_execution", lambda inp: "exe_iso_2")
+    monkeypatch.setattr("time.sleep", lambda s: None)
+
+    captured_cmds: list[list[str]] = []
+    captured_envs: list[dict[str, str]] = []
+
+    class MockPopen:
+        def __init__(self, cmd: list[str], *args: Any, env: dict[str, str] | None = None, **kwargs: Any) -> None:
+            captured_cmds.append(cmd)
+            if env:
+                captured_envs.append(env)
+
+    monkeypatch.setattr("subprocess.Popen", MockPopen)
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Res", (), {"stdout": "Diff passed", "stderr": None})(),
+    )
+
+    res = run_variance_test(str(inputs_file), num_runs=1, timeout_seconds=10, db_path=db_file, dev=True)
+    assert res == ["exe_iso_2"]
+
+    assert len(captured_envs) >= 1
+    assert captured_envs[0]["ENVIRONMENT"] == "development"
+    assert "--dev" in captured_cmds[0]
+    assert "--prod" not in captured_cmds[0]

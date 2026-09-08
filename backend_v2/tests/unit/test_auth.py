@@ -162,6 +162,25 @@ async def test_auth_service_verify_token_mock(mock_repo: Any) -> None:
 
 
 @pytest.mark.asyncio
+async def test_auth_service_verify_token_mock_forbidden_in_production(mock_repo: Any, monkeypatch: Any) -> None:
+    from backend_v2.exceptions import AuthenticationError
+    from backend_v2.settings import Settings
+
+    mock_settings = Settings(
+        use_mock_llm=True,
+        environment="production",
+        use_firebase_auth=True,
+        storage_backend="LOCAL",
+    )
+    monkeypatch.setattr("backend_v2.services.auth.get_settings", lambda: mock_settings)
+    service = AuthService(mock_repo, use_firebase=True)
+
+    with pytest.raises(AuthenticationError) as exc_info:
+        await service.verify_token("mock-token:usr_1234abcd")
+    assert "Mock tokens are strictly forbidden in production" in exc_info.value.message
+
+
+@pytest.mark.asyncio
 async def test_auth_service_create_impersonation_token(mock_repo: Any) -> None:
     service = AuthService(mock_repo, use_firebase=False)
 

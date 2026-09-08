@@ -42,7 +42,7 @@ from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
 from backend_v2.core.rate_limit import rate_limit_exceeded_handler
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
-from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.logging_config import configure_logfire, log_startup_system_parameters, setup_logging
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
@@ -114,10 +114,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     configure_logfire()
     logger = logging.getLogger("backend.main")
-
-    logger.info("======================================================================")
-    logger.info("   COGNITIVE QUORUM BACKEND (V2.9) - STARTING UP")
-    logger.info("======================================================================")
+    log_startup_system_parameters(logger, "FASTAPI API SERVER")
 
     try:
         workflow_dir = "data/workflows"

@@ -377,10 +377,10 @@ class Settings(BaseSettings):
     # --- Scoring Penalties (Zero-Compromise: Configurable) ---
     scoring_security_penalty: Annotated[
         float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")
-    ] = 0.0
+    ] = 0.20
     scoring_post_hoc_penalty: Annotated[
         float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")
-    ] = 0.0
+    ] = 0.15
 
     scoring_passivity_multiplier: Annotated[
         float, Field(description="Penalty multiplier for Passivity/Low Quality")
@@ -781,14 +781,16 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_mock_tokens(self) -> bool:
-        """Strictly disallow mock tokens in cloud production (when Firebase Auth is active).
+        """Strictly disallow mock tokens in cloud environments or active Firebase Auth production.
 
-        Allow mock tokens in development or in local production environments where
-        Firebase Auth is explicitly disabled.
+        Allow mock tokens ONLY on local storage backend when Firebase Auth is explicitly disabled
+        or when running in development mode.
 
         Returns:
             True if mock tokens are permitted, False otherwise.
         """
+        if self.active_backend != StorageBackend.LOCAL:
+            return False
         if not self.use_firebase_auth:
             return True
         return self.environment.lower() == "development"

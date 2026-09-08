@@ -29,7 +29,7 @@ from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.llm.client import LLMClient
-from backend_v2.logging_config import configure_logfire, setup_logging
+from backend_v2.logging_config import configure_logfire, log_startup_system_parameters, setup_logging
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -1778,17 +1778,7 @@ async def startup(ctx: Any) -> None:
     """
     setup_logging()
     configure_logfire()
-
-    # VISUAL SEPARATOR FOR LOG READABILITY (File Only)
-    logger.info("======================================================================")
-    logger.info("   ARQ WORKER (V2.9) - STARTING UP")
-    logger.info("======================================================================")
-
-    # 1. PRINT TO CONSOLE (Minimal)
-    logger.info("===================================================")
-    logger.info("  CQ WORKER (V2.9) STARTED")
-    logger.info("  -> Log: backend_debug.log (CHECK FOR DETAILS)")
-    logger.info("===================================================")
+    log_startup_system_parameters(logger, "ARQ WORKER")
 
     # 1. CRITICAL: Register Tasks & Hooks
     # Import all task modules and hooks here to trigger their decorators.

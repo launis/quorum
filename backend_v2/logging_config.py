@@ -337,3 +337,43 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
 
     # Pass details cleanly to the logger avoiding f-string template injection issues
     logger.error("[App] %s: %s", message, str(exc), exc_info=True, extra=extra)
+
+
+def log_startup_system_parameters(logger: logging.Logger, component_name: str) -> None:
+    """Log exhaustive system startup parameters and configuration banner.
+
+    Args:
+        logger: Active logger instance to emit configuration lines to.
+        component_name: Logical component identifier (e.g. 'FASTAPI API SERVER', 'ARQ WORKER').
+    """
+    settings = get_settings()
+    sampling_desc = "All 305 atoms (Production)" if settings.matrix_sampling_limit == 0 else "Dev sampling"
+    mock_tokens_desc = "Local only" if settings.allow_mock_tokens else "Cloud Protected"
+
+    logger.info("======================================================================")
+    logger.info("   [SYSTEM STARTUP CONFIGURATION] - %s", component_name)
+    logger.info("======================================================================")
+    logger.info("Environment:                %s", settings.environment)
+    logger.info("Matrix Sampling Limit:      %s (%s)", settings.matrix_sampling_limit, sampling_desc)
+    logger.info("Mock Tokens Allowed:        %s (%s)", settings.allow_mock_tokens, mock_tokens_desc)
+    logger.info("Storage Backend:            %s (Path: %s)", settings.active_backend.value, settings.prod_db_path)
+    logger.info("Concurrency:")
+    logger.info("  Max Concurrent LLM Steps: %s", settings.max_concurrent_llm_steps)
+    logger.info("  Max Concurrent Workflows: %s", settings.max_concurrent_workflows)
+    logger.info("LLM Resilience & Retries:")
+    logger.info("  LLM Max Retries:          %s", settings.llm_max_retries)
+    logger.info("  LLM Schema Retries:       %s", settings.llm_max_schema_retries)
+    logger.info("  LLM Logical Retries:      %s", settings.llm_max_logical_retries)
+    logger.info("Cache & Providers:")
+    logger.info("  Disable Vertex Cache:     %s", settings.disable_vertex_cache)
+    logger.info("  Use Vertex LLM:           %s", settings.use_vertex_llm)
+    logger.info("  Use Mock LLM:             %s", settings.use_mock_llm)
+    logger.info("Pacing Delays (s):")
+    logger.info("  Vertex:                   %s", settings.pacing_delay_vertex_seconds)
+    logger.info("  OpenAI:                   %s", settings.pacing_delay_openai_seconds)
+    logger.info("  Mock:                     %s", settings.pacing_delay_mock_seconds)
+    logger.info("Scoring Penalties:")
+    logger.info("  Security Threat Penalty:  %s", settings.scoring_security_penalty)
+    logger.info("  Post-Hoc Penalty:         %s", settings.scoring_post_hoc_penalty)
+    logger.info("  Passivity Multiplier:     %s", settings.scoring_passivity_multiplier)
+    logger.info("======================================================================")
