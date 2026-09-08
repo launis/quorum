@@ -11,11 +11,11 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
-from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import _process_chat_history, process_inputs
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, I18nText
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 @pytest.mark.asyncio
@@ -33,7 +33,7 @@ async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
         result = await _process_chat_history(
             resolved_text="some text",
             key="chat_log",
-            system_repo=AsyncMock(spec=ISystemRepository),
+            system_repo=InMemorySystemRepository(),
             enable_semantic_smoothing=False,
             enable_eager_anonymization=False,
             language="en",
@@ -67,7 +67,7 @@ async def test_process_chat_history_scoped_nlp_on_user_turn_only() -> None:
         result = await _process_chat_history(
             resolved_text=json_input,
             key="chat_log",
-            system_repo=AsyncMock(spec=ISystemRepository),
+            system_repo=InMemorySystemRepository(),
             enable_semantic_smoothing=True,
             enable_eager_anonymization=True,
             language="en",
@@ -89,7 +89,7 @@ async def test_process_chat_history_preserves_paragraph_breaks() -> None:
     result = await _process_chat_history(
         resolved_text=raw_chat,
         key="chat_log",
-        system_repo=AsyncMock(spec=ISystemRepository),
+        system_repo=InMemorySystemRepository(),
         enable_semantic_smoothing=False,
         enable_eager_anonymization=False,
         language="en",
@@ -578,7 +578,7 @@ async def test_process_chat_history_unstructured_parser_failure() -> None:
             await _process_chat_history(
                 resolved_text="unstructured text",
                 key="chat_key",
-                system_repo=AsyncMock(spec=ISystemRepository),
+                system_repo=InMemorySystemRepository(),
                 enable_semantic_smoothing=False,
                 enable_eager_anonymization=False,
                 language="en",
@@ -626,7 +626,7 @@ async def test_process_chat_history_malformed_json_fallback_with_nlp(monkeypatch
         result = await _process_chat_history(
             resolved_text="{invalid json: true}",
             key="chat_key",
-            system_repo=AsyncMock(spec=ISystemRepository),
+            system_repo=InMemorySystemRepository(),
             enable_semantic_smoothing=True,
             enable_eager_anonymization=True,
             language="en",

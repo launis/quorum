@@ -8,23 +8,23 @@ table preservation, cryptographic Unicode noise marker preservation, and XML esc
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import ProcessedChatDTO
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.chat_parser import ChatParserService
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 @pytest.fixture
-def mock_system_repo() -> AsyncMock:
-    """Provide an isolated AsyncMock implementing ISystemRepository."""
-    return AsyncMock(spec=ISystemRepository)
+def mock_system_repo() -> InMemorySystemRepository:
+    """Provide an isolated in-memory repository implementing ISystemRepository."""
+    return InMemorySystemRepository()
 
 
 class TestChatNormalizerService:
@@ -37,17 +37,19 @@ class TestChatNormalizerService:
 
     def test_strip_code_fences_json_block(self) -> None:
         """Verify markdown json block fences are stripped properly."""
-        text = "```json\n{\"key\": \"val\"}\n```"
-        assert ChatNormalizerService.strip_code_fences(text) == "{\"key\": \"val\"}"
+        text = '```json\n{"key": "val"}\n```'
+        assert ChatNormalizerService.strip_code_fences(text) == '{"key": "val"}'
 
     def test_try_parse_json_dict_format(self) -> None:
         """Verify parsing valid JSON object with conversation array."""
-        payload = json.dumps({
-            "conversation": [
-                {"role": "user", "content": "Hi"},
-                {"role": "ai", "content": "Hello"},
-            ]
-        })
+        payload = json.dumps(
+            {
+                "conversation": [
+                    {"role": "user", "content": "Hi"},
+                    {"role": "ai", "content": "Hello"},
+                ]
+            }
+        )
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
@@ -56,10 +58,12 @@ class TestChatNormalizerService:
 
     def test_try_parse_json_list_format(self) -> None:
         """Verify parsing valid JSON array of chat message turns."""
-        payload = json.dumps([
-            {"role": "user", "content": "Query"},
-            {"role": "assistant", "content": "Answer"},
-        ])
+        payload = json.dumps(
+            [
+                {"role": "user", "content": "Query"},
+                {"role": "assistant", "content": "Answer"},
+            ]
+        )
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
@@ -67,12 +71,18 @@ class TestChatNormalizerService:
 
     def test_try_parse_json_fenced_json(self) -> None:
         """Verify parsing markdown-fenced JSON string into ChatHistoryDTO."""
-        payload = "```json\n" + json.dumps({
-            "conversation": [
-                {"role": "user", "content": "Question"},
-                {"role": "ai", "content": "Response"},
-            ]
-        }) + "\n```"
+        payload = (
+            "```json\n"
+            + json.dumps(
+                {
+                    "conversation": [
+                        {"role": "user", "content": "Question"},
+                        {"role": "ai", "content": "Response"},
+                    ]
+                }
+            )
+            + "\n```"
+        )
         result = ChatNormalizerService.try_parse_json(payload)
         assert result is not None
         assert len(result.conversation) == 2
@@ -80,7 +90,7 @@ class TestChatNormalizerService:
     def test_try_parse_json_invalid_schema(self) -> None:
         """Negative: Verify invalid JSON structure returns None."""
         assert ChatNormalizerService.try_parse_json('{"invalid": "data"}') is None
-        assert ChatNormalizerService.try_parse_json('not json') is None
+        assert ChatNormalizerService.try_parse_json("not json") is None
 
     def test_try_parse_fast_path_english_labels(self) -> None:
         """Verify fast-path regex matches English colon-delimited labels."""
@@ -106,12 +116,7 @@ class TestChatNormalizerService:
 
     def test_try_parse_fast_path_multiline_turns(self) -> None:
         """Verify multiline turns are concatenated properly under the same role."""
-        raw = (
-            "Human: Line 1 of question.\n"
-            "Line 2 of question.\n\n"
-            "Claude: Line 1 of answer.\n"
-            "Line 2 of answer."
-        )
+        raw = "Human: Line 1 of question.\nLine 2 of question.\n\nClaude: Line 1 of answer.\nLine 2 of answer."
         result = ChatNormalizerService.try_parse_fast_path(raw)
         assert result is not None
         assert len(result.conversation) == 2
@@ -199,7 +204,7 @@ class TestChatNormalizerService:
         assert marker not in processed.ai_only
 
     @pytest.mark.asyncio
-    async def test_parse_chat_to_dto_fast_path(self, mock_system_repo: AsyncMock) -> None:
+    async def test_parse_chat_to_dto_fast_path(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify parse_chat_to_dto succeeds via fast-path without LLM fallback."""
         raw = "User: Need help\nAI: I am ready"
         with patch.object(ChatParserService, "parse_pasted_chat") as mock_llm_parse:
@@ -208,7 +213,7 @@ class TestChatNormalizerService:
             assert len(result.conversation) == 2
 
     @pytest.mark.asyncio
-    async def test_parse_chat_to_dto_llm_fallback(self, mock_system_repo: AsyncMock) -> None:
+    async def test_parse_chat_to_dto_llm_fallback(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify unstructured dialogue falls back to ChatParserService."""
         raw = "This is some unstructured narrative between two people discussing a plan."
         mock_chat = ChatHistoryDTO(
@@ -224,7 +229,7 @@ class TestChatNormalizerService:
 
     @pytest.mark.asyncio
     async def test_parse_chat_to_dto_empty_input_raises_app_exception(
-        self, mock_system_repo: AsyncMock
+        self, mock_system_repo: InMemorySystemRepository
     ) -> None:
         """Negative: Empty or whitespace input raises AppException with EMPTY_INPUT."""
         with pytest.raises(AppException) as excinfo:
@@ -237,7 +242,7 @@ class TestChatNormalizerService:
 
     @pytest.mark.asyncio
     async def test_parse_chat_to_dto_llm_failure_raises_app_exception(
-        self, mock_system_repo: AsyncMock
+        self, mock_system_repo: InMemorySystemRepository
     ) -> None:
         """Negative: LLM parser returning empty conversation raises AppException."""
         raw = "Some prose"
@@ -248,7 +253,7 @@ class TestChatNormalizerService:
             assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
 
     @pytest.mark.asyncio
-    async def test_normalize_chat_end_to_end(self, mock_system_repo: AsyncMock) -> None:
+    async def test_normalize_chat_end_to_end(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify normalize_chat returns a valid ProcessedChatDTO."""
         raw = "User: Question\nAssistant: Answer"
         result = await ChatNormalizerService.normalize_chat(raw, "chat_log", mock_system_repo)
@@ -265,9 +270,11 @@ class TestChatNormalizerService:
     def test_processed_chat_dto_extra_field_forbidden(self) -> None:
         """Negative: Extra fields in ProcessedChatDTO are strictly forbidden."""
         with pytest.raises(ValidationError):
-            ProcessedChatDTO.model_validate({
-                "combined": "text",
-                "user_only": "text",
-                "ai_only": "text",
-                "extra_field": "invalid",
-            })
+            ProcessedChatDTO.model_validate(
+                {
+                    "combined": "text",
+                    "user_only": "text",
+                    "ai_only": "text",
+                    "extra_field": "invalid",
+                }
+            )

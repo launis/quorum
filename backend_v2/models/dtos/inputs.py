@@ -88,4 +88,3 @@ class ProcessedChatDTO(V2CoreBase):
     combined: Annotated[str, Field(description="Combined dialogue turns with XML encapsulation")]
     user_only: Annotated[str, Field(description="User-only dialogue turns concatenated")]
     ai_only: Annotated[str, Field(description="AI-only dialogue turns concatenated")]
-

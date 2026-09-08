@@ -22,12 +22,14 @@ class TestRunMarkerInjection:
     def test_ensure_user_turn_marker_json_format(self) -> None:
         """Verify _ensure_user_turn_marker mutates user turn and leaves AI turn untouched."""
         marker = "\u00a0"
-        raw_chat = json.dumps({
-            "conversation": [
-                {"role": "user", "content": "What is the project timeline?"},
-                {"role": "assistant", "content": "The project will take six months."},
-            ]
-        })
+        raw_chat = json.dumps(
+            {
+                "conversation": [
+                    {"role": "user", "content": "What is the project timeline?"},
+                    {"role": "assistant", "content": "The project will take six months."},
+                ]
+            }
+        )
 
         marked = _ensure_user_turn_marker(raw_chat, marker)
         parsed = json.loads(marked)
@@ -40,10 +42,7 @@ class TestRunMarkerInjection:
     def test_ensure_user_turn_marker_text_with_prefix(self) -> None:
         """Verify colon-delimited User/Assistant text format injects marker into user turn."""
         marker = "\u2002"
-        raw_text = (
-            "User: Hello, I have an inquiry about expenses.\n"
-            "Assistant: I can assist with expense reviews."
-        )
+        raw_text = "User: Hello, I have an inquiry about expenses.\nAssistant: I can assist with expense reviews."
 
         marked = _ensure_user_turn_marker(raw_text, marker)
         assert marker in marked
@@ -80,8 +79,7 @@ class TestRunMarkerInjection:
 
         # The evaluated user_only stream MUST carry the marker to bypass caching
         assert variant_0 in processed.user_only, (
-            "Cryptographic noise marker was absent from user_only stream! "
-            "Evaluated prompt would hit cache."
+            "Cryptographic noise marker was absent from user_only stream! Evaluated prompt would hit cache."
         )
 
     def test_inject_unique_run_marker_non_conversational_text(self) -> None:
