@@ -6,7 +6,7 @@
       "models": {
         "deep": {
           "max_tokens": 32768,
-          "model_name": "gemini/gemini-3.7-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 4096,
           "supports_grounding": true,
@@ -20,7 +20,7 @@
         },
         "synthesis": {
           "max_tokens": 32768,
-          "model_name": "gemini/gemini-3.7-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 2048,
           "supports_grounding": false,
@@ -34,7 +34,7 @@
         },
         "fast": {
           "max_tokens": 8192,
-          "model_name": "gemini/gemini-3.7-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
@@ -48,7 +48,7 @@
         },
         "strict": {
           "max_tokens": 16384,
-          "model_name": "gemini/gemini-3.7-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
@@ -62,7 +62,7 @@
         },
         "reasoning": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.7-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 8192,
           "supports_grounding": false,
