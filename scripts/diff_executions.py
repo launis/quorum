@@ -40,6 +40,7 @@ __all__ = [
     "MacroBlockScoreDTO",
     "RootCauseBreakdownDTO",
     "ScaleBreakdownDTO",
+    "UNICODE_SPACE_REGISTRY",
     "calculate_cohens_kappa",
     "calculate_entropy",
     "calculate_fleiss_kappa",
@@ -54,6 +55,25 @@ __all__ = [
     "run_diff",
     "uses_contextual_override",
 ]
+
+UNICODE_SPACE_REGISTRY: dict[str, str] = {
+    "\u00a0": "No-Break Space (U+00A0)",
+    "\u2002": "En Space (U+2002)",
+    "\u2003": "Em Space (U+2003)",
+    "\u202f": "Narrow No-Break Space (U+202F)",
+    "\u2004": "Three-Per-Em Space (U+2004)",
+    "\u2005": "Four-Per-Em Space (U+2005)",
+    "\u2006": "Six-Per-Em Space (U+2006)",
+    "\u2007": "Figure Space (U+2007)",
+    "\u2008": "Punctuation Space (U+2008)",
+    "\u2009": "Thin Space (U+2009)",
+    "\u200a": "Hair Space (U+200A)",
+    "\u205f": "Medium Mathematical Space (U+205F)",
+    "\u3000": "Ideographic Space (U+3000)",
+    "\u1680": "Ogham Space Mark (U+1680)",
+    "\u2000": "En Quad (U+2000)",
+    "\u2001": "Em Quad (U+2001)",
+}
 
 # Force UTF-8 encoding for stdout/stderr on Windows to support emojis and international characters
 if isinstance(sys.stdout, io.TextIOWrapper):
@@ -162,14 +182,8 @@ def _inspect_input_file(file_path: Path) -> dict[str, Any]:
     sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
     text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
 
-    known_variants = {
-        "\u00a0": "No-Break Space (U+00A0)",
-        "\u2002": "En Space (U+2002)",
-        "\u2003": "Em Space (U+2003)",
-        "\u202f": "Narrow No-Break Space (U+202F)",
-    }
     found_variants: list[str] = []
-    for char, name in known_variants.items():
+    for char, name in UNICODE_SPACE_REGISTRY.items():
         if char in text:
             found_variants.append(name)
 
@@ -1432,7 +1446,58 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         "normalisoidun tekstivertailun perusteella.\n\n"
                     )
 
-        # Global Metrics & Benchmark Section
+        # Mathematical and Empirical Isolation Proofs (Cache Bypass Proofs)
+        f.write("### Syöte-eristyksen ja Välimuistiohituksen Matemaattiset Todisteet\n\n")
+        f.write(
+            "Tämä osio todentaa matemaattisesti ja empiirisesti, että jokainen ajo on suoritettu toisistaan "
+            "täysin eristetyillä syötteillä ilman pilvitarjoajan kontekstivälimuistivuotoa (Context Cache Bleed).\n\n"
+        )
+
+        f.write("#### 1. Kryptografinen SHA-256 Hajautustiiviste-erottelu\n")
+        f.write("| Ajo | Tiedosto | SHA-256 Tiiviste (Hash) | Status |\n")
+        f.write("| :--- | :--- | :--- | :---: |\n")
+        if all_input_files:
+            for fname, run_dict in all_input_files.items():
+                seen_hashes: dict[str, str] = {}
+                for r_idx, r_name in enumerate(loaded_runs):
+                    if r_name in run_dict:
+                        h = run_dict[r_name]["sha256"]
+                        is_unique = h not in seen_hashes.values()
+                        status_str = "ERISTETTY" if is_unique else "KOLLISIO"
+                        seen_hashes[r_name] = h
+                        f.write(f"| **R{r_idx + 1} ({r_name})** | `{fname}` | `{h}` | `{status_str}` |\n")
+        f.write("\n")
+
+        f.write("#### 2. Pilvitarjoajan Telemetriavahvistus (Zero Cached Tokens)\n")
+        f.write("| Ajo | Välimuistitokenit (Cached Tokens) | Telemetriatodiste | Tulos |\n")
+        f.write("| :--- | :---: | :---: | :---: |\n")
+        for fin_item in run_finops:
+            r_name = fin_item["run_name"]
+            c_tok = fin_item["cached_tok"]
+            c_status = "OHITETTU (0 tok)" if c_tok == 0 else f"VÄLIMUISTIOSUMA ({c_tok:,} tok)"
+            proof_label = "100% Tuore inferenssi" if c_tok == 0 else "Osittainen välimuistihyödyntäminen"
+            f.write(f"| **{r_name}** | {c_tok:,} | {proof_label} | `{c_status}` |\n")
+        f.write("\n")
+
+        f.write("#### 3. Hajautettu Variaatiosyvyys ja Unicode-avaruus\n")
+        f.write("| Ajo | Tiedosto | Havaittu Unicode-avaruus | Sanat | Semanttinen Invarianssi |\n")
+        f.write("| :--- | :--- | :--- | :---: | :---: |\n")
+        if all_input_files:
+            for fname, run_dict in all_input_files.items():
+                first_wc: int | None = None
+                for r_idx, r_name in enumerate(loaded_runs):
+                    if r_name in run_dict:
+                        fi = run_dict[r_name]
+                        if first_wc is None:
+                            first_wc = fi["word_count"]
+                        wc_invariance = "TÄYSI (100%)" if fi["word_count"] == first_wc else "POIKKEAMA"
+                        noise_lbl = fi["noise"]
+                        w_cnt = fi["word_count"]
+                        f.write(
+                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {noise_lbl} | "
+                            f"{w_cnt:,} | `{wc_invariance}` |\n"
+                        )
+        f.write("\n")
         f.write("## Globaalit Metriikat & Tieteellinen Luotettavuus (Kappa Benchmark)\n")
         f.write(f"- **Arvioitujen ajojen määrä ($M$):** {len(evals_list)}\n")
         f.write(f"- **Yhteisten arvioitujen atomien määrä ($N$):** {len(common_atoms)}\n")

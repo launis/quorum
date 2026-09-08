@@ -305,3 +305,79 @@ def test_output_profiles_enums_valid() -> None:
     )
     assert not validate_profile_enums({"display_scale": "unsupported_scale_1000"})
     assert not validate_profile_enums({"scoring_strategy": "NON_EXISTENT_STRATEGY"})
+
+
+def test_model_registry_calibrated_limits() -> None:
+    """Architectural Guardrail: Model Registry strategies must meet calibrated token and temperature limits."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    sys_configs = data.get("system_config", [])
+    registry_conf = next((c for c in sys_configs if c.get("type") == "model_registry"), None)
+    assert registry_conf is not None, "SystemConfig with type 'model_registry' must exist in seed"
+
+    models = registry_conf.get("models", {})
+    assert models, "Model registry models dictionary must not be empty"
+
+    required_strategies = {"deep", "synthesis", "fast", "strict", "reasoning"}
+    assert required_strategies.issubset(set(models.keys())), (
+        f"Models must contain all required strategies: {required_strategies}"
+    )
+
+    for strategy_name, model_def in models.items():
+        max_tokens = model_def.get("max_tokens", 0)
+        temperature = model_def.get("temperature", 1.0)
+        assert max_tokens >= 32768, f"Strategy '{strategy_name}' max_tokens {max_tokens} must be >= 32768"
+        assert temperature <= 0.3, f"Strategy '{strategy_name}' temperature {temperature} must be <= 0.3"
+
+    # Anti-happy-path negative verification
+    def validate_strategy_limits(strat_dict: dict[str, Any]) -> bool:
+        tokens = strat_dict.get("max_tokens", 0)
+        temp = strat_dict.get("temperature", 1.0)
+        return bool(tokens >= 32768 and temp <= 0.3)
+
+    assert validate_strategy_limits({"max_tokens": 32768, "temperature": 0.1})
+    assert validate_strategy_limits({"max_tokens": 65536, "temperature": 0.2})
+    assert not validate_strategy_limits({"max_tokens": 8192, "temperature": 0.1})  # Under token ceiling
+    assert not validate_strategy_limits({"max_tokens": 65536, "temperature": 1.0})  # High entropy temperature
+
+
+def test_synthesis_strategy_isolation() -> None:
+    """Architectural Guardrail: No evaluative matrix step may declare model_strategy='synthesis'."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    steps = data.get("steps", [])
+    assert steps, "Steps registry must contain step definitions"
+
+    for step in steps:
+        step_id = step.get("id")
+        cat = step.get("category_id")
+        is_eval = step.get("is_evaluative", False)
+        strategy = step.get("model_strategy")
+
+        # Evaluative matrix steps must strictly isolate from synthesis strategy
+        if cat == "matrix" or is_eval is True:
+            assert strategy != "synthesis", (
+                f"Evaluative step '{step_id}' (category: '{cat}') must not use 'synthesis' model_strategy"
+            )
+
+    # Anti-happy-path negative verification
+    def validate_evaluative_isolation(step_dict: dict[str, Any]) -> bool:
+        c = step_dict.get("category_id")
+        ie = step_dict.get("is_evaluative", False)
+        strat = step_dict.get("model_strategy")
+        if (c == "matrix" or ie is True) and strat == "synthesis":
+            return False
+        return True
+
+    assert validate_evaluative_isolation({"category_id": "matrix", "is_evaluative": True, "model_strategy": "deep"})
+    assert validate_evaluative_isolation(
+        {"category_id": "report", "is_evaluative": False, "model_strategy": "synthesis"}
+    )
+    assert not validate_evaluative_isolation(
+        {"category_id": "matrix", "is_evaluative": True, "model_strategy": "synthesis"}
+    )
+    assert not validate_evaluative_isolation(
+        {"category_id": "evaluator", "is_evaluative": True, "model_strategy": "synthesis"}
+    )

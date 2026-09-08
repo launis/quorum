@@ -387,6 +387,15 @@ class TestInspectInputFile:
         f_narrow.write_text("Hello\u202fworld", encoding="utf-8")
         assert "Narrow No-Break Space (U+202F)" in _inspect_input_file(f_narrow)["noise"]
 
+        # Verify all 16 variants from UNICODE_SPACE_REGISTRY are correctly identified
+        from scripts.diff_executions import UNICODE_SPACE_REGISTRY
+
+        for char, expected_name in UNICODE_SPACE_REGISTRY.items():
+            f_test = tmp_path / f"test_{ord(char)}.txt"
+            f_test.write_text(f"Prefix{char}Suffix", encoding="utf-8")
+            inspected = _inspect_input_file(f_test)
+            assert expected_name in inspected["noise"], f"Expected {expected_name} in {inspected['noise']}"
+
 
 class TestRunDiffIntegration:
     """End-to-end integration tests for run_diff and main CLI entry point."""
@@ -579,6 +588,12 @@ class TestRunDiffIntegration:
         assert "Input Corpus Profile" in content
         assert "doc.txt" in content
         assert "SEMANTTINEN IDENTTISYYS" in content
+
+        # Assert Mathematical Isolation and Cache Bypass Proofs
+        assert "Syöte-eristyksen ja Välimuistiohituksen Matemaattiset Todisteet" in content
+        assert "1. Kryptografinen SHA-256 Hajautustiiviste-erottelu" in content
+        assert "2. Pilvitarjoajan Telemetriavahvistus (Zero Cached Tokens)" in content
+        assert "3. Hajautettu Variaatiosyvyys ja Unicode-avaruus" in content
 
         # Assert Per-run Concurrency Snapshot & Execution Mode
         assert "Ajotila ja Rinnakkaisuus" in content

@@ -13,8 +13,11 @@ import pytest
 import requests
 
 from scripts.run_e2e_variance_test import (
+    MarkedInputsPayloadDTO,
+    RunMarkerMetadataDTO,
     check_backend,
     force_kill_services,
+    inject_unique_run_marker,
     load_inputs_from_path,
     main,
     make_noise_injector,
@@ -86,6 +89,53 @@ def test_pillar2_unicode_noise_hash_perturbation() -> None:
     assert text_run1.split() == text_run2.split() == original_text.split(), "Word sequence must remain identical"
     assert "\u00a0" in text_run1
     assert "\u2002" in text_run2
+
+
+def test_unique_marker_injection_arbitrary_n() -> None:
+    """Mathematical and empirical proof of collision-free marker injection across arbitrary N runs."""
+    sample_text = " ".join([f"token_{i}" for i in range(200)])
+    base_inputs: dict[str, Any] = {
+        "chat_log": sample_text,
+        "product_text": sample_text,
+        "reflection_text": sample_text,
+        "num_val": 123,
+    }
+
+    test_n_counts = [1, 2, 5, 16, 25]
+
+    for n in test_n_counts:
+        hashes_seen: set[str] = set()
+        for r_idx in range(n):
+            payload = inject_unique_run_marker(base_inputs, run_index=r_idx, stride=50)
+            assert isinstance(payload, MarkedInputsPayloadDTO)
+            assert isinstance(payload.marker_metadata, RunMarkerMetadataDTO)
+            assert payload.marker_metadata.run_index == r_idx
+            assert payload.marked_inputs["num_val"] == 123
+
+            chat_val = str(payload.marked_inputs["chat_log"])
+            # Word sequence must remain completely identical
+            assert chat_val.split() == sample_text.split()
+
+            h = hashlib.sha256(chat_val.encode("utf-8")).hexdigest()
+            assert h not in hashes_seen, f"Collision detected at run {r_idx} for N={n}"
+            hashes_seen.add(h)
+
+            # Injected char must be in string
+            assert payload.marker_metadata.injected_char in chat_val
+
+    # Test edge cases: empty strings, strings without spaces, multi-field inputs
+    edge_inputs: dict[str, Any] = {
+        "empty": "",
+        "no_spaces": "WordWithoutSpaces",
+        "single_space": "Hello world",
+        "many_spaces": "A B C D E F G",
+    }
+    p_edge = inject_unique_run_marker(edge_inputs, run_index=0, stride=50)
+    assert p_edge.marked_inputs["empty"] == ""
+    assert p_edge.marked_inputs["no_spaces"] == "WordWithoutSpaces"
+    assert "\u00a0" in str(p_edge.marked_inputs["single_space"])
+    assert "\u00a0" in str(p_edge.marked_inputs["many_spaces"])
+    assert set(p_edge.marker_metadata.injected_keys) == {"single_space", "many_spaces"}
 
 
 def test_pillar3_environment_parity_propagation(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:

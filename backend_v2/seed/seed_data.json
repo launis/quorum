@@ -5,9 +5,9 @@
       "type": "model_registry",
       "models": {
         "deep": {
-          "max_tokens": 32768,
+          "max_tokens": 65536,
           "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 1.0,
+          "temperature": 0.2,
           "thinking_budget_tokens": 4096,
           "supports_grounding": true,
           "tpm_limit": 4000000,
@@ -19,9 +19,9 @@
           "additional_params": {}
         },
         "synthesis": {
-          "max_tokens": 32768,
+          "max_tokens": 65536,
           "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 1.0,
+          "temperature": 0.3,
           "thinking_budget_tokens": 2048,
           "supports_grounding": false,
           "tpm_limit": 4000000,
@@ -33,9 +33,9 @@
           "additional_params": {}
         },
         "fast": {
-          "max_tokens": 8192,
+          "max_tokens": 32768,
           "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 1.0,
+          "temperature": 0.1,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
           "tpm_limit": 4000000,
@@ -47,9 +47,9 @@
           "additional_params": {}
         },
         "strict": {
-          "max_tokens": 16384,
+          "max_tokens": 32768,
           "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 1.0,
+          "temperature": 0.0,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
           "tpm_limit": 4000000,
@@ -63,7 +63,7 @@
         "reasoning": {
           "max_tokens": 65536,
           "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 1.0,
+          "temperature": 0.2,
           "thinking_budget_tokens": 8192,
           "supports_grounding": false,
           "tpm_limit": 4000000,

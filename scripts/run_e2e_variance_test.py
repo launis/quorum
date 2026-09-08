@@ -19,7 +19,7 @@ Usage Examples:
     # 5. Comparing already completed executions (without re-running pipeline):
     #    Use scripts/diff_executions.py directly with execution IDs or directory paths:
     uv run python scripts/diff_executions.py exe_6c9e2f3b2ea14f9d exe_f16d8b0e40e44316
-    uv run python scripts/diff_executions.py data/files/executions/exe_6c9e2f3b2ea14f9d data/files/executions/exe_f16d8b0e40e44316
+    uv run python scripts/diff_executions.py data/files/executions/exe_1 data/files/executions/exe_2
     uv run python scripts/diff_executions.py  # compares 3 latest runs automatically
 
 Input Format and Default Fixture Notice:
@@ -40,6 +40,7 @@ Input Format and Default Fixture Notice:
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime
 import json
 import os
@@ -51,10 +52,15 @@ from pathlib import Path
 from typing import Any
 
 import requests
+from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
+    "MarkedInputsPayloadDTO",
+    "RunMarkerMetadataDTO",
+    "UNICODE_SPACE_REGISTRY",
     "check_backend",
     "force_kill_services",
+    "inject_unique_run_marker",
     "load_inputs_from_path",
     "main",
     "make_noise_injector",
@@ -185,6 +191,132 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
         return data
 
 
+UNICODE_SPACE_REGISTRY: dict[str, str] = {
+    "\u00a0": "No-Break Space (U+00A0)",
+    "\u2002": "En Space (U+2002)",
+    "\u2003": "Em Space (U+2003)",
+    "\u202f": "Narrow No-Break Space (U+202F)",
+    "\u2004": "Three-Per-Em Space (U+2004)",
+    "\u2005": "Four-Per-Em Space (U+2005)",
+    "\u2006": "Six-Per-Em Space (U+2006)",
+    "\u2007": "Figure Space (U+2007)",
+    "\u2008": "Punctuation Space (U+2008)",
+    "\u2009": "Thin Space (U+2009)",
+    "\u200a": "Hair Space (U+200A)",
+    "\u205f": "Medium Mathematical Space (U+205F)",
+    "\u3000": "Ideographic Space (U+3000)",
+    "\u1680": "Ogham Space Mark (U+1680)",
+    "\u2000": "En Quad (U+2000)",
+    "\u2001": "Em Quad (U+2001)",
+}
+
+
+class RunMarkerMetadataDTO(BaseModel):
+    """Metadata describing the deterministic Unicode marker injected for a run."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    run_index: int = Field(..., description="0-indexed run number")
+    injected_char: str = Field(..., description="Injected Unicode character")
+    injected_char_hex: str = Field(..., description="Hex codepoint of injected character (e.g. U+00A0)")
+    injected_char_name: str = Field(..., description="Human-readable name of injected character")
+    replacement_offset: int = Field(..., description="Positional offset used for modulo replacement in 2D encoding")
+    stride: int = Field(..., description="Stride interval used for multi-point whitespace injection")
+    injected_keys: list[str] = Field(..., description="List of input keys where markers were successfully injected")
+
+
+class MarkedInputsPayloadDTO(BaseModel):
+    """Strongly-typed payload containing the marked inputs and forensic metadata."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    marked_inputs: dict[str, Any] = Field(..., description="Deep copy of inputs dictionary with injected markers")
+    marker_metadata: RunMarkerMetadataDTO = Field(..., description="Metadata describing the injected marker")
+
+
+def inject_unique_run_marker(
+    inputs: dict[str, Any],
+    run_index: int,
+    stride: int = 50,
+) -> MarkedInputsPayloadDTO:
+    """Inject a deterministic unique Unicode marker into all N runs with distributed whitespace injection.
+
+    Every run i (including Run 1 / index 0) receives a dedicated, deterministic marker.
+    Distributed multi-point whitespace injection replaces every stride-th whitespace,
+    with a fallback to the first whitespace if text has fewer whitespaces than stride.
+    For run_index >= 16, a 2D positional encoding is applied across space occurrences
+    to guarantee zero SHA-256 collisions for arbitrary N.
+
+    Args:
+        inputs: Input dictionary containing text fields.
+        run_index: 0-indexed run number.
+        stride: Frequency of whitespace substitution.
+
+    Returns:
+        MarkedInputsPayloadDTO containing the marked inputs copy and metadata.
+    """
+    variants = list(UNICODE_SPACE_REGISTRY.keys())
+    num_variants = len(variants)
+    variant_idx = run_index % num_variants
+    char_to_inject = variants[variant_idx]
+    replacement_offset = run_index // num_variants
+
+    marked_inputs = copy.deepcopy(inputs)
+    injected_keys: list[str] = []
+
+    for k, v in marked_inputs.items():
+        if isinstance(v, str) and " " in v:
+            tokens = v.split(" ")
+            num_spaces = len(tokens) - 1
+            if num_spaces <= 0:
+                continue
+
+            # Multi-point distributed replacement with 2D positional encoding
+            reconstructed_parts: list[str] = []
+            for sp_idx, part in enumerate(tokens[:-1]):
+                reconstructed_parts.append(part)
+                # Determine if this space occurrence should be substituted
+                is_stride_match = (sp_idx + replacement_offset) % stride == 0
+                if is_stride_match:
+                    reconstructed_parts.append(char_to_inject)
+                else:
+                    reconstructed_parts.append(" ")
+            reconstructed_parts.append(tokens[-1])
+            new_text = "".join(reconstructed_parts)
+
+            # Fallback if text was shorter than stride and no replacement occurred
+            if char_to_inject not in new_text:
+                fallback_idx = replacement_offset % max(1, num_spaces)
+                tokens_fb = v.split(" ")
+                reconstructed_parts_fb: list[str] = []
+                for sp_idx, part in enumerate(tokens_fb[:-1]):
+                    reconstructed_parts_fb.append(part)
+                    if sp_idx == fallback_idx:
+                        reconstructed_parts_fb.append(char_to_inject)
+                    else:
+                        reconstructed_parts_fb.append(" ")
+                reconstructed_parts_fb.append(tokens_fb[-1])
+                new_text = "".join(reconstructed_parts_fb)
+
+            marked_inputs[k] = new_text
+            injected_keys.append(k)
+
+    char_hex = f"U+{ord(char_to_inject):04X}"
+    char_name = UNICODE_SPACE_REGISTRY.get(char_to_inject, "Unknown Unicode Space")
+
+    metadata = RunMarkerMetadataDTO(
+        run_index=run_index,
+        injected_char=char_to_inject,
+        injected_char_hex=char_hex,
+        injected_char_name=char_name,
+        replacement_offset=replacement_offset,
+        stride=stride,
+        injected_keys=injected_keys,
+    )
+
+    return MarkedInputsPayloadDTO(marked_inputs=marked_inputs, marker_metadata=metadata)
+
+
 def make_noise_injector(run_index: int) -> Callable[[str], str]:
     """Create a deterministic Unicode space injector to bypass LLM cache.
 
@@ -192,16 +324,15 @@ def make_noise_injector(run_index: int) -> Callable[[str], str]:
         run_index: 0-indexed run number.
 
     Returns:
-        Callable that replaces the first standard space with a unique Unicode space variant.
+        Callable that replaces standard spaces with a unique Unicode space variant.
     """
 
     def injector(text: str) -> str:
         if not text or " " not in text:
             return text
-        space_variants = ["\u00a0", "\u2002", "\u2003", "\u202f"]
-        char_to_inject = space_variants[run_index % len(space_variants)]
-        print(f"Injected Unicode space variant (U+{ord(char_to_inject):04X}) in Run {run_index + 1} to bypass cache")
-        return text.replace(" ", char_to_inject, 1)
+        dummy_inputs = {"text": text}
+        marked_payload = inject_unique_run_marker(dummy_inputs, run_index=run_index)
+        return str(marked_payload.marked_inputs.get("text", text))
 
     return injector
 
@@ -496,31 +627,31 @@ def run_variance_test(
         time.sleep(10)
         raw_inputs = load_inputs_from_path(inputs_target)
 
-        print(f"Injecting noise into inputs for Run {i + 1} (to test normalizer)...")
-        inject_noise = make_noise_injector(i)
+        print(f"Injecting unique deterministic marker into inputs for Run {i + 1}...")
+        marked_payload = inject_unique_run_marker(raw_inputs, run_index=i)
+        marked_inputs = marked_payload.marked_inputs
+        meta = marked_payload.marker_metadata
 
-        injected_keys: list[str] = []
-        for k, v in raw_inputs.items():
-            if isinstance(v, str) and " " in v:
-                raw_inputs[k] = inject_noise(v)
-                injected_keys.append(k)
-
-        if not injected_keys:
+        if not meta.injected_keys:
             msg = "Failed to inject Unicode noise: No whitespace found in any string input fields"
             raise RuntimeError(msg)
 
-        print(f"Injected Unicode space variant into {len(injected_keys)} input fields: {injected_keys}")
+        print(
+            f"Injected Unicode space variant {meta.injected_char_hex} ({meta.injected_char_name}) "
+            f"into {len(meta.injected_keys)} input fields: {meta.injected_keys} "
+            f"(stride={meta.stride}, offset={meta.replacement_offset})"
+        )
 
         scratch_inputs_dir = Path("scratch/variance_inputs")
         scratch_inputs_dir.mkdir(parents=True, exist_ok=True)
-        output_filename = "e2e_inputs_run1.json" if i == 0 else "e2e_inputs_noisy.json"
+        output_filename = f"e2e_inputs_run{i + 1}.json"
         output_path = scratch_inputs_dir / output_filename
 
         with output_path.open("w", encoding="utf-8") as f:
-            json.dump(raw_inputs, f)
+            json.dump(marked_inputs, f)
         os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
 
-        exec_id = trigger_execution(raw_inputs)
+        exec_id = trigger_execution(marked_inputs)
         if exec_id:
             execution_ids.append(exec_id)
 

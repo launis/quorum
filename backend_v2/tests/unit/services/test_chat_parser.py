@@ -77,3 +77,87 @@ async def test_chat_parser_role_segregation_and_success(
     assert raw_paste in messages.dynamic_messages[0].content
 
     assert call_kwargs["response_model"] == ChatHistoryDTO
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_configuration_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+    """Ensure ConfigurationError during LLMClient initialization triggers 500 AppException."""
+    from backend_v2.exceptions import ConfigurationError
+
+    mock_from_strategy.side_effect = ConfigurationError("Model fast not found")
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hi\nAI: Hello", mock_repository)
+
+    assert excinfo.value.status_code == 500
+    assert excinfo.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_empty_conversation_fails_fast(
+    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+) -> None:
+    """Ensure empty conversation list returned by LLM raises 400 VALIDATION_FAILED AppException."""
+    mock_client = AsyncMock()
+    mock_dto = ChatHistoryDTO(conversation=[])
+    mock_client.run_structured_task.return_value = (
+        mock_dto,
+        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+    )
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("Some text with no chat structure", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_validation_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+    """Ensure pydantic ValidationError raises 400 VALIDATION_FAILED AppException."""
+    from pydantic import ValidationError
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.side_effect = ValidationError.from_exception_data("ChatHistoryDTO", line_errors=[])
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hi\nAI: Hello", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_json_decode_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+    """Ensure json.JSONDecodeError raises 400 VALIDATION_FAILED AppException."""
+    import json
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.side_effect = json.JSONDecodeError("Unterminated string", "doc", 0)
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hi\nAI: Hello", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_unexpected_exception(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
+    """Ensure generic runtime exceptions raise 502 BAD_GATEWAY AppException."""
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.side_effect = RuntimeError("Network connection reset")
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hi\nAI: Hello", mock_repository)
+
+    assert excinfo.value.status_code == 502
+    assert excinfo.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
