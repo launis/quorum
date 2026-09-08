@@ -280,9 +280,10 @@ class ModelRegistryView extends HookConsumerWidget {
                 final modelId = modelEntry.key;
                 final cfg = modelEntry.value;
 
-                final effectivePlatforms = supportedPlatforms.isNotEmpty
+                final List<Map<String, dynamic>> effectivePlatforms =
+                    supportedPlatforms.isNotEmpty
                     ? supportedPlatforms
-                    : [
+                    : <Map<String, dynamic>>[
                         {
                           'id': 'vertex_ai',
                           'label': l10n.platformVertexAi,
@@ -322,16 +323,16 @@ class ModelRegistryView extends HookConsumerWidget {
                   currentPlatform = 'anthropic';
                 }
 
-                final currentPlatformMeta = effectivePlatforms.firstWhere(
-                  (p) => p['id'] == currentPlatform,
-                  orElse: () => {
-                    'id': currentPlatform,
-                    'label': currentPlatform,
-                    'has_regions': currentPlatform == 'vertex_ai',
-                  },
-                );
-                final bool hasRegions =
-                    currentPlatformMeta['has_regions'] == true;
+                Map<String, dynamic>? currentPlatformMeta;
+                for (final p in effectivePlatforms) {
+                  if (p['id'] == currentPlatform) {
+                    currentPlatformMeta = p;
+                    break;
+                  }
+                }
+                final bool hasRegions = currentPlatformMeta != null
+                    ? currentPlatformMeta['has_regions'] == true
+                    : currentPlatform == 'vertex_ai';
 
                 // Determine active location
                 final String currentLocation =
@@ -425,17 +426,16 @@ class ModelRegistryView extends HookConsumerWidget {
                             );
                             updatedParams['platform'] = val;
 
-                            final newPlatformMeta = effectivePlatforms
-                                .firstWhere(
-                                  (p) => p['id'] == val,
-                                  orElse: () => {
-                                    'id': val,
-                                    'label': val,
-                                    'has_regions': val == 'vertex_ai',
-                                  },
-                                );
-                            final bool newHasRegions =
-                                newPlatformMeta['has_regions'] == true;
+                            Map<String, dynamic>? newPlatformMeta;
+                            for (final p in effectivePlatforms) {
+                              if (p['id'] == val) {
+                                newPlatformMeta = p;
+                                break;
+                              }
+                            }
+                            final bool newHasRegions = newPlatformMeta != null
+                                ? newPlatformMeta['has_regions'] == true
+                                : val == 'vertex_ai';
 
                             String newLocation = currentLocation;
                             if (newHasRegions) {
