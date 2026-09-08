@@ -36,10 +36,7 @@ void main() {
           child: SizedBox(
             width: 500,
             height: 300,
-            child: LogicMatrixChart(
-              xAxis: xAxis,
-              yAxis: yAxis,
-            ),
+            child: LogicMatrixChart(xAxis: xAxis, yAxis: yAxis),
           ),
         ),
       ),

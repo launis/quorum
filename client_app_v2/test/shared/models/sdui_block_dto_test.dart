@@ -186,7 +186,10 @@ void main() {
     });
 
     test('throws exception on quadrant_matrix unrecognized key', () {
-      final json = {'block_type': 'quadrant_matrix', 'invalid_key': 'should crash'};
+      final json = {
+        'block_type': 'quadrant_matrix',
+        'invalid_key': 'should crash',
+      };
 
       expect(() => SduiBlockDTO.fromJson(json), throwsException);
     });

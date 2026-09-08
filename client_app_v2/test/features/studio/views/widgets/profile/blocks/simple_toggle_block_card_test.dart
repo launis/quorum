@@ -80,75 +80,74 @@ void main() {
       },
     );
 
-    testWidgets(
-      'test_toggle_block_card_synchronizes_workflow_extensions',
-      (WidgetTester tester) async {
-        OutputProfile payload = const OutputProfile(
-          id: 'profile_1',
-          workflowId: 'wf_1',
-          name: I18nText(translations: {'en': 'Test Profile'}),
-          targetBlockOrder: [],
-          visibleWorkflowExtensions: [],
-        );
+    testWidgets('test_toggle_block_card_synchronizes_workflow_extensions', (
+      WidgetTester tester,
+    ) async {
+      OutputProfile payload = const OutputProfile(
+        id: 'profile_1',
+        workflowId: 'wf_1',
+        name: I18nText(translations: {'en': 'Test Profile'}),
+        targetBlockOrder: [],
+        visibleWorkflowExtensions: [],
+      );
 
-        await tester.pumpWidget(
-          MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            home: Scaffold(
-              body: SingleChildScrollView(
-                child: StatefulBuilder(
-                  builder: (context, setState) {
-                    return SimpleToggleBlockCard(
-                      blockType: TargetBlockType.globalScoreBlock,
-                      title: 'Global Score',
-                      subtitle: 'Executive overview score',
-                      icon: Icons.speed_outlined,
-                      payload: payload,
-                      syncWorkflowExtensions: const [
-                        XaiExtensionType.varianceValidation,
-                      ],
-                      updatePayload: (newPayload) {
-                        setState(() {
-                          payload = newPayload;
-                        });
-                      },
-                    );
-                  },
-                ),
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return SimpleToggleBlockCard(
+                    blockType: TargetBlockType.globalScoreBlock,
+                    title: 'Global Score',
+                    subtitle: 'Executive overview score',
+                    icon: Icons.speed_outlined,
+                    payload: payload,
+                    syncWorkflowExtensions: const [
+                      XaiExtensionType.varianceValidation,
+                    ],
+                    updatePayload: (newPayload) {
+                      setState(() {
+                        payload = newPayload;
+                      });
+                    },
+                  );
+                },
               ),
             ),
           ),
-        );
-        await tester.pumpAndSettle();
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        // Toggle ON
-        await tester.tap(find.byType(Switch));
-        await tester.pumpAndSettle();
+      // Toggle ON
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
 
-        expect(
-          payload.targetBlockOrder,
-          contains(TargetBlockType.globalScoreBlock),
-        );
-        expect(
-          payload.visibleWorkflowExtensions,
-          contains(XaiExtensionType.varianceValidation),
-        );
+      expect(
+        payload.targetBlockOrder,
+        contains(TargetBlockType.globalScoreBlock),
+      );
+      expect(
+        payload.visibleWorkflowExtensions,
+        contains(XaiExtensionType.varianceValidation),
+      );
 
-        // Toggle OFF
-        await tester.tap(find.byType(Switch));
-        await tester.pumpAndSettle();
+      // Toggle OFF
+      await tester.tap(find.byType(Switch));
+      await tester.pumpAndSettle();
 
-        expect(
-          payload.targetBlockOrder,
-          isNot(contains(TargetBlockType.globalScoreBlock)),
-        );
-        expect(
-          payload.visibleWorkflowExtensions,
-          isNot(contains(XaiExtensionType.varianceValidation)),
-        );
-      },
-    );
+      expect(
+        payload.targetBlockOrder,
+        isNot(contains(TargetBlockType.globalScoreBlock)),
+      );
+      expect(
+        payload.visibleWorkflowExtensions,
+        isNot(contains(XaiExtensionType.varianceValidation)),
+      );
+    });
 
     testWidgets(
       'test_toggle_penalties_block_leaves_workflow_extensions_unchanged',

@@ -36,10 +36,7 @@ void main() {
           child: SizedBox(
             width: 500,
             height: 300,
-            child: QuadrantMatrixChart(
-              xAxis: xAxis,
-              yAxis: yAxis,
-            ),
+            child: QuadrantMatrixChart(xAxis: xAxis, yAxis: yAxis),
           ),
         ),
       ),
