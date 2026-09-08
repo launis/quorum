@@ -151,6 +151,9 @@ def test_settings_storage_backend_fallback_and_invalid() -> None:
     assert s_prod.log_format == "json"
     assert s_prod.allow_mock_tokens is False
 
+    s_prod_local = Settings(use_mock_llm=True, environment="production", use_firebase_auth=False)
+    assert s_prod_local.allow_mock_tokens is True
+
     with pytest.raises(AppException):
         _ = Settings(storage_backend="INVALID_STORAGE", use_mock_llm=True).active_backend
 

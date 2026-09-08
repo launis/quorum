@@ -781,11 +781,16 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def allow_mock_tokens(self) -> bool:
-        """Strictly disallow mock tokens in production.
+        """Strictly disallow mock tokens in cloud production (when Firebase Auth is active).
+
+        Allow mock tokens in development or in local production environments where
+        Firebase Auth is explicitly disabled.
 
         Returns:
-            True if mock tokens are permitted (development only), False otherwise.
+            True if mock tokens are permitted, False otherwise.
         """
+        if not self.use_firebase_auth:
+            return True
         return self.environment.lower() == "development"
 
     @computed_field  # type: ignore[prop-decorator]
