@@ -290,7 +290,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     logger = logging.getLogger("backend.main")
     readable_detail = format_validation_error(exc)
     error_code = ErrorCodes.VALIDATION_FAILED
-    logger.error("[FastAPI] VALIDATION ERROR: %s", readable_detail, extra={"error_code": error_code.value})
+    logger.warning("[FastAPI] VALIDATION ERROR: %s", readable_detail, extra={"error_code": error_code.value})
     logger.debug("[FastAPI] Raw Schema Errors: %s", exc.errors(), extra={"error_code": error_code.value})
 
     return JSONResponse(

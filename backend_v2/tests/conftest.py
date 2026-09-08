@@ -12,6 +12,7 @@ import pytest
 
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
+from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
@@ -84,6 +85,9 @@ os.environ["DISABLE_LOGFIRE"] = "true"
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 # Set environment to development so all automated tests run under the fast, deterministic profile
 os.environ["ENVIRONMENT"] = "development"
+os.environ["LOG_FILE_NAME"] = "tests_debug.log"
+
+get_settings.cache_clear()
 
 
 @pytest.fixture(autouse=True, scope="session")
