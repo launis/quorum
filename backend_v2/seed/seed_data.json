@@ -18146,6 +18146,7 @@
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
+        "global_score_block",
         "synthesis_text_block",
         "matrix_graphs_block",
         "grouped_extensions_block",
