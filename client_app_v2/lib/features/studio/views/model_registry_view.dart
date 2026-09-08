@@ -213,6 +213,8 @@ class ModelRegistryView extends HookConsumerWidget {
     AppLocalizations l10n,
     ModelConfig payload,
   ) {
+    final platformsAsync = ref.watch(supportedPlatformsProvider);
+    final supportedPlatforms = platformsAsync.value ?? [];
     final locationsAsync = ref.watch(supportedLocationsProvider);
     final supportedLocations = locationsAsync.value ?? [];
 
@@ -251,11 +253,8 @@ class ModelRegistryView extends HookConsumerWidget {
                     'custom_${DateTime.now().millisecondsSinceEpoch}';
                 newModels[newKey] = const LlmModelConfig(
                   provider: 'google',
-                  modelName: 'vertex_ai/gemini-2.5-pro',
-                  additionalParams: {
-                    'platform': 'vertex_ai',
-                    'vertex_location': 'europe-north1',
-                  },
+                  modelName: 'gemini/gemini-3.8-flash',
+                  additionalParams: {'platform': 'ai_studio'},
                 );
                 ref
                     .read(modelRegistryFormProvider(id).notifier)
@@ -281,6 +280,31 @@ class ModelRegistryView extends HookConsumerWidget {
                 final modelId = modelEntry.key;
                 final cfg = modelEntry.value;
 
+                final effectivePlatforms = supportedPlatforms.isNotEmpty
+                    ? supportedPlatforms
+                    : [
+                        {
+                          'id': 'vertex_ai',
+                          'label': l10n.platformVertexAi,
+                          'has_regions': true,
+                        },
+                        {
+                          'id': 'ai_studio',
+                          'label': l10n.platformAiStudio,
+                          'has_regions': false,
+                        },
+                        {
+                          'id': 'openai',
+                          'label': l10n.platformOpenAi,
+                          'has_regions': false,
+                        },
+                        {
+                          'id': 'anthropic',
+                          'label': l10n.platformAnthropic,
+                          'has_regions': false,
+                        },
+                      ];
+
                 // Determine active platform
                 String currentPlatform = 'vertex_ai';
                 if (cfg.provider == 'google') {
@@ -298,6 +322,17 @@ class ModelRegistryView extends HookConsumerWidget {
                   currentPlatform = 'anthropic';
                 }
 
+                final currentPlatformMeta = effectivePlatforms.firstWhere(
+                  (p) => p['id'] == currentPlatform,
+                  orElse: () => {
+                    'id': currentPlatform,
+                    'label': currentPlatform,
+                    'has_regions': currentPlatform == 'vertex_ai',
+                  },
+                );
+                final bool hasRegions =
+                    currentPlatformMeta['has_regions'] == true;
+
                 // Determine active location
                 final String currentLocation =
                     cfg.additionalParams['vertex_location'] as String? ??
@@ -307,12 +342,12 @@ class ModelRegistryView extends HookConsumerWidget {
                 final strategyModelsAsync = ref.watch(
                   availableModelsProvider(
                     platform: currentPlatform,
-                    location: currentPlatform == 'vertex_ai'
-                        ? currentLocation
-                        : null,
+                    location: hasRegions ? currentLocation : null,
                   ),
                 );
                 final dynamicModels = strategyModelsAsync.value ?? [];
+
+                final isReasoning = _isReasoningModel(cfg);
 
                 return Padding(
                   padding: AppSpacing.p16,
@@ -362,29 +397,27 @@ class ModelRegistryView extends HookConsumerWidget {
                             border: const OutlineInputBorder(),
                           ),
                           items: [
-                            DropdownMenuItem(
-                              value: 'vertex_ai',
-                              child: Text(l10n.platformVertexAi),
-                            ),
-                            DropdownMenuItem(
-                              value: 'ai_studio',
-                              child: Text(l10n.platformAiStudio),
-                            ),
-                            DropdownMenuItem(
-                              value: 'openai',
-                              child: Text(l10n.platformOpenAi),
-                            ),
-                            DropdownMenuItem(
-                              value: 'anthropic',
-                              child: Text(l10n.platformAnthropic),
-                            ),
+                            if (currentPlatform.isNotEmpty &&
+                                !effectivePlatforms.any(
+                                  (p) => p['id'] == currentPlatform,
+                                ))
+                              DropdownMenuItem(
+                                value: currentPlatform,
+                                child: Text(currentPlatform),
+                              ),
+                            ...effectivePlatforms.map((p) {
+                              final pId = p['id'] as String? ?? 'vertex_ai';
+                              final pLabel = p['label'] as String? ?? pId;
+                              return DropdownMenuItem(
+                                value: pId,
+                                child: Text(pLabel),
+                              );
+                            }),
                           ],
                           onChanged: (val) {
                             if (val == null) return;
                             String newProvider = val;
-                            if (val == 'vertex_ai') {
-                              newProvider = 'google';
-                            } else if (val == 'ai_studio') {
+                            if (val == 'vertex_ai' || val == 'ai_studio') {
                               newProvider = 'google';
                             }
                             final updatedParams = Map<String, dynamic>.from(
@@ -392,8 +425,20 @@ class ModelRegistryView extends HookConsumerWidget {
                             );
                             updatedParams['platform'] = val;
 
+                            final newPlatformMeta = effectivePlatforms
+                                .firstWhere(
+                                  (p) => p['id'] == val,
+                                  orElse: () => {
+                                    'id': val,
+                                    'label': val,
+                                    'has_regions': val == 'vertex_ai',
+                                  },
+                                );
+                            final bool newHasRegions =
+                                newPlatformMeta['has_regions'] == true;
+
                             String newLocation = currentLocation;
-                            if (val == 'vertex_ai') {
+                            if (newHasRegions) {
                               if (!updatedParams.containsKey(
                                     'vertex_location',
                                   ) ||
@@ -415,7 +460,7 @@ class ModelRegistryView extends HookConsumerWidget {
                                     .read(
                                       availableModelsProvider(
                                         platform: val,
-                                        location: val == 'vertex_ai'
+                                        location: newHasRegions
                                             ? newLocation
                                             : null,
                                       ),
@@ -427,9 +472,9 @@ class ModelRegistryView extends HookConsumerWidget {
                                 modelsForNewPlatform.isNotEmpty
                                 ? modelsForNewPlatform.first
                                 : (val == 'vertex_ai'
-                                      ? 'vertex_ai/gemini-3.7-flash'
+                                      ? 'vertex_ai/gemini-3.8-flash'
                                       : (val == 'ai_studio'
-                                            ? 'gemini/gemini-3.7-flash'
+                                            ? 'gemini/gemini-3.8-flash'
                                             : (val == 'openai'
                                                   ? 'gpt-4o'
                                                   : 'claude-3-7-sonnet-20250219')));
@@ -446,8 +491,8 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                       ),
 
-                      // 2. Location Dropdown (Visible only for Google Vertex AI)
-                      if (currentPlatform == 'vertex_ai')
+                      // 2. Location Dropdown (Visible only when platform has regions)
+                      if (hasRegions)
                         Padding(
                           padding: const EdgeInsets.only(
                             bottom: AppSpacing.s12,
@@ -459,65 +504,26 @@ class ModelRegistryView extends HookConsumerWidget {
                               labelText: l10n.locationLabel,
                               border: const OutlineInputBorder(),
                             ),
-                            items: () {
-                              final baseLocations =
-                                  supportedLocations.isNotEmpty
-                                  ? supportedLocations
-                                  : [
-                                      {
-                                        'id': 'europe-north1',
-                                        'label':
-                                            'Hamina, Finland (europe-north1)',
-                                      },
-                                      {
-                                        'id': 'europe-west1',
-                                        'label':
-                                            'St. Ghislain, Belgium (europe-west1)',
-                                      },
-                                      {
-                                        'id': 'europe-west4',
-                                        'label':
-                                            'Eemshaven, Netherlands (europe-west4)',
-                                      },
-                                      {
-                                        'id': 'europe-west3',
-                                        'label':
-                                            'Frankfurt, Germany (europe-west3)',
-                                      },
-                                      {
-                                        'id': 'us-central1',
-                                        'label':
-                                            'Council Bluffs, Iowa (us-central1)',
-                                      },
-                                      {
-                                        'id': 'us-east4',
-                                        'label': 'Ashburn, Virginia (us-east4)',
-                                      },
-                                    ];
-
-                              final existingIds = baseLocations
-                                  .map((loc) => loc['id'] as String? ?? '')
-                                  .toSet();
-
-                              return [
-                                if (currentLocation.isNotEmpty &&
-                                    !existingIds.contains(currentLocation))
-                                  DropdownMenuItem(
-                                    value: currentLocation,
-                                    child: Text(currentLocation),
-                                  ),
-                                ...baseLocations.map((loc) {
-                                  final locId =
-                                      loc['id'] as String? ?? 'europe-north1';
-                                  final locLabel =
-                                      loc['label'] as String? ?? locId;
-                                  return DropdownMenuItem(
-                                    value: locId,
-                                    child: Text(locLabel),
-                                  );
-                                }),
-                              ];
-                            }(),
+                            items: [
+                              if (currentLocation.isNotEmpty &&
+                                  !supportedLocations.any(
+                                    (loc) => loc['id'] == currentLocation,
+                                  ))
+                                DropdownMenuItem(
+                                  value: currentLocation,
+                                  child: Text(currentLocation),
+                                ),
+                              ...supportedLocations.map((loc) {
+                                final locId =
+                                    loc['id'] as String? ?? 'europe-north1';
+                                final locLabel =
+                                    loc['label'] as String? ?? locId;
+                                return DropdownMenuItem(
+                                  value: locId,
+                                  child: Text(locLabel),
+                                );
+                              }),
+                            ],
                             onChanged: (val) {
                               if (val != null) {
                                 final updatedParams = Map<String, dynamic>.from(
@@ -576,12 +582,7 @@ class ModelRegistryView extends HookConsumerWidget {
                       ),
 
                       // Reasoning model banner
-                      if (cfg.modelName.toLowerCase().contains('gemini-3') ||
-                          cfg.modelName.toLowerCase().contains('claude-3-7') ||
-                          cfg.modelName.toLowerCase().contains('claude-3.7') ||
-                          cfg.modelName.toLowerCase().contains('o1') ||
-                          cfg.modelName.toLowerCase().contains('o3') ||
-                          cfg.modelName.toLowerCase().contains('o4'))
+                      if (isReasoning)
                         Container(
                           margin: const EdgeInsets.only(bottom: AppSpacing.s12),
                           padding: const EdgeInsets.all(AppSpacing.s12),
@@ -637,18 +638,64 @@ class ModelRegistryView extends HookConsumerWidget {
                         ),
                         helperText: l10n.thinkingBudgetHelper,
                       ),
-                      _buildDoubleField(
-                        ValueKey(
-                          '${modelId}_temperature_${currentPlatform}_${cfg.temperature}',
+                      if (!isReasoning) ...[
+                        _buildDoubleField(
+                          ValueKey(
+                            '${modelId}_temperature_${currentPlatform}_${cfg.temperature}',
+                          ),
+                          cfg.temperature,
+                          l10n.temperatureLabel,
+                          l10n,
+                          (val) => updateModel(
+                            modelId,
+                            cfg.copyWith(temperature: val),
+                          ),
                         ),
-                        cfg.temperature,
-                        l10n.temperatureLabel,
-                        l10n,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(temperature: val),
+                        _buildDoubleField(
+                          ValueKey(
+                            '${modelId}_topP_${currentPlatform}_${cfg.topP}',
+                          ),
+                          cfg.topP,
+                          l10n.topPLabel,
+                          l10n,
+                          (val) =>
+                              updateModel(modelId, cfg.copyWith(topP: val)),
                         ),
-                      ),
+                        _buildIntField(
+                          ValueKey(
+                            '${modelId}_topK_${currentPlatform}_${cfg.topK}',
+                          ),
+                          cfg.topK,
+                          l10n.topKLabel,
+                          l10n,
+                          (val) =>
+                              updateModel(modelId, cfg.copyWith(topK: val)),
+                        ),
+                        _buildDoubleField(
+                          ValueKey(
+                            '${modelId}_freqPenalty_${currentPlatform}_${cfg.frequencyPenalty}',
+                          ),
+                          cfg.frequencyPenalty,
+                          l10n.frequencyPenaltyLabel,
+                          l10n,
+                          (val) => updateModel(
+                            modelId,
+                            cfg.copyWith(frequencyPenalty: val),
+                          ),
+                        ),
+                        _buildDoubleField(
+                          ValueKey(
+                            '${modelId}_presPenalty_${currentPlatform}_${cfg.presencePenalty}',
+                          ),
+                          cfg.presencePenalty,
+                          l10n.presencePenaltyLabel,
+                          l10n,
+                          (val) => updateModel(
+                            modelId,
+                            cfg.copyWith(presencePenalty: val),
+                          ),
+                        ),
+                      ],
                       _buildIntField(
                         ValueKey(
                           '${modelId}_maxTokens_${currentPlatform}_${cfg.maxTokens}',
@@ -668,48 +715,6 @@ class ModelRegistryView extends HookConsumerWidget {
                         (val) => updateModel(
                           modelId,
                           cfg.copyWith(parsingMode: val),
-                        ),
-                      ),
-                      _buildDoubleField(
-                        ValueKey(
-                          '${modelId}_topP_${currentPlatform}_${cfg.topP}',
-                        ),
-                        cfg.topP,
-                        l10n.topPLabel,
-                        l10n,
-                        (val) => updateModel(modelId, cfg.copyWith(topP: val)),
-                      ),
-                      _buildIntField(
-                        ValueKey(
-                          '${modelId}_topK_${currentPlatform}_${cfg.topK}',
-                        ),
-                        cfg.topK,
-                        l10n.topKLabel,
-                        l10n,
-                        (val) => updateModel(modelId, cfg.copyWith(topK: val)),
-                      ),
-                      _buildDoubleField(
-                        ValueKey(
-                          '${modelId}_freqPenalty_${currentPlatform}_${cfg.frequencyPenalty}',
-                        ),
-                        cfg.frequencyPenalty,
-                        l10n.frequencyPenaltyLabel,
-                        l10n,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(frequencyPenalty: val),
-                        ),
-                      ),
-                      _buildDoubleField(
-                        ValueKey(
-                          '${modelId}_presPenalty_${currentPlatform}_${cfg.presencePenalty}',
-                        ),
-                        cfg.presencePenalty,
-                        l10n.presencePenaltyLabel,
-                        l10n,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(presencePenalty: val),
                         ),
                       ),
                       _buildIntField(
@@ -932,5 +937,16 @@ class ModelRegistryView extends HookConsumerWidget {
         onChanged: onChanged,
       ),
     );
+  }
+
+  bool _isReasoningModel(LlmModelConfig cfg) {
+    final name = cfg.modelName.toLowerCase();
+    return name.contains('gemini-3') ||
+        name.contains('claude-3-7') ||
+        name.contains('claude-3.7') ||
+        name.contains('o1') ||
+        name.contains('o3') ||
+        name.contains('o4') ||
+        (cfg.thinkingBudgetTokens ?? 0) > 0;
   }
 }
