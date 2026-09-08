@@ -13,6 +13,7 @@ from scripts.diff_executions import (
     UNICODE_SPACE_REGISTRY,
     InputFileInspectionDTO,
     _inspect_input_file,
+    verify_quote_in_corpus,
 )
 from scripts.run_e2e_variance_test import (
     UNICODE_SPACE_REGISTRY as IMPORTED_UNICODE_SPACE_REGISTRY,
@@ -104,3 +105,44 @@ class TestUnicodeSpaceRegistrySSOT:
         assert "\u2002" in UNICODE_SPACE_REGISTRY
         assert "\u2003" in UNICODE_SPACE_REGISTRY
         assert "\u2009" in UNICODE_SPACE_REGISTRY
+
+
+class TestVerifyQuoteInCorpus:
+    """Test suite for verify_quote_in_corpus verifying exact and whitespace-normalized matching."""
+
+    def test_exact_literal_quote_match(self) -> None:
+        """Verify exact identical quote is verified via primary gate."""
+        corpus = "This is a clean document text with exact words."
+        quote = "clean document text"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_whitespace_normalized_newline_match(self) -> None:
+        """Verify quote with single space matches corpus spanning double newlines."""
+        corpus = "Heading text.\n\nSecond paragraph starts here."
+        quote = "Heading text. Second paragraph starts here."
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_whitespace_normalized_with_precomputed_norm_corpus(self) -> None:
+        """Verify precomputed norm_corpus matches correctly and speeds up execution."""
+        corpus = "First sentence.\n\nSecond sentence.\n\nThird sentence."
+        norm_corpus = " ".join(corpus.split())
+        quote = "Second sentence. Third sentence."
+        assert verify_quote_in_corpus(quote, corpus, norm_corpus=norm_corpus) is True
+
+    def test_unicode_space_in_corpus_matches_standard_space_quote(self) -> None:
+        """Verify quote with standard ASCII space matches corpus containing Unicode non-breaking space."""
+        corpus = "Prefix text\u00a0with non-breaking\u2002spaces."
+        quote = "text with non-breaking spaces."
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_hallucinated_quote_returns_false(self) -> None:
+        """Negative: Quote containing non-existent text returns False."""
+        corpus = "This document only discusses software development practices."
+        quote = "This document discusses hardware manufacturing and electronics."
+        assert verify_quote_in_corpus(quote, corpus) is False
+
+    def test_empty_inputs_return_false(self) -> None:
+        """Negative & Boundary: Empty quote or empty corpus returns False."""
+        assert verify_quote_in_corpus("", "Some corpus text.") is False
+        assert verify_quote_in_corpus("   ", "Some corpus text.") is False
+        assert verify_quote_in_corpus("Some quote.", "") is False

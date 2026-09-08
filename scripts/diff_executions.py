@@ -55,6 +55,7 @@ __all__ = [
     "main",
     "run_diff",
     "uses_contextual_override",
+    "verify_quote_in_corpus",
 ]
 
 # Phase 1, Step 1.5: Canonical SSOT for typographic Unicode space markers
@@ -584,6 +585,44 @@ def uses_contextual_override(e: dict[str, Any]) -> bool:
     return isinstance(eq, str) and "[INFERRED]" in eq
 
 
+def verify_quote_in_corpus(
+    quote: str,
+    corpus: str,
+    norm_corpus: str | None = None,
+) -> bool:
+    """Verify whether an extracted quote exists in the corpus using exact or whitespace-normalized search.
+
+    Primary Gate: Exact literal match (corpus.find).
+    Secondary Gate: Whitespace-normalized match (collapsing newlines, tabs, and unicode spaces)
+    to prevent false unverified alarms when an LLM joins multi-line sentences with single spaces.
+
+    Args:
+        quote: Raw quote string extracted from LLM evaluation.
+        corpus: Raw concatenated corpus text from input files.
+        norm_corpus: Pre-normalized corpus text for O(1) matching, or computed on demand.
+
+    Returns:
+        True if the quote is verified in corpus, False otherwise.
+    """
+    eq_clean = quote.strip()
+    if not eq_clean or not corpus:
+        return False
+
+    # 1. Primary check: exact literal match
+    if corpus.find(eq_clean) != -1:
+        return True
+
+    # 2. Secondary check: whitespace-normalized match
+    norm_eq = " ".join(eq_clean.split())
+    if not norm_eq:
+        return False
+
+    if norm_corpus is None:
+        norm_corpus = " ".join(corpus.split())
+
+    return norm_corpus.find(norm_eq) != -1
+
+
 def classify_disagreement(eval_1: dict[str, Any], eval_2: dict[str, Any]) -> DisagreementRootCause:
     """Deterministically classify an evaluation disagreement into a root cause tier.
 
@@ -1109,6 +1148,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     for idx, (r_name, p) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
         run_in_dir = p.parent / "inputs"
         corpus = ""
+        norm_corpus = ""
         if run_in_dir.is_dir():
             corpus_parts: list[str] = []
             for in_f in sorted(run_in_dir.iterdir()):
@@ -1118,6 +1158,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     except OSError:
                         pass
             corpus = "\n".join(corpus_parts)
+            norm_corpus = " ".join(corpus.split())
 
         ev_map = evals_list[idx]
         total_quotes = 0
@@ -1128,7 +1169,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 total_quotes += 1
                 eq = ev.get("exact_quote", ev.get("exact_quotes", ev.get("source_quote")))
                 eq_str = " ".join(str(x) for x in eq) if isinstance(eq, list) else str(eq)
-                if corpus and corpus.find(eq_str.strip()) != -1:
+                if verify_quote_in_corpus(eq_str, corpus, norm_corpus):
                     verified_quotes += 1
                 elif corpus:
                     unverified_quotes += 1
@@ -1693,8 +1734,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         # Lexical Grounding Audit
         f.write("## Lainausten Aitoustarkastus (Lexical Grounding Audit)\n\n")
         f.write(
-            "Kaikki mallin poimimat suorat sitaatit tarkastetaan sanatarkasti (`str.find`) suhteessa alkuperäisiin "
-            "syötetiedostoihin chimera- ja hallusinaatioriskien varalta.\n\n"
+            "Kaikki mallin poimimat suorat sitaatit tarkastetaan sanatarkasti ja whitespace-normalisoidusti "
+            "(`str.find`) suhteessa alkuperäisiin syötetiedostoihin chimera- ja hallusinaatioriskien varalta.\n\n"
         )
         f.write("| Ajo | Syötteet Saatavilla | Sitaatteja | Verifioidut | Vahvistamattomat | Aitoustaso (%) |\n")
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: |\n")
