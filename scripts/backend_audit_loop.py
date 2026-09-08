@@ -91,7 +91,9 @@ def run_tests_with_strict_coverage(target: str) -> None:
                 rel_parts = parts[unit_idx + 1 : -1] + [clean_name]
                 expected_src = Path("backend_v2") / ("/".join(rel_parts) + ".py")
                 if not expected_src.exists():
-                    glob_pattern = "/".join(parts[unit_idx + 1 : -1]) + f"/**/{clean_name}.py"
+                    sub_parts = parts[unit_idx + 1 : -1]
+                    prefix = "/".join(sub_parts) + "/" if sub_parts else ""
+                    glob_pattern = f"{prefix}**/{clean_name}.py"
                     found = list(Path("backend_v2").glob(glob_pattern))
                     if found:
                         rel_found = found[0].relative_to("backend_v2")

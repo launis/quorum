@@ -1,19 +1,36 @@
 """Unit and Negative ISTQB Test Suite for Model Registry Discovery Engine.
 
 Tests positive partitions (Vertex AI multi-region, Google AI Studio direct API key, OpenAI, Anthropic),
-parameterized routing, and negative boundary conditions (missing credentials, unprocessable entity).
+parameterized routing, dynamic platform discovery, Gemini 3+ sampling parameter stripping,
+and negative boundary conditions (missing credentials, unprocessable entity, RBAC denial).
 """
 
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.llm.adapters.ai_studio_adapter import (
+    GoogleAIStudioCacheAdapter,
+)
+from backend_v2.llm.adapters.ai_studio_adapter import (
+    is_gemini_v3_or_higher as is_gemini_v3_ai_studio,
+)
+from backend_v2.llm.adapters.vertex_adapter import (
+    VertexAdapter,
+)
+from backend_v2.llm.adapters.vertex_adapter import (
+    is_gemini_v3_or_higher as is_gemini_v3_vertex,
+)
 from backend_v2.llm.handler import LLMHandler
-from backend_v2.models.dtos.studio import GCPLocationDTO
+from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
 from backend_v2.models.enums import GCPVertexLocation
+from backend_v2.models.v2_core import ModelProfile
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
+from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
 class TestModelRegistryDiscoveryPositivePartitions:
@@ -21,7 +38,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
 
     def test_fetch_vertex_models_discovers_and_validates_regions(self) -> None:
         """Verifies that _fetch_vertex_models validates model candidates in a target GCP region."""
-        repo = MagicMock()
+        repo = InMemorySystemRepository()
         handler = LLMHandler(repo=repo)
         mock_settings = MagicMock()
         mock_settings.discovery_location = "us-central1"
@@ -40,7 +57,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
 
     def test_fetch_ai_studio_models_via_direct_api_key(self) -> None:
         """Verifies that _fetch_ai_studio_models discovers models using Google AI Studio API key."""
-        repo = MagicMock()
+        repo = InMemorySystemRepository()
         handler = LLMHandler(repo=repo)
         mock_settings = MagicMock()
         mock_settings.google_api_key = "test_gemini_api_key"
@@ -61,7 +78,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
 
     def test_fetch_all_available_models_routes_by_platform(self) -> None:
         """Verifies that fetch_all_available_models correctly filters by platform parameter."""
-        repo = MagicMock()
+        repo = InMemorySystemRepository()
         handler = LLMHandler(repo=repo)
 
         with patch.object(handler, "_fetch_vertex_models", return_value=["vertex_ai/gemini-2.5-pro"]):
@@ -77,12 +94,15 @@ class TestModelRegistryDiscoveryPositivePartitions:
                 assert s_res["ai_studio"] == ["gemini/gemini-2.5-flash"]
 
     def test_system_config_service_supported_locations(self) -> None:
-        """Verifies that get_supported_locations returns the full list of GCP regions."""
-        from backend_v2.models.auth import UserRole
-
-        service = StudioSystemConfigService(system_repo=MagicMock())
-        initiator = MagicMock()
-        initiator.role = UserRole.ROOT
+        """Verifies that get_supported_locations returns the full list of GCP regions using stateful repo."""
+        repo = InMemorySystemRepository()
+        service = StudioSystemConfigService(system_repo=repo)
+        initiator = TokenData(
+            id="usr_root000000000000000000000001",
+            email="root@example.com",
+            role=UserRole.ROOT,
+            organization_id="org_root000000000000000000000001",
+        )
 
         locations = service.get_supported_locations(initiator)
         assert len(locations) == 6
@@ -94,13 +114,134 @@ class TestModelRegistryDiscoveryPositivePartitions:
         assert GCPVertexLocation.US_CENTRAL1.value in loc_ids
         assert GCPVertexLocation.US_EAST4.value in loc_ids
 
+    def test_system_config_service_supported_platforms(self) -> None:
+        """Verifies that get_supported_platforms returns the 4 registered platforms conforming to LLMPlatformDTO."""
+        repo = InMemorySystemRepository()
+        service = StudioSystemConfigService(system_repo=repo)
+        initiator = TokenData(
+            id="usr_admin00000000000000000000001",
+            email="admin@example.com",
+            role=UserRole.ADMIN,
+            organization_id="org_admin00000000000000000000001",
+        )
+
+        platforms = service.get_supported_platforms(initiator)
+        assert len(platforms) == 4
+
+        platform_map = {p.id: p for p in platforms}
+        assert "vertex_ai" in platform_map
+        assert "ai_studio" in platform_map
+        assert "openai" in platform_map
+        assert "anthropic" in platform_map
+
+        assert platform_map["vertex_ai"].has_regions is True
+        assert platform_map["ai_studio"].has_regions is False
+        assert platform_map["openai"].has_regions is False
+        assert platform_map["anthropic"].has_regions is False
+
+    @pytest.mark.parametrize(
+        ("model_name", "expected"),
+        [
+            ("gemini-3.0", True),
+            ("gemini-3.7-flash", True),
+            ("gemini-3.8-flash", True),
+            ("gemini-4.0", True),
+            ("vertex_ai/gemini-3.8-flash", True),
+            ("gemini/gemini-3.8-flash", True),
+            ("gemini-1.5-pro", False),
+            ("gemini-2.5-pro", False),
+            ("gemini-2.0-flash", False),
+            ("gpt-4o", False),
+            ("claude-3-7-sonnet", False),
+        ],
+    )
+    def test_is_gemini_v3_or_higher_detection(self, model_name: str, expected: bool) -> None:
+        """Verifies regex classification across both Vertex and AI Studio adapters."""
+        assert is_gemini_v3_vertex(model_name) is expected
+        assert is_gemini_v3_ai_studio(model_name) is expected
+
+    def test_vertex_adapter_prepare_kwargs_strips_sampling_for_gemini_38(self) -> None:
+        """Verifies VertexAdapter strips temperature, top_p, top_k, and penalties for Gemini 3.8."""
+        adapter = VertexAdapter()
+        config = ModelProfile(
+            provider="google",
+            model_name="vertex_ai/gemini-3.8-flash",
+            thinking_budget_tokens=2048,
+        )
+        call_kwargs: dict[str, Any] = {
+            "model": "vertex_ai/gemini-3.8-flash",
+            "temperature": 0.7,
+            "top_p": 0.95,
+            "top_k": 40,
+            "frequency_penalty": 0.2,
+            "presence_penalty": 0.3,
+            "max_tokens": 8192,
+        }
+
+        result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+        assert "temperature" not in result
+        assert "top_p" not in result
+        assert "top_k" not in result
+        assert "frequency_penalty" not in result
+        assert "presence_penalty" not in result
+        assert result["max_tokens"] == 8192
+        assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 2048
+
+    def test_ai_studio_adapter_prepare_kwargs_strips_sampling_for_gemini_38(self) -> None:
+        """Verifies GoogleAIStudioCacheAdapter strips sampling parameters for Gemini 3.8."""
+        adapter = GoogleAIStudioCacheAdapter()
+        config = ModelProfile(
+            provider="google",
+            model_name="gemini/gemini-3.8-flash",
+            thinking_budget_tokens=4096,
+        )
+        call_kwargs: dict[str, Any] = {
+            "model": "gemini/gemini-3.8-flash",
+            "temperature": 0.5,
+            "top_p": 0.9,
+            "top_k": 32,
+            "frequency_penalty": 0.4,
+            "presence_penalty": 0.4,
+            "max_tokens": 4096,
+        }
+
+        result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+        assert "temperature" not in result
+        assert "top_p" not in result
+        assert "top_k" not in result
+        assert "frequency_penalty" not in result
+        assert "presence_penalty" not in result
+        assert result["max_tokens"] == 4096
+        assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
+
+    def test_vertex_adapter_prepare_kwargs_preserves_sampling_for_gemini_25(self) -> None:
+        """Verifies non-v3 models retain temperature and sampling configuration."""
+        adapter = VertexAdapter()
+        config = ModelProfile(
+            provider="google",
+            model_name="vertex_ai/gemini-2.5-pro",
+            temperature=0.7,
+        )
+        call_kwargs: dict[str, Any] = {
+            "model": "vertex_ai/gemini-2.5-pro",
+            "temperature": 0.7,
+            "top_p": 0.95,
+        }
+
+        result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+        assert result["temperature"] == 0.7
+        assert result["top_p"] == 0.95
+
 
 class TestModelRegistryDiscoveryNegativeBoundaries:
     """Negative boundary testing covering missing credentials, invalid regions, and auth failures."""
 
     def test_ai_studio_discovery_fails_fast_when_api_key_missing(self) -> None:
         """Negative Boundary 1: AI Studio discovery raises ConfigurationError when API key is missing."""
-        repo = MagicMock()
+        repo = InMemorySystemRepository()
         handler = LLMHandler(repo=repo)
         mock_settings = MagicMock()
         mock_settings.google_api_key = None
@@ -113,17 +254,52 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
 
     def test_unauthorized_user_cannot_access_supported_locations(self) -> None:
         """Negative Boundary 2: Non-admin/non-root user triggers PermissionDeniedError on locations endpoint."""
-        service = StudioSystemConfigService(system_repo=MagicMock())
-        initiator = MagicMock()
-        initiator.role = "user"
-        initiator.id = "usr_regular123"
+        repo = InMemorySystemRepository()
+        service = StudioSystemConfigService(system_repo=repo)
+        initiator = TokenData(
+            id="usr_regular00000000000000000001",
+            email="user@example.com",
+            role=UserRole.MEMBER,
+            organization_id="org_regular00000000000000000001",
+        )
 
         with pytest.raises(AppException) as exc_info:
             service.get_supported_locations(initiator)
 
         assert exc_info.value.error_code == ErrorCodes.PERMISSION_DENIED
 
+    def test_unauthorized_user_cannot_access_supported_platforms(self) -> None:
+        """Negative Boundary 3: Non-admin/non-root user triggers PermissionDeniedError on platforms endpoint."""
+        repo = InMemorySystemRepository()
+        service = StudioSystemConfigService(system_repo=repo)
+        initiator = TokenData(
+            id="usr_regular00000000000000000001",
+            email="user@example.com",
+            role=UserRole.MEMBER,
+            organization_id="org_regular00000000000000000001",
+        )
+
+        with pytest.raises(AppException) as exc_info:
+            service.get_supported_platforms(initiator)
+
+        assert exc_info.value.error_code == ErrorCodes.PERMISSION_DENIED
+
     def test_gcp_location_dto_strict_field_validation(self) -> None:
-        """Negative Boundary 3: GCPLocationDTO fails on missing required fields."""
+        """Negative Boundary 4: GCPLocationDTO fails on missing required fields."""
         with pytest.raises(ValidationError):
             GCPLocationDTO.model_validate({"id": "europe-north1"})  # Missing label and description
+
+    def test_llm_platform_dto_strict_field_validation(self) -> None:
+        """Negative Boundary 5: LLMPlatformDTO fails on missing required fields or extra forbidden fields."""
+        with pytest.raises(ValidationError):
+            LLMPlatformDTO.model_validate({"id": "vertex_ai"})  # Missing label and has_regions
+
+        with pytest.raises(ValidationError):
+            LLMPlatformDTO.model_validate(
+                {
+                    "id": "vertex_ai",
+                    "label": "Google Vertex AI",
+                    "has_regions": True,
+                    "forbidden_extra": "unexpected",
+                }
+            )
