@@ -75,11 +75,6 @@ void main() {
         );
         expect(
           BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
-              .authenticityEvaluationBlock],
-          equals([XaiExtensionType.authenticityEvaluation]),
-        );
-        expect(
-          BlockCardRegistry.syncWorkflowExtensionsMap[TargetBlockType
               .penaltiesBlock],
           isNull,
         );

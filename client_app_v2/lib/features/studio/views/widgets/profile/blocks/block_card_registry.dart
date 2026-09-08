@@ -22,9 +22,6 @@ class BlockCardRegistry {
     TargetBlockType.varianceValidationBlock: [
       XaiExtensionType.varianceValidation,
     ],
-    TargetBlockType.authenticityEvaluationBlock: [
-      XaiExtensionType.authenticityEvaluation,
-    ],
   };
 
   /// Detailed block types that require dedicated editor cards on Tab 3 (Section Config).
@@ -48,12 +45,9 @@ class BlockCardRegistry {
       TargetBlockType.penaltiesBlock => l10n.blockPenaltiesTitle,
       TargetBlockType.matrixSummaryTableBlock => l10n.blockMatrixSummaryTitle,
       TargetBlockType.varianceValidationBlock => l10n.blockVarianceTitle,
-      TargetBlockType.authenticityEvaluationBlock =>
-        l10n.blockAuthenticityTitle,
       TargetBlockType.printableSourcesBlock => l10n.blockBibliographyTitle,
       TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreTitle,
       TargetBlockType.auditTrailBlock => l10n.blockAuditTrailTitle,
-      TargetBlockType.jargonRatioBlock => l10n.blockJargonRatioTitle,
     };
   }
 
@@ -69,12 +63,9 @@ class BlockCardRegistry {
       TargetBlockType.matrixSummaryTableBlock =>
         l10n.blockMatrixSummarySubtitle,
       TargetBlockType.varianceValidationBlock => l10n.blockVarianceSubtitle,
-      TargetBlockType.authenticityEvaluationBlock =>
-        l10n.blockAuthenticitySubtitle,
       TargetBlockType.printableSourcesBlock => l10n.blockBibliographySubtitle,
       TargetBlockType.globalScoreBlock => l10n.blockGlobalScoreSubtitle,
       TargetBlockType.auditTrailBlock => l10n.blockAuditTrailSubtitle,
-      TargetBlockType.jargonRatioBlock => l10n.blockJargonRatioSubtitle,
     };
   }
 
@@ -88,12 +79,9 @@ class BlockCardRegistry {
       TargetBlockType.penaltiesBlock => Icons.gavel_outlined,
       TargetBlockType.matrixSummaryTableBlock => Icons.table_chart_outlined,
       TargetBlockType.varianceValidationBlock => Icons.rule_outlined,
-      TargetBlockType.authenticityEvaluationBlock =>
-        Icons.verified_user_outlined,
       TargetBlockType.printableSourcesBlock => Icons.menu_book_outlined,
       TargetBlockType.globalScoreBlock => Icons.speed_outlined,
       TargetBlockType.auditTrailBlock => Icons.history_outlined,
-      TargetBlockType.jargonRatioBlock => Icons.spellcheck_outlined,
     };
   }
 
@@ -172,20 +160,6 @@ class BlockCardRegistry {
         updatePayload: updatePayload,
         dragHandle: dragHandle,
       ),
-      TargetBlockType.authenticityEvaluationBlock => SimpleToggleBlockCard(
-        key: key,
-        blockType: TargetBlockType.authenticityEvaluationBlock,
-        title: getBlockTitle(TargetBlockType.authenticityEvaluationBlock, l10n),
-        subtitle: getBlockSubtitle(
-          TargetBlockType.authenticityEvaluationBlock,
-          l10n,
-        ),
-        icon: getBlockIcon(TargetBlockType.authenticityEvaluationBlock),
-        payload: payload,
-        updatePayload: updatePayload,
-        dragHandle: dragHandle,
-        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
-      ),
       TargetBlockType.printableSourcesBlock => BibliographyBlockCard(
         key: key,
         payload: payload,
@@ -209,17 +183,6 @@ class BlockCardRegistry {
         title: getBlockTitle(TargetBlockType.auditTrailBlock, l10n),
         subtitle: getBlockSubtitle(TargetBlockType.auditTrailBlock, l10n),
         icon: getBlockIcon(TargetBlockType.auditTrailBlock),
-        payload: payload,
-        updatePayload: updatePayload,
-        dragHandle: dragHandle,
-        syncWorkflowExtensions: syncWorkflowExtensionsMap[type],
-      ),
-      TargetBlockType.jargonRatioBlock => SimpleToggleBlockCard(
-        key: key,
-        blockType: TargetBlockType.jargonRatioBlock,
-        title: getBlockTitle(TargetBlockType.jargonRatioBlock, l10n),
-        subtitle: getBlockSubtitle(TargetBlockType.jargonRatioBlock, l10n),
-        icon: getBlockIcon(TargetBlockType.jargonRatioBlock),
         payload: payload,
         updatePayload: updatePayload,
         dragHandle: dragHandle,

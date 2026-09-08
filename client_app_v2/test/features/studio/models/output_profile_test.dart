@@ -119,7 +119,6 @@ void main() {
           'penalties_block',
           'matrix_summary_table_block',
           'variance_validation_block',
-          'authenticity_evaluation_block',
           'printable_sources_block',
           'global_score_block',
           'audit_trail_block',
@@ -140,7 +139,7 @@ void main() {
       expect(profile.matrix2dSynthesisDirective, '2D Directive');
       expect(profile.matrix3dSynthesisDirective, '3D Directive');
       expect(profile.matrixTextSynthesisDirective, 'Text Directive');
-      expect(profile.targetBlockOrder.length, 12);
+      expect(profile.targetBlockOrder.length, 11);
       expect(profile.targetBlockOrder.first, TargetBlockType.metadataBlock);
       expect(profile.targetBlockOrder.last, TargetBlockType.auditTrailBlock);
       expect(profile.matrixSynthesisGroups.length, 1);

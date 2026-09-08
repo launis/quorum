@@ -408,8 +408,6 @@ enum TargetBlockType {
   penaltiesBlock,
   @JsonValue('audit_trail_block')
   auditTrailBlock,
-  @JsonValue('jargon_ratio_block')
-  jargonRatioBlock,
   @JsonValue('printable_sources_block')
   printableSourcesBlock,
   @JsonValue('grouped_extensions_block')
@@ -426,8 +424,6 @@ enum TargetBlockType {
   matrixSummaryTableBlock,
   @JsonValue('variance_validation_block')
   varianceValidationBlock,
-  @JsonValue('authenticity_evaluation_block')
-  authenticityEvaluationBlock,
 }
 
 /// Supported system locales.

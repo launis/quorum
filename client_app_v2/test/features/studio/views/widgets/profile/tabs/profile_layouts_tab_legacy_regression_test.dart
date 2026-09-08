@@ -93,7 +93,6 @@ void main() {
             TargetBlockType.penaltiesBlock,
             TargetBlockType.matrixSummaryTableBlock,
             TargetBlockType.varianceValidationBlock,
-            TargetBlockType.authenticityEvaluationBlock,
             TargetBlockType.printableSourcesBlock,
           ],
           visibleWorkflowExtensions: [],

@@ -81,7 +81,7 @@ void main() {
     );
 
     testWidgets(
-      'test_toggle_authenticity_block_adds_and_removes_authenticity_evaluation_extension',
+      'test_toggle_block_card_synchronizes_workflow_extensions',
       (WidgetTester tester) async {
         OutputProfile payload = const OutputProfile(
           id: 'profile_1',
@@ -100,15 +100,14 @@ void main() {
                 child: StatefulBuilder(
                   builder: (context, setState) {
                     return SimpleToggleBlockCard(
-                      blockType: TargetBlockType.authenticityEvaluationBlock,
-                      title: 'Authenticity Evaluation',
-                      subtitle: 'Authenticity metrics',
-                      icon: Icons.verified_user_outlined,
+                      blockType: TargetBlockType.globalScoreBlock,
+                      title: 'Global Score',
+                      subtitle: 'Executive overview score',
+                      icon: Icons.speed_outlined,
                       payload: payload,
-                      syncWorkflowExtensions:
-                          BlockCardRegistry
-                              .syncWorkflowExtensionsMap[TargetBlockType
-                              .authenticityEvaluationBlock],
+                      syncWorkflowExtensions: const [
+                        XaiExtensionType.varianceValidation,
+                      ],
                       updatePayload: (newPayload) {
                         setState(() {
                           payload = newPayload;
@@ -129,11 +128,11 @@ void main() {
 
         expect(
           payload.targetBlockOrder,
-          contains(TargetBlockType.authenticityEvaluationBlock),
+          contains(TargetBlockType.globalScoreBlock),
         );
         expect(
           payload.visibleWorkflowExtensions,
-          contains(XaiExtensionType.authenticityEvaluation),
+          contains(XaiExtensionType.varianceValidation),
         );
 
         // Toggle OFF
@@ -142,11 +141,11 @@ void main() {
 
         expect(
           payload.targetBlockOrder,
-          isNot(contains(TargetBlockType.authenticityEvaluationBlock)),
+          isNot(contains(TargetBlockType.globalScoreBlock)),
         );
         expect(
           payload.visibleWorkflowExtensions,
-          isNot(contains(XaiExtensionType.authenticityEvaluation)),
+          isNot(contains(XaiExtensionType.varianceValidation)),
         );
       },
     );

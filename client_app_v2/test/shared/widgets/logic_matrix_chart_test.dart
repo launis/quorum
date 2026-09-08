@@ -57,7 +57,7 @@ void main() {
       expect(find.textContaining('Axis Y'), findsOneWidget);
 
       // Quadrant labels must NOT be present in pure Cartesian scatter chart
-      expect(find.text('Sycophancy & Jargon'), findsNothing);
+      expect(find.text('Flattery & Filler Phrases'), findsNothing);
       expect(find.text('Fluent Mastery'), findsNothing);
       expect(find.text('Novice / Routine'), findsNothing);
       expect(find.text('Organic Insight'), findsNothing);

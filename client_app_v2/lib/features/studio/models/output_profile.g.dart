@@ -293,6 +293,7 @@ _OutputProfile _$OutputProfileFromJson(
             const [
               TargetBlockType.metadataBlock,
               TargetBlockType.executiveSummaryBlock,
+              TargetBlockType.globalScoreBlock,
               TargetBlockType.synthesisTextBlock,
               TargetBlockType.matrixGraphsBlock,
               TargetBlockType.groupedExtensionsBlock,
@@ -300,7 +301,6 @@ _OutputProfile _$OutputProfileFromJson(
               TargetBlockType.matrixSummaryTableBlock,
               TargetBlockType.varianceValidationBlock,
               TargetBlockType.printableSourcesBlock,
-              TargetBlockType.globalScoreBlock,
               TargetBlockType.auditTrailBlock,
             ],
       ),
@@ -446,7 +446,6 @@ const _$TargetBlockTypeEnumMap = {
   TargetBlockType.globalScoreBlock: 'global_score_block',
   TargetBlockType.penaltiesBlock: 'penalties_block',
   TargetBlockType.auditTrailBlock: 'audit_trail_block',
-  TargetBlockType.jargonRatioBlock: 'jargon_ratio_block',
   TargetBlockType.printableSourcesBlock: 'printable_sources_block',
   TargetBlockType.groupedExtensionsBlock: 'grouped_extensions_block',
   TargetBlockType.executiveSummaryBlock: 'executive_summary_block',
@@ -455,7 +454,6 @@ const _$TargetBlockTypeEnumMap = {
   TargetBlockType.matrixGraphsBlock: 'matrix_graphs_block',
   TargetBlockType.matrixSummaryTableBlock: 'matrix_summary_table_block',
   TargetBlockType.varianceValidationBlock: 'variance_validation_block',
-  TargetBlockType.authenticityEvaluationBlock: 'authenticity_evaluation_block',
 };
 
 const _$SourcesDisplayModeEnumMap = {

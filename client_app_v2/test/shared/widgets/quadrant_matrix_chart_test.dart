@@ -57,7 +57,7 @@ void main() {
       expect(find.textContaining('Axis Y'), findsOneWidget);
 
       // Quadrant labels MUST be rendered in English
-      expect(find.text('Sycophancy & Jargon'), findsOneWidget);
+      expect(find.text('Flattery & Filler Phrases'), findsOneWidget);
       expect(find.text('Fluent Mastery'), findsOneWidget);
       expect(find.text('Novice / Routine'), findsOneWidget);
       expect(find.text('Organic Insight'), findsOneWidget);
@@ -75,7 +75,7 @@ void main() {
       expect(find.textContaining('Axis Y'), findsOneWidget);
 
       // Quadrant labels MUST be rendered in Finnish
-      expect(find.text('Mielistely & Korulauseet'), findsOneWidget);
+      expect(find.text('Mielistely & Täytefraasit'), findsOneWidget);
       expect(find.text('Asiantunteva & Sujuva'), findsOneWidget);
       expect(find.text('Alkeellinen / Rutiini'), findsOneWidget);
       expect(find.text('Aito & Omaääninen'), findsOneWidget);

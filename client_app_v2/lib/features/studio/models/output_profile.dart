@@ -98,6 +98,7 @@ abstract class OutputProfile with _$OutputProfile {
     @Default([
       TargetBlockType.metadataBlock,
       TargetBlockType.executiveSummaryBlock,
+      TargetBlockType.globalScoreBlock,
       TargetBlockType.synthesisTextBlock,
       TargetBlockType.matrixGraphsBlock,
       TargetBlockType.groupedExtensionsBlock,
@@ -105,7 +106,6 @@ abstract class OutputProfile with _$OutputProfile {
       TargetBlockType.matrixSummaryTableBlock,
       TargetBlockType.varianceValidationBlock,
       TargetBlockType.printableSourcesBlock,
-      TargetBlockType.globalScoreBlock,
       TargetBlockType.auditTrailBlock,
     ])
     List<TargetBlockType> targetBlockOrder,
