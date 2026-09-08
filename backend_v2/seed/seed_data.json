@@ -18143,6 +18143,9 @@
       "display_scale": "normalized_100",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",

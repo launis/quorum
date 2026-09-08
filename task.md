@@ -1,65 +1,63 @@
-# Task Tracker: Option 4 Comprehensive E2E Isolation & Advanced Kappa Analytics Suite
+# Task Tracker: Dynamic Profile-Governed Penalties & Tripartite Harmonization (Zero-Fallback Architecture)
 
 <required_context_rules>
-  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
-  <rule>@[.agents/rules/01-python-backend.md]</rule>
-  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-  <knowledge_item>@[ki_provider_agnostic_caching.md]</knowledge_item>
-  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
-  <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
+    <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+    <rule>@[.agents/rules/01-python-backend.md]</rule>
+    <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+    <rule>@[.agents/rules/03_seed_vault.md]</rule>
+    <rule>@[.agents/rules/04_directory_reference.md]</rule>
+    <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+    <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_sdui_adapter_pattern.md]</knowledge_item>
+    <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\997a2478-eecb-490e-9077-1856c128bb73\implementation_plan.md]
+Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3680a9b5-579a-4799-9bb4-1e513a4082b2\implementation_plan.md]
 
-## Pre-Flight Checklist (<constraint> tags & 5-Column Architectural Directives)
-- [ ] Constraint: `target_scope_boundaries` - Changes strictly isolated to `scripts/run_e2e_variance_test.py`, `scripts/diff_executions.py`, and test suites.
-- [ ] Constraint: `eradicated_duct_tape` - Eradicate bare `except Exception: pass`, Python 2 exception syntax, legacy `tmp/`, dynamic `getattr(enums, ...)`, and naked dictionaries.
-- [ ] Constraint: `approved_best_practice` - Multi-field Unicode perturbation, `--no-cache` batch forwarding, `cooldown_seconds` TTL, immutable Pydantic V2 DTOs (`KappaMetricsDTO`, `IsolationAuditDTO`, `RootCauseBreakdownDTO`, `ScaleBreakdownDTO`, `BlockHeatmapDTO`, `MacroBlockScoreDTO`), `DisagreementRootCause(StrEnum)`, Fleiss SE/CI with singularity guard, Landis & Koch benchmarks, 0-100 normalized difficulty tiers, block heatmap, deterministic 4-tier root cause triage, macro score drift tracking, and lexical grounding audit.
-- [ ] Constraint: `pruned_over_engineering` - 100% native stdlib math/argparse; zero external heavy dependencies (`scipy`, `statsmodels`).
-- [ ] Constraint: `verification_and_fail_fast` - Fail-Fast on space-starved inputs, strict Pydantic V2 models, unit tests in `backend_v2/tests/unit/`, and `backend_audit_loop.py` compliance.
-- [ ] Constraint: `step_by_step_mode` - Stop after completing each cohesive step and wait for user approval.
+## Pre-Flight Checklist (<constraint> tags)
+- [ ] Constraint: `anti_duplication` - Ensure zero dangling imports of `ScoringPenalty` across the entire codebase.
+- [ ] Constraint: `zero_service_layer_fallbacks` - Fields must be non-nullable float (never float | None) on persistence and response models to prevent downstream fallback chains.
+- [ ] Constraint: `zero_permissive_typing` - Ensure `model_config = ConfigDict(strict=True, extra="forbid")` remains intact on all modified models.
+- [ ] Constraint: `sdui_contract_fracture_prevention` - Verify 1:1 serialization naming between Python `snake_case` and Dart `camelCase`.
+- [ ] Constraint: `live_database_mutation` - Never modify `data/db_v2.json` directly. Edit `seed_data.json` and sync via seeder.
+- [ ] Constraint: `the_duct_tape_ban` - Maintain raw truth purity in Phase 1 execution data; zero text mutilation or irreversible destructive math in DAG steps.
+- [ ] Constraint: `universal_fail_fast` - Raise explicit `AppException` with `ErrorCodes.VALIDATION_FAILED` if state structure is corrupted.
+- [ ] Constraint: `zero_service_layer_fallbacks` - Zero tolerance for fallback operators (or, .get, or global settings). If profile data is missing, fail fast.
+- [ ] Constraint: `sdui_adapter_dumb_painter` - Pass pre-calculated `penalties_applied` into `AdapterContext`.
+- [ ] Constraint: `cross_language_mapping_mandate` - All static localization keys defined in `en.json` and `fi.json`; no hardcoded Finnish strings in Python code.
+- [ ] Constraint: `monolithic_god_widgets` - Keep widgets modular; use existing `AppSpacing` and `Theme.of(context)` tokens.
 
 ## Execution Tasks
 
-- [x] **Phase 1: Pre-Implementation Cleanups & Technical Debt Sweeps**
-  - [x] 1.0 Fix Python 2 exception syntax bug at `scripts/diff_executions.py#L369` (`except (UnicodeDecodeError, OSError):`).
-  - [x] 1.1 Eradicate silent error suppression (`the_duct_tape_ban`) across `scripts/run_e2e_variance_test.py` and `scripts/diff_executions.py`.
-  - [x] 1.2 Eradicate legacy `tmp/` usage in `scripts/run_e2e_variance_test.py` (replace with `scratch/variance_inputs/`).
-  - [x] 1.3 Eradicate hardcoded magic values in `scripts/run_e2e_variance_test.py` (ISO timestamp fallback, workflow lookup Fail-Fast).
-  - [x] 1.4 Fix fragile dynamic attribute access `getattr(enums, ...)` in `scripts/diff_executions.py#L514-522`.
-  - [x] 1.5 Run baseline unit tests and `backend_audit_loop.py` to verify clean state.
+- [x] **Phase 1: Technical Debt Pre-Requisites and Schema Harmonization**
+  - [x] Step 1.1: Demolish Dead ScoringPenalty Enum (`backend_v2/models/enums.py`).
+  - [x] Step 1.2: Extend Output Profile Schemas Backend Zero-Fallback (`backend_v2/models/dtos/output_profile.py`, `backend_v2/models/v2_core.py`).
+  - [x] Step 1.3: Extend Output Profile Freezed Model Frontend Zero-Fallback (`client_app_v2/lib/features/studio/models/output_profile.dart`).
+  - [x] Step 1.4: Seed Data Profile Alignment (`backend_v2/seed/seed_data.json`).
+  - [x] Quality Gate: Run backend and flutter audit loops for Phase 1.
 
-- [x] **Phase 2: Test Runner Ingress & Isolation Suite (`scripts/run_e2e_variance_test.py`)**
-  - [x] 2.1 Refactor `make_noise_injector(run_index)` and `run_variance_test` for multi-field perturbation across all whitespace-containing string fields with Fail-Fast check if 0 fields injected.
-  - [x] 2.2 Add `--no-cache` parameter passing `"--no-cache"` as CLI argument to `run_local.bat` and setting `backend_env["DISABLE_VERTEX_CACHE"] = "true"`.
-  - [x] 2.3 Add `--cooldown-seconds` TTL parameter for inter-run TCP socket drain.
-  - [x] 2.4 Add standard `argparse.ArgumentParser` CLI interface with backward-compatible positional argument support.
-  - [x] 2.5 Update unit tests in `backend_v2/tests/unit/test_run_e2e_variance_test.py` and run quality gate.
+- [ ] **Phase 2: Phase 1 Execution Hook Refactoring**
+  - [ ] Step 2.1: Refactor Passivity Hook Purity (`backend_v2/hooks/scoring/passivity_hook.py`).
+  - [ ] Step 2.2: Harmonize Scoring Hook Passivity Detection Zero-Fallback (`backend_v2/hooks/scoring/falsifier_hook.py`).
+  - [ ] Quality Gate: Run backend audit loop for Phase 2.
 
-- [x] **Phase 3: Forensic Analytics & Advanced Kappa Suite (`scripts/diff_executions.py`)**
-  - [x] 3.1 Define immutable Pydantic V2 DTOs (`KappaMetricsDTO`, `IsolationAuditDTO`, `RootCauseBreakdownDTO`, `ScaleBreakdownDTO`, `BlockHeatmapDTO`, `MacroBlockScoreDTO`) and `DisagreementRootCause(StrEnum)`.
-  - [x] 3.2 Implement Execution Health Check (`ONNISTUNUT`) and Cross-Run Input Hash Isolation Audit (`TÄYSI SYÖTE-ERISTYS` vs `MAHDOLLINEN VÄLIMUISTIVUOTO`).
-  - [x] 3.3 Refactor `calculate_cohens_kappa()` to return `KappaMetricsDTO` directly with Fleiss SE, 95% CI, singularity guard ($p_o = 1.0$, $p_e \ge 1.0$), Landis & Koch categorization, and marginal bias calculation.
-  - [x] 3.4 Implement 0-100 Normalized Difficulty Tier Breakdown (5 standardized difficulty quintiles) using parent block extrema from `seed_data.json`.
-  - [x] 3.5 Implement Block Heatmap analysis (mismatches and consistency rate per matrix block).
-  - [x] 3.6 Implement Deterministic Disagreement Root Cause Triage (`DisagreementRootCause`: Retrieval Gap vs Reasoning Gap vs Contextual Override vs Technical Error).
-  - [x] 3.7 Implement Macro Score Drift (0-100) extracting native `normalized_score` from `execution_trace.json` block payloads with $\Delta \text{normalized\_score}$.
-  - [x] 3.8 Implement FinOps Cached Token Savings and $\Delta \text{Cost}$ calculations.
-  - [x] 3.9 Implement Lexical Grounding Audit with exact `str.find()` validation of quotes against input snapshots.
-  - [x] 3.10 Synthesize all sections into the differential Markdown report.
+- [ ] **Phase 3: Phase 3 SDUI and Blueprint Dynamic Penalties**
+  - [ ] Step 3.1: Dynamic Profile Penalty Calculation Zero-Fallback (`backend_v2/services/blueprint.py`).
+  - [ ] Step 3.2: Localized Penalties Adapter Zero-Fallback (`backend_v2/services/sdui/adapters/penalties_adapter.py`).
+  - [ ] Step 3.3: Add Localization Keys Backend (`backend_v2/l10n/fi.json`, `backend_v2/l10n/en.json`).
+  - [ ] Quality Gate: Run backend audit loop and SDUI parity test for Phase 3.
 
-- [x] **Phase 4: Unit Test Verification Suite (`backend_v2/tests/unit/test_diff_executions.py`)**
-  - [x] 4.1 Create `backend_v2/tests/unit/test_diff_executions.py` covering positive, negative, and boundary test contracts.
-  - [x] 4.2 Run complete test suite and execute `backend_audit_loop.py` on both scripts.
+- [ ] **Phase 4: Flutter Studio UI Integration**
+  - [ ] Step 4.1: Add Localization Keys Frontend (`client_app_v2/lib/l10n/app_fi.arb`, `client_app_v2/lib/l10n/app_en.arb`).
+  - [ ] Step 4.2: Integrate Controls into Profile Scoring Tab (`client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_scoring_tab.dart`).
+  - [ ] Quality Gate: Run flutter audit loop for Phase 4.
 
-- [x] **Phase 5: Post-Audit Remediations (from Tier 8 Red-Team Audit)**
-  - [x] 5.1 Fix residual comma exception syntax at `scripts/diff_executions.py#L548, L550, L619` (`except (E1, E2):`).
-  - [x] 5.2 Narrow broad `except Exception as e:` at `scripts/run_e2e_variance_test.py#L217, L239` and `scripts/diff_executions.py#L802, L804`.
-  - [x] 5.3 Resolve 12 Ruff `E501` line-length violations in `scripts/diff_executions.py`.
-  - [x] 5.4 Re-run `backend_audit_loop.py` on both scripts to verify clean pass.
-  - [x] 5.5 Fix Windows CP1252 charmap encoding crash when printing emoji icons (`🏆`, `🟢`, etc.) in `scripts/diff_executions.py` by configuring UTF-8 on `sys.stdout`/`sys.stderr` and forwarding `encoding="utf-8"` + `PYTHONIOENCODING="utf-8"` in `scripts/run_e2e_variance_test.py`.
+- [ ] **Phase 5: Quality Gates and Verification**
+  - [ ] Step 5.1: Unit Test Expansion Backend (`backend_v2/tests/unit/hooks/test_scoring.py`, `backend_v2/tests/unit/services/sdui/adapters/test_penalties_adapter.py`, `backend_v2/tests/unit/services/test_blueprint.py`).
+  - [ ] Step 5.2: Execute Quality Gates (Backend audit loop, Flutter audit loop, Seed dry-run, Live E2E variance verification).
 
 ## Session Handover Context
-- **Achieved**: 100% of Phases 1, 2, 3, 4, and 5 implemented and verified. All 59 unit tests pass across `test_run_e2e_variance_test.py` and `test_diff_executions.py`. Both scripts pass `backend_audit_loop.py` with strict >=90% test coverage (92% on runner, 90% on diff engine), zero Ruff errors, zero MyPy errors, and UTF-8 console encoding enabled for emoji output across Windows subshells.
-- **Learned**: Windows pipes and subshells default to system code page (CP1252), causing `UnicodeEncodeError` when emitting Unicode emoji characters (`\U0001f3c6` / 🏆). Forcing UTF-8 on `io.TextIOWrapper` stdout/stderr and passing `encoding="utf-8"` with `PYTHONIOENCODING="utf-8"` to subprocesses resolves the issue cleanly across all Windows terminals.
-- **Remaining**: Implementation and post-audit remediations 100% completed. Ready for atomic commit and final sign-off.
+- **Achieved**: Pre-flight verification completed. Verified that `ScoringPenalty` exists, fields are missing, and no changes have been applied yet.
+- **Learned**: Default values must be strictly 0.0 (no penalties applied by default). All fields must be non-nullable float/double with strict Pydantic extra="forbid" and Freezed `@Default(0.0)`.
+- **Remaining**: Implementation of Phases 1 to 5.

@@ -80,7 +80,6 @@ __all__ = [
     "RoleClassification",
     "SDUIComponentType",
     "ScoringCalibrationThresholds",
-    "ScoringPenalty",
     "ScoringStrategy",
     "SearchStatus",
     "SelfHealingThresholdRatio",
@@ -627,13 +626,6 @@ class InteractionStrategy(StrEnum):
     ZERO_SHOT = "STRATEGY_ZERO_SHOT"
     FEW_SHOT = "STRATEGY_FEW_SHOT"
     CHAIN_OF_THOUGHT = "STRATEGY_CHAIN_OF_THOUGHT"
-
-
-class ScoringPenalty(StrEnum):
-    """Penalty types applied during deterministic score calibration."""
-
-    SECURITY_THREAT = "PENALTY_SECURITY_THREAT"
-    POST_HOC = "PENALTY_POST_HOC"
 
 
 class VerificationResult(StrEnum):

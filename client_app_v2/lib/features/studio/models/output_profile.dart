@@ -72,6 +72,9 @@ abstract class OutputProfile with _$OutputProfile {
     int? matrixGraphLengthConstraint,
     @JsonKey(name: 'max_quotes_per_matrix') int? maxQuotesPerMatrix,
     @JsonKey(name: 'max_unmet_criteria') int? maxUnmetCriteria,
+    @JsonKey(name: 'security_penalty') @Default(0.0) double securityPenalty,
+    @JsonKey(name: 'post_hoc_penalty') @Default(0.0) double postHocPenalty,
+    @JsonKey(name: 'passivity_penalty') @Default(0.0) double passivityPenalty,
     @JsonKey(name: 'tone_instruction') String? toneInstruction,
     @JsonKey(name: 'executive_summary_directive')
     String? executiveSummaryDirective,
