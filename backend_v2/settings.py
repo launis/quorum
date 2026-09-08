@@ -316,22 +316,22 @@ class Settings(BaseSettings):
     authenticity_threshold_high: Annotated[
         float,
         Field(
-            default=80.0,
+            default=2.5,
             ge=0.0,
-            le=100.0,
-            description="Minimum score required for HIGH authenticity level classification",
+            le=3.0,
+            description="Minimum score required for HIGH authenticity level classification on 1.0-3.0 scale",
         ),
-    ] = 80.0
+    ] = 2.5
 
     authenticity_threshold_low: Annotated[
         float,
         Field(
-            default=50.0,
+            default=1.5,
             ge=0.0,
-            le=100.0,
-            description="Minimum score required for MEDIUM authenticity level classification",
+            le=3.0,
+            description="Minimum score required for MEDIUM authenticity level classification on 1.0-3.0 scale",
         ),
-    ] = 50.0
+    ] = 1.5
 
     # --- Global DTO Policies ---
     auto_resolve_policy: Annotated[str, Field(description="Policy for automatic resolution of execution nodes")] = (
@@ -367,9 +367,12 @@ class Settings(BaseSettings):
     variance_performative_normalizer: Annotated[
         float, Field(default=10.0, description="Performative phrase count scaling normalizer")
     ] = 10.0
+    variance_jargon_density_normalizer: Annotated[
+        float, Field(default=5.0, description="Phrases per 100 words normalizer for performative load cap")
+    ] = 5.0
     enable_dynamic_performative_extraction: Annotated[
-        bool, Field(default=False, description="Feature flag to enable dynamic LLM extraction of performative patterns")
-    ] = False
+        bool, Field(default=True, description="Feature flag to enable dynamic LLM extraction of performative patterns")
+    ] = True
 
     # --- Scoring Penalties (Zero-Compromise: Configurable) ---
     scoring_security_penalty: Annotated[
@@ -718,7 +721,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_authenticity_thresholds(self) -> Self:
-        """Enforce cross-field consistency: high threshold must be >= low threshold.
+        """Enforce cross-field consistency: high threshold must be >= low threshold on 1.0-3.0 scale.
 
         Returns:
             The validated settings instance.
@@ -729,7 +732,7 @@ class Settings(BaseSettings):
         if self.authenticity_threshold_high < self.authenticity_threshold_low:
             msg = (
                 f"authenticity_threshold_high ({self.authenticity_threshold_high}) "
-                f"must be >= authenticity_threshold_low ({self.authenticity_threshold_low})"
+                f"must be >= authenticity_threshold_low ({self.authenticity_threshold_low}) on 1.0-3.0 scale"
             )
             raise ValueError(msg)
         return self

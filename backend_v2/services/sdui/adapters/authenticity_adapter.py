@@ -138,12 +138,12 @@ class AuthenticityAdapter:
 
         auth_score_rounded = float(f"{float(authenticity_score):.2f}")
 
-        lbl_jargon = LocalizationService.translate("jargon_score", context.locale)
+        lbl_auth_score = LocalizationService.translate("authenticity_score", context.locale)
         lbl_auth_level = LocalizationService.translate("authenticity_level", context.locale)
 
         grid_block = SduiGridBlock(
             items=[
-                ParagraphBlock(text=f"{lbl_jargon}: {auth_score_rounded}", exact_quotes=[], citations=[]),
+                ParagraphBlock(text=f"{lbl_auth_score}: {auth_score_rounded}", exact_quotes=[], citations=[]),
             ]
         )
 

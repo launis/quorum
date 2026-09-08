@@ -36,9 +36,9 @@ def test_authenticity_threshold_high_below_minimum_raises() -> None:
 
 
 def test_authenticity_threshold_high_above_maximum_raises() -> None:
-    """Boundary test: Setting authenticity_threshold_high above 100.0 raises ValidationError."""
+    """Boundary test: Setting authenticity_threshold_high above 3.0 raises ValidationError."""
     with pytest.raises(ValidationError):
-        Settings(authenticity_threshold_high=100.1, use_mock_llm=True)
+        Settings(authenticity_threshold_high=3.1, use_mock_llm=True)
 
 
 def test_authenticity_threshold_low_below_minimum_raises() -> None:
@@ -48,31 +48,31 @@ def test_authenticity_threshold_low_below_minimum_raises() -> None:
 
 
 def test_authenticity_threshold_low_above_maximum_raises() -> None:
-    """Boundary test: Setting authenticity_threshold_low above 100.0 raises ValidationError."""
+    """Boundary test: Setting authenticity_threshold_low above 3.0 raises ValidationError."""
     with pytest.raises(ValidationError):
-        Settings(authenticity_threshold_low=100.1, use_mock_llm=True)
+        Settings(authenticity_threshold_low=3.1, use_mock_llm=True)
 
 
 def test_authenticity_threshold_inversion_raises() -> None:
     """Negative test: Setting high < low raises ValidationError with cross-field message."""
     with pytest.raises(ValidationError, match="must be >="):
-        Settings(authenticity_threshold_high=40.0, authenticity_threshold_low=70.0, use_mock_llm=True)
+        Settings(authenticity_threshold_high=1.0, authenticity_threshold_low=2.0, use_mock_llm=True)
 
 
 def test_authenticity_threshold_equal_values_valid() -> None:
     """Boundary test: High == low is valid and passes validation."""
-    settings = Settings(authenticity_threshold_high=60.0, authenticity_threshold_low=60.0, use_mock_llm=True)
-    assert settings.authenticity_threshold_high == 60.0
-    assert settings.authenticity_threshold_low == 60.0
+    settings = Settings(authenticity_threshold_high=2.0, authenticity_threshold_low=2.0, use_mock_llm=True)
+    assert settings.authenticity_threshold_high == 2.0
+    assert settings.authenticity_threshold_low == 2.0
 
 
 def test_authenticity_threshold_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     """Positive test: Environment variables override default threshold values."""
-    monkeypatch.setenv("AUTHENTICITY_THRESHOLD_HIGH", "90.0")
-    monkeypatch.setenv("AUTHENTICITY_THRESHOLD_LOW", "60.0")
+    monkeypatch.setenv("AUTHENTICITY_THRESHOLD_HIGH", "2.8")
+    monkeypatch.setenv("AUTHENTICITY_THRESHOLD_LOW", "1.2")
     settings = Settings(use_mock_llm=True)
-    assert settings.authenticity_threshold_high == 90.0
-    assert settings.authenticity_threshold_low == 60.0
+    assert settings.authenticity_threshold_high == 2.8
+    assert settings.authenticity_threshold_low == 1.2
 
 
 def test_strip_whitespace_and_custom_types() -> None:

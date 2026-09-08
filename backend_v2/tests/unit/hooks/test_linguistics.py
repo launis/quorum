@@ -474,9 +474,13 @@ async def test_detect_performative_patterns_dynamic_extraction_unanchored_discar
 
 @pytest.mark.asyncio
 async def test_detect_performative_patterns_dynamic_extraction_disabled_by_default(
-    mock_deps: HookDependencies,
+    mock_deps: HookDependencies, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Verify that when enable_dynamic_performative_extraction is False, LLM is bypassed."""
+    settings = get_settings()
+    custom_settings = settings.model_copy(update={"enable_dynamic_performative_extraction": False})
+    monkeypatch.setattr("backend_v2.hooks.linguistics.get_settings", lambda: custom_settings)
+
     state = HookState(
         execution_id="exe_dyn_3",
         workflow_id="wf_dyn",

@@ -4,6 +4,7 @@ import logging
 import uuid
 
 from fastapi import status
+from pydantic import ValidationError
 from rapidfuzz import fuzz
 
 from backend_v2.core.hook_registry import (
@@ -90,7 +91,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         if "language" in raw_inputs:
             payload_data["language"] = raw_inputs["language"]
         payload = LinguisticsPayloadDTO.model_validate(payload_data)
-    except Exception as e:
+    except (ValidationError, TypeError, ValueError) as e:
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
         logger.error("[LinguisticsHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
@@ -138,6 +139,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     # Clean text extraction via DTO method encapsulating chat_log_user_only prioritization
     text_to_scan = payload.get_text_to_scan()
+    text_to_scan_lower = text_to_scan.lower()
 
     # Dynamic LLM Extraction (feature-flagged)
     settings = get_settings()
@@ -166,7 +168,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                 if not cleaned:
                     continue
                 # Strict physical lexical anchoring verification
-                if text_to_scan.find(cleaned) != -1:
+                if text_to_scan_lower.find(cleaned) != -1:
                     dynamic_phrases.append(cleaned)
                 else:
                     logger.warning(
@@ -186,10 +188,10 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     detected: list[str] = []
     for pattern in patterns_to_check:
         pattern_lower = pattern.lower()
-        if pattern_lower in text_to_scan:
+        if text_to_scan_lower.find(pattern_lower) != -1:
             detected.append(pattern_lower)
         else:
-            ratio = fuzz.partial_ratio(pattern_lower, text_to_scan)
+            ratio = fuzz.partial_ratio(pattern_lower, text_to_scan_lower)
             if ratio >= fuzz_threshold:
                 detected.append(pattern_lower)
 
