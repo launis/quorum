@@ -27,7 +27,7 @@ class TestAdapterParameterSanitization:
     """Tests parameter normalization, thinking budget mapping, and deprecation sanitization."""
 
     def test_vertex_gemini_37_temperature_and_thinking_budget(self, mock_settings: MagicMock) -> None:
-        """Test Vertex AI Gemini 3.7 enforces temp=1.0 and translates thinking budget."""
+        """Test Vertex AI Gemini 3.7 strips temperature and sampling keys and translates thinking budget."""
         adapter = VertexCacheAdapter()
         config = ModelProfile(
             provider="google",
@@ -46,9 +46,8 @@ class TestAdapterParameterSanitization:
 
         result = adapter.prepare_kwargs(call_kwargs, config, mock_settings)
 
-        # Assert temperature normalized to 1.0
-        assert result["temperature"] == 1.0
-        # Assert deprecated keys stripped
+        # Assert temperature and deprecated keys stripped
+        assert "temperature" not in result
         assert "top_k" not in result
         assert "frequency_penalty" not in result
         assert "presence_penalty" not in result
@@ -57,7 +56,7 @@ class TestAdapterParameterSanitization:
         assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
 
     def test_ai_studio_gemini_37_temperature_and_thinking_budget(self, mock_settings: MagicMock) -> None:
-        """Test Google AI Studio Gemini 3.7 enforces temp=1.0 and translates thinking budget."""
+        """Test Google AI Studio Gemini 3.7 strips temperature and sampling keys and translates thinking budget."""
         adapter = GoogleAIStudioCacheAdapter()
         config = ModelProfile(
             provider="google",
@@ -75,7 +74,7 @@ class TestAdapterParameterSanitization:
 
         result = adapter.prepare_kwargs(call_kwargs, config, mock_settings)
 
-        assert result["temperature"] == 1.0
+        assert "temperature" not in result
         assert "top_k" not in result
         assert "frequency_penalty" not in result
         assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 2048

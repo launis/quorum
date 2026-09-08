@@ -395,7 +395,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
 
             if scrubbed_keys:
                 logger.debug(
-                    "[GoogleAIStudioCacheAdapter] Scrubbed unsupported sampling parameters %s for Gemini 3+ model '%s'.",
+                    "[GoogleAIStudioCacheAdapter] Scrubbed unsupported sampling "
+                    "parameters %s for Gemini 3+ model '%s'.",
                     scrubbed_keys,
                     model_name,
                 )
