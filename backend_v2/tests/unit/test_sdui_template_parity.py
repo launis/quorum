@@ -35,10 +35,10 @@ from backend_v2.models.view.sdui import (
     SduiMetadataBlock,
     SduiMetrics1DBlock,
     SduiNACard,
+    SduiQuadrantMatrixBlock,
     SduiQuoteCard,
     SduiRadarChartBlock,
     SduiScatterPlotBlock,
-    SduiQuadrantMatrixBlock,
     SduiScoreCardBlock,
     SduiWarningCard,
 )

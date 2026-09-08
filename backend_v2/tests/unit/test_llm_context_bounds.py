@@ -212,9 +212,10 @@ async def test_non_context_400_error_maps_malformed(
     mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove Non-Context 400 Error maps to AGENT_RESPONSE_MALFORMED."""
-    mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3})
+    mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3, "llm_max_schema_retries": 1})
     monkeypatch.setattr("backend_v2.services.orchestrator.dag_executor.get_settings", lambda: mock_settings)
     monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+    monkeypatch.setattr("backend_v2.services.llm_task_executor.get_settings", lambda: mock_settings)
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),

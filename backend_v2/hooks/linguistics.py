@@ -22,13 +22,11 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsResultDTO,
     PerformativePatternDTO,
 )
-from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.execution.dynamic_linguistics import (
     DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT,
     DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE,
 )
-from backend_v2.models.v2_core import SystemConfigPerformativeLexicons
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
@@ -64,27 +62,6 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     raw_inputs = state.inputs.raw_inputs
     gvars = state.global_context_vars.vars
 
-    # Check for early exit signal (Workflow override)
-    should_scan = True
-    if "scan_for_performative_patterns" in raw_inputs:
-        should_scan = raw_inputs["scan_for_performative_patterns"]
-    elif "scan_for_performative_patterns" in gvars:
-        should_scan = gvars["scan_for_performative_patterns"]
-
-    if str(should_scan).lower() in ["false", "0"]:
-        logger.debug("[LinguisticsHook] Skipping scan due to scan_for_performative_patterns=False.")
-        return HookResult(
-            success=True,
-            state_delta=HookDeltaDTO(
-                delta={
-                    "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json"),
-                    "global_context_vars": {
-                        "step_linguistics": LinguisticsResultDTO(performative_patterns=[]).model_dump(mode="json")
-                    },
-                }
-            ),
-        )
-
     # Strict Validation via DTO inflation
     try:
         payload_data = {"dynamic_inputs": raw_inputs}
@@ -103,43 +80,30 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     # Extract Language safely without dict.get()
     lang_simple = payload.extract_language(gvars)
 
-    # Fetch from DB (Strict Fail-Fast)
-    try:
-        config_data = await deps.system_repo.get_system_config(SystemConfigID.PERFORMATIVE_LEXICONS.value)
-        if not config_data:
-            raise AppException(
-                message=f"Fail-Fast: Lexicon config '{SystemConfigID.PERFORMATIVE_LEXICONS.value}' missing.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        config = SystemConfigPerformativeLexicons.model_validate(config_data)
-        if lang_simple not in config.lexicon_configs or not config.lexicon_configs[lang_simple].words:
-            raise AppException(
-                message=f"Fail-Fast: Missing performative lexicon words for language '{lang_simple}'.",
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
-
-        target_lexicon = config.lexicon_configs[lang_simple]
-        baseline_words = list(target_lexicon.words)
-        fuzz_threshold = get_lexical_fuzz_threshold(lang_simple)
-    except AppException:
-        raise
-    except Exception as e:
-        msg = f"Failed to fetch or parse lexicon config from DB: {e}"
-        logger.error("[LinguisticsHook] %s", msg)
-        raise AppException(
-            message=msg,
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-        ) from e
-
-    logger.debug("[LinguisticsHook] Using language '%s' with %s baseline words.", lang_simple, len(baseline_words))
-
     # Clean text extraction via DTO method encapsulating chat_log_user_only prioritization
     text_to_scan = payload.get_text_to_scan()
     text_to_scan_lower = text_to_scan.lower()
+    total_word_count = len(text_to_scan.split())
+
+    # Check for early exit signal (Workflow override)
+    should_scan = True
+    if "scan_for_performative_patterns" in raw_inputs:
+        should_scan = raw_inputs["scan_for_performative_patterns"]
+    elif "scan_for_performative_patterns" in gvars:
+        should_scan = gvars["scan_for_performative_patterns"]
+
+    if str(should_scan).lower() in ["false", "0"]:
+        logger.debug("[LinguisticsHook] Skipping scan due to scan_for_performative_patterns=False.")
+        empty_dto = LinguisticsResultDTO(performative_patterns=[], total_word_count=total_word_count)
+        return HookResult(
+            success=True,
+            state_delta=HookDeltaDTO(
+                delta={
+                    "step_linguistics": empty_dto.model_dump(mode="json"),
+                    "global_context_vars": {"step_linguistics": empty_dto.model_dump(mode="json")},
+                }
+            ),
+        )
 
     # Dynamic LLM Extraction (feature-flagged)
     settings = get_settings()
@@ -153,7 +117,9 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                 pipeline_name="linguistics_hook",
             )
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
-            user_content = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(text_to_scan=text_to_scan)
+            user_content = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(
+                language=lang_simple, text_to_scan=text_to_scan
+            )
             messages = [
                 LLMMessageDTO(role="system", content=DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT),
                 LLMMessageDTO(role="user", content=user_content),
@@ -163,40 +129,32 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                 messages=messages,
                 response_model=DynamicLinguisticsExtractorDTO,
             )
+            fuzz_threshold = get_lexical_fuzz_threshold(lang_simple)
             for phrase in extraction_dto.detected_phrases:
                 cleaned = phrase.strip().lower()
                 if not cleaned:
                     continue
-                # Strict physical lexical anchoring verification
+                # Strict physical lexical anchoring verification (exact substring or morphological fallback)
                 if text_to_scan_lower.find(cleaned) != -1:
                     dynamic_phrases.append(cleaned)
                 else:
-                    logger.warning(
-                        "[LinguisticsHook] Unanchored performative phrase discarded: '%s'",
-                        phrase,
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
+                    ratio = fuzz.partial_ratio(cleaned, text_to_scan_lower)
+                    if ratio >= fuzz_threshold:
+                        dynamic_phrases.append(cleaned)
+                    else:
+                        logger.warning(
+                            "[LinguisticsHook] Unanchored performative phrase discarded: '%s'",
+                            phrase,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
         except (AppException, RuntimeError, ValueError, TimeoutError, OSError) as e:
             logger.warning(
-                "[LinguisticsHook] Dynamic performative extraction failed, falling back to baseline: %s",
+                "[LinguisticsHook] Dynamic performative extraction failed: %s",
                 e,
             )
 
-    # Merge baseline and anchored dynamic phrases, preserving order and uniqueness
-    patterns_to_check = list(dict.fromkeys(baseline_words + dynamic_phrases))
-
-    detected: list[str] = []
-    for pattern in patterns_to_check:
-        pattern_lower = pattern.lower()
-        if text_to_scan_lower.find(pattern_lower) != -1:
-            detected.append(pattern_lower)
-        else:
-            ratio = fuzz.partial_ratio(pattern_lower, text_to_scan_lower)
-            if ratio >= fuzz_threshold:
-                detected.append(pattern_lower)
-
     # Deduplicate detected phrases while preserving order
-    unique_detected = list(dict.fromkeys(detected))
+    unique_detected = list(dict.fromkeys(dynamic_phrases))
 
     # Create strictly typed result
     patterns_list: list[PerformativePatternDTO] = [
@@ -208,7 +166,10 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         for p in unique_detected
     ]
 
-    result_dto = LinguisticsResultDTO(performative_patterns=patterns_list)
+    result_dto = LinguisticsResultDTO(
+        performative_patterns=patterns_list,
+        total_word_count=total_word_count,
+    )
 
     if unique_detected:
         logger.debug("   [LinguisticsHook] Detected patterns (%s): %s", lang_simple, unique_detected)

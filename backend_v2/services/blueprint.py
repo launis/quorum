@@ -48,6 +48,7 @@ from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityA
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.executive_summary_adapter import ExecutiveSummaryAdapter
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
+from backend_v2.services.sdui.adapters.jargon_ratio_adapter import JargonRatioAdapter
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
 from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
 from backend_v2.services.sdui.adapters.mcp_audit_adapter import McpAuditAdapter
@@ -100,7 +101,7 @@ class BlueprintTransformer:
             TargetBlockType.PENALTIES_BLOCK: lambda ctx: PenaltiesAdapter.build(ctx),
             TargetBlockType.GLOBAL_SCORE_BLOCK: lambda ctx: GlobalScoreAdapter.build(ctx),
             TargetBlockType.AUDIT_TRAIL_BLOCK: lambda ctx: McpAuditAdapter.build(ctx),
-            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: [],
+            TargetBlockType.JARGON_RATIO_BLOCK: lambda ctx: JargonRatioAdapter.build(ctx),
             TargetBlockType.PRINTABLE_SOURCES_BLOCK: lambda ctx: PrintableSourcesAdapter.build(ctx),
             TargetBlockType.GROUPED_EXTENSIONS_BLOCK: lambda ctx: XaiHighlightsAdapter.build(ctx),
             TargetBlockType.EXECUTIVE_SUMMARY_BLOCK: lambda ctx: ExecutiveSummaryAdapter.build(ctx),

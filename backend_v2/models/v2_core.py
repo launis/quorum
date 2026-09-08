@@ -85,8 +85,6 @@ __all__ = [
     "HydratedAtomDTO",
     "I18nText",
     "JobAcceptedDTO",
-    "LexiconConfigPayload",
-    "LexiconSuggestionListDTO",
     "MCPAuditTrace",
     "MatrixClaim",
     "MatrixRow",
@@ -105,7 +103,6 @@ __all__ = [
     "StepRule",
     "SystemConfigMCPGateways",
     "SystemConfigModelRegistry",
-    "SystemConfigPerformativeLexicons",
     "TDAAssertion",
     "TheoryGrounding",
     "Workflow",
@@ -461,42 +458,6 @@ class SystemConfigMCPGateways(V2CoreBase):
     slug: str | None = Field(default=None, description="System Config identifier slug")
     tools: list[AllowedMCPTool] = Field(
         default_factory=list, description="Registry of all available MCP tools in the system."
-    )
-
-
-class LexiconConfigPayload(V2CoreBase):
-    """Configuration for a single language lexicon."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    language_code: str = Field(description="ISO language code (e.g., 'en', 'fi').")
-    language_name: str = Field(description="Human readable language name.")
-    fuzz_threshold: float = Field(default=85.0, description="RapidFuzz threshold (0-100).")
-    words: list[str] = Field(default_factory=list, description="List of performative phrases.")
-
-
-class SystemConfigPerformativeLexicons(V2CoreBase):
-    """System configuration for multi-language performative lexicons."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="performative_lexicons")
-
-    id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
-    type: Literal["performative_lexicons"] = Field(
-        default="performative_lexicons", description="Config type discriminator."
-    )
-    slug: str | None = Field(default=None, description="System Config identifier slug")
-    lexicon_configs: dict[str, LexiconConfigPayload] = Field(
-        default_factory=dict, description="Map of language code to lexicon configuration."
-    )
-
-
-class LexiconSuggestionListDTO(V2CoreBase):
-    """Structured DTO for LLM returned performative phrases."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    suggested_phrases: list[str] = Field(
-        default_factory=list, description="List of suggested performative or slop phrases."
     )
 
 
@@ -1484,6 +1445,8 @@ class ExtensionMetricsDTO(V2CoreBase):
     performative_phrases_count: float | None = None
     variance_score: float | None = None
     alignment_verdict: str | None = None
+    jargon_density: float | None = None
+    total_word_count: int | None = None
 
 
 class RenderedSynthesisCache(V2CoreBase):

@@ -12,6 +12,8 @@
   "alignment_misaligned": "Misaligned",
   "alignment_misaligned_sycophancy": "Misaligned (Sycophancy Risk)",
   "jargon_score": "Jargon Ratio",
+  "jargon_ratio_title": "Jargon & Cliché Analysis",
+  "detected_phrases": "Detected Expressions",
   "authenticity_score": "Authenticity Score",
   "authenticity_level": "Authenticity Level",
   "level_high": "High",

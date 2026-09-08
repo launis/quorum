@@ -71,9 +71,11 @@ class LinguisticsResultDTO(BaseModel):
 
     Attributes:
         performative_patterns: List of detected performative patterns.
+        total_word_count: Total word count of scanned text.
     """
 
     performative_patterns: Annotated[list[PerformativePatternDTO], Field(default_factory=list)]
+    total_word_count: Annotated[int, Field(default=0, ge=0, description="Total word count of scanned text")] = 0
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

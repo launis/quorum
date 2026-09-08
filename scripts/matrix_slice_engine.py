@@ -34,7 +34,13 @@ __all__ = [
     "load_matrix_by_id",
 ]
 
-FINNISH_PATTERN = re.compile(r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I)
+FINNISH_PATTERN = re.compile(
+    r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I
+)
+FINNISH_KEYWORDS_PATTERN = re.compile(
+    r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b", re.I
+)
+SCANDINAVIAN_CHAR_PATTERN = re.compile(r"[äöåÄÖÅ]")
 EMPIRICAL_METRIC_PATTERN = re.compile(r"\b\d+%\b|\b(N=\d+|p<0\.\d+|kysely|haastattelu|tilasto)\b", re.I)
 COMPARATIVE_RE = re.compile(r"\b(compar|relat|synthe|integrat|weigh|contrast|trade-?off)\b", re.I)
 
@@ -99,7 +105,11 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
                     ("contrastive_example", tda.contrastive_example or ""),
                     ("concept_description", tda.concept_description),
                 ]:
-                    if FINNISH_PATTERN.search(val) or EMPIRICAL_METRIC_PATTERN.search(val):
+                    clean_val = re.sub(r"'[^']*'|\"[^\"]*\"", "", val)
+                    has_finnish = bool(
+                        FINNISH_KEYWORDS_PATTERN.search(val) or SCANDINAVIAN_CHAR_PATTERN.search(clean_val)
+                    )
+                    if has_finnish or EMPIRICAL_METRIC_PATTERN.search(val):
                         findings.append(
                             ContaminationFindingDTO(
                                 tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Empirical text detected"

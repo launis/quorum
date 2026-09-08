@@ -16,17 +16,21 @@ def test_dynamic_performative_system_prompt() -> None:
     assert "<extraction_protocol>" in DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT
     assert "</extraction_protocol>" in DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT
     assert "VERBATIM REQUIREMENT" in DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT
+    assert "When analyzing inflected languages (specifically Finnish)" in DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT
 
 
 def test_dynamic_performative_user_prompt_template() -> None:
-    """Verify user template contains necessary XML fencing and interpolation key."""
+    """Verify user template contains necessary XML fencing and interpolation keys."""
     assert isinstance(DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE, str)
     assert "<source_data>" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
     assert "</source_data>" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
+    assert "<target_language>{language}</target_language>" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
     assert "<user_payload>" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
     assert "</user_payload>" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
     assert "{text_to_scan}" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
+    assert "{language}" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
 
-    # Test formatting with sample text
-    formatted = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(text_to_scan="sample content")
+    # Test formatting with sample text and language
+    formatted = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(language="fi", text_to_scan="sample content")
     assert "sample content" in formatted
+    assert "<target_language>fi</target_language>" in formatted

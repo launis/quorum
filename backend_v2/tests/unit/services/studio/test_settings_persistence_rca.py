@@ -23,25 +23,20 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.system import AnySystemConfigAdapter
 from backend_v2.models.enums import (
     BlockDataType,
     HistoricalContextMode,
     PromptBlockCategory,
     ScoringStrategy,
     StepType,
-    SystemConfigID,
     TargetBlockType,
 )
 from backend_v2.models.v2_core import (
-    LexiconConfigPayload,
     MatrixSynthesisGroup,
     OutputProfile,
     Step,
-    SystemConfigPerformativeLexicons,
     Workflow,
 )
-from backend_v2.services.studio.lexicon_service import StudioLexiconService
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
@@ -92,24 +87,6 @@ def _create_sample_step(step_id: str = "stp_1234567890abcdef") -> Step:
         type=StepType.LOGIC,
         hook="sample_hook",
         model_strategy="standard_strategy",
-    )
-
-
-def _create_sample_lexicons(
-    config_id: str = SystemConfigID.PERFORMATIVE_LEXICONS.value,
-) -> SystemConfigPerformativeLexicons:
-    """Helper to create a valid minimal SystemConfigPerformativeLexicons domain model."""
-    return SystemConfigPerformativeLexicons(
-        id=config_id,
-        type="performative_lexicons",
-        lexicon_configs={
-            "en": LexiconConfigPayload(
-                language_code="en",
-                language_name="English",
-                fuzz_threshold=85.0,
-                words=["in today's digital landscape", "test buzzword"],
-            )
-        },
     )
 
 
@@ -252,61 +229,6 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
         for doc in step_docs:
             validated = Step.model_validate(doc)
             assert validated.id == target_id
-
-
-async def test_save_performative_lexicons_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:
-    """Tests that saving performative lexicons updates in-place without corrupting system_config.
-
-    RED TEST (RCA): Fails because save_performative_lexicons_config wraps data into SystemConfigCreateDTO,
-    saving under cfg_performative_lexicons with a nested content dictionary that breaks AnySystemConfigAdapter.
-    """
-    db_path = str(tmp_path / "test_db.json")
-    db_client = TinyDBClient(db_path)
-    driver = TinyDBDriver(db_client)
-
-    system_repo = SystemRepositoryImpl(driver=driver)
-    lexicon_service = StudioLexiconService(system_repo=system_repo)
-
-    root_token = TokenData(id="usr_root", role=UserRole.ROOT)
-    config_id = SystemConfigID.PERFORMATIVE_LEXICONS.value
-    initial_lex = _create_sample_lexicons(config_id)
-
-    # Seed initial lexicons
-    await driver.upsert("system_config", initial_lex.model_dump(mode="json"), config_id)
-
-    # Update lexicons
-    updated_data = initial_lex.model_copy(
-        update={
-            "lexicon_configs": {
-                "en": LexiconConfigPayload(
-                    language_code="en",
-                    language_name="English",
-                    fuzz_threshold=85.0,
-                    words=["in today's digital landscape", "synergy leverage", "paradigm shift"],
-                )
-            }
-        }
-    )
-
-    res = await lexicon_service.save_performative_lexicons_config(root_token, updated_data)
-
-    # 1. Assert returned config has 3 words
-    assert len(res.lexicon_configs["en"].words) == 3
-
-    # 2. Assert persisted record in repo has 3 words
-    persisted = await system_repo.get_system_config(config_id)
-    assert isinstance(persisted, SystemConfigPerformativeLexicons)
-    assert len(persisted.lexicon_configs["en"].words) == 3
-
-    # 3. Assert system_config table does not have duplicate/corrupted documents
-    with TinyDB(db_path, encoding="utf-8") as raw_db:
-        configs = raw_db.table("system_config").all()
-        assert len(configs) == 1, f"Expected 1 system_config, got {len(configs)}"
-        for doc in configs:
-            # Must pass pre-flight validation
-            validated = AnySystemConfigAdapter.validate_python(doc)
-            assert isinstance(validated, SystemConfigPerformativeLexicons)
-            assert validated.id == config_id
 
 
 async def test_save_output_profile_updates_inplace_and_preserves_preflight(tmp_path: Path) -> None:

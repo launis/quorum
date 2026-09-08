@@ -181,7 +181,6 @@ class SystemConfigID(StrEnum):
 
     MODEL_REGISTRY = "sys_e26807f3bfa3454d"
     MCP_GATEWAYS = "sys_8172bda70c8641c5"
-    PERFORMATIVE_LEXICONS = "sys_e0b2a3c4d5e6f7a8"
 
 
 class AlignmentVerdict(StrEnum):

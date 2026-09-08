@@ -220,3 +220,23 @@ Operationally, the matrix controls evaluation precision through targeted paramet
 **Context Target & Epistemic Justification:**
 - **Why `all`:** Measures the open acknowledgment of contextual boundaries, missing data, and intrinsic uncertainties. Rewards prudent hedging and penalizes ungrounded epistemic certainty.
 - **Why a single input is insufficient:** Authors frequently insert polite hedges into deliverables while displaying aggressive dogmatism in conversational prompts or uncritical hubris in reflection. Authentic epistemic humility requires consistent intellectual modesty across all three touchpoints.
+
+---
+
+## Cartesian Variance & Linguistic Calibration
+
+### 2D Cartesian Variance Plane
+The system evaluates cognitive performance across a two-dimensional Cartesian plane:
+- **X-Axis (Substantive Matrix Score):** Represents the unpenalized average score computed across active matrix dimensions ($[1.0, 5.0]$).
+- **Y-Axis (Jargon Density):** Represents the percentage of the evaluated text comprised of performative, hollow, or ungrounded consultative phrases ($[0.0, 100.0]$).
+
+The jargon density formula is length-invariant:
+$$\text{jargon\_density} = \frac{\text{performative\_phrases\_count}}{\max(1, \text{total\_word\_count})} \times 100$$
+
+This length-invariant metric guarantees that lengthy analytical essays are evaluated on equal footing with concise briefs without volume bias.
+
+### Dynamic Multilingual Linguistics
+Performative language detection runs dynamically through prompt compilation without static dictionary dependencies:
+1. **Dynamic Extraction:** The system compiles linguistic analysis directives targeting inflected morphology in the document's native language.
+2. **Lexical Validation:** Candidate phrases are anchored to the physical source text via exact string searching, supplemented by non-forensic token sort matching for morphologically inflected Finnish and English words.
+3. **SDUI Integration:** `VarianceAdapter` and `JargonRatioAdapter` project the calculated metrics into structured, server-driven UI components.

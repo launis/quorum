@@ -152,7 +152,6 @@ async def test_pdf_generator_empty_quadrant_matrix_crashes() -> None:
         assert "generate_quadrant_matrix_chart returned empty data for block" in str(exc_info.value)
 
 
-
 @pytest.mark.asyncio
 async def test_pdf_generator_chart_value_error_raises_app_exception() -> None:
     svc = PdfReportService()

@@ -43,6 +43,7 @@ async def test_tavily_search_happy_path() -> None:
         patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_settings,
     ):
         mock_settings.return_value.tavily_api_key = "tvly-test-key"
+        mock_settings.return_value.tavily_max_results = 5
         result = await tavily_search("Finland population")
 
     assert isinstance(result, TavilySearchResult)
@@ -58,6 +59,7 @@ async def test_tavily_search_missing_api_key() -> None:
     """Ensure ConfigurationError when key is None."""
     with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_settings:
         mock_settings.return_value.tavily_api_key = None
+        mock_settings.return_value.tavily_max_results = 5
 
         with pytest.raises(ConfigurationError) as exc_info:
             await tavily_search("test query")
@@ -78,6 +80,7 @@ async def test_tavily_search_network_failure() -> None:
         patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_settings,
     ):
         mock_settings.return_value.tavily_api_key = "tvly-test-key"
+        mock_settings.return_value.tavily_max_results = 5
 
         with pytest.raises(AppException) as exc_info:
             await tavily_search("test query")
@@ -120,6 +123,7 @@ async def test_tavily_search_with_new_api_fields() -> None:
         patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_settings,
     ):
         mock_settings.return_value.tavily_api_key = "tvly-test-key"
+        mock_settings.return_value.tavily_max_results = 5
         result = await tavily_search("Finland population")
 
     assert isinstance(result, TavilySearchResult)

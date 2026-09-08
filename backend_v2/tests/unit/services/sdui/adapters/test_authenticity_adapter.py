@@ -1,5 +1,3 @@
-from unittest.mock import MagicMock
-
 import pytest
 
 from backend_v2.exceptions import AppException
@@ -15,19 +13,23 @@ from backend_v2.models.v2_core import (
 from backend_v2.models.view.sdui import MarkdownBlock, ParagraphBlock, SduiMetrics1DBlock
 from backend_v2.services.sdui.adapters.authenticity_adapter import AuthenticityAdapter
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.settings import get_settings
 
 
 @pytest.fixture(autouse=True)
-def mock_authenticity_settings(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
-    """Mock Settings for AuthenticityAdapter tests to decouple from environment."""
-    mock_settings = MagicMock()
-    mock_settings.authenticity_threshold_high = 80.0
-    mock_settings.authenticity_threshold_low = 50.0
+def configure_authenticity_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Ensure standard settings with native 1.0-3.0 thresholds for AuthenticityAdapter tests."""
+    current_settings = get_settings()
+    test_settings = current_settings.model_copy(
+        update={
+            "authenticity_threshold_high": 2.5,
+            "authenticity_threshold_low": 1.5,
+        }
+    )
     monkeypatch.setattr(
         "backend_v2.services.sdui.adapters.authenticity_adapter.get_settings",
-        lambda: mock_settings,
+        lambda: test_settings,
     )
-    return mock_settings
 
 
 def _create_base_profile() -> OutputProfile:
@@ -132,9 +134,9 @@ def test_build_success_with_metrics() -> None:
     )
     cache = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
-            authenticity_score=85.0,
+            authenticity_score=2.8,
             performative_phrases_count=2.0,
-            variance_score=15.0,
+            variance_score=0.2,
             alignment_verdict="ALIGNED",
         ),
         authenticity_explanation="High degree of authenticity identified in execution traces.",
@@ -248,9 +250,9 @@ def test_build_fallback_explanation_and_medium_low_levels() -> None:
     # Medium level with no custom row_explanation
     cache_med = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
-            authenticity_score=60.0,
+            authenticity_score=2.0,
             performative_phrases_count=2.0,
-            variance_score=15.0,
+            variance_score=0.2,
             alignment_verdict="ALIGNED",
         )
     )
@@ -274,9 +276,9 @@ def test_build_fallback_explanation_and_medium_low_levels() -> None:
     # Low level
     cache_low = RenderedSynthesisCache(
         extension_metrics=ExtensionMetricsDTO(
-            authenticity_score=30.0,
+            authenticity_score=1.2,
             performative_phrases_count=5.0,
-            variance_score=50.0,
+            variance_score=0.8,
             alignment_verdict="MISALIGNED",
         )
     )

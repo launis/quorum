@@ -78,7 +78,6 @@ from backend_v2.models.v2_core import (
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
     Workflow,
 )
 
@@ -889,11 +888,6 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
         self._save_isolated(c_id, config_data.content)
         return c_id
 
-    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
-        self._check_fault("update_performative_lexicons")
-        self._save_isolated(lexicons_data.id, lexicons_data)
-        return True
-
 
 # ==============================================================================
 # 11. Audit Repository Fake
@@ -1486,9 +1480,6 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str:
         return await self._system.create_system_config(config_data)
-
-    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
-        return await self._system.update_performative_lexicons(lexicons_data)
 
     # 11. Audit
     async def log_audit_event(self, event_data: AuditLogCreateDTO) -> None:

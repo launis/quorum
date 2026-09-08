@@ -12,7 +12,6 @@ from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.v2_core import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
 )
 
 __all__ = [
@@ -115,7 +114,7 @@ class SystemSettingsDTO(BaseDTO):
 
 # Strict Discriminated Union for System Configurations ensuring O(1) deterministic resolution and zero silent coercion (RT-1)
 type AnySystemConfig = Annotated[
-    SystemConfigModelRegistry | SystemConfigMCPGateways | SystemConfigPerformativeLexicons | SystemSettingsDTO,
+    SystemConfigModelRegistry | SystemConfigMCPGateways | SystemSettingsDTO,
     Field(discriminator="type"),
 ]
 
@@ -133,9 +132,6 @@ class SystemConfigUpdateDTO(BaseDTO):
     mcp_gateways: Annotated[SystemConfigMCPGateways | None, Field(default=None, description="Updated MCP gateways")] = (
         None
     )
-    performative_lexicons: Annotated[
-        SystemConfigPerformativeLexicons | None, Field(default=None, description="Updated performative lexicons")
-    ] = None
     system_settings: Annotated[SystemSettingsDTO | None, Field(default=None, description="Updated system settings")] = (
         None
     )

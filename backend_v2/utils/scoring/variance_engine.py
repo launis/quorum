@@ -22,12 +22,14 @@ logger = logging.getLogger(__name__)
 def calculate_mechanical_cognitive_variance(
     llm_authenticity_score: float,
     performative_phrases_count: int,
+    total_word_count: int | None = None,
 ) -> VarianceEngineResultDTO:
     """Calculate the absolute variance between mechanical linguistics and cognitive assessment.
 
     Args:
         llm_authenticity_score: Authenticity score given by the cognitive agent (1.0 to 3.0).
         performative_phrases_count: Number of performative filler phrases detected mechanically.
+        total_word_count: Total word count of scanned text for length-invariant density calculation.
 
     Returns:
         A VarianceEngineResultDTO containing:
@@ -50,6 +52,19 @@ def calculate_mechanical_cognitive_variance(
         )
         raise AppException(
             message="performative_phrases_count must be a non-negative integer.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    if total_word_count is not None and (
+        isinstance(total_word_count, bool) or not isinstance(total_word_count, int) or total_word_count < 0
+    ):
+        logger.error(
+            "Validation failed for total_word_count: must be a non-negative integer or None",
+            exc_info=True,
+        )
+        raise AppException(
+            message="total_word_count must be a non-negative integer or None.",
             status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
@@ -79,12 +94,19 @@ def calculate_mechanical_cognitive_variance(
 
     settings = get_settings()
 
-    # Normalization mapping count from 0-10+ to 0.0-2.0 scale via SSOT Settings
-    normalized_performative_count = min(
-        (performative_phrases_count / settings.variance_performative_normalizer)
-        * settings.variance_max_performative_cap,
-        settings.variance_max_performative_cap,
-    )
+    if total_word_count is not None and total_word_count > 0:
+        jargon_density = (performative_phrases_count / max(1, total_word_count)) * 100.0
+        normalized_performative_count = min(
+            (jargon_density / settings.variance_jargon_density_normalizer) * settings.variance_max_performative_cap,
+            settings.variance_max_performative_cap,
+        )
+    else:
+        # MIGRATION BRIDGE: Raw count fallback for backward compatibility when total_word_count is omitted
+        normalized_performative_count = min(
+            (performative_phrases_count / settings.variance_performative_normalizer)
+            * settings.variance_max_performative_cap,
+            settings.variance_max_performative_cap,
+        )
 
     # Dampener target value
     target_cognitive_dampener = settings.variance_max_cognitive_score - normalized_performative_count
@@ -101,9 +123,10 @@ def calculate_mechanical_cognitive_variance(
         verdict = AlignmentVerdict.MISALIGNED
 
     logger.info(
-        "Calculated mechanical-cognitive variance: score=%s, count=%s, variance=%s, verdict=%s",
+        "Calculated mechanical-cognitive variance: score=%s, count=%s, words=%s, variance=%s, verdict=%s",
         llm_authenticity_score,
         performative_phrases_count,
+        total_word_count,
         round(variance, 4),
         verdict.value,
     )

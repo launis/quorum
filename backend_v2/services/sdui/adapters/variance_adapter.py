@@ -26,6 +26,7 @@ from backend_v2.models.view.sdui import (
 )
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+from backend_v2.settings import get_settings
 
 __all__ = ["VARIANCE_RULES", "VarianceAdapter"]
 
@@ -223,6 +224,22 @@ class VarianceAdapter:
             strict=False,
         )
 
+        settings = get_settings()
+        if metrics.jargon_density is not None:
+            normalized_load = min(
+                (metrics.jargon_density / settings.variance_jargon_density_normalizer)
+                * settings.variance_max_performative_cap,
+                settings.variance_max_performative_cap,
+            )
+            mech_score = round(float(metrics.jargon_density), 2)
+        else:
+            normalized_load = min(
+                (phrase_count_rounded / settings.variance_performative_normalizer)
+                * settings.variance_max_performative_cap,
+                settings.variance_max_performative_cap,
+            )
+            mech_score = phrase_count_rounded
+
         y_axis = MatrixScorecardRowDTO.model_validate(
             {
                 "block_id": "axis_mechanical_load",
@@ -235,10 +252,10 @@ class VarianceAdapter:
                 ),
                 "row_explanation": "",
                 "is_evaluative": False,
-                "score": phrase_count_rounded,
+                "score": mech_score,
                 "scale_min": 0.0,
-                "scale_max": 2.0,
-                "ui_plot_ratio": round(max(0.0, min(1.0, phrase_count_rounded / 2.0)), 4),
+                "scale_max": settings.variance_max_performative_cap,
+                "ui_plot_ratio": round(max(0.0, min(1.0, normalized_load / settings.variance_max_performative_cap)), 4),
             },
             strict=False,
         )
@@ -249,7 +266,12 @@ class VarianceAdapter:
         )
 
         # 5. CONSTRUCT 4-METRIC SUMMARY GRID
-        jargon_display = len(performative_patterns) if performative_patterns else int(performative_phrases_count)
+        jargon_count = len(performative_patterns) if performative_patterns else int(performative_phrases_count)
+        if metrics.jargon_density is not None:
+            jargon_display = f"{jargon_count} ({metrics.jargon_density:.1f}/100w)"
+        else:
+            jargon_display = str(jargon_count)
+
         grid_block = SduiGridBlock(
             items=[
                 ParagraphBlock(text=f"{lbl_mech}: {phrase_count_rounded}", exact_quotes=[], citations=[]),

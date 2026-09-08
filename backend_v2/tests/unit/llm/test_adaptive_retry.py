@@ -77,6 +77,7 @@ async def test_lite_llm_provider_adaptive_retry_success_on_retry(monkeypatch: py
 
     mock_settings = get_settings().model_copy(
         update={
+            "llm_max_transient_retries": 2,
             "llm_retry_jitter_initial_seconds": 0,
             "llm_retry_max_seconds": 0,
         }

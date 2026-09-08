@@ -18,7 +18,6 @@ from backend_v2.models.enums import SystemConfigID
 from backend_v2.models.v2_core import (
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
 )
 
 logger = logging.getLogger(__name__)
@@ -163,19 +162,3 @@ class SystemRepositoryImpl(BaseRepository):
         doc_id = payload["id"] if "id" in payload else f"cfg_{config_data.type}"
         payload["id"] = doc_id
         return await self.driver.upsert("system_config", payload, doc_id)
-
-    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool:
-        """Updates the performative lexicons configuration in-place.
-
-        Args:
-            lexicons_data: SystemConfigPerformativeLexicons containing updated lexicon dictionaries.
-
-        Returns:
-            True if updated successfully.
-        """
-        payload = lexicons_data.model_dump(mode="json")
-        doc_id = lexicons_data.id or SystemConfigID.PERFORMATIVE_LEXICONS.value
-        payload["id"] = doc_id
-        payload["type"] = "performative_lexicons"
-        await self.driver.upsert("system_config", payload, doc_id)
-        return True

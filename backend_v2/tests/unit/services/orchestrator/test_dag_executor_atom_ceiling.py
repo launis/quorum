@@ -88,6 +88,9 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
             "synthesis": ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             ),
+            "fast": ModelProfile(
+                provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
+            ),
         },
     ).model_dump(mode="json")
     mock_repo.get_system_config_model_registry.return_value = model_registry_data

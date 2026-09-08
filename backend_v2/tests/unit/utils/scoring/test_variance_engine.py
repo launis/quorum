@@ -111,3 +111,45 @@ def test_calculate_mechanical_cognitive_variance_boundary_values() -> None:
     result_high = calculate_mechanical_cognitive_variance(llm_authenticity_score=100.0, performative_phrases_count=10)
     assert result_high.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
     assert result_high.variance_score == 99.0
+
+
+def test_calculate_mechanical_cognitive_variance_with_density_invariance() -> None:
+    """Verify 2D Cartesian variance density optimization handles document length proportionally.
+
+    2 phrases in 1500 words (0.13% density) should not trigger sycophancy,
+    while 2 phrases in 40 words (5.0% density) is heavy jargon load.
+    """
+    # 1. 1500-word document with 2 phrases:
+    # density = (2 / 1500) * 100 = 0.1333% -> dampener = 3.0 - (0.1333 / 5.0)*2 = 2.9467
+    # For a high authenticity score of 2.85, variance is ~0.0967 -> ALIGNED
+    result_long = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=2.85,
+        performative_phrases_count=2,
+        total_word_count=1500,
+    )
+    assert result_long.alignment_verdict == AlignmentVerdict.ALIGNED
+    assert result_long.variance_score < 0.15
+
+    # 2. 40-word document with 2 phrases:
+    # density = (2 / 40) * 100 = 5.0% -> dampener = 3.0 - 2.0 = 1.0
+    # For the same high authenticity score of 2.85, variance is 1.85 -> MISALIGNED_SYCOPHANCY
+    result_short = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=2.85,
+        performative_phrases_count=2,
+        total_word_count=40,
+    )
+    assert result_short.alignment_verdict == AlignmentVerdict.MISALIGNED_SYCOPHANCY
+    assert result_short.variance_score == 1.85
+
+
+def test_calculate_mechanical_cognitive_variance_density_cap() -> None:
+    """Verify that extreme jargon density (e.g., 20%) caps dampener reduction cleanly at 2.0."""
+    # 10 phrases in 50 words = 20.0% density >> 5.0% normalizer
+    # normalized count = cap = 2.0, target dampener = 3.0 - 2.0 = 1.0
+    result = calculate_mechanical_cognitive_variance(
+        llm_authenticity_score=1.0,
+        performative_phrases_count=10,
+        total_word_count=50,
+    )
+    assert result.alignment_verdict == AlignmentVerdict.ALIGNED
+    assert result.variance_score == 0.0

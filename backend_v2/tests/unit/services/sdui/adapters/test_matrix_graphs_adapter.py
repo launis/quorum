@@ -141,7 +141,7 @@ def test_matrix_graphs_adapter_single_group_2d() -> None:
     assert len(blocks) == 2
     assert isinstance(blocks[0], MarkdownBlock)
     assert isinstance(blocks[1], SduiScatterPlotBlock)
-    assert blocks[1].show_quadrants is False
+    assert blocks[1].block_type == "2d_compare"
     assert len(blocks[1].axes) == 2
 
 
@@ -393,7 +393,7 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
     b_2d = MatrixGraphsAdapter.build(ctx_2d)
     assert len(b_2d) == 2
     assert isinstance(b_2d[1], SduiScatterPlotBlock)
-    assert b_2d[1].show_quadrants is False
+    assert b_2d[1].block_type == "2d_compare"
 
     # 2. 3D matrix
     p_3d = OutputProfile(

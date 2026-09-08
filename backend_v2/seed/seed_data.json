@@ -102,29 +102,6 @@
           }
         }
       ]
-    },
-    {
-      "id": "sys_e0b2a3c4d5e6f7a8",
-      "slug": "performative_lexicons",
-      "type": "performative_lexicons",
-      "lexicon_configs": {
-        "en": {
-          "language_code": "en",
-          "language_name": "English",
-          "fuzz_threshold": 90,
-          "words": [
-            "delve"
-          ]
-        },
-        "fi": {
-          "language_code": "fi",
-          "language_name": "Finnish",
-          "fuzz_threshold": 90,
-          "words": [
-            "syventyä"
-          ]
-        }
-      }
     }
   ],
   "prompt_blocks": [
@@ -15259,8 +15236,8 @@
       },
       "output_extensions": [],
       "theory_grounding": {
-        "source_url": "https://doi.org/10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4",
-        "citation_reference": "Strathern, Marilyn 1997."
+        "source_url": "https://doi.org/10.1037/0022-3514.32.2.311",
+        "citation_reference": "Langer, Ellen J. (1975). The Illusion of Control; Strathern, Marilyn (1997). 'Improving ratings': audit in the British University system; Shneiderman, Ben (2022). Human-Centered AI."
       },
       "category_id": "task_definition",
       "type": "instruction",

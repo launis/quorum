@@ -1324,6 +1324,7 @@ async def generate_profile_synthesis_and_pdf_task(
             ):
                 authenticity_score = None
                 performative_phrases_count = None
+                total_word_count = None
                 cv = execution.context_variables
 
                 # 1. Linguistics comes from global_context_vars via the linguistics post-hook
@@ -1334,6 +1335,8 @@ async def generate_profile_synthesis_and_pdf_task(
                         patterns = ling_out.performative_patterns
                         if isinstance(patterns, list):
                             performative_phrases_count = len(patterns)
+                        if ling_out.total_word_count is not None:
+                            total_word_count = int(ling_out.total_word_count)
 
                 # 2. Performativity Detector comes from the DAG step output in the trace
                 # Dynamically resolve missing values from execution trace
@@ -1352,6 +1355,8 @@ async def generate_profile_synthesis_and_pdf_task(
                                     patterns = ling_out.performative_patterns
                                     if isinstance(patterns, list):
                                         performative_phrases_count = len(patterns)
+                                    if ling_out.total_word_count is not None:
+                                        total_word_count = int(ling_out.total_word_count)
                             except (ValidationError, TypeError, ValueError) as e:
                                 logger.warning(
                                     "Failed to parse linguistics from decision trace event",
@@ -1403,6 +1408,13 @@ async def generate_profile_synthesis_and_pdf_task(
                     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
                         llm_authenticity_score=authenticity_score,
                         performative_phrases_count=performative_phrases_count,
+                        total_word_count=total_word_count,
+                    )
+
+                    jargon_density = (
+                        round((performative_phrases_count / max(1, total_word_count)) * 100.0, 2)
+                        if total_word_count is not None and total_word_count > 0
+                        else 0.0
                     )
 
                     ext_metrics = ExtensionMetricsDTO(
@@ -1410,6 +1422,8 @@ async def generate_profile_synthesis_and_pdf_task(
                         performative_phrases_count=float(performative_phrases_count),
                         variance_score=float(variance_res.variance_score),
                         alignment_verdict=str(variance_res.alignment_verdict),
+                        jargon_density=float(jargon_density),
+                        total_word_count=int(total_word_count) if total_word_count is not None else None,
                     )
 
                     client_var = await LLMClient.from_strategy("strict", repository=repo)
@@ -1448,8 +1462,15 @@ async def generate_profile_synthesis_and_pdf_task(
                             {
                                 "role": "user",
                                 "content": (
-                                    f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>"
-                                    f"\n\nSCORES TO EXPLAIN:\nCognitive Score: {authenticity_score}\nMechanical Phrases Count: {performative_phrases_count}"
+                                    f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>\n\n"
+                                    "SCORES TO EXPLAIN:\n"
+                                    f"Cognitive Authenticity Score: {authenticity_score} "
+                                    "(Scale: 1.0 = Routine / Superficial / Illusion of Control / Low Originality, "
+                                    "2.0 = Competent / Consistent & Pertinent Guidance, "
+                                    "3.0 = High Cognitive Authenticity / Deep Original Contribution & Strong Voice)\n"
+                                    f"Mechanical Phrases Load: {performative_phrases_count} phrases "
+                                    f"({jargon_density:.2f} per 100 words) "
+                                    "(Scale: 0.0 = Zero Clichés, 5.0+ = Heavy Jargon/Cliché Load)"
                                 ),
                             },
                         ]

@@ -6,11 +6,9 @@ from pydantic import ValidationError
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
     I18nText,
-    LexiconConfigPayload,
     ModelProfile,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
 )
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 
@@ -51,25 +49,6 @@ def test_system_config_discriminator_model_registry() -> None:
     assert isinstance(result, SystemConfigModelRegistry)
     assert result.type == "model_registry"
     assert "primary" in result.models
-
-
-def test_system_config_discriminator_performative_lexicons() -> None:
-    """Tests the discriminator correctly resolves SystemConfigPerformativeLexicons."""
-    adapter = STANDARD_REGISTRY["system_config"]["model"]
-    lex_payload = LexiconConfigPayload(
-        language_code="en",
-        language_name="English",
-        words=["test"],
-    )
-    data = {
-        "id": "cfg_0123456789abcdef",
-        "type": "performative_lexicons",
-        "lexicon_configs": {"en": lex_payload.model_dump(mode="json")},
-    }
-    result = adapter.validate_python(data)
-    assert isinstance(result, SystemConfigPerformativeLexicons)
-    assert result.type == "performative_lexicons"
-    assert "en" in result.lexicon_configs
 
 
 def test_system_config_discriminator_missing_type_fails() -> None:

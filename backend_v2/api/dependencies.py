@@ -57,7 +57,6 @@ from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.services.studio import (
-    StudioLexiconService,
     StudioOutputProfileService,
     StudioPromptBlockService,
     StudioSimulationService,
@@ -521,23 +520,6 @@ async def get_studio_system_config_service(
 
 
 StudioSystemConfigServiceDep = Annotated[StudioSystemConfigService, Depends(get_studio_system_config_service)]
-
-
-async def get_studio_lexicon_service(
-    system_repo: SystemRepoDep,
-) -> StudioLexiconService:
-    """Instantiate the studio lexicon service.
-
-    Args:
-        system_repo: System repository.
-
-    Returns:
-        Studio lexicon service instance.
-    """
-    return StudioLexiconService(system_repo=system_repo)
-
-
-StudioLexiconServiceDep = Annotated[StudioLexiconService, Depends(get_studio_lexicon_service)]
 
 
 async def get_studio_simulation_service(

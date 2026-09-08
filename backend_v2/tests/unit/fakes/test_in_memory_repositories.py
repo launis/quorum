@@ -32,12 +32,10 @@ from backend_v2.models.enums import ExecutionStatus, StepType
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     I18nText,
-    LexiconConfigPayload,
     Role,
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
 )
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
@@ -389,18 +387,6 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert await sys_repo.get_system_settings() is None
     await sys_repo.update_system_settings(SystemConfigUpdateDTO(system_settings=settings_dto))
     assert await sys_repo.get_system_settings() is not None
-    lex_model = SystemConfigPerformativeLexicons(
-        id="sys_e0b2a3c4d5e6f7a8",
-        lexicon_configs={
-            "en": LexiconConfigPayload(
-                language_code="en",
-                language_name="English",
-                words=["buzzword_1"],
-            )
-        },
-    )
-    assert await sys_repo.update_performative_lexicons(lex_model)
-    assert await sys_repo.get_system_config("sys_e0b2a3c4d5e6f7a8") is not None
 
     # 11. Audit
     aud_repo = InMemoryAuditRepository()
@@ -639,18 +625,6 @@ async def test_all_15_fake_repositories_and_facade() -> None:
         )
     )
     assert await unified.get_system_config(cfg_u) is not None
-    u_lex = SystemConfigPerformativeLexicons(
-        id="sys_e0b2a3c4d5e6f7a8",
-        lexicon_configs={
-            "en": LexiconConfigPayload(
-                language_code="en",
-                language_name="English",
-                words=["buzzword_u"],
-            )
-        },
-    )
-    assert await unified.update_performative_lexicons(u_lex)
-    assert await unified.get_system_config("sys_e0b2a3c4d5e6f7a8") is not None
 
     await unified.log_audit_event(AuditLogCreateDTO(actor_id="act_u", action="act"))
     assert len(await unified.get_audit_logs()) == 1

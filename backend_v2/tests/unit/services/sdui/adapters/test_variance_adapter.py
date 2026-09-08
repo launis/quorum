@@ -281,7 +281,7 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
     assert blocks[2].axes[0].score == 1.14
     assert blocks[2].axes[0].ui_plot_ratio == 0.07  # round((1.14 - 1.0) / 2.0, 4) == 0.07
     assert blocks[2].axes[1].score == 2.0
-    assert blocks[2].axes[1].ui_plot_ratio == 1.0  # 2.0 / 2.0 = 1.0
+    assert blocks[2].axes[1].ui_plot_ratio == 0.2  # min((2.0 / 10.0) * 2.0, 2.0) / 2.0 == 0.2
 
     assert isinstance(blocks[3], SduiGridBlock)
     assert len(blocks[3].items) == 4
@@ -295,6 +295,54 @@ def test_build_misaligned_sycophancy_with_detected_phrases() -> None:
     assert isinstance(blocks[5], AlertBlock)
     assert blocks[5].severity == VisualIntent.WARNING
     assert "Ristiriidassa (Mielistelyriski)" in blocks[5].text
+
+
+def test_build_with_jargon_density_calibrates_y_axis_and_grid() -> None:
+    """Verify that build correctly handles jargon_density on Y-axis and 4-metric grid."""
+    profile = _create_profile()
+    execution = _create_execution(
+        context_vars={
+            "step_linguistics": {
+                "performative_patterns": [
+                    {"pattern_id": "p1", "detected_phrase": "strateginen linjaus", "category": "filler"},
+                    {"pattern_id": "p2", "detected_phrase": "optimaalinen suorite", "category": "filler"},
+                ]
+            }
+        }
+    )
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=1.14,
+            performative_phrases_count=2.0,
+            variance_score=1.46,
+            alignment_verdict="MISALIGNED_SYCOPHANCY",
+            jargon_density=5.0,
+            total_word_count=40,
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="fi",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    blocks = VarianceAdapter.build(context)
+    assert len(blocks) == 6
+    quadrant = blocks[2]
+    assert isinstance(quadrant, SduiQuadrantMatrixBlock)
+    assert quadrant.axes[1].score == 5.0
+    assert quadrant.axes[1].ui_plot_ratio == 1.0  # min((5.0 / 5.0) * 2.0, 2.0) / 2.0 == 1.0
+
+    grid = blocks[3]
+    assert isinstance(grid, SduiGridBlock)
+    assert "2 (5.0/100w)" in grid.items[3].text
 
 
 def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.MonkeyPatch) -> None:

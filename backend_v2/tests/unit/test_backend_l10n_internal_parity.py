@@ -135,6 +135,7 @@ def test_backend_json_has_no_dead_unreferenced_keys() -> None:
         "metadata_",
         "variance_",
         "authenticity_",
+        "quadrant_",
     )
 
     def _is_key_referenced(key: str, code_corpus: str) -> bool:

@@ -15,7 +15,6 @@ from backend_v2.models.v2_core import (
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
     Workflow,
 )
 
@@ -24,8 +23,7 @@ __all__ = ["STANDARD_REGISTRY", "SystemConfigUnion"]
 
 SystemConfigUnion = Annotated[
     Annotated[SystemConfigModelRegistry, Tag("model_registry")]
-    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")]
-    | Annotated[SystemConfigPerformativeLexicons, Tag("performative_lexicons")],
+    | Annotated[SystemConfigMCPGateways, Tag("mcp_gateways")],
     Discriminator("type"),
 ]
 

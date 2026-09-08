@@ -909,7 +909,11 @@ async def test_execute_anomaly_retry_flow(
             post_state.inputs = {"output": "Success after retry"}
         return (post_state, [])
 
+    from backend_v2.settings import get_settings
+
+    mock_settings = get_settings().model_copy(update={"llm_max_retries": 2})
     with (
+        patch("backend_v2.services.orchestrator.strategies.llm.get_settings", return_value=mock_settings),
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", side_effect=_post_hooks_side_effect),
         patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),

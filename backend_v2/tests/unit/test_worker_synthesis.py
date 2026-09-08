@@ -322,7 +322,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
             "performative_patterns": [
                 {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"},
                 {"pattern_id": "2", "detected_phrase": "phrase2", "category": "cat2"},
-            ]
+            ],
+            "total_word_count": 100,
         },
         trace_content_det={
             "blk_det12345678det1": {
@@ -353,6 +354,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
     assert metrics is not None
     assert metrics["authenticity_score"] == 2.5
     assert metrics["performative_phrases_count"] == 2.0
+    assert metrics["total_word_count"] == 100
+    assert metrics["jargon_density"] == 2.0
 
 
 @pytest.mark.asyncio

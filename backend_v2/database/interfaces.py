@@ -60,7 +60,6 @@ from backend_v2.models.v2_core import (
     Step,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
-    SystemConfigPerformativeLexicons,
     Workflow,
 )
 
@@ -215,7 +214,6 @@ class ISystemRepository(Protocol):
     async def update_system_settings(self, updates: SystemConfigUpdateDTO) -> bool: ...
     async def get_system_config(self, config_id: str) -> AnySystemConfig | None: ...
     async def create_system_config(self, config_data: SystemConfigCreateDTO) -> str: ...
-    async def update_performative_lexicons(self, lexicons_data: SystemConfigPerformativeLexicons) -> bool: ...
 
 
 class IAuditRepository(Protocol):

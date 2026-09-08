@@ -64,7 +64,16 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
                 "is_active": True,
                 "tpm_limit": 100000,
                 "rpm_limit": 1000,
-            }
+            },
+            "fast": {
+                "provider": "mock_llm_99",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "max_tokens": 1024,
+                "is_active": True,
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+            },
         },
     }
     mock_repo.get_all_prompt_blocks.return_value = [
