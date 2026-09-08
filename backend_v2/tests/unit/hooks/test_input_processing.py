@@ -11,14 +11,15 @@ from backend_v2.core.hook_registry import (
     HookResult,
     HookState,
 )
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import _process_chat_history, process_inputs
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, I18nText
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat")
+@patch("backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat")
 async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
     mock_parse.return_value = ChatHistoryDTO(
         conversation=[
@@ -32,7 +33,7 @@ async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
         result = await _process_chat_history(
             resolved_text="some text",
             key="chat_log",
-            system_repo=None,
+            system_repo=AsyncMock(spec=ISystemRepository),
             enable_semantic_smoothing=False,
             enable_eager_anonymization=False,
             language="en",
@@ -43,36 +44,58 @@ async def test_process_chat_history_separates_speakers(mock_parse: Any) -> None:
         "<ai_draft_context>\nHello User!\n</ai_draft_context>\n\n"
         "<user_payload>\nWhat is 2+2?\n</user_payload>"
     )
-    assert result["combined"] == expected_combined
-    assert result["user_only"] == "Hello AI!\n\nWhat is 2+2?"
-    assert result["ai_only"] == "Hello User!"
+    assert result.combined == expected_combined
+    assert result.user_only == "Hello AI!\n\nWhat is 2+2?"
+    assert result.ai_only == "Hello User!"
 
 
 @pytest.mark.asyncio
-async def test_process_chat_history_bypasses_nlp_for_json() -> None:
+async def test_process_chat_history_scoped_nlp_on_user_turn_only() -> None:
     json_input = """
     {
         "conversation": [
-            {"role": "user", "content": "Hello"}
+            {"role": "user", "content": "Secret user data"},
+            {"role": "ai", "content": "Assistant advice"}
         ]
     }
     """
-    with patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat") as mock_parse:
-        with patch("backend_v2.hooks.input_processing.get_pii_service") as mock_get_pii:
-            result = await _process_chat_history(
-                resolved_text=json_input,
-                key="chat_log",
-                system_repo=None,
-                enable_semantic_smoothing=True,
-                enable_eager_anonymization=True,
-                language="en",
-            )
+    mock_pii = MagicMock()
+    mock_pii.smooth_text.side_effect = lambda text, lang: f"Smoothed: {text}"
+    mock_pii.mask_pii.side_effect = lambda text, lang: f"Masked: {text}"
 
-            mock_get_pii.assert_not_called()
-            mock_parse.assert_not_called()
+    with patch("backend_v2.hooks.input_processing.get_pii_service", return_value=mock_pii):
+        result = await _process_chat_history(
+            resolved_text=json_input,
+            key="chat_log",
+            system_repo=AsyncMock(spec=ISystemRepository),
+            enable_semantic_smoothing=True,
+            enable_eager_anonymization=True,
+            language="en",
+        )
 
-            assert result["combined"] == "<user_payload>\nHello\n</user_payload>"
-            assert result["user_only"] == "Hello"
+        # NLP should process ONLY user content, never AI content
+        assert mock_pii.smooth_text.call_count == 1
+        assert mock_pii.mask_pii.call_count == 1
+        assert "Masked: Smoothed: Secret user data" in result.user_only
+        assert result.ai_only == "Assistant advice"
+
+
+@pytest.mark.asyncio
+async def test_process_chat_history_preserves_paragraph_breaks() -> None:
+    raw_chat = (
+        "User: First paragraph of user.\n\nSecond paragraph of user.\n"
+        "AI: Response paragraph 1.\n\nResponse paragraph 2."
+    )
+    result = await _process_chat_history(
+        resolved_text=raw_chat,
+        key="chat_log",
+        system_repo=AsyncMock(spec=ISystemRepository),
+        enable_semantic_smoothing=False,
+        enable_eager_anonymization=False,
+        language="en",
+    )
+    assert "First paragraph of user.\n\nSecond paragraph of user." in result.user_only
+    assert "Response paragraph 1.\n\nResponse paragraph 2." in result.ai_only
 
 
 @pytest.mark.asyncio
@@ -324,18 +347,23 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
         system_repo=AsyncMock(),
     )
 
+    saved_files: list[str] = []
+
     class MockStorage:
         async def save(self, path: str, content: str) -> None:
-            pass
+            saved_files.append(path)
 
-    import backend_v2.services.storage
-
-    monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockStorage())
+    monkeypatch.setattr("backend_v2.hooks.input_processing.get_storage_driver", lambda: MockStorage())
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     assert "CHAT_LOG" in result.state_delta.delta["inputs"]
     assert "CHAT_LOG_user_only" in result.state_delta.delta["inputs"]
+    assert "CHAT_LOG_ai_only" in result.state_delta.delta["inputs"]
+    assert any("input_CHAT_LOG.md" in p for p in saved_files)
+    assert any("input_CHAT_LOG_user_only.md" in p for p in saved_files)
+    assert any("input_CHAT_LOG_ai_only.md" in p for p in saved_files)
 
 
 @pytest.mark.asyncio
@@ -401,6 +429,7 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     assert result.state_delta.delta["inputs"]["DOC"] == "Masked text"
 
 
@@ -443,6 +472,7 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     assert result.state_delta.delta["inputs"]["DOCUMENT_TEXT"] == "Dynamic input document text"
 
 
@@ -534,20 +564,21 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
 
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
+    assert result.state_delta is not None
     assert result.state_delta.delta["inputs"]["DOCUMENT_TEXT"] == "Gvars doc text"
 
 
 @pytest.mark.asyncio
 async def test_process_chat_history_unstructured_parser_failure() -> None:
     with patch(
-        "backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat",
+        "backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat",
         side_effect=RuntimeError("Parsing error"),
     ):
         with pytest.raises(AppException) as exc:
             await _process_chat_history(
                 resolved_text="unstructured text",
                 key="chat_key",
-                system_repo=None,
+                system_repo=AsyncMock(spec=ISystemRepository),
                 enable_semantic_smoothing=False,
                 enable_eager_anonymization=False,
                 language="en",
@@ -561,8 +592,8 @@ def test_process_questionnaire_invalid_dict() -> None:
 
     expected_input = ExpectedInput(
         input_key="Q",
-        label={"translations": {"en": "Label"}},
-        description={"translations": {"en": "Desc"}},
+        label=I18nText(translations={"en": "Label"}),
+        description=I18nText(translations={"en": "Desc"}),
         input_modes=["text"],
         required=True,
     )
@@ -590,17 +621,17 @@ async def test_process_chat_history_malformed_json_fallback_with_nlp(monkeypatch
     mock_pii.mask_pii.return_value = "Masked chat text"
     monkeypatch.setattr("backend_v2.hooks.input_processing.get_pii_service", lambda: mock_pii)
 
-    with patch("backend_v2.hooks.input_processing.ChatParserService.parse_pasted_chat") as mock_parse:
+    with patch("backend_v2.services.chat_normalizer.ChatParserService.parse_pasted_chat") as mock_parse:
         mock_parse.return_value = ChatHistoryDTO(conversation=[ChatMessageDTO(role="user", content="Parsed message")])
         result = await _process_chat_history(
             resolved_text="{invalid json: true}",
             key="chat_key",
-            system_repo=None,
+            system_repo=AsyncMock(spec=ISystemRepository),
             enable_semantic_smoothing=True,
             enable_eager_anonymization=True,
             language="en",
         )
-        assert result["user_only"] == "Parsed message"
+        assert result.user_only == "Masked chat text"
 
 
 def test_process_questionnaire_missing_english_label() -> None:

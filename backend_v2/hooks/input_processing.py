@@ -7,9 +7,8 @@ and unstructured `reflection_text` strings into a unified text format for downst
 
 import asyncio
 import logging
-import re
 import time
-from typing import Any
+from collections.abc import Mapping
 
 from fastapi import status
 from pydantic import TypeAdapter, ValidationError
@@ -21,10 +20,11 @@ from backend_v2.core.hook_registry import (
     HookState,
     hook_registry,
 )
+from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
-from backend_v2.models.v2_core import ChatHistoryDTO, ExpectedInput, Workflow
-from backend_v2.services.chat_parser import ChatParserService
+from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
+from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput, Workflow
+from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.pii_analyzer import get_pii_service
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.utils.paths import get_forensic_input_path
@@ -32,7 +32,8 @@ from backend_v2.utils.paths import get_forensic_input_path
 logger = logging.getLogger(__name__)
 
 
-async def resolve_input(val: str | int | float | list[object] | dict[str, object] | None) -> str:
+# Phase 1, Step 1.1: Fix QGR016 resolve_input fallback
+async def resolve_input(val: object | None) -> str:
     """Helper to detect string outputs from API layer Extractor or resolve natively.
 
     Args:
@@ -41,10 +42,13 @@ async def resolve_input(val: str | int | float | list[object] | dict[str, object
     Returns:
         The stringified version of the value or an empty string.
     """
-    return str(val) if val else ""
+    if val is None:
+        return ""
+    return str(val)
 
 
-def _extract_raw_value(key_lower: str, state: HookState) -> Any:
+# Phase 1, Step 1.2: Strict typing of _extract_raw_value without Any or dict duck typing
+def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
     """Extracts the raw value for a given key from the state inputs and global context.
 
     Args:
@@ -54,9 +58,9 @@ def _extract_raw_value(key_lower: str, state: HookState) -> Any:
     Returns:
         The extracted raw value, or None if not found.
     """
-    raw_inputs = state.inputs.raw_inputs
-    dynamic_inputs = state.inputs.dynamic_inputs
-    gvars = state.global_context_vars.vars
+    raw_inputs: Mapping[str, object] = state.inputs.raw_inputs
+    dynamic_inputs: Mapping[str, object] = state.inputs.dynamic_inputs
+    gvars: Mapping[str, object] = state.global_context_vars.vars
 
     # 1. Check raw_inputs
     for k, v in raw_inputs.items():
@@ -76,7 +80,7 @@ def _extract_raw_value(key_lower: str, state: HookState) -> Any:
     return None
 
 
-def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: ExpectedInput) -> str:
+def _process_questionnaire(raw_val: object, key: str, expected_input: ExpectedInput) -> str:
     """Validates and processes a questionnaire dictionary into Markdown text.
 
     Args:
@@ -120,96 +124,71 @@ def _process_questionnaire(raw_val: dict[str, Any], key: str, expected_input: Ex
         ) from e
 
 
+# Phase 3, Step 3.1: Refactor _process_chat_history to delegate to ChatNormalizerService
 async def _process_chat_history(
     resolved_text: str,
     key: str,
-    system_repo: Any,
+    system_repo: ISystemRepository,
     enable_semantic_smoothing: bool,
     enable_eager_anonymization: bool,
     language: str,
-) -> dict[str, str]:
-    """Parses raw unstructured chat logs into strict JSON via ChatParserService and formats to Markdown.
+) -> ProcessedChatDTO:
+    """Parses raw unstructured chat logs into ProcessedChatDTO via ChatNormalizerService.
 
     Args:
         resolved_text: The raw, unstructured chat text.
         key: The input key (e.g., 'chat_log').
         system_repo: The system configuration repository.
-        enable_semantic_smoothing: Whether to run SpaCy smoothing on raw text.
-        enable_eager_anonymization: Whether to run Presidio masking on raw text.
+        enable_semantic_smoothing: Whether to run SpaCy smoothing on human user turns.
+        enable_eager_anonymization: Whether to run Presidio masking on human user turns.
         language: The language of the text.
 
     Returns:
-        dict: A dictionary containing 'combined', 'user_only', and 'ai_only' Markdown formatted strings.
+        ProcessedChatDTO: An immutable DTO containing 'combined', 'user_only', and 'ai_only'.
     """
-    chat_dto = None
-    stripped_text = resolved_text.strip()
-    if stripped_text.startswith("{") or stripped_text.startswith("["):
-        try:
-            chat_dto = ChatHistoryDTO.model_validate_json(stripped_text)
-            logger.info("[InputProcessingHook] Valid JSON chat detected for %s. Bypassing NLP.", key)
-        except ValidationError, ValueError:
-            logger.warning(
-                "[InputProcessingHook] Malformed JSON chat detected for %s. Falling back to raw text parsing.", key
-            )
+    chat_dto = await ChatNormalizerService.parse_chat_to_dto(
+        raw_text=resolved_text,
+        key=key,
+        system_repo=system_repo,
+    )
 
-    if chat_dto is None:
-        logger.info("[InputProcessingHook] Unstructured chat detected for %s. Running NLP & ChatParserLLM...", key)
+    # Scoped NLP execution strictly on human user turns (user_only) after role segregation
+    if enable_semantic_smoothing or enable_eager_anonymization:
+        pii_service = get_pii_service()
+        processed_turns: list[ChatMessageDTO] = []
+        for turn in chat_dto.conversation:
+            if turn.role.lower() == "user":
+                user_content = turn.content
+                if enable_semantic_smoothing:
+                    logger.info("[InputProcessingHook] Running Scoped Semantic Smoothing for user turn in %s", key)
+                    start_time = time.perf_counter()
+                    user_content = await asyncio.to_thread(pii_service.smooth_text, user_content, language)
+                    duration = time.perf_counter() - start_time
+                    logger.info(
+                        "[InputProcessingHook] Scoped Semantic Smoothing for %s completed in %.2fs",
+                        key,
+                        duration,
+                    )
 
-        if enable_semantic_smoothing:
-            pii_service = get_pii_service()
-            logger.info("[InputProcessingHook] Running Semantic Smoothing for unstructured chat %s", key)
-            start_time = time.perf_counter()
-            resolved_text = await asyncio.to_thread(pii_service.smooth_text, resolved_text, language)
-            duration = time.perf_counter() - start_time
-            logger.info("[InputProcessingHook] Semantic Smoothing for chat %s completed in %.2fs", key, duration)
+                if enable_eager_anonymization:
+                    logger.info("[InputProcessingHook] Running Scoped Eager Anonymization for user turn in %s", key)
+                    start_time = time.perf_counter()
+                    user_content = await asyncio.to_thread(pii_service.mask_pii, user_content, language)
+                    duration = time.perf_counter() - start_time
+                    logger.info(
+                        "[InputProcessingHook] Scoped Eager Anonymization for %s completed in %.2fs",
+                        key,
+                        duration,
+                    )
 
-        if enable_eager_anonymization:
-            pii_service = get_pii_service()
-            logger.info("[InputProcessingHook] Running Eager Anonymization for unstructured chat %s", key)
-            start_time = time.perf_counter()
-            resolved_text = await asyncio.to_thread(pii_service.mask_pii, resolved_text, language)
-            duration = time.perf_counter() - start_time
-            logger.info("[InputProcessingHook] Eager Anonymization for chat %s completed in %.2fs", key, duration)
+                processed_turns.append(ChatMessageDTO(role=turn.role, content=user_content))
+            else:
+                processed_turns.append(turn)
 
-        try:
-            logger.info(
-                "[InputProcessingHook] Resolved %s text (length: %d): %r", key, len(resolved_text), resolved_text
-            )
-            chat_dto = await ChatParserService.parse_pasted_chat(resolved_text, system_repo=system_repo)
-        except Exception as e:
-            if isinstance(e, AppException):
-                raise e
-            logger.error(
-                "Chat parsing failed.",
-                extra={"error_code": ErrorCodes.PARSING_FAILED.name, "input_key": key, "detail": str(e)},
-                exc_info=True,
-            )
-            raise AppException(
-                message=f"Failed to parse unstructured chat for {key} using AI.",
-                status_code=status.HTTP_400_BAD_REQUEST,
-                details={"error_code": ErrorCodes.PARSING_FAILED.value},
-            ) from e
+        chat_dto = ChatHistoryDTO(conversation=processed_turns)
 
-    # Format to Markdown instead of raw JSON to prevent \n escaping in LLM prompt
-    combined_lines = []
-    user_lines = []
-    ai_lines = []
-    for turn in chat_dto.conversation:
-        # Deterministic Normalization: Crush all whitespace/newlines into single spaces
-        cleaned_content = re.sub(r"\s+", " ", turn.content).strip()
-        if turn.role == "user":
-            combined_lines.append(f"<user_payload>\n{cleaned_content}\n</user_payload>")
-            user_lines.append(cleaned_content)
-        else:
-            combined_lines.append(f"<ai_draft_context>\n{cleaned_content}\n</ai_draft_context>")
-            ai_lines.append(cleaned_content)
-
-    logger.info("[InputProcessingHook] Successfully structured %s (XML Segregated).", key)
-    return {
-        "combined": "\n\n".join(combined_lines),
-        "user_only": "\n\n".join(user_lines),
-        "ai_only": "\n\n".join(ai_lines),
-    }
+    logger.info("[InputProcessingHook] Successfully structured %s via ChatNormalizerService (XML Segregated).", key)
+    return ChatNormalizerService.build_processed_chat(chat_dto)
 
 
 async def _save_forensic_input(execution_id: str, key: str, resolved_text: str) -> None:
@@ -295,8 +274,11 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     output_dict: dict[str, str] = {}
 
     gvars = state.global_context_vars.vars
-    language_raw = gvars.get("language")
-    if not language_raw and state.inputs and state.inputs.target_locale:
+    # Phase 1, Step 1.1b: Explicit resolution for language without QGR016 ternary fallback
+    language_raw: object | None = None
+    if "language" in gvars:
+        language_raw = gvars["language"]
+    elif state.inputs and state.inputs.target_locale:
         language_raw = state.inputs.target_locale
 
     if not language_raw:
@@ -321,6 +303,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
             try:
                 resolved_text = _process_questionnaire(raw_val, key, expected_input)
                 is_questionnaire = True
+            # Phase 1, Step 1.2: Correct parenthesized exception tuple syntax
             except ValidationError, TypeError:
                 is_questionnaire = False
 
@@ -354,9 +337,10 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 enable_eager_anonymization=workflow.enable_eager_anonymization,
                 language=language,
             )
-            resolved_text = chat_result["combined"]
-            output_dict[f"{key}_user_only"] = chat_result["user_only"]
-            output_dict[f"{key}_ai_only"] = chat_result["ai_only"]
+            # Phase 3, Step 3.1: Consume ProcessedChatDTO via static dot notation
+            resolved_text = chat_result.combined
+            output_dict[f"{key}_user_only"] = chat_result.user_only
+            output_dict[f"{key}_ai_only"] = chat_result.ai_only
 
         # --- 1. SEMANTIC SMOOTHING (SpaCy - IN BACKGROUND THREAD) ---
         if not is_chat and workflow.enable_semantic_smoothing and resolved_text:
@@ -401,7 +385,14 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         output_dict[key] = resolved_text.strip()
 
         # --- FORENSIC OBSERVABILITY INJECTION ---
+        # Phase 3, Step 3.2: Extend forensic storage for all primary and segregated streams
         await _save_forensic_input(execution_id, key, output_dict[key])
+        user_only_key = f"{key}_user_only"
+        if user_only_key in output_dict:
+            await _save_forensic_input(execution_id, user_only_key, output_dict[user_only_key])
+        ai_only_key = f"{key}_ai_only"
+        if ai_only_key in output_dict:
+            await _save_forensic_input(execution_id, ai_only_key, output_dict[ai_only_key])
 
     # Phase 7: Token Proxy Score calculation
     total_chars = sum(len(text) for text in output_dict.values())

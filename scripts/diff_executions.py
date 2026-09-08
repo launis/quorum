@@ -37,6 +37,7 @@ __all__ = [
     "DisagreementRootCause",
     "IsolationAuditDTO",
     "KappaMetricsDTO",
+    "InputFileInspectionDTO",
     "MacroBlockScoreDTO",
     "RootCauseBreakdownDTO",
     "ScaleBreakdownDTO",
@@ -56,6 +57,7 @@ __all__ = [
     "uses_contextual_override",
 ]
 
+# Phase 1, Step 1.5: Canonical SSOT for typographic Unicode space markers
 UNICODE_SPACE_REGISTRY: dict[str, str] = {
     "\u00a0": "No-Break Space (U+00A0)",
     "\u2002": "En Space (U+2002)",
@@ -68,11 +70,6 @@ UNICODE_SPACE_REGISTRY: dict[str, str] = {
     "\u2008": "Punctuation Space (U+2008)",
     "\u2009": "Thin Space (U+2009)",
     "\u200a": "Hair Space (U+200A)",
-    "\u205f": "Medium Mathematical Space (U+205F)",
-    "\u3000": "Ideographic Space (U+3000)",
-    "\u1680": "Ogham Space Mark (U+1680)",
-    "\u2000": "En Quad (U+2000)",
-    "\u2001": "Em Quad (U+2001)",
 }
 
 # Force UTF-8 encoding for stdout/stderr on Windows to support emojis and international characters
@@ -169,16 +166,56 @@ class MacroBlockScoreDTO(BaseModel):
     delta_pass_rate: float
 
 
-def _inspect_input_file(file_path: Path) -> dict[str, Any]:
+# Phase 1, Step 1.4: Strongly typed, immutable input file inspection DTO
+class InputFileInspectionDTO(BaseModel):
+    """Immutable input file forensic inspection DTO."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    sha256: str
+    noise: str
+    char_count: int
+    word_count: int
+    sentence_count: int
+    paragraph_count: int
+    bullet_count: int
+    normalized_text: str
+
+
+def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
     """Compute SHA-256 hash, detect injected Unicode noise variants, and analyze text volume/structure.
 
     Args:
         file_path: Path to the input file.
 
     Returns:
-        Dictionary containing file inspection metadata, counts, and normalized text.
+        InputFileInspectionDTO containing file inspection metadata, counts, and normalized text.
     """
+    if not file_path.exists() or not file_path.is_file():
+        return InputFileInspectionDTO(
+            sha256="MISSING",
+            noise="Missing",
+            char_count=0,
+            word_count=0,
+            sentence_count=0,
+            paragraph_count=0,
+            bullet_count=0,
+            normalized_text="",
+        )
+
     raw_bytes = file_path.read_bytes()
+    if not raw_bytes:
+        return InputFileInspectionDTO(
+            sha256=hashlib.sha256(b"").hexdigest(),
+            noise="Empty",
+            char_count=0,
+            word_count=0,
+            sentence_count=0,
+            paragraph_count=0,
+            bullet_count=0,
+            normalized_text="",
+        )
+
     sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
     text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
 
@@ -203,16 +240,16 @@ def _inspect_input_file(file_path: Path) -> dict[str, Any]:
     )
     normalized_text = "".join(text.split())
 
-    return {
-        "sha256": sha256_hash,
-        "noise": noise_desc,
-        "char_count": char_count,
-        "word_count": word_count,
-        "sentence_count": sentence_count,
-        "paragraph_count": paragraph_count,
-        "bullet_count": bullet_count,
-        "normalized_text": normalized_text,
-    }
+    return InputFileInspectionDTO(
+        sha256=sha256_hash,
+        noise=noise_desc,
+        char_count=char_count,
+        word_count=word_count,
+        sentence_count=sentence_count,
+        paragraph_count=paragraph_count,
+        bullet_count=bullet_count,
+        normalized_text=normalized_text,
+    )
 
 
 def get_all_evals(path: str | Path) -> dict[str, dict[str, Any]]:
@@ -1380,7 +1417,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         info = _inspect_input_file(in_path)
                         f.write(
                             f"    - [{in_file}](file:///{abs_in}) "
-                            f"(SHA-256: `{info['sha256'][:16]}...`, Variaatio: `{info['noise']}`)\n"
+                            f"(SHA-256: `{info.sha256[:16]}...`, Variaatio: `{info.noise}`)\n"
                         )
 
             run_finops.append(
@@ -1396,7 +1433,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("\n")
 
         # Input Corpus Profiling & Structural Volume Table
-        all_input_files: dict[str, dict[str, dict[str, Any]]] = {}
+        # Phase 3, Step 3.3: Strongly typed InputFileInspectionDTO storage
+        all_input_files: dict[str, dict[str, InputFileInspectionDTO]] = {}
         for r_name, p in zip(loaded_runs, loaded_paths, strict=False):
             r_in_dir = p.parent / "inputs"
             if r_in_dir.is_dir():
@@ -1420,16 +1458,16 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     if r_name in run_dict:
                         fi = run_dict[r_name]
                         f.write(
-                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {fi['word_count']:,} | "
-                            f"{fi['sentence_count']:,} | {fi['char_count']:,} | {fi['paragraph_count']} | "
-                            f"{fi['bullet_count']} | {fi['noise']} |\n"
+                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {fi.word_count:,} | "
+                            f"{fi.sentence_count:,} | {fi.char_count:,} | {fi.paragraph_count} | "
+                            f"{fi.bullet_count} | {fi.noise} |\n"
                         )
             f.write("\n")
 
             if len(loaded_runs) >= 2:
                 all_identities: list[bool] = []
                 for _fname, run_dict in all_input_files.items():
-                    texts = [run_dict[r]["normalized_text"] for r in loaded_runs if r in run_dict]
+                    texts = [run_dict[r].normalized_text for r in loaded_runs if r in run_dict]
                     if len(texts) >= 2:
                         all_identities.append(all(t == texts[0] for t in texts))
 
@@ -1461,7 +1499,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 seen_hashes: dict[str, str] = {}
                 for r_idx, r_name in enumerate(loaded_runs):
                     if r_name in run_dict:
-                        h = run_dict[r_name]["sha256"]
+                        h = run_dict[r_name].sha256
                         is_unique = h not in seen_hashes.values()
                         status_str = "ERISTETTY" if is_unique else "KOLLISIO"
                         seen_hashes[r_name] = h
@@ -1489,10 +1527,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     if r_name in run_dict:
                         fi = run_dict[r_name]
                         if first_wc is None:
-                            first_wc = fi["word_count"]
-                        wc_invariance = "TÄYSI (100%)" if fi["word_count"] == first_wc else "POIKKEAMA"
-                        noise_lbl = fi["noise"]
-                        w_cnt = fi["word_count"]
+                            first_wc = fi.word_count
+                        wc_invariance = "TÄYSI (100%)" if fi.word_count == first_wc else "POIKKEAMA"
+                        noise_lbl = fi.noise
+                        w_cnt = fi.word_count
                         f.write(
                             f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {noise_lbl} | "
                             f"{w_cnt:,} | `{wc_invariance}` |\n"

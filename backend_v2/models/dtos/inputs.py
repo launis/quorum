@@ -71,3 +71,21 @@ class GuidedReflectionInputDTO(V2CoreBase):
 
         parts.append("</questionnaire>")
         return "\n".join(parts).strip()
+
+
+# Phase 1, Step 1.3: Immutable DTO representing processed dialogue streams
+class ProcessedChatDTO(V2CoreBase):
+    """Immutable, strongly typed DTO representing processed dialogue streams.
+
+    Attributes:
+        combined: Combined dialogue turns with XML encapsulation.
+        user_only: User-only dialogue turns concatenated.
+        ai_only: AI-only dialogue turns concatenated.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    combined: Annotated[str, Field(description="Combined dialogue turns with XML encapsulation")]
+    user_only: Annotated[str, Field(description="User-only dialogue turns concatenated")]
+    ai_only: Annotated[str, Field(description="AI-only dialogue turns concatenated")]
+

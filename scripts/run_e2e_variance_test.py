@@ -44,6 +44,7 @@ import copy
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -52,7 +53,10 @@ from pathlib import Path
 from typing import Any
 
 import requests
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 
 __all__ = [
     "MarkedInputsPayloadDTO",
@@ -191,26 +195,6 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
         return data
 
 
-UNICODE_SPACE_REGISTRY: dict[str, str] = {
-    "\u00a0": "No-Break Space (U+00A0)",
-    "\u2002": "En Space (U+2002)",
-    "\u2003": "Em Space (U+2003)",
-    "\u202f": "Narrow No-Break Space (U+202F)",
-    "\u2004": "Three-Per-Em Space (U+2004)",
-    "\u2005": "Four-Per-Em Space (U+2005)",
-    "\u2006": "Six-Per-Em Space (U+2006)",
-    "\u2007": "Figure Space (U+2007)",
-    "\u2008": "Punctuation Space (U+2008)",
-    "\u2009": "Thin Space (U+2009)",
-    "\u200a": "Hair Space (U+200A)",
-    "\u205f": "Medium Mathematical Space (U+205F)",
-    "\u3000": "Ideographic Space (U+3000)",
-    "\u1680": "Ogham Space Mark (U+1680)",
-    "\u2000": "En Quad (U+2000)",
-    "\u2001": "Em Quad (U+2001)",
-}
-
-
 class RunMarkerMetadataDTO(BaseModel):
     """Metadata describing the deterministic Unicode marker injected for a run."""
 
@@ -232,6 +216,124 @@ class MarkedInputsPayloadDTO(BaseModel):
 
     marked_inputs: dict[str, Any] = Field(..., description="Deep copy of inputs dictionary with injected markers")
     marker_metadata: RunMarkerMetadataDTO = Field(..., description="Metadata describing the injected marker")
+
+
+# Phase 1, Step 1.6: Guarantee user-turn marker injection for conversational inputs
+def _ensure_user_turn_marker(text: str, char_to_inject: str) -> str:
+    """Guarantee that conversational text carries the Unicode marker in human user turns.
+
+    Args:
+        text: Reconstructed chat text.
+        char_to_inject: The unique Unicode space marker for this run.
+
+    Returns:
+        The chat text with guaranteed user-turn marker injection.
+    """
+    # 1. Check if JSON formatted chat
+    stripped = text.strip()
+    if stripped.startswith(("{", "[")):
+        try:
+            parsed = json.loads(text)
+            is_raw_list = isinstance(parsed, list)
+            if is_raw_list:
+                chat_dto = ChatHistoryDTO.model_validate({"conversation": parsed})
+            elif isinstance(parsed, dict):
+                chat_dto = ChatHistoryDTO.model_validate(parsed)
+            else:
+                chat_dto = None
+
+            if chat_dto is not None:
+                modified = False
+                updated_turns: list[ChatMessageDTO] = []
+                for turn in chat_dto.conversation:
+                    if (
+                        not modified
+                        and turn.role.lower() == "user"
+                        and char_to_inject not in turn.content
+                        and " " in turn.content
+                    ):
+                        updated_turns.append(
+                            ChatMessageDTO(
+                                role=turn.role,
+                                content=turn.content.replace(" ", char_to_inject, 1),
+                            )
+                        )
+                        modified = True
+                    else:
+                        updated_turns.append(turn)
+                if modified:
+                    if is_raw_list:
+                        return json.dumps(
+                            [t.model_dump(mode="json") for t in updated_turns],
+                            ensure_ascii=False,
+                        )
+                    return ChatHistoryDTO(conversation=updated_turns).model_dump_json()
+        except (json.JSONDecodeError, ValidationError, KeyError, TypeError, ValueError):
+            pass
+
+    # 2. Check for explicit user role prefix labels (User:, Käyttäjä:, etc.)
+    user_prefix_regex = re.compile(
+        r"^(User|Human|You|Käyttäjä|Sinä|Ihminen)\s*:",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    matches = list(user_prefix_regex.finditer(text))
+    if matches:
+        ai_prefix_regex = re.compile(
+            r"^(Assistant|AI|ChatGPT|Claude|Gemini|Assistentti|Avustaja|Tekoäly)\s*:",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        has_in_user = False
+        first_user_match = matches[0]
+        for i, match in enumerate(matches):
+            start = match.end()
+            next_ai = ai_prefix_regex.search(text, pos=start)
+            next_user = matches[i + 1] if i + 1 < len(matches) else None
+            end_pos = len(text)
+            if next_ai and next_user:
+                end_pos = min(next_ai.start(), next_user.start())
+            elif next_ai:
+                end_pos = next_ai.start()
+            elif next_user:
+                end_pos = next_user.start()
+            user_turn_text = text[start:end_pos]
+            boundary_chars = " \t\r\n" + "".join(UNICODE_SPACE_REGISTRY.keys())
+            inner_user_content = user_turn_text.strip(boundary_chars)
+            if char_to_inject in inner_user_content:
+                has_in_user = True
+                break
+
+        if not has_in_user:
+            start = first_user_match.end()
+            next_ai = ai_prefix_regex.search(text, pos=start)
+            end_pos = next_ai.start() if next_ai else len(text)
+            user_turn_text = text[start:end_pos]
+            boundary_chars = " \t" + "".join(UNICODE_SPACE_REGISTRY.keys())
+            lstripped = user_turn_text.lstrip(boundary_chars)
+            leading_ws = user_turn_text[: len(user_turn_text) - len(lstripped)]
+            if " " in lstripped:
+                replaced_user_turn = leading_ws + lstripped.replace(" ", char_to_inject, 1)
+                return text[:start] + replaced_user_turn + text[end_pos:]
+
+    # 3. Fallback for un-prefixed dialogue (chat starting directly with user prompt before AI response):
+    # Guarantee injection within the user prompt section or the first 100 characters containing a space
+    ai_prefix_regex = re.compile(
+        r"^(Assistant|AI|ChatGPT|Claude|Gemini|Assistentti|Avustaja|Tekoäly|Talous-Timo|"
+        r"[A-ZÄÖÅ][a-zäöå0-9_\- \t]{2,20})[ \t]*:",
+        re.IGNORECASE | re.MULTILINE,
+    )
+    ai_match = ai_prefix_regex.search(text)
+    user_end = ai_match.start() if ai_match else len(text)
+    user_part = text[:user_end]
+    boundary_chars = " \t" + "".join(UNICODE_SPACE_REGISTRY.keys())
+    user_lstripped = user_part.lstrip(boundary_chars)
+    user_leading = user_part[: len(user_part) - len(user_lstripped)]
+    stripped_user = user_part.strip(" \t\r\n" + "".join(UNICODE_SPACE_REGISTRY.keys()))
+    if char_to_inject not in stripped_user and " " in user_lstripped:
+        return user_leading + user_lstripped.replace(" ", char_to_inject, 1) + text[user_end:]
+    if char_to_inject not in text[:100] and " " in text[:100]:
+        return text[:100].replace(" ", char_to_inject, 1) + text[100:]
+
+    return text
 
 
 def inject_unique_run_marker(
@@ -298,11 +400,16 @@ def inject_unique_run_marker(
                 reconstructed_parts_fb.append(tokens_fb[-1])
                 new_text = "".join(reconstructed_parts_fb)
 
+            # Phase 1, Step 1.6: Explicitly guarantee user dialogue turns carry the marker for chat inputs
+            if k.lower() in ("chat_log", "input_chat_log", "keskusteluhistoria") or "chat" in k.lower():
+                new_text = _ensure_user_turn_marker(new_text, char_to_inject)
+
             marked_inputs[k] = new_text
             injected_keys.append(k)
 
     char_hex = f"U+{ord(char_to_inject):04X}"
-    char_name = UNICODE_SPACE_REGISTRY.get(char_to_inject, "Unknown Unicode Space")
+    # Phase 1, Step 1.5: Direct dictionary key lookup to eradicate QGR002
+    char_name = UNICODE_SPACE_REGISTRY[char_to_inject]
 
     metadata = RunMarkerMetadataDTO(
         run_index=run_index,
@@ -332,7 +439,8 @@ def make_noise_injector(run_index: int) -> Callable[[str], str]:
             return text
         dummy_inputs = {"text": text}
         marked_payload = inject_unique_run_marker(dummy_inputs, run_index=run_index)
-        return str(marked_payload.marked_inputs.get("text", text))
+        # Phase 1, Step 1.5: Direct key access to eradicate QGR002
+        return str(marked_payload.marked_inputs["text"])
 
     return injector
 
