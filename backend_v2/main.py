@@ -34,6 +34,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
 import backend_v2.hooks  # noqa: F401
+from tinydb import TinyDB
 from backend_v2.api.routers.execution import router as execution_router
 from backend_v2.api.routers.iam import router as iam_router
 from backend_v2.api.routers.output_profiles import router as output_profiles_router
@@ -49,6 +50,63 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
 # --- 1. Lifespan Management ---
+
+
+def _audit_storage_and_database_sync(
+    db: TinyDB, logger: logging.Logger, storage_dir: Path | None = None
+) -> None:
+    """Audits synchronization between executions in TinyDB and execution artifacts on disk.
+
+    Performs a strictly read-only check. Emits a structured warning with remediation instructions
+    if orphaned database records or unindexed disk executions are discovered.
+
+    Args:
+        db: Open TinyDB instance.
+        logger: Application logger for emitting audit telemetry.
+        storage_dir: Optional override for the root execution artifacts directory (defaults to Path("data/files/executions")).
+    """
+    resolved_storage_dir = storage_dir if storage_dir is not None else Path("data/files/executions")
+    table = db.table("executions")
+    db_records = table.all()
+
+    db_execution_ids: set[str] = set()
+    orphaned_db_ids: list[str] = []
+
+    for rec in db_records:
+        rec_id = rec.get("id")
+        if not rec_id:
+            continue
+        db_execution_ids.add(str(rec_id))
+
+        trace_path_raw = rec.get("execution_trace_storage_path")
+        trace_exists = False
+        if trace_path_raw and Path(trace_path_raw).exists():
+            trace_exists = True
+        elif trace_path_raw and (resolved_storage_dir.parent / trace_path_raw).exists():
+            trace_exists = True
+        elif (resolved_storage_dir / str(rec_id) / "execution_trace.json").exists():
+            trace_exists = True
+
+        if not trace_exists:
+            orphaned_db_ids.append(str(rec_id))
+
+    unindexed_disk_ids: list[str] = []
+    if resolved_storage_dir.exists() and resolved_storage_dir.is_dir():
+        for child in resolved_storage_dir.iterdir():
+            if child.is_dir() and (child / "execution_trace.json").exists():
+                disk_id = child.name
+                if disk_id not in db_execution_ids:
+                    unindexed_disk_ids.append(disk_id)
+
+    if orphaned_db_ids or unindexed_disk_ids:
+        logger.warning(
+            f"[StorageAudit] WARNING: Storage/Database desync detected. "
+            f"DB has {len(orphaned_db_ids)} orphaned records ({orphaned_db_ids}); "
+            f"Disk has {len(unindexed_disk_ids)} unindexed runs ({unindexed_disk_ids}). "
+            f"Run 'uv run python scripts/reconcile_storage.py --fix' to reconcile."
+        )
+    else:
+        logger.info("[StorageAudit] Execution storage and database synchronization PASSED.")
 
 
 def _validate_database_preflight(logger: logging.Logger) -> None:
@@ -70,8 +128,6 @@ def _validate_database_preflight(logger: logging.Logger) -> None:
         return
 
     try:
-        from tinydb import TinyDB
-
         db = TinyDB(str(db_path), encoding="utf-8")
         collections_to_validate = ["system_config", "workflows", "output_profiles"]
         for col_name in collections_to_validate:
@@ -82,6 +138,7 @@ def _validate_database_preflight(logger: logging.Logger) -> None:
                 table = db.table(table_name)
                 for item in table.all():
                     adapter.validate_python(item)
+        _audit_storage_and_database_sync(db, logger)
         db.close()
         logger.info("[StartupAudit] Pre-flight database schema validation PASSED.")
     except Exception as exc:

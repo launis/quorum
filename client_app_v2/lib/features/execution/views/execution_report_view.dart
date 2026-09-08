@@ -5,6 +5,7 @@ import 'package:client_app/features/execution/controllers/report_controller.dart
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
+import 'package:go_router/go_router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
@@ -332,6 +333,8 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
             return ErrorView(
               error: error,
               stackTrace: stackTrace,
+              actionLabel: AppLocalizations.of(ctx)!.backToDashboard,
+              onAction: () => ctx.canPop() ? ctx.pop() : ctx.go('/dashboard'),
               onRetry: () => ref.invalidate(
                 reportControllerProvider(
                   widget.executionId,

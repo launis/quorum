@@ -4777,4 +4777,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get penaltiesSectionTitle => 'Automated Score Penalties';
+
+  @override
+  String get backToDashboard => 'Back to Dashboard';
 }

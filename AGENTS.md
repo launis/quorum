@@ -46,6 +46,12 @@
         <mandatory_pattern>You MUST strictly respect established nomenclature and schema definitions as permanent SSOT contracts. All domain terms, variable names, DTO fields, database properties, and localization keys MUST be resolved directly from the Single Source of Truth (SSOT). NEVER invent ad-hoc variable aliases, rename critical variables, or swap the meaning and names of distinct domain concepts.</mandatory_pattern>
         <catastrophic_reason>Inventing or swapping variable and domain names causes catastrophic architectural drift, breaks serialization contracts between backend and frontend, corrupts database seeds, and causes runtime crashes.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="database_persistence_git_ban">
+        <banned_pattern>Executing `git checkout data/db_v2.json`, `git restore data/db_v2.json`, or any git commands discarding runtime database modifications.</banned_pattern>
+        <mandatory_pattern>The local database tracks active execution runs whose artifacts exist on disk. If `data/db_v2.json` appears modified in git status, ALWAYS preserve it or commit it alongside test run artifacts. NEVER unilaterally roll back runtime database state.</mandatory_pattern>
+        <catastrophic_reason>Discarding local database changes reverts database state to older commits, wiping out valid execution runs and causing critical DATA_CORRUPTION desynchronization with physical disk artifacts.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

@@ -2399,6 +2399,7 @@
   "penaltySecurityLabel": "Security Penalty (%)",
   "penaltyPostHocLabel": "Post-Hoc Penalty (%)",
   "penaltyPassivityLabel": "Passivity Penalty (%)",
-  "penaltiesSectionTitle": "Automated Score Penalties"
+  "penaltiesSectionTitle": "Automated Score Penalties",
+  "backToDashboard": "Back to Dashboard"
 }
 

@@ -1699,5 +1699,6 @@
   "penaltySecurityLabel": "Tietoturvarangaistus (%)",
   "penaltyPostHocLabel": "Rationalisointirangaistus (%)",
   "penaltyPassivityLabel": "Passiivisuusrangaistus (%)",
-  "penaltiesSectionTitle": "Automaattiset pistevähennykset"
+  "penaltiesSectionTitle": "Automaattiset pistevähennykset",
+  "backToDashboard": "Palaa päänäkymään"
 }

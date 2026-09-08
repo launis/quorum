@@ -118,6 +118,9 @@ trigger: always_on
     <rule_block id="deceptive_persistence_mocking_ban">
         <mandate>NEVER mock repository persistence, save, or update methods with static return values or unverified `AsyncMock()` instances that fail to assert real state mutation. Persistence unit and integration tests MUST verify stateful roundtrip behavior: modifications saved to the repository layer MUST be physically verified via subsequent get/fetch operations returning the updated domain model. Zero tolerance for deceptive green tests that bypass persistence verification.</mandate>
     </rule_block>
+    <rule_block id="database_persistence_git_ban">
+        <mandate>NEVER execute `git checkout data/db_v2.json`, `git restore data/db_v2.json`, or any git commands discarding runtime database modifications. The local database tracks active execution runs whose artifacts exist on disk. If `data/db_v2.json` appears modified in git status, ALWAYS preserve it or commit it alongside test run artifacts. NEVER unilaterally roll back runtime database state.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

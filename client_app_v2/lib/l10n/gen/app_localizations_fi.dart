@@ -4810,4 +4810,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get penaltiesSectionTitle => 'Automaattiset pistevähennykset';
+
+  @override
+  String get backToDashboard => 'Palaa päänäkymään';
 }

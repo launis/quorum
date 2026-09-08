@@ -8639,6 +8639,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Automated Score Penalties'**
   String get penaltiesSectionTitle;
+
+  /// No description provided for @backToDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to Dashboard'**
+  String get backToDashboard;
 }
 
 class _AppLocalizationsDelegate
