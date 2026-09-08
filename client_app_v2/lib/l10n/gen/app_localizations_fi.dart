@@ -3928,13 +3928,13 @@ class AppLocalizationsFi extends AppLocalizations {
       'XAI-korostusten synteesiohje';
 
   @override
-  String get profileVarianceDirectiveLabel => 'Varianssisynteesin ohjeistus';
+  String get profileVarianceDirectiveLabel => 'Fraasisynteesin ohjeistus';
 
   @override
   String get alignmentMisalignedSycophancy => 'Ristiriidassa (Mielistelyriski)';
 
   @override
-  String get quadrantTopLeftTitle => 'Mielistely & Korulauseet';
+  String get quadrantTopLeftTitle => 'Mielistely & Täytefraasit';
 
   @override
   String get quadrantTopRightTitle => 'Asiantunteva & Sujuva';
@@ -3949,10 +3949,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get axisCognitiveDepthTitle => 'Kognitiivinen syvyys';
 
   @override
-  String get axisMechanicalLoadTitle => 'Mekaaninen fraasikuorma';
+  String get axisMechanicalLoadTitle => 'Kaavamainen fraasikuorma';
 
   @override
-  String get phrasesDetectedLabel => 'Tunnistetut ammattislangifraasit';
+  String get phrasesDetectedLabel => 'Tunnistetut täytefraasit';
 
   @override
   String get profileUserRoleLabelLabel => 'Kohderyhmän rooliotsikko';
@@ -4032,7 +4032,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioMatrixVisibleColumnsTitle => 'Näytettävät sarakkeet:';
 
   @override
-  String get blockVarianceTitle => 'Varianssivalidointi';
+  String get blockVarianceTitle => 'Ajattelun syvyys ja fraasianalyysi';
 
   @override
   String get blockAuthenticityTitle => 'Autenttisuuden arviointi';
@@ -4079,7 +4079,7 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get blockVarianceSubtitle =>
-      'Arvioijien välinen varianssi ja tilastolliset luottamusvälit';
+      'Tunnistaa aidon substanssiosaamisen ja oman ajattelun erotuksena kaavamaisista täytefraaseista ja ammattijargonista';
 
   @override
   String get blockAuthenticitySubtitle =>
@@ -4748,7 +4748,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileXaiLengthHint => 'esim. 300 merkkiä';
 
   @override
-  String get profileVarianceLengthLabel => 'Varianssin tavoitepituus (merkkiä)';
+  String get profileVarianceLengthLabel => 'Analyysin tavoitepituus (merkkiä)';
 
   @override
   String get profileVarianceLengthHint => 'esim. 500 merkkiä';

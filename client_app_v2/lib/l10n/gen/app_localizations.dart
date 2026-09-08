@@ -7125,7 +7125,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileVarianceDirectiveLabel.
   ///
   /// In en, this message translates to:
-  /// **'Variance validation synthesis directive'**
+  /// **'Phrase Synthesis Directive'**
   String get profileVarianceDirectiveLabel;
 
   /// No description provided for @alignmentMisalignedSycophancy.
@@ -7137,7 +7137,7 @@ abstract class AppLocalizations {
   /// No description provided for @quadrantTopLeftTitle.
   ///
   /// In en, this message translates to:
-  /// **'Sycophancy & Jargon'**
+  /// **'Flattery & Filler Phrases'**
   String get quadrantTopLeftTitle;
 
   /// No description provided for @quadrantTopRightTitle.
@@ -7167,13 +7167,13 @@ abstract class AppLocalizations {
   /// No description provided for @axisMechanicalLoadTitle.
   ///
   /// In en, this message translates to:
-  /// **'Mechanical Phrase Load'**
+  /// **'Formulaic phrase load'**
   String get axisMechanicalLoadTitle;
 
   /// No description provided for @phrasesDetectedLabel.
   ///
   /// In en, this message translates to:
-  /// **'Identified Jargon Phrases'**
+  /// **'Identified filler phrases'**
   String get phrasesDetectedLabel;
 
   /// No description provided for @profileUserRoleLabelLabel.
@@ -7329,7 +7329,7 @@ abstract class AppLocalizations {
   /// No description provided for @blockVarianceTitle.
   ///
   /// In en, this message translates to:
-  /// **'Variance Validation'**
+  /// **'Cognitive Depth & Phrase Analysis'**
   String get blockVarianceTitle;
 
   /// No description provided for @blockAuthenticityTitle.
@@ -7407,7 +7407,7 @@ abstract class AppLocalizations {
   /// No description provided for @blockVarianceSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Inter-rater variance and statistical confidence bounds'**
+  /// **'Identifies genuine subject-matter expertise and reasoning as opposed to formulaic filler phrases and professional jargon'**
   String get blockVarianceSubtitle;
 
   /// No description provided for @blockAuthenticitySubtitle.
@@ -8529,7 +8529,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileVarianceLengthLabel.
   ///
   /// In en, this message translates to:
-  /// **'Variance target length (characters)'**
+  /// **'Target Analysis Length (chars)'**
   String get profileVarianceLengthLabel;
 
   /// No description provided for @profileVarianceLengthHint.

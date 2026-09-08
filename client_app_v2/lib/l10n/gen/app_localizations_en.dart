@@ -3903,14 +3903,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'XAI highlights synthesis directive';
 
   @override
-  String get profileVarianceDirectiveLabel =>
-      'Variance validation synthesis directive';
+  String get profileVarianceDirectiveLabel => 'Phrase Synthesis Directive';
 
   @override
   String get alignmentMisalignedSycophancy => 'Misaligned (Sycophancy Risk)';
 
   @override
-  String get quadrantTopLeftTitle => 'Sycophancy & Jargon';
+  String get quadrantTopLeftTitle => 'Flattery & Filler Phrases';
 
   @override
   String get quadrantTopRightTitle => 'Fluent Mastery';
@@ -3925,10 +3924,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get axisCognitiveDepthTitle => 'Cognitive Depth';
 
   @override
-  String get axisMechanicalLoadTitle => 'Mechanical Phrase Load';
+  String get axisMechanicalLoadTitle => 'Formulaic phrase load';
 
   @override
-  String get phrasesDetectedLabel => 'Identified Jargon Phrases';
+  String get phrasesDetectedLabel => 'Identified filler phrases';
 
   @override
   String get profileUserRoleLabelLabel => 'Target audience role label';
@@ -4010,7 +4009,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioMatrixVisibleColumnsTitle => 'Visible Columns:';
 
   @override
-  String get blockVarianceTitle => 'Variance Validation';
+  String get blockVarianceTitle => 'Cognitive Depth & Phrase Analysis';
 
   @override
   String get blockAuthenticityTitle => 'Authenticity Evaluation';
@@ -4057,7 +4056,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get blockVarianceSubtitle =>
-      'Inter-rater variance and statistical confidence bounds';
+      'Identifies genuine subject-matter expertise and reasoning as opposed to formulaic filler phrases and professional jargon';
 
   @override
   String get blockAuthenticitySubtitle =>
@@ -4716,8 +4715,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileXaiLengthHint => 'e.g. 300 characters';
 
   @override
-  String get profileVarianceLengthLabel =>
-      'Variance target length (characters)';
+  String get profileVarianceLengthLabel => 'Target Analysis Length (chars)';
 
   @override
   String get profileVarianceLengthHint => 'e.g. 500 characters';
