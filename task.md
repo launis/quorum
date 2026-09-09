@@ -78,10 +78,12 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3e5c45b7-ed7
   - [ ] Step 8.3: Instruct atomic commit and route to `/tier8-audit-plan`.
 
 ## Session Handover Context
-- **Achieved**: Initialized execution of Multi-Channel Ingress plan. Completed pre-flight verification and codebase scan.
-- **Learned**: The system enforces pure in-memory SSOT for `chat_log_user_only`. All planned ingress modules (`ingress.py`, `pdf_chat_extractor.py`, `multi_channel_ingress_service.py`) are confirmed absent and ready for implementation.
-- **Remaining**: Phase 1 through Phase 8.
+- **Achieved**: Completed all Backend Ingress phases: Phase 1 (Ingress DTOs & In-Memory SSOT), Phase 2 (PDF Vector Speech Bubble Geometry Extractor), Phase 3 (UI Fluff Stripping & Anchor-Based Monotonic Slicing), and Phase 4 (MultiChannelIngressService Dispatcher & InputProcessingHook Delegation). Verified 100% test pass and quality gates with 4 atomic commits (`4c3a4441`, `b5a73275`, `377cbc40`, `6ee5fec9`).
+- **Learned**:
+  1. `ChatTurnAnchorsResponseDTO.turns` uses `Field(default_factory=list)` to support clean dialogue-absence detection where the LLM returns `{"turns": []}`, allowing `ChatParserService` to fail-fast gracefully without Pydantic validation errors.
+  2. `MultiChannelIngressService` cleanly decouples PDF magic-byte vector classification from clipboard fluff stripping and regex fast path, avoiding circular dependencies with `ChatNormalizerService`.
+- **Remaining**: Phase 5 (Flutter UI Integration & Multi-Provider Ingress Guide), Phase 6 (Seed Data Optimization for Multi-Model Support), Phase 7 (Knowledge Item Synchronization), Phase 8 (E2E Variance Test & Red-Team Audit Routing).
 - **Resume Command**:
   ```text
-  /tier2-execute @[C:\Users\risto\.gemini\antigravity-ide\brain\3e5c45b7-ed7b-458e-bbd6-68a913397047\implementation_plan.md]
+  /tier2-execute @[task.md] --full-auto
   ```
