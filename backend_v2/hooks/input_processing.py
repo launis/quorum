@@ -25,6 +25,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput, Workflow
 from backend_v2.services.chat_normalizer import ChatNormalizerService
+from backend_v2.services.ingress import MultiChannelIngressService
 from backend_v2.services.pii_analyzer import get_pii_service
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.utils.paths import get_forensic_input_path
@@ -146,10 +147,11 @@ async def _process_chat_history(
     Returns:
         ProcessedChatDTO: An immutable DTO containing 'combined', 'user_only', and 'ai_only'.
     """
-    chat_dto = await ChatNormalizerService.parse_chat_to_dto(
-        raw_text=resolved_text,
-        key=key,
+    ingress_service = MultiChannelIngressService()
+    chat_dto = await ingress_service.process_chat(
+        raw_input=resolved_text,
         system_repo=system_repo,
+        key=key,
     )
 
     # Scoped NLP execution strictly on human user turns (user_only) after role segregation

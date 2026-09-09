@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from backend_v2.services.ingress.multi_channel_ingress_service import MultiChannelIngressService
 from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
 
 __all__ = [
+    "MultiChannelIngressService",
     "PdfChatExtractorService",
 ]

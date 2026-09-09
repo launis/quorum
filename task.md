@@ -50,11 +50,11 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3e5c45b7-ed7
   - [x] Step 3.3: Expand unit tests in `backend_v2/tests/unit/services/test_chat_normalizer.py` and `test_chat_parser.py`.
   - [x] Step 3.4: Run quality gate `backend_audit_loop.py` on Phase 3 targets.
 
-- [ ] **Phase 4: Multi-Channel Ingress Service & Pipeline Delegation**
-  - [ ] Step 4.1: Implement `MultiChannelIngressService` in `backend_v2/services/ingress/multi_channel_ingress_service.py`.
-  - [ ] Step 4.2: Delegate chat parsing in `backend_v2/hooks/input_processing.py` to `MultiChannelIngressService` while preserving NLP pipeline.
-  - [ ] Step 4.3: Add unit tests in `backend_v2/tests/unit/services/ingress/test_multi_channel_ingress.py`.
-  - [ ] Step 4.4: Run quality gate `backend_audit_loop.py` on Phase 4 targets.
+- [x] **Phase 4: Multi-Channel Ingress Service & Pipeline Delegation**
+  - [x] Step 4.1: Implement `MultiChannelIngressService` in `backend_v2/services/ingress/multi_channel_ingress_service.py`.
+  - [x] Step 4.2: Delegate chat parsing in `backend_v2/hooks/input_processing.py` to `MultiChannelIngressService` while preserving NLP pipeline.
+  - [x] Step 4.3: Add unit tests in `backend_v2/tests/unit/services/ingress/test_multi_channel_ingress_service.py`.
+  - [x] Step 4.4: Run quality gate `backend_audit_loop.py` on Phase 4 targets.
 
 - [ ] **Phase 5: Flutter UI Integration & Multi-Provider Ingress Guide**
   - [ ] Step 5.1: Add localization keys in `client_app_v2/lib/l10n/app_fi.arb` and `app_en.arb`.
