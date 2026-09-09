@@ -1,7 +1,9 @@
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/widgets/file_input_field.dart';
+import 'package:client_app/shared/widgets/pdf_export_guide_dialog.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
 
 class OmniInputBox extends StatefulWidget {
   final String label;
@@ -38,35 +40,41 @@ class _OmniInputBoxState extends State<OmniInputBox> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Card(
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(AppSpacing.s12),
+        side: BorderSide(color: theme.dividerColor),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
                 if (widget.icon != null) ...[
-                  Icon(
-                    widget.icon,
-                    size: 20,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(width: 8),
+                  Icon(widget.icon, size: 20, color: theme.colorScheme.primary),
+                  AppSpacing.w8,
                 ],
                 Expanded(
-                  child: Text(
-                    widget.label,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
+                  child: Text(widget.label, style: theme.textTheme.titleMedium),
                 ),
+                IconButton(
+                  icon: const Icon(Icons.help_outline, size: 20),
+                  tooltip: l10n.chatIngressGuideTooltip,
+                  mouseCursor: SystemMouseCursors.click,
+                  onPressed: () {
+                    showDialog<void>(
+                      context: context,
+                      builder: (context) => const PdfExportGuideDialog(),
+                    );
+                  },
+                ),
+                AppSpacing.w8,
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
                   segments: [
@@ -92,7 +100,38 @@ class _OmniInputBoxState extends State<OmniInputBox> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
+            if (_isFileMode && widget.keyName == 'chat_log') ...[
+              Container(
+                padding: AppSpacing.p12,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer.withAlpha(50),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withAlpha(120),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      color: theme.colorScheme.error,
+                      size: 20,
+                    ),
+                    AppSpacing.w8,
+                    Expanded(
+                      child: Text(
+                        l10n.chatGptPdfTruncationWarning,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AppSpacing.h12,
+            ],
             if (_isFileMode)
               FileInputField(
                 label: widget.label,

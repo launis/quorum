@@ -8645,6 +8645,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Back to Dashboard'**
   String get backToDashboard;
+
+  /// No description provided for @chatIngressGuideTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing Conversation to Quorum'**
+  String get chatIngressGuideTitle;
+
+  /// No description provided for @chatIngressGuideTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'How do I import a chat from ChatGPT or Gemini?'**
+  String get chatIngressGuideTooltip;
+
+  /// No description provided for @chatIngressTabChatGpt.
+  ///
+  /// In en, this message translates to:
+  /// **'ChatGPT'**
+  String get chatIngressTabChatGpt;
+
+  /// No description provided for @chatIngressTabGemini.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Gemini'**
+  String get chatIngressTabGemini;
+
+  /// No description provided for @chatIngressTabClaude.
+  ///
+  /// In en, this message translates to:
+  /// **'Claude'**
+  String get chatIngressTabClaude;
+
+  /// No description provided for @chatGptRecommendedMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended & Fastest Method (Clipboard)'**
+  String get chatGptRecommendedMethod;
+
+  /// No description provided for @chatGptStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Select \'Paste Text\' mode in Quorum.'**
+  String get chatGptStep1;
+
+  /// No description provided for @chatGptStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. In ChatGPT, press Ctrl + A (select all) and Ctrl + C (copy).'**
+  String get chatGptStep2;
+
+  /// No description provided for @chatGptStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Paste into Quorum with Ctrl + V.'**
+  String get chatGptStep3;
+
+  /// No description provided for @chatGptClipboardBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'Clipboard transfers 100% of the conversation without saving files or clicking \'Show more\' buttons.'**
+  String get chatGptClipboardBenefit;
+
+  /// No description provided for @chatGptPdfWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice: If printing to PDF (Ctrl + P), click \'Show more\' on long prompts first to avoid browser truncation.'**
+  String get chatGptPdfWarning;
+
+  /// No description provided for @geminiRecommendedMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended Method (Save as PDF or Clipboard)'**
+  String get geminiRecommendedMethod;
+
+  /// No description provided for @geminiStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. In Gemini, press Ctrl + P or select \'Share & Export\' -> \'Save as PDF\' under any response.'**
+  String get geminiStep1;
+
+  /// No description provided for @geminiStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Set destination to \'Save as PDF\' and save the file.'**
+  String get geminiStep2;
+
+  /// No description provided for @geminiStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Select the PDF file in Quorum.'**
+  String get geminiStep3;
+
+  /// No description provided for @geminiBenefit.
+  ///
+  /// In en, this message translates to:
+  /// **'In Gemini, all prompts, responses, and comparison tables always print 100% intact without truncation.'**
+  String get geminiBenefit;
+
+  /// No description provided for @claudeRecommendedMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended Method (Save as PDF or Clipboard)'**
+  String get claudeRecommendedMethod;
+
+  /// No description provided for @claudeStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'1. In Claude, press Ctrl + P (Save as PDF) or copy the conversation to clipboard (Ctrl + A -> Ctrl + C).'**
+  String get claudeStep1;
+
+  /// No description provided for @claudeStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Select the PDF file or paste the text in Quorum.'**
+  String get claudeStep2;
+
+  /// No description provided for @chatGptPdfTruncationWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated (\'Show more\' button). We recommend clipboard paste (Paste text) for ChatGPT chats.'**
+  String get chatGptPdfTruncationWarning;
 }
 
 class _AppLocalizationsDelegate

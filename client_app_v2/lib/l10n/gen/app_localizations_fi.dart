@@ -4813,4 +4813,78 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get backToDashboard => 'Palaa päänäkymään';
+
+  @override
+  String get chatIngressGuideTitle => 'Keskustelun tuominen Quorumiin';
+
+  @override
+  String get chatIngressGuideTooltip =>
+      'Miten tuon keskustelun ChatGPT:stä tai Geministä?';
+
+  @override
+  String get chatIngressTabChatGpt => 'ChatGPT';
+
+  @override
+  String get chatIngressTabGemini => 'Google Gemini';
+
+  @override
+  String get chatIngressTabClaude => 'Claude';
+
+  @override
+  String get chatGptRecommendedMethod =>
+      'Suositeltu ja nopein tapa (Leikepöytä)';
+
+  @override
+  String get chatGptStep1 =>
+      '1. Valitse Quorumin syöttötavaksi \'Liitä teksti\'.';
+
+  @override
+  String get chatGptStep2 =>
+      '2. Paina ChatGPT-keskustelussa Ctrl + A (valitse kaikki) ja Ctrl + C (kopioi).';
+
+  @override
+  String get chatGptStep3 => '3. Liitä teksti Quorumiin painamalla Ctrl + V.';
+
+  @override
+  String get chatGptClipboardBenefit =>
+      'Leikepöytä siirtää keskustelun 100 % kokonaisena ilman tiedostojen tallentamista tai \'Näytä lisää\' -nappien klikkailua.';
+
+  @override
+  String get chatGptPdfWarning =>
+      'Huom! Jos tulostat PDF:ksi (Ctrl + P), avaa ensin pitkistä kehotteistasi \'Näytä lisää\', jotta selain ei leikkaa kehotteita.';
+
+  @override
+  String get geminiRecommendedMethod =>
+      'Suositeltu tapa (Tallenna PDF tai Leikepöytä)';
+
+  @override
+  String get geminiStep1 =>
+      '1. Paina Gemini-keskustelussa suoraan Ctrl + P tai valitse vastauksen alta \'Jaa ja vie\' -> \'Tallenna PDF\'.';
+
+  @override
+  String get geminiStep2 =>
+      '2. Valitse kohteeksi \'Tallenna PDF-muodossa\' ja tallenna tiedosto.';
+
+  @override
+  String get geminiStep3 => '3. Valitse PDF-tiedosto Quorumiin.';
+
+  @override
+  String get geminiBenefit =>
+      'Geminissä kaikki kehotteet, vastaukset ja vertailutaulukot tulostuvat aina 100 % kokonaisina ilman leikkautumista.';
+
+  @override
+  String get claudeRecommendedMethod =>
+      'Suositeltu tapa (Tallenna PDF tai Leikepöytä)';
+
+  @override
+  String get claudeStep1 =>
+      '1. Paina Claude-keskustelussa Ctrl + P (Tallenna PDF-muodossa) tai kopioi keskustelu leikepöydälle (Ctrl + A -> Ctrl + C).';
+
+  @override
+  String get claudeStep2 =>
+      '2. Valitse PDF-tiedosto tai liitä teksti Quorumiin.';
+
+  @override
+  String get chatGptPdfTruncationWarning =>
+      'Huom! Jos tuot keskustelun PDF-tulosteena (Ctrl + P), varmista että pitkät kehotteet eivät ole leikkautuneet poikki (\'Näytä lisää\' -painike). Suosittelemme leikepöytää (Liitä teksti) ChatGPT-keskusteluille.';
 }

@@ -4780,4 +4780,77 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backToDashboard => 'Back to Dashboard';
+
+  @override
+  String get chatIngressGuideTitle => 'Importing Conversation to Quorum';
+
+  @override
+  String get chatIngressGuideTooltip =>
+      'How do I import a chat from ChatGPT or Gemini?';
+
+  @override
+  String get chatIngressTabChatGpt => 'ChatGPT';
+
+  @override
+  String get chatIngressTabGemini => 'Google Gemini';
+
+  @override
+  String get chatIngressTabClaude => 'Claude';
+
+  @override
+  String get chatGptRecommendedMethod =>
+      'Recommended & Fastest Method (Clipboard)';
+
+  @override
+  String get chatGptStep1 => '1. Select \'Paste Text\' mode in Quorum.';
+
+  @override
+  String get chatGptStep2 =>
+      '2. In ChatGPT, press Ctrl + A (select all) and Ctrl + C (copy).';
+
+  @override
+  String get chatGptStep3 => '3. Paste into Quorum with Ctrl + V.';
+
+  @override
+  String get chatGptClipboardBenefit =>
+      'Clipboard transfers 100% of the conversation without saving files or clicking \'Show more\' buttons.';
+
+  @override
+  String get chatGptPdfWarning =>
+      'Notice: If printing to PDF (Ctrl + P), click \'Show more\' on long prompts first to avoid browser truncation.';
+
+  @override
+  String get geminiRecommendedMethod =>
+      'Recommended Method (Save as PDF or Clipboard)';
+
+  @override
+  String get geminiStep1 =>
+      '1. In Gemini, press Ctrl + P or select \'Share & Export\' -> \'Save as PDF\' under any response.';
+
+  @override
+  String get geminiStep2 =>
+      '2. Set destination to \'Save as PDF\' and save the file.';
+
+  @override
+  String get geminiStep3 => '3. Select the PDF file in Quorum.';
+
+  @override
+  String get geminiBenefit =>
+      'In Gemini, all prompts, responses, and comparison tables always print 100% intact without truncation.';
+
+  @override
+  String get claudeRecommendedMethod =>
+      'Recommended Method (Save as PDF or Clipboard)';
+
+  @override
+  String get claudeStep1 =>
+      '1. In Claude, press Ctrl + P (Save as PDF) or copy the conversation to clipboard (Ctrl + A -> Ctrl + C).';
+
+  @override
+  String get claudeStep2 =>
+      '2. Select the PDF file or paste the text in Quorum.';
+
+  @override
+  String get chatGptPdfTruncationWarning =>
+      'Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated (\'Show more\' button). We recommend clipboard paste (Paste text) for ChatGPT chats.';
 }
