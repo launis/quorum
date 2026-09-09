@@ -232,13 +232,13 @@ class ChatNormalizerService:
         if stripped.startswith("{"):
             try:
                 return ChatHistoryDTO.model_validate_json(stripped)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         elif stripped.startswith("["):
             try:
                 messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
                 return ChatHistoryDTO(conversation=messages)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         return None
 
@@ -416,10 +416,13 @@ class ChatNormalizerService:
         # 3. Consolidate structural paragraph linebreaks
         normalized = _CONSECUTIVE_NEWLINES_PATTERN.sub("\n\n", normalized)
 
-        # 4. CRITICAL EXECUTION ORDER: Normalize tab-delimited tables BEFORE collapsing horizontal whitespace!
+        # 4. Strip known UI fluff and buttons (expand_more, expand_less, feedback widgets, timestamps)
+        normalized = ChatNormalizerService.strip_known_ui_fluff(normalized)
+
+        # 5. CRITICAL EXECUTION ORDER: Normalize tab-delimited tables BEFORE collapsing horizontal whitespace!
         normalized = ChatNormalizerService.normalize_tables(normalized)
 
-        # 5. Collapse horizontal ASCII whitespace line-by-line, preserving Unicode spaces & Markdown tables
+        # 6. Collapse horizontal ASCII whitespace line-by-line, preserving Unicode spaces & Markdown tables
         cleaned_lines: list[str] = []
         in_code_fence = False
         for line in normalized.splitlines():
