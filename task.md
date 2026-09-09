@@ -18,7 +18,7 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
 - [x] Constraint Step 2: Enforce strict GitHub-Flavored Markdown pipe tables for tab-separated data grids with code fence isolation, prior to whitespace collapse.
 - [x] Constraint Step 3: Enforce relative geometry ratios, visual topological block sorting, table cell matrix fallback defense, shaded cell discrimination, and table block suppression.
 - [x] Constraint Step 4: Provide positive, boundary, and negative tests for table normalization, code fence protection, visual reading order, short prompts, shaded table cells, UI icon suppression, and red-team edge cases.
-- [ ] Constraint Step 5: Synchronize Knowledge Items in knowledge/ to document the hardened multi-model ingress and cognitive baseline isolation.
+- [x] Constraint Step 5: Synchronize Knowledge Items in knowledge/ to document the hardened multi-model ingress and cognitive baseline isolation.
 
 ## Execution Tasks
 
@@ -47,11 +47,11 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
   - [x] Expand `test_pdf_chat_extractor.py` with 17 unit tests covering visual sorting, borderless table defense, shaded cells, table markdown, and boundary cases.
   - [x] Run `backend_audit_loop.py` on both services.
 
-- [ ] **Step 5: KNOWLEDGE ITEM SYNCHRONIZATION & SSOT UPDATES**
-  - [ ] Update `ki_chat_ingress_and_provenance_architecture.md` and `metadata.json`.
-  - [ ] Update `ki_cartesian_variance_and_authenticity.md` and `metadata.json`.
+- [x] **Step 5: KNOWLEDGE ITEM SYNCHRONIZATION & SSOT UPDATES**
+  - [x] Update `ki_chat_ingress_and_provenance_architecture.md` and `metadata.json`.
+  - [x] Update `ki_cartesian_variance_and_authenticity.md` and `metadata.json`.
 
 ## Session Handover Context
-- **Achieved**: Completed Steps 1 to 4 with 100% passing tests (24/24 in `test_pdf_chat_extractor.py` at 96% coverage, 38/38 in `test_chat_normalizer.py`, 9/9 in `test_multi_channel_ingress_service.py`).
-- **Learned**: Lazy loading `pymupdf4llm` in `multi_channel_ingress_service.py` prevents global PyMuPDF C monkey-patching that wipes table cells. Direct attribute access `t.cells` and `t.bbox` satisfies AST Guardrail QGR001.
-- **Remaining**: Step 5 (Knowledge Item Synchronization).
+- **Achieved**: All 5 steps completed with 100% passing tests (24/24 in `test_pdf_chat_extractor.py` at 96% coverage, 38/38 in `test_chat_normalizer.py`, 9/9 in `test_multi_channel_ingress_service.py`), Knowledge Items synchronized, and quality gates passing.
+- **Learned**: Lazy loading `pymupdf4llm` in `multi_channel_ingress_service.py` prevents global PyMuPDF C monkey-patching that wipes table cells. Direct attribute access `t.cells` and `t.bbox` satisfies AST Guardrail QGR001. Tabular attention and relative geometry ratios ensure 100% cognitive baseline isolation in `chat_log_user_only`.
+- **Remaining**: Plan complete. Ready for `/tier8-audit-plan`.
