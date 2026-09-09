@@ -16,8 +16,8 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
 ## Pre-Flight Checklist (<constraint> tags)
 - [x] Constraint Step 1: Fix all unparenthesized exception tuples, update method signatures, eradicate silent except passes, and clean up 1-hop caller fallback chains.
 - [x] Constraint Step 2: Enforce strict GitHub-Flavored Markdown pipe tables for tab-separated data grids with code fence isolation, prior to whitespace collapse.
-- [ ] Constraint Step 3: Enforce relative geometry ratios, visual topological block sorting, table cell matrix fallback defense, shaded cell discrimination, and table block suppression.
-- [ ] Constraint Step 4: Provide positive, boundary, and negative tests for table normalization, code fence protection, visual reading order, short prompts, shaded table cells, UI icon suppression, and red-team edge cases.
+- [x] Constraint Step 3: Enforce relative geometry ratios, visual topological block sorting, table cell matrix fallback defense, shaded cell discrimination, and table block suppression.
+- [x] Constraint Step 4: Provide positive, boundary, and negative tests for table normalization, code fence protection, visual reading order, short prompts, shaded table cells, UI icon suppression, and red-team edge cases.
 - [ ] Constraint Step 5: Synchronize Knowledge Items in knowledge/ to document the hardened multi-model ingress and cognitive baseline isolation.
 
 ## Execution Tasks
@@ -35,23 +35,23 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
   - [x] Integrate `normalize_tables` into `clean_turn_content` before whitespace collapsing.
   - [x] Expand `strip_known_ui_fluff` with UI buttons (`expand_more`, `expand_less`), feedback widgets, timestamps, sidebar paths, and attachment card normalization.
 
-- [ ] **Step 3: PDF RELATIVE GEOMETRY, VISUAL SORTING & TABLE RECONSTRUCTION**
-  - [ ] Define relative geometry constants in `pdf_chat_extractor.py`.
-  - [ ] Refactor `_is_user_bubble_drawing` with relative geometry, short prompt support, centered widget rejection, and table rect shielding.
-  - [ ] Implement table cell matrix fallback in `_get_page_table_rects`.
-  - [ ] Decompose `extract_conversation` into sub-methods (`_sort_blocks_visual_order`, `_filter_table_text_blocks`, `_reconstruct_tables_as_markdown`, `_detect_attachment_cards`).
-  - [ ] Integrate visual sorting, table suppression, table markdown, truncation detection, and UI button filtering into `extract_conversation`.
+- [x] **Step 3: PDF RELATIVE GEOMETRY, VISUAL SORTING & TABLE RECONSTRUCTION**
+  - [x] Define relative geometry constants in `pdf_chat_extractor.py`.
+  - [x] Refactor `_is_user_bubble_drawing` with relative geometry, short prompt support, centered widget rejection, and table rect shielding.
+  - [x] Implement table cell matrix fallback in `_get_page_table_rects`.
+  - [x] Decompose `extract_conversation` into sub-methods (`_sort_blocks_visual_order`, `_filter_table_text_blocks`, `_reconstruct_tables_as_markdown`, `_detect_attachment_cards`).
+  - [x] Integrate visual sorting, table suppression, table markdown, truncation detection, and UI button filtering into `extract_conversation`.
 
-- [ ] **Step 4: UNIT TEST EXPANSION & ISTQB QUALITY GATE AUDIT**
-  - [ ] Expand `test_chat_normalizer.py` with 8 unit tests covering tab tables, code fence preservation, fluff stripping, and boundary cases.
-  - [ ] Expand `test_pdf_chat_extractor.py` with 11 unit tests covering visual sorting, borderless table defense, shaded cells, table markdown, and boundary cases.
-  - [ ] Run `backend_audit_loop.py` on both services.
+- [x] **Step 4: UNIT TEST EXPANSION & ISTQB QUALITY GATE AUDIT**
+  - [x] Expand `test_chat_normalizer.py` with 8 unit tests covering tab tables, code fence preservation, fluff stripping, and boundary cases.
+  - [x] Expand `test_pdf_chat_extractor.py` with 17 unit tests covering visual sorting, borderless table defense, shaded cells, table markdown, and boundary cases.
+  - [x] Run `backend_audit_loop.py` on both services.
 
 - [ ] **Step 5: KNOWLEDGE ITEM SYNCHRONIZATION & SSOT UPDATES**
   - [ ] Update `ki_chat_ingress_and_provenance_architecture.md` and `metadata.json`.
   - [ ] Update `ki_cartesian_variance_and_authenticity.md` and `metadata.json`.
 
 ## Session Handover Context
-- **Achieved**: Verified baseline green test suite (37 tests passing). Initialized execution of Unified Multi-Model Ingress Architecture.
-- **Learned**: None so far.
-- **Remaining**: Steps 1 to 5.
+- **Achieved**: Completed Steps 1 to 4 with 100% passing tests (24/24 in `test_pdf_chat_extractor.py` at 96% coverage, 38/38 in `test_chat_normalizer.py`, 9/9 in `test_multi_channel_ingress_service.py`).
+- **Learned**: Lazy loading `pymupdf4llm` in `multi_channel_ingress_service.py` prevents global PyMuPDF C monkey-patching that wipes table cells. Direct attribute access `t.cells` and `t.bbox` satisfies AST Guardrail QGR001.
+- **Remaining**: Step 5 (Knowledge Item Synchronization).

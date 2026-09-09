@@ -21,8 +21,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __all__ = ["PdfChatExtractorService"]
+# Relative geometry ratio constants for vector speech bubbles
+_USER_BUBBLE_MIN_WIDTH_RATIO: float = 0.20
+_USER_BUBBLE_MIN_X0_RATIO: float = 0.20
+_USER_BUBBLE_MIN_X1_RATIO: float = 0.85
+_CANVAS_MAX_SIZE_RATIO: float = 0.80
+_SHORT_PROMPT_MIN_WIDTH: float = 40.0
+_ORPHAN_TOKEN_MAX_WIDTH: float = 60.0
+_ORPHAN_TOKEN_MAX_CHARS: int = 20
 
-# Overflow button indicators indicating truncated user prompt
+_PRINT_MARGIN_VERTICAL_PT: float = 36.0
+_PAGE_ZERO_TITLE_MAX_Y0: float = 80.0
+_ATTACHMENT_BOX_DIM_PT: float = 76.0
+_ATTACHMENT_BOX_TOLERANCE_PT: float = 6.0
+
+# Truncation indicators indicating truncated user prompt
 _TRUNCATION_INDICATORS: tuple[str, ...] = (
     "näytä lisää",
     "näytä lisää ⌵",
@@ -30,20 +43,23 @@ _TRUNCATION_INDICATORS: tuple[str, ...] = (
     "show more",
     "show more ⌵",
     "show more v",
+    "read more",
+    "katso lisää",
+    "lue lisää",
 )
-
-_PRINT_MARGIN_VERTICAL_PT: float = 36.0
-_PAGE_ZERO_TITLE_MAX_Y0: float = 80.0
-_ATTACHMENT_BOX_DIM_PT: float = 76.0
-_ATTACHMENT_BOX_TOLERANCE_PT: float = 6.0
 
 
 class PdfChatExtractorService:
     """Deterministic extractor for browser-printed and exported chat PDFs."""
 
     @staticmethod
-    def _is_user_bubble_drawing(d: dict[str, object], page_width: float, page_height: float) -> bool:
-        """Determines if a vector drawing represents a user prompt bubble.
+    def _is_user_bubble_drawing(
+        d: dict[str, object],
+        page_width: float,
+        page_height: float,
+        table_rects: list[fitz.Rect] | None = None,
+    ) -> bool:
+        """Determines if a vector drawing represents a user prompt bubble using relative geometry.
 
         Note:
             d is an External PyMuPDF API boundary dict from page.get_drawings().
@@ -53,44 +69,86 @@ class PdfChatExtractorService:
             return False
         r: fitz.Rect = rect_obj
 
-        # Ignore full-page background boxes or extremely tall/thin borders
-        if r.width >= page_width - 40.0:
-            return False
-        if r.height < 20.0 or r.width < 50.0:
+        # 1. Full-page canvas rejection: reject large background containers
+        if r.width >= page_width * _CANVAS_MAX_SIZE_RATIO and r.height >= page_height * _CANVAS_MAX_SIZE_RATIO:
             return False
 
-        # 1. Google Gemini Native Export / Gemini Light-Blue Tint Bubble
-        fill = d.get("fill")
-        if fill is not None and isinstance(fill, (list, tuple)) and len(fill) >= 3:
-            # Light blue/gray tint (approx rgb 0.91, 0.93, 0.96)
-            if 130.0 <= r.x0 <= 260.0 and r.x1 >= 500.0 and abs(float(fill[0]) - 0.91) < 0.08:
-                return True
+        # 2. Minimum dimension boundaries
+        if r.height < 15.0 or r.width < _SHORT_PROMPT_MIN_WIDTH:
+            return False
 
-        # 2. Google Gemini Ctrl+P / Skia Print Right-Aligned Bubble
-        # Right aligned box: x0 >= 180, x1 >= 500, width < 500, height >= 20
-        if r.x0 >= 180.0 and r.x1 >= 500.0 and 50.0 <= r.width < 500.0 and r.height >= 20.0:
-            return True
+        # 3. Vector fill/stroke requirement
+        if d.get("fill") is None and d.get("color") is None:
+            return False
 
-        # 3. ChatGPT Wide Bubble Classifier
-        if r.x0 >= 190.0 and r.x1 >= 500.0 and r.width >= 250.0 and r.height >= 40.0:
-            return True
+        # 4. Table Overlap Defense: Drawings intersecting table bounding boxes
+        # are shielded from being misclassified as user bubbles (protects shaded table cells)
+        if table_rects and any(r.intersects(tr) for tr in table_rects):
+            return False
 
-        return False
+        # 5. Right-alignment boundary: User bubbles must reach near the right margin
+        if r.x1 < page_width * _USER_BUBBLE_MIN_X1_RATIO:
+            return False
+
+        # 6. Left margin boundary: User bubbles do not start from the extreme left margin
+        if r.x0 < page_width * _USER_BUBBLE_MIN_X0_RATIO:
+            return False
+
+        # 7. Minimum width ratio or short prompt min width
+        if r.width < page_width * _USER_BUBBLE_MIN_WIDTH_RATIO and r.width < _SHORT_PROMPT_MIN_WIDTH:
+            return False
+
+        return True
 
     @staticmethod
     def _get_page_table_rects(page: fitz.Page) -> list[fitz.Rect]:
-        """Extracts valid table bounding boxes, guarding against empty cell collections in PyMuPDF."""
+        """Extracts valid table bounding boxes, guarding against empty cell collections and outer page containers."""
         table_rects: list[fitz.Rect] = []
+        page_w = page.rect.width
+        page_h = page.rect.height
+
         try:
             tables = page.find_tables()
             for t in tables.tables:
+                # 1. Compute bounding box from cells, filtering out outer page container cells
+                valid_cells: list[tuple[float, float, float, float]] = []
                 try:
-                    table_rects.append(fitz.Rect(t.bbox))
+                    cells = t.cells
+                    if cells:
+                        for c in cells:
+                            if not c:
+                                continue
+                            c_w = c[2] - c[0]
+                            c_h = c[3] - c[1]
+                            if c_w >= page_w * _CANVAS_MAX_SIZE_RATIO and c_h >= page_h * _CANVAS_MAX_SIZE_RATIO:
+                                continue
+                            valid_cells.append(c)
+                except (ValueError, AttributeError, TypeError) as exc:
+                    logger.debug("[PdfChatExtractorService] Skipping malformed table cells: %s", exc)
+
+                if valid_cells:
+                    min_x0 = min(c[0] for c in valid_cells)
+                    min_y0 = min(c[1] for c in valid_cells)
+                    max_x1 = max(c[2] for c in valid_cells)
+                    max_y1 = max(c[3] for c in valid_cells)
+                    table_rects.append(fitz.Rect(min_x0, min_y0, max_x1, max_y1))
+                    continue
+
+                # 2. Fallback to t.bbox if cells were not available or empty
+                try:
+                    bbox = t.bbox
+                    if bbox:
+                        r = fitz.Rect(bbox)
+                        if not (
+                            r.width >= page_w * _CANVAS_MAX_SIZE_RATIO and r.height >= page_h * _CANVAS_MAX_SIZE_RATIO
+                        ):
+                            table_rects.append(r)
                 except (ValueError, AttributeError, TypeError) as exc:
                     logger.debug("[PdfChatExtractorService] Skipping malformed table bbox: %s", exc)
                     continue
         except (ValueError, AttributeError, TypeError) as exc:
             logger.debug("[PdfChatExtractorService] Failed to extract page table rects: %s", exc)
+
         return table_rects
 
     @staticmethod
@@ -106,22 +164,14 @@ class PdfChatExtractorService:
         if len(doc) == 0:
             return False
 
-        user_bubble_count = 0
         for page in doc:
             page_w = page.rect.width
             page_h = page.rect.height
             table_rects = PdfChatExtractorService._get_page_table_rects(page)
 
             for d in page.get_drawings():
-                if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h):
-                    r_obj = d.get("rect")
-                    if isinstance(r_obj, fitz.Rect):
-                        # Table overlap defense: skip drawings inside table bboxes
-                        if any(r_obj.intersects(tr) for tr in table_rects):
-                            continue
-                        user_bubble_count += 1
-                        if user_bubble_count >= 1:
-                            return True
+                if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h, table_rects):
+                    return True
 
         return False
 
@@ -134,41 +184,174 @@ class PdfChatExtractorService:
 
         user_bubbles: list[fitz.Rect] = []
         for d in page.get_drawings():
-            if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h):
+            if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h, table_rects):
                 r_obj = d.get("rect")
                 if isinstance(r_obj, fitz.Rect):
-                    # Table overlap defense: ignore drawing rects inside tables
-                    if any(r_obj.intersects(tr) for tr in table_rects):
-                        continue
                     user_bubbles.append(r_obj)
 
         return user_bubbles
 
     @staticmethod
     def _check_truncation(text: str) -> None:
-        """Checks for ChatGPT overflow buttons and raises actionable warning."""
-        text_lower = text.lower()
-        for indicator in _TRUNCATION_INDICATORS:
-            if indicator in text_lower:
-                logger.warning(
-                    "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' "
-                    "in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
-                    indicator,
-                    extra={"error_code": "PROMPT_TRUNCATION_WARNING", "token": indicator},
-                )
-                raise AppException(
-                    message=(
-                        "Keskusteluhistoria on puutteellinen: Selaimen PDF-tulostus on leikannut käyttäjän "
-                        "kehotteen poikki ('Näytä lisää' -painike havaittu). Tuo keskustelu leikepöydältä: "
-                        "Valitse 'Liitä teksti', kopioi ChatGPT:stä koko keskustelu (Ctrl+A -> Ctrl+C) "
-                        "ja liitä ruutuun (Ctrl+V)."
-                    ),
-                    status_code=422,
-                    details={
-                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                        "truncation_detected": True,
-                    },
-                )
+        """Checks for ChatGPT overflow buttons outside code fences and raises actionable warning."""
+        lines = text.split("\n")
+        in_code_fence = False
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith("```"):
+                in_code_fence = not in_code_fence
+                continue
+            if in_code_fence:
+                continue
+
+            line_lower = stripped.lower()
+            for indicator in _TRUNCATION_INDICATORS:
+                if indicator in line_lower:
+                    logger.warning(
+                        "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' "
+                        "in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
+                        indicator,
+                        extra={"error_code": "PROMPT_TRUNCATION_WARNING", "token": indicator},
+                    )
+                    raise AppException(
+                        message=(
+                            "Keskusteluhistoria on puutteellinen: Selaimen PDF-tulostus on leikannut käyttäjän "
+                            "kehotteen poikki ('Näytä lisää' -painike havaittu). Tuo keskustelu leikepöydältä: "
+                            "Valitse 'Liitä teksti', kopioi ChatGPT:stä koko keskustelu (Ctrl+A -> Ctrl+C) "
+                            "ja liitä ruutuun (Ctrl+V)."
+                        ),
+                        status_code=422,
+                        details={
+                            "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                            "truncation_detected": True,
+                        },
+                    )
+
+    @staticmethod
+    def _sort_blocks_visual_order(
+        page_blocks: list[tuple[float, float, float, float, str, int, int]],
+    ) -> list[tuple[float, float, float, float, str, int, int]]:
+        """Sorts blocks topologically in visual reading order.
+
+        Quantizes vertical coordinate into 10pt bands to group inline elements,
+        then orders left-to-right by x0.
+        """
+        return sorted(page_blocks, key=lambda b: (round(b[1] / 10.0), b[0]))
+
+    @staticmethod
+    def _filter_table_text_blocks(
+        page_blocks: list[tuple[float, float, float, float, str, int, int]],
+        table_rects: list[fitz.Rect],
+    ) -> list[tuple[float, float, float, float, str, int, int]]:
+        """Suppresses raw text blocks that intersect identified table bounding boxes."""
+        if not table_rects:
+            return page_blocks
+
+        filtered: list[tuple[float, float, float, float, str, int, int]] = []
+        for b in page_blocks:
+            brect = fitz.Rect(b[0], b[1], b[2], b[3])
+            if any(brect.intersects(tr) for tr in table_rects):
+                continue
+            filtered.append(b)
+        return filtered
+
+    @staticmethod
+    def _reconstruct_tables_as_markdown(
+        page: fitz.Page,
+        table_rects: list[fitz.Rect],
+    ) -> list[tuple[fitz.Rect, str]]:
+        """Extracts tables from a page and formats them as Markdown pipe tables."""
+        if not table_rects:
+            return []
+
+        reconstructed: list[tuple[fitz.Rect, str]] = []
+        page_w = page.rect.width
+        page_h = page.rect.height
+
+        try:
+            tables = page.find_tables()
+            for i, t in enumerate(tables.tables):
+                try:
+                    data = t.extract()
+                    if not data or len(data) < 2:
+                        continue
+
+                    # Resolve rectangle for this table
+                    t_rect = table_rects[i] if i < len(table_rects) else fitz.Rect(t.bbox)
+
+                    # Filter out outer container tables spanning entire page
+                    if (
+                        t_rect.width >= page_w * _CANVAS_MAX_SIZE_RATIO
+                        and t_rect.height >= page_h * _CANVAS_MAX_SIZE_RATIO
+                    ):
+                        continue
+
+                    # Sanitize cells and calculate max columns
+                    sanitized_rows: list[list[str]] = []
+                    for row in data:
+                        cleaned_row: list[str] = []
+                        for cell in row:
+                            if cell is None:
+                                cleaned_row.append("")
+                            else:
+                                c_text = str(cell).replace("\r\n", " ").replace("\n", " ").replace("|", "\\|").strip()
+                                cleaned_row.append(c_text)
+                        sanitized_rows.append(cleaned_row)
+
+                    max_cols = max(len(r) for r in sanitized_rows)
+                    if max_cols < 2:
+                        continue
+
+                    # Pad rows to uniform column count
+                    for r in sanitized_rows:
+                        if len(r) < max_cols:
+                            r.extend([""] * (max_cols - len(r)))
+
+                    # Build Markdown pipe table lines
+                    header = "| " + " | ".join(sanitized_rows[0]) + " |"
+                    separator = "| " + " | ".join([":---"] * max_cols) + " |"
+                    data_lines = ["| " + " | ".join(r) + " |" for r in sanitized_rows[1:]]
+
+                    md_table = "\n".join([header, separator] + data_lines)
+                    reconstructed.append((t_rect, md_table))
+                except (ValueError, AttributeError, TypeError) as exc:
+                    logger.debug("[PdfChatExtractorService] Failed to reconstruct table: %s", exc)
+                    continue
+        except (ValueError, AttributeError, TypeError) as exc:
+            logger.debug("[PdfChatExtractorService] find_tables failed in reconstruct: %s", exc)
+
+        return reconstructed
+
+    @staticmethod
+    def _detect_attachment_cards(page: fitz.Page) -> list[tuple[fitz.Rect, str]]:
+        """Detects 76x76 pt file attachment cards and normalizes them to [Liite: <filename>]."""
+        cards: list[tuple[fitz.Rect, str]] = []
+        page_blocks = page.get_text("blocks")
+
+        for d in page.get_drawings():
+            rect_obj = d.get("rect")
+            if not isinstance(rect_obj, fitz.Rect):
+                continue
+            r: fitz.Rect = rect_obj
+            if (
+                abs(r.width - _ATTACHMENT_BOX_DIM_PT) <= _ATTACHMENT_BOX_TOLERANCE_PT
+                and abs(r.height - _ATTACHMENT_BOX_DIM_PT) <= _ATTACHMENT_BOX_TOLERANCE_PT
+            ):
+                # Search for text blocks intersecting the attachment box
+                box_texts: list[str] = []
+                for b in page_blocks:
+                    brect = fitz.Rect(b[0], b[1], b[2], b[3])
+                    if r.intersects(brect):
+                        b_text = b[4].strip()
+                        if b_text and b_text not in ("PDF", "report", "Liite"):
+                            clean_name = b_text.replace("\r\n", "").replace("\n", "")
+                            box_texts.append(clean_name)
+
+                if box_texts:
+                    joined_name = " ".join(box_texts)
+                    cards.append((r, f"[Liite: {joined_name}]"))
+
+        return cards
 
     @staticmethod
     def extract_conversation(doc: fitz.Document) -> ChatHistoryDTO:
@@ -204,45 +387,83 @@ class PdfChatExtractorService:
 
         for page_idx, page in enumerate(doc):
             page_h = page.rect.height
+            table_rects = PdfChatExtractorService._get_page_table_rects(page)
             user_bubbles = PdfChatExtractorService._extract_page_user_bubbles(page)
 
-            # Extract text blocks: (x0, y0, x1, y1, text, block_no, block_type)
-            page_blocks = page.get_text("blocks")
+            # 1. Detect tables and attachment cards
+            reconstructed_tables = PdfChatExtractorService._reconstruct_tables_as_markdown(page, table_rects)
+            attachment_cards = PdfChatExtractorService._detect_attachment_cards(page)
+            card_rects = [c[0] for c in attachment_cards]
 
-            for b in page_blocks:
+            # 2. Extract and filter text blocks
+            raw_page_blocks = page.get_text("blocks")
+            filtered_blocks = PdfChatExtractorService._filter_table_text_blocks(raw_page_blocks, table_rects)
+
+            # 3. Integrate synthetic blocks for tables and attachment cards
+            combined_blocks: list[tuple[float, float, float, float, str, int, int]] = []
+            for b in filtered_blocks:
+                brect = fitz.Rect(b[0], b[1], b[2], b[3])
+                if any(brect.intersects(cr) for cr in card_rects):
+                    continue
+                combined_blocks.append((b[0], b[1], b[2], b[3], b[4], b[5], b[6]))
+
+            for trect, md_table in reconstructed_tables:
+                combined_blocks.append((trect.x0, trect.y0, trect.x1, trect.y1, md_table, -1, 0))
+
+            for crect, card_text in attachment_cards:
+                combined_blocks.append((crect.x0, crect.y0, crect.x1, crect.y1, card_text, -1, 0))
+
+            # 4. Visual topological sort
+            sorted_blocks = PdfChatExtractorService._sort_blocks_visual_order(combined_blocks)
+
+            for b in sorted_blocks:
                 x0, y0, x1, y1, text = b[0], b[1], b[2], b[3], b[4].strip()
                 if not text:
                     continue
 
-                # 1. Margin filtering (eliminate browser headers/footers)
+                # Margin filtering (eliminate browser headers/footers)
                 if y0 < _PRINT_MARGIN_VERTICAL_PT or y1 > page_h - _PRINT_MARGIN_VERTICAL_PT:
                     continue
 
-                # 2. Coordinate-level span deduplication
+                # Coordinate-level span deduplication
                 sig = (page_idx, round(x0, 1), round(y0, 1), round(x1, 1), round(y1, 1), text)
                 if sig in seen_blocks:
                     continue
                 seen_blocks.add(sig)
 
-                # 3. Citation pill and top title filtering (e.g. left-aligned small pills "PDF", "report",
-                # or page 0 "Keskusteluhistoria" document title)
-                if x0 < 350.0 and (x1 - x0) < 200.0 and text in ("PDF", "report", "expand_more"):
-                    continue
+                # Page 0 top title filtering
                 if (
                     page_idx == 0
                     and y0 < _PAGE_ZERO_TITLE_MAX_Y0
-                    and text.lower() in ("keskusteluhistoria", "conversation history")
+                    and (
+                        text.lower() in ("keskusteluhistoria", "conversation history")
+                        or (len(text.split()) <= 3 and text.lower().startswith("keskustelu"))
+                    )
                 ):
+                    continue
+
+                # UI button filtering
+                text_clean = text.strip()
+                if text_clean in ("expand_more", "expand_less", "expand_more ⌵", "expand_less ⌵", "PDF", "report"):
                     continue
 
                 brect = fitz.Rect(x0, y0, x1, y1)
 
-                # 4. Bubble intersection classifier
+                # Bubble intersection classifier
                 is_user = any(brect.intersects(bub) for bub in user_bubbles)
 
-                # 5. Truncation detection in user blocks or turn boundaries
+                # Truncation check for user blocks
                 if is_user:
                     PdfChatExtractorService._check_truncation(text)
+
+                # Orphan token filtering outside user speech bubbles
+                if not is_user:
+                    if (
+                        (x1 - x0) < _ORPHAN_TOKEN_MAX_WIDTH
+                        and len(text) < _ORPHAN_TOKEN_MAX_CHARS
+                        and not any(ch.isalpha() and len(text.split()) > 2 for ch in text)
+                    ):
+                        continue
 
                 role = "user" if is_user else "ai"
 

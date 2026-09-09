@@ -10,7 +10,6 @@ from __future__ import annotations
 import logging
 
 import fitz
-import pymupdf4llm
 from fastapi import status
 
 from backend_v2.database.interfaces import ISystemRepository
@@ -91,6 +90,8 @@ class MultiChannelIngressService:
                     "[MultiChannelIngress] PDF is not a speech bubble conversation; extracting markdown prose for %s",
                     key,
                 )
+                import pymupdf4llm
+
                 raw_text = str(pymupdf4llm.to_markdown(doc))
             finally:
                 doc.close()
