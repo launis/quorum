@@ -43,4 +43,4 @@ class ChatTurnAnchorsResponseDTO(BaseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    turns: Annotated[list[ChatTurnAnchorDTO], Field(min_length=1, description="List of detected turn anchors")]
+    turns: Annotated[list[ChatTurnAnchorDTO], Field(default_factory=list, description="List of detected turn anchors")]

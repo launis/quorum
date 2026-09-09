@@ -1,15 +1,25 @@
-from unittest.mock import AsyncMock, patch
+"""Unit tests for ChatParserService.
 
+Validates anchor-based boundary slicing, role segregation, Fail-Fast schema validation,
+and exception handling under modern V2 architecture.
+"""
+
+from __future__ import annotations
+
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from pydantic import ValidationError
 import pytest
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ChatHistoryDTO
+from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
 from backend_v2.services.chat_parser import ChatParserService
 
 
 @pytest.fixture
 def mock_repository() -> AsyncMock:
-    """Provides an isolated AsyncMock for the database repository."""
+    """Provide an isolated AsyncMock for the database repository."""
     return AsyncMock()
 
 
@@ -27,25 +37,19 @@ async def test_chat_parser_empty_input_fails_fast(mock_repository: AsyncMock) ->
 async def test_chat_parser_role_segregation_and_success(
     mock_from_strategy: AsyncMock, mock_repository: AsyncMock
 ) -> None:
-    """Ensures that the ChatParser STRICTLY separates System and User roles to prevent prompt injection."""
-    # Setup mock LLM Client (Architectural Mocking Mandate)
+    """Ensure ChatParser segregates roles and slices exact verbatim turns via anchors."""
     mock_client = AsyncMock()
 
-    # Setup a valid DTO response
-    from backend_v2.models.v2_core import ChatMessageDTO
-
-    mock_dto = ChatHistoryDTO(
-        conversation=[
-            ChatMessageDTO(role="User", content="Hello"),
-            ChatMessageDTO(role="AI", content="Hi"),
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(speaker="user", start_phrase="Hello there", end_phrase="how are you"),
+            ChatTurnAnchorDTO(speaker="ai", start_phrase="I am doing well", end_phrase="help you today"),
         ]
     )
     mock_client.run_structured_task.return_value = (
-        mock_dto,
+        mock_anchors,
         {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
     )
-
-    from unittest.mock import MagicMock
 
     mock_config = MagicMock()
     mock_config.caching_strategy = "none"
@@ -54,12 +58,14 @@ async def test_chat_parser_role_segregation_and_success(
 
     mock_from_strategy.return_value = mock_client
 
-    # Execute
-    raw_paste = "User: Hello\nAI: Hi"
+    raw_paste = "User: Hello there, how are you\nAI: I am doing well, how can I help you today?"
     res = await ChatParserService.parse_pasted_chat(raw_paste, mock_repository)
 
-    # Assert successful parse
-    assert res == mock_dto
+    assert len(res.conversation) == 2
+    assert res.conversation[0].role == "user"
+    assert res.conversation[0].content == "Hello there, how are you"
+    assert res.conversation[1].role == "ai"
+    assert res.conversation[1].content == "I am doing well, how can I help you today"
 
     mock_from_strategy.assert_called_once_with("fast", repository=mock_repository, pipeline_name="chat_parser")
     mock_client.run_structured_task.assert_called_once()
@@ -67,24 +73,21 @@ async def test_chat_parser_role_segregation_and_success(
     call_kwargs = mock_client.run_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
 
-    # The absolute critical test: Verify there is a system role AND a user role
     assert len(messages.static_messages) == 1
     assert len(messages.dynamic_messages) == 1
     assert messages.static_messages[0].role == "system"
-    assert "data-mining expert" in messages.static_messages[0].content
+    assert "boundary-detection expert" in messages.static_messages[0].content
 
     assert messages.dynamic_messages[0].role == "user"
     assert raw_paste in messages.dynamic_messages[0].content
 
-    assert call_kwargs["response_model"] == ChatHistoryDTO
+    assert call_kwargs["response_model"] == ChatTurnAnchorsResponseDTO
 
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_configuration_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
     """Ensure ConfigurationError during LLMClient initialization triggers 500 AppException."""
-    from backend_v2.exceptions import ConfigurationError
-
     mock_from_strategy.side_effect = ConfigurationError("Model fast not found")
     with pytest.raises(AppException) as excinfo:
         await ChatParserService.parse_pasted_chat("User: Hi\nAI: Hello", mock_repository)
@@ -100,9 +103,9 @@ async def test_chat_parser_empty_conversation_fails_fast(
 ) -> None:
     """Ensure empty conversation list returned by LLM raises 400 VALIDATION_FAILED AppException."""
     mock_client = AsyncMock()
-    mock_dto = ChatHistoryDTO(conversation=[])
+    mock_anchors = ChatTurnAnchorsResponseDTO(turns=[])
     mock_client.run_structured_task.return_value = (
-        mock_dto,
+        mock_anchors,
         {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
     )
     mock_from_strategy.return_value = mock_client
@@ -116,12 +119,62 @@ async def test_chat_parser_empty_conversation_fails_fast(
 
 @pytest.mark.asyncio
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_start_anchor_not_found_fails_fast(
+    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+) -> None:
+    """Ensure start anchor missing from source text triggers 400 PARSING_FAILED AppException."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(speaker="user", start_phrase="Missing phrase that does not exist", end_phrase="how are you"),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+    )
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hello there, how are you", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_end_anchor_not_found_fails_fast(
+    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+) -> None:
+    """Ensure end anchor missing from source text after start triggers 400 PARSING_FAILED AppException."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(speaker="user", start_phrase="Hello there", end_phrase="nonexistent ending phrase"),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 10, "completion_tokens": 0, "total_tokens": 10},
+    )
+    mock_from_strategy.return_value = mock_client
+
+    with pytest.raises(AppException) as excinfo:
+        await ChatParserService.parse_pasted_chat("User: Hello there, how are you", mock_repository)
+
+    assert excinfo.value.status_code == 400
+    assert excinfo.value.details["error_code"] == ErrorCodes.PARSING_FAILED.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_validation_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
     """Ensure pydantic ValidationError raises 400 VALIDATION_FAILED AppException."""
-    from pydantic import ValidationError
-
     mock_client = AsyncMock()
-    mock_client.run_structured_task.side_effect = ValidationError.from_exception_data("ChatHistoryDTO", line_errors=[])
+    mock_client.run_structured_task.side_effect = ValidationError.from_exception_data(
+        "ChatTurnAnchorsResponseDTO", line_errors=[]
+    )
     mock_from_strategy.return_value = mock_client
 
     with pytest.raises(AppException) as excinfo:
@@ -135,8 +188,6 @@ async def test_chat_parser_validation_error(mock_from_strategy: AsyncMock, mock_
 @patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
 async def test_chat_parser_json_decode_error(mock_from_strategy: AsyncMock, mock_repository: AsyncMock) -> None:
     """Ensure json.JSONDecodeError raises 400 VALIDATION_FAILED AppException."""
-    import json
-
     mock_client = AsyncMock()
     mock_client.run_structured_task.side_effect = json.JSONDecodeError("Unterminated string", "doc", 0)
     mock_from_strategy.return_value = mock_client

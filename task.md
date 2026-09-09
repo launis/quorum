@@ -44,11 +44,11 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3e5c45b7-ed7
   - [x] Step 2.4: Update `backend_v2/tests/unit/test_document_extraction.py`.
   - [x] Step 2.5: Run quality gate `backend_audit_loop.py` on Phase 2 targets.
 
-- [ ] **Phase 3: Text & Clipboard Ingress (Fluff Stripping + Anchor Slicing)**
-  - [ ] Step 3.1: Implement `strip_known_ui_fluff` and clean Fi/En fast-path regex in `backend_v2/services/chat_normalizer.py`.
-  - [ ] Step 3.2: Implement Anchor-Based Slicing in `backend_v2/services/chat_parser.py` with monotonic `str.find()` and Fail-Fast on missing/out-of-order anchors.
-  - [ ] Step 3.3: Expand unit tests in `backend_v2/tests/unit/services/test_chat_normalizer.py` and `test_chat_parser.py`.
-  - [ ] Step 3.4: Run quality gate `backend_audit_loop.py` on Phase 3 targets.
+- [x] **Phase 3: Text & Clipboard Ingress (Fluff Stripping + Anchor Slicing)**
+  - [x] Step 3.1: Implement `strip_known_ui_fluff` and clean Fi/En fast-path regex in `backend_v2/services/chat_normalizer.py`.
+  - [x] Step 3.2: Implement Anchor-Based Slicing in `backend_v2/services/chat_parser.py` with monotonic `str.find()` and Fail-Fast on missing/out-of-order anchors.
+  - [x] Step 3.3: Expand unit tests in `backend_v2/tests/unit/services/test_chat_normalizer.py` and `test_chat_parser.py`.
+  - [x] Step 3.4: Run quality gate `backend_audit_loop.py` on Phase 3 targets.
 
 - [ ] **Phase 4: Multi-Channel Ingress Service & Pipeline Delegation**
   - [ ] Step 4.1: Implement `MultiChannelIngressService` in `backend_v2/services/ingress/multi_channel_ingress_service.py`.

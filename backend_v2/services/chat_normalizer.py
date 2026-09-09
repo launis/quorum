@@ -29,10 +29,45 @@ USER_ROLE_LABELS: frozenset[str] = frozenset({"user", "human", "you", "käyttäj
 AI_ROLE_LABELS: frozenset[str] = frozenset(
     {"assistant", "ai", "chatgpt", "claude", "gemini", "assistentti", "avustaja", "tekoäly"}
 )
+# TODO(multi-lang): Expand role label vocabularies if non-Fi/En languages are formally adopted.
 
 _ZERO_WIDTH_CHARS_PATTERN: re.Pattern[str] = re.compile(r"[\u200b\u200c\u200d\ufeff\u00ad]")
 _CONSECUTIVE_NEWLINES_PATTERN: re.Pattern[str] = re.compile(r"\n\s*\n\s*\n+")
 _HORIZONTAL_ASCII_WHITESPACE_PATTERN: re.Pattern[str] = re.compile(r"[ \t]+")
+
+_KNOWN_FLUFF_EXACT_LINES: frozenset[str] = frozenset(
+    {
+        "copy code",
+        "copy",
+        "edit",
+        "share",
+        "regenerate",
+        "retry",
+        "listen",
+        "kuuntele",
+        "show drafts",
+        "näytä luonnokset",
+        "was this response better or worse?",
+        "good response",
+        "bad response",
+        "thumbs up",
+        "thumbs down",
+    }
+)
+
+_KNOWN_FLUFF_SUBSTRINGS: tuple[str, ...] = (
+    "chatgpt can make mistakes",
+    "chatgpt may produce inaccurate",
+    "gemini may display inaccurate info",
+    "claude can make mistakes",
+    "claude is an ai",
+)
+
+_KNOWN_FLUFF_LINE_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"^chatgpt\s+(?:4o|4o-mini|4|3\.5|mini|plus|team|enterprise)(?:\s+.*)?$", re.IGNORECASE),
+    re.compile(r"^gemini\s+(?:advanced|pro|flash|1\.5|2\.0)(?:\s+.*)?$", re.IGNORECASE),
+    re.compile(r"^searched\s+\d+\s+sites?$", re.IGNORECASE),
+)
 
 
 class ChatNormalizerService:
@@ -41,6 +76,56 @@ class ChatNormalizerService:
     Provides deterministic fast-path regex parsing for structured dialogues,
     preservative text cleaning for downstream LLM cognition, and XML segregation.
     """
+
+    @staticmethod
+    def strip_known_ui_fluff(raw_text: str) -> str:
+        """Deterministically strip known web UI artifacts from pasted chat transcripts.
+
+        Removes web interface disclaimers, action buttons ('Copy code', 'Edit', 'Share'),
+        and model switcher labels from ChatGPT, Google Gemini, and Claude while strictly
+        preserving content inside markdown code fences.
+
+        Args:
+            raw_text: Uncleaned raw text pasted from a browser chat window.
+
+        Returns:
+            Cleaned text with UI fluff lines eliminated.
+        """
+        if not raw_text:
+            return ""
+
+        lines = raw_text.splitlines()
+        cleaned_lines: list[str] = []
+        in_code_fence = False
+
+        for line in lines:
+            trimmed = line.strip()
+            if trimmed.startswith("```"):
+                in_code_fence = not in_code_fence
+                cleaned_lines.append(line)
+                continue
+
+            if in_code_fence:
+                cleaned_lines.append(line)
+                continue
+
+            lower_trimmed = trimmed.lower()
+
+            # 1. Exact match against known button/action labels
+            if lower_trimmed in _KNOWN_FLUFF_EXACT_LINES:
+                continue
+
+            # 2. Pattern match for model headers / search status
+            if any(p.match(trimmed) for p in _KNOWN_FLUFF_LINE_PATTERNS):
+                continue
+
+            # 3. Substring match for short disclaimer footers (< 140 chars)
+            if len(trimmed) < 140 and any(s in lower_trimmed for s in _KNOWN_FLUFF_SUBSTRINGS):
+                continue
+
+            cleaned_lines.append(line)
+
+        return "\n".join(cleaned_lines)
 
     @staticmethod
     def strip_code_fences(text: str) -> str:
@@ -77,13 +162,13 @@ class ChatNormalizerService:
         if stripped.startswith("{"):
             try:
                 return ChatHistoryDTO.model_validate_json(stripped)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         elif stripped.startswith("["):
             try:
                 messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
                 return ChatHistoryDTO(conversation=messages)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         return None
 
@@ -259,15 +344,18 @@ class ChatNormalizerService:
         if chat_dto:
             logger.info("[ChatNormalizer] Valid JSON chat detected for %s.", key)
         else:
+            # Clean known UI fluff for fast-path regex and LLM fallback
+            cleaned_text = ChatNormalizerService.strip_known_ui_fluff(raw_text)
+
             # 2. Try fast-path regex parsing
-            chat_dto = ChatNormalizerService.try_parse_fast_path(raw_text)
+            chat_dto = ChatNormalizerService.try_parse_fast_path(cleaned_text)
             if chat_dto:
                 logger.info("[ChatNormalizer] Fast-path regex matched dialogue turns for %s.", key)
             else:
                 # 3. Fallback to LLM parser
                 logger.info("[ChatNormalizer] Falling back to ChatParserService LLM parsing for %s...", key)
                 try:
-                    chat_dto = await ChatParserService.parse_pasted_chat(raw_text, system_repo=system_repo)
+                    chat_dto = await ChatParserService.parse_pasted_chat(cleaned_text, system_repo=system_repo)
                 except AppException:
                     raise
                 except Exception as e:

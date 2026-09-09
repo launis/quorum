@@ -262,6 +262,96 @@ class TestChatNormalizerService:
         assert "Answer" in result.ai_only
         assert "<user_payload>" in result.combined
 
+    def test_strip_known_ui_fluff_empty(self) -> None:
+        """Verify strip_known_ui_fluff handles empty inputs."""
+        assert ChatNormalizerService.strip_known_ui_fluff("") == ""
+
+    def test_strip_known_ui_fluff_chatgpt(self) -> None:
+        """Verify strip_known_ui_fluff eliminates ChatGPT web UI artifacts."""
+        raw = (
+            "ChatGPT 4o mini\n"
+            "User: How do I test?\n"
+            "Copy code\n"
+            "ChatGPT: Use pytest.\n"
+            "Edit\n"
+            "Share\n"
+            "ChatGPT can make mistakes. Check important info.\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        assert "ChatGPT 4o mini" not in cleaned
+        assert "Copy code" not in cleaned
+        assert "Edit" not in cleaned
+        assert "Share" not in cleaned
+        assert "ChatGPT can make mistakes" not in cleaned
+        assert "User: How do I test?" in cleaned
+        assert "ChatGPT: Use pytest." in cleaned
+
+    def test_strip_known_ui_fluff_gemini(self) -> None:
+        """Verify strip_known_ui_fluff eliminates Google Gemini web UI artifacts."""
+        raw = (
+            "Gemini Advanced\n"
+            "Show drafts\n"
+            "User: Explain gravity.\n"
+            "Listen\n"
+            "Gemini: Gravity is a curvature of spacetime.\n"
+            "Gemini may display inaccurate info, including about people, so double-check its responses.\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        assert "Gemini Advanced" not in cleaned
+        assert "Show drafts" not in cleaned
+        assert "Listen" not in cleaned
+        assert "Gemini may display inaccurate info" not in cleaned
+        assert "User: Explain gravity." in cleaned
+        assert "Gemini: Gravity is a curvature of spacetime." in cleaned
+
+    def test_strip_known_ui_fluff_claude(self) -> None:
+        """Verify strip_known_ui_fluff eliminates Anthropic Claude web UI artifacts."""
+        raw = (
+            "User: Analyze this.\n"
+            "Claude: Here is the analysis.\n"
+            "Claude can make mistakes. Please double-check responses.\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        assert "Claude can make mistakes" not in cleaned
+        assert "User: Analyze this." in cleaned
+        assert "Claude: Here is the analysis." in cleaned
+
+    def test_strip_known_ui_fluff_preserves_code_fences(self) -> None:
+        """Verify content inside code fences is never stripped even if matching button labels."""
+        raw = (
+            "User: Show me bash commands.\n"
+            "Assistant:\n"
+            "```bash\n"
+            "copy code\n"
+            "edit file.txt\n"
+            "share\n"
+            "```\n"
+            "Copy code\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        # Inside code fence preserved
+        assert "copy code\nedit file.txt\nshare" in cleaned
+        # Outside code fence stripped
+        lines = [line.strip() for line in cleaned.splitlines()]
+        assert lines[-1] == "```"
+
+    @pytest.mark.asyncio
+    async def test_parse_chat_to_dto_fast_path_with_ui_fluff(
+        self, mock_system_repo: InMemorySystemRepository
+    ) -> None:
+        """Verify parse_chat_to_dto successfully cleans fluff and parses via fast-path."""
+        raw = (
+            "ChatGPT 4o\n"
+            "User: What is the capital of Finland?\n"
+            "Copy code\n"
+            "Assistant: The capital of Finland is Helsinki.\n"
+            "ChatGPT can make mistakes. Check important info.\n"
+        )
+        dto = await ChatNormalizerService.parse_chat_to_dto(raw, "chat_log", mock_system_repo)
+        assert len(dto.conversation) == 2
+        assert dto.conversation[0].role == "user"
+        assert "Helsinki" in dto.conversation[1].content
+
     def test_processed_chat_dto_missing_required_field_raises(self) -> None:
         """Negative: Missing required fields in ProcessedChatDTO raises ValidationError."""
         with pytest.raises(ValidationError):

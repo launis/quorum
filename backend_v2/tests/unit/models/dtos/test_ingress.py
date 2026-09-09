@@ -69,7 +69,7 @@ def test_chat_turn_anchors_response_dto_valid() -> None:
     assert resp.turns[0].speaker == "ai"
 
 
-def test_chat_turn_anchors_response_dto_empty_turns_fails() -> None:
-    """Test that empty turns array triggers validation failure."""
-    with pytest.raises(ValidationError):
-        ChatTurnAnchorsResponseDTO(turns=[])
+def test_chat_turn_anchors_response_dto_empty_turns_allowed() -> None:
+    """Test that empty turns array is valid schema for dialogue absence."""
+    resp = ChatTurnAnchorsResponseDTO(turns=[])
+    assert resp.turns == []
