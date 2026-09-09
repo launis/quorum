@@ -16850,12 +16850,13 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": true,
           "input_modes": [
-            "file"
+            "file",
+            "paste"
           ],
           "description": {
             "translations": {
-              "fi": "Tähän liitetään auditoitavan prosessin varsinainen tuotos, esim. PDF-dokumentti.",
-              "en": "Attach the actual output of the audited process (e.g. PDF)."
+              "fi": "Tähän liitetään auditoitavan prosessin varsinainen tuotos (esim. PDF-dokumentti tai suora teksti).",
+              "en": "Attach the final output of the audited process (e.g. PDF document or plain text)."
             }
           },
           "ai_description": "SOURCE EVIDENCE DIRECTIVE: This artifact represents the final target output of the audited process. It must be evaluated strictly on its own merits without assuming any external context or hidden intentions. Treat this as the definitive end-result of the cognitive process.",
@@ -16865,20 +16866,21 @@
           "input_key": "chat_log",
           "label": {
             "translations": {
-              "fi": "Keskusteluhistoria",
-              "en": "Chat Log"
+              "fi": "Keskusteluhistoria (Chat)",
+              "en": "Conversation History (Chat)"
             }
           },
           "required": true,
           "is_chat_history": true,
           "scan_for_performative_patterns": true,
           "input_modes": [
-            "file"
+            "file",
+            "paste"
           ],
           "description": {
             "translations": {
-              "fi": "Liitä keskusteluhistoria ihmisen ja tekoälyn välillä.",
-              "en": "Attach chat log between human and AI."
+              "fi": "Tuo keskustelu käyttämäsi tekoälyn (esim. ChatGPT, Google Gemini, Claude) kanssa PDF-tiedostona tai liitä se suoraan tekstinä leikepöydältä.",
+              "en": "Attach conversation with your AI tool (e.g. ChatGPT, Google Gemini, Claude) as a PDF file or paste directly as text from clipboard."
             }
           },
           "ai_description": "--- AI INSTRUCTION FOR THIS SOURCE ---\nPROCESS EVIDENCE DIRECTIVE: This artifact contains the chronological dialogue unspooled between the human operator and the AI system leading up to the final product. You must analyze this strictly for developmental trajectory, cognitive dependencies, prompt compliance, and the balance of intellectual labor. Do not treat this as the final product itself, but rather the scaffolding that built it.\n\nMANDATE_HUMAN_EVALUATION: You must evaluate ONLY the human user's cognitive level, steering skills, and domain expertise. \n\nEXTRACTION_RULE: You MUST extract 'exact_quote' evidence STRICTLY from lines starting with \"user:\". \n\nCONTEXT_RULE: Text starting with \"ai:\" is strictly background context. NEVER use the AI's output, intelligence, or reasoning as evidence of the human's competence.",
@@ -16896,12 +16898,13 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": true,
           "input_modes": [
-            "file"
+            "file",
+            "paste"
           ],
           "description": {
             "translations": {
-              "fi": "Vastaa lyhyesti reflektiokysymyksiin.",
-              "en": "Answer reflection questions briefly."
+              "fi": "Vastaa lyhyesti reflektiokysymyksiin tai liitä oppimispäiväkirja (tiedostona tai tekstinä).",
+              "en": "Answer reflection questions briefly or attach learning journal (as file or text)."
             }
           },
           "ai_description": "META-COGNITIVE EVIDENCE DIRECTIVE: This artifact contains the human operator's post-hoc reflection on the interaction. Analyze this to establish the operator's self-awareness, critical distance, and theoretical grounding regarding the process. Evaluate if the reflection aligns transparently with the actual events logged in the chat history.",
