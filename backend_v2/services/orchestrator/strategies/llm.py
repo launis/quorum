@@ -186,7 +186,7 @@ class LLMNodeStrategy(NodeStrategy):
             task_blueprint=blueprint_id,
             metadata=context.metadata,
             global_context_vars=GlobalContextVarsDTO(vars=context.global_context_vars),
-            inputs=ExecutionInputsDTO(dynamic_inputs=state_data, raw_inputs=raw_inputs_payload),
+            inputs=ExecutionInputsDTO(dynamic_inputs=state_data, raw_inputs=inputs_unwrapped),
         )
 
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)

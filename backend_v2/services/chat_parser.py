@@ -146,10 +146,9 @@ class ChatParserService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "original_error": str(e)},
             ) from e
+        except AppException:
+            raise
         except Exception as e:
-            if isinstance(e, AppException):
-                raise e
-
             msg = f"LLM generation failed: {e}"
             logger.error("[ChatParser] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
             raise AppException(

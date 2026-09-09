@@ -359,3 +359,25 @@ async def test_detect_performative_patterns_computes_total_word_count(mock_deps:
     result = await detect_performative_patterns(state, mock_deps)
     res_dict = result.state_delta.delta["step_linguistics"]
     assert res_dict["total_word_count"] == 10
+
+
+@pytest.mark.asyncio
+async def test_detect_performative_patterns_prioritizes_any_user_only_suffix(mock_deps: HookDependencies) -> None:
+    """Verify any key ending with _user_only (e.g. conversation_user_only) is prioritized."""
+    state = HookState(
+        workflow_id="w1",
+        execution_id="e1",
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "scan_for_performative_patterns": "false",
+                "conversation": "ai: massive essay with dozens of words here that should never be counted.",
+                "conversation_user_only": "Short human prompt.",
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+        metadata=ExecutionMetadata(),
+    )
+    result = await detect_performative_patterns(state, mock_deps)
+    res_dict = result.state_delta.delta["step_linguistics"]
+    assert res_dict["total_word_count"] == 3
+

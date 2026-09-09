@@ -5,6 +5,7 @@ __all__ = [
     "dag_models",
     "engine",
     "evaluation_steps",
+    "ingress",
     "inputs",
     "lightweight_matrix",
     "output_profile",

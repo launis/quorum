@@ -121,10 +121,9 @@ class LinguisticsPayloadDTO(BaseModel):
         Returns:
             The extracted and concatenated lowercased text.
         """
-        if "chat_log_user_only" in self.dynamic_inputs:
-            user_val = self.dynamic_inputs["chat_log_user_only"]
-            if isinstance(user_val, str) and user_val.strip():
-                return user_val.strip().lower()
+        for k, v in self.dynamic_inputs.items():
+            if k.endswith("_user_only") and isinstance(v, str) and v.strip():
+                return v.strip().lower()
 
         results: list[str] = []
 
