@@ -105,6 +105,7 @@ class DocumentExtractionService:
 
             return md_text.strip(), parsed_date
         finally:
+            pymupdf4llm.use_layout(False)
             doc.close()
 
     async def process_ingress_payload(self, ingress: WorkflowInputsIngress) -> WorkflowInputsIngress:

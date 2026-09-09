@@ -92,7 +92,10 @@ class MultiChannelIngressService:
                 )
                 import pymupdf4llm
 
-                raw_text = str(pymupdf4llm.to_markdown(doc))
+                try:
+                    raw_text = str(pymupdf4llm.to_markdown(doc))
+                finally:
+                    pymupdf4llm.use_layout(False)
             finally:
                 doc.close()
         elif isinstance(raw_input, bytes):

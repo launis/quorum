@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """Unit and integration tests for PdfChatExtractorService.
 
 Covers real-world PDFs (Gemini export, ChatGPT print, non-chat prose),
 ISTQB boundary cases (corrupt bytes, 0 pages), table overlap defense,
 coordinate deduplication, and truncation artifact warning checks.
 """
+
+from __future__ import annotations
 
 from pathlib import Path
 from unittest.mock import MagicMock, PropertyMock
@@ -201,7 +201,9 @@ def test_pdf_chat_extractor_visual_reading_order_preserves_turns() -> None:
         assert chat_dto.conversation[0].role == "user"
         assert "Käyttäjän ensimmäinen" in chat_dto.conversation[0].content
         assert chat_dto.conversation[1].role == "ai"
-        assert chat_dto.conversation[1].content.index("ensimmäinen kappale") < chat_dto.conversation[1].content.index("toinen kappale")
+        assert chat_dto.conversation[1].content.index("ensimmäinen kappale") < chat_dto.conversation[1].content.index(
+            "toinen kappale"
+        )
     finally:
         doc.close()
 
@@ -538,5 +540,3 @@ def test_pdf_chat_extractor_span_deduplication_and_orphan_token_suppression() ->
         assert ">" not in ai_content
     finally:
         doc.close()
-
-
