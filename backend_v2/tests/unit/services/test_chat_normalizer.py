@@ -318,16 +318,7 @@ class TestChatNormalizerService:
 
     def test_strip_known_ui_fluff_preserves_code_fences(self) -> None:
         """Verify content inside code fences is never stripped even if matching button labels."""
-        raw = (
-            "User: Show me bash commands.\n"
-            "Assistant:\n"
-            "```bash\n"
-            "copy code\n"
-            "edit file.txt\n"
-            "share\n"
-            "```\n"
-            "Copy code\n"
-        )
+        raw = "User: Show me bash commands.\nAssistant:\n```bash\ncopy code\nedit file.txt\nshare\n```\nCopy code\n"
         cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
         # Inside code fence preserved
         assert "copy code\nedit file.txt\nshare" in cleaned
@@ -336,9 +327,7 @@ class TestChatNormalizerService:
         assert lines[-1] == "```"
 
     @pytest.mark.asyncio
-    async def test_parse_chat_to_dto_fast_path_with_ui_fluff(
-        self, mock_system_repo: InMemorySystemRepository
-    ) -> None:
+    async def test_parse_chat_to_dto_fast_path_with_ui_fluff(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify parse_chat_to_dto successfully cleans fluff and parses via fast-path."""
         raw = (
             "ChatGPT 4o\n"

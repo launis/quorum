@@ -154,12 +154,20 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
                 import fitz
                 import pymupdf4llm
 
+                from backend_v2.services.ingress.pdf_chat_extractor import (
+                    PdfChatExtractorService,
+                )
+
                 with file_path.open("rb") as f:
                     content_bytes = f.read()
                 doc = fitz.open(stream=content_bytes, filetype="pdf")
                 try:
-                    md_text = str(pymupdf4llm.to_markdown(doc))
-                    inputs[mapped_key] = md_text.strip()
+                    if PdfChatExtractorService.is_conversation_pdf(doc):
+                        chat_dto = PdfChatExtractorService.extract_conversation(doc)
+                        inputs[mapped_key] = chat_dto.model_dump_json()
+                    else:
+                        md_text = str(pymupdf4llm.to_markdown(doc))
+                        inputs[mapped_key] = md_text.strip()
 
                     metadata = doc.metadata or {}
                     pdf_date = metadata.get("modDate") or metadata.get("creationDate")

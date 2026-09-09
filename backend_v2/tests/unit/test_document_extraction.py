@@ -149,6 +149,7 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
     """Test that _extract_pdf_sync routes to PdfChatExtractorService when conversation is detected."""
     service = DocumentExtractionService()
     import fitz
+
     from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 
     doc = fitz.open()
@@ -175,4 +176,3 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
 
     assert '"role":"user"' in extracted_text or '"role": "user"' in extracted_text
     assert "User prompt inside bubble" in extracted_text
-

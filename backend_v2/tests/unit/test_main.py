@@ -23,12 +23,6 @@ from backend_v2.main import (
     lifespan,
     validation_exception_handler,
 )
-from backend_v2.tests.unit.test_storage_audit import (
-    temp_db_and_storage,
-    test_audit_storage_and_database_sync_when_orphaned_db_record,
-    test_audit_storage_and_database_sync_when_synced,
-    test_audit_storage_and_database_sync_when_unindexed_disk_execution,
-)
 
 client = TestClient(app)
 

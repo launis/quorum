@@ -27,47 +27,61 @@ void main() {
     );
   }
 
-  testWidgets('PdfExportGuideDialog renders all provider tabs in Finnish and switches correctly', (tester) async {
-    await tester.pumpWidget(createDialogWidget(locale: const Locale('fi')));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'PdfExportGuideDialog renders all provider tabs in Finnish and switches correctly',
+    (tester) async {
+      await tester.pumpWidget(createDialogWidget(locale: const Locale('fi')));
+      await tester.pumpAndSettle();
 
-    // Open the dialog
-    await tester.tap(find.text('Open Dialog'));
-    await tester.pumpAndSettle();
+      // Open the dialog
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
 
-    // Verify dialog title and tabs exist
-    expect(find.text('Keskustelun tuominen Quorumiin'), findsOneWidget);
-    expect(find.text('ChatGPT'), findsOneWidget);
-    expect(find.text('Google Gemini'), findsOneWidget);
-    expect(find.text('Claude'), findsOneWidget);
+      // Verify dialog title and tabs exist
+      expect(find.text('Keskustelun tuominen Quorumiin'), findsOneWidget);
+      expect(find.text('ChatGPT'), findsOneWidget);
+      expect(find.text('Google Gemini'), findsOneWidget);
+      expect(find.text('Claude'), findsOneWidget);
 
-    // ChatGPT tab content (active by default)
-    expect(find.text('Suositeltu ja nopein tapa (Leikepöytä)'), findsOneWidget);
-    expect(find.textContaining('1. Valitse Quorumin syöttötavaksi'), findsOneWidget);
-    expect(find.textContaining('Huom! Jos tulostat PDF:ksi'), findsOneWidget);
+      // ChatGPT tab content (active by default)
+      expect(
+        find.text('Suositeltu ja nopein tapa (Leikepöytä)'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('1. Valitse Quorumin syöttötavaksi'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Huom! Jos tulostat PDF:ksi'), findsOneWidget);
 
-    // Switch to Gemini tab
-    await tester.tap(find.text('Google Gemini'));
-    await tester.pumpAndSettle();
+      // Switch to Gemini tab
+      await tester.tap(find.text('Google Gemini'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Suositeltu tapa (Tallenna PDF tai Leikepöytä)'), findsOneWidget);
-    expect(find.textContaining('Paina Gemini-keskustelussa'), findsOneWidget);
-    expect(find.textContaining('Geminissä kaikki kehotteet'), findsOneWidget);
+      expect(
+        find.text('Suositeltu tapa (Tallenna PDF tai Leikepöytä)'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Paina Gemini-keskustelussa'), findsOneWidget);
+      expect(find.textContaining('Geminissä kaikki kehotteet'), findsOneWidget);
 
-    // Switch to Claude tab
-    await tester.tap(find.text('Claude'));
-    await tester.pumpAndSettle();
+      // Switch to Claude tab
+      await tester.tap(find.text('Claude'));
+      await tester.pumpAndSettle();
 
-    expect(find.textContaining('Paina Claude-keskustelussa'), findsOneWidget);
+      expect(find.textContaining('Paina Claude-keskustelussa'), findsOneWidget);
 
-    // Close the dialog via close button
-    await tester.tap(find.text('Sulje'));
-    await tester.pumpAndSettle();
+      // Close the dialog via close button
+      await tester.tap(find.text('Sulje'));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(PdfExportGuideDialog), findsNothing);
-  });
+      expect(find.byType(PdfExportGuideDialog), findsNothing);
+    },
+  );
 
-  testWidgets('PdfExportGuideDialog renders correctly in English', (tester) async {
+  testWidgets('PdfExportGuideDialog renders correctly in English', (
+    tester,
+  ) async {
     await tester.pumpWidget(createDialogWidget(locale: const Locale('en')));
     await tester.pumpAndSettle();
 
@@ -77,8 +91,14 @@ void main() {
 
     // Verify English title and content
     expect(find.text('Importing Conversation to Quorum'), findsOneWidget);
-    expect(find.text('Recommended & Fastest Method (Clipboard)'), findsOneWidget);
-    expect(find.textContaining('1. Select \'Paste Text\' mode'), findsOneWidget);
+    expect(
+      find.text('Recommended & Fastest Method (Clipboard)'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('1. Select \'Paste Text\' mode'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Notice: If printing to PDF'), findsOneWidget);
 
     // Close via close icon button

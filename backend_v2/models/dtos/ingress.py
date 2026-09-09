@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Ingress Data Transfer Objects for Cognitive Quorum V2.
 
 Defines strict models for conversational boundary extraction, turn anchoring,
 and multi-channel payload validation.
 """
+
+from __future__ import annotations
 
 from typing import Annotated, Literal
 

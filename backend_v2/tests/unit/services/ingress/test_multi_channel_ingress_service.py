@@ -7,7 +7,7 @@ fast-path colon regex, deterministic fluff stripping, and LLM anchor slicing fal
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -66,9 +66,7 @@ class TestMultiChannelIngressService:
         assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     @pytest.mark.asyncio
-    async def test_process_chat_structured_json_channel(
-        self, mock_system_repo: InMemorySystemRepository
-    ) -> None:
+    async def test_process_chat_structured_json_channel(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify structured JSON channel deserializes directly without regex or LLM fallback."""
         service = MultiChannelIngressService()
         payload = json.dumps(
@@ -85,9 +83,7 @@ class TestMultiChannelIngressService:
         assert result.conversation[0].content == "Question"
 
     @pytest.mark.asyncio
-    async def test_process_chat_fast_path_regex_channel(
-        self, mock_system_repo: InMemorySystemRepository
-    ) -> None:
+    async def test_process_chat_fast_path_regex_channel(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify fast-path regex channel parses standard colon dialogues deterministically."""
         service = MultiChannelIngressService()
         raw = "User: What is GDP?\nAssistant: GDP measures economic output."
@@ -128,9 +124,7 @@ class TestMultiChannelIngressService:
         assert "ChatGPT can make mistakes" not in cleaned_text
 
     @pytest.mark.asyncio
-    async def test_process_chat_pdf_conversation_channel(
-        self, mock_system_repo: InMemorySystemRepository
-    ) -> None:
+    async def test_process_chat_pdf_conversation_channel(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify PDF bytes with speech bubble drawings route directly to PdfChatExtractorService."""
         mock_pdf_extractor = MagicMock()
         mock_dto = ChatHistoryDTO(
@@ -158,9 +152,7 @@ class TestMultiChannelIngressService:
         mock_pdf_extractor.extract_conversation.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_process_chat_pdf_prose_fallback_channel(
-        self, mock_system_repo: InMemorySystemRepository
-    ) -> None:
+    async def test_process_chat_pdf_prose_fallback_channel(self, mock_system_repo: InMemorySystemRepository) -> None:
         """Verify non-conversation PDF bytes extract markdown and parse via fast path or LLM."""
         mock_pdf_extractor = MagicMock()
         mock_pdf_extractor.is_conversation_pdf.return_value = False

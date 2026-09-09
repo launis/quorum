@@ -380,4 +380,3 @@ async def test_detect_performative_patterns_prioritizes_any_user_only_suffix(moc
     result = await detect_performative_patterns(state, mock_deps)
     res_dict = result.state_delta.delta["step_linguistics"]
     assert res_dict["total_word_count"] == 3
-

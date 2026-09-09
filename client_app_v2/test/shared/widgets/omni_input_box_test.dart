@@ -31,63 +31,69 @@ void main() {
     );
   }
 
-  testWidgets('OmniInputBox renders with help button and opens PdfExportGuideDialog on tap', (tester) async {
-    await tester.pumpWidget(createOmniBox(
-      keyName: 'chat_log',
-      label: 'Keskusteluhistoria',
-    ));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'OmniInputBox renders with help button and opens PdfExportGuideDialog on tap',
+    (tester) async {
+      await tester.pumpWidget(
+        createOmniBox(keyName: 'chat_log', label: 'Keskusteluhistoria'),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Keskusteluhistoria'), findsOneWidget);
-    expect(find.byIcon(Icons.help_outline), findsOneWidget);
+      expect(find.text('Keskusteluhistoria'), findsOneWidget);
+      expect(find.byIcon(Icons.help_outline), findsOneWidget);
 
-    // Tap help button
-    await tester.tap(find.byIcon(Icons.help_outline));
-    await tester.pumpAndSettle();
+      // Tap help button
+      await tester.tap(find.byIcon(Icons.help_outline));
+      await tester.pumpAndSettle();
 
-    // Dialog must be open
-    expect(find.byType(PdfExportGuideDialog), findsOneWidget);
-    expect(find.text('Keskustelun tuominen Quorumiin'), findsOneWidget);
+      // Dialog must be open
+      expect(find.byType(PdfExportGuideDialog), findsOneWidget);
+      expect(find.text('Keskustelun tuominen Quorumiin'), findsOneWidget);
 
-    // Close dialog
-    await tester.tap(find.text('Sulje'));
-    await tester.pumpAndSettle();
-    expect(find.byType(PdfExportGuideDialog), findsNothing);
-  });
+      // Close dialog
+      await tester.tap(find.text('Sulje'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PdfExportGuideDialog), findsNothing);
+    },
+  );
 
-  testWidgets('OmniInputBox displays truncation warning banner when file mode is selected for chat_log', (tester) async {
-    await tester.pumpWidget(createOmniBox(
-      keyName: 'chat_log',
-      label: 'Keskusteluhistoria',
-    ));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'OmniInputBox displays truncation warning banner when file mode is selected for chat_log',
+    (tester) async {
+      await tester.pumpWidget(
+        createOmniBox(keyName: 'chat_log', label: 'Keskusteluhistoria'),
+      );
+      await tester.pumpAndSettle();
 
-    // Initially in paste text mode: warning banner is NOT visible
-    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
-    expect(find.textContaining('leikkautuneet poikki'), findsNothing);
+      // Initially in paste text mode: warning banner is NOT visible
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.textContaining('leikkautuneet poikki'), findsNothing);
 
-    // Switch to upload file mode
-    await tester.tap(find.byIcon(Icons.upload_file));
-    await tester.pumpAndSettle();
+      // Switch to upload file mode
+      await tester.tap(find.byIcon(Icons.upload_file));
+      await tester.pumpAndSettle();
 
-    // Truncation warning banner is now visible
-    expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
-    expect(find.textContaining('leikkautuneet poikki'), findsOneWidget);
-  });
+      // Truncation warning banner is now visible
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.textContaining('leikkautuneet poikki'), findsOneWidget);
+    },
+  );
 
-  testWidgets('OmniInputBox does not display truncation warning banner for non-chat keys in file mode', (tester) async {
-    await tester.pumpWidget(createOmniBox(
-      keyName: 'product_text',
-      label: 'Lopputuote',
-    ));
-    await tester.pumpAndSettle();
+  testWidgets(
+    'OmniInputBox does not display truncation warning banner for non-chat keys in file mode',
+    (tester) async {
+      await tester.pumpWidget(
+        createOmniBox(keyName: 'product_text', label: 'Lopputuote'),
+      );
+      await tester.pumpAndSettle();
 
-    // Switch to upload file mode
-    await tester.tap(find.byIcon(Icons.upload_file));
-    await tester.pumpAndSettle();
+      // Switch to upload file mode
+      await tester.tap(find.byIcon(Icons.upload_file));
+      await tester.pumpAndSettle();
 
-    // Warning banner must NOT be shown for non-chat keys
-    expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
-    expect(find.textContaining('leikkautuneet poikki'), findsNothing);
-  });
+      // Warning banner must NOT be shown for non-chat keys
+      expect(find.byIcon(Icons.warning_amber_rounded), findsNothing);
+      expect(find.textContaining('leikkautuneet poikki'), findsNothing);
+    },
+  );
 }

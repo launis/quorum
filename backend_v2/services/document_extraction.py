@@ -1,3 +1,8 @@
+"""Document extraction service for decoding base64 attachments and extracting text.
+
+Provides CPU-bound extraction helpers for PDF, DOCX, TXT, and conversation PDFs.
+"""
+
 import base64
 import datetime
 import logging

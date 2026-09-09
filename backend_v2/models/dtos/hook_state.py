@@ -6,7 +6,7 @@ for HookState inputs, global context variables, and HookResult state deltas.
 
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -21,6 +21,13 @@ class ExecutionInputsDTO(V2CoreBase):
     """Strictly typed execution inputs container for hook pipelines."""
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    @field_validator("raw_inputs", mode="before")
+    @classmethod
+    def _coerce_raw_inputs_dict(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            return {"inputs": value}
+        return value
 
     raw_inputs: Annotated[
         dict[str, Any],

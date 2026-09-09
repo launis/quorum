@@ -9,8 +9,8 @@ from __future__ import annotations
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from pydantic import ValidationError
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
@@ -126,7 +126,11 @@ async def test_chat_parser_start_anchor_not_found_fails_fast(
     mock_client = AsyncMock()
     mock_anchors = ChatTurnAnchorsResponseDTO(
         turns=[
-            ChatTurnAnchorDTO(speaker="user", start_phrase="Missing phrase that does not exist", end_phrase="how are you"),
+            ChatTurnAnchorDTO(
+                speaker="user",
+                start_phrase="Missing phrase that does not exist",
+                end_phrase="how are you",
+            ),
         ]
     )
     mock_client.run_structured_task.return_value = (
@@ -212,3 +216,53 @@ async def test_chat_parser_unexpected_exception(mock_from_strategy: AsyncMock, m
 
     assert excinfo.value.status_code == 502
     assert excinfo.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_unicode_whitespace_resilience(
+    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+) -> None:
+    r"""Ensure anchors match source text containing Unicode whitespace variants (e.g. \u2002, \u00a0)."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(
+                speaker="user",
+                start_phrase="Hei miten menee tänään",
+                end_phrase="haluaisin tietää enemmän",
+            ),
+            ChatTurnAnchorDTO(
+                speaker="ai",
+                start_phrase="Hei hyvin menee",
+                end_phrase="voin auttaa mielelläni",
+            ),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+    )
+    mock_from_strategy.return_value = mock_client
+
+    # Source text contains \u2002 (en space) and \u00a0 (no-break space)
+    raw_source = (
+        "Hei\u2002miten\u2002menee tänään, tässä on hieman tekstiä ja haluaisin\xa0tietää\xa0enemmän.\n\n"
+        "Hei hyvin menee kiitos kysymästä, voin   auttaa\u2002mielelläni!"
+    )
+
+    history = await ChatParserService.parse_pasted_chat(raw_source, mock_repository)
+    assert len(history.conversation) == 2
+    assert history.conversation[0].role == "user"
+    assert "haluaisin\xa0tietää\xa0enemmän" in history.conversation[0].content
+    assert history.conversation[1].role == "ai"
+    assert "voin   auttaa\u2002mielelläni" in history.conversation[1].content
+
+
+def test_find_anchor_span_empty_or_whitespace_raises_value_error() -> None:
+    """Ensure _find_anchor_span raises ValueError on empty or whitespace-only phrases."""
+    with pytest.raises(ValueError, match="Anchor phrase cannot be empty"):
+        ChatParserService._find_anchor_span("Some text", "", 0)
+
+    with pytest.raises(ValueError, match="Anchor phrase cannot be empty"):
+        ChatParserService._find_anchor_span("Some text", "   \t\n  ", 0)

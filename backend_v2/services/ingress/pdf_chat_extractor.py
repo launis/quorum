@@ -1,11 +1,11 @@
-from __future__ import annotations
-
 """PDF conversational geometry and speech bubble extraction service.
 
 Provides deterministic extraction of multi-turn dialogues from browser print
 PDFs (Chrome Ctrl+P / Skia) and native platform exports (Google Gemini, ChatGPT)
 using vector drawings and layout-aware text aggregation without LLM calls.
 """
+
+from __future__ import annotations
 
 import logging
 from typing import TYPE_CHECKING
@@ -69,14 +69,26 @@ class PdfChatExtractorService:
         return False
 
     @staticmethod
-    def is_conversation_pdf(doc: fitz.Document) -> bool:
-        """Determines whether a PDF document is a conversational export.
+    def _get_page_table_rects(page: fitz.Page) -> list[fitz.Rect]:
+        """Extracts valid table bounding boxes, guarding against empty cell collections in PyMuPDF."""
+        table_rects: list[fitz.Rect] = []
+        try:
+            tables = page.find_tables()
+            for t in tables.tables:
+                try:
+                    table_rects.append(fitz.Rect(t.bbox))
+                except ValueError, AttributeError, TypeError:
+                    continue
+        except ValueError, AttributeError, TypeError:
+            pass
+        return table_rects
 
-        Scans for vector speech bubble drawing rects across pages.
-        Returns False for standard prose documents, academic papers, or flat reports.
+    @staticmethod
+    def is_conversation_pdf(doc: fitz.Document) -> bool:
+        """Determines whether a PDF document contains structured chat vector speech bubbles.
 
         Args:
-            doc: Open PyMuPDF Document instance.
+            doc: Loaded PyMuPDF fitz.Document instance.
 
         Returns:
             True if conversation bubbles are detected, False otherwise.
@@ -87,8 +99,7 @@ class PdfChatExtractorService:
         user_bubble_count = 0
         for page in doc:
             page_w = page.rect.width
-            tables = page.find_tables()
-            table_rects = [fitz.Rect(t.bbox) for t in tables.tables]
+            table_rects = PdfChatExtractorService._get_page_table_rects(page)
 
             for d in page.get_drawings():
                 if PdfChatExtractorService._is_user_bubble_drawing(d, page_w):
@@ -107,8 +118,7 @@ class PdfChatExtractorService:
     def _extract_page_user_bubbles(page: fitz.Page) -> list[fitz.Rect]:
         """Extracts sanitized user speech bubble rectangles on a page."""
         page_w = page.rect.width
-        tables = page.find_tables()
-        table_rects = [fitz.Rect(t.bbox) for t in tables.tables]
+        table_rects = PdfChatExtractorService._get_page_table_rects(page)
 
         user_bubbles: list[fitz.Rect] = []
         for d in page.get_drawings():
@@ -129,7 +139,8 @@ class PdfChatExtractorService:
         for indicator in _TRUNCATION_INDICATORS:
             if indicator in text_lower:
                 logger.warning(
-                    "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
+                    "[Ingress] PROMPT_TRUNCATION_WARNING: Detected browser print truncation artifact '%s' "
+                    "in chat input. User prompt was truncated by Chrome print. Recommend Clipboard Paste.",
                     indicator,
                     extra={"error_code": "PROMPT_TRUNCATION_WARNING", "token": indicator},
                 )
@@ -201,7 +212,8 @@ class PdfChatExtractorService:
                     continue
                 seen_blocks.add(sig)
 
-                # 3. Citation pill and top title filtering (e.g. left-aligned small pills "PDF", "report", or page 0 "Keskusteluhistoria" document title)
+                # 3. Citation pill and top title filtering (e.g. left-aligned small pills "PDF", "report",
+                # or page 0 "Keskusteluhistoria" document title)
                 if x0 < 350.0 and (x1 - x0) < 200.0 and text in ("PDF", "report", "expand_more"):
                     continue
                 if page_idx == 0 and y0 < 80.0 and text.lower() in ("keskusteluhistoria", "conversation history"):
