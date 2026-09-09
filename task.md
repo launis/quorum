@@ -15,7 +15,7 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
 
 ## Pre-Flight Checklist (<constraint> tags)
 - [x] Constraint Step 1: Fix all unparenthesized exception tuples, update method signatures, eradicate silent except passes, and clean up 1-hop caller fallback chains.
-- [ ] Constraint Step 2: Enforce strict GitHub-Flavored Markdown pipe tables for tab-separated data grids with code fence isolation, prior to whitespace collapse.
+- [x] Constraint Step 2: Enforce strict GitHub-Flavored Markdown pipe tables for tab-separated data grids with code fence isolation, prior to whitespace collapse.
 - [ ] Constraint Step 3: Enforce relative geometry ratios, visual topological block sorting, table cell matrix fallback defense, shaded cell discrimination, and table block suppression.
 - [ ] Constraint Step 4: Provide positive, boundary, and negative tests for table normalization, code fence protection, visual reading order, short prompts, shaded table cells, UI icon suppression, and red-team edge cases.
 - [ ] Constraint Step 5: Synchronize Knowledge Items in knowledge/ to document the hardened multi-model ingress and cognitive baseline isolation.
@@ -30,10 +30,10 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\271a97a9-62b
   - [x] Clean up `metadata = doc.metadata or {}` and chained `.get()` in `document_extraction.py#L64-L102`.
   - [x] Run regression test suite on `test_pdf_chat_extractor.py` and `test_chat_normalizer.py`.
 
-- [ ] **Step 2: CLIPBOARD TABLE NORMALIZATION & FLUFF STRIPPING**
-  - [ ] Implement `normalize_tables` in `chat_normalizer.py` with code fence tracking, newline sanitization, and pipe escaping.
-  - [ ] Integrate `normalize_tables` into `clean_turn_content` before whitespace collapsing.
-  - [ ] Expand `strip_known_ui_fluff` with UI buttons (`expand_more`, `expand_less`), feedback widgets, timestamps, sidebar paths, and attachment card normalization.
+- [x] **Step 2: CLIPBOARD TABLE NORMALIZATION & FLUFF STRIPPING**
+  - [x] Implement `normalize_tables` in `chat_normalizer.py` with code fence tracking, newline sanitization, and pipe escaping.
+  - [x] Integrate `normalize_tables` into `clean_turn_content` before whitespace collapsing.
+  - [x] Expand `strip_known_ui_fluff` with UI buttons (`expand_more`, `expand_less`), feedback widgets, timestamps, sidebar paths, and attachment card normalization.
 
 - [ ] **Step 3: PDF RELATIVE GEOMETRY, VISUAL SORTING & TABLE RECONSTRUCTION**
   - [ ] Define relative geometry constants in `pdf_chat_extractor.py`.

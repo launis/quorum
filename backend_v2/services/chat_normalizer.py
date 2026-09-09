@@ -52,6 +52,24 @@ _KNOWN_FLUFF_EXACT_LINES: frozenset[str] = frozenset(
         "bad response",
         "thumbs up",
         "thumbs down",
+        "expand_more",
+        "expand_less",
+        "näytä lisää",
+        "näytä lisää ⌵",
+        "näytä lisää v",
+        "show more",
+        "show more ⌵",
+        "show more v",
+        "lue lisää",
+        "katso lisää",
+        "read more",
+        "pidätkö tästä persoonasta?",
+        "oliko tämä vastaus hyödyllinen?",
+        "lataa, lue ja analysoi",
+        "keskustelu geminin kanssa",
+        "conversation with gemini",
+        "uusi keskustelu",
+        "new chat",
     }
 )
 
@@ -59,6 +77,7 @@ _KNOWN_FLUFF_SUBSTRINGS: tuple[str, ...] = (
     "chatgpt can make mistakes",
     "chatgpt may produce inaccurate",
     "gemini may display inaccurate info",
+    "gemini on tekoäly ja voi tehdä virheitä",
     "claude can make mistakes",
     "claude is an ai",
 )
@@ -67,6 +86,11 @@ _KNOWN_FLUFF_LINE_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^chatgpt\s+(?:4o|4o-mini|4|3\.5|mini|plus|team|enterprise)(?:\s+.*)?$", re.IGNORECASE),
     re.compile(r"^gemini\s+(?:advanced|pro|flash|1\.5|2\.0)(?:\s+.*)?$", re.IGNORECASE),
     re.compile(r"^searched\s+\d+\s+sites?$", re.IGNORECASE),
+    re.compile(
+        r"^(?:ma|ti|ke|to|pe|la|su|mon|tue|wed|thu|fri|sat|sun)\s+\d{1,2}\.\d{1,2}\.?\s+(?:klo\s+)?\d{1,2}[\.:]\d{2}$",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$", re.IGNORECASE),
 )
 
 
@@ -83,7 +107,8 @@ class ChatNormalizerService:
 
         Removes web interface disclaimers, action buttons ('Copy code', 'Edit', 'Share'),
         and model switcher labels from ChatGPT, Google Gemini, and Claude while strictly
-        preserving content inside markdown code fences.
+        preserving content inside markdown code fences. Normalizes attachment chip pairs
+        into canonical [Liite: <filename>] annotations.
 
         Args:
             raw_text: Uncleaned raw text pasted from a browser chat window.
@@ -97,33 +122,78 @@ class ChatNormalizerService:
         lines = raw_text.splitlines()
         cleaned_lines: list[str] = []
         in_code_fence = False
+        i = 0
+        n = len(lines)
 
-        for line in lines:
+        while i < n:
+            line = lines[i]
             trimmed = line.strip()
+
             if trimmed.startswith("```"):
                 in_code_fence = not in_code_fence
                 cleaned_lines.append(line)
+                i += 1
                 continue
 
             if in_code_fence:
                 cleaned_lines.append(line)
+                i += 1
                 continue
+
+            # Lookahead check for attachment chip pairs outside code fences
+            if i + 1 < n and not in_code_fence:
+                j = i + 1
+                while j < n and not lines[j].strip():
+                    j += 1
+                if j < n:
+                    next_trimmed = lines[j].strip()
+                    # Pattern 1: Filename on line i, "PDF" or "Liite" on line j
+                    if (
+                        trimmed
+                        and not trimmed.startswith("[Liite:")
+                        and next_trimmed.lower() in ("pdf", "liite")
+                        and (
+                            trimmed.lower().endswith((".pdf", ".docx", ".txt", ".csv", ".xlsx", ".md"))
+                            or (len(trimmed.split()) <= 4 and not any(ch in trimmed for ch in ":/?#\n"))
+                        )
+                    ):
+                        cleaned_lines.append(f"[Liite: {trimmed}]")
+                        i = j + 1
+                        continue
+                    # Pattern 2: "PDF" or "Liite" on line i, filename on line j
+                    if (
+                        trimmed.lower() in ("pdf", "liite")
+                        and next_trimmed
+                        and not next_trimmed.startswith("[Liite:")
+                        and (
+                            next_trimmed.lower().endswith((".pdf", ".docx", ".txt", ".csv", ".xlsx", ".md"))
+                            or len(next_trimmed.split()) <= 4
+                        )
+                    ):
+                        fname = next_trimmed if "." in next_trimmed else f"{next_trimmed}.pdf"
+                        cleaned_lines.append(f"[Liite: {fname}]")
+                        i = j + 1
+                        continue
 
             lower_trimmed = trimmed.lower()
 
             # 1. Exact match against known button/action labels
             if lower_trimmed in _KNOWN_FLUFF_EXACT_LINES:
+                i += 1
                 continue
 
-            # 2. Pattern match for model headers / search status
+            # 2. Pattern match for model headers / search status / timestamps / repo paths
             if any(p.match(trimmed) for p in _KNOWN_FLUFF_LINE_PATTERNS):
+                i += 1
                 continue
 
             # 3. Substring match for short disclaimer footers (< 140 chars)
             if len(trimmed) < 140 and any(s in lower_trimmed for s in _KNOWN_FLUFF_SUBSTRINGS):
+                i += 1
                 continue
 
             cleaned_lines.append(line)
+            i += 1
 
         return "\n".join(cleaned_lines)
 
@@ -162,13 +232,13 @@ class ChatNormalizerService:
         if stripped.startswith("{"):
             try:
                 return ChatHistoryDTO.model_validate_json(stripped)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         elif stripped.startswith("["):
             try:
                 messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
                 return ChatHistoryDTO(conversation=messages)
-            except (ValidationError, ValueError):
+            except ValidationError, ValueError:
                 return None
         return None
 
@@ -240,14 +310,93 @@ class ChatNormalizerService:
         return ChatHistoryDTO(conversation=turns)
 
     @staticmethod
+    def normalize_tables(raw_text: str) -> str:
+        r"""Convert tab-delimited tabular blocks into GitHub-Flavored Markdown tables.
+
+        Detects blocks of 2 or more consecutive lines containing tab ('\t') characters
+        outside of markdown code fences and formats them as standard Markdown pipe tables
+        with header separator rows (| :--- | :--- |). Single-row tab data is rejected,
+        and uneven column counts are padded with empty cells.
+
+        Args:
+            raw_text: Text potentially containing tab-delimited tabular data.
+
+        Returns:
+            Text with tab-delimited tables converted to standard Markdown pipe tables.
+        """
+        if not raw_text or "\t" not in raw_text:
+            return raw_text
+
+        lines = raw_text.splitlines()
+        result_lines: list[str] = []
+        tab_block: list[str] = []
+        in_code_fence = False
+
+        def flush_tab_block() -> None:
+            nonlocal tab_block
+            if not tab_block:
+                return
+            if len(tab_block) < 2:
+                # Single-line tab data is rejected from table conversion
+                result_lines.extend(tab_block)
+                tab_block = []
+                return
+
+            rows = [line.split("\t") for line in tab_block]
+            max_cols = max(len(r) for r in rows)
+            if max_cols < 2:
+                result_lines.extend(tab_block)
+                tab_block = []
+                return
+
+            # Format as GitHub-Flavored Markdown table
+            formatted_rows: list[str] = []
+            for idx, r in enumerate(rows):
+                # Pad uneven column counts
+                padded = r + [""] * (max_cols - len(r))
+                # Sanitize cell contents: replace \n with space, escape pipe characters
+                sanitized_cells = [cell.strip().replace("\n", " ").replace("|", r"\|") for cell in padded]
+                row_str = f"| {' | '.join(sanitized_cells)} |"
+                formatted_rows.append(row_str)
+                if idx == 0:
+                    # Add header separator row
+                    sep_str = f"| {' | '.join([':---'] * max_cols)} |"
+                    formatted_rows.append(sep_str)
+
+            result_lines.extend(formatted_rows)
+            tab_block = []
+
+        for line in lines:
+            trimmed = line.strip()
+            if trimmed.startswith("```"):
+                flush_tab_block()
+                in_code_fence = not in_code_fence
+                result_lines.append(line)
+                continue
+
+            if in_code_fence:
+                result_lines.append(line)
+                continue
+
+            if "\t" in line:
+                tab_block.append(line)
+            else:
+                flush_tab_block()
+                result_lines.append(line)
+
+        flush_tab_block()
+        return "\n".join(result_lines)
+
+    @staticmethod
     def clean_turn_content(content: str) -> str:
         r"""Apply non-destructive, noise-preserving normalization to turn content.
 
         1. Applies Unicode NFC normalization (UAX #15) for stable character encoding.
         2. Strips zero-width characters (BOM, ZWSP, soft hyphens).
         3. Consolidates structural linebreaks without crushing markdown tables or lists.
-        4. Collapses horizontal ASCII whitespace ([ \t]+) while preserving all
-           Unicode whitespace variants (\u00a0, \u2002, etc.).
+        4. Normalizes tab-separated tabular blocks into GitHub-Flavored Markdown tables.
+        5. Collapses horizontal ASCII whitespace ([ \t]+) while preserving all
+           Unicode whitespace variants (\u00a0, \u2002, etc.), code blocks, and Markdown tables.
 
         Args:
             content: Raw text content of a dialogue turn.
@@ -267,11 +416,26 @@ class ChatNormalizerService:
         # 3. Consolidate structural paragraph linebreaks
         normalized = _CONSECUTIVE_NEWLINES_PATTERN.sub("\n\n", normalized)
 
-        # 4. Collapse horizontal ASCII whitespace line-by-line, preserving Unicode spaces
+        # 4. CRITICAL EXECUTION ORDER: Normalize tab-delimited tables BEFORE collapsing horizontal whitespace!
+        normalized = ChatNormalizerService.normalize_tables(normalized)
+
+        # 5. Collapse horizontal ASCII whitespace line-by-line, preserving Unicode spaces & Markdown tables
         cleaned_lines: list[str] = []
+        in_code_fence = False
         for line in normalized.splitlines():
-            collapsed_line = _HORIZONTAL_ASCII_WHITESPACE_PATTERN.sub(" ", line).strip(" \t")
-            cleaned_lines.append(collapsed_line)
+            trimmed = line.strip(" \t")
+            if trimmed.startswith("```"):
+                in_code_fence = not in_code_fence
+                cleaned_lines.append(line)
+                continue
+            if in_code_fence:
+                cleaned_lines.append(line)
+                continue
+            if trimmed.startswith("|") and trimmed.endswith("|"):
+                cleaned_lines.append(trimmed)
+            else:
+                collapsed_line = _HORIZONTAL_ASCII_WHITESPACE_PATTERN.sub(" ", line).strip(" \t")
+                cleaned_lines.append(collapsed_line)
 
         # Join lines and strip leading/trailing empty lines
         return "\n".join(cleaned_lines).strip(" \t\r\n")

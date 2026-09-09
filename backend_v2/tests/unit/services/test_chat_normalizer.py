@@ -357,3 +357,99 @@ class TestChatNormalizerService:
                     "extra_field": "invalid",
                 }
             )
+
+    def test_chat_normalizer_converts_tab_delimited_table_to_markdown_pipe(self) -> None:
+        """Verify multi-row tab-delimited matrix is converted to standard Markdown pipe table."""
+        rows = ["Otsikko 1\tOtsikko 2\tOtsikko 3"] + [f"Rivi {i} A\tRivi {i} B\tRivi {i} C" for i in range(1, 11)]
+        raw = "\n".join(rows)
+        normalized = ChatNormalizerService.normalize_tables(raw)
+        lines = normalized.splitlines()
+        assert len(lines) == 12  # 1 header + 1 separator + 10 rows
+        assert lines[0] == "| Otsikko 1 | Otsikko 2 | Otsikko 3 |"
+        assert lines[1] == "| :--- | :--- | :--- |"
+        assert lines[2] == "| Rivi 1 A | Rivi 1 B | Rivi 1 C |"
+        assert lines[-1] == "| Rivi 10 A | Rivi 10 B | Rivi 10 C |"
+
+    def test_chat_normalizer_preserves_tab_structure_before_whitespace_collapse(self) -> None:
+        """Verify clean_turn_content produces Markdown pipe table without collapsing tabs to single spaces."""
+        raw = "Arvo\tKuvaus\nErinomainen\tErittäin hyvä"
+        cleaned = ChatNormalizerService.clean_turn_content(raw)
+        assert "| Arvo | Kuvaus |" in cleaned
+        assert "| :--- | :--- |" in cleaned
+        assert "| Erinomainen | Erittäin hyvä |" in cleaned
+        assert "Arvo Kuvaus" not in cleaned
+
+    def test_chat_normalizer_preserves_tabs_inside_code_fence(self) -> None:
+        """Verify code blocks with tabs inside code fences are not converted to tables."""
+        raw = "```python\ndef compute():\n\tval_a = 1\n\tval_b = 2\n\treturn val_a + val_b\n```"
+        normalized = ChatNormalizerService.normalize_tables(raw)
+        assert normalized == raw
+        cleaned = ChatNormalizerService.clean_turn_content(raw)
+        assert "\tval_a = 1" in cleaned
+
+    def test_chat_normalizer_strips_clipboard_feedback_and_timestamps(self) -> None:
+        """Verify timestamp headers and feedback prompts are stripped while preserving dialogue."""
+        raw = (
+            "ma 13.10. klo 5.52\n"
+            "User: Miten tämä toimii?\n"
+            "AI: Tämä toimii automaattisesti.\n"
+            "Pidätkö tästä persoonasta?\n"
+            "Oliko tämä vastaus hyödyllinen?\n"
+            "thumbs up\n"
+            "thumbs down\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        assert "ma 13.10. klo 5.52" not in cleaned
+        assert "Pidätkö tästä persoonasta?" not in cleaned
+        assert "Oliko tämä vastaus hyödyllinen?" not in cleaned
+        assert "thumbs up" not in cleaned
+        assert "thumbs down" not in cleaned
+        assert "User: Miten tämä toimii?" in cleaned
+        assert "AI: Tämä toimii automaattisesti." in cleaned
+
+    def test_chat_normalizer_strips_ui_icons_and_sidebar_fluff(self) -> None:
+        """Verify expand_more, expand_less, and sidebar repository noise are eliminated."""
+        raw = (
+            "launis/quorum\n"
+            "Lataa, lue ja analysoi\n"
+            "Keskustelu Geminin kanssa\n"
+            "User: Analysoi arkkitehtuuri.\n"
+            "expand_more\n"
+            "AI: Tässä on arkkitehtuurianalyysi.\n"
+            "expand_less\n"
+        )
+        cleaned = ChatNormalizerService.strip_known_ui_fluff(raw)
+        assert "launis/quorum" not in cleaned
+        assert "Lataa, lue ja analysoi" not in cleaned
+        assert "Keskustelu Geminin kanssa" not in cleaned
+        assert "expand_more" not in cleaned
+        assert "expand_less" not in cleaned
+        assert "User: Analysoi arkkitehtuuri." in cleaned
+        assert "AI: Tässä on arkkitehtuurianalyysi." in cleaned
+
+    def test_chat_normalizer_attachment_card_normalization(self) -> None:
+        """Verify attachment cards are normalized to canonical prompt metadata."""
+        raw1 = "Reflektiodokumentti hyvä.pdf\nPDF"
+        cleaned1 = ChatNormalizerService.strip_known_ui_fluff(raw1)
+        assert cleaned1 == "[Liite: Reflektiodokumentti hyvä.pdf]"
+
+        raw2 = "PDF\nreport"
+        cleaned2 = ChatNormalizerService.strip_known_ui_fluff(raw2)
+        assert cleaned2 == "[Liite: report.pdf]"
+
+    def test_chat_normalizer_rejects_single_row_tab_data(self) -> None:
+        """Negative: Single line containing tabs must not be converted to table."""
+        raw = "Only\tone\tline\twith\ttabs"
+        normalized = ChatNormalizerService.normalize_tables(raw)
+        assert normalized == raw
+        assert "|" not in normalized
+
+    def test_chat_normalizer_handles_uneven_column_counts(self) -> None:
+        """Negative / Boundary: Rows with uneven tab counts are padded with empty cells."""
+        raw = "Otsikko 1\tOtsikko 2\tOtsikko 3\nRivi 1 A\tRivi 1 B"
+        normalized = ChatNormalizerService.normalize_tables(raw)
+        lines = normalized.splitlines()
+        assert len(lines) == 3
+        assert lines[0] == "| Otsikko 1 | Otsikko 2 | Otsikko 3 |"
+        assert lines[1] == "| :--- | :--- | :--- |"
+        assert lines[2] == "| Rivi 1 A | Rivi 1 B |  |"
