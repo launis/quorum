@@ -68,16 +68,22 @@ class DocumentExtractionService:
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
-            md_text = str(pymupdf4llm.to_markdown(doc))
+            from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
 
-            # Robustness Fallback: If PyMuPDF4LLM converted text into HTML picture comments or truncated dialogue
-            if "<!-- Start of picture text -->" in md_text or len(md_text.strip()) < 100:
-                plain_pages = [page.get_text("text") for page in doc]
-                plain_text = "\n\n".join(plain_pages).strip()
-                if plain_text and (
-                    "<!-- Start of picture text -->" in md_text or len(plain_text) > len(md_text.strip())
-                ):
-                    md_text = plain_text
+            if PdfChatExtractorService.is_conversation_pdf(doc):
+                chat_dto = PdfChatExtractorService.extract_conversation(doc)
+                md_text = chat_dto.model_dump_json()
+            else:
+                md_text = str(pymupdf4llm.to_markdown(doc))
+
+                # Robustness Fallback: If PyMuPDF4LLM converted text into HTML picture comments or truncated dialogue
+                if "<!-- Start of picture text -->" in md_text or len(md_text.strip()) < 100:
+                    plain_pages = [page.get_text("text") for page in doc]
+                    plain_text = "\n\n".join(plain_pages).strip()
+                    if plain_text and (
+                        "<!-- Start of picture text -->" in md_text or len(plain_text) > len(md_text.strip())
+                    ):
+                        md_text = plain_text
 
             # Read modDate first, fallback to creationDate
             metadata = doc.metadata or {}

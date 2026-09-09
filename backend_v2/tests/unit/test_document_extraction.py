@@ -143,3 +143,36 @@ def test_pdf_fallback_when_picture_comment_detected() -> None:
         extracted_text, _ = service._extract_pdf_sync(pdf_bytes)
 
     assert "Hello User! This is full dialogue." in extracted_text
+
+
+def test_pdf_extraction_routes_to_conversation_extractor() -> None:
+    """Test that _extract_pdf_sync routes to PdfChatExtractorService when conversation is detected."""
+    service = DocumentExtractionService()
+    import fitz
+    from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+
+    doc = fitz.open()
+    page = doc.new_page(width=595, height=842)
+    # Draw bubble to trigger is_conversation_pdf
+    page.draw_rect(fitz.Rect(360, 100, 520, 160), color=(0.9, 0.9, 0.9), fill=(0.91, 0.93, 0.96))
+    page.insert_text((370, 120), "User prompt inside bubble")
+    page.insert_text((59, 200), "AI response text")
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    mock_chat = ChatHistoryDTO(
+        conversation=[
+            ChatMessageDTO(role="user", content="User prompt inside bubble"),
+            ChatMessageDTO(role="ai", content="AI response text"),
+        ]
+    )
+
+    with patch(
+        "backend_v2.services.ingress.pdf_chat_extractor.PdfChatExtractorService.extract_conversation",
+        return_value=mock_chat,
+    ):
+        extracted_text, _ = service._extract_pdf_sync(pdf_bytes)
+
+    assert '"role":"user"' in extracted_text or '"role": "user"' in extracted_text
+    assert "User prompt inside bubble" in extracted_text
+

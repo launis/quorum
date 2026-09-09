@@ -37,12 +37,12 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\3e5c45b7-ed7
   - [x] Step 1.6: Add regression tests for linguistics user-only prioritization and missing user-only Fail-Fast in `backend_v2/tests/unit/hooks/test_linguistics.py`.
   - [x] Step 1.7: Run quality gate `backend_audit_loop.py` on Phase 1 targets.
 
-- [ ] **Phase 2: PDF Geometry & Vector Bubble Extraction Service**
-  - [ ] Step 2.1: Implement `PdfChatExtractorService` in `backend_v2/services/ingress/pdf_chat_extractor.py` with dual classifiers, margin filtering, span deduplication, truncation detection, table overlap defense, cross-page merging, and markdown table reconstruction.
-  - [ ] Step 2.2: Wire `PdfChatExtractorService` into `_extract_pdf_sync` in `backend_v2/services/document_extraction.py`.
-  - [ ] Step 2.3: Implement comprehensive unit and golden master tests in `backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py`.
-  - [ ] Step 2.4: Update `backend_v2/tests/unit/test_document_extraction.py`.
-  - [ ] Step 2.5: Run quality gate `backend_audit_loop.py` on Phase 2 targets.
+- [x] **Phase 2: PDF Geometry & Vector Bubble Extraction Service**
+  - [x] Step 2.1: Implement `PdfChatExtractorService` in `backend_v2/services/ingress/pdf_chat_extractor.py` with dual classifiers, margin filtering, span deduplication, truncation detection, table overlap defense, cross-page merging, and markdown table reconstruction.
+  - [x] Step 2.2: Wire `PdfChatExtractorService` into `_extract_pdf_sync` in `backend_v2/services/document_extraction.py`.
+  - [x] Step 2.3: Implement comprehensive unit and golden master tests in `backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py`.
+  - [x] Step 2.4: Update `backend_v2/tests/unit/test_document_extraction.py`.
+  - [x] Step 2.5: Run quality gate `backend_audit_loop.py` on Phase 2 targets.
 
 - [ ] **Phase 3: Text & Clipboard Ingress (Fluff Stripping + Anchor Slicing)**
   - [ ] Step 3.1: Implement `strip_known_ui_fluff` and clean Fi/En fast-path regex in `backend_v2/services/chat_normalizer.py`.
