@@ -32,13 +32,22 @@ _TRUNCATION_INDICATORS: tuple[str, ...] = (
     "show more v",
 )
 
+_PRINT_MARGIN_VERTICAL_PT: float = 36.0
+_PAGE_ZERO_TITLE_MAX_Y0: float = 80.0
+_ATTACHMENT_BOX_DIM_PT: float = 76.0
+_ATTACHMENT_BOX_TOLERANCE_PT: float = 6.0
+
 
 class PdfChatExtractorService:
     """Deterministic extractor for browser-printed and exported chat PDFs."""
 
     @staticmethod
-    def _is_user_bubble_drawing(d: dict[str, object], page_width: float) -> bool:
-        """Determines if a vector drawing represents a user prompt bubble."""
+    def _is_user_bubble_drawing(d: dict[str, object], page_width: float, page_height: float) -> bool:
+        """Determines if a vector drawing represents a user prompt bubble.
+
+        Note:
+            d is an External PyMuPDF API boundary dict from page.get_drawings().
+        """
         rect_obj = d.get("rect")
         if not isinstance(rect_obj, fitz.Rect):
             return False
@@ -77,10 +86,11 @@ class PdfChatExtractorService:
             for t in tables.tables:
                 try:
                     table_rects.append(fitz.Rect(t.bbox))
-                except ValueError, AttributeError, TypeError:
+                except (ValueError, AttributeError, TypeError) as exc:
+                    logger.debug("[PdfChatExtractorService] Skipping malformed table bbox: %s", exc)
                     continue
-        except ValueError, AttributeError, TypeError:
-            pass
+        except (ValueError, AttributeError, TypeError) as exc:
+            logger.debug("[PdfChatExtractorService] Failed to extract page table rects: %s", exc)
         return table_rects
 
     @staticmethod
@@ -99,10 +109,11 @@ class PdfChatExtractorService:
         user_bubble_count = 0
         for page in doc:
             page_w = page.rect.width
+            page_h = page.rect.height
             table_rects = PdfChatExtractorService._get_page_table_rects(page)
 
             for d in page.get_drawings():
-                if PdfChatExtractorService._is_user_bubble_drawing(d, page_w):
+                if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h):
                     r_obj = d.get("rect")
                     if isinstance(r_obj, fitz.Rect):
                         # Table overlap defense: skip drawings inside table bboxes
@@ -118,11 +129,12 @@ class PdfChatExtractorService:
     def _extract_page_user_bubbles(page: fitz.Page) -> list[fitz.Rect]:
         """Extracts sanitized user speech bubble rectangles on a page."""
         page_w = page.rect.width
+        page_h = page.rect.height
         table_rects = PdfChatExtractorService._get_page_table_rects(page)
 
         user_bubbles: list[fitz.Rect] = []
         for d in page.get_drawings():
-            if PdfChatExtractorService._is_user_bubble_drawing(d, page_w):
+            if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h):
                 r_obj = d.get("rect")
                 if isinstance(r_obj, fitz.Rect):
                     # Table overlap defense: ignore drawing rects inside tables
@@ -203,7 +215,7 @@ class PdfChatExtractorService:
                     continue
 
                 # 1. Margin filtering (eliminate browser headers/footers)
-                if y0 < 36.0 or y1 > page_h - 36.0:
+                if y0 < _PRINT_MARGIN_VERTICAL_PT or y1 > page_h - _PRINT_MARGIN_VERTICAL_PT:
                     continue
 
                 # 2. Coordinate-level span deduplication
@@ -216,7 +228,11 @@ class PdfChatExtractorService:
                 # or page 0 "Keskusteluhistoria" document title)
                 if x0 < 350.0 and (x1 - x0) < 200.0 and text in ("PDF", "report", "expand_more"):
                     continue
-                if page_idx == 0 and y0 < 80.0 and text.lower() in ("keskusteluhistoria", "conversation history"):
+                if (
+                    page_idx == 0
+                    and y0 < _PAGE_ZERO_TITLE_MAX_Y0
+                    and text.lower() in ("keskusteluhistoria", "conversation history")
+                ):
                     continue
 
                 brect = fitz.Rect(x0, y0, x1, y1)

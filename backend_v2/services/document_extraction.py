@@ -91,10 +91,16 @@ class DocumentExtractionService:
                         md_text = plain_text
 
             # Read modDate first, fallback to creationDate
-            metadata = doc.metadata or {}
-            pdf_date = metadata.get("modDate") or metadata.get("creationDate")
+            metadata = doc.metadata
+            pdf_date: str | None = None
+            if metadata is not None:
+                if "modDate" in metadata and metadata["modDate"]:
+                    pdf_date = str(metadata["modDate"])
+                elif "creationDate" in metadata and metadata["creationDate"]:
+                    pdf_date = str(metadata["creationDate"])
+
             parsed_date = None
-            if pdf_date:
+            if pdf_date is not None:
                 parsed_date = DocumentExtractionService.parse_pdf_date(pdf_date)
 
             return md_text.strip(), parsed_date

@@ -162,13 +162,13 @@ class ChatNormalizerService:
         if stripped.startswith("{"):
             try:
                 return ChatHistoryDTO.model_validate_json(stripped)
-            except ValidationError, ValueError:
+            except (ValidationError, ValueError):
                 return None
         elif stripped.startswith("["):
             try:
                 messages = TypeAdapter(list[ChatMessageDTO]).validate_json(stripped)
                 return ChatHistoryDTO(conversation=messages)
-            except ValidationError, ValueError:
+            except (ValidationError, ValueError):
                 return None
         return None
 

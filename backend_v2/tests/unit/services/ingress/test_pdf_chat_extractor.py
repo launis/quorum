@@ -171,6 +171,6 @@ def test_pdf_chat_extractor_table_overlap_defense() -> None:
         user_bubbles = PdfChatExtractorService._extract_page_user_bubbles(page)
         assert isinstance(user_bubbles, list)
         # Without find_tables recognizing, it might find it, but let's test _is_user_bubble_drawing logic
-        assert PdfChatExtractorService._is_user_bubble_drawing({"rect": fitz.Rect(0, 0, 10, 10)}, 595) is False
+        assert PdfChatExtractorService._is_user_bubble_drawing({"rect": fitz.Rect(0, 0, 10, 10)}, 595.0, 842.0) is False
     finally:
         doc.close()
