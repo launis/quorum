@@ -20,7 +20,7 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.common import DESC_SEMANTIC_REASONING
+from backend_v2.models.prompts.common import DESC_SEMANTIC_REASONING, DESC_SOURCE_QUOTE
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -52,10 +52,7 @@ class BooleanEvaluationResult(BaseModel):
         Field(
             default=None,
             max_length=500,
-            description=(
-                "Exact verbatim sentence or clause extracted directly from the context text in its original language, "
-                "substantiating or violating this claim, or null if absent."
-            ),
+            description=DESC_SOURCE_QUOTE,
         ),
     ] = None
     contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = None

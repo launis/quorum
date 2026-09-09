@@ -304,6 +304,39 @@ class SduiMatrixTableWidget extends StatelessWidget {
                                                   ),
                                                 );
                                               }),
+                                              if (atom.semanticReasoning
+                                                  .trim()
+                                                  .isNotEmpty)
+                                                Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        left: AppSpacing.s4,
+                                                        top: AppSpacing.s2,
+                                                      ),
+                                                  child: Text(
+                                                    '↳ ${atom.semanticReasoning.trim()}',
+                                                    style:
+                                                        (Theme.of(context)
+                                                                    .textTheme
+                                                                    .bodySmall ??
+                                                                const TextStyle(
+                                                                  fontSize: 10,
+                                                                ))
+                                                            .copyWith(
+                                                              fontSize: 10,
+                                                              color:
+                                                                  Theme.of(
+                                                                        context,
+                                                                      )
+                                                                      .colorScheme
+                                                                      .onSurfaceVariant
+                                                                      .withValues(
+                                                                        alpha:
+                                                                            0.8,
+                                                                      ),
+                                                            ),
+                                                  ),
+                                                ),
                                             ],
                                           ),
                                         );

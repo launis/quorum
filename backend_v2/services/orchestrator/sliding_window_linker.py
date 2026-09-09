@@ -68,7 +68,7 @@ class LinkerResponseDTO(BaseModel):
 
 
 class SlidingWindowLinker:
-    """Links ExtractedAtoms into a LinkedAtomGraph using a sliding window."""
+    """Discovers causal DAG dependencies between ExtractedAtoms using a context-bounded sliding window heuristic."""
 
     def __init__(self, window_size: int = 4, overlap: int = 2) -> None:
         """Initialize the linker.

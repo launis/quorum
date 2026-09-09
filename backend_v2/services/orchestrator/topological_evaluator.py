@@ -23,6 +23,19 @@ from backend_v2.models.enums import ExecutionStatus
 class TopologicalEvaluator:
     """Evaluates a DAG of LinkedAtomGraphs deterministically via Kahn's Algorithm.
 
+    Enforces the Local Causal Markov Condition via Kahn's wave-based topological evaluation:
+        P(A_1, ..., A_n | D) = prod_{k=1}^W prod_{A_i in Wave_k} P(A_i | Parents_G(A_i), D)
+
+    Within each topological wave k, every node possesses in_degree == 0 relative to remaining
+    un-evaluated nodes, guaranteeing that all causal antecedents Parents_G(A_i) have already been
+    deterministically evaluated. Nodes within the same wave are conditionally independent given the
+    fixed conditioning set of resolved parent outcomes and document context, enabling sound,
+    safe concurrent batch evaluation.
+
+    If any parent fails to satisfy its required expected_status, downstream child nodes deterministically
+    short-circuit with P(A_i = BLOCKED | Parent != expected) = 1.0, assigning ExecutionStatus.N_A
+    without invoking the LLM batch evaluation callback.
+
     Attributes:
         None
     """
@@ -37,11 +50,19 @@ class TopologicalEvaluator:
     ) -> dict[str, AtomExecutionState]:
         """Evaluates a graph of atoms deterministically using Kahn's Algorithm.
 
+        Executes wave-by-wave topological evaluation:
+        1. Identifies all nodes with in_degree == 0 (Wave 0).
+        2. Checks causal preconditions against resolved parent states. If any precondition
+           fails, short-circuits the node to ExecutionStatus.N_A and prunes child dispatch.
+        3. Dispatches satisfying in-degree 0 nodes concurrently to batch_evaluation_callback
+           under conditional Markov isolation.
+        4. Decrements in-degree of downstream children and iterates until all waves complete.
+
         Args:
             nodes: The list of atom graph nodes to evaluate.
             batch_evaluation_callback: An asynchronous callback that evaluates a batch
-                of nodes simultaneously and returns a dictionary mapping tda_id to a
-                tuple of (ExecutionStatus, reasoning, extensions).
+                of nodes simultaneously and returns a dictionary mapping tda_id to an
+                AtomEvaluationResultDTO.
 
         Returns:
             A dictionary mapping tda_id to its final AtomExecutionState.

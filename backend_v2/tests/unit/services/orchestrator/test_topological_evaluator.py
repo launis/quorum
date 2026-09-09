@@ -241,12 +241,15 @@ async def test_na_short_circuit_cascade() -> None:
         ),
     ]
 
+    dispatched_atom_ids: list[str] = []
+
     async def mock_callback(
         batch_nodes: list[LinkedAtomGraph],
         current_states: dict[str, AtomExecutionState],
     ) -> dict[str, AtomEvaluationResultDTO]:
         results = {}
         for node in batch_nodes:
+            dispatched_atom_ids.append(node.atom.tda_id)
             # Parent fails, so child should short-circuit to N_A
             if node.atom.tda_id == "tda_1111111111111111":
                 results[node.atom.tda_id] = AtomEvaluationResultDTO(
@@ -275,3 +278,8 @@ async def test_na_short_circuit_cascade() -> None:
     # Second child short-circuits because it expected PASSED but got N_A
     assert states["tda_3333333333333333"].status == ExecutionStatus.N_A
     assert "tda_2222222222222222" in states["tda_3333333333333333"].short_circuit_reason_tda_ids
+
+    # Causal Markov Gating Assertion: Short-circuited nodes must NEVER be dispatched to batch callback
+    assert dispatched_atom_ids == ["tda_1111111111111111"]
+    assert "tda_2222222222222222" not in dispatched_atom_ids
+    assert "tda_3333333333333333" not in dispatched_atom_ids

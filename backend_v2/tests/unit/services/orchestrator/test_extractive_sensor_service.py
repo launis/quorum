@@ -13,7 +13,7 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.execution.field_prompts import DESC_SEMANTIC_REASONING
+from backend_v2.models.prompts.execution.field_prompts import DESC_SEMANTIC_REASONING, DESC_SOURCE_QUOTE
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
@@ -709,9 +709,11 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
 
 
 def test_boolean_evaluation_result_schema_description() -> None:
-    """Verifies that BooleanEvaluationResult.reasoning description matches DESC_SEMANTIC_REASONING."""
+    """Verifies that BooleanEvaluationResult descriptions match centralized constants."""
     reasoning_field = BooleanEvaluationResult.model_fields["reasoning"]
     assert reasoning_field.description == DESC_SEMANTIC_REASONING
+    source_quote_field = BooleanEvaluationResult.model_fields["source_quote"]
+    assert source_quote_field.description == DESC_SOURCE_QUOTE
 
 
 @pytest.mark.asyncio

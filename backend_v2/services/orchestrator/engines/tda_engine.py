@@ -1,6 +1,6 @@
-"""Topological Data Analysis Engine.
+"""Topological Directed Atom (TDA) Engine.
 
-Extracts the raw TDA pipeline into a standalone strategy engine.
+Strategy engine executing Kahn-based causal wave graphs over propositional assertion DAGs.
 """
 
 import logging
@@ -27,10 +27,11 @@ _MATRIX_SOURCE_SENTINEL = "MATRIX_EVALUATION"
 
 
 class TDAEngine(ExecutionEngine):
-    """Execution engine for Topological Data Analysis.
+    """Execution engine for Topological Directed Atom (TDA) evaluation.
 
-    Executes ontology extraction and enriched DAG execution over
-    the pre-compiled matrix assertions (shuffled_atoms).
+    Executes ontology extraction and enriched DAG execution over pre-compiled matrix
+    assertions (shuffled_atoms) using Kahn-based topological wave evaluation, enforcing
+    the Local Causal Markov Condition over causal dependency graphs.
     """
 
     def __init__(self, prompt_compiler: Any) -> None:

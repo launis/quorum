@@ -18,6 +18,7 @@ def test_matrix_sensor_system_prompt_structure() -> None:
         "evaluation_directives",
         "epistemic_decision_protocol",
         "epistemic_hierarchy_protocol",
+        "semantic_entailment_protocol",
         "reasoning_constraints",
         "anti_repetition_mandate",
         "evidence_extraction_mandate",
@@ -43,6 +44,10 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "DOCUMENT DIRECTIVE HIERARCHY" in prompt
     assert "specifically: source deliverable vs. process dialogue vs. retrospective reflection" in prompt
     assert "null hypothesis: default to is_true = false for inverse/negative claims" in prompt
+    assert "PROPOSITIONAL ENTAILMENT MANDATE:" in prompt
+    assert "BANNED INTERROGATIVE AS PROOF:" in prompt
+    assert "COUNTERFACTUAL AND REFUTED PREMISE BAN:" in prompt
+    assert "ABSENCE NULL HYPOTHESIS:" in prompt
     assert "specifically: `a0`, `a1`, `a2`" in prompt
     assert "is_true" in prompt
     assert "BANNED SPECULATIVE OVERRIDES:" in prompt

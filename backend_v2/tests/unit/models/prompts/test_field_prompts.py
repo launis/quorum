@@ -9,6 +9,7 @@ from backend_v2.models.prompts.execution.field_prompts import (
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
     DESC_SEMANTIC_REASONING,
+    DESC_SOURCE_QUOTE,
     STRICT_JSON_STRUCTURE_MANDATE,
     XAI_DESC_CITATION,
     XAI_DESC_COACHING,
@@ -23,6 +24,7 @@ def test_field_prompts_constants() -> None:
     assert isinstance(DESC_EXACT_QUOTES, str) and len(DESC_EXACT_QUOTES) > 0
     assert isinstance(DESC_CONTEXTUAL_OVERRIDE, str) and len(DESC_CONTEXTUAL_OVERRIDE) > 0
     assert isinstance(DESC_SEMANTIC_REASONING, str) and len(DESC_SEMANTIC_REASONING) > 0
+    assert isinstance(DESC_SOURCE_QUOTE, str) and len(DESC_SOURCE_QUOTE) > 0
     assert isinstance(DESC_REASONING_TRACE, str) and len(DESC_REASONING_TRACE) > 0
     assert isinstance(DESC_EVALUATION_NOTES, str) and len(DESC_EVALUATION_NOTES) > 0
     assert "<json_structure_mandate>" in STRICT_JSON_STRUCTURE_MANDATE

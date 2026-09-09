@@ -18,9 +18,18 @@ from backend_v2.models.enums import ExecutionStatus
 class CausalEdge(BaseModel):
     """Represents a directional causal dependency between two atoms in the DAG.
 
+    In accordance with the Local Causal Markov Condition over a Directed Acyclic Graph
+    G = (V, E), the joint verification probability factorizes strictly over causal parents:
+        P(A_1, ..., A_n | D) = prod_{i=1}^n P(A_i | Parents_G(A_i), D)
+
+    Causal dependencies enforce structural conditioning: downstream child atoms are evaluated
+    conditionally upon the deterministic resolution of their causal parents. If any parent fails
+    its expected_status, downstream execution is deterministically short-circuited with
+    P(A_i = BLOCKED | Parent != expected) = 1.0, assigning ExecutionStatus.N_A without LLM invocation.
+
     Attributes:
         edge_reasoning: Chain-of-thought reasoning explaining the causal relationship.
-        tda_id: The identifier of the parent atom.
+        tda_id: The identifier of the parent atom (Topological Directed Atom ID).
         source_id: The identifier of the spatial anchor (e.g., chunk ID).
         expected_status: The expected status of the parent for this edge to be satisfied.
     """
@@ -35,7 +44,12 @@ class CausalEdge(BaseModel):
             )
         ),
     ]
-    tda_id: Annotated[str, Field(description="The Opaque Stripe ID of the parent atom.")]
+    tda_id: Annotated[
+        str,
+        Field(
+            description="The canonical Opaque Stripe ID of the parent Topological Directed Atom."
+        ),
+    ]
     source_id: Annotated[str, Field(description="The spatial anchor (Chunk ID) where this edge was identified.")]
     expected_status: Annotated[
         ExecutionStatus,
@@ -51,9 +65,11 @@ class ExtractedAtom(BaseModel):
     Attributes:
         reasoning: Chain-of-thought reasoning for anaphora resolution and extraction.
         resolved_claim: The standalone, contextualized claim.
+        is_logical_deduction: Whether the claim is deduced logically (allowing null quote).
         source_quote: The exact verbatim quote from the source text.
-        tda_id: The globally unique Opaque Stripe ID of this atom.
+        tda_id: The globally unique canonical Opaque Stripe ID of this Topological Directed Atom (tda_ prefix).
         source_id: The spatial anchor (Chunk ID) indicating where the claim originated.
+        source_sequence_index: The chronological sequence index indicating extraction order.
     """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
@@ -75,7 +91,7 @@ class ExtractedAtom(BaseModel):
     tda_id: Annotated[
         str,
         Field(
-            description="The Opaque Stripe ID of this atom.",
+            description="The canonical Opaque Stripe ID of this Topological Directed Atom.",
             pattern=r"^tda_[a-fA-F0-9]{8,32}$",
         ),
     ]
@@ -104,6 +120,11 @@ class ExtractedAtom(BaseModel):
 class LinkedAtomGraph(BaseModel):
     """Wraps an ExtractedAtom with its topological dependencies (the DAG).
 
+    Enforces the Local Causal Markov Condition: within Kahn's topological evaluation waves,
+    an atom is conditionally isolated given its resolved parents Parents_G(A_i). Evaluation occurs
+    if and only if all causal parents satisfy their expected_status. If any dependency fails,
+    the node is deterministically short-circuited with P(A_i = N_A | Parent != expected) = 1.0.
+
     Attributes:
         atom: The extracted claim and its metadata.
         depends_on: Implicit AND-list of causal dependencies that must be met before evaluating this atom.
@@ -115,7 +136,10 @@ class LinkedAtomGraph(BaseModel):
     depends_on: Annotated[
         list[CausalEdge],
         Field(
-            description="Implicit AND-list. Atom is evaluated only if all parents match their expected_status.",
+            description=(
+                "Implicit AND-list. Atom is evaluated conditionally on parents: "
+                "proceeds only if all parents reach their expected_status, otherwise short-circuits to N_A."
+            ),
             default_factory=list,
         ),
     ] = Field(default_factory=list)

@@ -120,6 +120,7 @@ void main() {
       expect(find.text('- Atom 1 Label'), findsOneWidget);
       expect(find.text('Basic Claim:'), findsOneWidget);
       expect(find.text('"Verbatim evidence quote from doc"'), findsOneWidget);
+      expect(find.text('↳ Reasoning ok'), findsOneWidget);
       expect(find.text('Popper (1959)'), findsOneWidget);
     },
   );
@@ -495,10 +496,109 @@ void main() {
       expect(find.text('1 - Foundation Level'), findsOneWidget);
       expect(find.text('Document Evidence Claim:'), findsOneWidget);
       expect(find.text('"Direct evidence found in document."'), findsOneWidget);
+      expect(find.text('↳ Exact quote confirmed'), findsOneWidget);
       expect(
         find.text('** Synthetic Override Claim: Synthetic override reasoning'),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'SduiMatrixTableWidget renders semantic reasoning line alongside exact quotes only when non-empty',
+    (WidgetTester tester) async {
+      const atomWithReasoning = ScorecardAtomDto(
+        atomId: 'atm_with_reasoning',
+        level: 1,
+        levelName: 'Level 1',
+        claimLabel: 'With Reasoning',
+        extractedFacts: {},
+        exactQuotes: [
+          QuoteEvidenceDto(quote: 'Sentence proving with reasoning.'),
+        ],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: 'Logical derivation connects quote to affirmative claim.',
+        contextualOverride: false,
+        chartDisplayLabel: 'Atom With Reasoning',
+        visualIntent: VisualIntent.success,
+      );
+
+      const atomWithoutReasoning = ScorecardAtomDto(
+        atomId: 'atm_without_reasoning',
+        level: 1,
+        levelName: 'Level 1',
+        claimLabel: 'Without Reasoning',
+        extractedFacts: {},
+        exactQuotes: [
+          QuoteEvidenceDto(quote: 'Sentence without reasoning.'),
+        ],
+        internalLogicEn: ReasoningStepDto(
+          step1IdentifyPremise: '',
+          step2ScanSource: '',
+          step3EvaluateAntiPatterns: '',
+          step4FinalConclusion: '',
+        ),
+        status: ExecutionStatus.passed,
+        semanticReasoning: '   ',
+        contextualOverride: false,
+        chartDisplayLabel: 'Atom Without Reasoning',
+        visualIntent: VisualIntent.success,
+      );
+
+      final block = SduiMatrixTableBlock(
+        title: const I18nText(translations: {'en': 'Reasoning Test Table'}),
+        matrixVisibleColumns: const ['label', 'quotes'],
+        matrixColumnLabels: const {
+          'label': I18nText(translations: {'en': 'Dimension'}),
+          'quotes': I18nText(translations: {'en': 'Text Observation'}),
+        },
+        axes: [
+          const MatrixScorecardRowDto(
+            blockId: 'axis_reasoning_test',
+            name: 'Audit Dimension',
+            labelI18n: I18nText(translations: {'en': 'Audit Dimension'}),
+            rowExplanation: 'Testing reasoning rendering.',
+            isEvaluative: true,
+            allowContextualOverride: false,
+            levelNames: {'1': 'Level 1'},
+            levelBreakdown: {'1': '2/2'},
+            evaluatedAtoms: [atomWithReasoning, atomWithoutReasoning],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(1200, 800)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('"Sentence proving with reasoning."'), findsOneWidget);
+      expect(
+        find.text('↳ Logical derivation connects quote to affirmative claim.'),
+        findsOneWidget,
+      );
+      expect(find.text('"Sentence without reasoning."'), findsOneWidget);
+      // Verify no orphan arrow is rendered for the atom with whitespace-only reasoning
+      expect(find.text('↳ '), findsNothing);
     },
   );
 }

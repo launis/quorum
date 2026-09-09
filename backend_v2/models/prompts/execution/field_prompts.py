@@ -3,11 +3,18 @@
 Enforces DRY and ensures exact matching across all dynamic and static DTOs.
 """
 
-DESC_EXACT_QUOTES = "List of physically contiguous sentences extracted verbatim as evidence."
+DESC_EXACT_QUOTES = (
+    "List of physically contiguous sentences extracted verbatim as evidence strictly entailing "
+    "the claim in its asserted modality."
+)
 
 DESC_CONTEXTUAL_OVERRIDE = "True only if the rule is satisfied contextually without a verbatim quote."
 
-DESC_SEMANTIC_REASONING = "Concise natural language explanation of the evaluation outcome or contextual override."
+DESC_SEMANTIC_REASONING = (
+    "Concise natural language explanation of propositional entailment, evaluation outcome, or contextual override."
+)
+
+DESC_SOURCE_QUOTE = "Exact verbatim sentence strictly entailing the claim in its asserted modality; null if unentailed."
 
 DESC_REASONING_TRACE = "Extensive analytical reasoning trace explaining the decision-making process."
 
