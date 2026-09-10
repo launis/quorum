@@ -14,9 +14,9 @@ Architecture in Quorum is defined along two isolated axes:
 
 By separating the theoretical from the physical, the system can continuously refactor directories without invalidating the architectural theory, and vice-versa.
 
-## 2. The 7 Pillars of Capability-Driven Architecture
+## 2. Core Pillars of Capability-Driven Architecture
 
-The core architecture is strictly divided into 7 timeless pillars:
+The core architecture is structured across dedicated architectural pillars:
 1. **System Context & Invariants (`01_`)**
 2. **Data Seeding & Ontology (`02_`)**
 3. **Cognitive Orchestration Engine (`03_`)**
@@ -24,6 +24,8 @@ The core architecture is strictly divided into 7 timeless pillars:
 5. **Resilience & Observability (`05_`)**
 6. **Enriched Atom Graph Engine (`06_`)**
 7. **EU AI Act Compliance & Governance (`07_`)**
+8. **Matrix Theory Explanations Compendium (`08_`)**
+9. **LLM Prompt Orchestration & Matrix Evaluation Architecture (`09_`)**
 
 ## 3. The Golden Rule: Timelessness & Pure Present-Tense Description
 
