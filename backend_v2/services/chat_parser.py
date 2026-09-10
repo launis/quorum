@@ -11,6 +11,7 @@ import re
 from fastapi import status
 from pydantic import ValidationError
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -146,13 +147,14 @@ class ChatParserService:
         # Construct the Prompt
         # Mandates: Strip all AI UI fluff (Regenerate, Copy code, etc)
         # Role Segregation: Isolated System Instruction prevents prompt injection
+        encapsulated_paste = TemplateProcessor.encapsulate_payload(raw_paste)
         messages = [
             {"role": "system", "content": _SYSTEM_INSTRUCTION},
             {
                 "role": "user",
                 "content": (
                     "<context>\nHere is the raw text to process:\n</context>\n"
-                    f"<source_data>\n{raw_paste}\n</source_data>\n"
+                    f"<source_data>\n{encapsulated_paste}\n</source_data>\n"
                 ),
             },
         ]

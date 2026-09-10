@@ -5,10 +5,10 @@ Adheres strictly to the SRP God Method Mandate, Single Source of Truth, and Pyda
 """
 
 import asyncio
-import html
 import logging
 from datetime import UTC, datetime
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import (
@@ -68,7 +68,7 @@ class SourceVerificationService:
         if not text or len(text.strip()) < settings.source_verification_min_text_length:
             return []
 
-        safe_text = html.escape(text[: settings.source_extraction_max_chars].strip())
+        safe_text = TemplateProcessor.encapsulate_payload(text[: settings.source_extraction_max_chars].strip())
         user_message = f"<source_data>\n{safe_text}\n</source_data>"
 
         try:
@@ -119,14 +119,14 @@ class SourceVerificationService:
                 claim_text=claim.claim_text,
             )
 
-            escaped_claim = html.escape(claim.claim_text)
-            escaped_answer = html.escape(audit_trace.response_summary or "")
+            encapsulated_claim = TemplateProcessor.encapsulate_payload(claim.claim_text)
+            encapsulated_answer = TemplateProcessor.encapsulate_payload(audit_trace.response_summary or "")
 
             user_msg = (
                 f"<source_data>\n"
-                f"  <claim>{escaped_claim}</claim>\n"
+                f"  <claim>{encapsulated_claim}</claim>\n"
                 f"  <search_results>\n"
-                f"    <answer>{escaped_answer}</answer>\n"
+                f"    <answer>{encapsulated_answer}</answer>\n"
                 f"  </search_results>\n"
                 f"</source_data>"
             )

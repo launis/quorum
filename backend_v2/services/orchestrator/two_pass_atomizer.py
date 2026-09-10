@@ -8,6 +8,7 @@ from collections.abc import Awaitable, Callable
 from pydantic import ValidationError
 from tenacity import RetryError, retry, stop_after_attempt, wait_exponential
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.client import LLMClient
@@ -82,10 +83,11 @@ class TwoPassAtomizer:
 
         packets = self._calculate_packets(hydrated_text)
 
+        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=PHASE_0_SYSTEM_PROMPT),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
             ],
             dynamic_messages=[],
         )
@@ -167,10 +169,11 @@ class TwoPassAtomizer:
 
         packets = self._calculate_packets(hydrated_text)
 
+        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=system_prompt),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
             ],
             dynamic_messages=[],
         )
@@ -314,10 +317,11 @@ class TwoPassAtomizer:
 
         packets = self._calculate_packets(hydrated_text)
 
+        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=system_prompt),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{hydrated_text}\n</source_data>"),
+                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
             ],
             dynamic_messages=[],
         )

@@ -79,6 +79,7 @@ async def test_chat_parser_role_segregation_and_success(
     assert "boundary-detection expert" in messages.static_messages[0].content
 
     assert messages.dynamic_messages[0].role == "user"
+    assert "<![CDATA[" in messages.dynamic_messages[0].content
     assert raw_paste in messages.dynamic_messages[0].content
 
     assert call_kwargs["response_model"] == ChatTurnAnchorsResponseDTO

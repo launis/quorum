@@ -16,6 +16,7 @@ from backend_v2.core.hook_registry import (
     HookState,
     hook_registry,
 )
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.hooks.metrics import calculate_behavioral_metrics, calculate_control_ratio
 from backend_v2.llm.client import LLMClient
@@ -101,6 +102,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         ) from e
 
     # 3. Dynamic User Message (High-Fidelity Prompting, XML parameters separated)
+    encapsulated_chat = TemplateProcessor.encapsulate_payload(chat_log)
     user_content = (
         "<execution_parameters>\n"
         f"  <control_ratio>{control_ratio}</control_ratio>\n"
@@ -110,7 +112,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         "</execution_parameters>\n\n"
         "<source_data>\n"
         "  <user_payload>\n"
-        f"{chat_log}\n"
+        f"{encapsulated_chat}\n"
         "  </user_payload>\n"
         "</source_data>"
     )

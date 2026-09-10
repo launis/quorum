@@ -11,6 +11,7 @@ from collections.abc import Awaitable, Callable
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
@@ -193,7 +194,8 @@ class SlidingWindowLinker:
                 claims_text += f"[{alias}] {atom.resolved_claim}\n"
                 claims_text += f"Quote: {atom.source_quote}\n\n"
 
-            user_prompt = LINKER_USER_PROMPT.format(
+            user_prompt = TemplateProcessor.safe_interpolate(
+                LINKER_USER_PROMPT,
                 global_ontology_map=ontology_text,
                 claims_window=claims_text.strip(),
             )

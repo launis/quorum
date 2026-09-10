@@ -14,6 +14,7 @@ from backend_v2.core.hook_registry import (
     HookState,
     hook_registry,
 )
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.linguistics import (
@@ -117,8 +118,9 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                 pipeline_name="linguistics_hook",
             )
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
+            encapsulated_text = TemplateProcessor.encapsulate_payload(text_to_scan)
             user_content = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(
-                language=lang_simple, text_to_scan=text_to_scan
+                language=lang_simple, text_to_scan=encapsulated_text
             )
             messages = [
                 LLMMessageDTO(role="system", content=DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT),
