@@ -20,14 +20,12 @@ void main() {
   }
 
   group('TagChipInput Widget Tests', () {
-    testWidgets('submitting text via Enter commits trimmed chip', (tester) async {
+    testWidgets('submitting text via Enter commits trimmed chip', (
+      tester,
+    ) async {
       List<String> tags = [];
       await tester.pumpWidget(
-        createTestWidget(
-          TagChipInput(
-            onChanged: (val) => tags = val,
-          ),
-        ),
+        createTestWidget(TagChipInput(onChanged: (val) => tags = val)),
       );
 
       final input = find.byType(TextField);
@@ -43,11 +41,7 @@ void main() {
     testWidgets('typing comma commits trimmed chip', (tester) async {
       List<String> tags = [];
       await tester.pumpWidget(
-        createTestWidget(
-          TagChipInput(
-            onChanged: (val) => tags = val,
-          ),
-        ),
+        createTestWidget(TagChipInput(onChanged: (val) => tags = val)),
       );
 
       final input = find.byType(TextField);
@@ -58,14 +52,13 @@ void main() {
       expect(tags, ['syntaksi']);
     });
 
-    testWidgets('pressing backspace in empty field deletes trailing chip', (tester) async {
+    testWidgets('pressing backspace in empty field deletes trailing chip', (
+      tester,
+    ) async {
       List<String> tags = ['alpha', 'beta'];
       await tester.pumpWidget(
         createTestWidget(
-          TagChipInput(
-            initialTags: tags,
-            onChanged: (val) => tags = val,
-          ),
+          TagChipInput(initialTags: tags, onChanged: (val) => tags = val),
         ),
       );
 
@@ -84,28 +77,31 @@ void main() {
       expect(tags, ['alpha']);
     });
 
-    testWidgets('enforces bounded chip layout maxWidth 240 and tooltip', (tester) async {
-      const longText = 'extremely_lengthy_syntactic_anchor_token_that_would_normally_overflow_horizontal_layouts';
+    testWidgets('enforces bounded chip layout maxWidth 240 and tooltip', (
+      tester,
+    ) async {
+      const longText =
+          'extremely_lengthy_syntactic_anchor_token_that_would_normally_overflow_horizontal_layouts';
       await tester.pumpWidget(
-        createTestWidget(
-          const TagChipInput(
-            initialTags: [longText],
-          ),
-        ),
+        createTestWidget(const TagChipInput(initialTags: [longText])),
       );
 
       final constrainedBox = tester.widget<ConstrainedBox>(
-        find.ancestor(
-          of: find.text(longText),
-          matching: find.byType(ConstrainedBox),
-        ).first,
+        find
+            .ancestor(
+              of: find.text(longText),
+              matching: find.byType(ConstrainedBox),
+            )
+            .first,
       );
 
       expect(constrainedBox.constraints.maxWidth, 240);
       expect(find.byTooltip(longText), findsOneWidget);
     });
 
-    testWidgets('uncommitted buffer is flushed and committed on Form.save()', (tester) async {
+    testWidgets('uncommitted buffer is flushed and committed on Form.save()', (
+      tester,
+    ) async {
       final formKey = GlobalKey<FormState>();
       List<String>? savedTags;
 
@@ -113,9 +109,7 @@ void main() {
         createTestWidget(
           Form(
             key: formKey,
-            child: TagChipInput(
-              onSaved: (val) => savedTags = val,
-            ),
+            child: TagChipInput(onSaved: (val) => savedTags = val),
           ),
         ),
       );
@@ -131,7 +125,9 @@ void main() {
       expect(savedTags, contains('uncommitted_token'));
     });
 
-    testWidgets('uncommitted buffer is auto-committed on focus loss', (tester) async {
+    testWidgets('uncommitted buffer is auto-committed on focus loss', (
+      tester,
+    ) async {
       List<String> tags = [];
       final focusNode = FocusNode();
 
@@ -139,9 +135,7 @@ void main() {
         createTestWidget(
           Column(
             children: [
-              TagChipInput(
-                onChanged: (val) => tags = val,
-              ),
+              TagChipInput(onChanged: (val) => tags = val),
               TextField(focusNode: focusNode),
             ],
           ),
@@ -159,25 +153,26 @@ void main() {
       expect(tags, contains('lost_focus_token'));
     });
 
-    testWidgets('ISTQB Negative: duplicate token entry triggers inline validation error and halts commit', (tester) async {
-      final formKey = GlobalKey<FormState>();
-      await tester.pumpWidget(
-        createTestWidget(
-          Form(
-            key: formKey,
-            child: const TagChipInput(
-              initialTags: ['existing_anchor'],
+    testWidgets(
+      'ISTQB Negative: duplicate token entry triggers inline validation error and halts commit',
+      (tester) async {
+        final formKey = GlobalKey<FormState>();
+        await tester.pumpWidget(
+          createTestWidget(
+            Form(
+              key: formKey,
+              child: const TagChipInput(initialTags: ['existing_anchor']),
             ),
           ),
-        ),
-      );
+        );
 
-      final input = find.byType(TextField);
-      await tester.enterText(input, 'existing_anchor');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
+        final input = find.byType(TextField);
+        await tester.enterText(input, 'existing_anchor');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
 
-      expect(find.text('Keyword has already been added.'), findsOneWidget);
-    });
+        expect(find.text('Keyword has already been added.'), findsOneWidget);
+      },
+    );
   });
 }

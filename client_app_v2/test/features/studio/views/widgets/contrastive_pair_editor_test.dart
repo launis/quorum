@@ -17,39 +17,40 @@ void main() {
       supportedLocales: const [Locale('en')],
       home: Scaffold(
         body: Center(
-          child: SizedBox(
-            width: size.width,
-            height: size.height,
-            child: child,
-          ),
+          child: SizedBox(width: size.width, height: size.height, child: child),
         ),
       ),
     );
   }
 
   group('ContrastivePairEditor Widget Tests', () {
-    testWidgets('renders acceptable and rejected fields with live character counters', (tester) async {
-      ContrastivePairDTO? result;
-      await tester.pumpWidget(
-        createTestWidget(
-          ContrastivePairEditor(
-            initialValue: const ContrastivePairDTO(
-              acceptable: 'Valid acceptable text',
-              rejected: 'Short',
+    testWidgets(
+      'renders acceptable and rejected fields with live character counters',
+      (tester) async {
+        ContrastivePairDTO? result;
+        await tester.pumpWidget(
+          createTestWidget(
+            ContrastivePairEditor(
+              initialValue: const ContrastivePairDTO(
+                acceptable: 'Valid acceptable text',
+                rejected: 'Short',
+              ),
+              onChanged: (val) => result = val,
             ),
-            onChanged: (val) => result = val,
           ),
-        ),
-      );
+        );
 
-      expect(find.text('Approved Example (Acceptable)'), findsOneWidget);
-      expect(find.text('Rejected Counterpart (Rejected)'), findsOneWidget);
-      expect(find.text('21/10 chars'), findsOneWidget);
-      expect(find.text('5/10 chars'), findsOneWidget);
-      expect(result, isNull); // No mutation yet
-    });
+        expect(find.text('Approved Example (Acceptable)'), findsOneWidget);
+        expect(find.text('Rejected Counterpart (Rejected)'), findsOneWidget);
+        expect(find.text('21/10 chars'), findsOneWidget);
+        expect(find.text('5/10 chars'), findsOneWidget);
+        expect(result, isNull); // No mutation yet
+      },
+    );
 
-    testWidgets('ISTQB Negative: flags duplicate entries with warning banner', (tester) async {
+    testWidgets('ISTQB Negative: flags duplicate entries with warning banner', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           ContrastivePairEditor(
@@ -62,10 +63,15 @@ void main() {
         ),
       );
 
-      expect(find.text('Approved and rejected examples cannot be identical.'), findsOneWidget);
+      expect(
+        find.text('Approved and rejected examples cannot be identical.'),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('renders side-by-side on wide containers (>= 520px)', (tester) async {
+    testWidgets('renders side-by-side on wide containers (>= 520px)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           ContrastivePairEditor(
@@ -82,7 +88,9 @@ void main() {
       expect(find.byType(Row), findsWidgets);
     });
 
-    testWidgets('renders vertically stacked on narrow containers (< 520px)', (tester) async {
+    testWidgets('renders vertically stacked on narrow containers (< 520px)', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           ContrastivePairEditor(
@@ -101,7 +109,10 @@ void main() {
       expect(fields, findsNWidgets(2));
       final firstPos = tester.getTopLeft(fields.first);
       final secondPos = tester.getTopLeft(fields.last);
-      expect(firstPos.dx, equals(secondPos.dx)); // Stacked vertically with identical X coordinate
+      expect(
+        firstPos.dx,
+        equals(secondPos.dx),
+      ); // Stacked vertically with identical X coordinate
       expect(secondPos.dy, greaterThan(firstPos.dy));
     });
   });

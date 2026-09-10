@@ -523,7 +523,8 @@ void main() {
           step4FinalConclusion: '',
         ),
         status: ExecutionStatus.passed,
-        semanticReasoning: 'Logical derivation connects quote to affirmative claim.',
+        semanticReasoning:
+            'Logical derivation connects quote to affirmative claim.',
         contextualOverride: false,
         chartDisplayLabel: 'Atom With Reasoning',
         visualIntent: VisualIntent.success,
@@ -535,9 +536,7 @@ void main() {
         levelName: 'Level 1',
         claimLabel: 'Without Reasoning',
         extractedFacts: {},
-        exactQuotes: [
-          QuoteEvidenceDto(quote: 'Sentence without reasoning.'),
-        ],
+        exactQuotes: [QuoteEvidenceDto(quote: 'Sentence without reasoning.')],
         internalLogicEn: ReasoningStepDto(
           step1IdentifyPremise: '',
           step2ScanSource: '',

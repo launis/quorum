@@ -19,7 +19,9 @@ void main() {
   }
 
   group('LinguisticShieldBanner and Detector Tests', () {
-    testWidgets('pure English ASCII text does not mount warning banner', (tester) async {
+    testWidgets('pure English ASCII text does not mount warning banner', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           const LinguisticShieldBanner(
@@ -29,10 +31,17 @@ void main() {
       );
 
       expect(find.byType(Icon), findsNothing);
-      expect(find.text('Non-English characters or words detected. Ensure the evaluation assertion is written in English.'), findsNothing);
+      expect(
+        find.text(
+          'Non-English characters or words detected. Ensure the evaluation assertion is written in English.',
+        ),
+        findsNothing,
+      );
     });
 
-    testWidgets('ISTQB Negative: non-ASCII characters mount warning banner', (tester) async {
+    testWidgets('ISTQB Negative: non-ASCII characters mount warning banner', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         createTestWidget(
           const LinguisticShieldBanner(
@@ -42,29 +51,45 @@ void main() {
       );
 
       expect(find.byIcon(Icons.info_outline), findsOneWidget);
-      expect(find.text('Non-English characters or words detected. Ensure the evaluation assertion is written in English.'), findsOneWidget);
-    });
-
-    testWidgets('ISTQB Negative: Finnish stopwords in ASCII text trigger stopword gate', (tester) async {
-      // "on" and "ja" are structural Finnish stopwords
-      await tester.pumpWidget(
-        createTestWidget(
-          const LinguisticShieldBanner(
-            text: 'Tarkista on tama vastaus ja perustelu oikein',
-          ),
+      expect(
+        find.text(
+          'Non-English characters or words detected. Ensure the evaluation assertion is written in English.',
         ),
+        findsOneWidget,
       );
-
-      expect(find.byIcon(Icons.info_outline), findsOneWidget);
-      expect(find.text('Non-English characters or words detected. Ensure the evaluation assertion is written in English.'), findsOneWidget);
     });
 
-    testWidgets('typographical whitelist bypasses false positive alert', (tester) async {
+    testWidgets(
+      'ISTQB Negative: Finnish stopwords in ASCII text trigger stopword gate',
+      (tester) async {
+        // "on" and "ja" are structural Finnish stopwords
+        await tester.pumpWidget(
+          createTestWidget(
+            const LinguisticShieldBanner(
+              text: 'Tarkista on tama vastaus ja perustelu oikein',
+            ),
+          ),
+        );
+
+        expect(find.byIcon(Icons.info_outline), findsOneWidget);
+        expect(
+          find.text(
+            'Non-English characters or words detected. Ensure the evaluation assertion is written in English.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('typographical whitelist bypasses false positive alert', (
+      tester,
+    ) async {
       // Curly quotes, em-dashes, and bullets in valid English
       await tester.pumpWidget(
         createTestWidget(
           const LinguisticShieldBanner(
-            text: '“High-level analysis” — covering primary metrics • with zero errors.',
+            text:
+                '“High-level analysis” — covering primary metrics • with zero errors.',
           ),
         ),
       );
