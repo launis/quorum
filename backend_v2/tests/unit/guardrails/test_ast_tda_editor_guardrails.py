@@ -41,9 +41,7 @@ def test_ast_tda_assertion_contrastive_example() -> None:
     assert "ContrastivePairDTO" in annotation_src, (
         f"contrastive_example must reference ContrastivePairDTO, found: {annotation_src}"
     )
-    assert "None" in annotation_src, (
-        f"contrastive_example must allow None, found: {annotation_src}"
-    )
+    assert "None" in annotation_src, f"contrastive_example must allow None, found: {annotation_src}"
     # Ensure raw 'str' is NOT permitted in the type annotation
     assert "str" not in annotation_src.replace("ContrastivePairDTO", ""), (
         f"contrastive_example must not allow loose str, found: {annotation_src}"

@@ -165,12 +165,8 @@ def test_prompt_builder_compiles_structured_fields_with_cdata() -> None:
             acceptable="The system latency improved by 14% across 50 iterations.",
             rejected="Our system is simply better and faster than existing tools.",
         ),
-        acceptance_criteria=(
-            AcceptanceCriterion(instruction="Verify statistical significance of claims."),
-        ),
-        anti_patterns=(
-            AntiPattern(pattern="Vague references to unmeasured improvement."),
-        ),
+        acceptance_criteria=(AcceptanceCriterion(instruction="Verify statistical significance of claims."),),
+        anti_patterns=(AntiPattern(pattern="Vague references to unmeasured improvement."),),
         syntactic_anchors=("latency", "iterations"),
     )
     node = LinkedAtomGraph(
@@ -215,12 +211,26 @@ def test_transitive_causal_closure_three_deep_chain() -> None:
     atom_a = FlattenedAtom(
         atom_id="tda_aaaaaaaa",
         question="Assertion A",
-        depends_on=(CausalEdge(tda_id="tda_bbbbbbbb", source_id="chk_1", expected_status=ExecutionStatus.PASSED, edge_reasoning="A requires B"),),
+        depends_on=(
+            CausalEdge(
+                tda_id="tda_bbbbbbbb",
+                source_id="chk_1",
+                expected_status=ExecutionStatus.PASSED,
+                edge_reasoning="A requires B",
+            ),
+        ),
     )
     atom_b = FlattenedAtom(
         atom_id="tda_bbbbbbbb",
         question="Assertion B",
-        depends_on=(CausalEdge(tda_id="tda_cccccccc", source_id="chk_1", expected_status=ExecutionStatus.PASSED, edge_reasoning="B requires C"),),
+        depends_on=(
+            CausalEdge(
+                tda_id="tda_cccccccc",
+                source_id="chk_1",
+                expected_status=ExecutionStatus.PASSED,
+                edge_reasoning="B requires C",
+            ),
+        ),
     )
     atom_c = FlattenedAtom(
         atom_id="tda_cccccccc",

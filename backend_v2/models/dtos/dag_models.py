@@ -46,9 +46,7 @@ class CausalEdge(BaseModel):
     ]
     tda_id: Annotated[
         str,
-        Field(
-            description="The canonical Opaque Stripe ID of the parent Topological Directed Atom."
-        ),
+        Field(description="The canonical Opaque Stripe ID of the parent Topological Directed Atom."),
     ]
     source_id: Annotated[str, Field(description="The spatial anchor (Chunk ID) where this edge was identified.")]
     expected_status: Annotated[
