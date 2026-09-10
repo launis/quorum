@@ -362,7 +362,7 @@ Non-matrix prompt blocks condition foundational models into deterministic cognit
 
 ### 4.1 Polymorphic Architecture & Domain Taxonomy
 
-All prompt blocks in Quorum inherit from a common base (`PromptBlockBase`), defined in `backend_v2/models/domain/prompt_blocks.py`. The system enforces strict Pydantic V2 discriminated polymorphism using `category_id` as the discriminator key.
+All prompt blocks in Quorum inherit from a common base (`PromptBlockBase`), defined in the core domain models layer. The system enforces strict Pydantic V2 discriminated polymorphism using `category_id` as the discriminator key.
 
 ```mermaid
 classDiagram
@@ -551,8 +551,8 @@ Defines the structural content format in `BlockDataType`:
 * **Role:** Primary directive text for system rules, task definitions, and runtime variables.
 * **Template Placeholders Supported:**
   * `{TARGET_LANGUAGE}`: Dynamically substituted with the resolved human-readable target language name (e.g., `"Finnish"` or `"English"`).
-  * `{CURRENT_DATE}`: Dynamically substituted with the ISO-8601 UTC date (e.g., `"2026-09-10"`).
-  * `{DYNAMIC_TIME}`: Dynamically substituted with the UTC execution timestamp (e.g., `"09:56:10 UTC"`).
+  * `{CURRENT_DATE}`: Dynamically substituted with the ISO-8601 UTC date (e.g., `"YYYY-MM-DD"`).
+  * `{DYNAMIC_TIME}`: Dynamically substituted with the UTC execution timestamp (e.g., `"HH:MM:SS UTC"`).
 * **Compilation Branching:**
   * For `category_id != RUNTIME_VARIABLES`: Compiled via `LocalizationCompiler.compile_static_instructions()` into Layer 1 static cache prefix:
     ```xml
@@ -563,7 +563,7 @@ Defines the structural content format in `BlockDataType`:
   * For `category_id == RUNTIME_VARIABLES`: Compiled via `LocalizationCompiler.compile_dynamic_instructions()` into Layer 4 dynamic user tail:
     ```xml
     <DYNAMIC_INSTRUCTION label="Critical System Context">
-    Your operational consciousness is irrevocably anchored to the precise ISO 8601 UTC timestamp (2026-09-10 09:56:10 UTC)...
+    Your operational consciousness is irrevocably anchored to the precise ISO 8601 UTC timestamp (YYYY-MM-DD HH:MM:SS UTC)...
     </DYNAMIC_INSTRUCTION>
     ```
 
@@ -571,7 +571,7 @@ Defines the structural content format in `BlockDataType`:
 
 ### 4.4 Step-Level Wiring & Architectural Governance
 
-A workflow step (`Step` in `backend_v2/models/v2_core.py`) orchestrates non-matrix blocks through four distinct reference fields:
+A workflow step (`Step` in core domain schemas) orchestrates non-matrix blocks through four distinct reference fields:
 
 ```python
 class Step(V2CoreBase):
@@ -665,4 +665,198 @@ The systemic coupling between non-matrix prompt blocks and matrix TDA assertions
 ```
 
 By enforcing this functional decoupling, Quorum ensures that evaluation outcomes are not dependent on subjective model leniency, producing mathematically stable, audit-grade evaluations across every execution run.
+
+---
+
+## 5. High-Entropy Evaluation: TDA Best-of-Three Flash Architecture & Majority Consensus
+
+### 5.1 The Entropy Paradox in High-Stakes Matrix Evaluation
+Evaluation of Behaviorally Anchored Rating Scales (BARS) and negative error radars (`inverse_evidence = True`) carries inherent stochastic entropy when relying on single-pass sampling. Non-deterministic temperature settings and high cognitive friction requirements create occasional boundary variance.
+
+Traditional sequential multi-turn debate or critique chains suffer from fatal structural defects:
+1. **Double-Negative Confusion:** Multi-turn critique on inverse criteria forces foundational models through iterative rationalization loops, leading to sycophantic flips or argumentative confusion.
+2. **Latency & Cost Multipliers:** Sequential chains multiply execution latency by 3x to 5x and scale token costs linearly per debate turn.
+3. **Cascading Failure Fragility:** A single transient error, hallucinated warrant, or JSON parsing failure in an early critique turn aborts the entire evaluation branch.
+
+Quorum resolves this paradox through a parallel, single-pass **Best-of-Three (Bo3) Ensemble** pattern. By evaluating assertions concurrently across three lightweight, high-velocity model executions (e.g., Flash-class engines) and resolving consensus via deterministic voting logic, the architecture achieves over 98% self-consistency without sequential latency penalties.
+
+### 5.2 Best-of-Three Parallel Execution Mechanics
+Parallel ensemble evaluation executes under strict structural concurrency:
+* **TaskGroup Encapsulation:** All three branches are dispatched simultaneously within an asynchronous structured task group (`asyncio.TaskGroup`), guaranteeing zero orphaned background coroutines.
+* **Global Router Concurrency:** Individual branches do not manage local semaphores. Outbound calls are throttled natively by the foundational model router request semaphore (`settings.max_concurrent_llm_steps`), preventing API quota exhaustion.
+* **Majority Quorum Threshold:** A status must achieve a strict majority vote (`count >= settings.ensemble_min_consensus`, canonical value = 2) across valid returns to be elected.
+
+```mermaid
+graph TD
+    subgraph Parallel_Ensemble [Parallel Best-of-3 TaskGroup]
+        E1["Worker 1: Flash Call A"]
+        E2["Worker 2: Flash Call B"]
+        E3["Worker 3: Flash Call C"]
+    end
+
+    Input["Target Document & Dynamic Claims"] --> E1
+    Input --> E2
+    Input --> E3
+
+    E1 --> Tally["Deterministic Vote Tally & Quorum Gate"]
+    E2 --> Tally
+    E3 --> Tally
+
+    Tally --> Check{"Majority Consensus Achieved? (>= 2/3)"}
+    Check -- "Yes" --> Elect["Elect Majority Status & Retain Verbatim Quote"]
+    Check -- "No (Split / Tie)" --> TieBreak["Epistemic Null Hypothesis Tie-Breaker (is_inverse_map)"]
+    
+    Elect --> Consolidated["Consolidated AtomEvaluationResultDTO"]
+    TieBreak --> Consolidated
+```
+
+### 5.3 Epistemic Null Hypothesis Tie-Breaking
+In non-deterministic sampling, split votes (e.g., 1 PASS, 1 FAIL, 1 Transient Error; or 1 PASS, 1 FAIL, 1 UNRETURNED) lack a 2/3 majority. Treating such splits as fatal errors introduces pipeline brittleness, while arbitrary coin-flipping destroys audit integrity.
+
+Quorum resolves inconclusive splits deterministically via formal statistical decision theory, leveraging a pre-computed atom polarity map (`is_inverse_map`):
+1. **Negative / Error Radar Assertions (`is_inverse == True`):**
+   * Evaluates whether an author committed a cognitive fallacy, bias, or structural defect.
+   * Under the legal and epistemic **presumption of innocence**, uncommitted defects require proof beyond reasonable doubt.
+   * In the absence of a conclusive 2/3 majority demonstrating commission of the error, the evaluation resolves strictly to `ExecutionStatus.PASSED`.
+2. **Positive Competence Assertions (`is_inverse == False`):**
+   * Evaluates whether the author produced verified empirical evidence or demonstrated a required competence.
+   * Under the scientific **Null Hypothesis**, positive capabilities are presumed absent until affirmatively substantiated.
+   * In the absence of a conclusive 2/3 majority establishing evidentiary presence, the evaluation resolves strictly to `ExecutionStatus.FAILED`.
+3. **Zero Valid Votes:**
+   * When all ensemble workers fail to return an evaluation for an atom, execution resolves to `ExecutionStatus.SYSTEM_ERROR` with diagnostic reasoning `"UNRETURNED_BY_MODEL"`.
+4. **Missing Polarity Mapping:**
+   * If an atom lacks polarity registration during a split, it fails safe to `ExecutionStatus.SYSTEM_ERROR` with `"INSUFFICIENT_CONSENSUS"`.
+
+### 5.4 Transient Fault Tolerance & Ensemble Quorum
+Cloud-hosted model endpoints experience transient TCP drops, HTTP 429 rate limit spikes, and HTTP 503 service degradations. Allowing a single transient error in one parallel call to abort an entire evaluation pipeline produces severe operational instability.
+
+The ensemble worker catches and suppresses transient transport and rate-limiting errors in individual calls, returning an empty vote representation. The voting gate enforces a minimum quorum of successful responses (`len(valid_results) >= settings.ensemble_min_consensus`). If 2 out of 3 calls succeed, voting proceeds normally. Only when valid responses fall below the consensus threshold does the system raise `AgentExecutionError` with HTTP 503 to trigger upstream retry policies.
+
+### 5.5 Forensic Quote Preservation in Consensus Voting
+In multi-model consensus, naive averaging, quote concatenation, or synthetic merging across differing model outputs produces invalid "Chimera quotes".
+
+Quorum enforces strict quote governance:
+1. When an assertion status achieves majority consensus, the winning status preserves verbatim the `source_quote` from the first-seen vote casting that winning status.
+2. When an assertion is resolved via the epistemic tie-breaker (Null Hypothesis), the `source_quote` is set strictly to `None`. Under no circumstances are synthetic quotes hallucinated or borrowed from minority dissenting votes.
+
+---
+
+## 6. Forensic Evidence Verification: Structured Quotes & Tiered Lexical Anchoring
+
+### 6.1 The Forensic Evidence Imperative: Eliminating Chimera Quotes
+In automated compliance and executive evaluation, evidence quotes are legally binding audit artifacts. Models operating without strict validation frequently fabricate quotes, combine non-contiguous phrases into artificial sentences, or paraphrase source statements ("Chimera quotes").
+
+Quorum eliminates evidence drift by subjecting all LLM-extracted citations to multi-stage lexical validation before state persistence.
+
+```mermaid
+graph TD
+    CandidateQuote["LLM-Extracted Candidate Quote"] --> Normalization["Text Normalization with Original Index Mapping"]
+    Normalization --> PrimaryGate{"Primary Gate: str.find Exact Match?"}
+    
+    PrimaryGate -- "Yes" --> AcceptExact["Accept Quote (100% Lexical Match)"]
+    PrimaryGate -- "No" --> EntropyGate{"Entropy Gate: Length < 10 Characters?"}
+    
+    EntropyGate -- "Yes" --> Reject["SemanticEvidenceError: Strict Substring Required for Low-Entropy Strings"]
+    EntropyGate -- "No" --> FuzzyCheck{"Strictness < 100%?"}
+    
+    FuzzyCheck -- "No" --> Reject
+    FuzzyCheck -- "Yes" --> LengthCheck{"Quote Length >= 30 Characters?"}
+    
+    LengthCheck -- "Short (< 30 chars)" --> PartialRatio["fuzz.partial_ratio (Contiguity Enforced)"]
+    LengthCheck -- "Long (>= 30 chars)" --> TokenSetRatio["fuzz.token_set_ratio (OCR / Whitespace Tolerance)"]
+    
+    PartialRatio --> ThresholdCheck{"Ratio >= Configured Threshold?"}
+    TokenSetRatio --> ThresholdCheck
+    
+    ThresholdCheck -- "Yes" --> AcceptFuzzy["Accept Quote (Controlled Fuzzy Match)"]
+    ThresholdCheck -- "No" --> Reject
+```
+
+### 6.2 Tiered Lexical Validation Pipeline
+The validation engine enforces a three-stage verification pipeline:
+1. **Primary Gate (Strict Normalized Lexical Scan):**
+   * The candidate quote and target source document are normalized using Unicode Normalization Form KD (NFD diacritic decomposition) while stripping non-semantic markup (e.g., HTML tags).
+   * An exact substring search (`str.find`) is executed against the normalized source text.
+   * An exact character index map tracks the position from normalized text back to physical source document offsets. If an exact match is found, the quote is accepted immediately with zero fuzzy degradation.
+2. **Entropy Gate (Strict Boundary for Short Quotes):**
+   * If the candidate quote is less than 10 characters, fuzzy matching is strictly banned.
+   * Short strings (acronyms, single nouns, brief phrases) exhibit low informational entropy; allowing fuzzy approximation on short strings guarantees false-positive collisions across documents.
+3. **Controlled Fuzzy Fallback Gate:**
+   * RapidFuzz fallback is permitted if and only if the Primary Gate fails, the quote length is at least 10 characters, and the validation strictness threshold is below 100%.
+   * Short quotes (between 10 and 29 characters) utilize contiguous substring ratio matching (`partial_ratio`) to enforce unbroken phrasing.
+   * Long quotes (30 characters or greater) permit token-set matching (`token_set_ratio`) to accommodate minor OCR scanning artifacts, whitespace variances, or localized morphological suffixes without compromising semantic truth.
+
+### 6.3 Blind Extraction & Null Hypothesis Guardrails
+Extraction models enforce invariant state consistency between assertion conclusions and evidence fields via strict schema validators:
+* **Contextual Override Guardrail:** If an evaluator flags `contextual_override == True` (overriding an algorithmic score due to qualitative context), all evidence quote fields (`exact_quote`, `exact_quotes`) are forced to `None` or an empty collection. Contextual exceptions cannot be substantiated by physical citation.
+* **Defect / Failure Quote Nullification:** If an evaluation status resolves to `ExecutionStatus.FAILED` for positive claims or an error is not detected, `source_quote` is forcibly purged. Evidence quotes cannot persist on unsubstantiated hypotheses.
+
+### 6.4 Deterministic Alias Anchoring & Attribution
+Raw system identifiers and internal paths are never passed directly to foundational models:
+* The prompt compiler exposes deterministic opaque aliases (e.g., `doc0`, `doc1` for documents; `a0`, `a1` for assertions) generated by the central alias engine.
+* Upon receiving structured model output, the extraction schemas automatically validate returned aliases against the active execution alias registry.
+* Any unmapped or hallucinated alias triggers an immediate schema validation exception, preventing phantom citations from polluting the audit trail.
+
+### 6.5 Immutable Evidence Firewall
+While narrative summaries and explanatory prose are subject to length budgeting, tone styling, and boundary trimming, evidence quotes are immutable legal records. The system enforces a strict zero-mutation firewall: `source_quote` and `exact_quotes` pass through all pipeline stages untouched and unedited, guaranteeing character-for-character fidelity to the physical source document.
+
+---
+
+## 7. Unified Model Garden, Dynamic Strategies & FinOps Token Economics
+
+### 7.1 Unified Model Garden & Dynamic Strategy Resolution
+Foundational models in Quorum are fully abstracted behind the Unified Model Garden. Services never bind directly to vendor SDKs or hardcoded model identifiers. Instead, execution requests invoke strategies:
+`LLMClient.from_strategy("strategy_name", repository=repo)`
+
+Strategy configurations (e.g., `fast`, `reasoning`, `synthesis`, `audit`) are stored in the system configuration registry, defining model endpoints, temperature, top-p, rate limits, and provider routing dynamically.
+
+### 7.2 Zero Cross-Model Fallback Invariant
+A critical architectural invariant governs model execution: **Zero Silent Cross-Model Fallbacks**.
+
+If a designated model provider fails, times out, or exhausts its configured retry policy, the system crashes immediately with a typed `AppException` (`ErrorCodes.AGENT_EXECUTION_CRITICAL`) and escalates to the application error boundary. The system strictly forbids catching an error from one model (e.g., an advanced reasoning model) and silently substituting another model (e.g., a lightweight flash model) midway through an evaluation.
+
+Because foundational models possess divergent latent representations, reasoning paradigms, and scoring calibrations, silent cross-model substitutions destroy cognitive comparability and invalidate longitudinal audit baselines.
+
+### 7.3 LiteLLM Pricing Registry SSOT & FinOps Telemetry
+Financial token accounting and sustainability reporting require exact, auditable cost telemetry. Rather than maintaining brittle, manual pricing tables across configuration files, the system designates the LiteLLM Model Pricing Registry as the sole Single Source of Truth (SSOT) for all unit token rates.
+
+Provider adapters extract unit costs directly from this central registry to calculate `cost_usd`, input/output token expenditures, and cache-induced savings (`estimated_savings_usd`) in real time, guaranteeing zero drift between billing statements and system telemetry.
+
+### 7.4 Two-Tier Concurrency Architecture
+High-volume pipeline execution requires strict isolation between macro-level workflow scheduling and micro-level API transmission. Quorum enforces a Two-Tier Semaphore Architecture:
+1. **Job Concurrency Tier:** Macro-level background workers acquire a distributed job semaphore (`settings.max_concurrent_jobs`), governing how many asynchronous workflows can execute concurrently across worker nodes.
+2. **Request Concurrency Tier:** The foundational model client router maintains an independent, isolated request semaphore (`settings.max_concurrent_llm_steps`), governing concurrent outbound HTTP connections to model provider endpoints.
+
+Decoupling these semaphores prevents priority inversion and eliminates deadlock states where background workers starve API channels.
+
+### 7.5 Provider Adapter Encapsulation & Lazy Dependency Loading
+* All vendor-specific behaviors (such as Google Vertex AI location parameters, Anthropic prompt-caching headers, and OpenAI function calling formats) are strictly encapsulated inside concrete provider adapters.
+* Provider adapters are resolved dynamically via the cache adapter factory, maintaining an open-closed boundary where adding or upgrading a provider requires zero modifications to service orchestration logic.
+* Heavy vendor SDKs and Rust/PyO3-based acceleration libraries are lazily loaded inside execution methods or guarded behind static typing checks, preventing import-time crashes and keeping CLI tooling and unit test startup instantaneous.
+
+---
+
+## 8. Provider-Agnostic Context Caching & Lifecycle Governance
+
+### 8.1 The Zero If-Statement Facade
+Context caching across diverse cloud providers involves radically divergent lifecycle models: ephemeral HTTP headers vs. explicit server-side cached resources with explicit TTLs.
+
+Quorum encapsulates this divergence through `LLMCachingService`, a provider-agnostic facade adhering to the Zero If-Statement Principle. The facade dynamically routes caching tasks to the appropriate provider adapter without procedural conditional branches in service code.
+
+### 8.2 Static-First Caching Topology
+Provider prefix caching requires mathematical byte-for-byte prefix invariance. The Four-Layer Clean Stack guarantees cache survival:
+* **Static Prefix (Layers 1–3):** System directives, academic theory grounding, role definitions, and the massive source document are assembled into an unbroken, immutable prefix.
+* **Dynamic Tail (Layer 4):** Ephemeral execution parameters, runtime variables, and atom queries are strictly quarantined to the tail of the final user message.
+
+This structural separation guarantees a **95%+ cache hit rate**, reducing inference costs by up to 90% and cutting latency by over 70% during multi-pass and batch evaluations.
+
+### 8.3 Cache Pre-Warming & Thundering Herd Prevention
+When evaluating large documents across parallel assertion batches, dispatching multiple concurrent requests simultaneously can trigger a "thundering herd" problem where multiple workers attempt to establish the same provider cache concurrently.
+
+The orchestrator mitigates this via explicit Cache Pre-Warming (`pre_cache_document`). Before launching parallel evaluation tasks in `asyncio.TaskGroup`, the orchestrator explicitly requests the adapter to establish and lock the shared context cache. Subsequent parallel tasks bind directly to the existing cached context token.
+
+### 8.4 Orchestrator-Hoisted Lifecycle Teardown
+Explicit context caches carry hourly retention costs and provider quotas. Caches must be deleted promptly upon workflow completion.
+
+However, invoking cache teardown within individual task executors causes race conditions where the first worker to finish deletes the shared cache while sibling workers are still computing. Quorum hoists cache lifecycle management to the root orchestrator level (`EnrichedDagExecutor`). The orchestrator initializes the cache prior to task dispatch and encapsulates the parallel evaluation group in a `try...finally` block that invokes `teardown_workflow_caches()` exactly once after all tasks have concluded.
 

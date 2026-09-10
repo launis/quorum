@@ -40,11 +40,11 @@
     <module path="backend_v2/services/">
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
-          - Pillar 2 (Ontology): studio/, translation_service.py
-          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py)
-          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (authenticity_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
-          - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py
-          - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py)
+          - Pillar 2 (Ontology): studio/, translation_service.py, factories/ (output_profile_factory.py)
+          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
+          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (base_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
+          - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
+          - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
           - Orphan: auth.py
         </key_domains>
     </module>
@@ -77,7 +77,7 @@
     
     <module path="backend_v2/seed/">
         <responsibility>ZERO-DEPLOY STATIC DATA VAULT</responsibility>
-        <key_domains>seed_data.json, run_seed.py, wipe_user_data.py</key_domains>
+        <key_domains>seed_data.json, seed_registry.py, run_seed.py, wipe_user_data.py</key_domains>
     </module>
 
     <module path="backend_v2/hooks/">
@@ -87,12 +87,22 @@
 
     <module path="backend_v2/llm/">
         <responsibility>FOUNDATIONAL MODEL ORCHESTRATION & ADAPTERS</responsibility>
-        <key_domains>adapters/, mock.py, provider.py</key_domains>
+        <key_domains>adapters/, mock.py, provider.py, prompt_builder.py, caching_service.py, client.py, handler.py, schema_builder.py</key_domains>
     </module>
 
     <module path="backend_v2/utils/">
         <responsibility>MATHEMATICAL ENGINES & SYSTEM INVARIANTS (PILLAR 1)</responsibility>
         <key_domains>alias_engine.py, math_utils.py, ranked_round_robin.py, scoring/</key_domains>
+    </module>
+
+    <module path="backend_v2/ (root entrypoints)">
+        <responsibility>SYSTEM CONSTITUTION, CONFIGURATION & INVARIANTS (PILLAR 1)</responsibility>
+        <key_domains>exceptions.py (RFC 7807 & AppException SSOT), settings.py (Central Configuration Sovereignty), context.py (Execution & Request ID Tracking), logging_config.py (DLP Sanitization)</key_domains>
+    </module>
+
+    <module path="scripts/">
+        <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
+        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_database_atoms.py, sanitize_seed_vault.py</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
@@ -117,7 +127,7 @@
 
     <module path="docs/architecture/">
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
-        <key_domains>00_README_META_ARCHITECTURE.md, 6 Capability-Driven Pillar documents</key_domains>
+        <key_domains>00_README_META_ARCHITECTURE.md, capability-driven pillar and domain architecture documents (01_ through 09_)</key_domains>
     </module>
     
     <module path=".agents/rules/">

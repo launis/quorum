@@ -1,59 +1,171 @@
 # Server-Driven UI & Presentation
 
 ## 1. Executive Summary
-The **Server-Driven UI & Presentation** capability governs how the "Surface" of the Compound AI System operates. The core philosophy is that the client application (Flutter frontend) is a completely "dumb" rendering engine. It contains zero business logic, zero prompt compilation, and zero layout math. The backend strictly dictates the state, and the frontend merely paints the declarative Markdown and data blocks it receives.
+The **Server-Driven UI & Presentation** capability governs the user-facing "Surface" of the Compound AI System. Its foundational architectural premise is the **Dumb Painter Pattern**: the client application (Flutter desktop frontend) and the report export engine (WeasyPrint HTML-to-PDF compiler) contain zero business logic, zero layout heuristics, zero scoring math, and zero prompt compilation routines. The backend acts as the sole authoritative state machine, compiling complex cognitive graphs and evaluation models into a deterministic, flat sequence of polymorphic visual blocks (`inner_sdui_blocks`). The presentation surfaces merely paint the declarative Markdown, typography, theme tokens, and structured data payloads they receive. This architecture guarantees strict 1:1 cross-platform semantic parity between interactive desktop dashboards and static vector PDF publications.
 
-## 2. Architectural Principles & Implementation
+## 2. Architectural Principles & Mechanisms
 
-The Server-Driven UI architecture enforces client-side purity, deterministic layout rendering, and presentation parity:
+### 2.1. Dumb Painter Flat Polymorphic Pipeline (`inner_sdui_blocks`)
+The presentation layer strictly enforces a flat, sequentially ordered array: `inner_sdui_blocks: list[AnySduiBlock]`. Nested macro-routing trees, layout dictionaries (`layouts`), and client-side presentation inference are permanently banned. All report sections, graphs, summaries, and narratives are flattened by the backend into this linear array. The client iterates sequentially through the blocks, dispatching each block strictly according to its discriminator variant.
+Adapters assemble report sections in a strict, predictable sequential structure:
+1. **Header Block**: `MarkdownBlock(text="### " + title)`
+2. **Synthesis Narrative**: `ParagraphBlock(text=synthesis_narrative)`
+3. **Data Visualization Component**: Dedicated chart or table (`SduiRadarChartBlock`, `SduiScatterPlotBlock`, `SduiQuadrantMatrixBlock`, `SduiMetrics1DBlock`, `SduiMatrixTableBlock`) with its internal `title` attribute explicitly set to `None` to prevent duplicate header rendering.
+4. **Citations / Sources**: Localized footer blocks (`MarkdownBlock(text="#### " + localized_sources)`, `PrintableSourcesBlock`).
+For text-only views, the data visualization component is omitted entirely, producing strictly `MarkdownBlock` -> `ParagraphBlock`. All scaling math, score calculations, date formatting, and static headers are pre-computed and pre-localized on the backend, ensuring client rendering remains mathematically decoupled from presentation.
 
-### 2.1. Server-Side Prompt Isolation
-The frontend application never constructs, edits, or inspects raw LLM prompt envelopes. The client manages human-readable inputs (such as Markdown text), while the backend `PromptCompiler` handles the encapsulation of dynamic text into secure system envelopes. This preserves prompt injection defense boundaries and ensures deterministic execution.
+### 2.2. Strict Polymorphic Serialization & Discriminated Unions (18 Block Types)
+All dynamic UI layout blocks are strictly typed using polymorphic discriminated unions across both language boundaries:
+- **Backend (Python Pydantic V2)**: `AnySduiBlock = Annotated[..., Field(discriminator="block_type")]` in `backend_v2/models/view/sdui.py`. Every concrete child model inherits from `SduiBlockBase`, configuring `model_config = ConfigDict(title="<block_type>", strict=True, extra="forbid")` and binding a literal discriminator field (`block_type: Literal["<block_type>"]`).
+- **Frontend (Flutter Dart 3)**: Sealed class `@Freezed(unionKey: 'block_type') sealed class SduiBlockDTO` in `client_app_v2/lib/shared/models/sdui_block_dto.dart`. Every union variant enforces `@JsonSerializable(disallowUnrecognizedKeys: true)`.
+- **Exhaustive Renderer Matching**: In `sdui_blocks_renderer.dart`, client-side rendering uses Dart 3 native `switch` expressions over `SduiBlockDTO` exhaustively matching all 18 concrete block types without wildcard defaults (`_ =>`):
+  1. `hero_insight`: High-priority analytical takeaway with severity iconography.
+  2. `paragraph`: Markdown narrative prose with theme typography.
+  3. `bullet_list`: Structured bullet points with optional emphasis.
+  4. `alert_box`: Themed alerts with visual intent (`VisualIntent.CRITICAL_OVERRIDE`, `WARNING`, `INFO`).
+  5. `accordion`: Collapsible container for extensive analytical details.
+  6. `markdown`: Raw GitHub-flavored Markdown document chunk.
+  7. `quote_card`: Forensic quote citation anchored to source document fragments.
+  8. `warning_card`: System alert for operational exceptions and data starvation.
+  9. `n_a_card`: Explicit null-state card for un-evaluated or skipped criteria.
+  10. `grid`: Dynamic multi-column layout for comparative metrics.
+  11. `metadata`: Execution metadata, execution timestamp, user context, token telemetry, and financial costs.
+  12. `3d_matrix`: Multi-axis radar chart for multi-dimensional competency models.
+  13. `2d_compare`: Scatter plot for bivariate comparative evaluations.
+  14. `quadrant_matrix`: Four-quadrant matrix for variance and authenticity analysis.
+  15. `matrix_summary`: Comprehensive tabular matrix of evaluation scores, columns, and qualitative extension labels.
+  16. `1d_metrics`: Linear scorecard list for individual matrix rows and indicators.
+  17. `score_card`: Prominent executive scorecard displaying the aggregated global score and penalty adjustments.
+  18. `audit_trail`: Immutable trace table of external tool interactions and MCP gateway invocations.
+Any unexpected discriminator or malformed schema triggers an immediate Fail-Fast crash (`AppException` on the backend, caught by `AppErrorBoundary` on the frontend) rather than silently dropping elements or hiding them with empty widgets (`SizedBox.shrink()`).
 
-### 2.2. Strict ICU Markdown Parity
-The backend emits only semantic Markdown and ICU message format templates, avoiding presentation-specific styling (such as HTML tags, inline colors, or widget definitions). Typography, color schemes, and visual layout are governed by client theme definitions. This separation guarantees that identical report payloads render with 100% semantic fidelity across interactive Flutter screens and static PDF documents.
+### 2.3. Self-Contained SDUI Presentation Adapters
+Presentation logic is modularized into isolated presentation adapters under `backend_v2/services/sdui/adapters/`. Every adapter strictly adheres to a standardized Two-Section Architecture:
+- **Section 1 (Aesthetics Rules Dictionary)**: A module-level constant dictionary named `{ADAPTER_NAME}_RULES` placed prior to the class definition. This dictionary centralizes all visual styling decisions, mapping domain keys to visual properties (`severity`, `icon_name`, label keys). The adapter accesses rules via strict direct key indexing (`RULES[key]`). Missing keys trigger an immediate RFC 7807 error and an `AppException`, preventing unconfigured attributes from silently defaulting.
+- **Section 2 (Adapter Class)**: An adapter class exposing a single `@staticmethod def build(context: AdapterContext) -> list[AnySduiBlock]`. It reads domain state from the context, queries visual properties from Section 1, and emits flat `AnySduiBlock` instances.
+- **Immutable Context Envelope (`AdapterContext`)**: The input parameter `AdapterContext` is a frozen Pydantic V2 model (`ConfigDict(frozen=True, strict=True, extra="forbid")`) instantiated once by `BlueprintTransformer` before the dispatch loop and passed identically to all hydrators. It provides zero-cost $O(1)$ predicate helpers (such as `is_data_starved`) while prohibiting side-channel keyword argument mutations.
 
-### 2.3. Null-Safe Component Synchronization
-Server-Driven UI models emitted by the backend are fully exhaustive. If expected widget configuration is absent or malformed, the client isolates the error via dedicated `AppErrorBoundary` widgets rather than hiding components with empty fallback widgets (`SizedBox.shrink()`).
+The adapter cluster comprises 11 canonical hydrators mapped to `TargetBlockType` enums:
+1. `ExecutiveSummaryAdapter` (`EXECUTIVE_SUMMARY_BLOCK`): Transforms profile executive narratives and cognitive persona assessments into `ParagraphBlock` and `HeroInsightBlock`.
+2. `GlobalScoreAdapter` (`GLOBAL_SCORE_BLOCK`): Formats the normalized, penalty-adjusted composite score into an executive `SduiScoreCardBlock`.
+3. `MatrixGraphsAdapter` (`MATRIX_GRAPHS_BLOCK`): Renders evaluated matrix synthesis groups into radar charts, scatter plots, 1D metric scorecards, or text-only views with localized headers and qualitative explanations.
+4. `MatrixSummaryTableAdapter` (`MATRIX_SUMMARY_TABLE_BLOCK`): Assembles evaluated axes into comprehensive comparative tables with localized column headers and extension badges.
+5. `VarianceAdapter` (`VARIANCE_VALIDATION_BLOCK`): Evaluates divergence across multi-evaluator scoring runs, assembling quadrant matrix visualizations (`SduiQuadrantMatrixBlock`) and analytical explanations.
+6. `PenaltiesAdapter` (`PENALTIES_BLOCK`): Maps applied policy or security penalties into `AlertBlock` notifications.
+7. `XaiHighlightsAdapter` (`GROUPED_EXTENSIONS_BLOCK`): Curates behavioral claim highlights using fair round-robin interleaving to prevent single-category presentation bias.
+8. `McpAuditAdapter` (`AUDIT_TRAIL_BLOCK`): Serializes immutable MCP tool invocations into an `SduiAuditTrailBlock`.
+9. `MetadataAdapter` (`METADATA_BLOCK`): Emits execution metadata, execution timing, user context, token consumption, and financial costs into `SduiMetadataBlock`.
+10. `PrintableSourcesAdapter` (`PRINTABLE_SOURCES_BLOCK`): Formats bibliographic citations, academic grounding, and extracted source anchors into verifiable citation lists.
+11. `SynthesisTextAdapter` (`SYNTHESIS_TEXT_BLOCK`): Translates custom markdown prefaces and qualitative narrative sections into `MarkdownBlock`.
+In addition, `WarningCardAdapter` dynamically injects pre-flight system alerts and data starvation warnings at the top of the stream.
 
-### 2.4. SDUI Component Type Contracts
-The client renders SDUI components strictly according to backend enum mappings (`SDUIComponentType`). Specific components inherently resolve their required presentation fields directly from the payload without secondary client-side API requests.
+### 2.4. Database-Driven Target Block Dispatching & Visibility SSOT
+The assembly sequence of SDUI blocks is 100% database-driven via `OutputProfile.target_block_order` (`list[str]`) configured in `seed_data.json` / `OutputProfile`:
+- **Dynamic Reordering**: The orchestrator (`BlueprintTransformer`) iterates strictly over the array defined by the active profile, looking up the corresponding hydrator in `_target_block_hydrators`. Users freely reorder sections in the Studio interface without code modifications.
+- **Text Delivery Governance**: The visibility of qualitative synthesis narratives and section titles is governed by `OutputProfile.text_delivery_mode` (`"none"`, `"titles_only"`, `"full"`). Modifying visibility is achieved by changing configuration in the database rather than inserting `if/else` logic in Python code.
+- **Data Starvation Guardrail**: If an execution lacks required evaluation data or triggers data starvation (`adapter_context.is_data_starved`), the dispatch loop restricts rendering strictly to `METADATA_BLOCK` alongside a prominent `WarningCardAdapter` banner, preventing broken or empty graphs from rendering.
 
-### 2.5. Bilingual Editing Parity (I18nText)
-When the studio interface edits localized dynamic strings from the ontology, it interacts with the structured `I18nText` object natively. The translation editor inspects and updates both baseline (`en`) and target translations simultaneously, preventing malformed string packing or schema drift.
+### 2.5. Asynchronous SDUI Matrix Synthesis & Arq Worker Orchestration
+Qualitative report synthesis is decoupled from synchronous API endpoints and executes asynchronously within Arq background workers (`generate_profile_synthesis_and_pdf_task` in `backend_v2/worker.py`):
+- **Centralized Prompt Directives SSOT**: Foundational prompt templates, Layer 1 system identities, and structural constants are imported from `backend_v2/models/prompts/synthesis/synthesis_directives.py` (`SYNTHESIS_SYSTEM_PROMPT`, `ROW_EXPLANATION_SYSTEM_PROMPT`, `VARIANCE_SYSTEM_PROMPT`, `EXECUTIVE_SUMMARY_SECTION_ID`, `SYNTHESIS_SECTION_RULES_PREFIX`, `SYNTHESIS_XAI_CURATION`).
+- **Native Structured Output API**: Worker tasks invoke `LLMClient.run_structured_task(response_model=SynthesisOutputDTO)`, eliminating text-based regex JSON extraction.
+- **Deterministic Cache Persistence**: Synthesized sections (`SynthesisSectionDTO`) are stored in `RenderedSynthesisCache.section_syntheses`, keyed strictly by `TargetBlockType` constants (`"executive_summary_block"`) or layout identifiers (`layout_0_2d_compare`). Adapters look up synthesis text strictly via these enum constants, permanently banning fallback key loops.
+- **Modular Synthesis Gating**: The system enforces two-tier synthesis gating:
+  1. *Global Executive Summary Scope*: Driven by `OutputProfile.executive_summary_directive` and emitted as `EXECUTIVE_SUMMARY_SECTION_ID`.
+  2. *Matrix Group Synthesis Scope*: Driven by `OutputProfile.matrix_synthesis_groups` (`list[MatrixSynthesisGroup]`), bounded in length by `matrix_graph_length_constraint`.
+  Profiles gracefully support zero-group states for non-matrix workflows, while concrete matrix groups require at least one target block (`min_length=1`), validated by `@model_validator` cross-field coherence checks. Missing profile directives log warnings and gracefully skip synthesis tasks without halting the pipeline.
 
-### 2.6. Backend-for-Frontend (BFF) Presentation Mapping
-Dedicated presentation services translate complex domain entities into explicit Server-Driven UI structures (cards, grids, accordions, markdown blocks) before network transit. The client renders this strictly typed hierarchy without performing domain transformation logic.
+### 2.6. Strict ICU Markdown Parity & Tripartite Rendering Boundary
+The presentation engine enforces a strict boundary between structured data and layout rendering:
+- **Zero Backend HTML/CSS**: Backend Python services are strictly forbidden from emitting HTML tags (`<span>`, `<font>`, `<br>`, `<div>`, `<a>`), inline CSS, or manual spacing hacks (`\n\n\n`). All textual data must be semantic GitHub-flavored Markdown. Entities requiring interactive navigation use standard Markdown link syntax (`[Link Text](tda_123)`).
+- **Pure Data Payloads**: Python services return pure Pydantic DTOs or discrete SDUI component blocks, never concatenating business data into synthetic ASCII or Markdown tables.
+- **Client-Side ICU Message Formatting**: Parameterized system messages and static UI labels are defined as ICU message templates in Flutter message catalogs (`app_en.arb`, `app_fi.arb`) and evaluated via `AppLocalizations.of(context)`. The backend supplies raw numerical parameters, dates, and enum keys; the frontend handles pluralization and grammatical agreement deterministically. Dynamic domain strings use structured `I18nText` models.
+- **Tripartite Rendering Parity**: The backend emits the identical `inner_sdui_blocks` array to both Flutter desktop and WeasyPrint Jinja (`report_template.jinja2`), verified continuously by automated parity tests (`test_sdui_semantic_parity.py` and `test_sdui_template_parity.py`) to guarantee 100% semantic and visual alignment.
 
-### 2.7. Three-Part Layout Block Structure
-Layout editing interfaces enforce a standardized three-part architecture (Header, Body, Footer) across all component views, maintaining structural parity between the studio configuration canvas and the rendered report.
+### 2.7. 3rd-Party Semantic Sandboxing & Desktop Accessibility
+Complex 3rd-party visual components (such as `fl_chart` radar charts, scatter plots, and multi-axis graphs) are strictly isolated from the accessibility tree:
+- **`ExcludeSemantics` Boundary**: Visual charts are wrapped inside Flutter's `ExcludeSemantics()`, acting purely as decorative visual canvases. This prevents 3rd-party chart engines from polluting the screen reader tree with unlocalized coordinate spam (e.g., `"X: 0.5, Y: 1.2"`).
+- **Adjacent Textual Representation**: Accessible descriptions, metric lists, and tabular summaries are rendered as standard accessible Flutter widgets (`Semantics`, `Text`) placed adjacently, driven directly by backend SDUI data.
+- **Desktop Windows UI Automation (UIA) Protection**: Custom interactive widgets and expandable cards utilize `excludeSemantics: Platform.isWindows` or universal semantic sandboxing on Windows Desktop to prevent cyclical or non-standard render object trees from crashing Windows UI Automation.
 
-### 2.8. Dumb Painter Flat Polymorphic Pipeline
-All visual elements (charts, matrices, summaries, text blocks) are mapped by the backend into a single, flat `inner_sdui_blocks` array. The frontend iterates sequentially through this polymorphic collection, rendering each block according to its discriminator variant. Scaling math, score calculations, date formatting, and static headers are pre-computed and pre-localized on the backend, ensuring that client rendering is deterministic and mathematically decoupled from presentation.
+### 2.8. SDUI Dynamic Schema Builder Registry Pattern
+Structured output schemas for dynamic LLM steps are governed through a decentralized Strategy and Registry architecture in `backend_v2/core/registry.py`:
+- **Strategy Decoupling**: Each distinct presentation type (`markdown`, `hero_insight`, `grid`) implements a dedicated `SchemaBuilderStrategy` registered via `@register_sdui_schema('type')`.
+- **Central Registry SSOT**: `_SDUI_SCHEMA_REGISTRY` is the Single Source of Truth for schema resolution. Unknown schema types trigger an immediate Fail-Fast `AppException` with `ErrorCodes.INVALID_OUTPUT_SCHEMA`.
+- **Single Registration Collision Defense**: The decorator validates that type keys are unique, preventing registration collisions and module import race conditions.
+- **Deterministic Schema Compilation Caching**: `SchemaFactory` caches dynamically compiled Pydantic models in `_schema_cache` using composite keys (criteria IDs, document IDs, dynamic keys, schema name, locale, strictness), preventing repetitive runtime `create_model()` compilation overhead in large DAG loops.
 
-### 2.9. Strict Polymorphic Serialization & Extension Protocol
-Dynamic UI layout blocks are strictly typed using `AnySduiBlock` (Python Pydantic discriminated union across all 17 block types) and `SduiBlockDTO` (Flutter Freezed sealed class). Unknown or malformed block discriminators trigger fast-fail exceptions (`AppException` and `AppErrorBoundary`) rather than silent dropping. Block additions follow a 4-layer extension protocol across backend domain, PDF template, Flutter widget, and parity fixtures.
+### 2.9. Studio 3-Zone Workflow Governance & Visual Design System
+The Studio interface provides visual management of workflows, steps, and output profiles:
+- **3-Zone Pipeline Governance**:
+  1. *Zone A (Input Anchors)*: Ingestion steps, source document bindings, and immutable input sources.
+  2. *Zone B (Dynamic Specialists)*: Configurable analytical steps, prompt blocks, and upstream dependency wiring.
+  3. *Zone C (Funnel Anchors)*: Downstream scoring, synthesis generation, and forensic explanation reporting with multi-source aggregation.
+- **System Core Protection**: Foundational steps marked with `is_system_core: true` display locked visual indicators, hide deletion buttons, and prevent accidental mutation of core system hooks.
+- **Unified Visual Design System**: All Studio management views enforce consistent Card containers (`elevation: 2`, `BorderRadius.circular(12)`), interactive `FilterChip`/`ChoiceChip` selectors, pill-shaped status badges, standardized action triggers, and 100% `Theme.of(context)` color token adherence.
+- **Bilingual Editing Parity (`I18nText`)**: Dynamic ontology strings are edited simultaneously in baseline English and localized Finnish, maintaining referential integrity across locales.
 
-### 2.10. Self-Contained SDUI Presentation Adapters
-Presentation logic is encapsulated within isolated adapters under `services/sdui/adapters/`. Adapters co-locate aesthetic rules with strict input validation, employing fair round-robin interleaving across multi-category findings (such as XAI explanation highlights) to prevent presentation bias.
+### 2.10. System Audit Trail & Explainable AI (XAI) Transparency
+In accordance with international AI transparency regulations (such as EU AI Act Articles 12-15):
+- **Immutable MCPAuditTrace**: External tool calls, web searches, and MCP gateway interactions capture full parameter inputs, responses, latency, and status in immutable `MCPAuditTrace` records.
+- **Data Leak Prevention (DLP)**: Raw user prompts, API keys, and sensitive tokens are scrubbed and sanitized before SDUI serialization.
+- **Auditable Presentation**: Audit records are serialized via `McpAuditAdapter` into `SduiAuditTrailBlock` and displayed to users as structured, verifiable execution traces.
+- **XAI Qualitative Extensions**: Analytical reasoning traces and evidence quotes are structured into `HighlightBoxDisplay` cards and `AlertBlock` components, providing clear provenance for every score and recommendation.
 
-### 2.11. Studio 3-Zone Workflow Governance
-The workflow studio partitions pipeline step governance into three dedicated architectural zones:
-1. **Zone A (Input Anchor):** Governs initial document ingestion with immutable execution bindings and input source tracking.
-2. **Zone B (Dynamic Specialists):** Facilitates specialist analytical steps configured from custom blueprints, managing upstream dependency wiring.
-3. **Zone C (Funnel Anchors):** Governs downstream scoring, synthesis generation, and forensic explanation reporting with multi-source aggregation.
-Core pipeline steps marked with system protections display locked visual indicators, hide deletion controls, and prevent accidental mutation of foundational hooks.
-
-## 3. Logical Data Flow
+## 3. Logical Data Flow & Rendering Pipeline
 ```mermaid
-flowchart TD
-    A[Backend Service] --> B{SDUI Payload Compiler}
-    B --> C[Semantic Markdown Generation]
-    B --> D[ICU Template Injection]
-    B --> E[Dumb Painter Layout Mapping]
-    C & D & E --> F[JSON API Response]
-    F --> G[Client App]
-    G --> H{App Shell Router}
-    H --> I[Widget Library]
-    I --> J[Screen Render]
+flowchart TB
+    subgraph StorageAndConfig["Authoritative Ontology & Cache (SSOT)"]
+        OP["OutputProfile<br/>(target_block_order, directives, budgets)"]
+        RSC["RenderedSynthesisCache<br/>(section_syntheses, data_starvation)"]
+        EX["ExecutionRecord<br/>(parsed_matrices, scores, mcp_traces)"]
+    end
+
+    subgraph BackendPresentation["Backend Presentation Pipeline (BFF)"]
+        BT["BlueprintTransformer<br/>(build_report_dto)"]
+        AC["AdapterContext<br/>(Frozen Pydantic BaseModel)"]
+        
+        subgraph Adapters["SDUI Presentation Adapters (11 Target Block Hydrators)"]
+            ESA["ExecutiveSummaryAdapter"]
+            GSA["GlobalScoreAdapter"]
+            MGA["MatrixGraphsAdapter"]
+            MTA["MatrixSummaryTableAdapter"]
+            VRA["VarianceAdapter"]
+            PLA["PenaltiesAdapter"]
+            XAA["XaiHighlightsAdapter"]
+            MAA["McpAuditAdapter"]
+            MDA["MetadataAdapter"]
+            PSA["PrintableSourcesAdapter"]
+            STA["SynthesisTextAdapter"]
+            WCA["WarningCardAdapter"]
+        end
+        
+        DTO["ReportDataDTO<br/>inner_sdui_blocks: list[AnySduiBlock]"]
+    end
+
+    subgraph DualPresentation["Dual-Channel Dumb Painter Rendering"]
+        subgraph FlutterSurface["Flutter Desktop Client"]
+            BR["SduiBlocksRenderer<br/>(Dart 3 Exhaustive Switch)"]
+            WID["18 Concrete SduiBlockDTO Widgets<br/>(Dumb Painter + ExcludeSemantics Charts)"]
+            SCR["Interactive Desktop Screen"]
+        end
+        
+        subgraph PDFSurface["WeasyPrint PDF Generator"]
+            JIN["report_template.jinja2<br/>(render_sdui_blocks Macro)"]
+            CSS["Semantic Markdown + Stylesheet"]
+            PDF["Print-Ready Vector PDF Report"]
+        end
+    end
+
+    OP & RSC & EX --> BT
+    BT --> AC
+    AC --> WCA
+    AC --> ESA & GSA & MGA & MTA & VRA & PLA & XAA & MAA & MDA & PSA & STA
+    WCA & ESA & GSA & MGA & MTA & VRA & PLA & XAA & MAA & MDA & PSA & STA --> DTO
+    
+    DTO -->|JSON Transit / API| BR
+    DTO -->|Direct In-Memory Payload| JIN
+    
+    BR --> WID --> SCR
+    JIN --> CSS --> PDF
 ```
