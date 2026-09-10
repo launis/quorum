@@ -271,6 +271,8 @@ repomix-*.xml
 # Temp and Logs
 tmp/
 .logfire/
+timestamps.json
+**/timestamps.json
 
 # Data Files
 data/db*.json
