@@ -106,6 +106,20 @@ abstract class CausalEdgeDTO with _$CausalEdgeDTO {
 }
 
 @Freezed(equal: false)
+abstract class ContrastivePairDTO with _$ContrastivePairDTO {
+  const ContrastivePairDTO._();
+
+  @JsonSerializable(disallowUnrecognizedKeys: true)
+  const factory ContrastivePairDTO({
+    required String acceptable,
+    required String rejected,
+  }) = _ContrastivePairDTO;
+
+  factory ContrastivePairDTO.fromJson(Map<String, dynamic> json) =>
+      _$ContrastivePairDTOFromJson(json);
+}
+
+@Freezed(equal: false)
 abstract class TDAAssertion with _$TDAAssertion {
   const TDAAssertion._();
 
@@ -117,7 +131,8 @@ abstract class TDAAssertion with _$TDAAssertion {
     @Default([])
     List<AcceptanceCriterion> acceptanceCriteria,
     @JsonKey(name: 'anti_patterns') @Default([]) List<AntiPattern> antiPatterns,
-    @JsonKey(name: 'contrastive_example') String? contrastiveExample,
+    @JsonKey(name: 'contrastive_example')
+    ContrastivePairDTO? contrastiveExample,
     @JsonKey(name: 'syntactic_anchors')
     @Default([])
     List<String> syntacticAnchors,

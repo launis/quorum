@@ -1720,5 +1720,37 @@
   "claudeRecommendedMethod": "Suositeltu tapa (Tallenna PDF tai Leikepöytä)",
   "claudeStep1": "1. Paina Claude-keskustelussa Ctrl + P (Tallenna PDF-muodossa) tai kopioi keskustelu leikepöydälle (Ctrl + A -> Ctrl + C).",
   "claudeStep2": "2. Valitse PDF-tiedosto tai liitä teksti Quorumiin.",
-  "chatGptPdfTruncationWarning": "Huom! Jos tuot keskustelun PDF-tulosteena (Ctrl + P), varmista että pitkät kehotteet eivät ole leikkautuneet poikki ('Näytä lisää' -painike). Suosittelemme leikepöytää (Liitä teksti) ChatGPT-keskusteluille."
+  "chatGptPdfTruncationWarning": "Huom! Jos tuot keskustelun PDF-tulosteena (Ctrl + P), varmista että pitkät kehotteet eivät ole leikkautuneet poikki ('Näytä lisää' -painike). Suosittelemme leikepöytää (Liitä teksti) ChatGPT-keskusteluille.",
+  "scaleSectionCoreHypothesis": "1. Ydinmääritelmä & Kohdistus",
+  "scaleSectionReasoning": "2. Päättelyketju & Hylkäysperusteet",
+  "scaleSectionContrastive": "3. Rajanveto & Kalibrointi",
+  "scaleSectionAnchors": "4. Täsmähaku & Pikakarsinta",
+  "scaleSectionAggregation": "5. Aggregaatio & Virhetutka",
+  "scaleAcceptableExampleLabel": "Hyväksytty esimerkki (Acceptable)",
+  "scaleAcceptableExampleHelper": "Esimerkki lauseesta tai ilmaisusta, joka täyttää tämän tason vaatimuksen (EN, vähintään 10 merkkiä).",
+  "scaleRejectedExampleLabel": "Hylätty vastine (Rejected)",
+  "scaleRejectedExampleHelper": "Esimerkki lauseesta, joka hylätään tältä tasolta (EN, vähintään 10 merkkiä).",
+  "scaleContrastiveIdenticalError": "Hyväksytty ja hylätty esimerkki eivät voi olla identtisiä.",
+  "scaleContrastiveMinLengthError": "Esimerkin tulee olla vähintään {count} merkkiä pitkä.",
+  "@scaleContrastiveMinLengthError": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scaleAddCriterionBtn": "Lisää päättelyvaihe",
+  "scaleAddAntiPatternBtn": "Lisää hylkäysperuste",
+  "scaleCriterionPlaceholder": "Kirjoita looginen tarkistusvaihe englanniksi...",
+  "scaleAntiPatternPlaceholder": "Kirjoita hylkäävä antimalli englanniksi...",
+  "scaleAnchorChipPlaceholder": "Kirjoita sana ja paina Enter...",
+  "scaleAnchorDuplicateError": "Tunnistussana on jo lisätty.",
+  "scaleInverseEvidenceWarningTitle": "Virhetutka aktivoitu",
+  "scaleInverseEvidenceWarningDesc": "Tämä väite etsii virheitä tai laadun puutteita. Löytyminen aiheuttaa hylkäyksen. Varmista, että yllä oleva pääväite kuvaa virheellistä toimintaa, jotta laadukas teksti ei saa virheellistä hylkäystä.",
+  "scaleSystemLanguageNotice": "Ohje: Tekoälyn arviointiväitteiden, kriteerien ja esimerkkien tulee olla englanniksi (System Language) parhaan päättelytarkkuuden takaamiseksi.",
+  "scaleLinguisticShieldWarning": "Havaittu ei-englanninkielisiä merkkejä tai sanoja. Varmista, että arviointiväite on kirjoitettu englanniksi.",
+  "scaleDiscardChangesTitle": "Hylätäänkö muutokset?",
+  "scaleDiscardChangesMessage": "Sinulla on tallentamattomia muutoksia arviointitasoon. Haluatko varmasti sulkea muokkausikkunan?",
+  "scaleDiscardBtn": "Hylkää muutokset",
+  "scaleContinueEditingBtn": "Jatka muokkausta"
 }

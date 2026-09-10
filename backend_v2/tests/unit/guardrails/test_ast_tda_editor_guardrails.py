@@ -90,3 +90,15 @@ def test_ast_atom_flattening_no_anonymous_tuple_hell() -> None:
     assert "current_atom[5]" not in content, "Found positional indexing [5] in atom_flattening.py"
     assert "current_atom[0]" not in content, "Found positional indexing [0] in atom_flattening.py"
     assert "val[0]" not in content, "Found positional indexing val[0] in atom_flattening.py"
+
+
+def test_ast_flutter_scale_editor_modal_de_stringification() -> None:
+    """Verify scale_editor_modal.dart contains zero occurrences of .split(), Colors.amber, parochial regex, or showSnackBar."""
+    modal_path = Path("client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart")
+    content = modal_path.read_text(encoding="utf-8")
+
+    assert ".split('\\n')" not in content, "Found .split('\\n') in scale_editor_modal.dart"
+    assert ".split(',')" not in content, "Found .split(',') in scale_editor_modal.dart"
+    assert "Colors.amber" not in content, "Found Colors.amber in scale_editor_modal.dart"
+    assert "äöåÄÖÅ" not in content, "Found parochial Finnish regex in scale_editor_modal.dart"
+    assert "showSnackBar" not in content, "Found showSnackBar in scale_editor_modal.dart"

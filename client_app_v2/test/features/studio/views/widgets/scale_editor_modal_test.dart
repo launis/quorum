@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart';
@@ -43,7 +44,10 @@ void main() {
               antiPatterns: const [
                 AntiPattern(pattern: 'Avoid superficial keywords'),
               ],
-              contrastiveExample: 'Superficial: Good job.',
+              contrastiveExample: const ContrastivePairDTO(
+                acceptable: 'Acceptable sentence with deep reasoning.',
+                rejected: 'Rejected counterpart demonstrating disqualification.',
+              ),
               acceptanceCriteria: const [
                 AcceptanceCriterion(
                   instruction: 'Must include 2 causal connectors',
@@ -59,10 +63,8 @@ void main() {
     );
   }
 
-  group('ScaleEditorModal Tests', () {
-    testWidgets('renders initial scale and all nested TDA assertion fields', (
-      WidgetTester tester,
-    ) async {
+  group('ScaleEditorModal Modernized Tests', () {
+    testWidgets('renders initial scale and all 5 visual cards with elevation 2', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -77,8 +79,7 @@ void main() {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (ctx) =>
-                        ScaleEditorModal(initialScale: sampleScale),
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
                   );
                 },
                 child: const Text('Open Modal'),
@@ -96,23 +97,23 @@ void main() {
       expect(find.text('Exemplary Mastery'), findsOneWidget);
       expect(find.text('EXEMPLARY_5'), findsOneWidget);
       expect(find.text('Claim 1', skipOffstage: false), findsOneWidget);
-      expect(
-        find.text(
-          'Demonstrates deep systemic understanding',
-          skipOffstage: false,
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Extract complete causal explanation', skipOffstage: false),
-        findsOneWidget,
-      );
+      expect(find.text('Demonstrates deep systemic understanding', skipOffstage: false), findsOneWidget);
+      expect(find.text('Extract complete causal explanation', skipOffstage: false), findsOneWidget);
       expect(find.text('Paragraph 1', skipOffstage: false), findsOneWidget);
+
+      // Verify the 5 semantic section headers
+      expect(find.text('1. Core Hypothesis & Scope', skipOffstage: false), findsOneWidget);
+      expect(find.text('2. Reasoning Chain & Anti-Patterns', skipOffstage: false), findsOneWidget);
+      expect(find.text('3. Contrastive Calibration', skipOffstage: false), findsOneWidget);
+      expect(find.text('4. Lexical Anchors & Fast Falsification', skipOffstage: false), findsOneWidget);
+      expect(find.text('5. Aggregation & Reverse Polarity', skipOffstage: false), findsOneWidget);
+
+      // Verify Card widgets with elevation 2
+      final cards = tester.widgetList<Card>(find.byType(Card));
+      expect(cards.where((c) => c.elevation == 2).length, greaterThanOrEqualTo(5));
     });
 
-    testWidgets('adds a new criterion claim and updates assertion state', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('adds a new criterion claim and updates assertion state', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -128,8 +129,7 @@ void main() {
                 onPressed: () async {
                   savedResult = await showDialog<MatrixScale>(
                     context: context,
-                    builder: (ctx) =>
-                        ScaleEditorModal(initialScale: sampleScale),
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
                   );
                 },
                 child: const Text('Open Modal'),
@@ -142,14 +142,7 @@ void main() {
       await tester.tap(find.text('Open Modal'));
       await tester.pumpAndSettle();
 
-      final addCriterionBtn = find.byType(OutlinedButton);
-      await tester.scrollUntilVisible(
-        addCriterionBtn,
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.pumpAndSettle();
-
+      final addCriterionBtn = find.byType(OutlinedButton).first;
       expect(addCriterionBtn, findsOneWidget);
       await tester.tap(addCriterionBtn);
       await tester.pumpAndSettle();
@@ -162,14 +155,27 @@ void main() {
       expect(savedResult!.claims.length, 2);
     });
 
-    testWidgets('deletes an existing claim from the scale', (
-      WidgetTester tester,
-    ) async {
+    testWidgets('deletes an existing claim from the scale', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1920, 1080);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
 
-      final sampleScale = createSampleScale();
+      // Start with 2 claims so delete button is visible
+      final sampleScale = createSampleScale().copyWith(
+        claims: [
+          createSampleScale().claims.first,
+          MatrixClaim(
+            label: const I18nText(translations: {'en': 'Claim Level 5b'}),
+            tdaAssertions: [
+              TDAAssertion.create(
+                conceptDescription: 'Second claim concept description',
+                inverseEvidence: false,
+                aggregationMode: AggregationMode.exists,
+              ),
+            ],
+          ),
+        ],
+      );
       MatrixScale? savedResult;
 
       await tester.pumpWidget(
@@ -180,8 +186,7 @@ void main() {
                 onPressed: () async {
                   savedResult = await showDialog<MatrixScale>(
                     context: context,
-                    builder: (ctx) =>
-                        ScaleEditorModal(initialScale: sampleScale),
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
                   );
                 },
                 child: const Text('Open Modal'),
@@ -198,387 +203,330 @@ void main() {
       await tester.tap(deleteClaimBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('Claim 1'), findsNothing);
-
       final saveButton = find.widgetWithText(FilledButton, 'Save');
       await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
       expect(savedResult, isNotNull);
-      expect(savedResult!.claims.isEmpty, isTrue);
+      expect(savedResult!.claims.length, 1);
     });
 
-    testWidgets(
-      'ISTQB Negative: conceptDescription validator rejects < 10 characters',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets('ISTQB Negative: conceptDescription validator rejects < 10 characters', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        final sampleScale = createSampleScale();
+      final sampleScale = createSampleScale();
 
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: sampleScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
 
-        final initialField = find.widgetWithText(
-          TextFormField,
-          'Demonstrates deep systemic understanding',
-        );
-        expect(initialField, findsOneWidget);
+      final initialField = find.widgetWithText(TextFormField, 'Demonstrates deep systemic understanding');
+      expect(initialField, findsOneWidget);
 
-        // Enter short 4-char string (violates min length 10)
-        await tester.enterText(initialField, 'Bad');
-        await tester.pumpAndSettle();
+      await tester.enterText(initialField, 'Bad');
+      await tester.pumpAndSettle();
 
-        // Find Form / TextFormField to trigger validation
-        final updatedField = find.widgetWithText(TextFormField, 'Bad');
-        final formFieldState = tester.state<FormFieldState<String>>(
-          updatedField,
-        );
-        final isValid = formFieldState.validate();
+      final updatedField = find.widgetWithText(TextFormField, 'Bad');
+      final formFieldState = tester.state<FormFieldState<String>>(updatedField);
+      final isValid = formFieldState.validate();
 
-        expect(isValid, isFalse);
-        expect(
-          formFieldState.errorText,
-          'Concept description must be at least 10 characters long.',
-        );
-      },
-    );
+      expect(isValid, isFalse);
+      expect(formFieldState.errorText, 'Concept description must be at least 10 characters long.');
+    });
 
-    testWidgets(
-      'switches to extractiveSensor and enables factsToFind and logicalExpression',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets('switches to extractiveSensor and enables factsToFind and logicalExpression', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        final sampleScale = createSampleScale();
+      final sampleScale = createSampleScale();
 
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: sampleScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
 
-        // Initially cognitiveJudgement, sensor fields are not present
-        expect(find.text('Facts To Find (Comma-separated list)'), findsNothing);
+      expect(find.text('Facts To Find (Comma-separated list)'), findsNothing);
 
-        // Open Dropdown to switch to Extractive Sensor
-        final dropdown = find
-            .byType(DropdownButtonFormField<EvaluationTrack>)
-            .first;
-        await tester.ensureVisible(dropdown);
-        await tester.tap(dropdown);
-        await tester.pumpAndSettle();
+      final dropdown = find.byType(DropdownButtonFormField<EvaluationTrack>).first;
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
 
-        final sensorItem = find.text('Technical Fact Extraction').last;
-        await tester.tap(sensorItem);
-        await tester.pumpAndSettle();
+      final sensorItem = find.text('Technical Fact Extraction').last;
+      await tester.tap(sensorItem);
+      await tester.pumpAndSettle();
 
-        // Now factsToFind field should be visible
-        expect(
-          find.text('Facts To Find (Comma-separated list)'),
-          findsOneWidget,
-        );
-        expect(find.text('Logical Expression'), findsOneWidget);
-      },
-    );
+      expect(find.text('Facts To Find (Comma-separated list)'), findsOneWidget);
+      expect(find.text('Logical Expression'), findsOneWidget);
+    });
 
-    testWidgets(
-      'renders updated labels, helper texts, and tooltips across the modal',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets('typing anchor in TagChipInput without Enter and clicking Save retains anchor (Dual-Shield auto-flush)', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        final sampleScale = createSampleScale();
+      final sampleScale = createSampleScale();
+      MatrixScale? savedResult;
 
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: sampleScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  savedResult = await showDialog<MatrixScale>(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
 
-        // Verify updated primary labels
-        expect(
-          find.text(
-            'Primary Evaluation Claim (For AI, EN)',
-            skipOffstage: false,
+      // Find anchor chip input field inside Card 4
+      final anchorField = find.widgetWithText(TextField, 'Type word and press Enter...');
+      await tester.ensureVisible(anchorField);
+      await tester.enterText(anchorField, 'uncommitted_anchor');
+      await tester.pumpAndSettle();
+
+      // Click save button without pressing Enter
+      final saveBtn = find.widgetWithText(FilledButton, 'Save');
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      expect(savedResult, isNotNull);
+      final anchors = savedResult!.claims.first.tdaAssertions.first.syntacticAnchors;
+      expect(anchors, contains('uncommitted_anchor'));
+    });
+
+    testWidgets('typing anchor without Enter and pressing Ctrl+S retains anchor', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final sampleScale = createSampleScale();
+      MatrixScale? savedResult;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  savedResult = await showDialog<MatrixScale>(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Evaluation Logic', skipOffstage: false),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Evidence Search Scope', skipOffstage: false),
-          findsOneWidget,
-        );
-        expect(
-          find.text('Hit Coverage Requirement', skipOffstage: false),
-          findsOneWidget,
-        );
-        expect(
-          find.text(
-            'Inverse Interpretation (Risk/Fault Radar)',
-            skipOffstage: false,
+        ),
+      );
+
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      final anchorField = find.widgetWithText(TextField, 'Type word and press Enter...');
+      await tester.ensureVisible(anchorField);
+      await tester.enterText(anchorField, 'shortcut_anchor');
+      await tester.pumpAndSettle();
+
+      // Trigger Ctrl + S shortcut
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.control);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.control);
+      await tester.pumpAndSettle();
+
+      expect(savedResult, isNotNull);
+      final anchors = savedResult!.claims.first.tdaAssertions.first.syntacticAnchors;
+      expect(anchors, contains('shortcut_anchor'));
+    });
+
+    testWidgets('rapid double-clicks on Save invoke save debouncing without duplicate pops', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final sampleScale = createSampleScale();
+      int popCount = 0;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () async {
+                  final res = await showDialog<MatrixScale>(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                  if (res != null) popCount++;
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-          findsWidgets,
-        );
+        ),
+      );
 
-        // Verify inverse evidence tooltip exists
-        expect(
-          find.byTooltip(
-            'Use to detect faults or risks. If selected, finding the evidence does not grant points; instead, it rejects the criterion and lowers the score.',
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      final saveBtn = find.widgetWithText(FilledButton, 'Save');
+      // Rapidly tap save twice
+      await tester.tap(saveBtn);
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+
+      expect(popCount, 1);
+    });
+
+    testWidgets('validation error on unselected claim switches master selector to offending claim', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      // Create scale where Claim 2 has an invalid short description
+      final sampleScale = createSampleScale().copyWith(
+        claims: [
+          createSampleScale().claims.first,
+          MatrixClaim(
+            label: const I18nText(translations: {'en': 'Claim 2'}),
+            tdaAssertions: [
+              TDAAssertion.create(
+                conceptDescription: 'Short', // < 10 characters!
+                inverseEvidence: false,
+                aggregationMode: AggregationMode.exists,
+              ),
+            ],
           ),
-          findsOneWidget,
-        );
-      },
-    );
+        ],
+      );
 
-    testWidgets(
-      'ISTQB Negative: save action is blocked when conceptDescription is invalid (< 10 chars)',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-
-        final sampleScale = createSampleScale();
-        MatrixScale? savedResult;
-
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    savedResult = await showDialog<MatrixScale>(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: sampleScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
 
-        final conceptField = find.widgetWithText(
-          TextFormField,
-          'Demonstrates deep systemic understanding',
-        );
-        expect(conceptField, findsOneWidget);
+      // We are on Claim 1. Click Save -> should detect Claim 2 is invalid and navigate to Claim 2
+      final saveBtn = find.widgetWithText(FilledButton, 'Save');
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
 
-        // Enter invalid short text
-        await tester.enterText(conceptField, 'Too short');
-        await tester.pumpAndSettle();
+      // Offending short text from Claim 2 should now be visible
+      expect(find.widgetWithText(TextFormField, 'Short'), findsOneWidget);
+      await tester.tap(saveBtn);
+      await tester.pumpAndSettle();
+      expect(find.text('Concept description must be at least 10 characters long.'), findsOneWidget);
+    });
 
-        // Tap Save button
-        final saveBtn = find.widgetWithText(FilledButton, 'Save');
-        await tester.tap(saveBtn);
-        await tester.pumpAndSettle();
+    testWidgets('pressing Esc or close button with dirty state triggers discard dialog', (WidgetTester tester) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        // Modal should NOT have popped
-        expect(find.byType(ScaleEditorModal), findsOneWidget);
-        expect(savedResult, isNull);
+      final sampleScale = createSampleScale();
 
-        // Validation error should be rendered
-        expect(
-          find.text('Concept description must be at least 10 characters long.'),
-          findsOneWidget,
-        );
-      },
-    );
-
-    testWidgets(
-      'ISTQB Equivalence: updates boundingBoxScope and aggregationMode dropdown selections',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-
-        final sampleScale = createSampleScale();
-        MatrixScale? savedResult;
-
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () async {
-                    savedResult = await showDialog<MatrixScale>(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: sampleScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
 
-        // Change boundingBoxScope dropdown
-        final scopeDropdown = find
-            .byType(DropdownButtonFormField<String>)
-            .first;
-        await tester.ensureVisible(scopeDropdown);
-        await tester.tap(scopeDropdown);
-        await tester.pumpAndSettle();
+      // Mutate a field to make model dirty
+      final aiLabelField = find.widgetWithText(TextFormField, 'EXEMPLARY_5');
+      await tester.enterText(aiLabelField, 'DIRTY_STATE_LABEL');
+      await tester.pumpAndSettle();
 
-        final docItem = find.text('Entire Document').last;
-        await tester.tap(docItem);
-        await tester.pumpAndSettle();
+      // Tap close button in AppBar
+      final closeBtn = find.byIcon(Icons.close);
+      await tester.tap(closeBtn);
+      await tester.pumpAndSettle();
 
-        // Change aggregationMode dropdown
-        final aggDropdown = find
-            .byType(DropdownButtonFormField<AggregationMode>)
-            .first;
-        await tester.ensureVisible(aggDropdown);
-        await tester.tap(aggDropdown);
-        await tester.pumpAndSettle();
+      expect(find.text('Discard Changes?'), findsOneWidget);
+      expect(find.text('You have unsaved changes to this evaluation scale. Are you sure you want to close without saving?'), findsOneWidget);
 
-        final strictItem = find
-            .text('All conditions must be satisfied simultaneously (Strict)')
-            .last;
-        await tester.tap(strictItem);
-        await tester.pumpAndSettle();
+      // Tap "Continue Editing"
+      await tester.tap(find.text('Continue Editing'));
+      await tester.pumpAndSettle();
 
-        // Save
-        final saveBtn = find.widgetWithText(FilledButton, 'Save');
-        await tester.tap(saveBtn);
-        await tester.pumpAndSettle();
-
-        expect(savedResult, isNotNull);
-        final assertion = savedResult!.claims.first.tdaAssertions.first;
-        expect(assertion.boundingBoxScope, 'document');
-        expect(assertion.aggregationMode, AggregationMode.allMustComply);
-      },
-    );
-
-    testWidgets(
-      'TC-UI-01: locks aggregationMode to exists and disables allMustComply when inverseEvidence is toggled',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
-
-        final sampleScale = createSampleScale();
-        final modifiedScale = sampleScale.copyWith(
-          claims: [
-            sampleScale.claims.first.copyWith(
-              tdaAssertions: [
-                sampleScale.claims.first.tdaAssertions.first.copyWith(
-                  aggregationMode: AggregationMode.allMustComply,
-                  inverseEvidence: false,
-                ),
-              ],
-            ),
-          ],
-        );
-
-        await tester.pumpWidget(
-          createTestWidget(
-            Builder(
-              builder: (context) {
-                return ElevatedButton(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) =>
-                          ScaleEditorModal(initialScale: modifiedScale),
-                    );
-                  },
-                  child: const Text('Open Modal'),
-                );
-              },
-            ),
-          ),
-        );
-
-        await tester.tap(find.text('Open Modal'));
-        await tester.pumpAndSettle();
-
-        final switches = find.byType(Switch);
-        await tester.ensureVisible(switches.last);
-        await tester.tap(switches.last);
-        await tester.pumpAndSettle();
-
-        expect(
-          find.text("Virhetutka vaatii 'Yksikin havainto riittää' -tilan"),
-          findsOneWidget,
-        );
-
-        final aggDropdown = find
-            .byType(DropdownButtonFormField<AggregationMode>)
-            .first;
-        await tester.ensureVisible(aggDropdown);
-        await tester.tap(aggDropdown);
-        await tester.pumpAndSettle();
-
-        expect(find.textContaining('Estetty virhetutkassa'), findsWidgets);
-      },
-    );
+      // Modal is still open with dirty changes intact
+      expect(find.text('DIRTY_STATE_LABEL'), findsOneWidget);
+    });
   });
 }

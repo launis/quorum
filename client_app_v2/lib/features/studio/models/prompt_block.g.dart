@@ -146,6 +146,22 @@ const _$ExecutionStatusEnumMap = {
   ExecutionStatus.queued: 'QUEUED',
 };
 
+_ContrastivePairDTO _$ContrastivePairDTOFromJson(Map<String, dynamic> json) =>
+    $checkedCreate('_ContrastivePairDTO', json, ($checkedConvert) {
+      $checkKeys(json, allowedKeys: const ['acceptable', 'rejected']);
+      final val = _ContrastivePairDTO(
+        acceptable: $checkedConvert('acceptable', (v) => v as String),
+        rejected: $checkedConvert('rejected', (v) => v as String),
+      );
+      return val;
+    });
+
+Map<String, dynamic> _$ContrastivePairDTOToJson(_ContrastivePairDTO instance) =>
+    <String, dynamic>{
+      'acceptable': instance.acceptable,
+      'rejected': instance.rejected,
+    };
+
 _TDAAssertion _$TDAAssertionFromJson(
   Map<String, dynamic> json,
 ) => $checkedCreate(
@@ -201,7 +217,9 @@ _TDAAssertion _$TDAAssertionFromJson(
       ),
       contrastiveExample: $checkedConvert(
         'contrastive_example',
-        (v) => v as String?,
+        (v) => v == null
+            ? null
+            : ContrastivePairDTO.fromJson(v as Map<String, dynamic>),
       ),
       syntacticAnchors: $checkedConvert(
         'syntactic_anchors',
@@ -279,7 +297,7 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
           .map((e) => e.toJson())
           .toList(),
       'anti_patterns': instance.antiPatterns.map((e) => e.toJson()).toList(),
-      'contrastive_example': instance.contrastiveExample,
+      'contrastive_example': instance.contrastiveExample?.toJson(),
       'syntactic_anchors': instance.syntacticAnchors,
       'enforce_pre_flight': instance.enforcePreFlight,
       'depends_on': instance.dependsOn.map((e) => e.toJson()).toList(),

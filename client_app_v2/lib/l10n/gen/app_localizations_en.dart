@@ -4853,4 +4853,90 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get chatGptPdfTruncationWarning =>
       'Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated (\'Show more\' button). We recommend clipboard paste (Paste text) for ChatGPT chats.';
+
+  @override
+  String get scaleSectionCoreHypothesis => '1. Core Hypothesis & Scope';
+
+  @override
+  String get scaleSectionReasoning => '2. Reasoning Chain & Anti-Patterns';
+
+  @override
+  String get scaleSectionContrastive => '3. Contrastive Calibration';
+
+  @override
+  String get scaleSectionAnchors => '4. Lexical Anchors & Fast Falsification';
+
+  @override
+  String get scaleSectionAggregation => '5. Aggregation & Reverse Polarity';
+
+  @override
+  String get scaleAcceptableExampleLabel => 'Approved Example (Acceptable)';
+
+  @override
+  String get scaleAcceptableExampleHelper =>
+      'Example of a sentence or expression that satisfies this level\'s requirement (EN, at least 10 characters).';
+
+  @override
+  String get scaleRejectedExampleLabel => 'Rejected Counterpart (Rejected)';
+
+  @override
+  String get scaleRejectedExampleHelper =>
+      'Example of a sentence that is rejected from this level (EN, at least 10 characters).';
+
+  @override
+  String get scaleContrastiveIdenticalError =>
+      'Approved and rejected examples cannot be identical.';
+
+  @override
+  String scaleContrastiveMinLengthError(int count) {
+    return 'Example must be at least $count characters long.';
+  }
+
+  @override
+  String get scaleAddCriterionBtn => 'Add Reasoning Step';
+
+  @override
+  String get scaleAddAntiPatternBtn => 'Add Anti-Pattern';
+
+  @override
+  String get scaleCriterionPlaceholder =>
+      'Enter logical verification step in English...';
+
+  @override
+  String get scaleAntiPatternPlaceholder =>
+      'Enter disqualifying anti-pattern in English...';
+
+  @override
+  String get scaleAnchorChipPlaceholder => 'Type word and press Enter...';
+
+  @override
+  String get scaleAnchorDuplicateError => 'Keyword has already been added.';
+
+  @override
+  String get scaleInverseEvidenceWarningTitle => 'Defect Sensor Activated';
+
+  @override
+  String get scaleInverseEvidenceWarningDesc =>
+      'This assertion detects defects or omissions. A match triggers disqualification. Ensure the core hypothesis describes a defect so that high-quality text is not erroneously rejected.';
+
+  @override
+  String get scaleSystemLanguageNotice =>
+      'Note: AI evaluation assertions, criteria, and examples must be written in English (System Language) to ensure optimal reasoning accuracy.';
+
+  @override
+  String get scaleLinguisticShieldWarning =>
+      'Non-English characters or words detected. Ensure the evaluation assertion is written in English.';
+
+  @override
+  String get scaleDiscardChangesTitle => 'Discard Changes?';
+
+  @override
+  String get scaleDiscardChangesMessage =>
+      'You have unsaved changes to this evaluation scale. Are you sure you want to close without saving?';
+
+  @override
+  String get scaleDiscardBtn => 'Discard Changes';
+
+  @override
+  String get scaleContinueEditingBtn => 'Continue Editing';
 }

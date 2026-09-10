@@ -4887,4 +4887,90 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get chatGptPdfTruncationWarning =>
       'Huom! Jos tuot keskustelun PDF-tulosteena (Ctrl + P), varmista että pitkät kehotteet eivät ole leikkautuneet poikki (\'Näytä lisää\' -painike). Suosittelemme leikepöytää (Liitä teksti) ChatGPT-keskusteluille.';
+
+  @override
+  String get scaleSectionCoreHypothesis => '1. Ydinmääritelmä & Kohdistus';
+
+  @override
+  String get scaleSectionReasoning => '2. Päättelyketju & Hylkäysperusteet';
+
+  @override
+  String get scaleSectionContrastive => '3. Rajanveto & Kalibrointi';
+
+  @override
+  String get scaleSectionAnchors => '4. Täsmähaku & Pikakarsinta';
+
+  @override
+  String get scaleSectionAggregation => '5. Aggregaatio & Virhetutka';
+
+  @override
+  String get scaleAcceptableExampleLabel => 'Hyväksytty esimerkki (Acceptable)';
+
+  @override
+  String get scaleAcceptableExampleHelper =>
+      'Esimerkki lauseesta tai ilmaisusta, joka täyttää tämän tason vaatimuksen (EN, vähintään 10 merkkiä).';
+
+  @override
+  String get scaleRejectedExampleLabel => 'Hylätty vastine (Rejected)';
+
+  @override
+  String get scaleRejectedExampleHelper =>
+      'Esimerkki lauseesta, joka hylätään tältä tasolta (EN, vähintään 10 merkkiä).';
+
+  @override
+  String get scaleContrastiveIdenticalError =>
+      'Hyväksytty ja hylätty esimerkki eivät voi olla identtisiä.';
+
+  @override
+  String scaleContrastiveMinLengthError(int count) {
+    return 'Esimerkin tulee olla vähintään $count merkkiä pitkä.';
+  }
+
+  @override
+  String get scaleAddCriterionBtn => 'Lisää päättelyvaihe';
+
+  @override
+  String get scaleAddAntiPatternBtn => 'Lisää hylkäysperuste';
+
+  @override
+  String get scaleCriterionPlaceholder =>
+      'Kirjoita looginen tarkistusvaihe englanniksi...';
+
+  @override
+  String get scaleAntiPatternPlaceholder =>
+      'Kirjoita hylkäävä antimalli englanniksi...';
+
+  @override
+  String get scaleAnchorChipPlaceholder => 'Kirjoita sana ja paina Enter...';
+
+  @override
+  String get scaleAnchorDuplicateError => 'Tunnistussana on jo lisätty.';
+
+  @override
+  String get scaleInverseEvidenceWarningTitle => 'Virhetutka aktivoitu';
+
+  @override
+  String get scaleInverseEvidenceWarningDesc =>
+      'Tämä väite etsii virheitä tai laadun puutteita. Löytyminen aiheuttaa hylkäyksen. Varmista, että yllä oleva pääväite kuvaa virheellistä toimintaa, jotta laadukas teksti ei saa virheellistä hylkäystä.';
+
+  @override
+  String get scaleSystemLanguageNotice =>
+      'Ohje: Tekoälyn arviointiväitteiden, kriteerien ja esimerkkien tulee olla englanniksi (System Language) parhaan päättelytarkkuuden takaamiseksi.';
+
+  @override
+  String get scaleLinguisticShieldWarning =>
+      'Havaittu ei-englanninkielisiä merkkejä tai sanoja. Varmista, että arviointiväite on kirjoitettu englanniksi.';
+
+  @override
+  String get scaleDiscardChangesTitle => 'Hylätäänkö muutokset?';
+
+  @override
+  String get scaleDiscardChangesMessage =>
+      'Sinulla on tallentamattomia muutoksia arviointitasoon. Haluatko varmasti sulkea muokkausikkunan?';
+
+  @override
+  String get scaleDiscardBtn => 'Hylkää muutokset';
+
+  @override
+  String get scaleContinueEditingBtn => 'Jatka muokkausta';
 }

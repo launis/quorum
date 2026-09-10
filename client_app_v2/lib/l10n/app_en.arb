@@ -2420,6 +2420,38 @@
   "claudeRecommendedMethod": "Recommended Method (Save as PDF or Clipboard)",
   "claudeStep1": "1. In Claude, press Ctrl + P (Save as PDF) or copy the conversation to clipboard (Ctrl + A -> Ctrl + C).",
   "claudeStep2": "2. Select the PDF file or paste the text in Quorum.",
-  "chatGptPdfTruncationWarning": "Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated ('Show more' button). We recommend clipboard paste (Paste text) for ChatGPT chats."
+  "chatGptPdfTruncationWarning": "Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated ('Show more' button). We recommend clipboard paste (Paste text) for ChatGPT chats.",
+  "scaleSectionCoreHypothesis": "1. Core Hypothesis & Scope",
+  "scaleSectionReasoning": "2. Reasoning Chain & Anti-Patterns",
+  "scaleSectionContrastive": "3. Contrastive Calibration",
+  "scaleSectionAnchors": "4. Lexical Anchors & Fast Falsification",
+  "scaleSectionAggregation": "5. Aggregation & Reverse Polarity",
+  "scaleAcceptableExampleLabel": "Approved Example (Acceptable)",
+  "scaleAcceptableExampleHelper": "Example of a sentence or expression that satisfies this level's requirement (EN, at least 10 characters).",
+  "scaleRejectedExampleLabel": "Rejected Counterpart (Rejected)",
+  "scaleRejectedExampleHelper": "Example of a sentence that is rejected from this level (EN, at least 10 characters).",
+  "scaleContrastiveIdenticalError": "Approved and rejected examples cannot be identical.",
+  "scaleContrastiveMinLengthError": "Example must be at least {count} characters long.",
+  "@scaleContrastiveMinLengthError": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scaleAddCriterionBtn": "Add Reasoning Step",
+  "scaleAddAntiPatternBtn": "Add Anti-Pattern",
+  "scaleCriterionPlaceholder": "Enter logical verification step in English...",
+  "scaleAntiPatternPlaceholder": "Enter disqualifying anti-pattern in English...",
+  "scaleAnchorChipPlaceholder": "Type word and press Enter...",
+  "scaleAnchorDuplicateError": "Keyword has already been added.",
+  "scaleInverseEvidenceWarningTitle": "Defect Sensor Activated",
+  "scaleInverseEvidenceWarningDesc": "This assertion detects defects or omissions. A match triggers disqualification. Ensure the core hypothesis describes a defect so that high-quality text is not erroneously rejected.",
+  "scaleSystemLanguageNotice": "Note: AI evaluation assertions, criteria, and examples must be written in English (System Language) to ensure optimal reasoning accuracy.",
+  "scaleLinguisticShieldWarning": "Non-English characters or words detected. Ensure the evaluation assertion is written in English.",
+  "scaleDiscardChangesTitle": "Discard Changes?",
+  "scaleDiscardChangesMessage": "You have unsaved changes to this evaluation scale. Are you sure you want to close without saving?",
+  "scaleDiscardBtn": "Discard Changes",
+  "scaleContinueEditingBtn": "Continue Editing"
 }
 

@@ -8765,6 +8765,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notice: If importing conversation as a PDF print (Ctrl + P), ensure long prompts are not truncated (\'Show more\' button). We recommend clipboard paste (Paste text) for ChatGPT chats.'**
   String get chatGptPdfTruncationWarning;
+
+  /// No description provided for @scaleSectionCoreHypothesis.
+  ///
+  /// In en, this message translates to:
+  /// **'1. Core Hypothesis & Scope'**
+  String get scaleSectionCoreHypothesis;
+
+  /// No description provided for @scaleSectionReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'2. Reasoning Chain & Anti-Patterns'**
+  String get scaleSectionReasoning;
+
+  /// No description provided for @scaleSectionContrastive.
+  ///
+  /// In en, this message translates to:
+  /// **'3. Contrastive Calibration'**
+  String get scaleSectionContrastive;
+
+  /// No description provided for @scaleSectionAnchors.
+  ///
+  /// In en, this message translates to:
+  /// **'4. Lexical Anchors & Fast Falsification'**
+  String get scaleSectionAnchors;
+
+  /// No description provided for @scaleSectionAggregation.
+  ///
+  /// In en, this message translates to:
+  /// **'5. Aggregation & Reverse Polarity'**
+  String get scaleSectionAggregation;
+
+  /// No description provided for @scaleAcceptableExampleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved Example (Acceptable)'**
+  String get scaleAcceptableExampleLabel;
+
+  /// No description provided for @scaleAcceptableExampleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Example of a sentence or expression that satisfies this level\'s requirement (EN, at least 10 characters).'**
+  String get scaleAcceptableExampleHelper;
+
+  /// No description provided for @scaleRejectedExampleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Rejected Counterpart (Rejected)'**
+  String get scaleRejectedExampleLabel;
+
+  /// No description provided for @scaleRejectedExampleHelper.
+  ///
+  /// In en, this message translates to:
+  /// **'Example of a sentence that is rejected from this level (EN, at least 10 characters).'**
+  String get scaleRejectedExampleHelper;
+
+  /// No description provided for @scaleContrastiveIdenticalError.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved and rejected examples cannot be identical.'**
+  String get scaleContrastiveIdenticalError;
+
+  /// No description provided for @scaleContrastiveMinLengthError.
+  ///
+  /// In en, this message translates to:
+  /// **'Example must be at least {count} characters long.'**
+  String scaleContrastiveMinLengthError(int count);
+
+  /// No description provided for @scaleAddCriterionBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Reasoning Step'**
+  String get scaleAddCriterionBtn;
+
+  /// No description provided for @scaleAddAntiPatternBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Anti-Pattern'**
+  String get scaleAddAntiPatternBtn;
+
+  /// No description provided for @scaleCriterionPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter logical verification step in English...'**
+  String get scaleCriterionPlaceholder;
+
+  /// No description provided for @scaleAntiPatternPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter disqualifying anti-pattern in English...'**
+  String get scaleAntiPatternPlaceholder;
+
+  /// No description provided for @scaleAnchorChipPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Type word and press Enter...'**
+  String get scaleAnchorChipPlaceholder;
+
+  /// No description provided for @scaleAnchorDuplicateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyword has already been added.'**
+  String get scaleAnchorDuplicateError;
+
+  /// No description provided for @scaleInverseEvidenceWarningTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Defect Sensor Activated'**
+  String get scaleInverseEvidenceWarningTitle;
+
+  /// No description provided for @scaleInverseEvidenceWarningDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'This assertion detects defects or omissions. A match triggers disqualification. Ensure the core hypothesis describes a defect so that high-quality text is not erroneously rejected.'**
+  String get scaleInverseEvidenceWarningDesc;
+
+  /// No description provided for @scaleSystemLanguageNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Note: AI evaluation assertions, criteria, and examples must be written in English (System Language) to ensure optimal reasoning accuracy.'**
+  String get scaleSystemLanguageNotice;
+
+  /// No description provided for @scaleLinguisticShieldWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Non-English characters or words detected. Ensure the evaluation assertion is written in English.'**
+  String get scaleLinguisticShieldWarning;
+
+  /// No description provided for @scaleDiscardChangesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes?'**
+  String get scaleDiscardChangesTitle;
+
+  /// No description provided for @scaleDiscardChangesMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this evaluation scale. Are you sure you want to close without saving?'**
+  String get scaleDiscardChangesMessage;
+
+  /// No description provided for @scaleDiscardBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes'**
+  String get scaleDiscardBtn;
+
+  /// No description provided for @scaleContinueEditingBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Editing'**
+  String get scaleContinueEditingBtn;
 }
 
 class _AppLocalizationsDelegate

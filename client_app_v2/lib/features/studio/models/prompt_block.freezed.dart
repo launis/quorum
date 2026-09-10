@@ -1027,9 +1027,261 @@ as ExecutionStatus,
 
 
 /// @nodoc
+mixin _$ContrastivePairDTO {
+
+ String get acceptable; String get rejected;
+/// Create a copy of ContrastivePairDTO
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ContrastivePairDTOCopyWith<ContrastivePairDTO> get copyWith => _$ContrastivePairDTOCopyWithImpl<ContrastivePairDTO>(this as ContrastivePairDTO, _$identity);
+
+  /// Serializes this ContrastivePairDTO to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+
+
+@override
+String toString() {
+  return 'ContrastivePairDTO(acceptable: $acceptable, rejected: $rejected)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ContrastivePairDTOCopyWith<$Res>  {
+  factory $ContrastivePairDTOCopyWith(ContrastivePairDTO value, $Res Function(ContrastivePairDTO) _then) = _$ContrastivePairDTOCopyWithImpl;
+@useResult
+$Res call({
+ String acceptable, String rejected
+});
+
+
+
+
+}
+/// @nodoc
+class _$ContrastivePairDTOCopyWithImpl<$Res>
+    implements $ContrastivePairDTOCopyWith<$Res> {
+  _$ContrastivePairDTOCopyWithImpl(this._self, this._then);
+
+  final ContrastivePairDTO _self;
+  final $Res Function(ContrastivePairDTO) _then;
+
+/// Create a copy of ContrastivePairDTO
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? acceptable = null,Object? rejected = null,}) {
+  return _then(_self.copyWith(
+acceptable: null == acceptable ? _self.acceptable : acceptable // ignore: cast_nullable_to_non_nullable
+as String,rejected: null == rejected ? _self.rejected : rejected // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ContrastivePairDTO].
+extension ContrastivePairDTOPatterns on ContrastivePairDTO {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ContrastivePairDTO value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ContrastivePairDTO() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ContrastivePairDTO value)  $default,){
+final _that = this;
+switch (_that) {
+case _ContrastivePairDTO():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ContrastivePairDTO value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ContrastivePairDTO() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String acceptable,  String rejected)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ContrastivePairDTO() when $default != null:
+return $default(_that.acceptable,_that.rejected);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String acceptable,  String rejected)  $default,) {final _that = this;
+switch (_that) {
+case _ContrastivePairDTO():
+return $default(_that.acceptable,_that.rejected);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String acceptable,  String rejected)?  $default,) {final _that = this;
+switch (_that) {
+case _ContrastivePairDTO() when $default != null:
+return $default(_that.acceptable,_that.rejected);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(disallowUnrecognizedKeys: true)
+class _ContrastivePairDTO extends ContrastivePairDTO {
+  const _ContrastivePairDTO({required this.acceptable, required this.rejected}): super._();
+  factory _ContrastivePairDTO.fromJson(Map<String, dynamic> json) => _$ContrastivePairDTOFromJson(json);
+
+@override final  String acceptable;
+@override final  String rejected;
+
+/// Create a copy of ContrastivePairDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ContrastivePairDTOCopyWith<_ContrastivePairDTO> get copyWith => __$ContrastivePairDTOCopyWithImpl<_ContrastivePairDTO>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ContrastivePairDTOToJson(this, );
+}
+
+
+
+@override
+String toString() {
+  return 'ContrastivePairDTO(acceptable: $acceptable, rejected: $rejected)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ContrastivePairDTOCopyWith<$Res> implements $ContrastivePairDTOCopyWith<$Res> {
+  factory _$ContrastivePairDTOCopyWith(_ContrastivePairDTO value, $Res Function(_ContrastivePairDTO) _then) = __$ContrastivePairDTOCopyWithImpl;
+@override @useResult
+$Res call({
+ String acceptable, String rejected
+});
+
+
+
+
+}
+/// @nodoc
+class __$ContrastivePairDTOCopyWithImpl<$Res>
+    implements _$ContrastivePairDTOCopyWith<$Res> {
+  __$ContrastivePairDTOCopyWithImpl(this._self, this._then);
+
+  final _ContrastivePairDTO _self;
+  final $Res Function(_ContrastivePairDTO) _then;
+
+/// Create a copy of ContrastivePairDTO
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? acceptable = null,Object? rejected = null,}) {
+  return _then(_ContrastivePairDTO(
+acceptable: null == acceptable ? _self.acceptable : acceptable // ignore: cast_nullable_to_non_nullable
+as String,rejected: null == rejected ? _self.rejected : rejected // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$TDAAssertion {
 
-@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') String? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'depends_on') List<CausalEdgeDTO> get dependsOn;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'high_entropy') bool get highEntropy;@JsonKey(name: 'anchor_target') String? get anchorTarget;@JsonKey(name: 'bounding_box_scope') String get boundingBoxScope;@JsonKey(name: 'extraction_rule') String? get extractionRule;
+@JsonKey(name: 'tda_id') String get tdaId;@JsonKey(name: 'concept_description') String get conceptDescription;@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> get acceptanceCriteria;@JsonKey(name: 'anti_patterns') List<AntiPattern> get antiPatterns;@JsonKey(name: 'contrastive_example') ContrastivePairDTO? get contrastiveExample;@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors;@JsonKey(name: 'enforce_pre_flight') bool get enforcePreFlight;@JsonKey(name: 'depends_on') List<CausalEdgeDTO> get dependsOn;@JsonKey(name: 'inverse_evidence') bool get inverseEvidence;@JsonKey(name: 'aggregation_mode') AggregationMode get aggregationMode;@JsonKey(name: 'evaluation_track') EvaluationTrack get evaluationTrack;@JsonKey(name: 'facts_to_find') List<String> get factsToFind;@JsonKey(name: 'logical_expression') String? get logicalExpression;@JsonKey(name: 'high_entropy') bool get highEntropy;@JsonKey(name: 'anchor_target') String? get anchorTarget;@JsonKey(name: 'bounding_box_scope') String get boundingBoxScope;@JsonKey(name: 'extraction_rule') String? get extractionRule;
 /// Create a copy of TDAAssertion
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1055,11 +1307,11 @@ abstract mixin class $TDAAssertionCopyWith<$Res>  {
   factory $TDAAssertionCopyWith(TDAAssertion value, $Res Function(TDAAssertion) _then) = _$TDAAssertionCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'depends_on') List<CausalEdgeDTO> dependsOn,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') ContrastivePairDTO? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'depends_on') List<CausalEdgeDTO> dependsOn,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
-
+$ContrastivePairDTOCopyWith<$Res>? get contrastiveExample;
 
 }
 /// @nodoc
@@ -1079,7 +1331,7 @@ as String,conceptDescription: null == conceptDescription ? _self.conceptDescript
 as String,acceptanceCriteria: null == acceptanceCriteria ? _self.acceptanceCriteria : acceptanceCriteria // ignore: cast_nullable_to_non_nullable
 as List<AcceptanceCriterion>,antiPatterns: null == antiPatterns ? _self.antiPatterns : antiPatterns // ignore: cast_nullable_to_non_nullable
 as List<AntiPattern>,contrastiveExample: freezed == contrastiveExample ? _self.contrastiveExample : contrastiveExample // ignore: cast_nullable_to_non_nullable
-as String?,syntacticAnchors: null == syntacticAnchors ? _self.syntacticAnchors : syntacticAnchors // ignore: cast_nullable_to_non_nullable
+as ContrastivePairDTO?,syntacticAnchors: null == syntacticAnchors ? _self.syntacticAnchors : syntacticAnchors // ignore: cast_nullable_to_non_nullable
 as List<String>,enforcePreFlight: null == enforcePreFlight ? _self.enforcePreFlight : enforcePreFlight // ignore: cast_nullable_to_non_nullable
 as bool,dependsOn: null == dependsOn ? _self.dependsOn : dependsOn // ignore: cast_nullable_to_non_nullable
 as List<CausalEdgeDTO>,inverseEvidence: null == inverseEvidence ? _self.inverseEvidence : inverseEvidence // ignore: cast_nullable_to_non_nullable
@@ -1094,7 +1346,19 @@ as String,extractionRule: freezed == extractionRule ? _self.extractionRule : ext
 as String?,
   ));
 }
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ContrastivePairDTOCopyWith<$Res>? get contrastiveExample {
+    if (_self.contrastiveExample == null) {
+    return null;
+  }
 
+  return $ContrastivePairDTOCopyWith<$Res>(_self.contrastiveExample!, (value) {
+    return _then(_self.copyWith(contrastiveExample: value));
+  });
+}
 }
 
 
@@ -1176,7 +1440,7 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  ContrastivePairDTO? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
 return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.dependsOn,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
@@ -1197,7 +1461,7 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  ContrastivePairDTO? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion():
 return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.dependsOn,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
@@ -1217,7 +1481,7 @@ return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  String? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'tda_id')  String tdaId, @JsonKey(name: 'concept_description')  String conceptDescription, @JsonKey(name: 'acceptance_criteria')  List<AcceptanceCriterion> acceptanceCriteria, @JsonKey(name: 'anti_patterns')  List<AntiPattern> antiPatterns, @JsonKey(name: 'contrastive_example')  ContrastivePairDTO? contrastiveExample, @JsonKey(name: 'syntactic_anchors')  List<String> syntacticAnchors, @JsonKey(name: 'enforce_pre_flight')  bool enforcePreFlight, @JsonKey(name: 'depends_on')  List<CausalEdgeDTO> dependsOn, @JsonKey(name: 'inverse_evidence')  bool inverseEvidence, @JsonKey(name: 'aggregation_mode')  AggregationMode aggregationMode, @JsonKey(name: 'evaluation_track')  EvaluationTrack evaluationTrack, @JsonKey(name: 'facts_to_find')  List<String> factsToFind, @JsonKey(name: 'logical_expression')  String? logicalExpression, @JsonKey(name: 'high_entropy')  bool highEntropy, @JsonKey(name: 'anchor_target')  String? anchorTarget, @JsonKey(name: 'bounding_box_scope')  String boundingBoxScope, @JsonKey(name: 'extraction_rule')  String? extractionRule)?  $default,) {final _that = this;
 switch (_that) {
 case _TDAAssertion() when $default != null:
 return $default(_that.tdaId,_that.conceptDescription,_that.acceptanceCriteria,_that.antiPatterns,_that.contrastiveExample,_that.syntacticAnchors,_that.enforcePreFlight,_that.dependsOn,_that.inverseEvidence,_that.aggregationMode,_that.evaluationTrack,_that.factsToFind,_that.logicalExpression,_that.highEntropy,_that.anchorTarget,_that.boundingBoxScope,_that.extractionRule);case _:
@@ -1251,7 +1515,7 @@ class _TDAAssertion extends TDAAssertion {
   return EqualUnmodifiableListView(_antiPatterns);
 }
 
-@override@JsonKey(name: 'contrastive_example') final  String? contrastiveExample;
+@override@JsonKey(name: 'contrastive_example') final  ContrastivePairDTO? contrastiveExample;
  final  List<String> _syntacticAnchors;
 @override@JsonKey(name: 'syntactic_anchors') List<String> get syntacticAnchors {
   if (_syntacticAnchors is EqualUnmodifiableListView) return _syntacticAnchors;
@@ -1309,11 +1573,11 @@ abstract mixin class _$TDAAssertionCopyWith<$Res> implements $TDAAssertionCopyWi
   factory _$TDAAssertionCopyWith(_TDAAssertion value, $Res Function(_TDAAssertion) _then) = __$TDAAssertionCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') String? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'depends_on') List<CausalEdgeDTO> dependsOn,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
+@JsonKey(name: 'tda_id') String tdaId,@JsonKey(name: 'concept_description') String conceptDescription,@JsonKey(name: 'acceptance_criteria') List<AcceptanceCriterion> acceptanceCriteria,@JsonKey(name: 'anti_patterns') List<AntiPattern> antiPatterns,@JsonKey(name: 'contrastive_example') ContrastivePairDTO? contrastiveExample,@JsonKey(name: 'syntactic_anchors') List<String> syntacticAnchors,@JsonKey(name: 'enforce_pre_flight') bool enforcePreFlight,@JsonKey(name: 'depends_on') List<CausalEdgeDTO> dependsOn,@JsonKey(name: 'inverse_evidence') bool inverseEvidence,@JsonKey(name: 'aggregation_mode') AggregationMode aggregationMode,@JsonKey(name: 'evaluation_track') EvaluationTrack evaluationTrack,@JsonKey(name: 'facts_to_find') List<String> factsToFind,@JsonKey(name: 'logical_expression') String? logicalExpression,@JsonKey(name: 'high_entropy') bool highEntropy,@JsonKey(name: 'anchor_target') String? anchorTarget,@JsonKey(name: 'bounding_box_scope') String boundingBoxScope,@JsonKey(name: 'extraction_rule') String? extractionRule
 });
 
 
-
+@override $ContrastivePairDTOCopyWith<$Res>? get contrastiveExample;
 
 }
 /// @nodoc
@@ -1333,7 +1597,7 @@ as String,conceptDescription: null == conceptDescription ? _self.conceptDescript
 as String,acceptanceCriteria: null == acceptanceCriteria ? _self._acceptanceCriteria : acceptanceCriteria // ignore: cast_nullable_to_non_nullable
 as List<AcceptanceCriterion>,antiPatterns: null == antiPatterns ? _self._antiPatterns : antiPatterns // ignore: cast_nullable_to_non_nullable
 as List<AntiPattern>,contrastiveExample: freezed == contrastiveExample ? _self.contrastiveExample : contrastiveExample // ignore: cast_nullable_to_non_nullable
-as String?,syntacticAnchors: null == syntacticAnchors ? _self._syntacticAnchors : syntacticAnchors // ignore: cast_nullable_to_non_nullable
+as ContrastivePairDTO?,syntacticAnchors: null == syntacticAnchors ? _self._syntacticAnchors : syntacticAnchors // ignore: cast_nullable_to_non_nullable
 as List<String>,enforcePreFlight: null == enforcePreFlight ? _self.enforcePreFlight : enforcePreFlight // ignore: cast_nullable_to_non_nullable
 as bool,dependsOn: null == dependsOn ? _self._dependsOn : dependsOn // ignore: cast_nullable_to_non_nullable
 as List<CausalEdgeDTO>,inverseEvidence: null == inverseEvidence ? _self.inverseEvidence : inverseEvidence // ignore: cast_nullable_to_non_nullable
@@ -1349,7 +1613,19 @@ as String?,
   ));
 }
 
+/// Create a copy of TDAAssertion
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ContrastivePairDTOCopyWith<$Res>? get contrastiveExample {
+    if (_self.contrastiveExample == null) {
+    return null;
+  }
 
+  return $ContrastivePairDTOCopyWith<$Res>(_self.contrastiveExample!, (value) {
+    return _then(_self.copyWith(contrastiveExample: value));
+  });
+}
 }
 
 
