@@ -668,6 +668,95 @@ void main() {
     );
 
     testWidgets(
+      'scale with name: null dismisses cleanly without discard dialog',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final nullNameScale = createSampleScale().copyWith(name: null);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: nullNameScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        // Tap close button in AppBar WITHOUT modifying anything
+        final closeBtn = find.byIcon(Icons.close);
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Discard Changes?'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'immediate Esc after typing in concept description triggers discard dialog',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        // Type into concept description
+        final conceptField = find.widgetWithText(
+          TextFormField,
+          sampleScale.claims.first.tdaAssertions.first.conceptDescription,
+        );
+        await tester.enterText(
+          conceptField,
+          'Modified concept description with extra depth',
+        );
+
+        // Immediate Esc key event
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Discard Changes?'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
       'renders without RenderFlex overflow on narrow viewport (800x600)',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(800, 600);

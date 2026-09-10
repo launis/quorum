@@ -16,6 +16,10 @@ class _SaveIntent extends Intent {
   const _SaveIntent();
 }
 
+class _DismissIntent extends Intent {
+  const _DismissIntent();
+}
+
 /// Desktop-class pro-tool modal editor for evaluation scale rubrics and TDA assertions.
 /// Enforces Adaptive Master Selector navigation, 5-card layout, save debouncing, and PopScope dismissal.
 class ScaleEditorModal extends StatefulWidget {
@@ -60,33 +64,36 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
 
   void _handleDismiss() {
     FocusScope.of(context).unfocus();
-    final isDirty = _isModelDirty() || _hasPendingInputBuffers();
-    if (!isDirty) {
-      Navigator.of(context).pop(null);
-      return;
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final isDirty = _isModelDirty() || _hasPendingInputBuffers();
+      if (!isDirty) {
+        Navigator.of(context).pop(null);
+        return;
+      }
 
-    final l10n = AppLocalizations.of(context)!;
-    showDialog<void>(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Text(l10n.scaleDiscardChangesTitle),
-        content: Text(l10n.scaleDiscardChangesMessage),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogCtx).pop(),
-            child: Text(l10n.scaleContinueEditingBtn),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogCtx).pop();
-              Navigator.of(context).pop(null);
-            },
-            child: Text(l10n.scaleDiscardBtn),
-          ),
-        ],
-      ),
-    );
+      final l10n = AppLocalizations.of(context)!;
+      showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: Text(l10n.scaleDiscardChangesTitle),
+          content: Text(l10n.scaleDiscardChangesMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogCtx).pop(),
+              child: Text(l10n.scaleContinueEditingBtn),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogCtx).pop();
+                Navigator.of(context).pop(null);
+              },
+              child: Text(l10n.scaleDiscardBtn),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   void _save() {
@@ -108,29 +115,26 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
       return;
     }
 
-    // 2. In-memory cross-claim validation to navigate to unselected invalid claim if needed
-    for (int i = 0; i < _editableScale.claims.length; i++) {
-      if (i == _selectedClaimIndex) continue;
-      final claim = _editableScale.claims[i];
+    // 2. Validate all other claims by checking their underlying model state
+    final claims = _editableScale.claims;
+    for (int i = 0; i < claims.length; i++) {
+      final claim = claims[i];
+      final primaryLabel = claim.label.get('en').trim();
+      if (primaryLabel.isEmpty) {
+        _isSaving = false;
+        setState(() => _selectedClaimIndex = i);
+        return;
+      }
       for (final tda in claim.tdaAssertions) {
-        if (tda.conceptDescription.trim().length <
-            SystemUiConstraints.tdaConceptMinLength.value) {
-          setState(() {
-            _selectedClaimIndex = i;
-          });
+        if (tda.conceptDescription.trim().length < 10) {
           _isSaving = false;
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
+          setState(() => _selectedClaimIndex = i);
           return;
         }
       }
     }
 
+    // Auto-commit transient tag chip buffer if any before pop
     _formKey.currentState!.save();
     Navigator.of(context).pop(_editableScale);
   }
@@ -140,7 +144,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
       final claims = List<MatrixClaim>.from(_editableScale.claims);
       claims.add(
         MatrixClaim(
-          label: const I18nText(translations: {'en': ''}),
+          label: const I18nText(translations: {'en': 'New Criterion'}),
           tdaAssertions: [
             TDAAssertion.create(
               conceptDescription: 'CRITICAL MANDATE: ',
@@ -235,70 +239,81 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
           ),
           LinguisticShieldBanner(text: tda.conceptDescription),
           AppSpacing.h12,
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  key: ValueKey('anchor_${tda.tdaId}_$_selectedClaimIndex'),
-                  initialValue: tda.anchorTarget,
-                  decoration: InputDecoration(
-                    labelText: l10n.tdaAnchorTarget,
-                    helperText: l10n.tdaAnchorTargetHelper,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                  ),
-                  onChanged: (val) => _updateActiveTda(
-                    (t) => t.copyWith(
-                      anchorTarget: val.trim().isEmpty ? null : val.trim(),
-                    ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 520;
+              final anchorField = TextFormField(
+                key: ValueKey('anchor_${tda.tdaId}_$_selectedClaimIndex'),
+                initialValue: tda.anchorTarget,
+                decoration: InputDecoration(
+                  labelText: l10n.tdaAnchorTarget,
+                  helperText: l10n.tdaAnchorTargetHelper,
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
                   ),
                 ),
-              ),
-              AppSpacing.w16,
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  key: ValueKey('scope_${tda.tdaId}_$_selectedClaimIndex'),
-                  isExpanded: true,
-                  initialValue: tda.boundingBoxScope,
-                  decoration: InputDecoration(
-                    labelText: l10n.tdaBoundingBox,
-                    helperText: l10n.tdaBoundingBoxHelper,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
+                onChanged: (val) => _updateActiveTda(
+                  (t) => t.copyWith(
+                    anchorTarget: val.trim().isEmpty ? null : val.trim(),
                   ),
-                  items: [
-                    DropdownMenuItem(
-                      value: 'sentence',
-                      child: Text(l10n.tdaScopeSentence),
-                    ),
-                    DropdownMenuItem(
-                      value: 'paragraph',
-                      child: Text(l10n.tdaScopeParagraph),
-                    ),
-                    DropdownMenuItem(
-                      value: 'adjacent_paragraphs',
-                      child: Text(l10n.tdaScopeAdjacentParagraphs),
-                    ),
-                    DropdownMenuItem(
-                      value: 'document',
-                      child: Text(l10n.tdaScopeDocument),
-                    ),
-                  ],
-                  onChanged: (val) {
-                    if (val != null)
-                      _updateActiveTda(
-                        (t) => t.copyWith(boundingBoxScope: val),
-                      );
-                  },
                 ),
-              ),
-            ],
+              );
+
+              final scopeDropdown = DropdownButtonFormField<String>(
+                key: ValueKey('scope_${tda.tdaId}_$_selectedClaimIndex'),
+                isExpanded: true,
+                initialValue: tda.boundingBoxScope,
+                decoration: InputDecoration(
+                  labelText: l10n.tdaBoundingBox,
+                  helperText: l10n.tdaBoundingBoxHelper,
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                ),
+                items: [
+                  DropdownMenuItem(
+                    value: 'sentence',
+                    child: Text(l10n.tdaScopeSentence),
+                  ),
+                  DropdownMenuItem(
+                    value: 'paragraph',
+                    child: Text(l10n.tdaScopeParagraph),
+                  ),
+                  DropdownMenuItem(
+                    value: 'adjacent_paragraphs',
+                    child: Text(l10n.tdaScopeAdjacentParagraphs),
+                  ),
+                  DropdownMenuItem(
+                    value: 'document',
+                    child: Text(l10n.tdaScopeDocument),
+                  ),
+                ],
+                onChanged: (val) {
+                  if (val != null) {
+                    _updateActiveTda((t) => t.copyWith(boundingBoxScope: val));
+                  }
+                },
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [anchorField, AppSpacing.h12, scopeDropdown],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: anchorField),
+                  AppSpacing.w16,
+                  Expanded(child: scopeDropdown),
+                ],
+              );
+            },
           ),
           AppSpacing.h12,
           TextFormField(
@@ -614,10 +629,10 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
       children: [
         I18nTextField(
           label: l10n.scaleGradeNameLabel,
-          initialData:
-              _editableScale.name ?? const I18nText(translations: {'en': ''}),
-          onChanged: (val) =>
-              _editableScale = _editableScale.copyWith(name: val),
+          initialData: _editableScale.name,
+          onChanged: (val) => _editableScale = _editableScale.copyWith(
+            name: val.isEmpty ? null : val,
+          ),
           leadingInput: SizedBox(
             width: 180,
             child: TextFormField(
@@ -684,12 +699,20 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
             const _SaveIntent(),
         LogicalKeySet(LogicalKeyboardKey.meta, LogicalKeyboardKey.keyS):
             const _SaveIntent(),
+        const SingleActivator(LogicalKeyboardKey.escape):
+            const _DismissIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
               _save();
+              return null;
+            },
+          ),
+          _DismissIntent: CallbackAction<_DismissIntent>(
+            onInvoke: (_) {
+              _handleDismiss();
               return null;
             },
           ),

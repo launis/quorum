@@ -912,10 +912,13 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    l10n.theoryGroundingTitle,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
+                                  Expanded(
+                                    child: Text(
+                                      l10n.theoryGroundingTitle,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   Switch(
@@ -1301,18 +1304,21 @@ class PromptBlockBuilderView extends HookConsumerWidget {
   ) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  l10n.barsScalesTitle,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Expanded(
+                  child: Text(
+                    l10n.barsScalesTitle,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 Row(
@@ -1325,11 +1331,11 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             initialScale: MatrixScale(
                               score: 1,
                               aiLabel: '1',
-                              name: const I18nText(translations: {'en': ''}),
+                              name: null,
                               claims: [
                                 MatrixClaim(
                                   label: const I18nText(
-                                    translations: {'en': ''},
+                                    translations: {'en': 'Initial Criterion'},
                                   ),
                                   tdaAssertions: [
                                     TDAAssertion.create(

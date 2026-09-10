@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **Dynaaminen I18n-syöttö**
@@ -323,30 +324,46 @@ class _I18nTextFieldState extends State<I18nTextField> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            AppSpacing.h12,
             if (widget.leadingInput != null)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  widget.leadingInput!,
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      controller: _defaultController,
-                      focusNode: _defaultFocusNode,
-                      decoration: InputDecoration(
-                        labelText: AppLocalizations.of(
-                          context,
-                        )!.i18nDefaultFormLabel('EN'),
-                        border: const OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surface,
-                      ),
-                      minLines: 1,
-                      maxLines: null,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 400;
+                  final defaultField = TextField(
+                    controller: _defaultController,
+                    focusNode: _defaultFocusNode,
+                    decoration: InputDecoration(
+                      labelText: AppLocalizations.of(
+                        context,
+                      )!.i18nDefaultFormLabel('EN'),
+                      border: const OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Theme.of(context).colorScheme.surface,
                     ),
-                  ),
-                ],
+                    minLines: 1,
+                    maxLines: null,
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        widget.leadingInput!,
+                        AppSpacing.h8,
+                        defaultField,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      widget.leadingInput!,
+                      AppSpacing.w12,
+                      Expanded(child: defaultField),
+                    ],
+                  );
+                },
               )
             else
               TextField(

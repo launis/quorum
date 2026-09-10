@@ -24,14 +24,65 @@ class BarsMatrixBuilder extends StatelessWidget {
     // Use pure native flex constraints!
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Evaluate the Macro-Breakpoint Desktop-First responsiveness
-        final isDesktop =
-            constraints.maxWidth >=
-            800; // >=800 enables Split-Screen or Three-Pane
-
         // Sort the scales to always process 1 -> 5
         final sortedScales = List<MatrixScale>.from(scales)
           ..sort((a, b) => a.score.compareTo(b.score));
+
+        Widget content;
+        if (constraints.maxWidth >= 1200) {
+          if (sortedScales.length <= 5) {
+            content = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: sortedScales
+                  .map(
+                    (s) => Expanded(child: _buildScaleCard(context, l10n, s)),
+                  )
+                  .toList(),
+            );
+          } else {
+            content = SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: sortedScales
+                    .map(
+                      (s) => ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: 240,
+                          maxWidth: 320,
+                        ),
+                        child: _buildScaleCard(context, l10n, s),
+                      ),
+                    )
+                    .toList(),
+              ),
+            );
+          }
+        } else if (constraints.maxWidth >= 800) {
+          content = SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: sortedScales
+                  .map(
+                    (s) => ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        minWidth: 240,
+                        maxWidth: 320,
+                      ),
+                      child: _buildScaleCard(context, l10n, s),
+                    ),
+                  )
+                  .toList(),
+            ),
+          );
+        } else {
+          content = Column(
+            children: sortedScales
+                .map((s) => _buildScaleCard(context, l10n, s))
+                .toList(),
+          );
+        }
 
         return Container(
           decoration: BoxDecoration(
@@ -42,26 +93,7 @@ class BarsMatrixBuilder extends StatelessWidget {
             ),
           ),
           clipBehavior: Clip.antiAlias,
-          child: InteractiveViewer(
-            panEnabled: !isDesktop, // Allow panning tightly nested forms
-            scaleEnabled: false,
-            child: isDesktop
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: sortedScales
-                        .map(
-                          (s) => Expanded(
-                            child: _buildScaleCard(context, l10n, s),
-                          ),
-                        )
-                        .toList(),
-                  )
-                : Column(
-                    children: sortedScales
-                        .map((s) => _buildScaleCard(context, l10n, s))
-                        .toList(),
-                  ),
-          ),
+          child: content,
         );
       },
     );
@@ -196,8 +228,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                                   .map(
                                     (atom) => Container(
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: 4,
-                                        vertical: 2,
+                                        horizontal: AppSpacing.s4,
+                                        vertical: AppSpacing.s2,
                                       ),
                                       decoration: BoxDecoration(
                                         color: atom.inverseEvidence
@@ -237,8 +269,8 @@ class BarsMatrixBuilder extends StatelessWidget {
                               if (claim.tdaAssertions.length > 3)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 2,
+                                    horizontal: AppSpacing.s4,
+                                    vertical: AppSpacing.s2,
                                   ),
                                   decoration: BoxDecoration(
                                     color: Theme.of(
