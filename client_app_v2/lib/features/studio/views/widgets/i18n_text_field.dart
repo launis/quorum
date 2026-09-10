@@ -13,12 +13,16 @@ class I18nTextField extends StatefulWidget {
   final String label;
   final I18nText? initialData;
   final void Function(I18nText) onChanged;
+  final Widget? leadingInput;
+  final Widget? bottomInput;
 
   const I18nTextField({
     super.key,
     required this.label,
     required this.initialData,
     required this.onChanged,
+    this.leadingInput,
+    this.bottomInput,
   });
 
   @override
@@ -320,20 +324,45 @@ class _I18nTextFieldState extends State<I18nTextField> {
               ],
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _defaultController,
-              focusNode: _defaultFocusNode,
-              decoration: InputDecoration(
-                labelText: AppLocalizations.of(
-                  context,
-                )!.i18nDefaultFormLabel('EN'),
-                border: const OutlineInputBorder(),
-                filled: true,
-                fillColor: Theme.of(context).colorScheme.surface,
+            if (widget.leadingInput != null)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  widget.leadingInput!,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _defaultController,
+                      focusNode: _defaultFocusNode,
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.i18nDefaultFormLabel('EN'),
+                        border: const OutlineInputBorder(),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface,
+                      ),
+                      minLines: 1,
+                      maxLines: null,
+                    ),
+                  ),
+                ],
+              )
+            else
+              TextField(
+                controller: _defaultController,
+                focusNode: _defaultFocusNode,
+                decoration: InputDecoration(
+                  labelText: AppLocalizations.of(
+                    context,
+                  )!.i18nDefaultFormLabel('EN'),
+                  border: const OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
+                ),
+                minLines: 1,
+                maxLines: null,
               ),
-              minLines: 1,
-              maxLines: null,
-            ),
             if (_translationControllers.isNotEmpty) ...[
               const SizedBox(height: 16),
               Text(
@@ -418,6 +447,10 @@ class _I18nTextFieldState extends State<I18nTextField> {
                   ),
                 );
               }),
+            ],
+            if (widget.bottomInput != null) ...[
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, child: widget.bottomInput!),
             ],
           ],
         ),

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:client_app/core/models/enums.dart';
@@ -32,6 +33,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
   final _scrollController = ScrollController();
 
   late MatrixScale _editableScale;
+  late final String _initialScaleJson;
   int _selectedClaimIndex = 0;
   bool _isSaving = false;
 
@@ -39,6 +41,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
   void initState() {
     super.initState();
     _editableScale = widget.initialScale.copyWith();
+    _initialScaleJson = jsonEncode(widget.initialScale.toJson());
   }
 
   @override
@@ -48,7 +51,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
   }
 
   bool _isModelDirty() {
-    return _editableScale != widget.initialScale;
+    return jsonEncode(_editableScale.toJson()) != _initialScaleJson;
   }
 
   bool _hasPendingInputBuffers() {
@@ -609,49 +612,42 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                initialValue: _editableScale.score.toString(),
-                decoration: InputDecoration(
-                  labelText: l10n.scaleGradeScoreLabel,
-                  border: const OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                onChanged: (val) {
-                  final parsed = int.tryParse(val);
-                  if (parsed != null)
-                    _editableScale = _editableScale.copyWith(score: parsed);
-                },
+        I18nTextField(
+          label: l10n.scaleGradeNameLabel,
+          initialData:
+              _editableScale.name ?? const I18nText(translations: {'en': ''}),
+          onChanged: (val) =>
+              _editableScale = _editableScale.copyWith(name: val),
+          leadingInput: SizedBox(
+            width: 180,
+            child: TextFormField(
+              initialValue: _editableScale.score.toString(),
+              decoration: InputDecoration(
+                labelText: l10n.scaleGradeScoreLabel,
+                border: const OutlineInputBorder(),
+                filled: true,
+                fillColor: Theme.of(context).colorScheme.surface,
               ),
+              keyboardType: TextInputType.number,
+              onChanged: (val) {
+                final parsed = int.tryParse(val);
+                if (parsed != null) {
+                  _editableScale = _editableScale.copyWith(score: parsed);
+                }
+              },
             ),
-            AppSpacing.w16,
-            Expanded(
-              flex: 2,
-              child: I18nTextField(
-                label: l10n.scaleGradeNameLabel,
-                initialData:
-                    _editableScale.name ??
-                    const I18nText(translations: {'en': ''}),
-                onChanged: (val) =>
-                    _editableScale = _editableScale.copyWith(name: val),
-              ),
+          ),
+          bottomInput: TextFormField(
+            initialValue: _editableScale.aiLabel,
+            decoration: InputDecoration(
+              labelText: l10n.scaleGradeAiLabel,
+              border: const OutlineInputBorder(),
+              filled: true,
+              fillColor: Theme.of(context).colorScheme.surface,
             ),
-            AppSpacing.w16,
-            Expanded(
-              child: TextFormField(
-                initialValue: _editableScale.aiLabel,
-                decoration: InputDecoration(
-                  labelText: l10n.scaleGradeAiLabel,
-                  border: const OutlineInputBorder(),
-                ),
-                onChanged: (val) => _editableScale = _editableScale.copyWith(
-                  aiLabel: val.trim(),
-                ),
-              ),
-            ),
-          ],
+            onChanged: (val) =>
+                _editableScale = _editableScale.copyWith(aiLabel: val.trim()),
+          ),
         ),
         AppSpacing.h16,
         I18nTextField(

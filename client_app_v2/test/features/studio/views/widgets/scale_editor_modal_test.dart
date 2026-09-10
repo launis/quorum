@@ -626,5 +626,45 @@ void main() {
         expect(find.text('DIRTY_STATE_LABEL'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'pressing close button with clean state dismisses without discard dialog',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        // Tap close button in AppBar WITHOUT modifying anything
+        final closeBtn = find.byIcon(Icons.close);
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Discard Changes?'), findsNothing);
+      },
+    );
   });
 }
