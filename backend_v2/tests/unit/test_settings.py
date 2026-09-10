@@ -271,6 +271,7 @@ def test_settings_binary_environment_validation() -> None:
     dev_settings = Settings(use_mock_llm=True, environment="development")
     assert dev_settings.environment == "development"
     assert dev_settings.llm_max_retries == 0
+    assert dev_settings.llm_max_transient_retries == 3
     assert dev_settings.ensemble_parallelism == 1
     assert dev_settings.matrix_sampling_limit == 1
     assert dev_settings.tavily_max_results == 1

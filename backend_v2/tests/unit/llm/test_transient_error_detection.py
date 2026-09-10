@@ -150,3 +150,90 @@ async def test_provider_generate_uses_transient_retries_even_in_fast_mode(monkey
     assert response.content == '{"result": "ok"}'
     assert mock_acompletion.call_count == 3
     assert mock_sleep.call_count == 2
+
+
+def test_settings_development_environment_preserves_transient_retries() -> None:
+    """Test that default development environment does not clamp transient retries to zero."""
+    from backend_v2.settings import Settings
+
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    # Fail-fast should apply to schema and logical model iterations, NOT external network/500 transient errors
+    assert dev_settings.llm_max_retries == 0
+    assert dev_settings.llm_max_schema_retries == 0
+    assert dev_settings.llm_max_logical_retries == 0
+    assert dev_settings.llm_max_transient_retries == 3
+
+
+def test_is_transient_llm_error_recognizes_http_500_status_code() -> None:
+    """Test that _is_transient_llm_error treats HTTP 500 status code as transient."""
+
+    class CustomHttp500Error(Exception):
+        status_code: int = 500
+
+    err = CustomHttp500Error("500 Internal Server Error from upstream gateway")
+    assert _is_transient_llm_error(err) is True
+
+
+@pytest.mark.asyncio
+async def test_provider_generate_retries_on_upstream_500_in_development_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test LiteLLMProvider retries on upstream 500 error when running in natural development environment."""
+    import litellm
+
+    from backend_v2.settings import Settings
+
+    mock_sleep = AsyncMock()
+    monkeypatch.setattr(asyncio, "sleep", mock_sleep)
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
+
+    # Use natural development settings without artificial monkeypatch overrides
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: dev_settings)
+
+    provider = LiteLLMProvider(
+        model_name="gemini/gemini-3.8-flash",
+        api_key="secret",
+        settings=dev_settings,
+        limits={"tpm": 100, "rpm": 10},
+    )
+
+    import litellm.exceptions
+
+    internal_500_err = litellm.exceptions.InternalServerError(
+        message='GeminiException InternalServerError - {"error": {"code": 500, "message": "Internal error encountered.", "status": "INTERNAL"}}',
+        llm_provider="gemini",
+        model="gemini/gemini-3.8-flash",
+        response=None,
+    )
+
+    class MockMessage:
+        content = '{"entities": [], "macro_rules": []}'
+        tool_calls: list[object] = []
+
+    class MockChoice:
+        message = MockMessage()
+        finish_reason = "stop"
+
+    class MockUsage:
+        prompt_tokens = 10
+        completion_tokens = 5
+        total_tokens = 15
+
+    class MockLiteLLMResponse:
+        choices = [MockChoice()]
+        model_extra: dict[str, object] = {}
+        usage = MockUsage()
+
+        def model_dump(self) -> dict[str, object]:
+            return {}
+
+    # Upstream fails once with 500 Internal error, then succeeds on retry
+    mock_acompletion = AsyncMock(side_effect=[internal_500_err, MockLiteLLMResponse()])
+    provider.router.acompletion = mock_acompletion
+
+    response = await provider.generate(prompt="test prompt", temperature=0.7, max_tokens=100)
+    assert response.content == '{"entities": [], "macro_rules": []}'
+    assert mock_acompletion.call_count == 2
+    assert mock_sleep.call_count == 1

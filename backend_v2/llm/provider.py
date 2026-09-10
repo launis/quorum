@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from tenacity import (
     AsyncRetrying,
     retry_if_exception,
@@ -24,6 +24,8 @@ from backend_v2.exceptions import (
     AppException,
     ConfigurationError,
     ErrorCodes,
+    LLMSchemaValidationError,
+    LogicalValidationError,
     SecurityViolationError,
     ServiceUnavailableError,
 )
@@ -118,6 +120,19 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return False
     _visited.add(id(e))
 
+    # 0. Fast-path: Explicit non-transient exceptions (structural validation, schema failures) MUST return False
+    if isinstance(
+        e,
+        (
+            LLMSchemaValidationError,
+            LogicalValidationError,
+            ValidationError,
+            ValueError,
+            KeyError,
+        ),
+    ):
+        return False
+
     # 1. Check ExceptionGroup / BaseExceptionGroup
     if isinstance(e, BaseExceptionGroup):
         return any(_is_transient_llm_error(sub_exc, _visited) for sub_exc in e.exceptions)
@@ -167,13 +182,17 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     except ImportError:
         pass
 
-    # 4. Check HTTP Status Code attributes (e.g. 429, 502, 503, 504)
-    status_code = getattr(e, "status_code", None)
-    if isinstance(status_code, int) and status_code in (429, 502, 503, 504):
-        return True
+    # 4. Check HTTP Status Code attributes (e.g. 429, 500, 502, 503, 504) for upstream errors
+    # Note: Domain AppExceptions are evaluated specifically in step 5 by their domain error_code.
+    if not isinstance(e, AppException):
+        status_code = getattr(e, "status_code", None)
+        if isinstance(status_code, int) and status_code in (429, 500, 502, 503, 504):
+            return True
 
     # 5. Check AppException domain details for transient codes
     if isinstance(e, AppException):
+        if e.status_code in (429, 503, 504):
+            return True
         error_code = e.details.get("error_code") if isinstance(e.details, dict) else None
         if error_code in (
             ErrorCodes.UPSTREAM_TIMEOUT.value,

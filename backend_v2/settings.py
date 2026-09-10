@@ -650,9 +650,10 @@ class Settings(BaseSettings):
         """Enforce strict binary environment limits.
 
         When environment is 'development', enforce all 8 fast dimensions:
-        immediate fail-fast retries (0), single-pass ensemble (1), matrix sampling limit (1),
+        immediate fail-fast logical/schema retries (0), single-pass ensemble (1), matrix sampling limit (1),
         zero pacing delays, minimal development chunks, preflight chunking, zero precedent/web scans,
         compact linker windows, and fast strategy aliases.
+        External network and upstream gateway transient errors retain sovereign retry resilience (3).
         When environment is 'production', sovereign production defaults are preserved.
 
         Returns:
@@ -690,15 +691,14 @@ class Settings(BaseSettings):
             if "pacing_delay_mock_seconds" not in self.model_fields_set:
                 self.pacing_delay_mock_seconds = 0
 
-            # Ensembles and Retries Overrides (Fail-Fast: 0 retries in development)
+            # Ensembles and Retries Overrides (Fail-Fast: 0 retries in development for schema/logical iterations)
+            # Phase 1, Step 1: Retain sovereign transient retries (default 3) for network/gateway errors
             if "llm_max_retries" not in self.model_fields_set:
                 self.llm_max_retries = 0
             if "llm_max_schema_retries" not in self.model_fields_set:
                 self.llm_max_schema_retries = 0
             if "llm_max_logical_retries" not in self.model_fields_set:
                 self.llm_max_logical_retries = 0
-            if "llm_max_transient_retries" not in self.model_fields_set:
-                self.llm_max_transient_retries = 0
             if "ensemble_parallelism" not in self.model_fields_set:
                 self.ensemble_parallelism = 1
             if "ensemble_min_consensus" not in self.model_fields_set:
