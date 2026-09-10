@@ -421,3 +421,37 @@ async def test_validate_non_empty_payload_edge_cases(mock_prompt_compiler: Magic
     # Too short payload raises AppException
     with pytest.raises(AppException):
         _validate_non_empty_payload([LLMMessageDTO(role="user", content="a")])
+
+
+@pytest.mark.asyncio
+async def test_validate_non_empty_payload_with_cdata_encapsulation() -> None:
+    """PROMISE: Prove payload validation preserves CDATA contents rather than stripping them as XML tags."""
+    cdata_content = "This is a legitimate source claim document that contains more than enough characters to verify."
+    user_payload = f"<source_data>\n<![CDATA[{cdata_content}]]>\n</source_data>"
+
+    # This MUST NOT raise AppException because the actual user payload is well above llm_min_payload_length.
+    _validate_non_empty_payload([LLMMessageDTO(role="user", content=user_payload)])
+
+    # Multiple CDATA blocks with interspersed text
+    multi_cdata = (
+        "<source_data><![CDATA[Block one content ]]><extra>middle</extra><![CDATA[block two content]]></source_data>"
+    )
+    _validate_non_empty_payload([LLMMessageDTO(role="user", content=multi_cdata)])
+
+    # Unclosed CDATA with sufficient length should be handled gracefully without crashing
+    unclosed_cdata = "<source_data>\n<![CDATA[This is an unclosed CDATA block that has enough text content"
+    _validate_non_empty_payload([LLMMessageDTO(role="user", content=unclosed_cdata)])
+
+    # Empty CDATA block MUST raise AppException
+    empty_cdata = "<source_data>\n<![CDATA[]]>\n</source_data>"
+    with pytest.raises(AppException) as exc_empty:
+        _validate_non_empty_payload([LLMMessageDTO(role="user", content=empty_cdata)])
+    assert exc_empty.value.status_code == 400
+    assert exc_empty.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+
+    # Whitespace-only CDATA block MUST raise AppException
+    ws_cdata = "<source_data>\n<![CDATA[   \n\t  ]]>\n</source_data>"
+    with pytest.raises(AppException) as exc_ws:
+        _validate_non_empty_payload([LLMMessageDTO(role="user", content=ws_cdata)])
+    assert exc_ws.value.status_code == 400
+    assert exc_ws.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value

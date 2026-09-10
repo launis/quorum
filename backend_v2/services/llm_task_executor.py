@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_non_empty_payload(
-    messages: Sequence[LLMMessageDTO | dict[str, Any]] | CompiledPrompt | PromptContextDTO,
+    messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt | PromptContextDTO,
 ) -> None:
     """Phase 1: Extract payload validation to prevent hallucinations.
 
@@ -43,7 +43,7 @@ def _validate_non_empty_payload(
     Raises:
         AppException: If the user payload text is critically short.
     """
-    raw_list: list[Any]
+    raw_list: Sequence[LLMMessageDTO | ChatMessageDTO | object]
     if isinstance(messages, (CompiledPrompt, PromptContextDTO)):
         raw_list = list(messages.static_messages) + list(messages.dynamic_messages)
     elif isinstance(messages, (list, tuple, Sequence)):
@@ -62,22 +62,33 @@ def _validate_non_empty_payload(
                 user_texts.append(typed_m.content)
 
     total_user_text = "".join(user_texts)
-    if total_user_text:
-        settings = get_settings()
-        stripped_text = re.sub(r"<[^>]+>", "", total_user_text).strip()
-        if len(stripped_text) < settings.llm_min_payload_length:
-            logger.error(
-                "Fail-Fast: Task payload is suspiciously empty or short. "
-                f"Aborting to prevent hallucinations. Text: {stripped_text}"
-            )
-            raise AppException(
-                message=(
-                    "Fail-Fast: Task payload is empty or too short. "
-                    f"Length: {len(stripped_text)}, Content: '{stripped_text}'"
-                ),
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
-            )
+    settings = get_settings()
+
+    # Step 1: Extract CDATA blocks to preserve genuine payload text
+    cdata_contents = re.findall(r"<!\[CDATA\[([\s\S]*?)(?:\]\]>|$)", total_user_text)
+
+    # Step 2: Remove CDATA blocks to isolate non-CDATA markup
+    non_cdata_text = re.sub(r"<!\[CDATA\[[\s\S]*?(?:\]\]>|$)", "", total_user_text)
+
+    # Step 3: Strip XML markup tags from non-CDATA remainder
+    stripped_non_cdata = re.sub(r"<[^>]+>", "", non_cdata_text)
+
+    # Step 4: Re-combine preserved CDATA text with non-CDATA text content
+    clean_payload_text = ("".join(cdata_contents) + stripped_non_cdata).strip()
+
+    if len(clean_payload_text) < settings.llm_min_payload_length:
+        logger.error(
+            "Fail-Fast: Task payload is suspiciously empty or short. "
+            f"Aborting to prevent hallucinations. Text: {clean_payload_text}"
+        )
+        raise AppException(
+            message=(
+                "Fail-Fast: Task payload is empty or too short. "
+                f"Length: {len(clean_payload_text)}, Content: '{clean_payload_text}'"
+            ),
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
 
 class LLMTaskExecutor:

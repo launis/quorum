@@ -12,6 +12,8 @@ from backend_v2.models.domain.source_verification import (
 )
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
 from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.services.llm_task_executor import LLMTaskExecutor
+from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.source_verification_service import SourceVerificationService
 
 
@@ -312,3 +314,40 @@ async def test_run_full_verification_bypasses_when_tavily_max_results_zero(
         assert result.audit_traces == []
         assert result.verification_timestamp != ""
         mock_task_executor.execute_structured_task.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_source_verification_service_with_real_executor_and_cdata(
+    mock_llm_client: AsyncMock,
+) -> None:
+    """PROMISE: Prove SourceVerificationService integrates with real executor without stripping CDATA payload."""
+    real_executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
+    service_with_real_executor = SourceVerificationService(
+        llm_task_executor=real_executor,
+        llm_client=mock_llm_client,
+    )
+
+    mock_response = SourceExtractionResponseSchema(
+        claims=[
+            SourceClaimDTO(
+                claim_text="Extracted claim from real executor",
+                institution_name="Test Inst",
+                publication_year=2026,
+            ),
+        ]
+    )
+    mock_llm_client.run_structured_task.return_value = (
+        mock_response,
+        {"total_tokens": 100, "prompt_tokens": 60, "completion_tokens": 40},
+    )
+
+    document_text = (
+        "This is a legitimate source claim document that contains more than enough characters to verify. "
+        "It will be encapsulated in CDATA by SourceVerificationService and passed through real LLMTaskExecutor."
+    )
+
+    claims = await service_with_real_executor._extract_source_claims(document_text)
+
+    assert len(claims) == 1
+    assert claims[0].claim_text == "Extracted claim from real executor"
+    mock_llm_client.run_structured_task.assert_called_once()
