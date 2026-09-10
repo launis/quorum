@@ -102,12 +102,12 @@
 
     <module path="scripts/">
         <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
-        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_database_atoms.py, sanitize_seed_vault.py</key_domains>
+        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2/4 Workflow & Profile Editors), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
+        <key_domains>studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; widgets: tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">

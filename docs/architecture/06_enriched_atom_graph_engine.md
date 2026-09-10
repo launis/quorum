@@ -86,6 +86,12 @@ The graph engine maintains strict structural decoupling between internal executi
 - **Reference Offloading:** Static evidence (such as resolved claims, verified source quotes, chunk identifiers, and chronological sequence indices) is segregated into an independent reference dictionary keyed by atom identifier.
 - **Zero Nested Tree Complexity:** By separating flat dynamic execution results from static hydrated references, presentation adapters and client renderers consume normalized, non-redundant payloads. This eliminates complex nested tree traversal and guarantees complete semantic parity across interactive user interfaces and static document exports.
 
+### 2.13. Strongly Typed FlattenedAtom State Transit & Anonymous Tuple Eradication
+All intermediate atom transit across graph aggregation, flattening, and topological evaluation stages enforces 100% strongly typed Pydantic V2 DTOs:
+- **`FlattenedAtom` Domain Model**: Atom definitions are encapsulated within the immutable `FlattenedAtom` DTO carrying strongly typed properties: `atom_id`, `question`, `extraction_rule`, `anchor_target`, `is_inverse`, `depends_on: tuple[CausalEdge, ...]`, `contrastive_example: ContrastivePairDTO | None`, `acceptance_criteria: tuple[AcceptanceCriterion, ...]`, `anti_patterns: tuple[AntiPattern, ...]`, and `syntactic_anchors: tuple[str, ...]`.
+- **Complete Eradication of Anonymous State Tuples**: Intermediate atom collections across graph hooks maintain direct typed mappings (`dict[str, FlattenedAtom]` for global deduplication and `list[FlattenedAtom]` for matrix collection arrays). Anonymous multi-element state tuples and positional indexing (`[0]`..`[5]`) are completely eradicated.
+- **Transitive Causal Graph Propagation**: Transitive causal dependency chains are resolved directly through typed model properties (`FlattenedAtom.depends_on`), guaranteeing compile-time type safety and preventing positional data transposition across DAG topological sorting waves.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

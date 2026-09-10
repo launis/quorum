@@ -46,6 +46,9 @@ Pipeline step definitions declare explicit system core protections (`is_system_c
 ### 2.11. Epistemic Separation (TheoryGrounding SSOT)
 Bibliographic references and academic provenance metadata are strictly decoupled from operational prompting instructions. `PromptBlock.theory_grounding` (`TheoryGrounding`) is the sole Single Source of Truth for academic citations (`citation_reference`) and source URLs (`source_url`). `PromptBlock.ai_description` contains purely operational prompt text, allowing presentation layers and PDF reports to consume structured academic citations without prompt-scraping or token bloat.
 
+### 2.12. Structured Few-Shot Calibration Schema (ContrastivePairDTO)
+Evaluation assertions and rubrics across the ontology define structured few-shot grounding via `ContrastivePairDTO`, encapsulating `acceptable` and `rejected` exemplars with enforced minimum length boundaries and equality conflict rejection. This eliminates unstructured string delimiters and manual prefix conventions from the seed vault, guaranteeing that every matrix atom provides a pristine, strongly typed boundary definition ready for prompt compilation and direct production deployment across all environments without runtime parsing shims.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

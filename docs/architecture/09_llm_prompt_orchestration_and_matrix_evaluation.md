@@ -163,28 +163,32 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
 
 ---
 
-### 2.7 Contrastive Examples (`contrastive_example`)
-* **Role:** Calibrates the LLM decision boundary through few-shot negative and positive anchors.
+### 2.7 Contrastive Calibration (`contrastive_example`)
+* **Role:** Calibrates the LLM decision boundary through few-shot negative and positive anchors encapsulated in the immutable `ContrastivePairDTO`.
+* **Model Schema (`ContrastivePairDTO`):**
+  * `acceptable: str` (minimum 10 characters, trimmed)
+  * `rejected: str` (minimum 10 characters, trimmed, distinct from `acceptable`)
 * **Example:**
-  ```text
-  ACCEPTABLE: "Because server traffic and local ice cream sales both peaked during July, increased website visits directly caused higher ice cream consumption."
-  REJECTED: "Server traffic increased in July alongside ice cream sales, which may be attributed to hotter summer weather driving both online browsing and outdoor refreshment."
+  ```python
+  ContrastivePairDTO(
+      acceptable="Because server traffic and local ice cream sales both peaked during July, increased website visits directly caused higher ice cream consumption.",
+      rejected="Server traffic increased in July alongside ice cream sales, which may be attributed to hotter summer weather driving both online browsing and outdoor refreshment.",
+  )
   ```
 * **Prompt Wrapper & Mechanics:**
+  Compiled with CDATA breakout shielding via `TemplateProcessor.encapsulate_payload()`:
   ```xml
   <contrastive_grounding>
-  <![CDATA[
-  ACCEPTABLE: "Because server traffic and local ice cream sales both peaked during July, increased website visits directly caused higher ice cream consumption."
-  REJECTED: "Server traffic increased in July alongside ice cream sales, which may be attributed to hotter summer weather driving both online browsing and outdoor refreshment."
-  ]]>
+    <acceptable><![CDATA[Because server traffic and local ice cream sales both peaked during July, increased website visits directly caused higher ice cream consumption.]]></acceptable>
+    <rejected><![CDATA[Server traffic increased in July alongside ice cream sales, which may be attributed to hotter summer weather driving both online browsing and outdoor refreshment.]]></rejected>
   </contrastive_grounding>
   ```
   Provides immediate visual calibration to the LLM, neutralizing ambiguity between unhedged causal leaps and legitimate multivariate observations.
 
 ---
 
-### 2.8 Acceptance Criteria / Verification Protocol (`acceptance_criteria`)
-* **Role:** Algorithmic verification protocol enforcing sequential Chain-of-Thought (CoT) auditing.
+### 2.8 Acceptance Criteria (`acceptance_criteria`)
+* **Role:** Algorithmic verification protocol enforcing sequential Chain-of-Thought (CoT) auditing via discrete `AcceptanceCriterion` models.
 * **Example:**
   ```text
   1. Identify an assertion claiming that one variable causally produces or drives another variable.
@@ -192,13 +196,13 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   3. Confirm that no physical or logical mediating mechanism is described.
   ```
 * **Prompt Wrapper & Mechanics:**
-  Formatted into ordered step elements within `<verification_protocol>`:
+  Formatted into ordered `<criterion>` elements within `<acceptance_criteria>`:
   ```xml
-  <verification_protocol>
-    <step index="1"><![CDATA[Identify an assertion claiming that one variable causally produces or drives another variable.]]></step>
-    <step index="2"><![CDATA[Verify whether the causal attribution is justified solely by simultaneous timing or statistical correlation.]]></step>
-    <step index="3"><![CDATA[Confirm that no physical or logical mediating mechanism is described.]]></step>
-  </verification_protocol>
+  <acceptance_criteria>
+    <criterion index="1"><![CDATA[Identify an assertion claiming that one variable causally produces or drives another variable.]]></criterion>
+    <criterion index="2"><![CDATA[Verify whether the causal attribution is justified solely by simultaneous timing or statistical correlation.]]></criterion>
+    <criterion index="3"><![CDATA[Confirm that no physical or logical mediating mechanism is described.]]></criterion>
+  </acceptance_criteria>
   ```
   Forces the model to execute analytical reasoning step-by-step before resolving its conclusion.
 
@@ -211,11 +215,11 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   * **Option A: Pre-Flight Enabled (`enforce_pre_flight = True`):** Used exclusively in pure Python (`str.find` / normalized lexical scan). If no markers appear in the source document, execution bypasses the LLM entirely.
   * **Option B: Pre-Flight Disabled (`enforce_pre_flight = False`):** Passed into the LLM prompt as lexical hints without pre-flight early termination:
     ```xml
-    <syntactic_markers>
-      <marker><![CDATA[caused by]]></marker>
-      <marker><![CDATA[johti]]></marker>
-      <marker><![CDATA[correlation]]></marker>
-    </syntactic_markers>
+    <syntactic_anchors>
+      <anchor><![CDATA[caused by]]></anchor>
+      <anchor><![CDATA[johti]]></anchor>
+      <anchor><![CDATA[correlation]]></anchor>
+    </syntactic_anchors>
     ```
 
 ---

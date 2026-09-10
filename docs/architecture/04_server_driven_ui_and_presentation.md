@@ -112,6 +112,17 @@ In accordance with international AI transparency regulations (such as EU AI Act 
 - **Auditable Presentation**: Audit records are serialized via `McpAuditAdapter` into `SduiAuditTrailBlock` and displayed to users as structured, verifiable execution traces.
 - **XAI Qualitative Extensions**: Analytical reasoning traces and evidence quotes are structured into `HighlightBoxDisplay` cards and `AlertBlock` components, providing clear provenance for every score and recommendation.
 
+### 2.11. Desktop Pro-Tool Studio Input Architecture & Modular Component Foundation
+Studio matrix and rubric authoring surfaces enforce desktop-class ergonomics, de-stringified inputs, and state loss prevention:
+- **Adaptive Master Selector Navigation**: In complex editors (such as matrix scale modals), claims are isolated into single cognitive units with a lateral sticky sidebar (viewports >= 900px) or horizontal choice chip selector (< 900px), with real-time status badges and cross-claim error navigation.
+- **5-Card Semantic Hierarchy**: Editor canvases group inputs into 5 visual cards (`elevation: 2`, `BorderRadius.circular(12)`, `fontSize: 20, fontWeight: FontWeight.bold`): 1. Core Hypothesis & Scope, 2. Reasoning Chain & Anti-Patterns, 3. Contrastive Calibration, 4. Lexical Anchors & Fast Falsification, 5. Aggregation & Reverse Polarity.
+- **Modular SSOT Sub-Widgets**:
+  - `TagChipInput`: Tokenized chip collection implementing the Dual-Shield FormField architecture. Automatically commits pending text buffers upon focus loss, `FormField.save()`, `FormField.validate()`, Enter, comma, or Tab, preventing keystroke evaporation when clicking save or triggering shortcuts (`Ctrl+S`). Enforces bounded chip layout (`maxWidth: 240px`, ellipsis, hover tooltip).
+  - `DynamicItemListEditor`: Discrete numbered step cards for reasoning criteria and disqualifying anti-patterns, eliminating brittle newline delimiter splitting.
+  - `ContrastivePairEditor`: Dedicated two-field editor for `ContrastivePairDTO` (`acceptable` vs `rejected`), with real-time character counters, semantic color accents, and responsive vertical stacking when pane width < 520px.
+  - `LinguisticShieldBanner`: Non-blocking warning banner powered by a two-phase `LinguisticShieldDetector` (Unicode check outside Basic Latin with typographical whitelist + target-language grammatical stopword gate), alerting authors when non-English text is entered into prompt instructions without blocking submission.
+- **Modal Feedback & Submission Guard**: Dialogs eradicate `SnackBar` popups in favor of modal-internal error surfaces, implement in-flight atomic save debouncing (`_isSaving`), auto-scroll to invalid fields, and enforce a robust `PopScope` protocol that prompts discard confirmation if uncommitted text buffers or dirty model changes exist.
+
 ## 3. Logical Data Flow & Rendering Pipeline
 ```mermaid
 flowchart TB
