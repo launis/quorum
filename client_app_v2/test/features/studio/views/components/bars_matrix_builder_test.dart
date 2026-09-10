@@ -82,46 +82,58 @@ void main() {
       final scales = [
         const MatrixScale(
           score: 1,
-          aiLabel: 'CATASTROPHIC FAILURE - TRIGGER PASSIVITY AND HUBRIS PENALTY',
-          name: I18nText(translations: {'fi': 'Sokea usko', 'en': 'Blind Faith'}),
+          aiLabel:
+              'CATASTROPHIC FAILURE - TRIGGER PASSIVITY AND HUBRIS PENALTY',
+          name: I18nText(
+            translations: {'fi': 'Sokea usko', 'en': 'Blind Faith'},
+          ),
           claims: [
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Passiivinen delegointi ilman reunaehtoja',
-                'en': 'Passive Delegation Without Constraints',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Passiivinen delegointi ilman reunaehtoja',
+                  'en': 'Passive Delegation Without Constraints',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_1',
-                  conceptDescription: 'Author delegates execution or decision-making without specifying constraints.',
+                  conceptDescription:
+                      'Author delegates execution or decision-making without specifying constraints.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.exists,
                 ),
               ],
             ),
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Kriittisen tarkistusvaiheen puuttuminen',
-                'en': 'Absence of Verification Step',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Kriittisen tarkistusvaiheen puuttuminen',
+                  'en': 'Absence of Verification Step',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_2',
-                  conceptDescription: 'Author incorporates or accepts generative output directly.',
+                  conceptDescription:
+                      'Author incorporates or accepts generative output directly.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.exists,
                 ),
               ],
             ),
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Auktoriteettiharha ja oraakkeliasema',
-                'en': 'Authority Bias and Oracle Trap',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Auktoriteettiharha ja oraakkeliasema',
+                  'en': 'Authority Bias and Oracle Trap',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_3',
-                  conceptDescription: 'Author treats probabilistic generation as infallible oracle.',
+                  conceptDescription:
+                      'Author treats probabilistic generation as infallible oracle.',
                   inverseEvidence: true,
                   aggregationMode: AggregationMode.exists,
                 ),
@@ -132,17 +144,25 @@ void main() {
         const MatrixScale(
           score: 2,
           aiLabel: 'SIGNIFICANT DISTORTION - PASSIVE ACCEPTANCE OF METRICS',
-          name: I18nText(translations: {'fi': 'Reaktiivinen huomioija', 'en': 'Reactive Observer'}),
+          name: I18nText(
+            translations: {
+              'fi': 'Reaktiivinen huomioija',
+              'en': 'Reactive Observer',
+            },
+          ),
           claims: [
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Pinnalliset muotoseikat ja korjaukset',
-                'en': 'Superficial Formatting Corrections',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Pinnalliset muotoseikat ja korjaukset',
+                  'en': 'Superficial Formatting Corrections',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_4',
-                  conceptDescription: 'Author restricts feedback exclusively to cosmetic adjustments.',
+                  conceptDescription:
+                      'Author restricts feedback exclusively to cosmetic adjustments.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.allMustComply,
                 ),
@@ -153,17 +173,22 @@ void main() {
         const MatrixScale(
           score: 3,
           aiLabel: 'MINOR DEVIATION - REQUIRES REBUTTALS FOR ADVANCEMENT',
-          name: I18nText(translations: {'fi': 'Pintapuolinen', 'en': 'Superficial'}),
+          name: I18nText(
+            translations: {'fi': 'Pintapuolinen', 'en': 'Superficial'},
+          ),
           claims: [
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Mekaaninen vaiheistettu eteneminen',
-                'en': 'Linear Step-by-Step Task Breakdown',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Mekaaninen vaiheistettu eteneminen',
+                  'en': 'Linear Step-by-Step Task Breakdown',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_5',
-                  conceptDescription: 'Author structures workflow into sequential stages.',
+                  conceptDescription:
+                      'Author structures workflow into sequential stages.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.allMustComply,
                 ),
@@ -174,17 +199,23 @@ void main() {
         const MatrixScale(
           score: 4,
           aiLabel: 'ROBUST ALIGNMENT - REQUIRES EPISTEMOLOGICAL HUMILITY',
-          name: I18nText(translations: {'fi': 'Kriittinen ohjaaja', 'en': 'Critical Guide'}),
+          name: I18nText(
+            translations: {'fi': 'Kriittinen ohjaaja', 'en': 'Critical Guide'},
+          ),
           claims: [
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Goodhartin lain tunnistaminen ja mittarin kyseenalaistus',
-                'en': "Goodhart's Law Identification",
-              }),
+              label: I18nText(
+                translations: {
+                  'fi':
+                      'Goodhartin lain tunnistaminen ja mittarin kyseenalaistus',
+                  'en': "Goodhart's Law Identification",
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_6',
-                  conceptDescription: 'Author actively identifies Goodhart law.',
+                  conceptDescription:
+                      'Author actively identifies Goodhart law.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.allMustComply,
                 ),
@@ -194,18 +225,27 @@ void main() {
         ),
         const MatrixScale(
           score: 5,
-          aiLabel: 'THEORETICAL PERFECTION - EXPLICIT COGNITIVE FRICTION AND ANCHORING REQUIRED',
-          name: I18nText(translations: {'fi': 'Aktiivinen haastaja', 'en': 'Active Challenger'}),
+          aiLabel:
+              'THEORETICAL PERFECTION - EXPLICIT COGNITIVE FRICTION AND ANCHORING REQUIRED',
+          name: I18nText(
+            translations: {
+              'fi': 'Aktiivinen haastaja',
+              'en': 'Active Challenger',
+            },
+          ),
           claims: [
             MatrixClaim(
-              label: I18nText(translations: {
-                'fi': 'Sokraattinen ohjaus ja kognitiivinen kitka',
-                'en': 'Socratic Steering and Cognitive Friction',
-              }),
+              label: I18nText(
+                translations: {
+                  'fi': 'Sokraattinen ohjaus ja kognitiivinen kitka',
+                  'en': 'Socratic Steering and Cognitive Friction',
+                },
+              ),
               tdaAssertions: [
                 TDAAssertion(
                   tdaId: 'tda_7',
-                  conceptDescription: 'Author actively probes foundational reasoning.',
+                  conceptDescription:
+                      'Author actively probes foundational reasoning.',
                   inverseEvidence: false,
                   aggregationMode: AggregationMode.allMustComply,
                 ),
@@ -229,7 +269,10 @@ void main() {
               child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: BarsMatrixBuilder(scales: scales, onChanged: (newScales) {}),
+                  child: BarsMatrixBuilder(
+                    scales: scales,
+                    onChanged: (newScales) {},
+                  ),
                 ),
               ),
             ),

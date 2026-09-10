@@ -336,637 +336,575 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                 icon: const Icon(Icons.save),
                 label: Text(l10n.studioSaveButton),
               ),
-            const SizedBox(width: 16),
+            AppSpacing.w16,
           ],
         ),
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Matrix Metadata
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          l10n.promptBlockConfigTitle,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (payload.id.isNotEmpty == true) ...[
-                          Text(
-                            l10n.opaqueIdLabel(payload.id),
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurfaceVariant,
-                              fontFamily: 'monospace',
-                              fontWeight: FontWeight.bold,
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: AppSpacing.p16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Matrix Metadata
+                    Card(
+                      child: Padding(
+                        padding: AppSpacing.p16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.promptBlockConfigTitle,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 24),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Text(
-                          l10n.promptBlockPropertiesTitle,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Categories
-                        DropdownButtonFormField<PromptBlockCategory>(
-                          decoration: InputDecoration(
-                            labelText: l10n.categoryLabel,
-                            helperText: isMatrix
-                                ? l10n.matrixCategoryLockedHelper
-                                : null,
-                          ),
-                          initialValue: PromptBlockCategory.fromId(
-                            payload.categoryId,
-                          ),
-                          items: PromptBlockCategory.values.map((category) {
-                            return DropdownMenuItem(
-                              value: category,
-                              child: Text(category.displayName(context)),
-                            );
-                          }).toList(),
-                          onChanged: isMatrix
-                              ? null
-                              : (val) {
-                                  if (val != null) {
-                                    final newBlock = switch (val) {
-                                      PromptBlockCategory.matrix =>
-                                        PromptBlock.matrix(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          aiDescription:
-                                              payload is MatrixPromptBlock
-                                              ? payload.aiDescription
-                                              : null,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          scales: const [],
-                                          targetInputKey:
-                                              payload is MatrixPromptBlock
-                                              ? payload.targetInputKey
-                                              : null,
-                                        ),
-                                      PromptBlockCategory.systemRule =>
-                                        PromptBlock.systemRule(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          instructionText:
-                                              payload is SystemRulePromptBlock
-                                              ? payload.instructionText
-                                              : (payload
-                                                        is RuntimeVariablesPromptBlock
-                                                    ? payload.instructionText
-                                                    : (payload
-                                                              is TaskDefinitionPromptBlock
-                                                          ? payload
-                                                                .instructionText
-                                                          : null)),
-                                        ),
-                                      PromptBlockCategory.executionPersona =>
-                                        PromptBlock.executionPersona(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          roleEnforcement:
-                                              payload
-                                                  is ExecutionPersonaPromptBlock
-                                              ? payload.roleEnforcement
-                                              : (payload is AgentRolePromptBlock
-                                                    ? payload.roleEnforcement
-                                                    : null),
-                                        ),
-                                      PromptBlockCategory.agentRole =>
-                                        PromptBlock.agentRole(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          roleEnforcement:
-                                              payload is AgentRolePromptBlock
-                                              ? payload.roleEnforcement
-                                              : (payload
-                                                        is ExecutionPersonaPromptBlock
-                                                    ? payload.roleEnforcement
-                                                    : null),
-                                        ),
-                                      PromptBlockCategory.protocol =>
-                                        PromptBlock.protocol(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          protocolInstructions:
-                                              payload is ProtocolPromptBlock
-                                              ? payload.protocolInstructions
-                                              : null,
-                                        ),
-                                      PromptBlockCategory.runtimeVariables =>
-                                        PromptBlock.runtimeVariables(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          instructionText:
-                                              payload
-                                                  is RuntimeVariablesPromptBlock
-                                              ? payload.instructionText
-                                              : (payload
-                                                        is SystemRulePromptBlock
-                                                    ? payload.instructionText
-                                                    : (payload
-                                                              is TaskDefinitionPromptBlock
-                                                          ? payload
-                                                                .instructionText
-                                                          : null)),
-                                        ),
-                                      PromptBlockCategory.taskDefinition =>
-                                        PromptBlock.taskDefinition(
-                                          id: payload.id,
-                                          slug: payload.slug,
-                                          organizationId:
-                                              payload.organizationId,
-                                          label: payload.label,
-                                          description: payload.description,
-                                          isEvaluative: payload.isEvaluative,
-                                          type: payload.type,
-                                          allowDecimals: payload.allowDecimals,
-                                          outputExtensions:
-                                              payload.outputExtensions,
-                                          theoryGrounding:
-                                              payload.theoryGrounding,
-                                          isLightweightProtocol:
-                                              payload.isLightweightProtocol,
-                                          instructionText:
-                                              payload
-                                                  is TaskDefinitionPromptBlock
-                                              ? payload.instructionText
-                                              : (payload
-                                                        is SystemRulePromptBlock
-                                                    ? payload.instructionText
-                                                    : (payload
-                                                              is RuntimeVariablesPromptBlock
-                                                          ? payload
-                                                                .instructionText
-                                                          : null)),
-                                        ),
-                                    };
-                                    ref
-                                        .read(
-                                          promptBlockFormProvider(
-                                            blockId,
-                                          ).notifier,
-                                        )
-                                        .forceRebuild(newBlock);
-                                  }
-                                },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Label (I18N)
-                        I18nTextField(
-                          label: l10n.blockLabelName,
-                          initialData: payload.label,
-                          onChanged: (val) {
-                            ref
-                                .read(promptBlockFormProvider(blockId).notifier)
-                                .forceRebuild(payload.copyWith(label: val));
-                          },
-                        ),
-                        AppSpacing.h16,
-
-                        // Description (I18N) - Short UI Hint
-                        I18nTextField(
-                          label: l10n.shortDescriptionHint,
-                          initialData: payload.description,
-                          onChanged: (val) {
-                            ref
-                                .read(promptBlockFormProvider(blockId).notifier)
-                                .forceRebuild(
-                                  payload.copyWith(description: val),
-                                );
-                          },
-                        ),
-                        AppSpacing.h16,
-
-                        // Zero-XML Polymorphic Form Sections
-                        _buildPolymorphicInstructionSection(
-                          context,
-                          ref,
-                          l10n,
-                          payload,
-                          blockId,
-                        ),
-                        AppSpacing.h16,
-
-                        // XAI & Constraints Container
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
+                            AppSpacing.h16,
+                            if (payload.id.isNotEmpty == true) ...[
                               Text(
-                                l10n.dataTypeExecutionConstraints,
-                                style: const TextStyle(
+                                l10n.opaqueIdLabel(payload.id),
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                                  fontFamily: 'monospace',
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 8,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  DropdownButton<BlockDataType>(
-                                    value: payload.type,
-                                    items: [
-                                      DropdownMenuItem(
-                                        value: BlockDataType.instruction,
-                                        child: Text(l10n.typeInstruction),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: BlockDataType.stringType,
-                                        child: Text(l10n.typeString),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: BlockDataType.intType,
-                                        child: Text(l10n.typeInteger),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: BlockDataType.floatType,
-                                        child: Text(l10n.typeFloat),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
+                              AppSpacing.h24,
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    AppSpacing.h24,
+
+                    // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
+                    AppSpacing.h16,
+                    Card(
+                      child: Padding(
+                        padding: AppSpacing.p16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              l10n.promptBlockPropertiesTitle,
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            AppSpacing.h16,
+
+                            // Categories
+                            DropdownButtonFormField<PromptBlockCategory>(
+                              isExpanded: true,
+                              decoration: InputDecoration(
+                                labelText: l10n.categoryLabel,
+                                helperText: isMatrix
+                                    ? l10n.matrixCategoryLockedHelper
+                                    : null,
+                              ),
+                              initialValue: PromptBlockCategory.fromId(
+                                payload.categoryId,
+                              ),
+                              items: PromptBlockCategory.values.map((category) {
+                                return DropdownMenuItem(
+                                  value: category,
+                                  child: Text(category.displayName(context)),
+                                );
+                              }).toList(),
+                              onChanged: isMatrix
+                                  ? null
+                                  : (val) {
                                       if (val != null) {
+                                        final newBlock = switch (val) {
+                                          PromptBlockCategory.matrix =>
+                                            PromptBlock.matrix(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              aiDescription:
+                                                  payload is MatrixPromptBlock
+                                                  ? payload.aiDescription
+                                                  : null,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              scales: const [],
+                                              targetInputKey:
+                                                  payload is MatrixPromptBlock
+                                                  ? payload.targetInputKey
+                                                  : null,
+                                            ),
+                                          PromptBlockCategory.systemRule =>
+                                            PromptBlock.systemRule(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              instructionText:
+                                                  payload
+                                                      is SystemRulePromptBlock
+                                                  ? payload.instructionText
+                                                  : (payload
+                                                            is RuntimeVariablesPromptBlock
+                                                        ? payload
+                                                              .instructionText
+                                                        : (payload
+                                                                  is TaskDefinitionPromptBlock
+                                                              ? payload
+                                                                    .instructionText
+                                                              : null)),
+                                            ),
+                                          PromptBlockCategory
+                                              .executionPersona =>
+                                            PromptBlock.executionPersona(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              roleEnforcement:
+                                                  payload
+                                                      is ExecutionPersonaPromptBlock
+                                                  ? payload.roleEnforcement
+                                                  : (payload
+                                                            is AgentRolePromptBlock
+                                                        ? payload
+                                                              .roleEnforcement
+                                                        : null),
+                                            ),
+                                          PromptBlockCategory.agentRole =>
+                                            PromptBlock.agentRole(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              roleEnforcement:
+                                                  payload
+                                                      is AgentRolePromptBlock
+                                                  ? payload.roleEnforcement
+                                                  : (payload
+                                                            is ExecutionPersonaPromptBlock
+                                                        ? payload
+                                                              .roleEnforcement
+                                                        : null),
+                                            ),
+                                          PromptBlockCategory.protocol =>
+                                            PromptBlock.protocol(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              protocolInstructions:
+                                                  payload is ProtocolPromptBlock
+                                                  ? payload.protocolInstructions
+                                                  : null,
+                                            ),
+                                          PromptBlockCategory
+                                              .runtimeVariables =>
+                                            PromptBlock.runtimeVariables(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              instructionText:
+                                                  payload
+                                                      is RuntimeVariablesPromptBlock
+                                                  ? payload.instructionText
+                                                  : (payload
+                                                            is SystemRulePromptBlock
+                                                        ? payload
+                                                              .instructionText
+                                                        : (payload
+                                                                  is TaskDefinitionPromptBlock
+                                                              ? payload
+                                                                    .instructionText
+                                                              : null)),
+                                            ),
+                                          PromptBlockCategory.taskDefinition =>
+                                            PromptBlock.taskDefinition(
+                                              id: payload.id,
+                                              slug: payload.slug,
+                                              organizationId:
+                                                  payload.organizationId,
+                                              label: payload.label,
+                                              description: payload.description,
+                                              isEvaluative:
+                                                  payload.isEvaluative,
+                                              type: payload.type,
+                                              allowDecimals:
+                                                  payload.allowDecimals,
+                                              outputExtensions:
+                                                  payload.outputExtensions,
+                                              theoryGrounding:
+                                                  payload.theoryGrounding,
+                                              isLightweightProtocol:
+                                                  payload.isLightweightProtocol,
+                                              instructionText:
+                                                  payload
+                                                      is TaskDefinitionPromptBlock
+                                                  ? payload.instructionText
+                                                  : (payload
+                                                            is SystemRulePromptBlock
+                                                        ? payload
+                                                              .instructionText
+                                                        : (payload
+                                                                  is RuntimeVariablesPromptBlock
+                                                              ? payload
+                                                                    .instructionText
+                                                              : null)),
+                                            ),
+                                        };
                                         ref
                                             .read(
                                               promptBlockFormProvider(
                                                 blockId,
                                               ).notifier,
                                             )
-                                            .forceRebuild(
-                                              payload.copyWith(type: val),
-                                            );
+                                            .forceRebuild(newBlock);
                                       }
                                     },
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Checkbox(
-                                        value: payload.allowDecimals,
-                                        onChanged: (val) {
-                                          if (val != null) {
-                                            ref
-                                                .read(
-                                                  promptBlockFormProvider(
-                                                    blockId,
-                                                  ).notifier,
-                                                )
-                                                .forceRebuild(
-                                                  payload.copyWith(
-                                                    allowDecimals: val,
-                                                  ),
-                                                );
-                                          }
-                                        },
-                                      ),
-                                      Text(l10n.allowDecimals),
-                                    ],
-                                  ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Checkbox(
-                                        value: payload.isEvaluative,
-                                        onChanged: (val) {
-                                          if (val != null) {
-                                            ref
-                                                .read(
-                                                  promptBlockFormProvider(
-                                                    blockId,
-                                                  ).notifier,
-                                                )
-                                                .forceRebuild(
-                                                  payload.copyWith(
-                                                    isEvaluative: val,
-                                                  ),
-                                                );
-                                          }
-                                        },
-                                      ),
-                                      Text(l10n.isEvaluativeMatrix),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                l10n.xaiOutputExtensionsTitle,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children:
-                                    {
-                                      "justification": l10n.xaiJustification,
-                                      "coaching": l10n.xaiCoachingTip,
-                                      "falsification": l10n.xaiDevilsAdvocate,
-                                      "missing_context": l10n.xaiMissingContext,
-                                      "risk_flag": l10n.xaiRiskFlag,
-                                      "remediation_steps": l10n.xaiRemediation,
-                                      "emotional_sentiment": l10n.xaiSentiment,
-                                      "theory_link": l10n.xaiTheoryLink,
-                                      "confidence": l10n.xaiConfidence,
-                                      "citation": l10n.xaiSourceCitation,
-                                    }.entries.map((entry) {
-                                      final extList = payload.outputExtensions;
-                                      final isSelected = extList.contains(
-                                        entry.key,
-                                      );
-                                      return FilterChip(
-                                        label: Text(entry.value),
-                                        selected: isSelected,
-                                        onSelected: (bool selected) {
-                                          final newList = List<String>.from(
-                                            payload.outputExtensions,
-                                          );
-                                          if (selected) {
-                                            newList.add(entry.key);
-                                          } else {
-                                            newList.remove(entry.key);
-                                          }
-                                          ref
-                                              .read(
-                                                promptBlockFormProvider(
-                                                  blockId,
-                                                ).notifier,
-                                              )
-                                              .forceRebuild(
-                                                payload.copyWith(
-                                                  outputExtensions: newList,
-                                                ),
-                                              );
-                                        },
-                                        selectedColor: Theme.of(
-                                          context,
-                                        ).colorScheme.primaryContainer,
-                                        checkmarkColor: Theme.of(
-                                          context,
-                                        ).colorScheme.onPrimaryContainer,
-                                      );
-                                    }).toList(),
-                              ),
-                            ],
-                          ),
-                        ),
+                            ),
+                            AppSpacing.h16,
 
-                        if (payload is MatrixPromptBlock) ...[
-                          const SizedBox(height: 16),
-                          // Contextual Override Configuration
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surfaceContainerHighest,
-                            child: SwitchListTile(
-                              title: Text(
-                                l10n.allowContextualOverrideLabel,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  l10n.allowContextualOverrideDescription,
-                                ),
-                              ),
-                              value: payload.allowContextualOverride,
+                            // Label (I18N)
+                            I18nTextField(
+                              label: l10n.blockLabelName,
+                              initialData: payload.label,
+                              onChanged: (val) {
+                                ref
+                                    .read(
+                                      promptBlockFormProvider(blockId).notifier,
+                                    )
+                                    .forceRebuild(payload.copyWith(label: val));
+                              },
+                            ),
+                            AppSpacing.h16,
+
+                            // Description (I18N) - Short UI Hint
+                            I18nTextField(
+                              label: l10n.shortDescriptionHint,
+                              initialData: payload.description,
                               onChanged: (val) {
                                 ref
                                     .read(
                                       promptBlockFormProvider(blockId).notifier,
                                     )
                                     .forceRebuild(
-                                      payload.copyWith(
-                                        allowContextualOverride: val,
-                                      ),
+                                      payload.copyWith(description: val),
                                     );
                               },
-                              contentPadding: EdgeInsets.zero,
                             ),
-                          ),
-                        ],
+                            AppSpacing.h16,
 
-                        const SizedBox(height: 16),
-                        // Ensemble Configuration
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHighest,
-                          child: SwitchListTile(
-                            title: Text(
-                              l10n.promptBlockEnsembleToggle,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            // Zero-XML Polymorphic Form Sections
+                            _buildPolymorphicInstructionSection(
+                              context,
+                              ref,
+                              l10n,
+                              payload,
+                              blockId,
                             ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(top: 4.0),
-                              child: Text(l10n.promptBlockEnsembleToggleDesc),
-                            ),
-                            value: !payload.isLightweightProtocol,
-                            onChanged: (val) {
-                              ref
-                                  .read(
-                                    promptBlockFormProvider(blockId).notifier,
-                                  )
-                                  .forceRebuild(
-                                    payload.copyWith(
-                                      isLightweightProtocol: !val,
-                                    ),
-                                  );
-                            },
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
+                            AppSpacing.h16,
 
-                        const SizedBox(height: 16),
-                        // Theory Grounding Wrapper
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerHigh,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
+                            // XAI & Constraints Container
+                            Container(
+                              padding: AppSpacing.p12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      l10n.theoryGroundingTitle,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                                  Text(
+                                    l10n.dataTypeExecutionConstraints,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  Switch(
-                                    value: payload.theoryGrounding != null,
-                                    onChanged: (val) {
-                                      if (val) {
-                                        ref
-                                            .read(
-                                              promptBlockFormProvider(
-                                                blockId,
-                                              ).notifier,
-                                            )
-                                            .forceRebuild(
-                                              payload.copyWith(
-                                                theoryGrounding:
-                                                    const TheoryGrounding(
-                                                      sourceUrl: '',
-                                                      citationReference: '',
+                                  AppSpacing.h12,
+                                  Wrap(
+                                    spacing: 16,
+                                    runSpacing: 8,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 180,
+                                          minWidth: 140,
+                                        ),
+                                        child: DropdownButton<BlockDataType>(
+                                          isExpanded: true,
+                                          value: payload.type,
+                                          items: [
+                                            DropdownMenuItem(
+                                              value: BlockDataType.instruction,
+                                              child: Text(l10n.typeInstruction),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: BlockDataType.stringType,
+                                              child: Text(l10n.typeString),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: BlockDataType.intType,
+                                              child: Text(l10n.typeInteger),
+                                            ),
+                                            DropdownMenuItem(
+                                              value: BlockDataType.floatType,
+                                              child: Text(l10n.typeFloat),
+                                            ),
+                                          ],
+                                          onChanged: (val) {
+                                            if (val != null) {
+                                              ref
+                                                  .read(
+                                                    promptBlockFormProvider(
+                                                      blockId,
+                                                    ).notifier,
+                                                  )
+                                                  .forceRebuild(
+                                                    payload.copyWith(type: val),
+                                                  );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
+                                            value: payload.allowDecimals,
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                ref
+                                                    .read(
+                                                      promptBlockFormProvider(
+                                                        blockId,
+                                                      ).notifier,
+                                                    )
+                                                    .forceRebuild(
+                                                      payload.copyWith(
+                                                        allowDecimals: val,
+                                                      ),
+                                                    );
+                                              }
+                                            },
+                                          ),
+                                          Flexible(
+                                            child: Text(
+                                              l10n.allowDecimals,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Checkbox(
+                                            value: payload.isEvaluative,
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                ref
+                                                    .read(
+                                                      promptBlockFormProvider(
+                                                        blockId,
+                                                      ).notifier,
+                                                    )
+                                                    .forceRebuild(
+                                                      payload.copyWith(
+                                                        isEvaluative: val,
+                                                      ),
+                                                    );
+                                              }
+                                            },
+                                          ),
+                                          Flexible(
+                                            child: Text(
+                                              l10n.isEvaluativeMatrix,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                  AppSpacing.h16,
+                                  Text(
+                                    l10n.xaiOutputExtensionsTitle,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  AppSpacing.h8,
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children:
+                                        {
+                                          "justification":
+                                              l10n.xaiJustification,
+                                          "coaching": l10n.xaiCoachingTip,
+                                          "falsification":
+                                              l10n.xaiDevilsAdvocate,
+                                          "missing_context":
+                                              l10n.xaiMissingContext,
+                                          "risk_flag": l10n.xaiRiskFlag,
+                                          "remediation_steps":
+                                              l10n.xaiRemediation,
+                                          "emotional_sentiment":
+                                              l10n.xaiSentiment,
+                                          "theory_link": l10n.xaiTheoryLink,
+                                          "confidence": l10n.xaiConfidence,
+                                          "citation": l10n.xaiSourceCitation,
+                                        }.entries.map((entry) {
+                                          final extList =
+                                              payload.outputExtensions;
+                                          final isSelected = extList.contains(
+                                            entry.key,
+                                          );
+                                          return FilterChip(
+                                            label: Text(entry.value),
+                                            selected: isSelected,
+                                            onSelected: (bool selected) {
+                                              final newList = List<String>.from(
+                                                payload.outputExtensions,
+                                              );
+                                              if (selected) {
+                                                newList.add(entry.key);
+                                              } else {
+                                                newList.remove(entry.key);
+                                              }
+                                              ref
+                                                  .read(
+                                                    promptBlockFormProvider(
+                                                      blockId,
+                                                    ).notifier,
+                                                  )
+                                                  .forceRebuild(
+                                                    payload.copyWith(
+                                                      outputExtensions: newList,
                                                     ),
-                                              ),
-                                            );
-                                      } else {
-                                        ref
-                                            .read(
-                                              promptBlockFormProvider(
-                                                blockId,
-                                              ).notifier,
-                                            )
-                                            .forceRebuild(
-                                              payload.copyWith(
-                                                theoryGrounding: null,
-                                              ),
-                                            );
-                                      }
-                                    },
+                                                  );
+                                            },
+                                            selectedColor: Theme.of(
+                                              context,
+                                            ).colorScheme.primaryContainer,
+                                            checkmarkColor: Theme.of(
+                                              context,
+                                            ).colorScheme.onPrimaryContainer,
+                                          );
+                                        }).toList(),
                                   ),
                                 ],
                               ),
-                              if (payload.theoryGrounding != null) ...[
-                                const SizedBox(height: 8),
-                                // Source URL
-                                TextFormField(
-                                  initialValue:
-                                      payload.theoryGrounding!.sourceUrl,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.sourceUrlLabel,
-                                    border: const UnderlineInputBorder(),
+                            ),
+
+                            if (payload is MatrixPromptBlock) ...[
+                              AppSpacing.h16,
+                              // Contextual Override Configuration
+                              Container(
+                                padding: AppSpacing.p12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                                child: SwitchListTile(
+                                  title: Text(
+                                    l10n.allowContextualOverrideLabel,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(top: 4.0),
+                                    child: Text(
+                                      l10n.allowContextualOverrideDescription,
+                                    ),
+                                  ),
+                                  value: payload.allowContextualOverride,
                                   onChanged: (val) {
                                     ref
                                         .read(
@@ -976,71 +914,198 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                         )
                                         .forceRebuild(
                                           payload.copyWith(
-                                            theoryGrounding: payload
-                                                .theoryGrounding!
-                                                .copyWith(sourceUrl: val),
+                                            allowContextualOverride: val,
                                           ),
                                         );
                                   },
+                                  contentPadding: EdgeInsets.zero,
                                 ),
-                                const SizedBox(height: 8),
-                                TextFormField(
-                                  initialValue: payload
-                                      .theoryGrounding!
-                                      .citationReference,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.citationReferenceLabel,
-                                    border: const UnderlineInputBorder(),
-                                  ),
-                                  onChanged: (val) {
-                                    ref
-                                        .read(
-                                          promptBlockFormProvider(
-                                            blockId,
-                                          ).notifier,
-                                        )
-                                        .forceRebuild(
-                                          payload.copyWith(
-                                            theoryGrounding: payload
-                                                .theoryGrounding!
-                                                .copyWith(
-                                                  citationReference: val,
-                                                ),
-                                          ),
-                                        );
-                                  },
-                                ),
-                              ],
+                              ),
                             ],
-                          ),
+
+                            AppSpacing.h16,
+                            // Ensemble Configuration
+                            Container(
+                              padding: AppSpacing.p12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHighest,
+                              child: SwitchListTile(
+                                title: Text(
+                                  l10n.promptBlockEnsembleToggle,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 4.0),
+                                  child: Text(
+                                    l10n.promptBlockEnsembleToggleDesc,
+                                  ),
+                                ),
+                                value: !payload.isLightweightProtocol,
+                                onChanged: (val) {
+                                  ref
+                                      .read(
+                                        promptBlockFormProvider(
+                                          blockId,
+                                        ).notifier,
+                                      )
+                                      .forceRebuild(
+                                        payload.copyWith(
+                                          isLightweightProtocol: !val,
+                                        ),
+                                      );
+                                },
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+
+                            AppSpacing.h16,
+                            // Theory Grounding Wrapper
+                            Container(
+                              padding: AppSpacing.p12,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surfaceContainerHigh,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          l10n.theoryGroundingTitle,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: payload.theoryGrounding != null,
+                                        onChanged: (val) {
+                                          if (val) {
+                                            ref
+                                                .read(
+                                                  promptBlockFormProvider(
+                                                    blockId,
+                                                  ).notifier,
+                                                )
+                                                .forceRebuild(
+                                                  payload.copyWith(
+                                                    theoryGrounding:
+                                                        const TheoryGrounding(
+                                                          sourceUrl: '',
+                                                          citationReference: '',
+                                                        ),
+                                                  ),
+                                                );
+                                          } else {
+                                            ref
+                                                .read(
+                                                  promptBlockFormProvider(
+                                                    blockId,
+                                                  ).notifier,
+                                                )
+                                                .forceRebuild(
+                                                  payload.copyWith(
+                                                    theoryGrounding: null,
+                                                  ),
+                                                );
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                  if (payload.theoryGrounding != null) ...[
+                                    AppSpacing.h8,
+                                    // Source URL
+                                    TextFormField(
+                                      initialValue:
+                                          payload.theoryGrounding!.sourceUrl,
+                                      decoration: InputDecoration(
+                                        labelText: l10n.sourceUrlLabel,
+                                        border: const UnderlineInputBorder(),
+                                      ),
+                                      onChanged: (val) {
+                                        ref
+                                            .read(
+                                              promptBlockFormProvider(
+                                                blockId,
+                                              ).notifier,
+                                            )
+                                            .forceRebuild(
+                                              payload.copyWith(
+                                                theoryGrounding: payload
+                                                    .theoryGrounding!
+                                                    .copyWith(sourceUrl: val),
+                                              ),
+                                            );
+                                      },
+                                    ),
+                                    AppSpacing.h8,
+                                    TextFormField(
+                                      initialValue: payload
+                                          .theoryGrounding!
+                                          .citationReference,
+                                      decoration: InputDecoration(
+                                        labelText: l10n.citationReferenceLabel,
+                                        border: const UnderlineInputBorder(),
+                                      ),
+                                      onChanged: (val) {
+                                        ref
+                                            .read(
+                                              promptBlockFormProvider(
+                                                blockId,
+                                              ).notifier,
+                                            )
+                                            .forceRebuild(
+                                              payload.copyWith(
+                                                theoryGrounding: payload
+                                                    .theoryGrounding!
+                                                    .copyWith(
+                                                      citationReference: val,
+                                                    ),
+                                              ),
+                                            );
+                                      },
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                    if (payload is MatrixPromptBlock) ...[
+                      AppSpacing.h16,
+                      _buildRowListCard(
+                        context,
+                        ref,
+                        l10n,
+                        payload,
+                        blockId,
+                        l10n.gridRowsOptional,
+                      ),
+                      AppSpacing.h16,
+                      _buildColumnListCard(
+                        context,
+                        ref,
+                        l10n,
+                        payload,
+                        blockId,
+                        l10n.gridColumnsOptional,
+                      ),
+                      AppSpacing.h16,
+                      _buildScalesCard(context, ref, l10n, payload, blockId),
+                    ],
+                  ],
                 ),
-                if (payload is MatrixPromptBlock) ...[
-                  const SizedBox(height: 16),
-                  _buildRowListCard(
-                    context,
-                    ref,
-                    l10n,
-                    payload,
-                    blockId,
-                    l10n.gridRowsOptional,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildColumnListCard(
-                    context,
-                    ref,
-                    l10n,
-                    payload,
-                    blockId,
-                    l10n.gridColumnsOptional,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildScalesCard(context, ref, l10n, payload, blockId),
-                ],
-              ],
+              ),
             ),
           ),
         ),
@@ -1058,21 +1123,17 @@ class PromptBlockBuilderView extends HookConsumerWidget {
   ) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 450;
+                final actions = Wrap(
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Switch(
                       value: payload.rows != null,
@@ -1084,18 +1145,16 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             );
                       },
                     ),
-                    if (payload.rows != null) ...[
-                      const SizedBox(width: 8),
+                    if (payload.rows != null)
                       OutlinedButton.icon(
                         onPressed: () async {
                           final result = await showDialog<MatrixRow>(
                             context: context,
-                            builder: (ctx) => RowEditorModal(
-                              initialMatrixRow: const MatrixRow(
+                            builder: (ctx) => const RowEditorModal(
+                              initialMatrixRow: MatrixRow(
                                 label: I18nText(translations: {'en': ''}),
                                 aiDescription: 'CRITICAL MANDATE: ',
                               ),
-                              title: 'Add $title',
                               isMatrixRow: true,
                             ),
                           );
@@ -1110,15 +1169,49 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           }
                         },
                         icon: const Icon(Icons.add),
-                        label: const Text('Add'),
+                        label: Text(l10n.addGridItemBtn),
                       ),
-                    ],
                   ],
-                ),
-              ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSpacing.h8,
+                      actions,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    AppSpacing.w16,
+                    actions,
+                  ],
+                );
+              },
             ),
             if (payload.rows != null) ...[
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               ...payload.rows!.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
@@ -1132,7 +1225,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         Localizations.localeOf(context).languageCode,
                       ),
                     ),
-                    subtitle: Text('Item ${index + 1}'),
+                    subtitle: Text('#${index + 1}'),
                     trailing: IconButton(
                       icon: Icon(
                         Icons.delete,
@@ -1151,7 +1244,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         context: context,
                         builder: (ctx) => RowEditorModal(
                           initialMatrixRow: item,
-                          title: 'Edit $title Item',
                           isMatrixRow: true,
                         ),
                       );
@@ -1183,21 +1275,17 @@ class PromptBlockBuilderView extends HookConsumerWidget {
   ) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 450;
+                final actions = Wrap(
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Switch(
                       value: payload.columns != null,
@@ -1209,8 +1297,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                             );
                       },
                     ),
-                    if (payload.columns != null) ...[
-                      const SizedBox(width: 8),
+                    if (payload.columns != null)
                       OutlinedButton.icon(
                         onPressed: () async {
                           final result = await showDialog<I18nText>(
@@ -1219,7 +1306,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                               initialI18nText: I18nText(
                                 translations: {'en': ''},
                               ),
-                              title: 'Add Column',
                               isMatrixRow: false,
                             ),
                           );
@@ -1234,15 +1320,49 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                           }
                         },
                         icon: const Icon(Icons.add),
-                        label: const Text('Add'),
+                        label: Text(l10n.addGridItemBtn),
                       ),
-                    ],
                   ],
-                ),
-              ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSpacing.h8,
+                      actions,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    AppSpacing.w16,
+                    actions,
+                  ],
+                );
+              },
             ),
             if (payload.columns != null) ...[
-              const SizedBox(height: 16),
+              AppSpacing.h16,
               ...payload.columns!.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
@@ -1254,7 +1374,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     title: Text(
                       item.get(Localizations.localeOf(context).languageCode),
                     ),
-                    subtitle: Text('Item ${index + 1}'),
+                    subtitle: Text('#${index + 1}'),
                     trailing: IconButton(
                       icon: Icon(
                         Icons.delete,
@@ -1273,7 +1393,6 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                         context: context,
                         builder: (ctx) => RowEditorModal(
                           initialI18nText: item,
-                          title: 'Edit Column Item',
                           isMatrixRow: false,
                         ),
                       );
@@ -1308,63 +1427,84 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    l10n.barsScalesTitle,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final result = await showDialog<MatrixScale>(
-                          context: context,
-                          builder: (ctx) => ScaleEditorModal(
-                            initialScale: MatrixScale(
-                              score: 1,
-                              aiLabel: '1',
-                              name: null,
-                              claims: [
-                                MatrixClaim(
-                                  label: const I18nText(
-                                    translations: {'en': 'Initial Criterion'},
-                                  ),
-                                  tdaAssertions: [
-                                    TDAAssertion.create(
-                                      conceptDescription: 'CRITICAL MANDATE: ',
-                                      inverseEvidence: false,
-                                      aggregationMode: AggregationMode.exists,
-                                    ),
-                                  ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 450;
+                final action = OutlinedButton.icon(
+                  onPressed: () async {
+                    final result = await showDialog<MatrixScale>(
+                      context: context,
+                      builder: (ctx) => ScaleEditorModal(
+                        initialScale: MatrixScale(
+                          score: 1,
+                          aiLabel: '1',
+                          name: null,
+                          claims: [
+                            MatrixClaim(
+                              label: const I18nText(
+                                translations: {'en': 'Initial Criterion'},
+                              ),
+                              tdaAssertions: [
+                                TDAAssertion.create(
+                                  conceptDescription: 'CRITICAL MANDATE: ',
+                                  inverseEvidence: false,
+                                  aggregationMode: AggregationMode.exists,
                                 ),
                               ],
                             ),
-                          ),
-                        );
-                        if (result != null) {
-                          _addListItem<MatrixScale>(
-                            ref,
-                            blockId,
-                            payload.scales,
-                            result,
-                            (list) => payload.copyWith(scales: list),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.add),
-                      label: Text(l10n.addGradeBtn),
+                          ],
+                        ),
+                      ),
+                    );
+                    if (result != null) {
+                      _addListItem<MatrixScale>(
+                        ref,
+                        blockId,
+                        payload.scales,
+                        result,
+                        (list) => payload.copyWith(scales: list),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.addGradeBtn),
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.barsScalesTitle,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSpacing.h8,
+                      action,
+                    ],
+                  );
+                }
+
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.barsScalesTitle,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    AppSpacing.w16,
+                    action,
                   ],
-                ),
-              ],
+                );
+              },
             ),
             AppSpacing.h16,
             BarsMatrixBuilder(
@@ -1526,21 +1666,14 @@ class PromptBlockBuilderView extends HookConsumerWidget {
         AppSpacing.h16,
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: AppSpacing.p16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      l10n.toneDirectivesTitle,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    OutlinedButton.icon(
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 450;
+                    final addBtn = OutlinedButton.icon(
                       onPressed: () {
                         _addListItem<String>(
                           ref,
@@ -1560,8 +1693,43 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                       },
                       icon: const Icon(Icons.add),
                       label: Text(l10n.addToneDirectiveBtn),
-                    ),
-                  ],
+                    );
+
+                    if (isCompact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            l10n.toneDirectivesTitle,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          AppSpacing.h8,
+                          addBtn,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            l10n.toneDirectivesTitle,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        AppSpacing.w16,
+                        addBtn,
+                      ],
+                    );
+                  },
                 ),
                 if (toneDirectives.isNotEmpty) ...[
                   AppSpacing.h16,
@@ -1687,7 +1855,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     return Card(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Row(
           children: [
             Icon(

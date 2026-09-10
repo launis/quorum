@@ -78,6 +78,7 @@ void main() {
     required PromptBlock block,
     PromptBlocksController? controller,
     Future<void> Function(PromptBlock)? onSave,
+    Locale? locale,
   }) {
     final mockStudioClient = MockStudioClient();
     final mockLogger = MockLoggerService();
@@ -94,6 +95,7 @@ void main() {
         ),
       ],
       child: MaterialApp(
+        locale: locale,
         localizationsDelegates: AppLocalizations.localizationsDelegates,
         supportedLocales: AppLocalizations.supportedLocales,
         home: PromptBlockBuilderView(id: block.id),
@@ -397,5 +399,190 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+      'MatrixPromptBlock renders without RenderFlex overflow on narrow viewport with Finnish locale',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(440, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.matrix(
+          id: 'blk_test_matrix_overflow',
+          slug: 'matrix_overflow',
+          label: I18nText(
+            translations: {'en': 'Test Matrix', 'fi': 'Testimatriisi'},
+          ),
+          description: I18nText(translations: {'en': 'Test Description'}),
+          type: BlockDataType.floatType,
+          scales: [],
+          theoryGrounding: null,
+          isEvaluative: true,
+          allowDecimals: true,
+          allowContextualOverride: true,
+          isLightweightProtocol: false,
+          targetInputKey: 'product_text',
+          aiDescription: 'Test AI Description',
+          rows: null,
+          columns: null,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, locale: const Locale('fi')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Ruudukon sarakkeet (Valinnainen)'), findsOneWidget);
+        expect(find.text('Ruudukon rivit (Valinnainen)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'MatrixPromptBlock with active rows and columns renders without RenderFlex overflow on 360px viewport with Finnish locale',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.matrix(
+          id: 'blk_test_matrix_active_controls',
+          slug: 'matrix_active_controls',
+          label: I18nText(
+            translations: {'en': 'Active Matrix', 'fi': 'Aktiivinen matriisi'},
+          ),
+          description: I18nText(translations: {'en': 'Test Description'}),
+          type: BlockDataType.floatType,
+          scales: [],
+          theoryGrounding: null,
+          isEvaluative: true,
+          allowDecimals: true,
+          allowContextualOverride: true,
+          isLightweightProtocol: false,
+          targetInputKey: 'product_text',
+          aiDescription: 'Test AI Description',
+          rows: [],
+          columns: [],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, locale: const Locale('fi')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(Switch), findsWidgets);
+        expect(find.byType(OutlinedButton), findsWidgets);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'ExecutionPersonaPromptBlock tone directives header renders cleanly on 360px viewport with Finnish locale',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(360, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.executionPersona(
+          id: 'blk_test_persona_narrow',
+          slug: 'test_persona_narrow',
+          label: I18nText(translations: {'en': 'Persona', 'fi': 'Persoona'}),
+          description: I18nText(translations: {'en': 'Test Description'}),
+          roleEnforcement: 'You are an advisor.',
+          toneDirectives: ['Authoritative', 'Direct'],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, locale: const Locale('fi')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(OutlinedButton), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'MatrixPromptBlock with long titles on 520px viewport ellipsizes cleanly via Expanded without overflow',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(520, 800);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.matrix(
+          id: 'blk_test_long_title',
+          slug: 'long_title',
+          label: I18nText(
+            translations: {
+              'en':
+                  'Very Long English Matrix Title Requiring Ellipsis Containment',
+              'fi':
+                  'Erittäin pitkä suomenkielinen matriisin otsikko, joka vaatii tekstin katkaisua',
+            },
+          ),
+          description: I18nText(translations: {'en': 'Test Description'}),
+          type: BlockDataType.floatType,
+          scales: [],
+          theoryGrounding: null,
+          isEvaluative: true,
+          allowDecimals: true,
+          allowContextualOverride: true,
+          isLightweightProtocol: false,
+          targetInputKey: 'product_text',
+          aiDescription: 'Test AI Description',
+          rows: [],
+          columns: [],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, locale: const Locale('fi')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'PromptBlockBuilderView body enforces 1200px maxWidth constraint on ultrawide viewport (3440x1440)',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(3440, 1440);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.matrix(
+          id: 'blk_test_ultrawide',
+          slug: 'ultrawide',
+          label: I18nText(translations: {'en': 'Matrix', 'fi': 'Matriisi'}),
+          description: I18nText(translations: {'en': 'Test Description'}),
+          type: BlockDataType.floatType,
+          scales: [],
+          theoryGrounding: null,
+          isEvaluative: true,
+          allowDecimals: true,
+          allowContextualOverride: true,
+          isLightweightProtocol: false,
+          targetInputKey: 'product_text',
+          aiDescription: 'Test AI Description',
+          rows: null,
+          columns: null,
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(block: block, locale: const Locale('en')),
+        );
+        await tester.pumpAndSettle();
+
+        final constrainedBoxFinder = find.byWidgetPredicate(
+          (widget) =>
+              widget is ConstrainedBox && widget.constraints.maxWidth == 1200.0,
+        );
+        expect(constrainedBoxFinder, findsOneWidget);
+
+        final constrainedBox = tester.widget<ConstrainedBox>(
+          constrainedBoxFinder,
+        );
+        expect(constrainedBox.constraints.maxWidth, equals(1200.0));
+      },
+    );
   });
 }
