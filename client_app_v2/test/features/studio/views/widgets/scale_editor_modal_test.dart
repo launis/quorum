@@ -666,5 +666,40 @@ void main() {
         expect(find.text('Discard Changes?'), findsNothing);
       },
     );
+
+    testWidgets(
+      'renders without RenderFlex overflow on narrow viewport (800x600)',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(800, 600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final sampleScale = createSampleScale();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(ScaleEditorModal), findsOneWidget);
+      },
+    );
   });
 }
