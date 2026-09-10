@@ -20,7 +20,6 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.engine import FlattenedAtom
 from backend_v2.models.v2_core import Step
 
@@ -99,7 +98,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
     # 3. Retrieve and filter blocks
     all_blocks = await deps.prompt_block_repo.get_all_prompt_blocks()
 
-    unique_atoms: dict[str, tuple[str, str, str, bool, tuple[CausalEdge, ...]]] = {}
+    unique_atoms: dict[str, FlattenedAtom] = {}
 
     for raw_block in all_blocks:
         try:
@@ -121,22 +120,26 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     sampling_limit_val,
                 )
 
-                all_matrix_atoms: dict[str, tuple[str, str, str, str, bool, tuple[CausalEdge, ...]]] = {}
-                matrix_collected_atoms: list[tuple[str, str, str, str, bool, tuple[CausalEdge, ...]]] = []
+                all_matrix_atoms: dict[str, FlattenedAtom] = {}
+                matrix_collected_atoms: list[FlattenedAtom] = []
 
                 for scale in block.scales:
-                    scale_atoms: list[tuple[str, str, str, str, bool, tuple[CausalEdge, ...]]] = []
+                    scale_atoms: list[FlattenedAtom] = []
 
                     for claim in scale.claims:
                         for tda in claim.tda_assertions:
                             aid = str(tda.tda_id)
-                            atom_entry = (
-                                aid,
-                                tda.concept_description.strip(),
-                                tda.extraction_rule.strip() if tda.extraction_rule else "",
-                                tda.anchor_target.strip() if tda.anchor_target else "",
-                                bool(tda.inverse_evidence),
-                                tda.depends_on,
+                            atom_entry = FlattenedAtom(
+                                atom_id=aid,
+                                question=tda.concept_description.strip(),
+                                extraction_rule=tda.extraction_rule.strip() if tda.extraction_rule else "",
+                                anchor_target=tda.anchor_target.strip() if tda.anchor_target else "",
+                                is_inverse=bool(tda.inverse_evidence),
+                                depends_on=tda.depends_on,
+                                contrastive_example=tda.contrastive_example,
+                                acceptance_criteria=tuple(tda.acceptance_criteria),
+                                anti_patterns=tuple(tda.anti_patterns),
+                                syntactic_anchors=tuple(tda.syntactic_anchors),
                             )
                             scale_atoms.append(atom_entry)
                             all_matrix_atoms[aid] = atom_entry
@@ -161,11 +164,11 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                 # Transitive Causal Closure: retain ancestor atoms required by causal preconditions
                 if sampling_limit_val > 0:
                     closure_queue = list(matrix_collected_atoms)
-                    included_ids = {atom[0] for atom in matrix_collected_atoms}
+                    included_ids = {atom.atom_id for atom in matrix_collected_atoms}
 
                     while closure_queue:
                         current_atom = closure_queue.pop(0)
-                        causal_edges = current_atom[5]
+                        causal_edges = current_atom.depends_on
                         for edge in causal_edges:
                             parent_id = edge.tda_id
                             if parent_id in all_matrix_atoms and parent_id not in included_ids:
@@ -176,26 +179,16 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                 logger.debug(
                                     "[AtomFlatteningHook] Transitive Closure: Retained ancestor '%s' for '%s'",
                                     parent_id,
-                                    current_atom[0],
+                                    current_atom.atom_id,
                                 )
 
-                for atom_id, text, rule, anchor, is_inv, deps_tuple in matrix_collected_atoms:
-                    if atom_id not in unique_atoms:
-                        unique_atoms[atom_id] = (text, rule, anchor, is_inv, deps_tuple)
+                for atom in matrix_collected_atoms:
+                    if atom.atom_id not in unique_atoms:
+                        unique_atoms[atom.atom_id] = atom
 
     # 4. Global Deterministic Sort (Semantic Micro-Batching Requirement)
     if unique_atoms:
-        model_list = [
-            FlattenedAtom(
-                atom_id=key,
-                question=val[0],
-                extraction_rule=val[1],
-                anchor_target=val[2],
-                is_inverse=val[3],
-                depends_on=val[4],
-            )
-            for key, val in unique_atoms.items()
-        ]
+        model_list = list(unique_atoms.values())
 
         # Deterministic sort based on atom_id hash to prevent LLM Context Fatigue and ensure reproducibility
         model_list.sort(key=lambda x: x.atom_id)

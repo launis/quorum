@@ -15,12 +15,21 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, StepRule, TheoryGrounding
+from backend_v2.models.v2_core import (
+    AcceptanceCriterion,
+    AntiPattern,
+    AtomResultDTO,
+    ContrastivePairDTO,
+    HydratedAtomDTO,
+    StepRule,
+    TheoryGrounding,
+)
 
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
 __all__ = [
+    "ContrastivePairDTO",
     "EngineExecutionRequest",
     "EngineExecutionResult",
     "FlattenedAtom",
@@ -59,6 +68,25 @@ class FlattenedAtom(BaseModel):
             default_factory=tuple,
             description="Causal dependencies attached to this atom.",
         ),
+    ]
+    contrastive_example: Annotated[
+        ContrastivePairDTO | None,
+        Field(default=None, description="Structured contrastive pair."),
+    ] = None
+    acceptance_criteria: Annotated[
+        tuple[AcceptanceCriterion, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Deductive verification sequence."),
+    ]
+    anti_patterns: Annotated[
+        tuple[AntiPattern, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Disqualifying patterns."),
+    ]
+    syntactic_anchors: Annotated[
+        tuple[str, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Exact syntactic markers."),
     ]
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")

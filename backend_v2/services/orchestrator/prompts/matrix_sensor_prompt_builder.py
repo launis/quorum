@@ -179,6 +179,37 @@ class MatrixSensorPromptBuilder:
                 if assertion.is_inverse:
                     i_cdata = TemplateProcessor.encapsulate_payload(str(assertion.is_inverse))
                     content += f"<is_inverse>\n{i_cdata}\n</is_inverse>\n"
+
+                if assertion.contrastive_example:
+                    acc_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.acceptable)
+                    rej_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.rejected)
+                    content += (
+                        f"<contrastive_grounding>\n"
+                        f"<acceptable>\n{acc_cdata}\n</acceptable>\n"
+                        f"<rejected>\n{rej_cdata}\n</rejected>\n"
+                        f"</contrastive_grounding>\n"
+                    )
+
+                if assertion.acceptance_criteria:
+                    crit_blocks = [
+                        f'<criterion index="{idx + 1}">\n{TemplateProcessor.encapsulate_payload(c.instruction)}\n</criterion>'
+                        for idx, c in enumerate(assertion.acceptance_criteria)
+                    ]
+                    content += "<acceptance_criteria>\n" + "\n".join(crit_blocks) + "\n</acceptance_criteria>\n"
+
+                if assertion.anti_patterns:
+                    anti_blocks = [
+                        f'<anti_pattern index="{idx + 1}">\n{TemplateProcessor.encapsulate_payload(a.pattern)}\n</anti_pattern>'
+                        for idx, a in enumerate(assertion.anti_patterns)
+                    ]
+                    content += "<anti_patterns>\n" + "\n".join(anti_blocks) + "\n</anti_patterns>\n"
+
+                if assertion.syntactic_anchors:
+                    anchor_blocks = [
+                        f"<anchor>\n{TemplateProcessor.encapsulate_payload(a)}\n</anchor>"
+                        for a in assertion.syntactic_anchors
+                    ]
+                    content += "<syntactic_anchors>\n" + "\n".join(anchor_blocks) + "\n</syntactic_anchors>\n"
             else:
                 claim_cdata = TemplateProcessor.encapsulate_payload(node.atom.resolved_claim)
                 content = f"{claim_cdata}\n"

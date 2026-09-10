@@ -53,25 +53,27 @@ def test_create_template_atom_structure() -> None:
     atom = create_template_atom(
         concept="Test Concept",
         extraction_rule="Test Rule",
-        acceptable_example="Good text",
-        unacceptable_example="Bad text",
+        acceptable_example="Acceptable exemplar text",
+        unacceptable_example="Unacceptable counter text",
         inverse=False,
     )
     assert atom["concept_description"] == "Test Concept"
     assert atom["inverse_evidence"] is False
     assert atom["aggregation_mode"] == "ALL_MUST_COMPLY"
-    assert 'ACCEPTABLE: "Good text"' in atom["contrastive_example"]
-    assert 'UNACCEPTABLE: "Bad text"' in atom["contrastive_example"]
+    assert atom["contrastive_example"]["acceptable"] == "Acceptable exemplar text"
+    assert atom["contrastive_example"]["rejected"] == "Unacceptable counter text"
 
     inv_atom = create_template_atom(
         concept="Inverse Concept",
         extraction_rule="Inverse Rule",
-        acceptable_example="Safe text",
-        unacceptable_example="Flawed text",
+        acceptable_example="Safe exemplar text",
+        unacceptable_example="Flawed counter text",
         inverse=True,
     )
     assert inv_atom["inverse_evidence"] is True
     assert inv_atom["aggregation_mode"] == "EXISTS"
+    assert inv_atom["contrastive_example"]["acceptable"] == "Safe exemplar text"
+    assert inv_atom["contrastive_example"]["rejected"] == "Flawed counter text"
 
 
 def test_atom_density_strategy_enum() -> None:

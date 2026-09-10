@@ -100,11 +100,14 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
     for s in matrix.scales:
         for c in s.claims:
             for tda in c.tda_assertions:
-                for f_name, val in [
+                text_fields: list[tuple[str, str]] = [
                     ("extraction_rule", tda.extraction_rule or ""),
-                    ("contrastive_example", tda.contrastive_example or ""),
                     ("concept_description", tda.concept_description),
-                ]:
+                ]
+                if tda.contrastive_example is not None:
+                    text_fields.append(("contrastive_example.acceptable", tda.contrastive_example.acceptable))
+                    text_fields.append(("contrastive_example.rejected", tda.contrastive_example.rejected))
+                for f_name, val in text_fields:
                     clean_val = re.sub(r"'[^']*'|\"[^\"]*\"", "", val)
                     has_finnish = bool(
                         FINNISH_KEYWORDS_PATTERN.search(val) or SCANDINAVIAN_CHAR_PATTERN.search(clean_val)
@@ -144,9 +147,12 @@ def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[CoherenceIssueDTO]:
                 if tda.bounding_box_scope == "sentence" and COMPARATIVE_RE.search(rule_text):
                     add_issue(tid, "SCOPE_RULE_MISMATCH", "Relational rule requires paragraph scope")
                 if (ex := tda.contrastive_example) and (
-                    "ACCEPTABLE:" not in ex or "UNACCEPTABLE:" not in ex or FINNISH_PATTERN.search(ex)
+                    len(ex.acceptable) < 10
+                    or len(ex.rejected) < 10
+                    or FINNISH_PATTERN.search(ex.acceptable)
+                    or FINNISH_PATTERN.search(ex.rejected)
                 ):
-                    add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain ACCEPTABLE/UNACCEPTABLE")
+                    add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain valid acceptable/rejected")
                 if not tda.acceptance_criteria and tda.extraction_rule and len(tda.extraction_rule) > 80:
                     add_issue(tid, "CRITERIA_RULE_DISCORDANCE", "Formal extraction rule lacks acceptance_criteria")
     return issues

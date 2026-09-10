@@ -782,7 +782,13 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     desc = (tda.get("concept_description") or "").strip()
                     rule = (tda.get("extraction_rule") or "").strip()
                     anchor = (tda.get("anchor_target") or "").strip()
-                    contrastive = (tda.get("contrastive_example") or "").strip()
+                    c_ex = tda.get("contrastive_example")
+                    contrastive_pair: dict[str, str] | None = None
+                    if c_ex:
+                        contrastive_pair = {
+                            "acceptable": c_ex["acceptable"],
+                            "rejected": c_ex["rejected"],
+                        }
 
                     if desc.startswith("DEPRECATED"):
                         desc = ""
@@ -798,7 +804,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         "concept_description": desc,
                         "extraction_rule": rule,
                         "anchor_target": anchor,
-                        "contrastive_example": contrastive,
+                        "contrastive_example": contrastive_pair,
                         "inverse_evidence": tda.get("inverse_evidence", False),
                         "bounding_box_scope": tda.get("bounding_box_scope", "sentence"),
                     }
@@ -1792,7 +1798,12 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 if det.get("anchor_target"):
                     f.write(f"- **Ankkuritargetti (Anchor Target):** {det['anchor_target']}\n")
                 if det.get("contrastive_example"):
-                    f.write(f"- **Esimerkki (Contrastive Example):**\n```text\n{det['contrastive_example']}\n```\n")
+                    c_pair = det["contrastive_example"]
+                    f.write(
+                        f"- **Esimerkki (Contrastive Example):**\n"
+                        f"  - *Acceptable:* {c_pair['acceptable']}\n"
+                        f"  - *Rejected:* {c_pair['rejected']}\n"
+                    )
             else:
                 f.write(f"**Arviointisääntö:** {atom_rules.get(atom, 'Unknown')}\n")
 

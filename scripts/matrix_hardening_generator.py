@@ -103,7 +103,10 @@ def create_template_atom(
     Returns:
         dict[str, Any]: TDA assertion dictionary.
     """
-    contrastive = f'ACCEPTABLE: "{acceptable_example}"\nUNACCEPTABLE: "{unacceptable_example}"'
+    contrastive = {
+        "acceptable": acceptable_example,
+        "rejected": unacceptable_example,
+    }
     return {
         "tda_id": generate_tda_id(),
         "inverse_evidence": inverse,

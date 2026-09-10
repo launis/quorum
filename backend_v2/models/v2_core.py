@@ -64,6 +64,7 @@ __all__ = [
     "ChatMessageDTO",
     "ChatHistoryDTO",
     "ComponentType",
+    "ContrastivePairDTO",
     "DataDictionaryField",
     "DataStarvationEvent",
     "ErrorDetailsDTO",
@@ -152,6 +153,41 @@ def _coerce_to_tuple(v: Any) -> Any:
     return v
 
 
+class ContrastivePairDTO(V2CoreBase):
+    """Structured contrastive calibration pair for TDA assertion boundary grounding.
+
+    Attributes:
+        acceptable: Textual exemplar satisfying the evaluation assertion.
+        rejected: Textual counterpart demonstrating disqualification or boundary failure.
+    """
+
+    acceptable: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=10),
+        Field(description="Textual exemplar satisfying the evaluation assertion."),
+    ]
+    rejected: Annotated[
+        str,
+        StringConstraints(strip_whitespace=True, min_length=10),
+        Field(description="Textual counterpart demonstrating disqualification or boundary failure."),
+    ]
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    @model_validator(mode="after")
+    def validate_contrastive_diversity(self) -> Self:
+        """Enforces that acceptable and rejected exemplars are distinct and non-empty.
+
+        Raises:
+            ValueError: If acceptable equals rejected or either exemplar is blank.
+        """
+        if self.acceptable.strip().lower() == self.rejected.strip().lower():
+            msg = "Contrastive acceptable and rejected exemplars cannot be identical."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+        return self
+
+
 class TDAAssertion(V2CoreBase):
     """Deterministic rule evaluated by the backend.
 
@@ -210,9 +246,9 @@ class TDAAssertion(V2CoreBase):
         default_factory=list,
         description="Known anti-patterns with monolingual descriptions.",
     )
-    contrastive_example: str | None = Field(
+    contrastive_example: ContrastivePairDTO | None = Field(
         default=None,
-        description="Monolingual contrastive example showing correct vs incorrect.",
+        description="Structured contrastive pair showing acceptable vs rejected exemplars.",
     )
     syntactic_anchors: list[str] = Field(
         default_factory=list,
@@ -250,6 +286,18 @@ class TDAAssertion(V2CoreBase):
             msg = "enforce_pre_flight=True requires at least one syntactic anchor."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
+
+        for crit in self.acceptance_criteria:
+            if len(crit.instruction.strip()) < 5:
+                msg = "All acceptance_criteria instructions must be at least 5 characters long."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+
+        for anti in self.anti_patterns:
+            if len(anti.pattern.strip()) < 5:
+                msg = "All anti_patterns descriptions must be at least 5 characters long."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
 
         # Enforce strict dual-track TDA validations
         if self.evaluation_track == "EXTRACTIVE_SENSOR":

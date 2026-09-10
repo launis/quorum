@@ -620,3 +620,178 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
         }
     )
     assert ec.matrix_sampling_strategy is not None
+
+
+def test_contrastive_pair_dto_and_tda_assertions() -> None:
+    """Verifies ContrastivePairDTO diversity and TDAAssertion criteria length validations."""
+    from backend_v2.models.v2_core import (
+        AcceptanceCriterion,
+        AntiPattern,
+        ContrastivePairDTO,
+        TDAAssertion,
+    )
+
+    # Valid ContrastivePairDTO
+    pair = ContrastivePairDTO(
+        acceptable="Valid acceptable text of sufficient length",
+        rejected="Valid rejected text of sufficient length",
+    )
+    assert pair.acceptable == "Valid acceptable text of sufficient length"
+
+    # Identical exemplars raise ValueError
+    with pytest.raises(ValidationError, match="cannot be identical"):
+        ContrastivePairDTO(
+            acceptable="Identical text of length",
+            rejected="identical text of length",
+        )
+
+    # Short exemplars raise ValidationError
+    with pytest.raises(ValidationError, match="at least 10 characters"):
+        ContrastivePairDTO(acceptable="Short", rejected="Valid rejected text of sufficient length")
+
+    # TDAAssertion acceptance_criteria instruction < 5 chars raises ValueError
+    with pytest.raises(ValidationError, match="at least 5 characters long"):
+        TDAAssertion(
+            concept_description="Concept description testing criteria",
+            inverse_evidence=False,
+            aggregation_mode="ALL_MUST_COMPLY",
+            acceptance_criteria=[AcceptanceCriterion(instruction="Tiny")],
+        )
+
+    # TDAAssertion anti_patterns pattern < 5 chars raises ValueError
+    with pytest.raises(ValidationError, match="at least 5 characters long"):
+        TDAAssertion(
+            concept_description="Concept description testing anti patterns",
+            inverse_evidence=False,
+            aggregation_mode="ALL_MUST_COMPLY",
+            anti_patterns=[AntiPattern(pattern="Tiny")],
+        )
+
+    # TDAAssertion enforce_pre_flight=True requires anchors
+    with pytest.raises(ValidationError, match="requires at least one syntactic anchor"):
+        TDAAssertion(
+            concept_description="Concept description testing preflight",
+            inverse_evidence=False,
+            aggregation_mode="ALL_MUST_COMPLY",
+            enforce_pre_flight=True,
+            syntactic_anchors=[],
+        )
+
+
+def test_step_type_llm_and_logic_validations() -> None:
+    """Verifies Step validation rules for llm and logic steps."""
+    from backend_v2.models.v2_core import I18nText, Step
+
+    valid_llm_base = {
+        "id": "stp_11111111111111111111111111111111",
+        "slug": "step_test",
+        "name": I18nText(translations={"en": "LLM Step"}),
+        "description": I18nText(translations={"en": "Desc"}),
+        "role_block_id": "blk_11111111111111111111111111111111",
+        "extraction_protocol_block_id": "blk_11111111111111111111111111111111",
+        "criteria_block_ids": ["blk_11111111111111111111111111111111"],
+    }
+
+    # LLM Step without model_strategy raises ValueError
+    with pytest.raises(ValidationError, match="explicit model_strategy"):
+        Step(
+            **valid_llm_base,
+            type="llm",
+            model_strategy=None,
+        )
+
+    # LLM Step without criteria_block_ids raises ValueError
+    with pytest.raises(ValidationError, match="at least one criteria_block_id"):
+        Step(
+            **{**valid_llm_base, "criteria_block_ids": []},
+            type="llm",
+            model_strategy="fast",
+        )
+
+    # LLM Step without extraction_protocol_block_id raises ValueError
+    with pytest.raises(ValidationError, match="valid extraction_protocol_block_id"):
+        Step(
+            **{**valid_llm_base, "extraction_protocol_block_id": None},
+            type="llm",
+            model_strategy="fast",
+        )
+
+    # Logic Step without hook raises ValueError
+    with pytest.raises(ValidationError, match="must define a native 'hook'"):
+        Step(
+            id="stp_22222222222222222222222222222222",
+            slug="step_logic",
+            name=I18nText(translations={"en": "Logic Step"}),
+            description=I18nText(translations={"en": "Desc"}),
+            type="logic",
+            hook=None,
+        )
+
+
+def test_atom_evaluation_result_dto_cognitive_states() -> None:
+    """Verifies AtomResultDTO validation across cognitive vs system error states."""
+    from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO
+
+    # FAILED without reasoning raises ValueError
+    with pytest.raises(ValidationError, match="Reasoning is mandatory"):
+        AtomResultDTO(
+            tda_id="tda_1",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="",
+        )
+
+    # FAILED with contextual_override or source_quote cleans them up
+    failed_res = AtomResultDTO(
+        tda_id="tda_1",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Evaluation failed due to missing premise.",
+        contextual_override=True,
+        source_quote="Some quote",
+    )
+    assert failed_res.contextual_override is False
+    assert failed_res.source_quote is None
+
+    # PASSED without reasoning raises ValueError
+    with pytest.raises(ValidationError, match="Reasoning is mandatory"):
+        AtomResultDTO(
+            tda_id="tda_2",
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="",
+            source_quote="Some quote",
+        )
+
+    # PASSED without source_quote and without contextual_override raises ValueError
+    with pytest.raises(ValidationError, match="source_quote is mandatory"):
+        AtomResultDTO(
+            tda_id="tda_2",
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Valid reasoning.",
+            source_quote=None,
+            contextual_override=False,
+        )
+
+    # PASSED with contextual_override clears source_quote if present
+    passed_override = AtomResultDTO(
+        tda_id="tda_2",
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="Override reasoning.",
+        contextual_override=True,
+        source_quote="Unneeded quote",
+    )
+    assert passed_override.source_quote is None
+
+    # SYSTEM_ERROR without error_details raises ValueError
+    with pytest.raises(ValidationError, match="Error details are mandatory"):
+        AtomResultDTO(
+            tda_id="tda_3",
+            status=ExecutionStatus.SYSTEM_ERROR,
+            error_details=None,
+        )
+
+    # SYSTEM_ERROR with error_details succeeds
+    err_res = AtomResultDTO(
+        tda_id="tda_3",
+        status=ExecutionStatus.SYSTEM_ERROR,
+        error_details=ErrorDetailsDTO(error_code="TIMEOUT", message="Timeout in worker."),
+    )
+    assert err_res.status == ExecutionStatus.SYSTEM_ERROR

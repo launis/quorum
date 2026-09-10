@@ -14,7 +14,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.models.v2_core import ContrastivePairDTO, TDAAssertion
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
@@ -90,14 +90,15 @@ def test_target_atoms_validate_tda_assertion_schema() -> None:
 
 
 def test_target_atoms_have_valid_contrastive_examples() -> None:
-    """Verifies that all 7 target atoms contain valid ACCEPTABLE and UNACCEPTABLE contrastive sections."""
+    """Verifies that all 7 target atoms contain valid structured ContrastivePairDTO exemplars."""
     atoms = _load_seed_atoms()
     for tda_id in TARGET_ATOM_IDS:
         assertion = TDAAssertion.model_validate(atoms[tda_id])
         example = assertion.contrastive_example
         assert example is not None, f"Atom {tda_id} lacks contrastive_example"
-        assert "ACCEPTABLE:" in example, f"Atom {tda_id} contrastive_example lacks ACCEPTABLE: section"
-        assert "UNACCEPTABLE:" in example, f"Atom {tda_id} contrastive_example lacks UNACCEPTABLE: section"
+        assert isinstance(example, ContrastivePairDTO), f"Atom {tda_id} contrastive_example is not ContrastivePairDTO"
+        assert len(example.acceptable) >= 10, f"Atom {tda_id} acceptable exemplar too short"
+        assert len(example.rejected) >= 10, f"Atom {tda_id} rejected exemplar too short"
 
 
 def test_target_atoms_acceptance_criteria_hygiene() -> None:
