@@ -5,13 +5,19 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock
 
 import pytest
 
-from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
+)
+from backend_v2.models.dtos.studio import (
+    PromptBlockSimulationRequest,
+    PromptBlockSimulationResponse,
+    StepSimulationResponse,
+    WorkflowSimulationResponse,
 )
 from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
 from backend_v2.models.v2_core import (
@@ -237,7 +243,11 @@ async def test_simulate_prompt_block_simple(simulation_service: StudioSimulation
     )
 
     res = await simulation_service.simulate_prompt_block(
-        test_token, block, mock_inputs={"doc_title": "Quarterly Report"}
+        test_token,
+        PromptBlockSimulationRequest(
+            block=block,
+            mock_inputs={"doc_title": "Quarterly Report"},
+        ),
     )
     assert res.valid is True
     assert "Analyze the document: Quarterly Report and report." in res.rendered_prompt
@@ -260,7 +270,10 @@ async def test_simulate_prompt_block_none_ai_description(
         instruction_text=None,
     )
 
-    res = await simulation_service.simulate_prompt_block(test_token, block, mock_inputs={})
+    res = await simulation_service.simulate_prompt_block(
+        test_token,
+        PromptBlockSimulationRequest(block=block, mock_inputs={}),
+    )
     assert res.valid is True
     assert res.rendered_prompt == ""
 
@@ -269,7 +282,7 @@ async def test_simulate_prompt_block_none_ai_description(
 async def test_simulate_prompt_block_matrix_scales(
     simulation_service: StudioSimulationService, test_token: TokenData
 ) -> None:
-    """Test matrix prompt block simulation rendering scales, claims, and TDA concept descriptions."""
+    """Test matrix prompt block simulation compiling XML prompts via MatrixSensorPromptBuilder."""
     block = MatrixPromptBlock(
         id="blk_22222222222222222222222222222222",
         slug="test_matrix",
@@ -298,13 +311,161 @@ async def test_simulate_prompt_block_matrix_scales(
         ],
     )
 
-    res = await simulation_service.simulate_prompt_block(test_token, block, mock_inputs={})
+    res = await simulation_service.simulate_prompt_block(
+        test_token,
+        PromptBlockSimulationRequest(
+            block=block,
+            mock_inputs={},
+            target_locale="en",
+            context_text="The quick brown fox jumped over the lazy dog.",
+        ),
+    )
     assert res.valid is True
-    rendered = res.rendered_prompt
-    assert "--- EVALUATION SCALES ---" in rendered
-    assert "Score 1:" in rendered
-    assert "- Claim Label" in rendered
-    assert "Rule: Verify that evidence exists" in rendered
+    assert res.prompt_context is not None
+    assert len(res.prompt_context.static_messages) >= 2
+    assert "<context>" in res.prompt_context.static_messages[1].content
+    assert "The quick brown fox jumped over the lazy dog." in res.prompt_context.static_messages[1].content
+    assert len(res.prompt_context.dynamic_messages) >= 1
+    assert '<claim alias="a0">' in res.prompt_context.dynamic_messages[0].content
+    assert "<question>" in res.rendered_prompt
+    assert "Claim Label" in res.rendered_prompt
+    assert "<matrix_objective>" in res.rendered_prompt
+
+
+@pytest.mark.asyncio
+async def test_simulate_prompt_block_matrix_scales_filter_target_score(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test matrix prompt block simulation filtering to a specific target_scale_score."""
+    block = MatrixPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="test_matrix",
+        label=I18nText(translations={"en": "Matrix Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        ai_description="Perform matrix evaluation.",
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim One", "fi": "Väite 1"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                concept_description="Rule for scale 1",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+            MatrixScale(
+                score=5,
+                ai_label="EXCELLENT",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim Five", "fi": "Väite 5"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                concept_description="Rule for scale 5",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            ),
+        ],
+    )
+
+    res = await simulation_service.simulate_prompt_block(
+        test_token,
+        PromptBlockSimulationRequest(
+            block=block,
+            target_scale_score=5,
+            target_locale="en",
+        ),
+    )
+    assert res.valid is True
+    assert "Claim Five" in res.rendered_prompt
+    assert "Claim One" not in res.rendered_prompt
+
+
+@pytest.mark.asyncio
+async def test_simulate_prompt_block_matrix_scales_score_not_found(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test that target_scale_score not found in block raises 404 AppException."""
+    block = MatrixPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="test_matrix",
+        label=I18nText(translations={"en": "Matrix Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim Label"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                concept_description="Rule for scale 1",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await simulation_service.simulate_prompt_block(
+            test_token,
+            PromptBlockSimulationRequest(
+                block=block,
+                target_scale_score=99,
+            ),
+        )
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_simulate_prompt_block_matrix_scales_zero_claims(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test that matrix block with empty claims raises 400 AppException."""
+    block = MatrixPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="test_matrix",
+        label=I18nText(translations={"en": "Matrix Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[],
+            )
+        ],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await simulation_service.simulate_prompt_block(
+            test_token,
+            PromptBlockSimulationRequest(block=block),
+        )
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -322,7 +483,9 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         type=BlockDataType.INSTRUCTION,
         role_enforcement="Act as an expert auditor.",
     )
-    res_persona = await simulation_service.simulate_prompt_block(test_token, persona_block, mock_inputs={})
+    res_persona = await simulation_service.simulate_prompt_block(
+        test_token, PromptBlockSimulationRequest(block=persona_block, mock_inputs={})
+    )
     assert res_persona.valid is True
     assert res_persona.rendered_prompt == "Act as an expert auditor."
 
@@ -336,7 +499,9 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         type=BlockDataType.INSTRUCTION,
         protocol_instructions="Extract exact quotes only.",
     )
-    res_proto = await simulation_service.simulate_prompt_block(test_token, protocol_block, mock_inputs={})
+    res_proto = await simulation_service.simulate_prompt_block(
+        test_token, PromptBlockSimulationRequest(block=protocol_block, mock_inputs={})
+    )
     assert res_proto.valid is True
     assert res_proto.rendered_prompt == "Extract exact quotes only."
 
@@ -350,7 +515,9 @@ async def test_simulate_prompt_block_polymorphic_subtypes(
         type=BlockDataType.INSTRUCTION,
         instruction_text="Strict JSON only.",
     )
-    res_sys = await simulation_service.simulate_prompt_block(test_token, sys_block, mock_inputs={})
+    res_sys = await simulation_service.simulate_prompt_block(
+        test_token, PromptBlockSimulationRequest(block=sys_block, mock_inputs={})
+    )
     assert res_sys.valid is True
     assert res_sys.rendered_prompt == "Strict JSON only."
 
@@ -495,7 +662,9 @@ async def test_studio_simulation_returns_strict_dtos(
         steps=[],
     )
 
-    pb_res = await simulation_service.simulate_prompt_block(test_token, block, {})
+    pb_res = await simulation_service.simulate_prompt_block(
+        test_token, PromptBlockSimulationRequest(block=block, mock_inputs={})
+    )
     assert isinstance(pb_res, PromptBlockSimulationResponse)
 
     step_res = await simulation_service.simulate_step(test_token, step, {})

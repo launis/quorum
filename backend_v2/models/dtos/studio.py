@@ -394,12 +394,28 @@ class PromptBlockSimulationRequest(BaseDTO):
     Attributes:
         block: The source PromptBlock domain object.
         mock_inputs: Arbitrary mock parameters mimicking actual workflow variables.
+        target_scale_score: Optional specific scale score to simulate.
+        target_locale: Target locale for sensor simulation compilation.
+        context_text: Source document text context for sensor simulation.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     block: PromptBlock
     mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
+    target_scale_score: Annotated[
+        int | None, Field(default=None, description="Optional specific scale score to simulate.")
+    ] = None
+    target_locale: Annotated[
+        str, Field(default="en", min_length=2, description="Target locale for sensor simulation compilation.")
+    ] = "en"
+    context_text: Annotated[
+        str,
+        Field(
+            default="[SIMULATED CONTEXT DOCUMENT]",
+            description="Source document text context for sensor simulation.",
+        ),
+    ] = "[SIMULATED CONTEXT DOCUMENT]"
 
 
 class StepSimulationResponse(BaseResponseDTO):

@@ -8,25 +8,31 @@ from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
+from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
-    PromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
+from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.dtos.studio import (
+    PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepSimulationResponse,
     WorkflowSimulationResponse,
 )
+from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.v2_core import (
     Step,
     Workflow,
 )
+from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
+from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
 
@@ -158,30 +164,142 @@ class StudioSimulationService:
         )
 
     async def simulate_prompt_block(
-        self, initiator: TokenData, data: PromptBlock, mock_inputs: dict[str, Any]
+        self, initiator: TokenData, request: PromptBlockSimulationRequest
     ) -> PromptBlockSimulationResponse:
         """Simulate prompt block.
 
         Args:
             initiator: The authenticated user initiating the simulation.
-            data: The prompt block domain object.
-            mock_inputs: A dictionary of mocked string inputs for dry-run rendering.
+            request: The prompt block simulation request DTO.
 
         Returns:
             A PromptBlockSimulationResponse model containing the simulated render context and any evaluation errors.
 
         Raises:
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing or target score not found.
+            AppException (ErrorCodes.VALIDATION_FAILED): If the prompt block or scales contain no valid claims or assertions.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
         errors: list[str] = []
+
+        if isinstance(request.block, MatrixPromptBlock):
+            scales = list(request.block.scales)
+            if request.target_scale_score is not None:
+                scales = [s for s in scales if s.score == request.target_scale_score]
+                if not scales:
+                    msg = (
+                        f"Scale with score {request.target_scale_score} not found in prompt block '{request.block.id}'."
+                    )
+                    logger.error("[StudioSimulation] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=404,
+                        details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                    )
+
+            has_assertions = any(claim.tda_assertions for scale in scales for claim in scale.claims)
+            if not has_assertions:
+                msg = f"Prompt block '{request.block.id}' scales contain zero claims or assertions to simulate."
+                logger.error("[StudioSimulation] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            flattened_atoms: list[FlattenedAtom] = []
+            graph_nodes: list[LinkedAtomGraph] = []
+            tda_id_to_alias: dict[str, str] = {}
+            alias_engine = AliasEngine()
+            seq_idx = 0
+
+            for scale in scales:
+                for claim in scale.claims:
+                    claim_text = "[UNTITLED CLAIM]"
+                    resolved_text = claim.label.resolve(request.target_locale)
+                    if resolved_text:
+                        claim_text = resolved_text
+
+                    for tda in claim.tda_assertions:
+                        synthetic_id = generate_opaque_id(EntityPrefix.TDA)
+                        alias = alias_engine.register(synthetic_id, prefix="a")
+                        tda_id_to_alias[synthetic_id] = alias
+
+                        if tda.concept_description:
+                            rule_text = tda.concept_description
+                        elif tda.extraction_rule:
+                            rule_text = tda.extraction_rule
+                        else:
+                            rule_text = "Extract evidence"
+
+                        anchor_target = ""
+                        if tda.anchor_target:
+                            anchor_target = tda.anchor_target
+
+                        flattened_atoms.append(
+                            FlattenedAtom(
+                                atom_id=synthetic_id,
+                                question=claim_text,
+                                extraction_rule=rule_text,
+                                anchor_target=anchor_target,
+                                is_inverse=tda.inverse_evidence,
+                                depends_on=(),
+                                contrastive_example=tda.contrastive_example,
+                                acceptance_criteria=tuple(tda.acceptance_criteria),
+                                anti_patterns=tuple(tda.anti_patterns),
+                                syntactic_anchors=tuple(tda.syntactic_anchors),
+                            )
+                        )
+
+                        graph_nodes.append(
+                            LinkedAtomGraph(
+                                atom=ExtractedAtom(
+                                    reasoning="[SIMULATION]",
+                                    resolved_claim=claim_text,
+                                    is_logical_deduction=True,
+                                    source_quote=None,
+                                    tda_id=synthetic_id,
+                                    source_sequence_index=seq_idx,
+                                ),
+                                depends_on=[],
+                            )
+                        )
+                        seq_idx += 1
+
+            matrix_context = MatrixEvaluationContext(
+                matrix_assertions=flattened_atoms,
+                matrix_objective=request.block.ai_description,
+            )
+            compiled_prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+                context_text=request.context_text,
+                nodes=graph_nodes,
+                tda_id_to_alias=tda_id_to_alias,
+                target_locale=request.target_locale,
+                matrix_context=matrix_context,
+            )
+
+            prompt_context = PromptContextDTO(
+                static_messages=compiled_prompt.static_messages,
+                dynamic_messages=compiled_prompt.dynamic_messages,
+                metadata={"simulated_block": request.block.id},
+            )
+            rendered_prompt = "\n\n".join(
+                f"[{m.role.upper()}]\n{m.content}"
+                for m in compiled_prompt.static_messages + compiled_prompt.dynamic_messages
+            )
+
+            return PromptBlockSimulationResponse(
+                valid=True,
+                errors=[],
+                rendered_prompt=rendered_prompt,
+                trace={},
+                prompt_context=prompt_context,
+            )
+
         rendered = ""
 
         # Extract base instruction text polymorphically
-        match data:
-            case MatrixPromptBlock(ai_description=desc) if desc:
-                rendered = desc
+        match request.block:
             case SystemRulePromptBlock(instruction_text=text) if text:
                 rendered = text
             case PersonaPromptBlock(role_enforcement=text) if text:
@@ -190,32 +308,19 @@ class StudioSimulationService:
                 rendered = text
 
         # 1. Base rendering using template syntax if needed
-        if rendered and mock_inputs:
+        if rendered and request.mock_inputs:
             # Basic python formatting simulation if {} brackets exist
             if "{" in rendered and "}" in rendered:
                 # Very simple loose formatting for dry-run safely
                 t = string.Formatter()
                 keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
-                clean_mocks = {k: mock_inputs[k] if k in mock_inputs else f"[{k} MOCKED]" for k in keys}
+                clean_mocks = {k: request.mock_inputs[k] if k in request.mock_inputs else f"[{k} MOCKED]" for k in keys}
                 rendered = rendered.format(**clean_mocks)
-
-        # 2. Append Matrix Logic
-        if isinstance(data, MatrixPromptBlock) and data.scales:
-            rendered += "\n\n--- EVALUATION SCALES ---\n"
-            for scale in data.scales:
-                rendered += f"\nScore {scale.score}:\n"
-                for claim in scale.claims:
-                    en_text = claim.label.resolve("en")
-                    if en_text:
-                        rendered += f"- {en_text.strip()}\n"
-                    for tda in claim.tda_assertions:
-                        if tda.concept_description:
-                            rendered += f"  Rule: {tda.concept_description.strip()}\n"
 
         prompt_context = PromptContextDTO(
             static_messages=[LLMMessageDTO(role="system", content=rendered.strip())],
             dynamic_messages=[],
-            metadata={"simulated_block": data.id},
+            metadata={"simulated_block": request.block.id},
         )
 
         return PromptBlockSimulationResponse(
@@ -260,7 +365,9 @@ class StudioSimulationService:
         for block_ref in prompt_blocks_refs:
             try:
                 block = await self.prompt_block_service.get_prompt_block(initiator, block_ref)
-                sim = await self.simulate_prompt_block(initiator, block, mock_inputs)
+                sim = await self.simulate_prompt_block(
+                    initiator, PromptBlockSimulationRequest(block=block, mock_inputs=mock_inputs)
+                )
                 if not sim.valid:
                     errors.extend(sim.errors)
 

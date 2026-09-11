@@ -173,6 +173,7 @@ class EntityPrefix(StrEnum):
     EXECUTION = "exe"
     USER = "usr"
     ORGANIZATION = "org"
+    TDA = "tda"
 
 
 class SystemConfigID(StrEnum):

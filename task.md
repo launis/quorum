@@ -1,53 +1,86 @@
-# Task Tracker: Targeted CDATA Prompt Injection Hardening
+# Task Tracker: Matrix Studio XML Preview, TDA Debug Logging & XAI IA Restructuring
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
-  <knowledge_item>@[ki_prompt_orchestration_and_matrix_evaluation.md]</knowledge_item>
-  <knowledge_item>@[ki_provider_agnostic_caching.md]</knowledge_item>
-  <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_matrix_sensor_prompt_builder.md]</knowledge_item>
+  <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
+  <knowledge_item>@[ki_system_audit_trail_xai.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+  <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
 </required_context_rules>
 
-Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\51393ce4-83e7-4adb-997f-7ab78478034e\implementation_plan.md]
+Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-2925-4744-9c2d-1e4665893a11\implementation_plan.md]
 
 ## Pre-Flight Checklist (<constraint> tags)
-- [x] Constraint 1 (`cdata_template_shielding_mandate`): All dynamic prompt insertions MUST be mediated exclusively through `TemplateProcessor.encapsulate_payload()` or `TemplateProcessor.safe_interpolate()`.
-- [x] Constraint 2 (`breakout_shielding`): Every payload MUST be shielded against CDATA breakout by replacing `]]>` with `]]]]><![CDATA[>` before wrapping in `<![CDATA[ ... ]]>`.
-- [x] Constraint 3 (`static_first_dynamic_last_topology`): Keep static prompt directives intact and preserve context caching prefix boundaries.
-- [x] Constraint 4 (`the_zero_compromise_pledge`): Zero permissive typing, zero ad-hoc string fallbacks, zero naked dicts.
-- [x] Constraint 5 (`verbatim_verifier_preserved`): `ChatParserService` anchor phrase matching operates monotonically against raw unescaped `raw_paste`.
-- [x] Constraint 6 (`ast_guardrail_mandate`): AST guardrail test to statically enforce `TemplateProcessor` usage and ban unshielded f-strings into `<source_data>` or `<user_payload>`.
+- [x] Step 1 Constraint (`the_duct_tape_ban`): Zero silent exception swallowing, zero context wiping, and zero naked string concatenation accumulators.
+- [x] Step 2 Constraint (`pydantic_v2_strictness`): Enforce ConfigDict(strict=True, extra="forbid") on updated simulation models.
+- [ ] Step 3 Constraint (`logfire_delegation_mandate`): Debug logs must remain isolated in data/files/executions/{execution_id}/llm_debug_prompts.md without leaking raw PII into stdout.
+- [ ] Step 4 Constraint (`dynamic_vs_static_localization_ssot_mandate`): Pure Axis 1 structural chrome in Flutter ARB files, dynamic labels in database models.
+- [ ] Step 5 Constraint (`desktop_pro_tool_interaction` & `universal_horizontal_overflow_immunity_mandate`): Zero RenderFlex overflow down to 360px viewport, hover states, keyboard shortcuts, and syntax-highlighted tabs.
+- [ ] Step 6 Constraint (`universal_ssot_and_normalization_mandate`): Pure frontend UI grouping for Macro vs Micro extensions with zero backend schema fragmentation.
+- [ ] Step 7 Constraint (`zero_compromise_quality_gate`): 100% test pass rate across backend and frontend audit loops.
+- [ ] Step 8 Constraint (`tier2_hardening_knowledge`): Strict XML rule_block hierarchy, 5-field metadata.json synchronization, zero unverified paths.
+- [ ] Step 9 Constraint (`timeless_as_built_mandate`): Pure timeless present-tense descriptions of current system reality; zero historical phases, Epics, or dates.
 
 ## Execution Tasks
 
-### PHASE 1: PRE-IMPLEMENTATION CLEANUPS & TEST ASSERTIONS
-- [x] **Step 1: Technical Debt Sweep in Existing Tests & Services**
-  - [x] Update `backend_v2/tests/unit/services/test_source_verification_service.py` (`test_extract_source_claims_xml_injection_escaped`) to assert CDATA encapsulation and breakout neutralization.
-  - [x] Update `backend_v2/tests/unit/services/test_chat_parser.py` (`test_chat_parser_role_segregation_and_success`) to assert `<![CDATA[` presence in dynamic message.
-  - [x] Remove unused `import html` in `backend_v2/services/source_verification_service.py`.
+- [x] **Step 1: Pre-Implementation Technical Debt Cleanups**
+  - [x] Merge `default_validation_context` with `validation_context` in `llm_task_executor.py:148`.
+  - [x] Migrate `write_debug_prompt_log` and `write_llm_telemetry_log` to async with `_get_debug_file_lock()` in `llm_debug_logger.py`.
+  - [x] Update callers to `await write_debug_prompt_log` in `strategies/llm.py` and `await write_llm_telemetry_log` in `llm_task_executor.py`.
+  - [x] Modernize unit tests with `@pytest.mark.asyncio`, concurrent lock test under `asyncio.TaskGroup`, and telemetry tests in `test_llm_debug_logger.py`.
+  - [x] Update telemetry failure test with `new_callable=AsyncMock` in `test_llm_task_executor.py`.
+  - [x] Wrap `createTestWidget` in `ProviderScope` in `scale_editor_modal_test.dart`.
+  - [x] Quality gates passed: backend audit loop (100% pass, 100% coverage), flutter test (14/14 passed).
+  - [x] Atomic git commit: `49c4cb2d fix(llm): serialize debug prompt logging and preserve validation context`.
 
-### PHASE 2: CDATA ENCAPSULATION IMPLEMENTATION ACROSS 6 SERVICES & HOOKS
-- [x] **Step 2: Core Backend Services & Hooks Hardening**
-  - [x] **2.1: `backend_v2/services/chat_parser.py`**: Encapsulate `raw_paste` using `TemplateProcessor.encapsulate_payload(raw_paste)` inside `<source_data>`.
-  - [x] **2.2: `backend_v2/services/orchestrator/two_pass_atomizer.py`**: Encapsulate `hydrated_text` with `TemplateProcessor.encapsulate_payload` in `execute_phase_0`, `execute_phase_1`, and `execute_phase_1_drafts`.
-  - [x] **2.3: `backend_v2/services/orchestrator/sliding_window_linker.py`**: Replace direct `.format()` with `TemplateProcessor.safe_interpolate(LINKER_USER_PROMPT, global_ontology_map=ontology_text, claims_window=claims_text.strip())`.
-  - [x] **2.4: `backend_v2/services/source_verification_service.py`**: Replace `html.escape` with `TemplateProcessor.encapsulate_payload(text[: settings.source_extraction_max_chars].strip())`.
-  - [x] **2.5: `backend_v2/hooks/interaction_hook.py`**: Encapsulate `chat_log` using `TemplateProcessor.encapsulate_payload(chat_log)` inside `<user_payload>`.
-  - [x] **2.6: `backend_v2/hooks/linguistics.py`**: Encapsulate `text_to_scan` using `TemplateProcessor.encapsulate_payload(text_to_scan)` before prompt formatting.
+- [x] **Step 2: Backend DTO Expansion & Simulation Prompt Compilation**
+  - [x] Update `PromptBlockSimulationRequest` in `backend_v2/models/dtos/studio.py` (`target_scale_score`, `target_locale`, `context_text`).
+  - [x] Update `simulate_prompt_block` in `backend_v2/api/routers/studio/prompt_blocks.py` to pass full DTO.
+  - [x] Update `simulate_prompt_block` method signature and logic in `backend_v2/services/studio/simulation_service.py` to invoke `MatrixSensorPromptBuilder.build_compiled_prompt()`.
+  - [x] Update internal `simulate_step:263` in `simulation_service.py` to pass DTO.
+  - [x] Modernize all callers and assertions in `backend_v2/tests/unit/services/studio/test_simulation_service.py` and `backend_v2/tests/unit/models/dtos/test_studio.py`.
+  - [x] Run backend audit loop quality gate (100% pass, 97% coverage, 0 AST warnings).
 
-### PHASE 3: COMPREHENSIVE TESTS & AST GUARDRAILS
-- [x] **Step 3: Guardrail & Unit Testing**
-  - [x] Create `backend_v2/tests/unit/guardrails/test_cdata_hardening_comprehensive.py` with AST guardrail and unit tests covering all 6 components.
-  - [x] Run targeted unit test suite for all 6 components (64/64 passing).
-  - [x] Run `backend_audit_loop.py` quality gate (100% pass, 0 errors, 95% coverage).
+- [ ] **Step 3: Full-Stack LLM Task Executor Debug Prompt Logging**
+  - [ ] Add `log_structured_task_prompt()` to `backend_v2/utils/llm_debug_logger.py`.
+  - [ ] Hook into `execute_structured_task()` in `backend_v2/services/llm_task_executor.py` for development mode.
+  - [ ] Update `ExtractiveSensorService._single_ensemble_call(call_idx: int)` to pass `sub_task=f"extractive_sensor_bo3_call_{call_idx}"`.
+  - [ ] Run backend audit loop quality gate.
 
-### PHASE 4: VERIFICATION & COMMIT CHECKPOINT
-- [x] **Step 4: Audit & Commit**
-  - [x] Full backend audit loop.
-  - [x] Atomic git commit instructions.
+- [ ] **Step 4: Flutter Localization Strings Update**
+  - [ ] Add `xaiHighlightsTitle`, `previewScalePromptTooltip`, `previewPromptTitle`, and tab keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`.
+  - [ ] Run `flutter gen-l10n`.
 
-## Session Handover Context
-- **Achieved**: 100% completion of Targeted CDATA Prompt Injection Hardening across all 6 backend services and hooks (`chat_parser.py`, `two_pass_atomizer.py`, `sliding_window_linker.py`, `source_verification_service.py`, `interaction_hook.py`, and `linguistics.py`). Added AST guardrail and comprehensive test suite in `backend_v2/tests/unit/guardrails/test_cdata_hardening_comprehensive.py`. All 64 unit and guardrail tests pass with exit code 0. Full backend audit loop passed cleanly with 95% coverage and 0 lint/mypy/AST issues.
-- **Learned**: In XML prompt construction, `TemplateProcessor._apply_breakout_shield` replaces `]]>` with `]]]]><![CDATA[>`, creating adjacent valid CDATA sections that prevent tag injection without altering the underlying character sequence decoded by downstream models or parsers.
-- **Remaining**: Mandatory Tier 8 System 2 Red-Team Audit (`/tier8-audit-plan`).
+- [ ] **Step 5: Flutter Scale Editor Modal XML Preview Dialog**
+  - [ ] Convert `ScaleEditorModal` to `ConsumerStatefulWidget` in `scale_editor_modal.dart`.
+  - [ ] Add "Esikatsele kehote" action button and 3-tab XML preview dialog.
+  - [ ] Update controller and studio client to pass `targetScaleScore` and `targetLocale`.
+  - [ ] Verify with widget tests.
+
+- [ ] **Step 6: Flutter XAI Extensions Block Card IA Restructuring**
+  - [ ] Restructure `XaiExtensionsBlockCard` into Macro Synthesis vs Micro Atom sections in `xai_extensions_block_card.dart`.
+  - [ ] Add `// SSOT: Macro/Micro categorization for XAI extensions` comment block.
+  - [ ] Update `xai_extensions_block_card_test.dart` asserting headers and 360px overflow resistance.
+  - [ ] Run flutter audit loop quality gate.
+
+- [ ] **Step 7: Automated Quality Gates & Verification**
+  - [ ] Run full backend audit loop.
+  - [ ] Run full flutter audit loop.
+  - [ ] Run SDUI semantic parity test.
+
+- [ ] **Step 8: Knowledge Base Hardening & Metadata Synchronization**
+  - [ ] Update `ki_matrix_sensor_prompt_builder.md` and `metadata.json`.
+  - [ ] Update `ki_desktop_pro_tool_studio_ux.md` and `metadata.json`.
+  - [ ] Update `ki_system_audit_trail_xai.md` and `metadata.json`.
+
+- [ ] **Step 9: Timeless As-Built Architecture Documentation**
+  - [ ] Update `docs/architecture/04_server_driven_ui_and_presentation.md`.
+  - [ ] Update `docs/architecture/05_resilience_and_observability.md`.
+  - [ ] Update `docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md`.

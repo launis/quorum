@@ -5,6 +5,7 @@ from backend_v2.models.dtos.studio import (
     MCPGatewayDeleteResponse,
     ModelRegistryDeleteResponse,
     PromptBlockDeleteResponse,
+    PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepDeleteResponse,
     StepSimulationResponse,
@@ -195,3 +196,47 @@ def test_step_update_dto_negative_partitions() -> None:
     # Negative partition 2: Invalid safety literal value
     with pytest.raises(ValidationError):
         StepUpdateDTO.model_validate({"safety": "invalid_safety_mode"})
+
+
+def test_prompt_block_simulation_request_strictness() -> None:
+    """Test PromptBlockSimulationRequest strictness, field validation, and extra='forbid'."""
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText
+
+    block = SystemRulePromptBlock(
+        id="blk_11111111111111111111111111111111",
+        slug="test_rule",
+        label=I18nText(translations={"en": "Rule"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        instruction_text="Instruction",
+    )
+
+    # Positive test with defaults
+    req1 = PromptBlockSimulationRequest(block=block)
+    assert req1.mock_inputs == {}
+    assert req1.target_scale_score is None
+    assert req1.target_locale == "en"
+    assert req1.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+
+    # Positive test with custom fields
+    req2 = PromptBlockSimulationRequest(
+        block=block,
+        mock_inputs={"key": "val"},
+        target_scale_score=3,
+        target_locale="fi",
+        context_text="Custom context",
+    )
+    assert req2.target_scale_score == 3
+    assert req2.target_locale == "fi"
+    assert req2.context_text == "Custom context"
+
+    # Negative partition: Extra forbidden fields
+    with pytest.raises(ValidationError):
+        PromptBlockSimulationRequest.model_validate({
+            "block": block.model_dump(mode="json"),
+            "extra_forbidden": "fail",
+        })
+
