@@ -2452,6 +2452,16 @@
   "scaleDiscardChangesTitle": "Discard Changes?",
   "scaleDiscardChangesMessage": "You have unsaved changes to this evaluation scale. Are you sure you want to close without saving?",
   "scaleDiscardBtn": "Discard Changes",
-  "scaleContinueEditingBtn": "Continue Editing"
+  "scaleContinueEditingBtn": "Continue Editing",
+  "xaiHighlightsTitle": "XAI Highlights & Extensions",
+  "previewScalePromptTooltip": "Preview scale model prompt (XML)",
+  "previewPromptTitle": "XML Prompt Preview",
+  "previewPromptStaticTab": "System Directive (Prefix)",
+  "previewPromptDynamicTab": "Claims & Rules (Payload)",
+  "previewPromptSchemaTab": "Expected Schema",
+  "xaiMacroSynthesisSectionTitle": "Overall Evaluation & Synthesis (Macro-level)",
+  "xaiMacroSynthesisSectionSubtitle": "Generated as a synthesis of the entire text upon execution completion.",
+  "xaiMicroAtomSectionTitle": "Observation-specific Enrichments (Micro-level)",
+  "xaiMicroAtomSectionSubtitle": "Extracted directly from individual matrix observations."
 }
 

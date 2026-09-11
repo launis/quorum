@@ -4939,4 +4939,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scaleContinueEditingBtn => 'Continue Editing';
+
+  @override
+  String get xaiHighlightsTitle => 'XAI Highlights & Extensions';
+
+  @override
+  String get previewScalePromptTooltip => 'Preview scale model prompt (XML)';
+
+  @override
+  String get previewPromptTitle => 'XML Prompt Preview';
+
+  @override
+  String get previewPromptStaticTab => 'System Directive (Prefix)';
+
+  @override
+  String get previewPromptDynamicTab => 'Claims & Rules (Payload)';
+
+  @override
+  String get previewPromptSchemaTab => 'Expected Schema';
+
+  @override
+  String get xaiMacroSynthesisSectionTitle =>
+      'Overall Evaluation & Synthesis (Macro-level)';
+
+  @override
+  String get xaiMacroSynthesisSectionSubtitle =>
+      'Generated as a synthesis of the entire text upon execution completion.';
+
+  @override
+  String get xaiMicroAtomSectionTitle =>
+      'Observation-specific Enrichments (Micro-level)';
+
+  @override
+  String get xaiMicroAtomSectionSubtitle =>
+      'Extracted directly from individual matrix observations.';
 }

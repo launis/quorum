@@ -1752,5 +1752,15 @@
   "scaleDiscardChangesTitle": "Hylätäänkö muutokset?",
   "scaleDiscardChangesMessage": "Sinulla on tallentamattomia muutoksia arviointitasoon. Haluatko varmasti sulkea muokkausikkunan?",
   "scaleDiscardBtn": "Hylkää muutokset",
-  "scaleContinueEditingBtn": "Jatka muokkausta"
+  "scaleContinueEditingBtn": "Jatka muokkausta",
+  "xaiHighlightsTitle": "XAI-korostukset ja laajennukset",
+  "previewScalePromptTooltip": "Esikatsele arvosanan mallikehote (XML)",
+  "previewPromptTitle": "Kehotteen XML-esikatselu",
+  "previewPromptStaticTab": "Järjestelmäohje (Prefix)",
+  "previewPromptDynamicTab": "Väitteet & Säännöt (Payload)",
+  "previewPromptSchemaTab": "Vastausskeema",
+  "xaiMacroSynthesisSectionTitle": "Kokonaisarviointi & Synteesi (Makrotaso)",
+  "xaiMacroSynthesisSectionSubtitle": "Tuotetaan ajon valmistuttua koko aineiston synteesinä.",
+  "xaiMicroAtomSectionTitle": "Havaintokohtaiset rikastukset (Mikrotaso)",
+  "xaiMicroAtomSectionSubtitle": "Poimitaan suoraan matriisin yksittäisistä havainnoista."
 }

@@ -8915,6 +8915,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Continue Editing'**
   String get scaleContinueEditingBtn;
+
+  /// No description provided for @xaiHighlightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'XAI Highlights & Extensions'**
+  String get xaiHighlightsTitle;
+
+  /// No description provided for @previewScalePromptTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview scale model prompt (XML)'**
+  String get previewScalePromptTooltip;
+
+  /// No description provided for @previewPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'XML Prompt Preview'**
+  String get previewPromptTitle;
+
+  /// No description provided for @previewPromptStaticTab.
+  ///
+  /// In en, this message translates to:
+  /// **'System Directive (Prefix)'**
+  String get previewPromptStaticTab;
+
+  /// No description provided for @previewPromptDynamicTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Claims & Rules (Payload)'**
+  String get previewPromptDynamicTab;
+
+  /// No description provided for @previewPromptSchemaTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected Schema'**
+  String get previewPromptSchemaTab;
+
+  /// No description provided for @xaiMacroSynthesisSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Overall Evaluation & Synthesis (Macro-level)'**
+  String get xaiMacroSynthesisSectionTitle;
+
+  /// No description provided for @xaiMacroSynthesisSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Generated as a synthesis of the entire text upon execution completion.'**
+  String get xaiMacroSynthesisSectionSubtitle;
+
+  /// No description provided for @xaiMicroAtomSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Observation-specific Enrichments (Micro-level)'**
+  String get xaiMicroAtomSectionTitle;
+
+  /// No description provided for @xaiMicroAtomSectionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracted directly from individual matrix observations.'**
+  String get xaiMicroAtomSectionSubtitle;
 }
 
 class _AppLocalizationsDelegate

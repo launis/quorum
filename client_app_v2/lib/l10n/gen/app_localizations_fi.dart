@@ -4973,4 +4973,39 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get scaleContinueEditingBtn => 'Jatka muokkausta';
+
+  @override
+  String get xaiHighlightsTitle => 'XAI-korostukset ja laajennukset';
+
+  @override
+  String get previewScalePromptTooltip =>
+      'Esikatsele arvosanan mallikehote (XML)';
+
+  @override
+  String get previewPromptTitle => 'Kehotteen XML-esikatselu';
+
+  @override
+  String get previewPromptStaticTab => 'Järjestelmäohje (Prefix)';
+
+  @override
+  String get previewPromptDynamicTab => 'Väitteet & Säännöt (Payload)';
+
+  @override
+  String get previewPromptSchemaTab => 'Vastausskeema';
+
+  @override
+  String get xaiMacroSynthesisSectionTitle =>
+      'Kokonaisarviointi & Synteesi (Makrotaso)';
+
+  @override
+  String get xaiMacroSynthesisSectionSubtitle =>
+      'Tuotetaan ajon valmistuttua koko aineiston synteesinä.';
+
+  @override
+  String get xaiMicroAtomSectionTitle =>
+      'Havaintokohtaiset rikastukset (Mikrotaso)';
+
+  @override
+  String get xaiMicroAtomSectionSubtitle =>
+      'Poimitaan suoraan matriisin yksittäisistä havainnoista.';
 }

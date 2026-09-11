@@ -21,7 +21,7 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
 - [x] Step 1 Constraint (`the_duct_tape_ban`): Zero silent exception swallowing, zero context wiping, and zero naked string concatenation accumulators.
 - [x] Step 2 Constraint (`pydantic_v2_strictness`): Enforce ConfigDict(strict=True, extra="forbid") on updated simulation models.
 - [x] Step 3 Constraint (`logfire_delegation_mandate`): Debug logs must remain isolated in data/files/executions/{execution_id}/llm_debug_prompts.md without leaking raw PII into stdout.
-- [ ] Step 4 Constraint (`dynamic_vs_static_localization_ssot_mandate`): Pure Axis 1 structural chrome in Flutter ARB files, dynamic labels in database models.
+- [x] Step 4 Constraint (`dynamic_vs_static_localization_ssot_mandate`): Pure Axis 1 structural chrome in Flutter ARB files, dynamic labels in database models.
 - [ ] Step 5 Constraint (`desktop_pro_tool_interaction` & `universal_horizontal_overflow_immunity_mandate`): Zero RenderFlex overflow down to 360px viewport, hover states, keyboard shortcuts, and syntax-highlighted tabs.
 - [ ] Step 6 Constraint (`universal_ssot_and_normalization_mandate`): Pure frontend UI grouping for Macro vs Micro extensions with zero backend schema fragmentation.
 - [ ] Step 7 Constraint (`zero_compromise_quality_gate`): 100% test pass rate across backend and frontend audit loops.
@@ -54,9 +54,9 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
   - [x] Update `ExtractiveSensorService._single_ensemble_call(call_idx: int)` to pass `sub_task=f"extractive_sensor_bo3_call_{call_idx}"`.
   - [x] Run backend audit loop quality gate (100% pass, strict TDD coverage met).
 
-- [ ] **Step 4: Flutter Localization Strings Update**
-  - [ ] Add `xaiHighlightsTitle`, `previewScalePromptTooltip`, `previewPromptTitle`, and tab keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`.
-  - [ ] Run `flutter gen-l10n`.
+- [x] **Step 4: Flutter Localization Strings Update**
+  - [x] Add `xaiHighlightsTitle`, `previewScalePromptTooltip`, `previewPromptTitle`, and tab keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`.
+  - [x] Run `flutter gen-l10n`.
 
 - [ ] **Step 5: Flutter Scale Editor Modal XML Preview Dialog**
   - [ ] Convert `ScaleEditorModal` to `ConsumerStatefulWidget` in `scale_editor_modal.dart`.
