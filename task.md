@@ -72,17 +72,19 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
   - [x] Update `xai_extensions_block_card_test.dart` asserting headers and 360px overflow resistance (3/3 passed).
   - [x] Run flutter audit loop quality gate (Phase 9 compliant).
 
-- [ ] **Step 7: Automated Quality Gates & Verification**
-  - [ ] Run full backend audit loop.
-  - [ ] Run full flutter audit loop.
-  - [ ] Run SDUI semantic parity test.
+- [x] **Step 7: Automated Quality Gates & Verification**
+  - [x] Run full backend audit loop (`simulation_service.py`, `llm_debug_logger.py`, `llm_task_executor.py` — 100% pass, >90% coverage).
+  - [x] Run full flutter audit loop (`scale_editor_modal.dart`, `xai_extensions_block_card.dart` — 100% pass, 0 issues).
+  - [x] Run SDUI semantic parity test (`test_sdui_semantic_parity.py` — 100% pass).
+  - [x] Run full widget tests (`scale_editor_modal_test.dart` 15/15 passed, `xai_extensions_block_card_test.dart` 3/3 passed).
 
-- [ ] **Step 8: Knowledge Base Hardening & Metadata Synchronization**
-  - [ ] Update `ki_matrix_sensor_prompt_builder.md` and `metadata.json`.
-  - [ ] Update `ki_desktop_pro_tool_studio_ux.md` and `metadata.json`.
-  - [ ] Update `ki_system_audit_trail_xai.md` and `metadata.json`.
+- [x] **Step 8: Knowledge Base Hardening & Metadata Synchronization**
+  - [x] Update `ki_matrix_sensor_prompt_builder.md` and `metadata.json` (added studio_simulation_prompt_parity rule).
+  - [x] Update `ki_desktop_pro_tool_studio_ux.md` and `metadata.json` (added scale_editor_modal_prompt_preview and xai_extensions_categorization_standard rules).
+  - [x] Update `ki_system_audit_trail_xai.md` and `metadata.json` (added sub_engine_task_debug_logging rule).
+  - [x] All 3 metadata.json files validated with 100% active references on disk.
 
-- [ ] **Step 9: Timeless As-Built Architecture Documentation**
-  - [ ] Update `docs/architecture/04_server_driven_ui_and_presentation.md`.
-  - [ ] Update `docs/architecture/05_resilience_and_observability.md`.
-  - [ ] Update `docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md`.
+- [x] **Step 9: Timeless As-Built Architecture Documentation**
+  - [x] Update `docs/architecture/04_server_driven_ui_and_presentation.md` (XML Prompt Preview architecture & XAI Extensions Macro/Micro Information Architecture).
+  - [x] Update `docs/architecture/05_resilience_and_observability.md` (Local debug prompt logging, context merging & Windows 11 async event-loop file locking).
+  - [x] Update `docs/architecture/09_llm_prompt_orchestration_and_matrix_evaluation.md` (Authoring simulation prompt compilation & runtime DAG parity).

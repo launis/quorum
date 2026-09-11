@@ -864,3 +864,15 @@ Explicit context caches carry hourly retention costs and provider quotas. Caches
 
 However, invoking cache teardown within individual task executors causes race conditions where the first worker to finish deletes the shared cache while sibling workers are still computing. Quorum hoists cache lifecycle management to the root orchestrator level (`EnrichedDagExecutor`). The orchestrator initializes the cache prior to task dispatch and encapsulates the parallel evaluation group in a `try...finally` block that invokes `teardown_workflow_caches()` exactly once after all tasks have concluded.
 
+---
+
+## 9. Authoring Simulation Prompt Compilation & DAG Parity
+
+### 9.1 The Matrix Sensor Prompt Builder SSOT
+During matrix rubric and prompt block authoring in Quorum Studio, prompt preview and simulation reflect physical execution reality. Rather than relying on separate mock string generators, authoring simulation leverages `MatrixSensorPromptBuilder.build_compiled_prompt()` as the Single Source of Truth:
+* **Target Rubric Score Filtering**: When authors simulate or preview a specific rubric level in `ScaleEditorModal`, `StudioSimulationService` filters the evaluation scales to isolate the active rubric score via `target_scale_score`, compiling only the targeted claims and criteria. When no score filter is provided, all scales are compiled in canonical order.
+* **Synthetic Atom & Alias Parity**: Studio simulation synthesizes deterministic `FlattenedAtom` instances using `generate_opaque_id(EntityPrefix.TDA)` synthetic IDs, ensuring that `FlattenedAtom.atom_id` exactly matches `ExtractedAtom.tda_id` for assertion mapping and question binding.
+* **CDATA Breakout Shielding**: Context documents and mock inputs are passed through `TemplateProcessor.encapsulate_payload()`, ensuring that XML delimiters in authoring text are properly wrapped in `<![CDATA[...]]>` blocks.
+* **1:1 Parity with Runtime DAG Execution**: Because authoring simulation executes the exact same prompt compilation pipeline as Phase 1 DAG sensor evaluation, prompt authors inspect the identical static cache prefix, system instructions, dynamic claims layout, and expected structured output schema that the foundational LLM receives in production.
+
+

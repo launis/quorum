@@ -121,6 +121,14 @@ Studio matrix and rubric authoring surfaces enforce desktop-class ergonomics, de
   - `DynamicItemListEditor`: Discrete numbered step cards for reasoning criteria and disqualifying anti-patterns, eliminating brittle newline delimiter splitting.
   - `ContrastivePairEditor`: Dedicated two-field editor for `ContrastivePairDTO` (`acceptable` vs `rejected`), with real-time character counters, semantic color accents, and responsive vertical stacking when pane width < 520px.
   - `LinguisticShieldBanner`: Non-blocking warning banner powered by a two-phase `LinguisticShieldDetector` (Unicode check outside Basic Latin with typographical whitelist + target-language grammatical stopword gate), alerting authors when non-English text is entered into prompt instructions without blocking submission.
+- **XML Prompt Preview Architecture (`ScaleEditorModal`)**: The Scale Editor exposes a dedicated inspection action (`Icons.code`) that compiles the active rubric score through `MatrixSensorPromptBuilder.build_compiled_prompt()` with ephemeral `PromptBlock.matrix` parameters and presents the resulting payload inside a 3-tab syntax dialog:
+  1. *Static Directive Prefix (`previewPromptStaticTab`)*: Displays system instructions, academic theory grounding, and context documents compiled as the cacheable prefix.
+  2. *Dynamic Claims & Rules (`previewPromptDynamicTab`)*: Displays CDATA-shielded criteria, anti-patterns, and contrastive examples for the active scale rubric.
+  3. *Expected Schema (`previewPromptSchemaTab`)*: Displays expected response JSON schema and tools configuration.
+- **Two-Tier Information Architecture for XAI Extensions (`XaiExtensionsBlockCard`)**: Output Profile authoring partitions XAI extension chips into two distinct semantic visual zones:
+  1. *Macro Synthesis & Reporting*: Run-level extensions synthesized across the entire execution trace (`riskFlag`, `emotionalSentiment`, `theoryLink`, `confidence`, `justification`), accompanied by subtitle description.
+  2. *Micro Atom Enrichments*: Observation-level enrichments extracted directly from individual matrix observations (`citation`, `coaching`, `falsification`, `remediationSteps`, `sourceId`, `missingContext`, `contextualOverride`), accompanied by subtitle description.
+  Both sections mutate the single authoritative backend array `payload.visibleBlockExtensions` with zero schema fragmentation, enclosed in bounded `Wrap` widgets guaranteeing hazard-stripe-free rendering down to 360px viewports.
 - **Modal Feedback & Submission Guard**: Dialogs eradicate `SnackBar` popups in favor of modal-internal error surfaces, implement in-flight atomic save debouncing (`_isSaving`), auto-scroll to invalid fields, and enforce a robust `PopScope` protocol that prompts discard confirmation if uncommitted text buffers or dirty model changes exist.
 
 ## 3. Logical Data Flow & Rendering Pipeline

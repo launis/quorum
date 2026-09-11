@@ -77,6 +77,12 @@ Architectural invariants and coding standards are statically enforced at build a
 
 In cognitive processing, evidentiary quotes are strictly validated against source texts using exact lexical matching and XML entity escaping, guaranteeing evidentiary integrity and eliminating quote hallucination.
 
+### 2.13. Local Debug Prompt Logging, Context Preservation & Event-Loop File Locking
+During local development and diagnostic inspection, LLM task executions record deterministic markdown prompt traces into execution artifact directories (`data/files/executions/{execution_id}/llm_debug_prompts.md`):
+- **Structured Sub-Engine Auditing**: Primary tasks and sub-engine operations (including parallel Best-of-Three ensemble calls and Phase 0 atomizers) log the static system instructions, theory context prefix, CDATA user payloads, attempt numbers, and expected schema definitions.
+- **Parent Context Preservation**: When sub-engine tasks pass sub-task tags (`validation_context={"sub_task": "..."}`), the execution pipeline merges caller parameters with default validation context (`{**(default or {}), **(caller or {})}`), ensuring parent `execution_id` and `step_id` persist unbroken across child task dispatches.
+- **Event-Loop Asynchronous File-Locking (`_get_debug_file_lock`)**: All debug logger operations are asynchronous and serialized under an event-loop-bound lazy `asyncio.Lock()`. When parallel sub-engine tasks run concurrently inside `asyncio.TaskGroup`, the lock serializes file appends to eliminate Windows file collision crashes (`WinError 32: PermissionError`), guaranteeing loss-free trace persistence across multi-task evaluations.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
