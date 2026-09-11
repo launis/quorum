@@ -6,7 +6,7 @@ and multi-channel payload validation.
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
@@ -15,6 +15,7 @@ from backend_v2.models.dtos.base import BaseDTO
 __all__ = [
     "ChatTurnAnchorDTO",
     "ChatTurnAnchorsResponseDTO",
+    "ResolvedIngressDTO",
 ]
 
 
@@ -44,3 +45,24 @@ class ChatTurnAnchorsResponseDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     turns: Annotated[list[ChatTurnAnchorDTO], Field(default_factory=list, description="List of detected turn anchors")]
+
+
+class ResolvedIngressDTO(BaseDTO):
+    """Immutable resolved workflow inputs and source identity manifest.
+
+    Attributes:
+        resolved_inputs: Resolved inputs mapped strictly to target ExpectedInput keys or dynamic slots.
+        source_identity_manifest: Human-readable source identity manifest mapping slot keys to original source names.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    resolved_inputs: Annotated[
+        dict[str, Any],
+        Field(description="Resolved inputs mapped strictly to target ExpectedInput keys or dynamic slots."),
+    ]
+    source_identity_manifest: Annotated[
+        dict[str, str],
+        Field(description="Human-readable source identity manifest mapping slot keys to original source names."),
+    ]
+
