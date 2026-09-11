@@ -58,17 +58,19 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
   - [x] Add `xaiHighlightsTitle`, `previewScalePromptTooltip`, `previewPromptTitle`, and tab keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`.
   - [x] Run `flutter gen-l10n`.
 
-- [ ] **Step 5: Flutter Scale Editor Modal XML Preview Dialog**
-  - [ ] Convert `ScaleEditorModal` to `ConsumerStatefulWidget` in `scale_editor_modal.dart`.
-  - [ ] Add "Esikatsele kehote" action button and 3-tab XML preview dialog.
-  - [ ] Update controller and studio client to pass `targetScaleScore` and `targetLocale`.
-  - [ ] Verify with widget tests.
+- [x] **Step 5: Flutter Scale Editor Modal XML Preview Dialog**
+  - [x] Convert `ScaleEditorModal` to `ConsumerStatefulWidget` in `scale_editor_modal.dart`.
+  - [x] Add "Esikatsele kehote" action button and 3-tab XML preview dialog.
+  - [x] Update controller and studio client to pass `targetScaleScore` and `targetLocale`.
+  - [x] Verify with widget tests (15/15 passed).
+  - [x] Quality gate passed (`flutter_audit_loop.py`).
+  - [x] Atomic git commit: `69194b42 feat(studio): add xml prompt preview button and dialog to scale editor modal`.
 
-- [ ] **Step 6: Flutter XAI Extensions Block Card IA Restructuring**
-  - [ ] Restructure `XaiExtensionsBlockCard` into Macro Synthesis vs Micro Atom sections in `xai_extensions_block_card.dart`.
-  - [ ] Add `// SSOT: Macro/Micro categorization for XAI extensions` comment block.
-  - [ ] Update `xai_extensions_block_card_test.dart` asserting headers and 360px overflow resistance.
-  - [ ] Run flutter audit loop quality gate.
+- [x] **Step 6: Flutter XAI Extensions Block Card IA Restructuring**
+  - [x] Restructure `XaiExtensionsBlockCard` into Macro Synthesis vs Micro Atom sections in `xai_extensions_block_card.dart`.
+  - [x] Add `// SSOT: Macro/Micro categorization for XAI extensions` comment block.
+  - [x] Update `xai_extensions_block_card_test.dart` asserting headers and 360px overflow resistance (3/3 passed).
+  - [x] Run flutter audit loop quality gate (Phase 9 compliant).
 
 - [ ] **Step 7: Automated Quality Gates & Verification**
   - [ ] Run full backend audit loop.

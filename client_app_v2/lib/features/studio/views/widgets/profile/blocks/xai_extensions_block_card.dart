@@ -21,6 +21,98 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
     this.dragHandle,
   });
 
+  // SSOT: Macro/Micro XAI Extension Categorization (frontend-only IA grouping)
+  // Macro Synthesis (run-level): riskFlag, emotionalSentiment, theoryLink, confidence, justification
+  // Micro Atom (observation-level): citation, coaching, falsification, remediationSteps, sourceId, missingContext, contextualOverride
+  // When adding new XaiExtensionType values, explicitly assign to Macro or Micro group here.
+  static const List<XaiExtensionType> _macroExtensions = [
+    XaiExtensionType.riskFlag,
+    XaiExtensionType.emotionalSentiment,
+    XaiExtensionType.theoryLink,
+    XaiExtensionType.confidence,
+    XaiExtensionType.justification,
+  ];
+
+  static const List<XaiExtensionType> _microExtensions = [
+    XaiExtensionType.citation,
+    XaiExtensionType.coaching,
+    XaiExtensionType.falsification,
+    XaiExtensionType.remediationSteps,
+    XaiExtensionType.sourceId,
+    XaiExtensionType.missingContext,
+    XaiExtensionType.contextualOverride,
+  ];
+
+  static List<XaiExtensionType> _filterExtensions(
+    List<XaiExtensionType> extensions,
+    List<String> availableExtensions,
+  ) {
+    return extensions
+        .where(
+          (ext) =>
+              availableExtensions.contains(ext.backendValue) &&
+              ext != XaiExtensionType.varianceValidation &&
+              ext != XaiExtensionType.authenticityEvaluation,
+        )
+        .toList();
+  }
+
+  static Widget _buildExtensionGroup({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required List<XaiExtensionType> extensions,
+    required OutputProfile payload,
+    required void Function(OutputProfile) updatePayload,
+    required AppLocalizations l10n,
+  }) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s4),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s8),
+        Wrap(
+          spacing: AppSpacing.s8,
+          runSpacing: AppSpacing.s4,
+          children: [
+            for (final ext in extensions)
+              FilterChip(
+                label: Text(_xaiLabel(ext, l10n)),
+                selected: payload.visibleBlockExtensions.contains(ext),
+                onSelected: (selected) {
+                  final updated = List<XaiExtensionType>.from(
+                    payload.visibleBlockExtensions,
+                  );
+                  if (selected) {
+                    updated.add(ext);
+                  } else {
+                    updated.remove(ext);
+                  }
+                  updatePayload(
+                    payload.copyWith(visibleBlockExtensions: updated),
+                  );
+                },
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
@@ -65,38 +157,50 @@ class XaiExtensionsBlockCard extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            l10n.blockLevelExtensionsLabel,
+            l10n.xaiHighlightsTitle,
             style: Theme.of(
               context,
-            ).textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: AppSpacing.s8),
+          const SizedBox(height: AppSpacing.s12),
           switch (availableExtensionsState) {
-            AsyncData(value: final availableExtensions) => Wrap(
-              spacing: AppSpacing.s8,
-              runSpacing: AppSpacing.s4,
+            AsyncData(value: final availableExtensions) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final ext in XaiExtensionType.values)
-                  if (availableExtensions.contains(ext.backendValue) &&
-                      ext != XaiExtensionType.varianceValidation &&
-                      ext != XaiExtensionType.authenticityEvaluation)
-                    FilterChip(
-                      label: Text(_xaiLabel(ext, l10n)),
-                      selected: payload.visibleBlockExtensions.contains(ext),
-                      onSelected: (selected) {
-                        final updated = List<XaiExtensionType>.from(
-                          payload.visibleBlockExtensions,
-                        );
-                        if (selected) {
-                          updated.add(ext);
-                        } else {
-                          updated.remove(ext);
-                        }
-                        updatePayload(
-                          payload.copyWith(visibleBlockExtensions: updated),
-                        );
-                      },
+                if (_filterExtensions(
+                  _macroExtensions,
+                  availableExtensions,
+                ).isNotEmpty) ...[
+                  _buildExtensionGroup(
+                    context: context,
+                    title: l10n.xaiMacroSynthesisSectionTitle,
+                    subtitle: l10n.xaiMacroSynthesisSectionSubtitle,
+                    extensions: _filterExtensions(
+                      _macroExtensions,
+                      availableExtensions,
                     ),
+                    payload: payload,
+                    updatePayload: updatePayload,
+                    l10n: l10n,
+                  ),
+                  const SizedBox(height: AppSpacing.s16),
+                ],
+                if (_filterExtensions(
+                  _microExtensions,
+                  availableExtensions,
+                ).isNotEmpty)
+                  _buildExtensionGroup(
+                    context: context,
+                    title: l10n.xaiMicroAtomSectionTitle,
+                    subtitle: l10n.xaiMicroAtomSectionSubtitle,
+                    extensions: _filterExtensions(
+                      _microExtensions,
+                      availableExtensions,
+                    ),
+                    payload: payload,
+                    updatePayload: updatePayload,
+                    l10n: l10n,
+                  ),
               ],
             ),
             AsyncLoading() => const Center(
