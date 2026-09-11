@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
@@ -296,100 +297,96 @@ void main() {
       expect(find.text('BARS Scales / Score Grades'), findsOneWidget);
     });
 
-    testWidgets(
-      'Compiled prompt preview opens shared PromptPreviewDialog',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1920, 1080);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(tester.view.resetPhysicalSize);
+    testWidgets('Compiled prompt preview opens shared PromptPreviewDialog', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
 
-        String? clipboardText;
-        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
-          SystemChannels.platform,
-          (MethodCall methodCall) async {
-            if (methodCall.method == 'Clipboard.setData') {
-              clipboardText =
-                  (methodCall.arguments as Map<dynamic, dynamic>)['text']
-                      as String?;
-              return null;
-            }
+      String? clipboardText;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (MethodCall methodCall) async {
+          if (methodCall.method == 'Clipboard.setData') {
+            clipboardText =
+                (methodCall.arguments as Map<dynamic, dynamic>)['text']
+                    as String?;
             return null;
-          },
-        );
+          }
+          return null;
+        },
+      );
 
-        const block = PromptBlock.systemRule(
-          id: 'blk_test_preview',
-          slug: 'test_preview',
-          label: I18nText(translations: {'en': 'System Rule Preview'}),
-          description: I18nText(translations: {'en': 'Description Preview'}),
-          instructionText: 'Compiled prompt instructions',
-        );
+      const block = PromptBlock.systemRule(
+        id: 'blk_test_preview',
+        slug: 'test_preview',
+        label: I18nText(translations: {'en': 'System Rule Preview'}),
+        description: I18nText(translations: {'en': 'Description Preview'}),
+        instructionText: 'Compiled prompt instructions',
+      );
 
-        final controller = MockPromptBlocksController(
-          onSimulate: (payload, mockInputs) async {
-            return {
-              'rendered_prompt':
-                  '<system_rule>\nCompiled prompt instructions\n</system_rule>',
-              'prompt_context': {
-                'static_messages': [
-                  {
-                    'role': 'system',
-                    'content': 'Compiled prompt instructions',
-                  },
-                ],
-                'dynamic_messages': <dynamic>[],
-              },
-            };
-          },
-        );
+      final controller = MockPromptBlocksController(
+        onSimulate: (payload, mockInputs) async {
+          return {
+            'rendered_prompt':
+                '<system_rule>\nCompiled prompt instructions\n</system_rule>',
+            'prompt_context': {
+              'static_messages': [
+                {'role': 'system', 'content': 'Compiled prompt instructions'},
+              ],
+              'dynamic_messages': <dynamic>[],
+            },
+          };
+        },
+      );
 
-        await tester.pumpWidget(
-          createTestWidget(block: block, controller: controller),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createTestWidget(block: block, controller: controller),
+      );
+      await tester.pumpAndSettle();
 
-        // Tap the simulate bug report icon
-        await tester.tap(find.byIcon(Icons.bug_report));
-        await tester.pumpAndSettle();
+      // Tap the simulate bug report icon
+      await tester.tap(find.byIcon(Icons.bug_report));
+      await tester.pumpAndSettle();
 
-        // Modal should be open with shared PromptPreviewDialog
-        expect(find.byType(PromptPreviewDialog), findsOneWidget);
-        expect(find.text('Compiled Prompt Preview'), findsOneWidget);
-        expect(
-          find.descendant(
-            of: find.byType(PromptPreviewDialog),
-            matching: find.textContaining('Compiled prompt instructions'),
-          ),
-          findsOneWidget,
-        );
-
-        // Tap Copy to Clipboard button
-        final copyBtn = find.descendant(
+      // Modal should be open with shared PromptPreviewDialog
+      expect(find.byType(PromptPreviewDialog), findsOneWidget);
+      expect(find.text('Compiled Prompt Preview'), findsOneWidget);
+      expect(
+        find.descendant(
           of: find.byType(PromptPreviewDialog),
-          matching: find.text('Copy to Clipboard'),
-        );
-        expect(copyBtn, findsOneWidget);
-        await tester.tap(copyBtn);
-        await tester.pumpAndSettle();
+          matching: find.textContaining('Compiled prompt instructions'),
+        ),
+        findsOneWidget,
+      );
 
-        expect(clipboardText, contains('Compiled prompt instructions'));
-        expect(find.text('Copied to Clipboard!'), findsOneWidget);
+      // Tap Copy to Clipboard button
+      final copyBtn = find.descendant(
+        of: find.byType(PromptPreviewDialog),
+        matching: find.text('Copy to Clipboard'),
+      );
+      expect(copyBtn, findsOneWidget);
+      await tester.tap(copyBtn);
+      await tester.pumpAndSettle();
 
-        // Advance timer
-        await tester.pump(const Duration(seconds: 2));
+      expect(clipboardText, contains('Compiled prompt instructions'));
+      expect(find.text('Copied to Clipboard!'), findsOneWidget);
 
-        // Tap close button on dialog
-        await tester.tap(
-          find.descendant(
-            of: find.byType(PromptPreviewDialog),
-            matching: find.byIcon(Icons.close),
-          ),
-        );
-        await tester.pumpAndSettle();
+      // Advance timer
+      await tester.pump(const Duration(seconds: 2));
 
-        expect(find.byType(PromptPreviewDialog), findsNothing);
-      },
-    );
+      // Tap close button on dialog
+      await tester.tap(
+        find.descendant(
+          of: find.byType(PromptPreviewDialog),
+          matching: find.byIcon(Icons.close),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PromptPreviewDialog), findsNothing);
+    });
 
     testWidgets('Validation gate prevents save when English label is empty', (
       WidgetTester tester,
@@ -609,6 +606,188 @@ void main() {
           constrainedBoxFinder,
         );
         expect(constrainedBox.constraints.maxWidth, equals(1200.0));
+      },
+    );
+
+    testWidgets(
+      'MatrixPromptBlock positive test: renders dataTypeExecutionConstraints, allowDecimals, isEvaluativeMatrix, and 10 XAI chips',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.matrix(
+          id: 'blk_test_matrix_positive',
+          slug: 'matrix_pos',
+          label: I18nText(translations: {'en': 'Matrix Sensor'}),
+          description: I18nText(translations: {'en': 'Matrix Desc'}),
+          type: BlockDataType.floatType,
+          scales: [],
+          isEvaluative: true,
+          allowDecimals: true,
+          allowContextualOverride: true,
+          outputExtensions: ['justification', 'coaching'],
+        );
+
+        await tester.pumpWidget(createTestWidget(block: block));
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(PromptBlockBuilderView)),
+        )!;
+
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsOneWidget);
+        expect(find.text(l10n.allowDecimals), findsOneWidget);
+        expect(find.text(l10n.isEvaluativeMatrix), findsOneWidget);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsOneWidget);
+        expect(find.byType(FilterChip), findsNWidgets(10));
+      },
+    );
+
+    testWidgets(
+      'Non-matrix negative partition: SystemRulePromptBlock does NOT render dataTypeExecutionConstraints or xaiOutputExtensionsTitle',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.systemRule(
+          id: 'blk_test_sysrule_pruned',
+          slug: 'sysrule_pruned',
+          label: I18nText(translations: {'en': 'System Rule'}),
+          description: I18nText(translations: {'en': 'Rule Desc'}),
+          instructionText: 'Rule instruction',
+        );
+
+        await tester.pumpWidget(createTestWidget(block: block));
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(PromptBlockBuilderView)),
+        )!;
+
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsNothing);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Non-matrix negative partition: ProtocolPromptBlock does NOT render dataTypeExecutionConstraints or xaiOutputExtensionsTitle',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.protocol(
+          id: 'blk_test_proto_pruned',
+          slug: 'proto_pruned',
+          label: I18nText(translations: {'en': 'Protocol'}),
+          description: I18nText(translations: {'en': 'Proto Desc'}),
+          protocolInstructions: 'Protocol instructions',
+        );
+
+        await tester.pumpWidget(createTestWidget(block: block));
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(PromptBlockBuilderView)),
+        )!;
+
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsNothing);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Non-matrix negative partition: ExecutionPersonaPromptBlock does NOT render dataTypeExecutionConstraints or xaiOutputExtensionsTitle',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        const block = PromptBlock.executionPersona(
+          id: 'blk_test_persona_pruned',
+          slug: 'persona_pruned',
+          label: I18nText(translations: {'en': 'Persona'}),
+          description: I18nText(translations: {'en': 'Persona Desc'}),
+          roleEnforcement: 'Role enforcement',
+        );
+
+        await tester.pumpWidget(createTestWidget(block: block));
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(PromptBlockBuilderView)),
+        )!;
+
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsNothing);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'Category switch from Matrix to System Rule sanitizes evaluative attributes and save payload',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        PromptBlock? savedPayload;
+        // id 'new' ensures isMatrix is false when no scales/rows/cols exist
+        const block = PromptBlock.matrix(
+          id: 'new',
+          slug: 'new_block',
+          label: I18nText(translations: {'en': 'Switchable Block'}),
+          description: I18nText(translations: {'en': 'Desc'}),
+          type: BlockDataType.floatType,
+          isEvaluative: true,
+          allowDecimals: true,
+          scales: [],
+          outputExtensions: ['justification', 'risk_flag'],
+        );
+
+        await tester.pumpWidget(
+          createTestWidget(
+            block: block,
+            onSave: (saved) async {
+              savedPayload = saved;
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final l10n = AppLocalizations.of(
+          tester.element(find.byType(PromptBlockBuilderView)),
+        )!;
+
+        // Verify initial Matrix container is visible
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsOneWidget);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsOneWidget);
+
+        // Switch category to System Rule
+        await tester.tap(
+          find.byType(DropdownButtonFormField<PromptBlockCategory>),
+        );
+        await tester.pumpAndSettle();
+
+        final targetCategoryName = l10n.categorySystemRule;
+        await tester.tap(find.text(targetCategoryName).last);
+        await tester.pumpAndSettle();
+
+        // Verify container is pruned immediately upon switch
+        expect(find.text(l10n.dataTypeExecutionConstraints), findsNothing);
+        expect(find.text(l10n.xaiOutputExtensionsTitle), findsNothing);
+
+        // Tap save button and assert sanitized model in onSave callback
+        await tester.tap(find.byIcon(Icons.save));
+        await tester.pumpAndSettle();
+
+        expect(savedPayload, isNotNull);
+        expect(savedPayload, isA<SystemRulePromptBlock>());
+        expect(savedPayload!.outputExtensions, isEmpty);
+        expect(savedPayload!.type, equals(BlockDataType.instruction));
+        expect(savedPayload!.isEvaluative, isFalse);
+        expect(savedPayload!.allowDecimals, isFalse);
       },
     );
   });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -149,9 +150,9 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     final isMatrix =
         payload.categoryId == 'matrix' &&
         (blockId != 'new' ||
-            payload.scales != null ||
-            payload.rows != null ||
-            payload.columns != null);
+            payload.scales?.isNotEmpty == true ||
+            payload.rows?.isNotEmpty == true ||
+            payload.columns?.isNotEmpty == true);
 
     final validateMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (data) {
@@ -220,19 +221,31 @@ class PromptBlockBuilderView extends HookConsumerWidget {
       },
     );
 
+    final isSaving = useState(false);
+
     Future<void> savePromptBlock() async {
-      final enLabel = payload.label.translations['en'] ?? '';
-
-      if (enLabel.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.promptBlockMandatoryEnglishError)),
-        );
-        return;
-      }
-
-      final savingPayload = payload;
+      if (isSaving.value) return;
+      isSaving.value = true;
 
       try {
+        final enLabel = payload.label.translations['en'] ?? '';
+
+        if (enLabel.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.promptBlockMandatoryEnglishError)),
+          );
+          return;
+        }
+
+        final savingPayload = payload is MatrixPromptBlock
+            ? payload
+            : payload.copyWith(
+                isEvaluative: false,
+                type: BlockDataType.instruction,
+                allowDecimals: false,
+                outputExtensions: const [],
+              );
+
         await ref
             .read(promptBlockFormProvider(blockId).notifier)
             .submit(savingPayload);
@@ -254,6 +267,8 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             ),
           );
         }
+      } finally {
+        isSaving.value = false;
       }
     }
 
@@ -304,7 +319,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                     ),
               tooltip: l10n.compiledPromptPreviewTooltip,
             ),
-            if (formState.isLoading)
+            if (formState.isLoading || isSaving.value)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0),
                 child: Center(
@@ -421,9 +436,15 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload is MatrixPromptBlock
                                                   ? payload.aiDescription
                                                   : null,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
+                                              isEvaluative: true,
+                                              type:
+                                                  (payload.type ==
+                                                          BlockDataType
+                                                              .floatType ||
+                                                      payload.type ==
+                                                          BlockDataType.intType)
+                                                  ? payload.type
+                                                  : BlockDataType.floatType,
                                               allowDecimals:
                                                   payload.allowDecimals,
                                               outputExtensions:
@@ -446,13 +467,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -480,13 +498,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -509,13 +524,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -538,13 +550,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -563,13 +572,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -596,13 +602,10 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                   payload.organizationId,
                                               label: payload.label,
                                               description: payload.description,
-                                              isEvaluative:
-                                                  payload.isEvaluative,
-                                              type: payload.type,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
+                                              isEvaluative: false,
+                                              type: BlockDataType.instruction,
+                                              allowDecimals: false,
+                                              outputExtensions: const [],
                                               theoryGrounding:
                                                   payload.theoryGrounding,
                                               isLightweightProtocol:
@@ -672,203 +675,210 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                               payload,
                               blockId,
                             ),
-                            AppSpacing.h16,
-
-                            // XAI & Constraints Container
-                            Container(
-                              padding: AppSpacing.p12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text(
-                                    l10n.dataTypeExecutionConstraints,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  AppSpacing.h12,
-                                  Wrap(
-                                    spacing: 16,
-                                    runSpacing: 8,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      ConstrainedBox(
-                                        constraints: const BoxConstraints(
-                                          maxWidth: 180,
-                                          minWidth: 140,
-                                        ),
-                                        child: DropdownButton<BlockDataType>(
-                                          isExpanded: true,
-                                          value: payload.type,
-                                          items: [
-                                            DropdownMenuItem(
-                                              value: BlockDataType.instruction,
-                                              child: Text(l10n.typeInstruction),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: BlockDataType.stringType,
-                                              child: Text(l10n.typeString),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: BlockDataType.intType,
-                                              child: Text(l10n.typeInteger),
-                                            ),
-                                            DropdownMenuItem(
-                                              value: BlockDataType.floatType,
-                                              child: Text(l10n.typeFloat),
-                                            ),
-                                          ],
-                                          onChanged: (val) {
-                                            if (val != null) {
-                                              ref
-                                                  .read(
-                                                    promptBlockFormProvider(
-                                                      blockId,
-                                                    ).notifier,
-                                                  )
-                                                  .forceRebuild(
-                                                    payload.copyWith(type: val),
-                                                  );
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Checkbox(
-                                            value: payload.allowDecimals,
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                ref
-                                                    .read(
-                                                      promptBlockFormProvider(
-                                                        blockId,
-                                                      ).notifier,
-                                                    )
-                                                    .forceRebuild(
-                                                      payload.copyWith(
-                                                        allowDecimals: val,
-                                                      ),
-                                                    );
-                                              }
-                                            },
-                                          ),
-                                          Flexible(
-                                            child: Text(
-                                              l10n.allowDecimals,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Checkbox(
-                                            value: payload.isEvaluative,
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                ref
-                                                    .read(
-                                                      promptBlockFormProvider(
-                                                        blockId,
-                                                      ).notifier,
-                                                    )
-                                                    .forceRebuild(
-                                                      payload.copyWith(
-                                                        isEvaluative: val,
-                                                      ),
-                                                    );
-                                              }
-                                            },
-                                          ),
-                                          Flexible(
-                                            child: Text(
-                                              l10n.isEvaluativeMatrix,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                  AppSpacing.h16,
-                                  Text(
-                                    l10n.xaiOutputExtensionsTitle,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  AppSpacing.h8,
-                                  Wrap(
-                                    spacing: 8,
-                                    runSpacing: 8,
-                                    children:
-                                        {
-                                          "justification":
-                                              l10n.xaiJustification,
-                                          "coaching": l10n.xaiCoachingTip,
-                                          "falsification":
-                                              l10n.xaiDevilsAdvocate,
-                                          "missing_context":
-                                              l10n.xaiMissingContext,
-                                          "risk_flag": l10n.xaiRiskFlag,
-                                          "remediation_steps":
-                                              l10n.xaiRemediation,
-                                          "emotional_sentiment":
-                                              l10n.xaiSentiment,
-                                          "theory_link": l10n.xaiTheoryLink,
-                                          "confidence": l10n.xaiConfidence,
-                                          "citation": l10n.xaiSourceCitation,
-                                        }.entries.map((entry) {
-                                          final extList =
-                                              payload.outputExtensions;
-                                          final isSelected = extList.contains(
-                                            entry.key,
-                                          );
-                                          return FilterChip(
-                                            label: Text(entry.value),
-                                            selected: isSelected,
-                                            onSelected: (bool selected) {
-                                              final newList = List<String>.from(
-                                                payload.outputExtensions,
-                                              );
-                                              if (selected) {
-                                                newList.add(entry.key);
-                                              } else {
-                                                newList.remove(entry.key);
-                                              }
-                                              ref
-                                                  .read(
-                                                    promptBlockFormProvider(
-                                                      blockId,
-                                                    ).notifier,
-                                                  )
-                                                  .forceRebuild(
-                                                    payload.copyWith(
-                                                      outputExtensions: newList,
-                                                    ),
-                                                  );
-                                            },
-                                            selectedColor: Theme.of(
-                                              context,
-                                            ).colorScheme.primaryContainer,
-                                            checkmarkColor: Theme.of(
-                                              context,
-                                            ).colorScheme.onPrimaryContainer,
-                                          );
-                                        }).toList(),
-                                  ),
-                                ],
-                              ),
-                            ),
 
                             if (payload is MatrixPromptBlock) ...[
+                              AppSpacing.h16,
+                              // XAI & Constraints Container
+                              Container(
+                                padding: AppSpacing.p12,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.surfaceContainerHighest,
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Text(
+                                      l10n.dataTypeExecutionConstraints,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    AppSpacing.h12,
+                                    Wrap(
+                                      spacing: 16,
+                                      runSpacing: 8,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(
+                                            maxWidth: 180,
+                                            minWidth: 140,
+                                          ),
+                                          child: DropdownButton<BlockDataType>(
+                                            isExpanded: true,
+                                            value: payload.type,
+                                            items: [
+                                              DropdownMenuItem(
+                                                value:
+                                                    BlockDataType.instruction,
+                                                child: Text(
+                                                  l10n.typeInstruction,
+                                                ),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: BlockDataType.stringType,
+                                                child: Text(l10n.typeString),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: BlockDataType.intType,
+                                                child: Text(l10n.typeInteger),
+                                              ),
+                                              DropdownMenuItem(
+                                                value: BlockDataType.floatType,
+                                                child: Text(l10n.typeFloat),
+                                              ),
+                                            ],
+                                            onChanged: (val) {
+                                              if (val != null) {
+                                                ref
+                                                    .read(
+                                                      promptBlockFormProvider(
+                                                        blockId,
+                                                      ).notifier,
+                                                    )
+                                                    .forceRebuild(
+                                                      payload.copyWith(
+                                                        type: val,
+                                                      ),
+                                                    );
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Checkbox(
+                                              value: payload.allowDecimals,
+                                              onChanged: (val) {
+                                                if (val != null) {
+                                                  ref
+                                                      .read(
+                                                        promptBlockFormProvider(
+                                                          blockId,
+                                                        ).notifier,
+                                                      )
+                                                      .forceRebuild(
+                                                        payload.copyWith(
+                                                          allowDecimals: val,
+                                                        ),
+                                                      );
+                                                }
+                                              },
+                                            ),
+                                            Flexible(
+                                              child: Text(
+                                                l10n.allowDecimals,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Checkbox(
+                                              value: payload.isEvaluative,
+                                              onChanged: (val) {
+                                                if (val != null) {
+                                                  ref
+                                                      .read(
+                                                        promptBlockFormProvider(
+                                                          blockId,
+                                                        ).notifier,
+                                                      )
+                                                      .forceRebuild(
+                                                        payload.copyWith(
+                                                          isEvaluative: val,
+                                                        ),
+                                                      );
+                                                }
+                                              },
+                                            ),
+                                            Flexible(
+                                              child: Text(
+                                                l10n.isEvaluativeMatrix,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    AppSpacing.h16,
+                                    Text(
+                                      l10n.xaiOutputExtensionsTitle,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    AppSpacing.h8,
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      children:
+                                          {
+                                            "justification":
+                                                l10n.xaiJustification,
+                                            "coaching": l10n.xaiCoachingTip,
+                                            "falsification":
+                                                l10n.xaiDevilsAdvocate,
+                                            "missing_context":
+                                                l10n.xaiMissingContext,
+                                            "risk_flag": l10n.xaiRiskFlag,
+                                            "remediation_steps":
+                                                l10n.xaiRemediation,
+                                            "emotional_sentiment":
+                                                l10n.xaiSentiment,
+                                            "theory_link": l10n.xaiTheoryLink,
+                                            "confidence": l10n.xaiConfidence,
+                                            "citation": l10n.xaiSourceCitation,
+                                          }.entries.map((entry) {
+                                            final extList =
+                                                payload.outputExtensions;
+                                            final isSelected = extList.contains(
+                                              entry.key,
+                                            );
+                                            return FilterChip(
+                                              label: Text(entry.value),
+                                              selected: isSelected,
+                                              onSelected: (bool selected) {
+                                                final newList =
+                                                    List<String>.from(
+                                                      payload.outputExtensions,
+                                                    );
+                                                if (selected) {
+                                                  newList.add(entry.key);
+                                                } else {
+                                                  newList.remove(entry.key);
+                                                }
+                                                ref
+                                                    .read(
+                                                      promptBlockFormProvider(
+                                                        blockId,
+                                                      ).notifier,
+                                                    )
+                                                    .forceRebuild(
+                                                      payload.copyWith(
+                                                        outputExtensions:
+                                                            newList,
+                                                      ),
+                                                    );
+                                              },
+                                              selectedColor: Theme.of(
+                                                context,
+                                              ).colorScheme.primaryContainer,
+                                              checkmarkColor: Theme.of(
+                                                context,
+                                              ).colorScheme.onPrimaryContainer,
+                                            );
+                                          }).toList(),
+                                    ),
+                                  ],
+                                ),
+                              ),
                               AppSpacing.h16,
                               // Contextual Override Configuration
                               Container(
