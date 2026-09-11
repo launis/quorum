@@ -80,6 +80,7 @@ from backend_v2.models.view.sdui import (
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.flattener import FlatFileService
+from backend_v2.services.ingress import SmartIngressResolver
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.sdui_mapper_service import SduiMapperService
 from backend_v2.services.storage import get_storage_driver
@@ -404,19 +405,6 @@ class ExecutionService:
             PermissionDeniedError: If tenant organization is mismatched.
             AppException: If quota validation fails or payload attributes are malformed.
         """
-        # 1. O(1) Manifesti: Poimi alkuperäiset tiedostojen nimet (ja muut näyttönimet)
-        # ennen kuin Eager Extraction muuntaa ne pelkäksi tekstiksi.
-        source_identity_manifest: dict[str, str] = {}
-        if payload.raw_inputs and payload.raw_inputs.dynamic_inputs:
-            for k, v in payload.raw_inputs.dynamic_inputs.items():
-                if isinstance(v, dict) and "content_base64" in v:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    source_identity_manifest[k] = v["filename"] if "filename" in v else "Tuntematon lähde"
-
-        # EAGER EXTRACTION MUST HAPPEN HERE BEFORE DB COMMIT
-        if doc_service and payload.raw_inputs:
-            processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
-            payload = payload.model_copy(update={"raw_inputs": processed_ingress})
-
         workflow_dict = await self.workflow_repo.get_workflow_by_id(payload.workflow_id)
         if not workflow_dict:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
@@ -441,40 +429,25 @@ class ExecutionService:
                     details={"error_code": ErrorCodes.RATE_LIMIT_EXCEEDED.value},
                 )
 
-        # V2 MANDATE: Strict Fail-Fast Validation of required inputs synchronously
-        raw_inputs_dict = payload.raw_inputs.model_dump(exclude_unset=True)
-        dynamic_inputs = raw_inputs_dict["dynamic_inputs"] if "dynamic_inputs" in raw_inputs_dict else {}
-        missing_fields = []
-        for expected in workflow.expected_inputs:
-            if expected.required:
-                val = raw_inputs_dict[expected.input_key] if expected.input_key in raw_inputs_dict else None
-                if val is None and expected.input_key in dynamic_inputs:
-                    val = dynamic_inputs[expected.input_key]
-
-                if val is None:
-                    missing_fields.append(expected.input_key)
-                elif isinstance(val, str) and not val.strip():
-                    missing_fields.append(expected.input_key)
-                elif isinstance(val, list) and not val:
-                    missing_fields.append(expected.input_key)
-                elif isinstance(val, dict) and not val:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    missing_fields.append(expected.input_key)
-
-        if missing_fields:
-            msg = f"Missing required inputs from payload: {', '.join(missing_fields)}"
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "fields": missing_fields},
-            )
-
-        # Strict Target Locale from Payload (Fail-Fast)
         target_locale = payload.target_locale
 
-        # 2. O(1) Manifesti: Täytä puuttuvat lähteet workflow schema labelilla
-        for expected in workflow.expected_inputs:
-            if expected.input_key not in source_identity_manifest:
-                source_identity_manifest[expected.input_key] = expected.label.resolve(target_locale)
+        # Resolve raw dynamic inputs and extract source identity manifest via SmartIngressResolver
+        resolver = SmartIngressResolver()
+        resolved_ingress = resolver.resolve(payload.raw_inputs, workflow.expected_inputs, target_locale)
+
+        # Update payload dynamic inputs with resolved slots before eager extraction
+        if payload.raw_inputs is not None:
+            updated_raw_inputs = payload.raw_inputs.model_copy(
+                update={"dynamic_inputs": resolved_ingress.resolved_inputs}
+            )
+            payload = payload.model_copy(update={"raw_inputs": updated_raw_inputs})
+
+        # Eager document extraction (converts Base64 attachments into text)
+        if doc_service and payload.raw_inputs:
+            processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
+            payload = payload.model_copy(update={"raw_inputs": processed_ingress})
+
+        source_identity_manifest = dict(resolved_ingress.source_identity_manifest)
 
         # V2 MANDATE: Dynamically generate SDUI hints synchronously before execution
         ui_hints: dict[str, DataDictionaryField] = {}

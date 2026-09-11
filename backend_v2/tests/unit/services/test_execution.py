@@ -369,6 +369,7 @@ async def test_start_execution_permission_denied() -> None:
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id="prof_1",
+        matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_my")
 
@@ -1056,3 +1057,133 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
 
     assert has_data is True
     assert has_error is True
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_on_input_collision() -> None:
+    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED when inputs collide on the same slot."""
+    from unittest.mock import patch
+
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.inputs import WorkflowInputsIngress
+    from backend_v2.models.v2_core import ExecutionCreate, ExpectedInput, Workflow
+
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wf_collision"
+    mock_wf.version = 1
+    mock_wf.default_profile_id = "prf_1"
+    mock_wf.expected_inputs = [
+        ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"fi": "Keskusteluhistoria (Chat)", "en": "Chat"}),
+            required=True,
+            is_chat_history=True,
+            input_modes=["file", "paste"],
+            description=I18nText(translations={"en": "Chat", "fi": "Keskustelu"}),
+        )
+    ]
+    mock_wf.steps = []
+    mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
+
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_collision"}
+
+    payload = ExecutionCreate(
+        workflow_id="wf_collision",
+        raw_inputs=WorkflowInputsIngress(
+            dynamic_inputs={
+                "keskusteluhistoria": {"filename": "keskusteluhistoria.pdf", "content_base64": "SGVsbG8="},
+                "keskusteluhistoria_user_only": {
+                    "filename": "keskusteluhistoria_user_only.md",
+                    "content_base64": "V29ybGQ=",
+                },
+            }
+        ),
+        target_locale="fi",
+        profile_id="prf_1",
+        matrix_sampling_strategy=10,
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        with pytest.raises(AppException) as exc_info:
+            await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "collision" in exc_info.value.details
+    assert exc_info.value.details["collision"]["slot"] == "chat_log"
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_on_missing_required_input() -> None:
+    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED when a required input is missing."""
+    from unittest.mock import patch
+
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.v2_core import ExecutionCreate, ExpectedInput, Workflow, WorkflowInputs
+
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wf_missing_req"
+    mock_wf.version = 1
+    mock_wf.default_profile_id = "prf_1"
+    mock_wf.expected_inputs = [
+        ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"fi": "Keskusteluhistoria (Chat)", "en": "Chat"}),
+            required=True,
+            is_chat_history=True,
+            input_modes=["file", "paste"],
+            description=I18nText(translations={"en": "Chat", "fi": "Keskustelu"}),
+        )
+    ]
+    mock_wf.steps = []
+    mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
+
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_missing_req"}
+
+    payload = ExecutionCreate(
+        workflow_id="wf_missing_req",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"product_text": "Delivered material"}),
+        target_locale="fi",
+        profile_id="prf_1",
+        matrix_sampling_strategy=10,
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        with pytest.raises(AppException) as exc_info:
+            await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+    assert "chat_log" in exc_info.value.details["missing_fields"]
