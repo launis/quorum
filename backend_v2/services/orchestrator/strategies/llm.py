@@ -422,7 +422,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         if get_settings().environment == "development":
             try:
-                write_debug_prompt_log(
+                await write_debug_prompt_log(
                     execution_id=context.execution_id,
                     step_id=step.id,
                     role_block=role_block,

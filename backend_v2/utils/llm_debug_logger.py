@@ -1,7 +1,9 @@
 """LLM Debug Logging Utility."""
 
+import asyncio
 import datetime
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -10,8 +12,24 @@ if TYPE_CHECKING:
 
 from backend_v2.settings import get_settings
 
+logger = logging.getLogger(__name__)
 
-def write_debug_prompt_log(
+_debug_file_locks: dict[asyncio.AbstractEventLoop, asyncio.Lock] = {}
+
+
+def _get_debug_file_lock() -> asyncio.Lock:
+    """Lazily resolves or creates an asyncio.Lock bound to the active event loop.
+
+    Returns:
+        The event loop-specific asyncio.Lock instance.
+    """
+    loop = asyncio.get_running_loop()
+    if loop not in _debug_file_locks:
+        _debug_file_locks[loop] = asyncio.Lock()
+    return _debug_file_locks[loop]
+
+
+async def write_debug_prompt_log(
     execution_id: str,
     step_id: str,
     role_block: PromptBlock | None,
@@ -23,9 +41,9 @@ def write_debug_prompt_log(
     expected_schema_name: str | None = None,
     trigger_reason: str = "initial",
 ) -> None:
-    """Writes the generated LLM prompt and its origins to a debug log file.
+    """Writes the generated LLM prompt and its origins to a debug log file asynchronously.
 
-    This function appends to the execution's specific llm_debug_prompts.md file.
+    This function appends to the execution's specific llm_debug_prompts.md file under an asyncio lock.
     It is only active when environment == 'development'.
 
     Args:
@@ -57,15 +75,25 @@ def write_debug_prompt_log(
     lines.append(f"Timestamp: {datetime.datetime.now(datetime.UTC).isoformat()}\n")
 
     lines.append("## 0. Context & Trigger")
-    lines.append(f"- **Task Blueprint**: {task_blueprint if task_blueprint else 'N/A'}")
+    if task_blueprint is not None:
+        blueprint_label = task_blueprint
+    else:
+        blueprint_label = "N/A"
+    lines.append(f"- **Task Blueprint**: {blueprint_label}")
     lines.append(f"- **Trigger Reason**: {trigger_reason}\n")
 
     lines.append("## 1. Prompt Source Blocks")
 
-    role_info = f"{role_block.id} ('{role_block.category_id}')" if role_block else "None"
+    if role_block is not None:
+        role_info = f"{role_block.id} ('{role_block.category_id}')"
+    else:
+        role_info = "None"
     lines.append(f"- **Role Block**: {role_info}")
 
-    protocol_info = f"{protocol_block.id} ('{protocol_block.category_id}')" if protocol_block else "None"
+    if protocol_block is not None:
+        protocol_info = f"{protocol_block.id} ('{protocol_block.category_id}')"
+    else:
+        protocol_info = "None"
     lines.append(f"- **Protocol Block**: {protocol_info}")
 
     lines.append("- **Criteria Blocks**:")
@@ -85,11 +113,13 @@ def write_debug_prompt_log(
     lines.append(user_payload)
     lines.append("```\n")
 
-    with open(debug_file, "a", encoding="utf-8") as df:
-        df.write("\n".join(lines))
+    lock = _get_debug_file_lock()
+    async with lock:
+        with open(debug_file, "a", encoding="utf-8") as df:
+            df.write("\n".join(lines))
 
 
-def write_llm_telemetry_log(
+async def write_llm_telemetry_log(
     execution_id: str,
     step_id: str,
     duration_ms: int,
@@ -97,7 +127,7 @@ def write_llm_telemetry_log(
     tokens: int,
     trigger_reason: str,
 ) -> None:
-    """Writes machine-readable telemetry data to a JSON Lines file after LLM execution.
+    """Writes machine-readable telemetry data to a JSON Lines file after LLM execution asynchronously.
 
     Args:
         execution_id: The ID of the current execution.
@@ -127,5 +157,7 @@ def write_llm_telemetry_log(
         "trigger_reason": trigger_reason,
     }
 
-    with open(telemetry_file, "a", encoding="utf-8") as tf:
-        tf.write(json.dumps(data) + "\n")
+    lock = _get_debug_file_lock()
+    async with lock:
+        with open(telemetry_file, "a", encoding="utf-8") as tf:
+            tf.write(json.dumps(data) + "\n")

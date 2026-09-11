@@ -145,7 +145,7 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-        effective_validation_context = validation_context or self.default_validation_context
+        effective_validation_context = {**(self.default_validation_context or {}), **(validation_context or {})}
 
         prompt_adapter = PromptCompilerAdapter()
 
@@ -208,7 +208,7 @@ class LLMTaskExecutor:
                     tokens = usage_obj.total_tokens
                     trigger_reason = "initial" if attempt == 0 else "self_healing_retry"
 
-                    write_llm_telemetry_log(
+                    await write_llm_telemetry_log(
                         execution_id=exec_id,
                         step_id=step_id,
                         duration_ms=duration_ms,
