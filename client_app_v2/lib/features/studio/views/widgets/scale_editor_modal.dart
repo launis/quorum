@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/contrastive_pair_editor.dart';
 import 'package:client_app/features/studio/views/widgets/dynamic_item_list_editor.dart';
@@ -22,16 +24,16 @@ class _DismissIntent extends Intent {
 
 /// Desktop-class pro-tool modal editor for evaluation scale rubrics and TDA assertions.
 /// Enforces Adaptive Master Selector navigation, 5-card layout, save debouncing, and PopScope dismissal.
-class ScaleEditorModal extends StatefulWidget {
+class ScaleEditorModal extends ConsumerStatefulWidget {
   final MatrixScale initialScale;
 
   const ScaleEditorModal({super.key, required this.initialScale});
 
   @override
-  State<ScaleEditorModal> createState() => _ScaleEditorModalState();
+  ConsumerState<ScaleEditorModal> createState() => _ScaleEditorModalState();
 }
 
-class _ScaleEditorModalState extends State<ScaleEditorModal> {
+class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
   final _formKey = GlobalKey<FormState>();
   final _tagChipKey = GlobalKey<TagChipInputState>();
   final _scrollController = ScrollController();
@@ -40,6 +42,7 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
   late final String _initialScaleJson;
   int _selectedClaimIndex = 0;
   bool _isSaving = false;
+  bool _isLoadingPreview = false;
 
   @override
   void initState() {
@@ -137,6 +140,104 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
     // Auto-commit transient tag chip buffer if any before pop
     _formKey.currentState!.save();
     Navigator.of(context).pop(_editableScale);
+  }
+
+  Future<void> _previewScalePrompt() async {
+    if (_isLoadingPreview) return;
+    setState(() => _isLoadingPreview = true);
+
+    try {
+      final transientBlock = PromptBlock.matrix(
+        id: 'blk_0000000000000000',
+        slug: 'sim_preview',
+        label: const I18nText(translations: {'en': 'Simulation'}),
+        description: const I18nText(translations: {'en': 'Simulation'}),
+        scales: [_editableScale],
+      );
+
+      final currentLocale = Localizations.localeOf(context).languageCode;
+
+      final res = await ref
+          .read(promptBlocksControllerProvider.notifier)
+          .simulatePromptBlock(
+            transientBlock,
+            const <String, dynamic>{},
+            targetScaleScore: _editableScale.score,
+            targetLocale: currentLocale,
+          );
+
+      if (!mounted) return;
+      setState(() => _isLoadingPreview = false);
+
+      final promptContext =
+          res['prompt_context'] as Map<String, dynamic>? ?? const {};
+      final staticMessages = promptContext['static_messages'];
+      final dynamicMessages = promptContext['dynamic_messages'];
+      final tools = promptContext['tools'];
+      final renderedPrompt = res['rendered_prompt'] as String? ?? '';
+
+      await showDialog<void>(
+        context: context,
+        builder: (dialogCtx) => _PromptPreviewDialog(
+          staticContent: _formatMessages(staticMessages),
+          dynamicContent: _formatMessages(dynamicMessages),
+          schemaContent: _formatSchema(tools, renderedPrompt),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isLoadingPreview = false);
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${l10n.errorUnknown}: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    }
+  }
+
+  static String _formatMessages(dynamic messages) {
+    if (messages == null) return '';
+    if (messages is List) {
+      final buffer = StringBuffer();
+      for (final msg in messages) {
+        if (msg is Map) {
+          final role = msg['role']?.toString();
+          final content = msg['content'];
+          if (role != null) {
+            buffer.writeln('--- Role: $role ---');
+          }
+          if (content is String) {
+            buffer.writeln(content);
+          } else if (content != null) {
+            buffer.writeln(const JsonEncoder.withIndent('  ').convert(content));
+          }
+          buffer.writeln();
+        } else {
+          buffer.writeln(msg.toString());
+        }
+      }
+      return buffer.toString().trim();
+    }
+    if (messages is Map) {
+      return const JsonEncoder.withIndent('  ').convert(messages);
+    }
+    return messages.toString();
+  }
+
+  static String _formatSchema(dynamic tools, String? fallback) {
+    if (tools != null) {
+      if (tools is Map || tools is List) {
+        return const JsonEncoder.withIndent('  ').convert(tools);
+      }
+      final s = tools.toString().trim();
+      if (s.isNotEmpty) return s;
+    }
+    if (fallback != null && fallback.isNotEmpty) {
+      return fallback;
+    }
+    return '';
   }
 
   void _addClaim() {
@@ -738,6 +839,18 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
                     onPressed: _handleDismiss,
                   ),
                   actions: [
+                    IconButton(
+                      icon: _isLoadingPreview
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.code),
+                      tooltip: l10n.previewScalePromptTooltip,
+                      onPressed: _isLoadingPreview ? null : _previewScalePrompt,
+                    ),
+                    AppSpacing.w8,
                     FilledButton.icon(
                       onPressed: _save,
                       icon: const Icon(Icons.check),
@@ -923,6 +1036,96 @@ class _ScaleEditorModalState extends State<ScaleEditorModal> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _PromptPreviewDialog extends StatelessWidget {
+  final String staticContent;
+  final String dynamicContent;
+  final String schemaContent;
+
+  const _PromptPreviewDialog({
+    required this.staticContent,
+    required this.dynamicContent,
+    required this.schemaContent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
+    return DefaultTabController(
+      length: 3,
+      child: Dialog(
+        insetPadding: AppSpacing.p16,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: 600,
+            maxWidth: 1000,
+            minHeight: 500,
+            maxHeight: 800,
+          ),
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(l10n.previewPromptTitle),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              bottom: TabBar(
+                isScrollable: true,
+                tabs: [
+                  Tab(text: l10n.previewPromptStaticTab),
+                  Tab(text: l10n.previewPromptDynamicTab),
+                  Tab(text: l10n.previewPromptSchemaTab),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              children: [
+                _buildContentPane(context, staticContent),
+                _buildContentPane(context, dynamicContent),
+                _buildContentPane(context, schemaContent),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContentPane(BuildContext context, String content) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: AppSpacing.p16,
+      child: Container(
+        width: double.infinity,
+        padding: AppSpacing.p16,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: content.isEmpty
+            ? Center(
+                child: Text(
+                  '---',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              )
+            : SingleChildScrollView(
+                child: SelectableText(
+                  content,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontFamily: 'monospace',
+                    fontFamilyFallback: const ['Courier', 'Consolas'],
+                  ),
+                ),
+              ),
       ),
     );
   }

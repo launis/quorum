@@ -218,10 +218,19 @@ class PromptBlocksController extends _$PromptBlocksController {
   /// Simulates rendering of a Prompt Block or Matrix with mock data.
   Future<Map<String, dynamic>> simulatePromptBlock(
     PromptBlock block,
-    Map<String, dynamic> mockInputs,
-  ) async {
+    Map<String, dynamic> mockInputs, {
+    int? targetScaleScore,
+    String? targetLocale,
+    String? contextText,
+  }) async {
     try {
-      final payload = {'block': block.toJson(), 'mock_inputs': mockInputs};
+      final payload = <String, dynamic>{
+        'block': block.toJson(),
+        'mock_inputs': mockInputs,
+        if (targetScaleScore != null) 'target_scale_score': targetScaleScore,
+        if (targetLocale != null) 'target_locale': targetLocale,
+        if (contextText != null) 'context_text': contextText,
+      };
       final client = ref.read(studioClientProvider);
       return await client.simulatePromptBlock(payload);
     } catch (e, st) {
