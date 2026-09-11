@@ -74,8 +74,14 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
         assert phrase not in prompt, f"Found banned mechanical phrase '{phrase}' in system prompt."
 
     # Negative Partition 4: Assert all XML tags are strictly matched and closed
-    structural_open_tags = [t for t in re.findall(r"<([a-z_]+)>", prompt) if t != "ai_context_directive"]
-    structural_close_tags = [t for t in re.findall(r"</([a-z_]+)>", prompt) if t != "ai_context_directive"]
+    ignored_instruction_tags = {
+        "ai_context_directive",
+        "user_payload",
+        "ai_draft_context",
+        "target_speaker",
+    }
+    structural_open_tags = [t for t in re.findall(r"<([a-z_]+)>", prompt) if t not in ignored_instruction_tags]
+    structural_close_tags = [t for t in re.findall(r"</([a-z_]+)>", prompt) if t not in ignored_instruction_tags]
     assert structural_open_tags == structural_close_tags, (
         "Mismatch between opened and closed XML tags in system prompt."
     )

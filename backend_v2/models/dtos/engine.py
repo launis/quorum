@@ -14,8 +14,8 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import CausalEdge
-from backend_v2.models.state import TraceEvent
 from backend_v2.models.enums import TargetSpeaker
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     AcceptanceCriterion,
     AntiPattern,
@@ -91,7 +91,9 @@ class FlattenedAtom(BaseModel):
     ]
     target_speaker: Annotated[
         TargetSpeaker,
-        Field(default=TargetSpeaker.USER, strict=False, description="Evaluated target actor (USER, AI). Defaults to USER."),
+        Field(
+            default=TargetSpeaker.USER, strict=False, description="Evaluated target actor (USER, AI). Defaults to USER."
+        ),
     ] = TargetSpeaker.USER
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")

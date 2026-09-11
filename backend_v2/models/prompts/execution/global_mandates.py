@@ -118,9 +118,14 @@ SCHEMA_PURITY_MANDATE = (
 
 CONTEXT_SEGREGATION_MANDATE = (
     "<context_segregation_mandate>\n"
-    "CRITICAL PROVENANCE RULE: You must clearly distinguish between human text and AI-generated text to avoid misattribution.\n"
-    "- <user_payload>: Contains the original human input. When evaluating the human's behavior, intent, or claims, your EXACT evidence quotes MUST ONLY be extracted from within this tag.\n"
-    "- <ai_draft_context>: Contains AI-generated text (e.g., previous chat responses, intermediate drafts). You MUST read this to understand the conversational context surrounding the human's input. However, unless the claim's <target_speaker> is explicitly set to AI, in which case evidence MUST be drawn exclusively from <ai_draft_context>, you MUST NOT extract evidence quotes from this tag.\n"
+    "CRITICAL PROVENANCE RULE: You must clearly distinguish between human text and AI-generated text to avoid "
+    "misattribution.\n"
+    "- <user_payload>: Contains the original human input. When evaluating the human's behavior, intent, or claims, "
+    "your EXACT evidence quotes MUST ONLY be extracted from within this tag.\n"
+    "- <ai_draft_context>: Contains AI-generated text (e.g., previous chat responses, intermediate drafts). "
+    "You MUST read this to understand the conversational context surrounding the human's input. However, unless "
+    "the claim's <target_speaker> is explicitly set to AI, in which case evidence MUST be drawn exclusively from "
+    "<ai_draft_context>, you MUST NOT extract evidence quotes from this tag.\n"
     "</context_segregation_mandate>"
 )
 

@@ -195,14 +195,22 @@ class MatrixSensorPromptBuilder:
 
                 if assertion.acceptance_criteria:
                     crit_blocks = [
-                        f'<criterion index="{idx + 1}">\n{TemplateProcessor.encapsulate_payload(c.instruction)}\n</criterion>'
+                        (
+                            f'<criterion index="{idx + 1}">\n'
+                            f"{TemplateProcessor.encapsulate_payload(c.instruction)}\n"
+                            f"</criterion>"
+                        )
                         for idx, c in enumerate(assertion.acceptance_criteria)
                     ]
                     content += "<acceptance_criteria>\n" + "\n".join(crit_blocks) + "\n</acceptance_criteria>\n"
 
                 if assertion.anti_patterns:
                     anti_blocks = [
-                        f'<anti_pattern index="{idx + 1}">\n{TemplateProcessor.encapsulate_payload(a.pattern)}\n</anti_pattern>'
+                        (
+                            f'<anti_pattern index="{idx + 1}">\n'
+                            f"{TemplateProcessor.encapsulate_payload(a.pattern)}\n"
+                            f"</anti_pattern>"
+                        )
                         for idx, a in enumerate(assertion.anti_patterns)
                     ]
                     content += "<anti_patterns>\n" + "\n".join(anti_blocks) + "\n</anti_patterns>\n"
