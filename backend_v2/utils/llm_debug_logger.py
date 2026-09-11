@@ -1,5 +1,7 @@
 """LLM Debug Logging Utility."""
 
+from __future__ import annotations
+
 import asyncio
 import datetime
 import json
@@ -9,10 +11,13 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.prompt_blocks import PromptBlock
+    from backend_v2.models.prompt import CompiledPrompt
 
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["log_structured_task_prompt", "write_debug_prompt_log", "write_llm_telemetry_log"]
 
 _debug_file_locks: dict[asyncio.AbstractEventLoop, asyncio.Lock] = {}
 
@@ -115,8 +120,80 @@ async def write_debug_prompt_log(
 
     lock = _get_debug_file_lock()
     async with lock:
-        with open(debug_file, "a", encoding="utf-8") as df:
-            df.write("\n".join(lines))
+        try:
+            with open(debug_file, "a", encoding="utf-8") as df:
+                df.write("\n".join(lines) + "\n")
+        except (OSError, ValueError, TypeError) as exc:
+            logger.warning("[LLMDebugLogger] Failed to write debug prompt log: %s", exc)
+
+
+async def log_structured_task_prompt(
+    execution_id: str,
+    step_id: str,
+    sub_task: str | None,
+    compiled_prompt: CompiledPrompt,
+    expected_schema_name: str,
+    attempt: int = 1,
+) -> None:
+    """Writes the structured task prompt (static prefix + dynamic messages) to a debug log asynchronously.
+
+    Appends to data/files/executions/{execution_id}/llm_debug_prompts.md under an asyncio lock.
+    Active only in development environment.
+
+    Args:
+        execution_id: The ID of the current execution.
+        step_id: The ID of the current step.
+        sub_task: Optional sub-task identifier (e.g., 'extractive_sensor_bo3_call_0').
+        compiled_prompt: The strictly compiled prompt containing static and dynamic messages.
+        expected_schema_name: The Pydantic model name the LLM is expected to return.
+        attempt: The retry attempt number (1-based).
+
+    Returns:
+        None.
+    """
+    if get_settings().environment != "development":
+        return
+
+    target_dir = Path("data") / "files" / "executions" / execution_id
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    debug_file = target_dir / "llm_debug_prompts.md"
+
+    task_label = "main"
+    if sub_task:
+        task_label = sub_task
+    lines = []
+    lines.append("\n---\n")
+    lines.append(f"# Sub-Step Debug Log: {step_id} - {task_label} [Attempt {attempt}]")
+    lines.append(f"Timestamp: {datetime.datetime.now(datetime.UTC).isoformat()}\n")
+
+    lines.append("## 0. Context & Sub-Task")
+    lines.append(f"- **Step ID**: `{step_id}`")
+    lines.append(f"- **Sub-Task**: `{task_label}`")
+    lines.append(f"- **Attempt**: {attempt}")
+    lines.append(f"- **Expected Schema**: `{expected_schema_name}`\n")
+
+    lines.append("## 1. Static Prefix Messages (Cacheable System & Context)")
+    for idx, msg in enumerate(compiled_prompt.static_messages):
+        lines.append(f"### Static Message [{idx}] ({msg.role})")
+        lines.append("```xml")
+        lines.append(msg.content)
+        lines.append("```\n")
+
+    lines.append("## 2. Dynamic Payload Messages (Tail)")
+    for idx, msg in enumerate(compiled_prompt.dynamic_messages):
+        lines.append(f"### Dynamic Message [{idx}] ({msg.role})")
+        lines.append("```xml")
+        lines.append(msg.content)
+        lines.append("```\n")
+
+    lock = _get_debug_file_lock()
+    async with lock:
+        try:
+            with open(debug_file, "a", encoding="utf-8") as df:
+                df.write("\n".join(lines) + "\n")
+        except (OSError, ValueError, TypeError) as exc:
+            logger.warning("[LLMDebugLogger] Failed to write structured task prompt debug log: %s", exc)
 
 
 async def write_llm_telemetry_log(
@@ -159,5 +236,8 @@ async def write_llm_telemetry_log(
 
     lock = _get_debug_file_lock()
     async with lock:
-        with open(telemetry_file, "a", encoding="utf-8") as tf:
-            tf.write(json.dumps(data) + "\n")
+        try:
+            with open(telemetry_file, "a", encoding="utf-8") as tf:
+                tf.write(json.dumps(data) + "\n")
+        except (OSError, ValueError, TypeError) as exc:
+            logger.warning("[LLMDebugLogger] Failed to write telemetry log: %s", exc)

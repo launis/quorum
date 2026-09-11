@@ -24,7 +24,7 @@ from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
-from backend_v2.utils.llm_debug_logger import write_llm_telemetry_log
+from backend_v2.utils.llm_debug_logger import log_structured_task_prompt, write_llm_telemetry_log
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +182,26 @@ class LLMTaskExecutor:
         validated_model: T | None = None
 
         for attempt in range(max_total_attempts):
+            if settings.environment == "development" and effective_validation_context:
+                exec_id_raw = effective_validation_context.get("execution_id")
+                step_id_raw = effective_validation_context.get("step_id")
+                if exec_id_raw and step_id_raw:
+                    sub_task_raw = effective_validation_context.get("sub_task")
+                    sub_task_str: str | None = None
+                    if sub_task_raw is not None:
+                        sub_task_str = str(sub_task_raw)
+                    try:
+                        await log_structured_task_prompt(
+                            execution_id=str(exec_id_raw),
+                            step_id=str(step_id_raw),
+                            sub_task=sub_task_str,
+                            compiled_prompt=compiled_prompt,
+                            expected_schema_name=response_model.__name__,
+                            attempt=attempt + 1,
+                        )
+                    except (OSError, ValueError, TypeError) as log_err:
+                        logger.warning("Structured task prompt debug logging failed: %s", log_err)
+
             try:
                 telemetry_start_time = time.time()
                 validated_model, usage = await client.run_structured_task(

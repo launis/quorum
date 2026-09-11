@@ -448,13 +448,14 @@ class ExtractiveSensorService:
 
         semaphore = asyncio.Semaphore(parallelism)
 
-        async def _single_ensemble_call() -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
+        async def _single_ensemble_call(call_idx: int) -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
             async with semaphore:
                 try:
                     result, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,
                         response_model=BatchEvaluationResponse,
+                        validation_context={"sub_task": f"extractive_sensor_bo3_call_{call_idx}"},
                     )
 
                     call_results: dict[str, AtomEvaluationResultDTO] = {}
@@ -507,7 +508,7 @@ class ExtractiveSensorService:
         task_outputs: list[tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]] = []
         try:
             async with asyncio.TaskGroup() as tg:
-                tasks = [tg.create_task(_single_ensemble_call()) for _ in range(parallelism)]
+                tasks = [tg.create_task(_single_ensemble_call(call_idx)) for call_idx in range(parallelism)]
 
             task_outputs = [t.result() for t in tasks]
         except ExceptionGroup as eg:

@@ -20,7 +20,7 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
 ## Pre-Flight Checklist (<constraint> tags)
 - [x] Step 1 Constraint (`the_duct_tape_ban`): Zero silent exception swallowing, zero context wiping, and zero naked string concatenation accumulators.
 - [x] Step 2 Constraint (`pydantic_v2_strictness`): Enforce ConfigDict(strict=True, extra="forbid") on updated simulation models.
-- [ ] Step 3 Constraint (`logfire_delegation_mandate`): Debug logs must remain isolated in data/files/executions/{execution_id}/llm_debug_prompts.md without leaking raw PII into stdout.
+- [x] Step 3 Constraint (`logfire_delegation_mandate`): Debug logs must remain isolated in data/files/executions/{execution_id}/llm_debug_prompts.md without leaking raw PII into stdout.
 - [ ] Step 4 Constraint (`dynamic_vs_static_localization_ssot_mandate`): Pure Axis 1 structural chrome in Flutter ARB files, dynamic labels in database models.
 - [ ] Step 5 Constraint (`desktop_pro_tool_interaction` & `universal_horizontal_overflow_immunity_mandate`): Zero RenderFlex overflow down to 360px viewport, hover states, keyboard shortcuts, and syntax-highlighted tabs.
 - [ ] Step 6 Constraint (`universal_ssot_and_normalization_mandate`): Pure frontend UI grouping for Macro vs Micro extensions with zero backend schema fragmentation.
@@ -48,11 +48,11 @@ Implementation Plan: @[C:\Users\risto\.gemini\antigravity-ide\brain\56fb23f3-292
   - [x] Modernize all callers and assertions in `backend_v2/tests/unit/services/studio/test_simulation_service.py` and `backend_v2/tests/unit/models/dtos/test_studio.py`.
   - [x] Run backend audit loop quality gate (100% pass, 97% coverage, 0 AST warnings).
 
-- [ ] **Step 3: Full-Stack LLM Task Executor Debug Prompt Logging**
-  - [ ] Add `log_structured_task_prompt()` to `backend_v2/utils/llm_debug_logger.py`.
-  - [ ] Hook into `execute_structured_task()` in `backend_v2/services/llm_task_executor.py` for development mode.
-  - [ ] Update `ExtractiveSensorService._single_ensemble_call(call_idx: int)` to pass `sub_task=f"extractive_sensor_bo3_call_{call_idx}"`.
-  - [ ] Run backend audit loop quality gate.
+- [x] **Step 3: Full-Stack LLM Task Executor Debug Prompt Logging**
+  - [x] Add `log_structured_task_prompt()` to `backend_v2/utils/llm_debug_logger.py`.
+  - [x] Hook into `execute_structured_task()` in `backend_v2/services/llm_task_executor.py` for development mode.
+  - [x] Update `ExtractiveSensorService._single_ensemble_call(call_idx: int)` to pass `sub_task=f"extractive_sensor_bo3_call_{call_idx}"`.
+  - [x] Run backend audit loop quality gate (100% pass, strict TDD coverage met).
 
 - [ ] **Step 4: Flutter Localization Strings Update**
   - [ ] Add `xaiHighlightsTitle`, `previewScalePromptTooltip`, `previewPromptTitle`, and tab keys to `client_app_v2/lib/l10n/app_en.arb` and `app_fi.arb`.

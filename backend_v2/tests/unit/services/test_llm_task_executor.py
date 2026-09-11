@@ -284,6 +284,39 @@ async def test_execute_structured_task_telemetry_failure(
 
 
 @pytest.mark.asyncio
+async def test_execute_structured_task_debug_prompt_logging(
+    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
+) -> None:
+    """PROMISE: Prove structured task logs debug prompt when execution_id and step_id are present in development."""
+    executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
+    mock_client.run_structured_task.return_value = (
+        MockResponseSchema(value="logged"),
+        {"prompt_tokens": 5, "completion_tokens": 5, "total_tokens": 10},
+    )
+
+    with (
+        patch("backend_v2.services.llm_task_executor.get_settings") as mock_settings,
+        patch("backend_v2.services.llm_task_executor.log_structured_task_prompt", new_callable=AsyncMock) as mock_log,
+    ):
+        mock_settings.return_value.environment = "development"
+        mock_settings.return_value.llm_max_schema_retries = 2
+        mock_settings.return_value.llm_max_logical_retries = 2
+        mock_settings.return_value.llm_min_payload_length = 1
+
+        res, _ = await executor.execute_structured_task(
+            client=mock_client,
+            messages=[LLMMessageDTO(role="user", content="Long enough payload text for passing validation")],
+            response_model=MockResponseSchema,
+            validation_context={"execution_id": "exec_456", "step_id": "stp_789", "sub_task": "bo3_0"},
+        )
+        assert res.value == "logged"
+        mock_log.assert_awaited_once()
+        assert mock_log.call_args.kwargs["execution_id"] == "exec_456"
+        assert mock_log.call_args.kwargs["step_id"] == "stp_789"
+        assert mock_log.call_args.kwargs["sub_task"] == "bo3_0"
+
+
+@pytest.mark.asyncio
 async def test_execute_structured_task_schema_error_no_dynamic_messages(
     mock_prompt_compiler: MagicMock, mock_client: AsyncMock
 ) -> None:
