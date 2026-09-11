@@ -2315,7 +2315,7 @@
     }
   },
   "addToneDirectiveBtn": "Add Tone Directive",
-  "compiledPromptPreviewTitle": "Live Compiled Prompt Preview",
+  "compiledPromptPreviewTitle": "Compiled Prompt Preview",
   "compiledPromptPreviewTooltip": "Preview the exact compiled XML prompt output sent to the foundational model",
   "copyToClipboardBtn": "Copy to Clipboard",
   "promptCopiedSnackbar": "Compiled prompt copied to clipboard!",
@@ -2455,7 +2455,7 @@
   "scaleContinueEditingBtn": "Continue Editing",
   "xaiHighlightsTitle": "XAI Highlights & Extensions",
   "previewScalePromptTooltip": "Preview scale model prompt (XML)",
-  "previewPromptTitle": "XML Prompt Preview",
+  "previewPromptTitle": "Compiled Prompt Preview",
   "previewPromptStaticTab": "System Directive (Prefix)",
   "previewPromptDynamicTab": "Claims & Rules (Payload)",
   "previewPromptSchemaTab": "Compiled Prompt & Schema (Output)",

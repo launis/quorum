@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -71,7 +73,7 @@ class PromptPreviewFormatter {
 }
 
 /// Public reusable 3-tab Prompt Preview Dialog.
-class PromptPreviewDialog extends StatelessWidget {
+class PromptPreviewDialog extends StatefulWidget {
   final String staticContent;
   final String dynamicContent;
   final String schemaContent;
@@ -84,43 +86,110 @@ class PromptPreviewDialog extends StatelessWidget {
   });
 
   @override
+  State<PromptPreviewDialog> createState() => _PromptPreviewDialogState();
+}
+
+class _PromptPreviewDialogState extends State<PromptPreviewDialog>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  Timer? _copyTimer;
+  bool _isCopied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _copyTimer?.cancel();
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _copyActiveContent() async {
+    final text = switch (_tabController.index) {
+      0 => widget.staticContent,
+      1 => widget.dynamicContent,
+      2 => widget.schemaContent,
+      _ => widget.schemaContent,
+    };
+    final copyText = text.isNotEmpty
+        ? text
+        : (widget.schemaContent.isNotEmpty
+              ? widget.schemaContent
+              : widget.staticContent);
+
+    if (copyText.isEmpty) return;
+
+    await Clipboard.setData(ClipboardData(text: copyText));
+    if (!mounted) return;
+
+    _copyTimer?.cancel();
+    setState(() => _isCopied = true);
+    _copyTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() => _isCopied = false);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
-    return DefaultTabController(
-      length: 3,
-      child: Dialog(
-        insetPadding: AppSpacing.p16,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: 600,
-            maxWidth: 1000,
-            minHeight: 500,
-            maxHeight: 800,
-          ),
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(l10n.previewPromptTitle),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              bottom: TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: l10n.previewPromptStaticTab),
-                  Tab(text: l10n.previewPromptDynamicTab),
-                  Tab(text: l10n.previewPromptSchemaTab),
-                ],
-              ),
+    return Dialog(
+      insetPadding: AppSpacing.p16,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          minWidth: 600,
+          maxWidth: 1000,
+          minHeight: 500,
+          maxHeight: 800,
+        ),
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(l10n.previewPromptTitle),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            body: TabBarView(
-              children: [
-                _buildContentPane(context, staticContent),
-                _buildContentPane(context, dynamicContent),
-                _buildContentPane(context, schemaContent),
+            actions: [
+              TextButton.icon(
+                onPressed: _copyActiveContent,
+                icon: Icon(
+                  _isCopied ? Icons.check : Icons.copy,
+                  size: 18,
+                  color: _isCopied ? theme.colorScheme.primary : null,
+                ),
+                label: Text(
+                  _isCopied ? l10n.copiedToClipboard : l10n.copyToClipboardBtn,
+                  style: TextStyle(
+                    color: _isCopied ? theme.colorScheme.primary : null,
+                  ),
+                ),
+              ),
+              AppSpacing.w16,
+            ],
+            bottom: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabs: [
+                Tab(text: l10n.previewPromptStaticTab),
+                Tab(text: l10n.previewPromptDynamicTab),
+                Tab(text: l10n.previewPromptSchemaTab),
               ],
             ),
+          ),
+          body: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildContentPane(context, widget.staticContent),
+              _buildContentPane(context, widget.dynamicContent),
+              _buildContentPane(context, widget.schemaContent),
+            ],
           ),
         ),
       ),

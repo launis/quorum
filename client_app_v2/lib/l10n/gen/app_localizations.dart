@@ -8325,7 +8325,7 @@ abstract class AppLocalizations {
   /// No description provided for @compiledPromptPreviewTitle.
   ///
   /// In en, this message translates to:
-  /// **'Live Compiled Prompt Preview'**
+  /// **'Compiled Prompt Preview'**
   String get compiledPromptPreviewTitle;
 
   /// No description provided for @compiledPromptPreviewTooltip.
@@ -8931,7 +8931,7 @@ abstract class AppLocalizations {
   /// No description provided for @previewPromptTitle.
   ///
   /// In en, this message translates to:
-  /// **'XML Prompt Preview'**
+  /// **'Compiled Prompt Preview'**
   String get previewPromptTitle;
 
   /// No description provided for @previewPromptStaticTab.

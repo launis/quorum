@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/state/mutation.dart';
@@ -156,41 +156,26 @@ class PromptBlockBuilderView extends HookConsumerWidget {
     final validateMutation = useMutation<Map<String, dynamic>>(
       onSuccess: (data) {
         if (context.mounted) {
-          final rendered = data['rendered_prompt']?.toString();
-          if (rendered == null) {
-            throw AppException.validation(l10n.simulatorCorruptionError);
-          }
-          showDialog(
+          final promptContext =
+              data['prompt_context'] as Map<String, dynamic>? ?? const {};
+          final staticMessages = promptContext['static_messages'];
+          final dynamicMessages = promptContext['dynamic_messages'];
+          final tools = promptContext['tools'];
+          final rendered = data['rendered_prompt']?.toString() ?? '';
+
+          showDialog<void>(
             context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text(l10n.compiledPromptPreviewTitle),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: SelectableText(
-                    rendered.isNotEmpty ? rendered : l10n.noInstructionsDefined,
-                    style: const TextStyle(fontFamily: 'monospace'),
-                  ),
-                ),
+            builder: (ctx) => PromptPreviewDialog(
+              staticContent: PromptPreviewFormatter.formatMessagesFromRaw(
+                staticMessages,
               ),
-              actions: [
-                TextButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: rendered));
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(l10n.promptCopiedSnackbar)),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: Text(l10n.copyToClipboardBtn),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.closeModalBtn),
-                ),
-              ],
+              dynamicContent: PromptPreviewFormatter.formatMessagesFromRaw(
+                dynamicMessages,
+              ),
+              schemaContent: PromptPreviewFormatter.formatSchema(
+                tools,
+                rendered,
+              ),
             ),
           );
         }

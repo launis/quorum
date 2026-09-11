@@ -831,7 +831,7 @@ void main() {
       await tester.tap(find.text('Open Modal'));
       await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.code), findsOneWidget);
+      expect(find.byIcon(Icons.bug_report), findsOneWidget);
       expect(
         find.byTooltip('Preview scale model prompt (XML)'),
         findsOneWidget,
@@ -886,7 +886,7 @@ void main() {
         await tester.tap(find.text('Open Modal'));
         await tester.pumpAndSettle();
 
-        final previewBtn = find.byIcon(Icons.code);
+        final previewBtn = find.byIcon(Icons.bug_report);
         expect(previewBtn, findsOneWidget);
         await tester.tap(previewBtn);
         await tester.pumpAndSettle();
@@ -933,7 +933,7 @@ void main() {
         await tester.tap(find.text('Open Modal'));
         await tester.pumpAndSettle();
 
-        final previewBtn = find.byIcon(Icons.code);
+        final previewBtn = find.byIcon(Icons.bug_report);
         expect(previewBtn, findsOneWidget);
         await tester.tap(previewBtn);
         await tester.pumpAndSettle();

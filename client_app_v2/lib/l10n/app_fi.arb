@@ -1755,7 +1755,7 @@
   "scaleContinueEditingBtn": "Jatka muokkausta",
   "xaiHighlightsTitle": "XAI-korostukset ja laajennukset",
   "previewScalePromptTooltip": "Esikatsele arvosanan mallikehote (XML)",
-  "previewPromptTitle": "Kehotteen XML-esikatselu",
+  "previewPromptTitle": "Koostetun kehotteen esikatselu",
   "previewPromptStaticTab": "Järjestelmäohje (Prefix)",
   "previewPromptDynamicTab": "Väitteet & Säännöt (Payload)",
   "previewPromptSchemaTab": "Koottu kehote & skeema (Tuloste)",

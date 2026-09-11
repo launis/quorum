@@ -4599,7 +4599,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addToneDirectiveBtn => 'Add Tone Directive';
 
   @override
-  String get compiledPromptPreviewTitle => 'Live Compiled Prompt Preview';
+  String get compiledPromptPreviewTitle => 'Compiled Prompt Preview';
 
   @override
   String get compiledPromptPreviewTooltip =>
@@ -4947,7 +4947,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get previewScalePromptTooltip => 'Preview scale model prompt (XML)';
 
   @override
-  String get previewPromptTitle => 'XML Prompt Preview';
+  String get previewPromptTitle => 'Compiled Prompt Preview';
 
   @override
   String get previewPromptStaticTab => 'System Directive (Prefix)';

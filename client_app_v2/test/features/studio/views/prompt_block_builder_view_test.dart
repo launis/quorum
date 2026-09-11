@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:client_app/features/studio/views/prompt_block_builder_view.dart';
+import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -296,7 +297,7 @@ void main() {
     });
 
     testWidgets(
-      'Compiled prompt preview dialog opens and copy-to-clipboard works',
+      'Compiled prompt preview opens shared PromptPreviewDialog',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1920, 1080);
         tester.view.devicePixelRatio = 1.0;
@@ -329,6 +330,15 @@ void main() {
             return {
               'rendered_prompt':
                   '<system_rule>\nCompiled prompt instructions\n</system_rule>',
+              'prompt_context': {
+                'static_messages': [
+                  {
+                    'role': 'system',
+                    'content': 'Compiled prompt instructions',
+                  },
+                ],
+                'dynamic_messages': <dynamic>[],
+              },
             };
           },
         );
@@ -342,28 +352,42 @@ void main() {
         await tester.tap(find.byIcon(Icons.bug_report));
         await tester.pumpAndSettle();
 
-        // Modal should be open
-        expect(find.text('Live Compiled Prompt Preview'), findsOneWidget);
+        // Modal should be open with shared PromptPreviewDialog
+        expect(find.byType(PromptPreviewDialog), findsOneWidget);
+        expect(find.text('Compiled Prompt Preview'), findsOneWidget);
         expect(
-          find.text(
-            '<system_rule>\nCompiled prompt instructions\n</system_rule>',
+          find.descendant(
+            of: find.byType(PromptPreviewDialog),
+            matching: find.textContaining('Compiled prompt instructions'),
           ),
           findsOneWidget,
         );
-        expect(find.text('Copy to Clipboard'), findsOneWidget);
 
-        // Tap copy button
-        await tester.tap(find.text('Copy to Clipboard'));
+        // Tap Copy to Clipboard button
+        final copyBtn = find.descendant(
+          of: find.byType(PromptPreviewDialog),
+          matching: find.text('Copy to Clipboard'),
+        );
+        expect(copyBtn, findsOneWidget);
+        await tester.tap(copyBtn);
         await tester.pumpAndSettle();
 
-        expect(
-          clipboardText,
-          '<system_rule>\nCompiled prompt instructions\n</system_rule>',
+        expect(clipboardText, contains('Compiled prompt instructions'));
+        expect(find.text('Copied to Clipboard!'), findsOneWidget);
+
+        // Advance timer
+        await tester.pump(const Duration(seconds: 2));
+
+        // Tap close button on dialog
+        await tester.tap(
+          find.descendant(
+            of: find.byType(PromptPreviewDialog),
+            matching: find.byIcon(Icons.close),
+          ),
         );
-        expect(
-          find.text('Compiled prompt copied to clipboard!'),
-          findsOneWidget,
-        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PromptPreviewDialog), findsNothing);
       },
     );
 

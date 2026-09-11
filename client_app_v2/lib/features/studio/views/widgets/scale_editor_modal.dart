@@ -818,7 +818,10 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.code),
+                          : Icon(
+                              Icons.bug_report,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                       tooltip: l10n.previewScalePromptTooltip,
                       onPressed: _isLoadingPreview ? null : _previewScalePrompt,
                     ),

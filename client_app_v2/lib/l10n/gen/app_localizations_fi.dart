@@ -4982,7 +4982,7 @@ class AppLocalizationsFi extends AppLocalizations {
       'Esikatsele arvosanan mallikehote (XML)';
 
   @override
-  String get previewPromptTitle => 'Kehotteen XML-esikatselu';
+  String get previewPromptTitle => 'Koostetun kehotteen esikatselu';
 
   @override
   String get previewPromptStaticTab => 'Järjestelmäohje (Prefix)';
