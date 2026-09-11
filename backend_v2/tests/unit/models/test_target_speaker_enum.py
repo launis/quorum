@@ -15,7 +15,6 @@ class DummySpeakerModel(BaseModel):
     speaker: Annotated[TargetSpeaker, Field(default=TargetSpeaker.USER, strict=False)] = TargetSpeaker.USER
 
 
-
 def test_target_speaker_enum_values() -> None:
     """Test TargetSpeaker values adhere to strict binary dichotomy."""
     assert TargetSpeaker.USER == "USER"

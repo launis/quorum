@@ -255,4 +255,3 @@ class TestSmartIngressResolver:
         assert excinfo.value.status_code == 400
         assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
         assert "chat_log" in excinfo.value.details["missing_fields"]
-

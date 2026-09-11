@@ -4,17 +4,18 @@ Orchestrates sequential end-to-end execution runs with verified process isolatio
 Unicode noise perturbation, database polling, and automated differential report synthesis.
 
 Usage Examples:
-    # 1. Run with default test inputs fixture (minimal synthetic fixture):
+    # 1. Run with default synthetic test inputs fixture:
     uv run python scripts/run_e2e_variance_test.py
 
     # 2. Run with a custom inputs directory containing real evaluation files (RECOMMENDED):
     uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir"
 
-    # 3. Run with a custom JSON inputs file:
-    uv run python scripts/run_e2e_variance_test.py "path/to/custom_inputs.json"
+    # 3. Run in fast development mode with custom CLI overrides:
+    uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir" \
+        --dev --workflow wf_9d68c573802341db --profile prf_5d6e7f8091a2b3c4 --locale fi
 
-    # 4. Optional: Run in fast development mode using environment variable:
-    $env:DEV_EXECUTION_MODE="fast"; uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir"
+    # 4. Run multiple consecutive comparison runs with cache disabled:
+    uv run python scripts/run_e2e_variance_test.py "path/to/my_inputs_dir" --num-runs 3 --no-cache
 
     # 5. Comparing already completed executions (without re-running pipeline):
     #    Use scripts/diff_executions.py directly with execution IDs or directory paths:
@@ -22,19 +23,18 @@ Usage Examples:
     uv run python scripts/diff_executions.py data/files/executions/exe_1 data/files/executions/exe_2
     uv run python scripts/diff_executions.py  # compares 3 latest runs automatically
 
-Input Format and Default Fixture Notice:
+Input Format and Zero-Knowledge Ingress Resolution:
     - Default fixture (`backend_v2/tests/test_data/exe_c0bc_inputs.json`):
       Contains minimal mock text fields (`chat_log`, `product_text`, `reflection_text`, `document_date`).
       This default is intended only as a lightweight synthetic fallback for smoke-testing.
     - Custom Directory (RECOMMENDED):
-      It is strongly recommended to provide a directory containing realistic evaluation files
+      Provide a directory containing realistic evaluation files
       (e.g., PDF transcripts, raw JSONs, markdown or text documents).
-      When a directory is provided, the loader automatically extracts text from `.pdf`, `.json`,
-      `.txt`, and `.md` files, and automatically maps Finnish domain filenames:
-        * Files containing 'keskusteluhistoria' -> mapped to 'chat_log'
-        * Files containing 'lopputuote'          -> mapped to 'product_text'
-        * Files containing 'reflektio'           -> mapped to 'reflection_text'
-      PDF metadata timestamps are also extracted dynamically to establish `document_date`.
+      When a directory is provided, the test harness queries the target workflow schema dynamically and
+      maps input files against expected inputs using 2-tier lexical matching
+      (exact key or localized label translations).
+      Anti-Collision Firewall: If multiple files resolve to the same expected input slot, execution halts immediately
+      to prevent silent data starvation.
 """
 
 from __future__ import annotations
@@ -67,7 +67,7 @@ if sys.platform == "win32":
 import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput
 from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 
 __all__ = [
@@ -108,7 +108,107 @@ def check_backend(base_url: str = "http://127.0.0.1:8000/docs", max_retries: int
     return False
 
 
-def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
+def _normalize_token(text: str) -> str:
+    """Normalize token by lowercasing and stripping non-alphanumeric characters.
+
+    Args:
+        text: Raw input text token or label.
+
+    Returns:
+        Cleaned lowercase alphanumeric string.
+    """
+    return re.sub(r"[^a-z0-9]", "", text.lower())
+
+
+def _match_input_key(
+    candidate: str,
+    expected_inputs: list[dict[str, Any]] | list[ExpectedInput],
+) -> str | None:
+    """Match a candidate file stem against workflow expected inputs using 2-tier lexical matching.
+
+    Tier 1: Exact normalized key matching against input_key.
+    Tier 2: Localized label translations matching (including stripped parentheticals and stems).
+
+    Args:
+        candidate: Candidate file stem or key string.
+        expected_inputs: List of ExpectedInput dictionaries or model instances.
+
+    Returns:
+        Matched input_key string if uniquely resolved, or None if no match found.
+
+    Raises:
+        ValueError: If candidate matches multiple distinct expected input slots.
+    """
+    cand_norm = _normalize_token(candidate)
+    if not cand_norm:
+        return None
+
+    tier1_matches: set[str] = set()
+    for item in expected_inputs:
+        if isinstance(item, ExpectedInput):
+            key = item.input_key
+        else:
+            key = str(item.get("input_key", ""))
+        if cand_norm == _normalize_token(key):
+            tier1_matches.add(key)
+
+    if len(tier1_matches) == 1:
+        return next(iter(tier1_matches))
+    if len(tier1_matches) > 1:
+        msg = f"Ambiguous Tier 1 match for input '{candidate}': Matches multiple slots: {sorted(tier1_matches)}"
+        raise ValueError(msg)
+
+    tier2_matches: set[str] = set()
+    for item in expected_inputs:
+        if isinstance(item, ExpectedInput):
+            key = item.input_key
+            raw_translations: list[str] = list(item.label.translations.values())
+        else:
+            key = str(item.get("input_key", ""))
+            raw_translations = []
+            if "label" in item:
+                label_val = item["label"]
+                if hasattr(label_val, "get"):
+                    translations_dict = label_val.get("translations", {})
+                    if hasattr(translations_dict, "values"):
+                        raw_translations = [str(v) for v in translations_dict.values()]
+
+        for raw_trans in raw_translations:
+            trans_norm = _normalize_token(raw_trans)
+            if cand_norm == trans_norm:
+                tier2_matches.add(key)
+                break
+
+            base_label = re.sub(r"\([^)]*\)", "", raw_trans).strip()
+            base_norm = _normalize_token(base_label)
+            if base_norm:
+                if cand_norm == base_norm:
+                    tier2_matches.add(key)
+                    break
+                if len(cand_norm) >= 4 and len(base_norm) >= 4:
+                    if cand_norm.startswith(base_norm) or base_norm.startswith(cand_norm):
+                        tier2_matches.add(key)
+                        break
+
+            for paren in re.findall(r"\(([^)]+)\)", raw_trans):
+                paren_norm = _normalize_token(paren)
+                if paren_norm and cand_norm == paren_norm:
+                    tier2_matches.add(key)
+                    break
+
+    if len(tier2_matches) == 1:
+        return next(iter(tier2_matches))
+    if len(tier2_matches) > 1:
+        msg = f"Ambiguous Tier 2 match for input '{candidate}': Matches multiple slots: {sorted(tier2_matches)}"
+        raise ValueError(msg)
+
+    return None
+
+
+def load_inputs_from_path(
+    path: str | Path,
+    expected_inputs: list[dict[str, Any]] | list[ExpectedInput] | None = None,
+) -> dict[str, Any]:
     """Load inputs from a directory of files or a single JSON file.
 
     Processes files in the directory based on extension:
@@ -118,13 +218,14 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
 
     Args:
         path: Path to a file or directory containing test inputs.
+        expected_inputs: Optional list of expected inputs from target workflow for smart resolution.
 
     Returns:
         Dictionary of input key-value pairs for execution payload.
 
     Raises:
         FileNotFoundError: If the specified path does not exist.
-        ValueError: If the JSON file does not contain a dictionary.
+        ValueError: If JSON file does not contain a dictionary, or on input slot collision.
     """
     input_path = Path(path)
     if not input_path.exists():
@@ -134,21 +235,31 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
     if input_path.is_dir():
         inputs: dict[str, Any] = {}
         extracted_dates: list[str] = []
+        source_files: dict[str, str] = {}
         for file_path in input_path.iterdir():
             if file_path.is_dir():
                 continue
             key = file_path.stem
             ext = file_path.suffix.lower()
 
-            norm_key = key.lower().strip()
-            if "keskusteluhistoria" in norm_key:
-                mapped_key = "chat_log"
-            elif "lopputuote" in norm_key:
-                mapped_key = "product_text"
-            elif "reflektio" in norm_key:
-                mapped_key = "reflection_text"
+            if expected_inputs is not None:
+                matched_key = _match_input_key(key, expected_inputs)
+                if matched_key is not None:
+                    mapped_key = matched_key
+                else:
+                    mapped_key = key
             else:
                 mapped_key = key
+
+            # Collision check: Prevent silent overwrite of duplicate input slots
+            if mapped_key in inputs:
+                prev_file = source_files.get(mapped_key, "unknown")
+                msg = (
+                    f"Input collision in '{input_path}': Both '{prev_file}' and '{file_path.name}' "
+                    f"map to slot '{mapped_key}'. Remove or rename the redundant file."
+                )
+                raise ValueError(msg)
+            source_files[mapped_key] = file_path.name
 
             if ext == ".pdf":
                 import fitz
@@ -201,6 +312,25 @@ def load_inputs_from_path(path: str | Path) -> dict[str, Any]:
         if not isinstance(data, dict):
             msg = "JSON inputs file must contain a dictionary."
             raise ValueError(msg)
+        if expected_inputs is not None:
+            mapped_data: dict[str, Any] = {}
+            json_source_slots: dict[str, str] = {}
+            for k, v in data.items():
+                matched_k = _match_input_key(k, expected_inputs)
+                if matched_k is not None:
+                    target_k = matched_k
+                else:
+                    target_k = k
+                if target_k in mapped_data:
+                    prev_k = json_source_slots.get(target_k, "unknown")
+                    msg = (
+                        f"Input collision in JSON file '{input_path}': Both '{prev_k}' and '{k}' "
+                        f"map to slot '{target_k}'."
+                    )
+                    raise ValueError(msg)
+                json_source_slots[target_k] = k
+                mapped_data[target_k] = v
+            return mapped_data
         return data
 
 
@@ -563,11 +693,19 @@ def force_kill_services() -> None:
     time.sleep(2)
 
 
-def trigger_execution(raw_inputs: dict[str, Any]) -> str:
+def trigger_execution(
+    raw_inputs: dict[str, Any],
+    workflow_id: str | None = None,
+    profile_id: str | None = None,
+    target_locale: str = "fi",
+) -> str:
     """Trigger native execution over HTTP API and save response trace.
 
     Args:
         raw_inputs: Dictionary of dynamic input fields.
+        workflow_id: Optional workflow ID or slug to execute.
+        profile_id: Optional output profile ID to apply.
+        target_locale: Desired output locale (e.g., 'fi').
 
     Returns:
         Generated execution ID.
@@ -585,20 +723,53 @@ def trigger_execution(raw_inputs: dict[str, Any]) -> str:
     if not workflows:
         msg = "No workflows found in database"
         raise RuntimeError(msg)
-    if "id" not in workflows[0] or not workflows[0]["id"]:
-        msg = "Workflow definition missing 'id'"
-        raise RuntimeError(msg)
-    workflow_id = str(workflows[0]["id"])
 
-    print(f"Sending POST to {base_url}/execution/executions/ using workflow {workflow_id}")
+    # Dynamic workflow resolution
+    resolved_workflow: dict[str, Any] | None = None
+    if workflow_id:
+        resolved_workflow = next(
+            (w for w in workflows if w.get("id") == workflow_id or w.get("slug") == workflow_id),
+            None,
+        )
+        if not resolved_workflow:
+            msg = f"Workflow '{workflow_id}' not found in database. Available: {[w.get('id') for w in workflows]}"
+            raise RuntimeError(msg)
+    else:
+        # Resolve single registered workflow or workflow explicitly flagged as system core
+        core_workflows = [w for w in workflows if w.get("is_system_core")]
+        if len(core_workflows) == 1:
+            resolved_workflow = core_workflows[0]
+        elif len(workflows) == 1:
+            resolved_workflow = workflows[0]
+        else:
+            msg = (
+                f"Multiple workflows found in database ({len(workflows)}). "
+                f"Please specify a workflow via --workflow. Available: {[w.get('id') for w in workflows]}"
+            )
+            raise RuntimeError(msg)
+
+    final_workflow_id = str(resolved_workflow["id"])
+
+    # Resolve profile_id if not explicitly provided
+    final_profile_id = profile_id
+    if not final_profile_id:
+        final_profile_id = resolved_workflow.get("default_profile_id")
+    if not final_profile_id:
+        msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
+        raise RuntimeError(msg)
+
+    print(
+        f"Sending POST to {base_url}/execution/executions/ using workflow {final_workflow_id} "
+        f"and profile {final_profile_id} (locale: {target_locale})"
+    )
     resp = requests.post(
         f"{base_url}/execution/executions/",
         headers=headers,
         json={
-            "workflow_id": workflow_id,
-            "profile_id": "prf_5d6e7f8091a2b3c4",
+            "workflow_id": final_workflow_id,
+            "profile_id": final_profile_id,
             "raw_inputs": {"dynamic_inputs": raw_inputs},
-            "target_locale": "fi",
+            "target_locale": target_locale,
         },
         timeout=300,
     )
@@ -678,6 +849,9 @@ def run_variance_test(
     no_cache: bool = False,
     cooldown_seconds: int = 0,
     dev: bool = False,
+    workflow: str | None = None,
+    profile: str | None = None,
+    locale: str = "fi",
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -689,6 +863,9 @@ def run_variance_test(
         no_cache: Whether to bypass native LLM provider context cache.
         cooldown_seconds: Cool-down pause between runs in seconds.
         dev: Whether to run in fast development mode instead of full production.
+        workflow: Optional workflow ID or slug to execute.
+        profile: Optional output profile ID to apply.
+        locale: Target locale for output generation (default: fi).
 
     Returns:
         List of generated execution IDs.
@@ -742,7 +919,55 @@ def run_variance_test(
             sys.exit(1)
 
         time.sleep(10)
-        raw_inputs = load_inputs_from_path(inputs_target)
+
+        # Dynamic workflow and expected inputs resolution
+        from backend_v2.settings import get_settings
+
+        settings = get_settings()
+        headers = {"Authorization": f"Bearer mock-token:{settings.mock_admin_user_id}"}
+        base_url = "http://127.0.0.1:8000/api/v2"
+
+        w_res = requests.get(f"{base_url}/studio/workflows/", headers=headers, timeout=10)
+        w_res.raise_for_status()
+        workflows = w_res.json()
+        if not workflows:
+            msg = "No workflows found in database"
+            raise RuntimeError(msg)
+
+        resolved_workflow: dict[str, Any] | None = None
+        if workflow:
+            resolved_workflow = next(
+                (w for w in workflows if w.get("id") == workflow or w.get("slug") == workflow),
+                None,
+            )
+            if not resolved_workflow:
+                msg = f"Workflow '{workflow}' not found in database. Available: {[w.get('id') for w in workflows]}"
+                raise RuntimeError(msg)
+        else:
+            # Resolve single registered workflow or workflow explicitly flagged as system core
+            core_workflows = [w for w in workflows if w.get("is_system_core")]
+            if len(core_workflows) == 1:
+                resolved_workflow = core_workflows[0]
+            elif len(workflows) == 1:
+                resolved_workflow = workflows[0]
+            else:
+                msg = (
+                    f"Multiple workflows found in database ({len(workflows)}). "
+                    f"Please specify a workflow via --workflow. Available: {[w.get('id') for w in workflows]}"
+                )
+                raise RuntimeError(msg)
+
+        final_workflow_id = str(resolved_workflow["id"])
+
+        final_profile_id = profile
+        if not final_profile_id:
+            final_profile_id = resolved_workflow.get("default_profile_id")
+        if not final_profile_id:
+            msg = f"Workflow '{final_workflow_id}' has no default_profile_id and no --profile was specified."
+            raise RuntimeError(msg)
+
+        expected_inputs = resolved_workflow.get("expected_inputs", [])
+        raw_inputs = load_inputs_from_path(inputs_target, expected_inputs=expected_inputs)
 
         print(f"Injecting unique deterministic marker into inputs for Run {i + 1}...")
         marked_payload = inject_unique_run_marker(raw_inputs, run_index=i)
@@ -768,7 +993,12 @@ def run_variance_test(
             json.dump(marked_inputs, f)
         os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
 
-        exec_id = trigger_execution(marked_inputs)
+        exec_id = trigger_execution(
+            marked_inputs,
+            workflow_id=final_workflow_id,
+            profile_id=final_profile_id,
+            target_locale=locale,
+        )
         if exec_id:
             execution_ids.append(exec_id)
 
@@ -803,11 +1033,11 @@ def run_variance_test(
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
         is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
         if not is_valid:
-            print("\n[FAILED] AJO KESKEYTETTY (KELVOTON AINEISTO / DATA STARVATION):")
+            print("\n[FAILED] RUN HALTED (DATA STARVATION):")
             print(f"   Execution ID: {exec_id}")
-            print(f"   Syy: {reason}")
-            print("   Arviointiaineisto ei sisältänyt riittävästi havaintoja synteesin tuottamiseksi.")
-            print("   Varianssitesti keskeytetään, koska kelvottomalla aineistolla ei voida laskea varianssia.")
+            print(f"   Reason: {reason}")
+            print("   Evaluation data did not yield sufficient observations for synthesis.")
+            print("   Variance test halted because variance cannot be computed on starved runs.")
             sys.exit(1)
 
     print("\n=== FINAL CLEANUP ===")
@@ -837,6 +1067,11 @@ def main(argv: list[str] | None = None) -> list[str]:
     """CLI entrypoint for end-to-end variance test runner."""
     parser = argparse.ArgumentParser(description="End-to-End Variance and Reliability Test Runner")
     parser.add_argument("inputs_target", nargs="?", default=None, help="File or directory path containing test inputs")
+    parser.add_argument("--inputs", dest="inputs_opt", default=None, help="Alternative flag for test inputs path")
+    parser.add_argument("--workflow", default=None, help="Workflow ID or slug to execute")
+    parser.add_argument("--profile", default=None, help="Output Profile ID to apply (defaults to workflow default)")
+    parser.add_argument("--locale", default="fi", help="Target locale for outputs (default: fi)")
+    parser.add_argument("--db-path", default=None, help="Path to database file (defaults to data/db_v2.json)")
     parser.add_argument("--no-cache", action="store_true", help="Bypass native LLM provider context cache")
     parser.add_argument("--cooldown-seconds", type=int, default=0, help="Cool-down pause between runs in seconds")
     parser.add_argument("--num-runs", type=int, default=2, help="Number of consecutive runs to compare")
@@ -844,13 +1079,18 @@ def main(argv: list[str] | None = None) -> list[str]:
     parser.add_argument("--dev", action="store_true", help="Run in fast development mode instead of full production")
 
     args = parser.parse_args(argv)
+    inputs_path = args.inputs_opt or args.inputs_target
     return run_variance_test(
-        inputs_target=args.inputs_target,
+        inputs_target=inputs_path,
         num_runs=args.num_runs,
         timeout_seconds=args.timeout_seconds,
+        db_path=args.db_path,
         no_cache=args.no_cache,
         cooldown_seconds=args.cooldown_seconds,
         dev=args.dev,
+        workflow=args.workflow,
+        profile=args.profile,
+        locale=args.locale,
     )
 
 

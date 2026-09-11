@@ -136,7 +136,6 @@ def test_anchor_validation_non_chat_document_user_claim_passes() -> None:
     assert extracted[0] == "strateginen muistio"
 
 
-
 def test_anchor_validation_empty_inputs() -> None:
     assert AnchorValidationService.normalize_text_with_mapping("") == ("", [])
     assert AnchorValidationService.strict_match("", ["quote"]) is False
@@ -234,9 +233,7 @@ def test_anchor_validation_provenance_empty_allowed_stream_fails() -> None:
     # Only <ai_draft_context> present, but claim targets USER
     pdf_text = "<ai_draft_context>Model output here.</ai_draft_context>"
     with pytest.raises(SemanticEvidenceError, match="PROVENANCE_VIOLATION"):
-        AnchorValidationService.validate_evidence(
-            pdf_text, ["Model output"], target_speaker=TargetSpeaker.USER
-        )
+        AnchorValidationService.validate_evidence(pdf_text, ["Model output"], target_speaker=TargetSpeaker.USER)
 
 
 def _make_atom(
@@ -357,4 +354,3 @@ def test_process_atom_evaluation_none_source_quote_skips_matching() -> None:
     assert result.source_quote is None
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning
-

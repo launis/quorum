@@ -79,7 +79,6 @@ def test_flattened_atom_target_speaker_default_and_roundtrip() -> None:
     assert reconstituted.target_speaker == TargetSpeaker.AI
 
 
-
 def test_matrix_evaluation_context_strictness() -> None:
     """Test that MatrixEvaluationContext forbids extra fields."""
     with pytest.raises(ValidationError):

@@ -11,11 +11,17 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from scripts.run_e2e_variance_test import (
     UNICODE_SPACE_REGISTRY,
     _ensure_user_turn_marker,
+    _match_input_key,
     inject_unique_run_marker,
+    load_inputs_from_path,
 )
 
 
@@ -171,3 +177,127 @@ class TestRunMarkerInjection:
             f"STDERR:\n{result.stderr}"
         )
         assert "unrecognized arguments" in result.stderr
+
+
+class TestLoadInputsAndKeyMatching:
+    """Test suite for 2-tier lexical key matching, input loading, and collision prevention."""
+
+    @pytest.fixture
+    def sample_expected_inputs(self) -> list[ExpectedInput]:
+        """Provide standard expected inputs fixture."""
+        return [
+            ExpectedInput(
+                input_key="chat_log",
+                label=I18nText(
+                    translations={
+                        "fi": "Keskusteluhistoria (Chat)",
+                        "en": "Conversation History (Chat)",
+                    }
+                ),
+                required=True,
+                is_chat_history=True,
+                input_modes=["file", "paste"],
+                description=I18nText(translations={"en": "Chat history", "fi": "Keskusteluhistoria"}),
+            ),
+            ExpectedInput(
+                input_key="product_text",
+                label=I18nText(
+                    translations={
+                        "fi": "Lopputuote",
+                        "en": "Final Product",
+                    }
+                ),
+                required=False,
+                is_chat_history=False,
+                input_modes=["file", "paste"],
+                description=I18nText(translations={"en": "Final product", "fi": "Lopputuote"}),
+            ),
+            ExpectedInput(
+                input_key="reflection_text",
+                label=I18nText(
+                    translations={
+                        "fi": "Reflektiodokumentti",
+                        "en": "Reflection",
+                    }
+                ),
+                required=False,
+                is_chat_history=False,
+                input_modes=["file", "paste"],
+                description=I18nText(translations={"en": "Reflection document", "fi": "Reflektiodokumentti"}),
+            ),
+        ]
+
+    def test_match_input_key_tier1_exact(self, sample_expected_inputs: list[ExpectedInput]) -> None:
+        """Verify Tier 1 exact normalized key matching."""
+        assert _match_input_key("chat_log", sample_expected_inputs) == "chat_log"
+        assert _match_input_key("product_text", sample_expected_inputs) == "product_text"
+        assert _match_input_key("reflection_text", sample_expected_inputs) == "reflection_text"
+
+    def test_match_input_key_tier2_localized_labels(self, sample_expected_inputs: list[ExpectedInput]) -> None:
+        """Verify Tier 2 localized label translations matching without hardcoding Finnish in logic."""
+        assert _match_input_key("keskusteluhistoria", sample_expected_inputs) == "chat_log"
+        assert _match_input_key("conversation_history", sample_expected_inputs) == "chat_log"
+        assert _match_input_key("lopputuote", sample_expected_inputs) == "product_text"
+        assert _match_input_key("final_product", sample_expected_inputs) == "product_text"
+        assert _match_input_key("reflektio", sample_expected_inputs) == "reflection_text"
+        assert _match_input_key("reflection", sample_expected_inputs) == "reflection_text"
+
+    def test_match_input_key_unmatched_returns_none(self, sample_expected_inputs: list[ExpectedInput]) -> None:
+        """Verify candidate not matching any slot returns None."""
+        assert _match_input_key("document_date", sample_expected_inputs) is None
+        assert _match_input_key("unrelated_meta_info", sample_expected_inputs) is None
+
+    def test_match_input_key_empty_candidate(self, sample_expected_inputs: list[ExpectedInput]) -> None:
+        """Boundary: Empty or whitespace-only candidate returns None."""
+        assert _match_input_key("", sample_expected_inputs) is None
+        assert _match_input_key("   ", sample_expected_inputs) is None
+
+    def test_load_inputs_from_path_directory_success(
+        self,
+        tmp_path: Path,
+        sample_expected_inputs: list[ExpectedInput],
+    ) -> None:
+        """Verify load_inputs_from_path correctly maps directory files to expected slots."""
+        (tmp_path / "keskusteluhistoria.txt").write_text("Hello conversation", encoding="utf-8")
+        (tmp_path / "lopputuote.md").write_text("# Final product report", encoding="utf-8")
+        (tmp_path / "custom_notes.txt").write_text("Extra unconstrained notes", encoding="utf-8")
+
+        inputs = load_inputs_from_path(tmp_path, expected_inputs=sample_expected_inputs)
+
+        assert inputs["chat_log"] == "Hello conversation"
+        assert inputs["product_text"] == "# Final product report"
+        assert inputs["custom_notes"] == "Extra unconstrained notes"
+        assert "document_date" in inputs
+
+    def test_load_inputs_from_path_collision_detection(
+        self,
+        tmp_path: Path,
+        sample_expected_inputs: list[ExpectedInput],
+    ) -> None:
+        """ISTQB Negative Boundary: Collision between two files mapping to the same slot raises ValueError."""
+        (tmp_path / "keskusteluhistoria.txt").write_text("Transcript A", encoding="utf-8")
+        (tmp_path / "keskusteluhistoria_user_only.md").write_text("Transcript B", encoding="utf-8")
+
+        with pytest.raises(ValueError, match="Input collision in.*Both.*map to slot 'chat_log'"):
+            load_inputs_from_path(tmp_path, expected_inputs=sample_expected_inputs)
+
+    def test_load_inputs_from_path_json_file_with_collision(
+        self,
+        tmp_path: Path,
+        sample_expected_inputs: list[ExpectedInput],
+    ) -> None:
+        """ISTQB Negative Boundary: Collision within JSON file mapping multiple keys to same slot."""
+        json_file = tmp_path / "inputs.json"
+        json_file.write_text(
+            json.dumps({"keskusteluhistoria": "A", "chat_log": "B"}),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(ValueError, match="Input collision in JSON file.*map to slot 'chat_log'"):
+            load_inputs_from_path(json_file, expected_inputs=sample_expected_inputs)
+
+    def test_load_inputs_from_path_without_expected_inputs(self, tmp_path: Path) -> None:
+        """Verify loading without expected_inputs preserves file stems directly."""
+        (tmp_path / "my_data.txt").write_text("Sample data", encoding="utf-8")
+        inputs = load_inputs_from_path(tmp_path, expected_inputs=None)
+        assert inputs["my_data"] == "Sample data"

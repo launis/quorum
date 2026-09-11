@@ -65,4 +65,3 @@ class ResolvedIngressDTO(BaseDTO):
         dict[str, str],
         Field(description="Human-readable source identity manifest mapping slot keys to original source names."),
     ]
-
