@@ -2458,10 +2458,20 @@
   "previewPromptTitle": "XML Prompt Preview",
   "previewPromptStaticTab": "System Directive (Prefix)",
   "previewPromptDynamicTab": "Claims & Rules (Payload)",
-  "previewPromptSchemaTab": "Expected Schema",
+  "previewPromptSchemaTab": "Compiled Prompt & Schema (Output)",
   "xaiMacroSynthesisSectionTitle": "Overall Evaluation & Synthesis (Macro-level)",
   "xaiMacroSynthesisSectionSubtitle": "Generated as a synthesis of the entire text upon execution completion.",
   "xaiMicroAtomSectionTitle": "Observation-specific Enrichments (Micro-level)",
-  "xaiMicroAtomSectionSubtitle": "Extracted directly from individual matrix observations."
+  "xaiMicroAtomSectionSubtitle": "Extracted directly from individual matrix observations.",
+  "stepSimulationTitle": "Step Simulation & Prompt Preview",
+  "stepSimulationSubtitle": "Dry-run and inspect compiled prompts across static and dynamic boundaries",
+  "expectedInputsSection": "Expected Inputs",
+  "contextDocumentLabel": "Context Document Text",
+  "targetLocaleLabel": "Target Locale",
+  "runSimulationBtn": "Run Simulation",
+  "noExpectedInputsNotice": "No expected inputs declared for this step.",
+  "stepSimulationExecutionTime": "Execution Time",
+  "stepSimulationEstimatedTokens": "Estimated Tokens",
+  "dialogOk": "OK"
 }
 

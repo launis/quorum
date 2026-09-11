@@ -222,8 +222,11 @@ class MockPromptBlocksController extends PromptBlocksController {
   @override
   Future<Map<String, dynamic>> simulatePromptBlock(
     PromptBlock payload,
-    Map<String, dynamic> mockInputs,
-  ) async {
+    Map<String, dynamic> mockInputs, {
+    int? targetScaleScore,
+    String? targetLocale,
+    String? contextText,
+  }) async {
     return {'rendered_prompt': 'MOCK', 'valid': true};
   }
 }

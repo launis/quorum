@@ -42,7 +42,13 @@ async def simulate_step(
     Raises:
         AppException: If the simulation fails.
     """
-    return await studio_simulation_service.simulate_step(current_user, data.step, data.mock_inputs)
+    return await studio_simulation_service.simulate_step(
+        current_user,
+        data.step,
+        data.mock_inputs,
+        target_locale=data.target_locale,
+        context_text=data.context_text,
+    )
 
 
 @router.get("/", response_model=list[StepResponseDTO])

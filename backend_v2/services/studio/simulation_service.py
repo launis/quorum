@@ -22,6 +22,7 @@ from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepSimulationResponse,
+    StepSimulationTraceDTO,
     WorkflowSimulationResponse,
 )
 from backend_v2.models.enums import EntityPrefix
@@ -177,7 +178,8 @@ class StudioSimulationService:
 
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing or target score not found.
-            AppException (ErrorCodes.VALIDATION_FAILED): If the prompt block or scales contain no valid claims or assertions.
+            AppException (ErrorCodes.VALIDATION_FAILED): If the prompt block or scales
+                contain no valid claims or assertions.
             PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
         """
         errors: list[str] = []
@@ -332,7 +334,12 @@ class StudioSimulationService:
         )
 
     async def simulate_step(
-        self, initiator: TokenData, data: Step, mock_inputs: dict[str, Any]
+        self,
+        initiator: TokenData,
+        data: Step,
+        mock_inputs: dict[str, Any],
+        target_locale: str = "en",
+        context_text: str = "[SIMULATED CONTEXT DOCUMENT]",
     ) -> StepSimulationResponse:
         """Simulate step.
 
@@ -340,6 +347,8 @@ class StudioSimulationService:
             initiator: The authenticated user initiating the simulation.
             data: The step domain object to evaluate.
             mock_inputs: Mocked inputs to satisfy dependency variables.
+            target_locale: Target locale for prompt compilation.
+            context_text: Context document text for sensor simulation.
 
         Returns:
             A StepSimulationResponse model containing the full context payload and step-specific simulation errors.
@@ -349,24 +358,33 @@ class StudioSimulationService:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
             AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
-        errors = []
-        rendered_parts = []
+        errors: list[str] = []
+        rendered_parts: list[str] = []
 
-        # Resolve prompt blocks
-        prompt_blocks_refs = []
+        # Resolve prompt blocks in DAG execution order
+        prompt_blocks_refs: list[str] = []
         if data.role_block_id:
             prompt_blocks_refs.append(data.role_block_id)
         if data.extraction_protocol_block_id:
             prompt_blocks_refs.append(data.extraction_protocol_block_id)
+        if data.execution_persona_block_id:
+            prompt_blocks_refs.append(data.execution_persona_block_id)
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
 
-        prompt_context_msgs = []
+        prompt_context_msgs: list[LLMMessageDTO] = []
+        dynamic_messages_aggregated: list[LLMMessageDTO] = []
         for block_ref in prompt_blocks_refs:
             try:
                 block = await self.prompt_block_service.get_prompt_block(initiator, block_ref)
                 sim = await self.simulate_prompt_block(
-                    initiator, PromptBlockSimulationRequest(block=block, mock_inputs=mock_inputs)
+                    initiator,
+                    PromptBlockSimulationRequest(
+                        block=block,
+                        mock_inputs=mock_inputs,
+                        target_locale=target_locale,
+                        context_text=context_text,
+                    ),
                 )
                 if not sim.valid:
                     errors.extend(sim.errors)
@@ -375,6 +393,7 @@ class StudioSimulationService:
                 rendered_parts.append(sim.rendered_prompt)
                 if sim.prompt_context:
                     prompt_context_msgs.extend(sim.prompt_context.static_messages)
+                    dynamic_messages_aggregated.extend(sim.prompt_context.dynamic_messages)
             except ResourceNotFoundError:
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")
                 rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
@@ -383,13 +402,19 @@ class StudioSimulationService:
             rendered_parts.append(f"\n[Execution Hook: {data.hook}]")
 
         step_context = PromptContextDTO(
-            static_messages=prompt_context_msgs, dynamic_messages=[], metadata={"simulated_step": data.id}
+            static_messages=prompt_context_msgs,
+            dynamic_messages=dynamic_messages_aggregated,
+            metadata={"simulated_step": data.id},
+        )
+
+        estimated_tokens = sum(
+            len(m.content) // 4 for m in step_context.static_messages + step_context.dynamic_messages
         )
 
         return StepSimulationResponse(
             valid=len(errors) == 0,
             errors=errors,
             rendered_prompt="\n\n".join(rendered_parts),
-            trace={},
+            trace=StepSimulationTraceDTO(execution_time_ms=0.0, estimated_tokens=estimated_tokens),
             prompt_context=step_context,
         )

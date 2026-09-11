@@ -26,7 +26,7 @@ def test_generate_openapi_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
 
     import sys
 
-    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     main()
 
@@ -38,9 +38,6 @@ def test_generate_openapi_success(monkeypatch: pytest.MonkeyPatch, tmp_path: Pat
 
     assert data["openapi"] == "3.1.0"
     assert data["info"]["title"] == "Test API"
-
-    # cleanup sys.modules
-    del sys.modules["backend_v2.main"]
 
 
 def test_generate_openapi_filesystem_error(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
@@ -55,7 +52,7 @@ def test_generate_openapi_filesystem_error(monkeypatch: pytest.MonkeyPatch, tmp_
 
     import sys
 
-    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     # Make the target directory read-only or mock the open call
     docs_dir = tmp_path / "docs" / "swagger"
@@ -72,8 +69,6 @@ def test_generate_openapi_filesystem_error(monkeypatch: pytest.MonkeyPatch, tmp_
     assert exc_info.value.status_code == 500
     assert "Failed to write OpenAPI schema file due to: Access denied" in str(exc_info.value)
 
-    del sys.modules["backend_v2.main"]
-
 
 def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Tests the __main__ execution block of generate_openapi."""
@@ -86,7 +81,7 @@ def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     class MockMain:
         app = mock_app
 
-    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
     sys.modules.pop("backend_v2.scripts.generate_openapi", None)
@@ -105,10 +100,9 @@ def test_generate_openapi_main_block(monkeypatch: pytest.MonkeyPatch, tmp_path: 
     finally:
         if original_content is not None:
             output_file.write_text(original_content, encoding="utf-8")
-        del sys.modules["backend_v2.main"]
 
 
-def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
+def test_generate_openapi_main_block_exception(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     """Tests the exception handling path in the __main__ block."""
     import runpy
     import sys
@@ -119,7 +113,7 @@ def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
     class MockMain:
         app = mock_app
 
-    sys.modules["backend_v2.main"] = MockMain  # type: ignore
+    monkeypatch.setitem(sys.modules, "backend_v2.main", MockMain)
 
     # Evict cached module so runpy re-executes top-level code under __name__ == '__main__'
     sys.modules.pop("backend_v2.scripts.generate_openapi", None)
@@ -131,5 +125,3 @@ def test_generate_openapi_main_block_exception(tmp_path: Path) -> None:
         )
 
     assert exc_info.value.code == 1
-
-    del sys.modules["backend_v2.main"]

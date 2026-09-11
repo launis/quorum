@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/views/widgets/contrastive_pair_editor
 import 'package:client_app/features/studio/views/widgets/dynamic_item_list_editor.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/linguistic_shield_banner.dart';
+import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
 import 'package:client_app/features/studio/views/widgets/tag_chip_input.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -178,66 +179,37 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
 
       await showDialog<void>(
         context: context,
-        builder: (dialogCtx) => _PromptPreviewDialog(
-          staticContent: _formatMessages(staticMessages),
-          dynamicContent: _formatMessages(dynamicMessages),
-          schemaContent: _formatSchema(tools, renderedPrompt),
+        builder: (dialogCtx) => PromptPreviewDialog(
+          staticContent: PromptPreviewFormatter.formatMessagesFromRaw(
+            staticMessages,
+          ),
+          dynamicContent: PromptPreviewFormatter.formatMessagesFromRaw(
+            dynamicMessages,
+          ),
+          schemaContent: PromptPreviewFormatter.formatSchema(
+            tools,
+            renderedPrompt,
+          ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoadingPreview = false);
       final l10n = AppLocalizations.of(context)!;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${l10n.errorUnknown}: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
+      await showDialog<void>(
+        context: context,
+        builder: (errCtx) => AlertDialog(
+          title: Text(l10n.errorUnknown),
+          content: Text(e.toString()),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(errCtx).pop(),
+              child: Text(l10n.dialogOk),
+            ),
+          ],
         ),
       );
     }
-  }
-
-  static String _formatMessages(dynamic messages) {
-    if (messages == null) return '';
-    if (messages is List) {
-      final buffer = StringBuffer();
-      for (final msg in messages) {
-        if (msg is Map) {
-          final role = msg['role']?.toString();
-          final content = msg['content'];
-          if (role != null) {
-            buffer.writeln('--- Role: $role ---');
-          }
-          if (content is String) {
-            buffer.writeln(content);
-          } else if (content != null) {
-            buffer.writeln(const JsonEncoder.withIndent('  ').convert(content));
-          }
-          buffer.writeln();
-        } else {
-          buffer.writeln(msg.toString());
-        }
-      }
-      return buffer.toString().trim();
-    }
-    if (messages is Map) {
-      return const JsonEncoder.withIndent('  ').convert(messages);
-    }
-    return messages.toString();
-  }
-
-  static String _formatSchema(dynamic tools, String? fallback) {
-    if (tools != null) {
-      if (tools is Map || tools is List) {
-        return const JsonEncoder.withIndent('  ').convert(tools);
-      }
-      final s = tools.toString().trim();
-      if (s.isNotEmpty) return s;
-    }
-    if (fallback != null && fallback.isNotEmpty) {
-      return fallback;
-    }
-    return '';
   }
 
   void _addClaim() {
@@ -1036,96 +1008,6 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _PromptPreviewDialog extends StatelessWidget {
-  final String staticContent;
-  final String dynamicContent;
-  final String schemaContent;
-
-  const _PromptPreviewDialog({
-    required this.staticContent,
-    required this.dynamicContent,
-    required this.schemaContent,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-
-    return DefaultTabController(
-      length: 3,
-      child: Dialog(
-        insetPadding: AppSpacing.p16,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minWidth: 600,
-            maxWidth: 1000,
-            minHeight: 500,
-            maxHeight: 800,
-          ),
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(l10n.previewPromptTitle),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              bottom: TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: l10n.previewPromptStaticTab),
-                  Tab(text: l10n.previewPromptDynamicTab),
-                  Tab(text: l10n.previewPromptSchemaTab),
-                ],
-              ),
-            ),
-            body: TabBarView(
-              children: [
-                _buildContentPane(context, staticContent),
-                _buildContentPane(context, dynamicContent),
-                _buildContentPane(context, schemaContent),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContentPane(BuildContext context, String content) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: AppSpacing.p16,
-      child: Container(
-        width: double.infinity,
-        padding: AppSpacing.p16,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: content.isEmpty
-            ? Center(
-                child: Text(
-                  '---',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              )
-            : SingleChildScrollView(
-                child: SelectableText(
-                  content,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: const ['Courier', 'Consolas'],
-                  ),
-                ),
-              ),
       ),
     );
   }

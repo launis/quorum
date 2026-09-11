@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
 import 'package:client_app/utils/riverpod_extensions.dart';
@@ -480,11 +481,12 @@ class StepsController extends _$StepsController {
   }
 
   /// Simulates a step on the backend without saving it.
-  Future<Map<String, dynamic>> simulateStep(NodeStrategy payload) async {
+  Future<StepSimulationResponse> simulateStep(
+    StepSimulationRequest request,
+  ) async {
     try {
-      final payloadData = {'step': payload.toJson(), 'mock_inputs': {}};
       final client = ref.read(studioClientProvider);
-      return await client.simulateStep(payloadData);
+      return await client.simulateStep(request);
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)

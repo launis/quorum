@@ -10,6 +10,7 @@ import 'package:client_app/features/studio/controllers/mcp_gateways_controller.d
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
+import 'package:client_app/features/studio/views/widgets/step_simulation_dialog.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -149,48 +150,6 @@ class StepBuilderView extends HookConsumerWidget {
     List<PromptBlock> promptBlocks,
     List<Map<String, dynamic>> mcpGateways,
   ) {
-    final validateMutation = useMutation<Map<String, dynamic>>(
-      onSuccess: (data) {
-        if (context.mounted) {
-          final rendered = data['rendered_prompt']?.toString();
-          if (rendered == null) {
-            throw AppException.validation(l10n.simulatorCorruptionError);
-          }
-          showDialog(
-            context: context,
-            builder: (ctx) => AlertDialog(
-              title: Text(l10n.simulatorOutputTitle),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: SingleChildScrollView(
-                  child: Text(
-                    rendered,
-                    style: const TextStyle(fontFamily: 'monospace'),
-                  ),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text(l10n.closeModalBtn),
-                ),
-              ],
-            ),
-          );
-        }
-      },
-      onError: (e) {
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
-      },
-    );
-
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
         if (context.mounted) {
@@ -308,25 +267,14 @@ class StepBuilderView extends HookConsumerWidget {
                 tooltip: l10n.delete,
               ),
             IconButton(
-              onPressed: validateMutation.isLoading
-                  ? null
-                  : () {
-                      validateMutation.mutate(() async {
-                        return await ref
-                            .read(stepsControllerProvider.notifier)
-                            .simulateStep(payload);
-                      });
-                    },
-              icon: validateMutation.isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Icon(
-                      Icons.bug_report,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (ctx) => StepSimulationDialog(step: payload),
+              ),
+              icon: Icon(
+                Icons.bug_report,
+                color: Theme.of(context).colorScheme.primary,
+              ),
               tooltip: l10n.simulateStepTooltip,
             ),
             if (formState.isLoading)

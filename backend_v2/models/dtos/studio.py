@@ -46,6 +46,7 @@ __all__ = [
     "PromptBlockSimulationResponse",
     "PromptBlockDeleteResponse",
     "PromptBlockSimulationRequest",
+    "StepSimulationTraceDTO",
     "StepSimulationResponse",
     "StepDeleteResponse",
     "StepSimulationRequest",
@@ -365,13 +366,19 @@ class PromptBlockSimulationResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    valid: Annotated[bool, Field(default=True, description="Indicates if the prompt block simulation is successful.")]
-    errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
-    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered prompt template.")]
-    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    valid: Annotated[
+        bool, Field(default=True, description="Indicates if the prompt block simulation is successful.")
+    ] = True
+    errors: Annotated[
+        list[str], Field(default_factory=list, description="Validation errors found during simulation.")
+    ] = Field(default_factory=list)
+    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered prompt template.")] = ""
+    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")] = Field(
+        default_factory=dict
+    )
     prompt_context: Annotated[
         PromptContextDTO | None, Field(default=None, description="XAI compiled prompt structure.")
-    ]
+    ] = None
 
 
 class PromptBlockDeleteResponse(BaseResponseDTO):
@@ -402,7 +409,7 @@ class PromptBlockSimulationRequest(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     block: PromptBlock
-    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
+    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)] = Field(default_factory=dict)
     target_scale_score: Annotated[
         int | None, Field(default=None, description="Optional specific scale score to simulate.")
     ] = None
@@ -418,6 +425,20 @@ class PromptBlockSimulationRequest(BaseDTO):
     ] = "[SIMULATED CONTEXT DOCUMENT]"
 
 
+class StepSimulationTraceDTO(BaseDTO):
+    """Execution and telemetry metadata for a simulated step.
+
+    Attributes:
+        execution_time_ms: Execution time in milliseconds.
+        estimated_tokens: Estimated total token count.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    execution_time_ms: Annotated[float, Field(default=0.0, ge=0.0, description="Execution time in milliseconds.")] = 0.0
+    estimated_tokens: Annotated[int, Field(default=0, ge=0, description="Estimated total token count.")] = 0
+
+
 class StepSimulationResponse(BaseResponseDTO):
     """Dry-run validation telemetry for isolated step execution.
 
@@ -426,17 +447,22 @@ class StepSimulationResponse(BaseResponseDTO):
         errors: Array of syntax or schema compliance issues.
         rendered_prompt: Concrete text string sent to the target LLM task.
         trace: Associated performance profiling variables.
+        prompt_context: XAI compiled prompt structure.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    valid: Annotated[bool, Field(default=True, description="Indicates if the step simulation is successful.")]
-    errors: Annotated[list[str], Field(default_factory=list, description="Validation errors found during simulation.")]
-    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered step prompts.")]
-    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    valid: Annotated[bool, Field(default=True, description="Indicates if the step simulation is successful.")] = True
+    errors: Annotated[
+        list[str], Field(default_factory=list, description="Validation errors found during simulation.")
+    ] = Field(default_factory=list)
+    rendered_prompt: Annotated[str, Field(default="", description="The simulated rendered step prompts.")] = ""
+    trace: Annotated[
+        StepSimulationTraceDTO, Field(default_factory=StepSimulationTraceDTO, description="Execution trace metadata.")
+    ] = Field(default_factory=StepSimulationTraceDTO)
     prompt_context: Annotated[
         PromptContextDTO | None, Field(default=None, description="XAI compiled prompt structure.")
-    ]
+    ] = None
 
 
 class StepDeleteResponse(BaseResponseDTO):
@@ -459,12 +485,26 @@ class StepSimulationRequest(BaseDTO):
     Attributes:
         step: Domain step blueprint context containing prompt configurations.
         mock_inputs: Static evaluation anchors containing environment variables.
+        target_locale: Target locale for prompt compilation.
+        context_text: Source document text context for sensor simulation.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
     step: Step
-    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)]
+    # External boundary: key schema defined dynamically by step.expected_inputs
+    mock_inputs: Annotated[dict[str, Any], Field(default_factory=dict)] = Field(default_factory=dict)
+    target_locale: Annotated[
+        str,
+        Field(default="en", min_length=2, description="Target locale for prompt compilation."),
+    ] = "en"
+    context_text: Annotated[
+        str,
+        Field(
+            default="[SIMULATED CONTEXT DOCUMENT]",
+            description="Source document text context for sensor simulation.",
+        ),
+    ] = "[SIMULATED CONTEXT DOCUMENT]"
 
 
 class WorkflowSimulationResponse(BaseResponseDTO):
@@ -480,13 +520,21 @@ class WorkflowSimulationResponse(BaseResponseDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    valid: Annotated[bool, Field(default=True, description="Indicates if the workflow DAG simulation is successful.")]
-    errors: Annotated[list[str], Field(default_factory=list, description="Structure and wiring errors.")]
-    step_status: Annotated[dict[str, str], Field(default_factory=dict, description="Compilation status per step.")]
+    valid: Annotated[
+        bool, Field(default=True, description="Indicates if the workflow DAG simulation is successful.")
+    ] = True
+    errors: Annotated[list[str], Field(default_factory=list, description="Structure and wiring errors.")] = Field(
+        default_factory=list
+    )
+    step_status: Annotated[dict[str, str], Field(default_factory=dict, description="Compilation status per step.")] = (
+        Field(default_factory=dict)
+    )
     execution_order: Annotated[
         list[str], Field(default_factory=list, description="Topologically sorted execution order.")
-    ]
-    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")]
+    ] = Field(default_factory=list)
+    trace: Annotated[dict[str, Any], Field(default_factory=dict, description="Execution trace metadata.")] = Field(
+        default_factory=dict
+    )
 
 
 class WorkflowDeleteResponse(BaseResponseDTO):

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
 
 part 'studio_client.g.dart';
 
@@ -157,9 +158,16 @@ class StudioClient {
   }
 
   /// Validates a step definition using the Pre-Flight Simulator API.
-  Future<Map<String, dynamic>> simulateStep(Map<String, dynamic> data) async {
-    final response = await _dio.post('studio/steps/simulate', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<StepSimulationResponse> simulateStep(
+    StepSimulationRequest request,
+  ) async {
+    final response = await _dio.post(
+      'studio/steps/simulate',
+      data: request.toJson(),
+    );
+    return StepSimulationResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Deep clones a step securely.

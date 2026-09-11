@@ -59,6 +59,7 @@ def test_validate_database_preflight_success() -> None:
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("backend_v2.main.TinyDB", return_value=mock_db),
+        patch("backend_v2.main._audit_storage_and_database_sync"),
     ):
         _validate_database_preflight(logger)
         mock_db.close.assert_called_once()
@@ -75,6 +76,7 @@ def test_validate_database_preflight_corrupted_raises_runtime_error() -> None:
     with (
         patch("pathlib.Path.exists", return_value=True),
         patch("backend_v2.main.TinyDB", return_value=mock_db),
+        patch("backend_v2.main._audit_storage_and_database_sync"),
         pytest.raises(RuntimeError) as excinfo,
     ):
         _validate_database_preflight(logger)

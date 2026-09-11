@@ -1758,9 +1758,19 @@
   "previewPromptTitle": "Kehotteen XML-esikatselu",
   "previewPromptStaticTab": "Järjestelmäohje (Prefix)",
   "previewPromptDynamicTab": "Väitteet & Säännöt (Payload)",
-  "previewPromptSchemaTab": "Vastausskeema",
+  "previewPromptSchemaTab": "Koottu kehote & skeema (Tuloste)",
   "xaiMacroSynthesisSectionTitle": "Kokonaisarviointi & Synteesi (Makrotaso)",
   "xaiMacroSynthesisSectionSubtitle": "Tuotetaan ajon valmistuttua koko aineiston synteesinä.",
   "xaiMicroAtomSectionTitle": "Havaintokohtaiset rikastukset (Mikrotaso)",
-  "xaiMicroAtomSectionSubtitle": "Poimitaan suoraan matriisin yksittäisistä havainnoista."
+  "xaiMicroAtomSectionSubtitle": "Poimitaan suoraan matriisin yksittäisistä havainnoista.",
+  "stepSimulationTitle": "Askeleen simulaatio ja kehotteen esikatselu",
+  "stepSimulationSubtitle": "Esikatsele ja validoi koottu kehote staattisten ja dynaamisten rajojen yli",
+  "expectedInputsSection": "Odotetut syötteet",
+  "contextDocumentLabel": "Kontekstidokumentin teksti",
+  "targetLocaleLabel": "Kohdekieli",
+  "runSimulationBtn": "Suorita simulaatio",
+  "noExpectedInputsNotice": "Askeleelle ei ole määritelty odotettuja syötteitä.",
+  "stepSimulationExecutionTime": "Suoritusaika",
+  "stepSimulationEstimatedTokens": "Arvioidut tokenit",
+  "dialogOk": "Selvä"
 }
