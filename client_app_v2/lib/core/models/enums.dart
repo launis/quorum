@@ -445,3 +445,13 @@ enum AlignmentVerdict {
   @JsonValue('MISALIGNED')
   misaligned,
 }
+
+/// Evaluated target speaker for dialogue or deliverable claims.
+@JsonEnum()
+enum TargetSpeaker {
+  @JsonValue('USER')
+  user,
+  @JsonValue('AI')
+  ai,
+}
+

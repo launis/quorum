@@ -151,6 +151,9 @@ abstract class TDAAssertion with _$TDAAssertion {
     @Default('paragraph')
     String boundingBoxScope,
     @JsonKey(name: 'extraction_rule') String? extractionRule,
+    @JsonKey(name: 'target_speaker')
+    @Default(TargetSpeaker.user)
+    TargetSpeaker targetSpeaker,
   }) = _TDAAssertion;
 
   factory TDAAssertion.fromJson(Map<String, dynamic> json) =>
@@ -165,6 +168,7 @@ abstract class TDAAssertion with _$TDAAssertion {
     List<CausalEdgeDTO> dependsOn = const [],
     List<String> factsToFind = const [],
     String? logicalExpression,
+    TargetSpeaker targetSpeaker = TargetSpeaker.user,
   }) {
     final uuidHex = const Uuid().v4().replaceAll('-', '');
     return TDAAssertion(
@@ -179,6 +183,7 @@ abstract class TDAAssertion with _$TDAAssertion {
       anchorTarget: null,
       boundingBoxScope: 'paragraph',
       extractionRule: null,
+      targetSpeaker: targetSpeaker,
     );
   }
 }

@@ -1,7 +1,7 @@
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
@@ -614,6 +614,73 @@ def test_boolean_evaluation_result_sentence_boundary_truncation() -> None:
     assert res.source_quote is not None
     assert len(res.source_quote) <= 500
     assert res.source_quote.endswith(".")
+
+
+def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
+    """ISTQB boundary value analysis and equivalence partition tests for BooleanEvaluationResult."""
+    # Partition 1 (Positive): is_true=True, source_quote="valid quote", contextual_override=False passes
+    res1 = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Valid reason",
+        is_true=True,
+        source_quote="valid quote",
+        contextual_override=False,
+    )
+    assert res1.is_true is True
+    assert res1.source_quote == "valid quote"
+
+    # Partition 2 (Positive): is_true=False, source_quote=None, contextual_override=False passes
+    res2 = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Valid reason",
+        is_true=False,
+        source_quote=None,
+        contextual_override=False,
+    )
+    assert res2.is_true is False
+    assert res2.source_quote is None
+
+    # Partition 3 (Positive): is_true=False, source_quote=None, contextual_override=True passes
+    res3 = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Overridden reason",
+        is_true=False,
+        source_quote=None,
+        contextual_override=True,
+    )
+    assert res3.is_true is False
+    assert res3.source_quote is None
+    assert res3.contextual_override is True
+
+    # Partition 4 (Negative): is_true=True, source_quote=None, contextual_override=False raises ValidationError
+    with pytest.raises(ValidationError, match="Ungrounded positive evaluation"):
+        BooleanEvaluationResult(
+            alias="a0",
+            reasoning="Missing quote",
+            is_true=True,
+            source_quote=None,
+            contextual_override=False,
+        )
+
+    # Partition 5 (Negative): is_true=True, source_quote="   ", contextual_override=False raises ValidationError
+    with pytest.raises(ValidationError, match="Ungrounded positive evaluation"):
+        BooleanEvaluationResult(
+            alias="a0",
+            reasoning="Whitespace quote",
+            is_true=True,
+            source_quote="   ",
+            contextual_override=False,
+        )
+
+    # Partition 6 (Negative): is_true=False, source_quote="stale quote", contextual_override=False raises ValidationError
+    with pytest.raises(ValidationError, match="Null hypothesis violation"):
+        BooleanEvaluationResult(
+            alias="a0",
+            reasoning="Stale quote on false",
+            is_true=False,
+            source_quote="stale quote",
+            contextual_override=False,
+        )
 
 
 def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:

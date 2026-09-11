@@ -60,6 +60,26 @@ def test_flattened_atom_invalid_types() -> None:
         FlattenedAtom.model_validate({"atom_id": "tda_123", "question": "Q", "is_inverse": "not-a-bool"})
 
 
+def test_flattened_atom_target_speaker_default_and_roundtrip() -> None:
+    """Test FlattenedAtom target_speaker default and explicit roundtrip."""
+    from backend_v2.models.enums import TargetSpeaker
+
+    # Default to USER
+    atom_default = FlattenedAtom(atom_id="atm_1", question="Is this user text?")
+    assert atom_default.target_speaker == TargetSpeaker.USER
+
+    # Explicit AI
+    atom_ai = FlattenedAtom(atom_id="atm_2", question="Is this AI text?", target_speaker=TargetSpeaker.AI)
+    assert atom_ai.target_speaker == TargetSpeaker.AI
+
+    # Roundtrip serialization
+    dumped = atom_ai.model_dump(mode="json")
+    assert dumped["target_speaker"] == "AI"
+    reconstituted = FlattenedAtom.model_validate(dumped)
+    assert reconstituted.target_speaker == TargetSpeaker.AI
+
+
+
 def test_matrix_evaluation_context_strictness() -> None:
     """Test that MatrixEvaluationContext forbids extra fields."""
     with pytest.raises(ValidationError):

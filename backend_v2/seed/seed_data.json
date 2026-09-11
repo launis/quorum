@@ -15416,33 +15416,37 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "The step-by-step reasoning details favorable arguments extensively while omitting steps for disfavored options.",
-                  "anchor_target": "Find asymmetrical decomposition across competing options.",
+                  "concept_description": "The step-by-step reasoning details favorable options exhaustively while dismissing competing alternatives declaratively without evaluating them against objective criteria.",
+                  "anchor_target": "Find unreasoned dismissals or asymmetrical evaluation dimensions across competing options.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate comparative evaluations and verify if competing alternatives lack equal step-by-step analytical tracing.",
+                  "extraction_rule": "Locate comparative evaluations across alternatives and verify whether disfavored options are dismissed through unreasoned assertion rather than criterion-based evaluation. Relative text volume is irrelevant; shared evaluation criteria are mandatory.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Locate sections comparing two or more strategic options or technological architectures.",
+                      "instruction": "Locate sections comparing two or more competing strategic, architectural, or procedural alternatives.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Examine the depth of analysis, evidence cited, and criteria evaluated for each option.",
+                      "instruction": "Examine whether competing options are evaluated against shared criteria rather than dismissing alternatives with subjective claims.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm whether the preferred option is analyzed exhaustively while disfavored alternatives are dismissed with superficial bullet points.",
+                      "instruction": "Confirm whether the disfavored alternative has an explicit, verifiable rejection threshold across those criteria, even if its documentation is substantially more concise.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "providing detailed multi-step proof for chosen option while dismissing competitor in a single sentence",
+                      "pattern": "providing detailed multi-step proof for chosen option while dismissing competitor in a single declarative sentence without stating the disqualifying criterion",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "evaluating favored option across multi-dimensional criteria while dismissing competitor based on subjective distaste",
                       "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Option A evaluated across cost, security, and maintenance (2 pages); Option B evaluated across identical matching criteria (2 pages).",
-                    "rejected": "Option A receives a comprehensive 5-step technical teardown, while Option B is dismissed in one sentence as too expensive."
+                    "acceptable": "Option A (rubber-band catapult) is chosen across budget ($5) and launch distance (12 meters). Option B (balloon thruster) was evaluated against the exact same criteria but rejected because its 3-meter range fails our 10-meter minimum threshold.",
+                    "rejected": "Option A (rubber-band catapult) received a multi-step engineering analysis covering elasticity, trigger friction, and wind drift (3 paragraphs). Option B (balloon thruster) was dismissed in one sentence as 'obviously silly and unviable' without testing its range or budget."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -15673,33 +15677,37 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Academic citations or formal theorems are dropped decoratively without integrating into the deductive logic.",
-                  "anchor_target": "Find ornamental citations lacking functional deductive linkage.",
+                  "concept_description": "Academic citations or formal theories are dropped decoratively without articulating substantive findings or connecting them deductively to the operational conclusion.",
+                  "anchor_target": "Find ornamental or disconnected authority citations lacking causal deductive linkage.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Locate authoritative citations and verify if the referenced theory is merely named as ornament rather than used to calculate inferences.",
+                  "extraction_rule": "Locate authoritative citations and verify whether the author merely names the source as an ornament or actively articulates a specific empirical finding/law and uses it as a foundational premise for the operational decision.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Locate references to formal theorems, academic papers, or prestigious authorities in the text.",
+                      "instruction": "Locate references to formal theorems, academic papers, research institutes, or authoritative experts.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Examine whether the referenced theoretical framework is actively integrated into the deductive calculation or reasoning.",
+                      "instruction": "Verify whether the text articulates a specific empirical finding, causal mechanism, or theoretical principle discovered by the cited source.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm whether the citation is merely dropped as an aesthetic ornament without functional role in the deduction.",
+                      "instruction": "Confirm whether that articulated mechanism directly governs or justifies the operational conclusion, rather than being attached as a detached aesthetic label.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "citation dropped in parentheses without connecting its core principles to the reasoning chain",
+                      "pattern": "naming an authoritative researcher or institution without articulating what specific law or finding was discovered",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "invoking formal theories as decorative metaphors without using their mechanisms to justify the decision",
                       "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Applying Bayes' Theorem P(A|B) = [P(B|A)*P(A)]/P(B) with base rate P(A)=0.02 and sensitivity P(B|A)=0.95 yields a posterior probability of 0.28.",
-                    "rejected": "Following the principles of Bayesian reasoning and quantum decision theory, we recommend hiring three more engineers."
+                    "acceptable": "Applying Dr. Fluffytail's kinetic study proving exercise wheels larger than 30 cm prevent spinal curvature in dwarf hamsters, we install 32 cm bamboo wheels in all habitat pods.",
+                    "rejected": "Guided by Dr. Fluffytail's world-renowned rodent research and prestigious biology publications, we recommend purchasing our premier hamster cages."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,

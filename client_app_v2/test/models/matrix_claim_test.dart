@@ -29,6 +29,7 @@ void main() {
         expect(tda.aggregationMode, AggregationMode.exists);
         expect(tda.evaluationTrack, EvaluationTrack.cognitiveJudgement);
         expect(tda.boundingBoxScope, 'paragraph');
+        expect(tda.targetSpeaker, TargetSpeaker.user);
       },
     );
 
@@ -68,6 +69,36 @@ void main() {
           claim.tdaAssertions.first.conceptDescription,
           'Executive presence exhibited during board sessions',
         );
+        expect(claim.tdaAssertions.first.targetSpeaker, TargetSpeaker.user);
+      },
+    );
+
+    test(
+      'Positive: TDAAssertion serializes and deserializes target_speaker correctly',
+      () {
+        final tdaUser = TDAAssertion.create(
+          conceptDescription: 'Valid concept for user evaluation',
+          inverseEvidence: false,
+          aggregationMode: AggregationMode.exists,
+          targetSpeaker: TargetSpeaker.user,
+        );
+        expect(tdaUser.targetSpeaker, TargetSpeaker.user);
+        final jsonUser = tdaUser.toJson();
+        expect(jsonUser['target_speaker'], 'USER');
+        final roundtripUser = TDAAssertion.fromJson(jsonUser);
+        expect(roundtripUser.targetSpeaker, TargetSpeaker.user);
+
+        final tdaAi = TDAAssertion.create(
+          conceptDescription: 'Valid concept for AI evaluation',
+          inverseEvidence: false,
+          aggregationMode: AggregationMode.exists,
+          targetSpeaker: TargetSpeaker.ai,
+        );
+        expect(tdaAi.targetSpeaker, TargetSpeaker.ai);
+        final jsonAi = tdaAi.toJson();
+        expect(jsonAi['target_speaker'], 'AI');
+        final roundtripAi = TDAAssertion.fromJson(jsonAi);
+        expect(roundtripAi.targetSpeaker, TargetSpeaker.ai);
       },
     );
 

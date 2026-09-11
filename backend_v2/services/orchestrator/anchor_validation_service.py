@@ -9,7 +9,7 @@ from rapidfuzz import fuzz
 
 from backend_v2.exceptions import SemanticEvidenceError
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
-from backend_v2.models.enums import ValidationThresholdRatio
+from backend_v2.models.enums import TargetSpeaker, ValidationThresholdRatio
 from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.settings import get_lexical_fuzz_threshold
 
@@ -176,8 +176,7 @@ class AnchorValidationService:
         safety_net = ValidationThresholdRatio.COVERAGE_SAFETY_NET.value
         matcher = difflib.SequenceMatcher(None, norm_quote, norm_text)
         match = matcher.find_longest_match(0, len(norm_quote), 0, len(norm_text))
-
-        coverage_pct = match.size / len(norm_quote) if len(norm_quote) > 0 else 0.0
+        coverage_pct = match.size / len(norm_quote)
 
         if coverage_pct >= safety_net:
             logger.warning(
@@ -208,9 +207,11 @@ class AnchorValidationService:
         pdf_text: str,
         exact_quotes: list[str] | None,
         reasoning_trace: str | None = None,
+        syntactic_anchors: list[str] | None = None,
         contextual_override: bool = False,
         locale: str | None = None,
         strictness_level: int = 50,
+        target_speaker: TargetSpeaker = TargetSpeaker.USER,
     ) -> list[str] | None:
         """Validates evidence strictly and extracts the exact physical string.
 
@@ -218,9 +219,11 @@ class AnchorValidationService:
             pdf_text: The source text context.
             exact_quotes: The quotes extracted by the LLM.
             reasoning_trace: Optional trace containing the LLM's logical breakdown.
+            syntactic_anchors: Optional list of syntactic anchors to locate.
             contextual_override: If True, skips lexical validation.
             locale: Optional locale string to determine the fuzzy fallback threshold.
             strictness_level: Strictness tolerance boundary percentage.
+            target_speaker: Target speaker stream (USER or AI) for conversational dialogue.
 
         Returns:
             The exact_quotes (overridden with original whitespace) if valid, or None if overridden.
@@ -243,8 +246,20 @@ class AnchorValidationService:
 
         # Pre-Flight Provenance Check
         user_payload_matches = re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.IGNORECASE | re.DOTALL)
-        if user_payload_matches:
-            allowed_source_text = " \n\n ".join(user_payload_matches)
+        ai_draft_matches = re.findall(
+            r"<ai_draft_context>(.*?)</ai_draft_context>", pdf_text, re.IGNORECASE | re.DOTALL
+        )
+        if user_payload_matches or ai_draft_matches:
+            if target_speaker == TargetSpeaker.USER:
+                allowed_source_text = "\n\n".join(user_payload_matches)
+            else:
+                allowed_source_text = "\n\n".join(ai_draft_matches)
+
+            if not allowed_source_text:
+                raise SemanticEvidenceError(
+                    message="PROVENANCE_VIOLATION: Quote breached structured provenance boundary"
+                )
+
             norm_allowed_source, _ = AnchorValidationService.normalize_text_with_mapping(allowed_source_text)
             for quote in exact_quotes:
                 norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)

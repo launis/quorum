@@ -250,6 +250,7 @@ class StudioSimulationService:
                                 acceptance_criteria=tuple(tda.acceptance_criteria),
                                 anti_patterns=tuple(tda.anti_patterns),
                                 syntactic_anchors=tuple(tda.syntactic_anchors),
+                                target_speaker=tda.target_speaker,
                             )
                         )
 

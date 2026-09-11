@@ -93,6 +93,7 @@ __all__ = [
     "SystemConfigID",
     "SystemLocale",
     "TargetBlockType",
+    "TargetSpeaker",
     "TitleKey",
     "UiVariant",
     "ValidationThresholdRatio",
@@ -871,3 +872,10 @@ class PresetView(StrEnum):
 
 
 LaxPresetView = PresetView | str
+
+
+class TargetSpeaker(StrEnum):
+    """Evaluated target speaker for dialogue or deliverable claims."""
+
+    USER = "USER"
+    AI = "AI"

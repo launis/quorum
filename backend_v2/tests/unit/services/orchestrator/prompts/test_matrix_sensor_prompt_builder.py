@@ -3,7 +3,7 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
 from backend_v2.models.v2_core import TheoryGrounding
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
@@ -387,3 +387,62 @@ def test_build_compiled_prompt_invalid_locale_raises_app_exception(invalid_local
     assert exc_info.value.status_code == 400
     assert "target_locale must be a non-empty string" in exc_info.value.message
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_build_compiled_prompt_injects_target_speaker() -> None:
+    """Positive partition: target_speaker is CDATA-encapsulated in Layer 4 dynamic messages."""
+    tda_user = "tda_11111111111111111111111111111111"
+    tda_ai = "tda_22222222222222222222222222222222"
+
+    atom_user = FlattenedAtom(
+        atom_id=tda_user,
+        question="Did the user define requirements?",
+        target_speaker=TargetSpeaker.USER,
+    )
+    atom_ai = FlattenedAtom(
+        atom_id=tda_ai,
+        question="Did the AI avoid hallucination?",
+        target_speaker=TargetSpeaker.AI,
+    )
+    matrix_context = MatrixEvaluationContext(matrix_assertions=[atom_user, atom_ai])
+
+    node_user = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id=tda_user,
+            resolved_claim="User requirements",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+    node_ai = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id=tda_ai,
+            resolved_claim="AI accuracy",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_2",
+            source_sequence_index=2,
+        ),
+    )
+
+    compiled = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text="Dialogue content here",
+        nodes=[node_user, node_ai],
+        tda_id_to_alias={tda_user: "a0", tda_ai: "a1"},
+        target_locale="en",
+        matrix_context=matrix_context,
+    )
+
+    # Invariants:
+    # 1. Dynamic speaker claims must NOT be in static messages (prefix caching preservation)
+    static_content = "\n".join(m.content for m in compiled.static_messages)
+    assert "<![CDATA[USER]]>" not in static_content
+    assert "<![CDATA[AI]]>" not in static_content
+
+    # 2. target_speaker must be in dynamic messages
+    dynamic_content = compiled.dynamic_messages[0].content
+    assert "<target_speaker>" in dynamic_content
+    assert "<![CDATA[USER" in dynamic_content
+    assert "<![CDATA[AI" in dynamic_content

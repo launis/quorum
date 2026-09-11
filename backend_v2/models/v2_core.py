@@ -46,6 +46,7 @@ from backend_v2.models.enums import (
     StepType,
     StrictnessAnchor,
     TargetBlockType,
+    TargetSpeaker,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.settings import get_settings
@@ -229,6 +230,14 @@ class TDAAssertion(V2CoreBase):
         default=False,
         description="If True, enables multi-agent ensemble majority voting for this assertion.",
     )
+    target_speaker: Annotated[
+        TargetSpeaker,
+        Field(
+            default=TargetSpeaker.USER,
+            strict=False,
+            description="Evaluated target actor (USER, AI). Defaults to USER.",
+        ),
+    ] = TargetSpeaker.USER
 
     # Monolingual concept description consumed by the LLM extraction pipeline
     concept_description: Annotated[

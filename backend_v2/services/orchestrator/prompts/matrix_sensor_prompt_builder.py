@@ -180,6 +180,9 @@ class MatrixSensorPromptBuilder:
                     i_cdata = TemplateProcessor.encapsulate_payload(str(assertion.is_inverse))
                     content += f"<is_inverse>\n{i_cdata}\n</is_inverse>\n"
 
+                speaker_cdata = TemplateProcessor.encapsulate_payload(assertion.target_speaker.value)
+                content += f"<target_speaker>\n{speaker_cdata}\n</target_speaker>\n"
+
                 if assertion.contrastive_example:
                     acc_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.acceptable)
                     rej_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.rejected)

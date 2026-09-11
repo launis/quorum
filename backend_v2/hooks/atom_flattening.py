@@ -140,6 +140,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                                 acceptance_criteria=tuple(tda.acceptance_criteria),
                                 anti_patterns=tuple(tda.anti_patterns),
                                 syntactic_anchors=tuple(tda.syntactic_anchors),
+                                target_speaker=tda.target_speaker,
                             )
                             scale_atoms.append(atom_entry)
                             all_matrix_atoms[aid] = atom_entry

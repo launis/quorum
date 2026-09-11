@@ -188,6 +188,7 @@ _TDAAssertion _$TDAAssertionFromJson(
         'anchor_target',
         'bounding_box_scope',
         'extraction_rule',
+        'target_speaker',
       ],
     );
     final val = _TDAAssertion(
@@ -265,6 +266,12 @@ _TDAAssertion _$TDAAssertionFromJson(
         (v) => v as String? ?? 'paragraph',
       ),
       extractionRule: $checkedConvert('extraction_rule', (v) => v as String?),
+      targetSpeaker: $checkedConvert(
+        'target_speaker',
+        (v) =>
+            $enumDecodeNullable(_$TargetSpeakerEnumMap, v) ??
+            TargetSpeaker.user,
+      ),
     );
     return val;
   },
@@ -286,6 +293,7 @@ _TDAAssertion _$TDAAssertionFromJson(
     'anchorTarget': 'anchor_target',
     'boundingBoxScope': 'bounding_box_scope',
     'extractionRule': 'extraction_rule',
+    'targetSpeaker': 'target_speaker',
   },
 );
 
@@ -310,6 +318,7 @@ Map<String, dynamic> _$TDAAssertionToJson(_TDAAssertion instance) =>
       'anchor_target': instance.anchorTarget,
       'bounding_box_scope': instance.boundingBoxScope,
       'extraction_rule': instance.extractionRule,
+      'target_speaker': _$TargetSpeakerEnumMap[instance.targetSpeaker]!,
     };
 
 const _$AggregationModeEnumMap = {
@@ -320,6 +329,11 @@ const _$AggregationModeEnumMap = {
 const _$EvaluationTrackEnumMap = {
   EvaluationTrack.extractiveSensor: 'EXTRACTIVE_SENSOR',
   EvaluationTrack.cognitiveJudgement: 'COGNITIVE_JUDGEMENT',
+};
+
+const _$TargetSpeakerEnumMap = {
+  TargetSpeaker.user: 'USER',
+  TargetSpeaker.ai: 'AI',
 };
 
 _MatrixClaim _$MatrixClaimFromJson(Map<String, dynamic> json) =>

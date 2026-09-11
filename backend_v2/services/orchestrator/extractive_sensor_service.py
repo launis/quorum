@@ -2,9 +2,9 @@
 
 import asyncio
 import logging
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
@@ -70,11 +70,34 @@ class BooleanEvaluationResult(BaseModel):
     @classmethod
     def truncate_source_quote_at_sentence(cls, v: str | None) -> str | None:
         """Truncate oversized quote at the nearest sentence boundary under 500 chars."""
-        if v is not None and len(v) > 500:
+        if isinstance(v, str):
+            v = v.strip()
+        if not v:
+            return None
+        if len(v) > 500:
             truncated = v[:500]
             last_dot = truncated.rfind(".")
             return (truncated[: last_dot + 1]) if last_dot > 100 else truncated
         return v
+
+    @model_validator(mode="after")
+    def validate_source_quote_invariants(self) -> Self:
+        """Validate strict evidence quote presence and null hypothesis invariants."""
+        if self.is_true:
+            if self.contextual_override:
+                if self.source_quote is not None:
+                    raise ValueError(
+                        "Null hypothesis violation: source_quote must be None when contextual_override is True."
+                    )
+            else:
+                if not self.source_quote or not self.source_quote.strip():
+                    raise ValueError(
+                        "Ungrounded positive evaluation: source_quote must be populated with non-empty text when is_true is True."
+                    )
+        else:
+            if self.source_quote is not None:
+                raise ValueError("Null hypothesis violation: source_quote must be None when is_true is False.")
+        return self
 
 
 class BatchEvaluationResponse(BaseModel):
@@ -500,7 +523,7 @@ class ExtractiveSensorService:
 
                     return call_results, usage
                 except Exception as e:
-                    if isinstance(e, AgentExecutionError) or _is_transient_llm_error(e):
+                    if isinstance(e, (AgentExecutionError, ValidationError)) or _is_transient_llm_error(e):
                         logger.warning("Transient error in Bo3 ensemble call: %s", e)
                         return None, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
                     raise

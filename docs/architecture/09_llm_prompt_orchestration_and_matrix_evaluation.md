@@ -46,7 +46,7 @@ graph TD
 
 ## 2. Comprehensive TDA Matrix Evaluation Reference
 
-A Test-Driven Assertion (TDA) represents the smallest indivisible unit of evidentiary evaluation within a BARS scale. Each TDA assertion configures twelve operational parameters controlling lexical pre-filtering, spatial bounding, deductive logic, and scoring polarity.
+A Test-Driven Assertion (TDA) represents the smallest indivisible unit of evidentiary evaluation within a BARS scale. Each TDA assertion configures thirteen operational parameters controlling lexical pre-filtering, spatial bounding, deductive logic, scoring polarity, and target speaker attribution.
 
 ### 2.1 Evaluation Track (`evaluation_track`)
 * **Role:** Defines the processing pipeline: cognitive analytical deduction vs. deterministic extractive logic.
@@ -281,6 +281,32 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
 
 ---
 
+### 2.13 Target Speaker Attribution (`target_speaker`)
+* **Role:** Gating claim evaluation and evidence extraction to the appropriate speaker stream.
+* **Constraints:** Strictly binary enum `TargetSpeaker` (`USER` or `AI`), with default value `TargetSpeaker.USER`. Ungrounded bypasses (`ALL`) or loose role strings are strictly forbidden.
+* **Options & Operational Behavior:**
+  * **Option A: Non-Dialogue Single-Author Deliverables (`is_chat_history == False`):**
+    * Author identity is unconditionally `USER`. The assertion deterministically evaluates against the raw source document without dialogue stream splitting.
+  * **Option B: Multi-Turn Conversational Dialogue (`is_chat_history == True`):**
+    * *`target_speaker = TargetSpeaker.USER`:* Evaluates human intent, direction, agency, and constraints. Evidence quotes must reside strictly within `<user_payload>` tags; any citation found only in `<ai_draft_context>` triggers a semantic provenance violation.
+    * *`target_speaker = TargetSpeaker.AI`:* Evaluates model sycophancy, adherence, hallucination, or tool usage. Evidence quotes must reside strictly within `<ai_draft_context>` tags; any citation found only in `<user_payload>` triggers a semantic provenance violation.
+* **Prompt Wrapper & Mechanics:**
+  Encapsulated inside a CDATA block within `<target_speaker>` inside the `<claim>` block:
+  ```xml
+  <claim alias="a0">
+    <target_speaker><![CDATA[USER]]></target_speaker>
+    ...
+  </claim>
+  ```
+  Bound to Layer 1 `<speaker_attribution_protocol>`:
+  ```xml
+  <speaker_attribution_protocol>
+  - SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
+  </speaker_attribution_protocol>
+  ```
+
+---
+
 ## 3. End-to-End Prompt Assembly & Transmission
 
 When Quorum compiles an evaluation step, it packages the static prefix and dynamic parameters into a strictly segregated message structure:
@@ -292,6 +318,10 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 - CRITICAL EVALUATION DIRECTIVE: Evaluate if the claims in the dynamic parameters are true based strictly on the provided context.
 - Match each evaluation strictly to its claim's alias (specifically: `a0`, `a1`, `a2`).
 </evaluation_directives>
+
+<speaker_attribution_protocol>
+- SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
+</speaker_attribution_protocol>
 
 <epistemic_decision_protocol>
 - POSITIVE CLAIMS (Standard Evidence): Evaluate whether the required structure is explicitly substantiated.
@@ -321,6 +351,7 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 
 <execution_parameters>
   <claim alias="a0">
+    <target_speaker><![CDATA[USER]]></target_speaker>
     <question>
 <![CDATA[Asserts a causal relationship based solely on statistical correlation or simultaneous observation without identifying any transmission mechanism.]]>
     </question>
@@ -351,6 +382,10 @@ The model returns an immutable JSON payload matching the Pydantic `BatchEvaluati
   ]
 }
 ```
+
+The underlying sensor model `BooleanEvaluationResult` enforces the **Null Hypothesis Guardrail** at the Pydantic schema validation boundary (`@model_validator(mode="after")`):
+* When `is_true == True` and `contextual_override == False`: `source_quote` MUST be a non-empty, non-whitespace string. Any ungrounded affirmative claim immediately raises a validation exception.
+* When `is_true == False` or `contextual_override == True`: `source_quote` MUST be `None`. Any lingering citation on a refuted or overridden claim is strictly rejected.
 
 The service layer resolves `a0` to its concrete assertion ID via `AliasEngine`, applies the `is_inverse = True` mapping, and marks the result as `ExecutionStatus.FAILED` with the exact citation preserved for Server-Driven UI (SDUI) rendering.
 
