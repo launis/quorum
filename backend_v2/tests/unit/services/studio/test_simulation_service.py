@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, PropertyMock
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.auth import TokenData
+from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -17,9 +17,15 @@ from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepSimulationResponse,
+    StepSimulationTraceDTO,
     WorkflowSimulationResponse,
 )
-from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
+from backend_v2.models.enums import (
+    BlockDataType,
+    HistoricalContextMode,
+    PromptBlockCategory,
+    StepType,
+)
 from backend_v2.models.v2_core import (
     ExpectedInput,
     I18nText,
@@ -49,7 +55,7 @@ def test_token() -> TokenData:
         id="usr_1234567890abcdef1234567890abcdef",
         organization_id="org_1234567890abcdef1234567890abcdef",
         email="test@example.com",
-        role="ADMIN",
+        role=UserRole.ADMIN,
     )
 
 
@@ -303,6 +309,7 @@ async def test_simulate_prompt_block_matrix_scales(
                                 concept_description="Verify that evidence exists",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -357,6 +364,7 @@ async def test_simulate_prompt_block_matrix_scales_filter_target_score(
                                 concept_description="Rule for scale 1",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -373,6 +381,7 @@ async def test_simulate_prompt_block_matrix_scales_filter_target_score(
                                 concept_description="Rule for scale 5",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -385,6 +394,7 @@ async def test_simulate_prompt_block_matrix_scales_filter_target_score(
         test_token,
         PromptBlockSimulationRequest(
             block=block,
+            mock_inputs={},
             target_scale_score=5,
             target_locale="en",
         ),
@@ -418,6 +428,7 @@ async def test_simulate_prompt_block_matrix_scales_score_not_found(
                                 concept_description="Rule for scale 1",
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -431,6 +442,7 @@ async def test_simulate_prompt_block_matrix_scales_score_not_found(
             test_token,
             PromptBlockSimulationRequest(
                 block=block,
+                mock_inputs={},
                 target_scale_score=99,
             ),
         )
@@ -462,7 +474,7 @@ async def test_simulate_prompt_block_matrix_scales_zero_claims(
     with pytest.raises(AppException) as exc_info:
         await simulation_service.simulate_prompt_block(
             test_token,
-            PromptBlockSimulationRequest(block=block),
+            PromptBlockSimulationRequest(block=block, mock_inputs={}),
         )
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
@@ -533,7 +545,7 @@ async def test_simulate_step_success(
     mock_prompt_block_service: AsyncMock,
     test_token: TokenData,
 ) -> None:
-    """Test step simulation resolving role, protocol, and criteria blocks."""
+    """Test step simulation resolving role, protocol, execution persona, and criteria blocks."""
     mock_block = PersonaPromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="role_block",
@@ -550,20 +562,92 @@ async def test_simulate_step_success(
         slug="step_analyze",
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
-        type="llm",
+        type=StepType.LLM,
         model_strategy="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
+        execution_persona_block_id="blk_11111111111111111111111111111111",
         criteria_block_ids=["blk_11111111111111111111111111111111"],
         hook="scoring_hook",
     )
 
-    res = await simulation_service.simulate_step(test_token, step, mock_inputs={})
+    res = await simulation_service.simulate_step(
+        test_token,
+        step,
+        mock_inputs={},
+        target_locale="en",
+        context_text="[SIMULATED CONTEXT DOCUMENT]",
+    )
     assert res.valid is True
     assert "--- Prompt Block: blk_11111111111111111111111111111111 ---" in res.rendered_prompt
     assert "[Execution Hook: scoring_hook]" in res.rendered_prompt
     assert res.prompt_context is not None
     assert res.prompt_context.metadata["simulated_step"] == step.id
+    assert isinstance(res.trace, StepSimulationTraceDTO)
+    assert res.trace.execution_time_ms == 0.0
+    assert res.trace.estimated_tokens >= 0
+
+
+@pytest.mark.asyncio
+async def test_simulate_step_matrix_blocks_success(
+    simulation_service: StudioSimulationService,
+    mock_prompt_block_service: AsyncMock,
+    test_token: TokenData,
+) -> None:
+    """Test step simulation containing matrix criteria blocks invokes prompt compilation and populates dynamic_messages."""
+    matrix_block = MatrixPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="matrix_block",
+        label=I18nText(translations={"en": "Matrix"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim 1"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                concept_description="Verify that claim 1 evidence is present in context",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                depends_on=(),
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+    mock_prompt_block_service.get_prompt_block.return_value = matrix_block
+
+    step = Step(
+        id="stp_22222222222222222222222222222222",
+        slug="step_matrix",
+        name=I18nText(translations={"en": "Matrix Step"}),
+        description=I18nText(translations={"en": "Desc"}),
+        type=StepType.LLM,
+        model_strategy="fast",
+        extraction_protocol_block_id="blk_22222222222222222222222222222222",
+        criteria_block_ids=["blk_22222222222222222222222222222222"],
+    )
+
+    res = await simulation_service.simulate_step(
+        test_token,
+        step,
+        mock_inputs={},
+        target_locale="en",
+        context_text="Sample interview text for evaluation.",
+    )
+    assert res.valid is True
+    assert res.prompt_context is not None
+    assert len(res.prompt_context.static_messages) > 0
+    assert len(res.prompt_context.dynamic_messages) > 0
+    assert isinstance(res.trace, StepSimulationTraceDTO)
+    assert res.trace.estimated_tokens > 0
 
 
 @pytest.mark.asyncio
@@ -580,7 +664,7 @@ async def test_simulate_step_prompt_block_not_found(
         slug="step_missing_block",
         name=I18nText(translations={"en": "Step"}),
         description=I18nText(translations={"en": "Desc"}),
-        type="llm",
+        type=StepType.LLM,
         model_strategy="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_22222222222222222222222222222222",
@@ -591,6 +675,7 @@ async def test_simulate_step_prompt_block_not_found(
     assert res.valid is False
     assert any("Missing referenced Prompt Block" in err for err in res.errors)
     assert "[NOT FOUND]" in res.rendered_prompt
+    assert isinstance(res.trace, StepSimulationTraceDTO)
 
 
 @pytest.mark.asyncio
@@ -619,12 +704,6 @@ async def test_studio_simulation_returns_strict_dtos(
     test_token: TokenData,
 ) -> None:
     """Test Contract 1: Verify simulation service methods return strictly typed DTO models."""
-    from backend_v2.models.dtos.studio import (
-        PromptBlockSimulationResponse,
-        StepSimulationResponse,
-        WorkflowSimulationResponse,
-    )
-
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
         slug="test_instruction",
@@ -641,7 +720,7 @@ async def test_studio_simulation_returns_strict_dtos(
         slug="step_analyze",
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
-        type="llm",
+        type=StepType.LLM,
         model_strategy="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
@@ -669,6 +748,7 @@ async def test_studio_simulation_returns_strict_dtos(
 
     step_res = await simulation_service.simulate_step(test_token, step, {})
     assert isinstance(step_res, StepSimulationResponse)
+    assert isinstance(step_res.trace, StepSimulationTraceDTO)
 
     wf_res = await simulation_service.simulate_workflow(test_token, workflow)
     assert isinstance(wf_res, WorkflowSimulationResponse)

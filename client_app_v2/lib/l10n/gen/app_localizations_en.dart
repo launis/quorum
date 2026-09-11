@@ -4956,7 +4956,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get previewPromptDynamicTab => 'Claims & Rules (Payload)';
 
   @override
-  String get previewPromptSchemaTab => 'Expected Schema';
+  String get previewPromptSchemaTab => 'Compiled Prompt & Schema (Output)';
 
   @override
   String get xaiMacroSynthesisSectionTitle =>
@@ -4973,4 +4973,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get xaiMicroAtomSectionSubtitle =>
       'Extracted directly from individual matrix observations.';
+
+  @override
+  String get stepSimulationTitle => 'Step Simulation & Prompt Preview';
+
+  @override
+  String get stepSimulationSubtitle =>
+      'Dry-run and inspect compiled prompts across static and dynamic boundaries';
+
+  @override
+  String get expectedInputsSection => 'Expected Inputs';
+
+  @override
+  String get contextDocumentLabel => 'Context Document Text';
+
+  @override
+  String get targetLocaleLabel => 'Target Locale';
+
+  @override
+  String get runSimulationBtn => 'Run Simulation';
+
+  @override
+  String get noExpectedInputsNotice =>
+      'No expected inputs declared for this step.';
+
+  @override
+  String get stepSimulationExecutionTime => 'Execution Time';
+
+  @override
+  String get stepSimulationEstimatedTokens => 'Estimated Tokens';
+
+  @override
+  String get dialogOk => 'OK';
 }

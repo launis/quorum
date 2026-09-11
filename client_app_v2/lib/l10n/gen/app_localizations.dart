@@ -8949,7 +8949,7 @@ abstract class AppLocalizations {
   /// No description provided for @previewPromptSchemaTab.
   ///
   /// In en, this message translates to:
-  /// **'Expected Schema'**
+  /// **'Compiled Prompt & Schema (Output)'**
   String get previewPromptSchemaTab;
 
   /// No description provided for @xaiMacroSynthesisSectionTitle.
@@ -8975,6 +8975,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Extracted directly from individual matrix observations.'**
   String get xaiMicroAtomSectionSubtitle;
+
+  /// No description provided for @stepSimulationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Step Simulation & Prompt Preview'**
+  String get stepSimulationTitle;
+
+  /// No description provided for @stepSimulationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Dry-run and inspect compiled prompts across static and dynamic boundaries'**
+  String get stepSimulationSubtitle;
+
+  /// No description provided for @expectedInputsSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Expected Inputs'**
+  String get expectedInputsSection;
+
+  /// No description provided for @contextDocumentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Context Document Text'**
+  String get contextDocumentLabel;
+
+  /// No description provided for @targetLocaleLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Target Locale'**
+  String get targetLocaleLabel;
+
+  /// No description provided for @runSimulationBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Run Simulation'**
+  String get runSimulationBtn;
+
+  /// No description provided for @noExpectedInputsNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'No expected inputs declared for this step.'**
+  String get noExpectedInputsNotice;
+
+  /// No description provided for @stepSimulationExecutionTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Execution Time'**
+  String get stepSimulationExecutionTime;
+
+  /// No description provided for @stepSimulationEstimatedTokens.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated Tokens'**
+  String get stepSimulationEstimatedTokens;
+
+  /// No description provided for @dialogOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get dialogOk;
 }
 
 class _AppLocalizationsDelegate

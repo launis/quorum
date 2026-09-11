@@ -4991,7 +4991,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get previewPromptDynamicTab => 'Väitteet & Säännöt (Payload)';
 
   @override
-  String get previewPromptSchemaTab => 'Vastausskeema';
+  String get previewPromptSchemaTab => 'Koottu kehote & skeema (Tuloste)';
 
   @override
   String get xaiMacroSynthesisSectionTitle =>
@@ -5008,4 +5008,37 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get xaiMicroAtomSectionSubtitle =>
       'Poimitaan suoraan matriisin yksittäisistä havainnoista.';
+
+  @override
+  String get stepSimulationTitle =>
+      'Askeleen simulaatio ja kehotteen esikatselu';
+
+  @override
+  String get stepSimulationSubtitle =>
+      'Esikatsele ja validoi koottu kehote staattisten ja dynaamisten rajojen yli';
+
+  @override
+  String get expectedInputsSection => 'Odotetut syötteet';
+
+  @override
+  String get contextDocumentLabel => 'Kontekstidokumentin teksti';
+
+  @override
+  String get targetLocaleLabel => 'Kohdekieli';
+
+  @override
+  String get runSimulationBtn => 'Suorita simulaatio';
+
+  @override
+  String get noExpectedInputsNotice =>
+      'Askeleelle ei ole määritelty odotettuja syötteitä.';
+
+  @override
+  String get stepSimulationExecutionTime => 'Suoritusaika';
+
+  @override
+  String get stepSimulationEstimatedTokens => 'Arvioidut tokenit';
+
+  @override
+  String get dialogOk => 'Selvä';
 }

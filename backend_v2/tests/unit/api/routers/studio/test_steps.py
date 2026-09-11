@@ -1,5 +1,6 @@
 """Unit tests for backend_v2/api/routers/studio/steps.py router."""
 
+from collections.abc import Generator
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,8 +13,9 @@ from backend_v2.api.dependencies import (
     get_studio_workflow_service,
 )
 from backend_v2.api.routers.studio.steps import router
-from backend_v2.models.auth import TokenData
-from backend_v2.models.dtos.studio import StepSimulationResponse
+from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.dtos.studio import StepSimulationResponse, StepSimulationTraceDTO
+from backend_v2.models.enums import StepType
 from backend_v2.models.v2_core import I18nText, Step
 
 app = FastAPI()
@@ -22,18 +24,18 @@ client = TestClient(app)
 
 
 def mock_get_current_user() -> TokenData:
-    return TokenData(id="test_usr", role="ROOT", organization_id="root_org")
+    return TokenData(id="test_usr", role=UserRole.ROOT, organization_id="root_org")
 
 
 @pytest.fixture(autouse=True)
-def setup_overrides():
+def setup_overrides() -> Generator[None]:
     app.dependency_overrides[get_current_user_from_header] = mock_get_current_user
     yield
     app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def mock_studio_services():
+def mock_studio_services() -> tuple[AsyncMock, AsyncMock]:
     mock_workflow = AsyncMock()
     mock_simulation = AsyncMock()
     app.dependency_overrides[get_studio_workflow_service] = lambda: mock_workflow
@@ -48,7 +50,7 @@ def sample_step() -> Step:
         slug="test_step",
         name=I18nText(translations={"fi": "Testi", "en": "Test"}),
         description=I18nText(translations={"fi": "Kuvaus", "en": "Description"}),
-        type="logic",
+        type=StepType.LOGIC,
         hook="input_processing_hook",
         is_system_core=False,
     )
@@ -61,7 +63,7 @@ def test_router_initialization() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_steps(mock_studio_services, sample_step: Step) -> None:
+async def test_get_steps(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test GET /steps/ retrieves step list."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.list_steps.return_value = [sample_step]
@@ -73,7 +75,7 @@ async def test_get_steps(mock_studio_services, sample_step: Step) -> None:
 
 
 @pytest.mark.asyncio
-async def test_create_step(mock_studio_services, sample_step: Step) -> None:
+async def test_create_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test POST /steps/ creates step draft."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.create_step_draft.return_value = sample_step
@@ -84,7 +86,7 @@ async def test_create_step(mock_studio_services, sample_step: Step) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_step(mock_studio_services, sample_step: Step) -> None:
+async def test_get_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test GET /steps/{id} retrieves specific step."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.get_step.return_value = sample_step
@@ -95,7 +97,7 @@ async def test_get_step(mock_studio_services, sample_step: Step) -> None:
 
 
 @pytest.mark.asyncio
-async def test_save_step(mock_studio_services, sample_step: Step) -> None:
+async def test_save_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test PUT /steps/{id} saves step configuration."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.save_step.return_value = sample_step
@@ -106,7 +108,7 @@ async def test_save_step(mock_studio_services, sample_step: Step) -> None:
 
 
 @pytest.mark.asyncio
-async def test_delete_step(mock_studio_services) -> None:
+async def test_delete_step(mock_studio_services: tuple[AsyncMock, AsyncMock]) -> None:
     """Test DELETE /steps/{id} deletes step."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.delete_step.return_value = None
@@ -117,7 +119,7 @@ async def test_delete_step(mock_studio_services) -> None:
 
 
 @pytest.mark.asyncio
-async def test_clone_step(mock_studio_services, sample_step: Step) -> None:
+async def test_clone_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test POST /steps/{id}/clone clones step."""
     mock_workflow, _ = mock_studio_services
     mock_workflow.clone_step.return_value = sample_step
@@ -128,14 +130,14 @@ async def test_clone_step(mock_studio_services, sample_step: Step) -> None:
 
 
 @pytest.mark.asyncio
-async def test_simulate_step(mock_studio_services, sample_step: Step) -> None:
+async def test_simulate_step(mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step) -> None:
     """Test POST /steps/simulate executes step simulation."""
     _, mock_simulation = mock_studio_services
     sim_response = StepSimulationResponse(
         valid=True,
         errors=[],
         rendered_prompt="Simulated prompt text",
-        trace={"tokens": 150},
+        trace=StepSimulationTraceDTO(execution_time_ms=10.0, estimated_tokens=150),
         prompt_context=None,
     )
     mock_simulation.simulate_step.return_value = sim_response
@@ -143,8 +145,18 @@ async def test_simulate_step(mock_studio_services, sample_step: Step) -> None:
     payload = {
         "step": sample_step.model_dump(mode="json"),
         "mock_inputs": {"raw_text": "Sample text"},
+        "target_locale": "fi",
+        "context_text": "Test context document",
     }
     response = client.post("/steps/simulate", json=payload)
     assert response.status_code == 200
     assert response.json()["valid"] is True
     assert response.json()["rendered_prompt"] == "Simulated prompt text"
+    assert response.json()["trace"]["estimated_tokens"] == 150
+    mock_simulation.simulate_step.assert_awaited_once_with(
+        mock_get_current_user(),
+        sample_step,
+        {"raw_text": "Sample text"},
+        target_locale="fi",
+        context_text="Test context document",
+    )

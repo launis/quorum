@@ -7,11 +7,17 @@ import 'package:client_app/features/studio/views/widgets/scale_editor_modal.dart
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
+import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockStudioClient extends Mock implements StudioClient {}
 
 void main() {
-  Widget createTestWidget(Widget child) {
+  Widget createTestWidget(Widget child, {List overrides = const []}) {
     return ProviderScope(
+      overrides: overrides.cast(),
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -794,17 +800,72 @@ void main() {
       },
     );
 
+    testWidgets('renders preview prompt button with tooltip in app bar', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1920, 1080);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final sampleScale = createSampleScale();
+
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) =>
+                        ScaleEditorModal(initialScale: sampleScale),
+                  );
+                },
+                child: const Text('Open Modal'),
+              );
+            },
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Modal'));
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.code), findsOneWidget);
+      expect(
+        find.byTooltip('Preview scale model prompt (XML)'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets(
-      'renders preview prompt button with tooltip in app bar',
+      'tapping preview button opens PromptPreviewDialog when simulation succeeds',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1920, 1080);
         tester.view.devicePixelRatio = 1.0;
         addTearDown(tester.view.resetPhysicalSize);
 
+        final mockClient = MockStudioClient();
+        when(() => mockClient.simulatePromptBlock(any())).thenAnswer(
+          (_) async => {
+            'valid': true,
+            'rendered_prompt': '<xml>Simulated Prompt Schema</xml>',
+            'prompt_context': {
+              'static_messages': [
+                {'role': 'system', 'content': 'System message'},
+              ],
+              'dynamic_messages': [
+                {'role': 'user', 'content': 'Dynamic message'},
+              ],
+            },
+          },
+        );
+
         final sampleScale = createSampleScale();
 
         await tester.pumpWidget(
           createTestWidget(
+            overrides: [studioClientProvider.overrideWithValue(mockClient)],
             Builder(
               builder: (context) {
                 return ElevatedButton(
@@ -825,11 +886,63 @@ void main() {
         await tester.tap(find.text('Open Modal'));
         await tester.pumpAndSettle();
 
-        expect(find.byIcon(Icons.code), findsOneWidget);
-        expect(
-          find.byTooltip('Preview scale model prompt (XML)'),
-          findsOneWidget,
+        final previewBtn = find.byIcon(Icons.code);
+        expect(previewBtn, findsOneWidget);
+        await tester.tap(previewBtn);
+        await tester.pumpAndSettle();
+
+        expect(find.byType(PromptPreviewDialog), findsOneWidget);
+        expect(find.textContaining('System message'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'tapping preview button displays AlertDialog (not SnackBar) on simulation failure',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final mockClient = MockStudioClient();
+        when(
+          () => mockClient.simulatePromptBlock(any()),
+        ).thenThrow(Exception('Simulated failure error'));
+
+        final sampleScale = createSampleScale();
+
+        await tester.pumpWidget(
+          createTestWidget(
+            overrides: [studioClientProvider.overrideWithValue(mockClient)],
+            Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (ctx) =>
+                          ScaleEditorModal(initialScale: sampleScale),
+                    );
+                  },
+                  child: const Text('Open Modal'),
+                );
+              },
+            ),
+          ),
         );
+
+        await tester.tap(find.text('Open Modal'));
+        await tester.pumpAndSettle();
+
+        final previewBtn = find.byIcon(Icons.code);
+        expect(previewBtn, findsOneWidget);
+        await tester.tap(previewBtn);
+        await tester.pumpAndSettle();
+
+        // Must display AlertDialog and not SnackBar (Debt 9)
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.text('Unknown error'), findsOneWidget);
+        expect(find.text('OK'), findsOneWidget);
+        expect(find.byType(SnackBar), findsNothing);
       },
     );
   });

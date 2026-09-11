@@ -8,7 +8,9 @@ from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
     StepDeleteResponse,
+    StepSimulationRequest,
     StepSimulationResponse,
+    StepSimulationTraceDTO,
     WorkflowDeleteResponse,
     WorkflowSimulationResponse,
 )
@@ -44,14 +46,15 @@ def test_prompt_block_responses_strictness() -> None:
 
 
 def test_step_responses_strictness() -> None:
-    dto1 = StepSimulationResponse(trace={"step": "done"})
-    assert dto1.trace == {"step": "done"}
+    dto1 = StepSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=12.5, estimated_tokens=100))
+    assert dto1.trace.execution_time_ms == 12.5
+    assert dto1.trace.estimated_tokens == 100
 
     dto2 = StepDeleteResponse(status="ok", deleted_id="stp_1")
     assert dto2.status == "ok"
 
     with pytest.raises(ValidationError):
-        StepSimulationResponse(trace={"step": "done"}, extra="fail")  # type: ignore
+        StepSimulationResponse(trace=StepSimulationTraceDTO(), extra="fail")  # type: ignore
 
 
 def test_workflow_responses_strictness() -> None:
@@ -107,7 +110,7 @@ def test_core_response_dto_strictness() -> None:
     )
     assert step.organization_id == valid_id_org
 
-    pb = TypeAdapter(PromptBlockResponseDTO).validate_python(
+    pb: PromptBlockResponseDTO = TypeAdapter(PromptBlockResponseDTO).validate_python(
         {
             "id": valid_id_blk,
             "slug": "test-block",
@@ -128,10 +131,13 @@ def test_step_simulation_response_with_actual_fields() -> None:
         valid=True,
         errors=[],
         rendered_prompt="--- Prompt Block: blk_1 --- \n Hello world!",
+        trace=StepSimulationTraceDTO(execution_time_ms=15.0, estimated_tokens=250),
     )
     assert dto.valid is True
     assert dto.errors == []
     assert "blk_1" in dto.rendered_prompt
+    assert dto.trace.execution_time_ms == 15.0
+    assert dto.trace.estimated_tokens == 250
 
 
 def test_prompt_block_simulation_response_with_actual_fields() -> None:
@@ -235,8 +241,64 @@ def test_prompt_block_simulation_request_strictness() -> None:
 
     # Negative partition: Extra forbidden fields
     with pytest.raises(ValidationError):
-        PromptBlockSimulationRequest.model_validate({
-            "block": block.model_dump(mode="json"),
-            "extra_forbidden": "fail",
-        })
+        PromptBlockSimulationRequest.model_validate(
+            {
+                "block": block.model_dump(mode="json"),
+                "extra_forbidden": "fail",
+            }
+        )
 
+
+def test_step_simulation_request_strictness() -> None:
+    """Test StepSimulationRequest strictness, field validation, and extra='forbid'."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.v2_core import Step
+
+    step = Step(
+        id="stp_1111111111111111",
+        slug="test_step",
+        name=I18nText(translations={"en": "Test Step"}),
+        description=I18nText(translations={"en": "Desc"}),
+        model_strategy="fast",
+        extraction_protocol_block_id="blk_2222222222222222",
+        criteria_block_ids=["blk_1111111111111111"],
+    )
+
+    # Positive test with defaults
+    req1 = StepSimulationRequest(step=step)
+    assert req1.mock_inputs == {}
+    assert req1.target_locale == "en"
+    assert req1.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+
+    # Positive test with custom fields
+    req2 = StepSimulationRequest(
+        step=step,
+        mock_inputs={"user_query": "hello"},
+        target_locale="fi",
+        context_text="Custom source text",
+    )
+    assert req2.mock_inputs == {"user_query": "hello"}
+    assert req2.target_locale == "fi"
+    assert req2.context_text == "Custom source text"
+
+    # Negative partition: Extra forbidden fields
+    with pytest.raises(ValidationError):
+        StepSimulationRequest.model_validate(
+            {
+                "step": step.model_dump(mode="json"),
+                "extra_forbidden": "fail",
+            }
+        )
+
+
+def test_step_simulation_response_trace_type() -> None:
+    """Test StepSimulationResponse trace is strictly typed to StepSimulationTraceDTO."""
+    # Negative partition: Raw dict for trace should fail strict validation
+    with pytest.raises(ValidationError):
+        StepSimulationResponse(trace={"step": "done"})  # type: ignore[arg-type]
+
+    # Positive partition: StepSimulationTraceDTO
+    res = StepSimulationResponse(trace=StepSimulationTraceDTO(execution_time_ms=5.0, estimated_tokens=12))
+    assert isinstance(res.trace, StepSimulationTraceDTO)
+    assert res.trace.execution_time_ms == 5.0
+    assert res.trace.estimated_tokens == 12

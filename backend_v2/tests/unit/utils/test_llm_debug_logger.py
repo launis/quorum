@@ -269,6 +269,3 @@ async def test_log_structured_task_prompt_file_write_error(
         compiled_prompt=prompt,
         expected_schema_name="BatchEvaluationResponse",
     )
-
-
-

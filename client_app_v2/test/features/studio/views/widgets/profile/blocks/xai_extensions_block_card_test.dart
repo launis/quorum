@@ -10,7 +10,9 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
   OutputProfile createSampleProfile({
-    List<XaiExtensionType> visibleExtensions = const [XaiExtensionType.citation],
+    List<XaiExtensionType> visibleExtensions = const [
+      XaiExtensionType.citation,
+    ],
   }) {
     return OutputProfile(
       id: 'profile_1',
@@ -34,9 +36,9 @@ void main() {
   }) {
     return ProviderScope(
       overrides: [
-        workflowAvailableExtensionsProvider('wf_1').overrideWithValue(
-          AsyncValue.data(availableExtensions),
-        ),
+        workflowAvailableExtensionsProvider(
+          'wf_1',
+        ).overrideWithValue(AsyncValue.data(availableExtensions)),
       ],
       child: MaterialApp(
         localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -60,10 +62,7 @@ void main() {
         final payload = createSampleProfile();
 
         await tester.pumpWidget(
-          createTestWidget(
-            payload: payload,
-            updatePayload: (_) {},
-          ),
+          createTestWidget(payload: payload, updatePayload: (_) {}),
         );
         await tester.pumpAndSettle();
 
@@ -84,9 +83,7 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.text(
-            'Extracted directly from individual matrix observations.',
-          ),
+          find.text('Extracted directly from individual matrix observations.'),
           findsOneWidget,
         );
 
@@ -128,15 +125,14 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(
-          payload.visibleBlockExtensions.contains(XaiExtensionType.justification),
+          payload.visibleBlockExtensions.contains(
+            XaiExtensionType.justification,
+          ),
           isTrue,
         );
 
         // Tap Micro chip 'citation' (currently selected) to deselect
-        final citationChip = find.widgetWithText(
-          FilterChip,
-          'Source Citation',
-        );
+        final citationChip = find.widgetWithText(FilterChip, 'Source Citation');
         expect(citationChip, findsOneWidget);
         await tester.tap(citationChip);
         await tester.pumpAndSettle();
@@ -158,10 +154,7 @@ void main() {
         final payload = createSampleProfile();
 
         await tester.pumpWidget(
-          createTestWidget(
-            payload: payload,
-            updatePayload: (_) {},
-          ),
+          createTestWidget(payload: payload, updatePayload: (_) {}),
         );
         await tester.pumpAndSettle();
 
