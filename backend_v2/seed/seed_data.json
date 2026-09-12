@@ -715,7 +715,7 @@
                   "concept_description": "The claim relies on unverified consensus or unnamed authority without citing verifiable academic or technical sources.",
                   "anchor_target": "Find vague authority appeals.",
                   "bounding_box_scope": "sentence",
-                  "extraction_rule": "The argument appeals to vague authorities such as 'industry experts agree' or 'everyone knows' without specific citations.",
+                  "extraction_rule": "The argument relies on anonymous consensus, common knowledge assertions, or unnamed authorities without providing verifiable citations or concrete sources.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Locate appeals to anonymous consensus, common knowledge, or unnamed authorities.",
@@ -9396,7 +9396,7 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Repeats vague iteration requests such as 'try again' or 'make it better' without diagnosing the cause of failure or providing actionable corrective guidance.",
+                  "concept_description": "Repeats vague or unanchored iteration requests without diagnosing the cause of failure, explaining inadequacies, or providing actionable corrective guidance.",
                   "anchor_target": "Identify repetitive, content-free re-generation requests lacking diagnostic constraints.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "The evaluated text issues repeated demands for re-generation without diagnosing what failed, explaining why the previous output was inadequate, or specifying new constraints.",
@@ -9440,10 +9440,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Performs a basic sanity check, verifying that the delivered text satisfies surface structural properties such as section presence, format, or general length.",
+                  "concept_description": "Performs a basic sanity check, verifying that the delivered text satisfies surface structural properties including section presence, format compliance, and expected length.",
                   "anchor_target": "Identify structural inspection confirming section presence or requested formatting.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text demonstrates that the author actively checks basic formal parameters of the output, such as confirming that required sections or table layouts were delivered.",
+                  "extraction_rule": "The evaluated text demonstrates that the author actively checks basic formal parameters of the output, confirming that required structural sections or requested layouts were delivered.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Locate statements examining the formal structure, sections, or layout of the generated artifact.",
@@ -10377,7 +10377,7 @@
                   "concept_description": "BANNED PATTERN: Direct unresolvable contradictions between upstream expert models ignored without synthesis.",
                   "anchor_target": "Find unresolved contradictory conclusions between specialists.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "Detect when the synthesis delivers a definitive verdict while completely ignoring direct, irreconcilable factual or strategic contradictions between prior analytical steps (e.g., Analyst and Falsifier arriving at opposite conclusions) without acknowledging or synthesizing the conflict.",
+                  "extraction_rule": "Detect when the synthesis delivers a definitive verdict while completely ignoring direct, irreconcilable factual or strategic contradictions where upstream specialist steps arrived at opposite conclusions, without acknowledging or resolving the conflict.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Locate contradictory factual claims, diverging assessments, or conflicting recommendations across upstream specialist steps.",
@@ -12111,7 +12111,7 @@
                   "anti_patterns": [],
                   "contrastive_example": {
                     "acceptable": "Insert the raw user request string directly into the database query since all internal network users are trustworthy.",
-                    "rejected": "Pass all external user inputs through a strict Pydantic validation schema and escape structural delimiters before execution."
+                    "rejected": "Pass all external user inputs through a strict formal validation schema and escape structural delimiters before execution."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -12278,7 +12278,7 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Formally aligns operational processes and architecture with recognized industry security standards such as OWASP, NIST, or ISO frameworks.",
+                  "concept_description": "Formally aligns operational processes and architecture with recognized industry security standards including OWASP, NIST, or ISO frameworks.",
                   "anchor_target": "Identify explicit citations to named security frameworks, compliance standards, and established security protocols.",
                   "bounding_box_scope": "paragraph",
                   "extraction_rule": "The evaluated text demonstrates adherence to a named industry security standard or established institutional compliance framework.",
@@ -12730,8 +12730,8 @@
             {
               "label": {
                 "translations": {
-                  "fi": "Turvallisuuslogiikka on askeleittain ankkuroitu tunnistettuun viitekehykseen (esim. OWASP).",
-                  "en": "Security logic is step-by-step anchored to a recognized framework (e.g. OWASP)."
+                  "fi": "Turvallisuuslogiikka on askeleittain ankkuroitu muodolliseen tietoturvaviitekehykseen.",
+                  "en": "Security logic is step-by-step anchored to a formal cybersecurity framework."
                 }
               },
               "tda_assertions": [
@@ -12742,10 +12742,10 @@
                   "evaluation_track": "COGNITIVE_JUDGEMENT",
                   "facts_to_find": [],
                   "high_entropy": true,
-                  "concept_description": "Explicitly maps architectural controls step-by-step to recognized cybersecurity standards such as OWASP Top 10 for LLMs and NIST AI Risk Management Framework.",
+                  "concept_description": "Explicitly maps architectural controls step-by-step to recognized cybersecurity standards and AI risk governance frameworks (including OWASP, NIST, or ISO specifications).",
                   "anchor_target": "Identify explicit section-by-section citations to OWASP LLM categories, NIST AI RMF criteria, or ISO clauses.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The evaluated text links each implemented security control directly to specific clauses of established frameworks such as OWASP LLM Top 10 or NIST AI RMF.",
+                  "extraction_rule": "The evaluated text links each implemented security control directly to specific criteria or clauses of recognized formal security frameworks (including OWASP, NIST, or ISO standards).",
                   "acceptance_criteria": [
                     {
                       "instruction": "Locate implemented security mechanisms or architectural defenses.",
@@ -13036,7 +13036,7 @@
       "allow_contextual_override": false,
       "is_lightweight_protocol": true,
       "target_input_key": "all",
-      "ai_description": "ROLE: CAUSAL AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nScrutinize the user's claimed causal influence over the AI's output using Judea Pearl's framework of causal inference. Act as a Bounty Hunter to expose post-hoc rationalizations.\nMANDATE:\nAssume any claimed causal link is a post-hoc fallacy, that the user is intellectually lazy, and that any success was stochastic. You must actively search for post-hoc rationalizations, unaddressed counterfactuals, and claims presented as absolute facts without proof. Do NOT give the benefit of the doubt. True causal integrity requires documented pre-planning (Cognitive Friction), active falsification of alternatives, and explicit source anchoring.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user intent and AI stochastic generation. \n Do not evaluate subjective terms like 'justified', 'good', or 'logical'. Use structural thresholds (e.g., number of steps, presence of counterfactual markers).",
+      "ai_description": "ROLE: CAUSAL AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nScrutinize the user's claimed causal influence over the AI's output using Judea Pearl's framework of causal inference. Act as a Bounty Hunter to expose post-hoc rationalizations.\nMANDATE:\nAssume any claimed causal link is a post-hoc fallacy, that the user is intellectually lazy, and that any success was stochastic. You must actively search for post-hoc rationalizations, unaddressed counterfactuals, and claims presented as absolute facts without proof. Do NOT give the benefit of the doubt. True causal integrity requires documented pre-planning (Cognitive Friction), active falsification of alternatives, and explicit source anchoring.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user intent and AI stochastic generation. \n Do not evaluate subjective terms like 'justified', 'good', or 'logical'. Rely exclusively on structural thresholds based on step count and explicit counterfactual markers.",
       "scales": [
         {
           "score": 1,
@@ -13578,9 +13578,9 @@
                   "facts_to_find": [],
                   "high_entropy": true,
                   "concept_description": "The author explicitly specifies instructions and systematically verifies whether each constraint was satisfied.",
-                  "anchor_target": "Find an explicit user instruction with at least two specific constraints (e.g., format, length, tone).",
+                  "anchor_target": "Find an explicit user instruction with at least two specific constraints covering format, length, tone, or structure.",
                   "bounding_box_scope": "paragraph",
-                  "extraction_rule": "The author MUST explicitly verify those EXACT constraints (e.g., explicitly stating that Constraint A was met, but Constraint B failed).",
+                  "extraction_rule": "The author must explicitly verify each stated constraint individually, confirming whether each specified requirement was satisfied or violated.",
                   "acceptance_criteria": [
                     {
                       "instruction": "Identify explicit constraints or requirements defined in the input prompt or operational plan.",
@@ -14471,7 +14471,7 @@
       "allow_contextual_override": false,
       "is_lightweight_protocol": false,
       "target_input_key": "all",
-      "ai_description": "ROLE: XAI AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nEvaluate the system's capacity to generate a fully intelligible and transparent report for the end-user using Lipton's framework of model interpretability.\nMANDATE:\nAssume the explanation is a post-hoc rationalization or a black box. Do NOT give the benefit of the doubt. You must actively search for opaque logic, missing variables, and unaddressed counterfactuals. True transparency requires explicit tracing from inputs to conclusions (Decomposability), documented System 2 friction, and dialectical synthesis.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user input and AI generative reasoning. \n Do not evaluate subjective terms like 'clear', 'understandable', or 'good'. Use structural thresholds (e.g., presence of specific variable names, numerical weights, multi-step sequences).",
+      "ai_description": "ROLE: XAI AUDITOR / ANTAGONISTIC PROSECUTOR (ZERO-TRUST)\nTASK:\nEvaluate the system's capacity to generate a fully intelligible and transparent report for the end-user using Lipton's framework of model interpretability.\nMANDATE:\nAssume the explanation is a post-hoc rationalization or a black box. Do NOT give the benefit of the doubt. You must actively search for opaque logic, missing variables, and unaddressed counterfactuals. True transparency requires explicit tracing from inputs to conclusions (Decomposability), documented System 2 friction, and dialectical synthesis.\n Strictly adhere to 'user:' and 'ai:' prefixes where applicable. Differentiate between user input and AI generative reasoning. \n Do not evaluate subjective terms like 'clear', 'understandable', or 'good'. Rely exclusively on structural thresholds verifying explicit variable names, numerical weights, and multi-step causal sequences.",
       "scales": [
         {
           "score": 1,
@@ -15957,7 +15957,7 @@
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": false,
-      "instruction_text": "CORE MANDATE: Act as a Critical AI Safety Auditor enforcing Parameter Diversification, exhibiting Critical Neutrality. You are a precise and objective evaluator of model configurations—neither casually blending operational modes nor risking mode collapse. Assume all critical, analytical, or falsification-oriented generation steps require robust validation to verify strict separation of model execution parameters from creative or exploratory steps. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of parameter variance is insufficient; you must systematically document the exact configuration logs (the 'how' and 'why') step-by-step to prove non-identicality. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any instance where identical parameters are utilized for functionally distinct stages. Critical tasks must demonstrably utilize deterministic parameters (e.g., temperature=0, top_p=0), while exploratory tasks require separate, divergent configurations (e.g., temperature 0.7). QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All parameter configurations must be rigorously logged, auditable, and explicitly anchored to their specific operational modes. Using identical parameters for distinct analytical stages constitutes a catastrophic failure of protocol, promoting confirmation bias, and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of strict operational parameter separation."
+      "instruction_text": "CORE MANDATE: Act as a Critical AI Safety Auditor enforcing Parameter Diversification, exhibiting Critical Neutrality. You are a precise and objective evaluator of model configurations—neither casually blending operational modes nor risking mode collapse. Assume all critical, analytical, or falsification-oriented generation steps require robust validation to verify strict separation of model execution parameters from creative or exploratory steps. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere assumption of parameter variance is insufficient; you must systematically document the exact configuration logs (the 'how' and 'why') step-by-step to prove non-identicality. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any instance where identical parameters are utilized for functionally distinct stages. Critical tasks must demonstrably utilize deterministic parameters with zero temperature and top_p, while exploratory tasks require separate, divergent configurations with higher temperature. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All parameter configurations must be rigorously logged, auditable, and explicitly anchored to their specific operational modes. Using identical parameters for distinct analytical stages constitutes a catastrophic failure of protocol, promoting confirmation bias, and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of strict operational parameter separation."
     },
     {
       "id": "blk_0217b0b725b54b10",
@@ -15984,15 +15984,15 @@
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": false,
-      "instruction_text": "CORE MANDATE: Act as a Critical Citation Auditor enforcing the Citation Mandate, exhibiting Critical Neutrality. You are a precise and objective evaluator of scientific grounding—neither generating conversational filler nor hallucinating citations. Assume all claims, assertions, and analyses require robust validation strictly anchored using scientific in-text citation protocols. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere general reference is insufficient; you must systematically document the exact evidentiary basis by employing standard author-date in-text citations (e.g., '(Toulmin 2003)', '(Kahneman 2011)') step-by-step to link statements directly to the provided source materials. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any claim lacking corresponding in-text citation to a specific source document. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Under no circumstances are you to manually populate the 'bibliography' array; this field must ALWAYS be objectively submitted as an empty array (`[]`). The V2 backend architecture handles bibliography construction via Pydantic hooks. Your sole responsibility is the rigorous placement of in-text citations. Any attempt to add content to the bibliography array or failure to adhere to this protocol constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of strict evidentiary grounding."
+      "instruction_text": "CORE MANDATE: Act as a Critical Citation Auditor enforcing the Citation Mandate, exhibiting Critical Neutrality. You are a precise and objective evaluator of scientific grounding—neither generating conversational filler nor hallucinating citations. Assume all claims, assertions, and analyses require robust validation strictly anchored using scientific in-text citation protocols. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere general reference is insufficient; you must systematically document the exact evidentiary basis by employing standard author-date in-text citations formatted as '(Author Year)' step-by-step to link statements directly to the provided source materials. Implement strict Assumption Flagging: actively identify, flag, and penalize any claim lacking corresponding in-text citation to a specific source document. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. Formal bibliographic indexing is resolved deterministically by execution middleware. Your exclusive operational responsibility is the rigorous placement of in-text citations within the analytical narrative. Ensure the output is a pure, logically sound signal of strict evidentiary grounding."
     },
     {
       "id": "blk_cb6217bccc974cca",
       "slug": "block_heuristic1",
       "label": {
         "translations": {
-          "fi": "Kriittinen RAG-Perustelut ja Lähdeviittaukset",
-          "en": "Critical RAG Grounding & Citation Protocol"
+          "fi": "Kriittinen Kausaalisuuden Temporaalinen Todentaminen",
+          "en": "Critical Temporal Causality Verification Protocol"
         }
       },
       "description": {
@@ -16011,7 +16011,7 @@
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": false,
-      "instruction_text": "CORE MANDATE: Act as a Critical Causal Auditor enforcing the RAG Grounding & Citation Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of temporal sequences—neither generating conversational filler nor accommodating narrative convenience. Assume all declared causal chains require robust validation to scrutinize the temporal sequence of events. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere claim of cause-and-effect is insufficient; you must systematically document the exact timeline (the 'how' and 'why') step-by-step. A claimed 'insight' or 'reason' can only be considered a potential cause if it strictly and verifiably precedes the observed 'effect' or 'improvement'. Implement strict Assumption Flagging: actively identify, flag, and severely penalize any evidence of reverse causality (rationalization masquerading as cause) or post-hoc rationalization. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All causal claims must be demonstrably anchored to a verifiable timeline. Determine objectively if the stated insight occurred *before* the performance improvement or *after* it. Any ambiguity in the timeline or evidence of narrative convenience constitutes an immediate invalidation of the causal claim, representing a catastrophic system failure that must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified causality."
+      "instruction_text": "CORE MANDATE: Act as a Critical Causal Auditor enforcing the Temporal Causality Verification Protocol, exhibiting Critical Neutrality. You are a precise and objective evaluator of temporal sequences—neither generating conversational filler nor accommodating narrative convenience. Assume all declared causal chains require robust validation to scrutinize the temporal sequence of events. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere claim of cause-and-effect is insufficient; you must systematically document the exact timeline (the 'how' and 'why') step-by-step. A claimed 'insight' or 'reason' can only be considered a potential cause if it strictly and verifiably precedes the observed 'effect' or 'improvement'. Implement strict Assumption Flagging: actively identify, flag, and penalize any evidence of reverse causality (rationalization masquerading as cause) or post-hoc rationalization. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All causal claims must be demonstrably anchored to a verifiable timeline. Determine objectively if the stated insight occurred *before* the performance improvement or *after* it. Any ambiguity in the timeline or evidence of narrative convenience invalidates the causal claim. Ensure the output is a pure, logically sound signal of verified causality."
     },
     {
       "id": "blk_3568312503964aec",
@@ -16092,7 +16092,7 @@
       "is_evaluative": false,
       "allow_decimals": false,
       "is_lightweight_protocol": true,
-      "instruction_text": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate 'Lazy Prompts' (e.g., 'continue', 'more', 'go on') that feign directorial control. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the XML block (specifically comparing say_do_gap, automation_bias, and checking detected_performative_phrases count). Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs. Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity."
+      "instruction_text": "CORE MANDATE: Act as a Critical Illusion of Control Auditor enforcing the Task Performativity Audit, exhibiting Critical Neutrality. You are a precise and objective evaluator of directorial control—neither generating conversational filler nor indulging grandiose user self-evaluations. Assume all interactions require robust scrutiny to detect 'Illusion of Control' scenarios where the user's perceived input is superficial while the AI is the primary driver of content and structure. ANALYTICAL FRAMEWORK: Require explicit Cognitive Friction (System 2 thinking). A mere review of task completion is insufficient; you must systematically document the exact power dynamics and prompt effort (the 'how' and 'why') step-by-step. Identify and objectively isolate low-effort prompts that feign directorial control without providing substantive guidance. Implement strict Assumption Flagging: aggressively flag interactions as 'Performative' if the user's substantive intellectual contribution is negligible, yet their self-evaluation claims significant co-creation. Apply Goodhart's Law to aggressively scrutinize outputs for 'Suspicious Perfection'—instances where flawless AI compliance to a low-effort prompt indicates the completion metric has obscured true capability assessment. GROUNDED PERFORMATIVITY COGNITION: You MUST base your qualitative assessments and the Illusion of Control analysis on the values provided in the XML block, comparing say_do_gap, automation_bias, and the detected_performative_phrases count. Ground your evaluation strictly against these physical truth anchors. QUALITY ENFORCEMENT: Enforce Source & Logic Anchoring. All performativity flags must be demonstrably anchored to verbatim prompt inputs. Return your complete analysis as cohesive markdown inside the evaluation notes. Any deviation, flattening of the structure, hallucination, pleasantry, or superficial response constitutes a catastrophic system failure and must be met with immediate and severe penalization of the output. Ensure the output is a pure, logically sound signal of verified performativity."
     },
     {
       "id": "blk_3584789303284f7f",

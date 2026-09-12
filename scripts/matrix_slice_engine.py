@@ -43,6 +43,10 @@ FINNISH_KEYWORDS_PATTERN = re.compile(
 SCANDINAVIAN_CHAR_PATTERN = re.compile(r"[äöåÄÖÅ]")
 EMPIRICAL_METRIC_PATTERN = re.compile(r"\b\d+%\b|\b(N=\d+|p<0\.\d+|kysely|haastattelu|tilasto)\b", re.I)
 COMPARATIVE_RE = re.compile(r"\b(compar|relat|synthe|integrat|weigh|contrast|trade-?off)\b", re.I)
+AMBIGUITY_PATTERN = re.compile(r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.I)
+BACKEND_LEAK_PATTERN = re.compile(r"\b(pydantic|backend architecture|pydantic hooks)\b", re.I)
+INSTITUTION_PATTERN = re.compile(r"\b(stanford|työterveyslaitos)\b", re.I)
+TOY_DOMAIN_PATTERN = re.compile(r"\b(postgresql|sqlite|mongodb)\b", re.I)
 
 
 class ContaminationFindingDTO(BaseModel):
@@ -118,6 +122,30 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
                                 tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Empirical text detected"
                             )
                         )
+                    if AMBIGUITY_PATTERN.search(val):
+                        findings.append(
+                            ContaminationFindingDTO(
+                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Ambiguity token detected"
+                            )
+                        )
+                    if BACKEND_LEAK_PATTERN.search(val):
+                        findings.append(
+                            ContaminationFindingDTO(
+                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Backend leak detected"
+                            )
+                        )
+                    if INSTITUTION_PATTERN.search(val):
+                        findings.append(
+                            ContaminationFindingDTO(
+                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Institution overfit detected"
+                            )
+                        )
+                    if TOY_DOMAIN_PATTERN.search(val):
+                        findings.append(
+                            ContaminationFindingDTO(
+                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Toy domain reference detected"
+                            )
+                        )
     return findings
 
 
@@ -155,6 +183,14 @@ def audit_atom_coherence(matrix: MatrixPromptBlock) -> list[CoherenceIssueDTO]:
                     add_issue(tid, "EXEMPLAR_DEFECT", "contrastive_example must contain valid acceptable/rejected")
                 if not tda.acceptance_criteria and tda.extraction_rule and len(tda.extraction_rule) > 80:
                     add_issue(tid, "CRITERIA_RULE_DISCORDANCE", "Formal extraction rule lacks acceptance_criteria")
+                if AMBIGUITY_PATTERN.search(rule_text):
+                    add_issue(tid, "AMBIGUOUS_RULE", "Rule or concept contains open-ended ambiguity tokens")
+                if BACKEND_LEAK_PATTERN.search(rule_text):
+                    add_issue(tid, "BACKEND_LEAK", "Rule or concept contains backend architecture leaks")
+                if INSTITUTION_PATTERN.search(rule_text):
+                    add_issue(tid, "INSTITUTION_OVERFIT", "Rule or concept overfits to real-world institutions")
+                if TOY_DOMAIN_PATTERN.search(rule_text):
+                    add_issue(tid, "TOY_DOMAIN_LEAK", "Rule or concept contains toy domain tech names")
     return issues
 
 

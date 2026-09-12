@@ -40,6 +40,7 @@ __all__ = [
     "MatrixAuditDTO",
     "append_matrix_theory_explanation",
     "apply_matrix_slice",
+    "audit_all_matrices_best_practice",
     "audit_atom_coherence",
     "audit_matrix",
     "build_or_load_state",
@@ -275,6 +276,72 @@ def mark_done(matrix_id: str) -> None:
     print(f"SUCCESS: Marked matrix '{matrix_id}' as DONE ({completed}/{new_state.total_matrices} completed).")
 
 
+def audit_all_matrices_best_practice() -> bool:
+    """Executes a full Best-Practice Prompt & Matrix audit against the 7 Golden Rules.
+
+    Returns:
+        bool: True if all matrices and prompt blocks pass with 0 defects.
+    """
+    from scripts.audit_database_atoms import run_full_database_audit
+
+    print("=" * 105)
+    print("QUORUM SUPREME AI PROMPT & MATRIX HARDENING BEST-PRACTICE AUDIT")
+    print("=" * 105)
+
+    report = run_full_database_audit(SEED_DATA_PATH)
+    matrices = load_seed_matrices()
+
+    coherence_defects: list[tuple[str, str, str]] = []
+    contamination_defects: list[tuple[str, str, str]] = []
+
+    for mat in matrices:
+        for f in detect_empirical_contamination(mat):
+            contamination_defects.append((mat.id, f.tda_id, f"{f.reason} in {f.field}: '{f.snippet}'"))
+        for c in audit_atom_coherence(mat):
+            coherence_defects.append((mat.id, c.tda_id, f"{c.issue}: {c.description}"))
+
+    database_errors = [i for i in report.issues if i.severity == "ERROR"]
+    database_warnings = [i for i in report.issues if i.severity == "WARNING"]
+    total_fatal_defects = len(database_errors) + len(coherence_defects) + len(contamination_defects)
+
+    print(f"Total Matrices Checked:        {len(matrices)}")
+    print(f"Database Validation Errors:    {len(database_errors)}")
+    print(f"Database Advisory Warnings:    {len(database_warnings)}")
+    print(f"Empirical/Leak Contaminations: {len(contamination_defects)}")
+    print(f"Atom Coherence Incoherencies:  {len(coherence_defects)}")
+    print("-" * 105)
+
+    if total_fatal_defects == 0:
+        print(f"STATUS: 100% CLEAN - ALL 7 GOLDEN RULES SATISFIED (0 FATAL DEFECTS, {len(database_warnings)} ADVISORY WARNINGS)")
+        print("=" * 105)
+        if database_warnings:
+            print("\n--- DATABASE ADVISORY WARNINGS (NON-MATRIX DESCRIPTIVE TEXTS) ---")
+            for i, issue in enumerate(database_warnings, 1):
+                print(f"[{i:02d}] {issue.entity_id} ({issue.issue_type}): {issue.message}")
+            print("=" * 105)
+        return True
+
+    print(f"STATUS: FAILED ({total_fatal_defects} TOTAL FATAL DEFECTS DETECTED)")
+    print("=" * 105)
+    if database_errors:
+        print("\n--- FATAL DATABASE PROMPT ISSUES ---")
+        for i, issue in enumerate(database_errors, 1):
+            print(f"[{i:02d}] {issue.entity_id} ({issue.issue_type}): {issue.message}")
+
+    if contamination_defects:
+        print("\n--- CONTAMINATION & OVERFITTING FINDINGS ---")
+        for i, (mid, tid, desc) in enumerate(contamination_defects, 1):
+            print(f"[{i:02d}] Matrix {mid} | Atom {tid}: {desc}")
+
+    if coherence_defects:
+        print("\n--- ATOM COHERENCE & RULE FLAWS ---")
+        for i, (mid, tid, desc) in enumerate(coherence_defects, 1):
+            print(f"[{i:02d}] Matrix {mid} | Atom {tid}: {desc}")
+
+    print("=" * 105)
+    return False
+
+
 def main() -> None:
     """CLI entrypoint."""
     parser = argparse.ArgumentParser(description="Matrix & Atom Hardening Audit Engine")
@@ -295,6 +362,11 @@ def main() -> None:
         const="ALL",
         metavar="MATRIX_ID",
         help="Audit empirical contamination",
+    )
+    parser.add_argument(
+        "--audit-best-practice",
+        action="store_true",
+        help="Run comprehensive Best-Practice Prompt & Matrix audit against the 7 Golden Rules",
     )
 
     args = parser.parse_args()
@@ -318,6 +390,10 @@ def main() -> None:
             findings = detect_empirical_contamination(m)
             if findings or args.audit_contamination != "ALL":
                 print(f"[{m.id}] {m.label.resolve('en')}: {len(findings)} contaminated atom(s)")
+    elif args.audit_best_practice:
+        clean = audit_all_matrices_best_practice()
+        if not clean:
+            sys.exit(1)
     elif args.inspect:
         inspect_single_matrix(args.inspect)
     elif args.done:

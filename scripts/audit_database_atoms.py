@@ -162,6 +162,19 @@ MECHANICAL_COUNTING_PATTERNS: list[str] = [
     "scan the paragraph",
 ]
 
+AMBIGUITY_REGEX: re.Pattern[str] = re.compile(
+    r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.IGNORECASE
+)
+BACKEND_LEAK_REGEX: re.Pattern[str] = re.compile(
+    r"\b(pydantic|backend architecture|pydantic hooks)\b", re.IGNORECASE
+)
+INSTITUTION_OVERFIT_REGEX: re.Pattern[str] = re.compile(
+    r"\b(stanford|työterveyslaitos)\b", re.IGNORECASE
+)
+TOY_DOMAIN_REGEX: re.Pattern[str] = re.compile(
+    r"\b(postgresql|sqlite|mongodb)\b", re.IGNORECASE
+)
+
 
 def _contains_raw_xml(text: str) -> bool:
     """Checks whether raw XML tags or angle brackets exist in text.
@@ -194,6 +207,38 @@ def _check_screaming_imperatives(text: str) -> str | None:
     return None
 
 
+def _check_ambiguity_patterns(text: str) -> str | None:
+    """Checks if text contains open-ended ambiguity tokens."""
+    if not text:
+        return None
+    match = AMBIGUITY_REGEX.search(text)
+    return match.group(0) if match else None
+
+
+def _check_backend_leak_patterns(text: str) -> str | None:
+    """Checks if text leaks backend software architecture or internal frameworks."""
+    if not text:
+        return None
+    match = BACKEND_LEAK_REGEX.search(text)
+    return match.group(0) if match else None
+
+
+def _check_institution_overfit(text: str) -> str | None:
+    """Checks if text overfits to specific real-world institutions."""
+    if not text:
+        return None
+    match = INSTITUTION_OVERFIT_REGEX.search(text)
+    return match.group(0) if match else None
+
+
+def _check_toy_domain_leak(text: str) -> str | None:
+    """Checks if text contains toy-domain database references."""
+    if not text:
+        return None
+    match = TOY_DOMAIN_REGEX.search(text)
+    return match.group(0) if match else None
+
+
 def audit_prompt_blocks(
     prompt_blocks: list[dict[str, Any]],
 ) -> tuple[list[AuditIssue], int, int]:
@@ -215,16 +260,40 @@ def audit_prompt_blocks(
 
         # Check block-level ai_description
         ai_desc = block["ai_description"] if "ai_description" in block else None
-        if isinstance(ai_desc, str) and _contains_raw_xml(ai_desc):
-            issues.append(
-                AuditIssue(
-                    collection="prompt_blocks",
-                    entity_id=block_id,
-                    field_path="ai_description",
-                    issue_type="RAW_XML",
-                    message=f"Prompt block '{block_id}' contains raw XML in ai_description.",
+        if isinstance(ai_desc, str):
+            if _contains_raw_xml(ai_desc):
+                issues.append(
+                    AuditIssue(
+                        collection="prompt_blocks",
+                        entity_id=block_id,
+                        field_path="ai_description",
+                        issue_type="RAW_XML",
+                        message=f"Prompt block '{block_id}' contains raw XML in ai_description.",
+                    )
                 )
-            )
+            ambig_desc = _check_ambiguity_patterns(ai_desc)
+            if ambig_desc:
+                issues.append(
+                    AuditIssue(
+                        collection="prompt_blocks",
+                        entity_id=block_id,
+                        field_path="ai_description",
+                        issue_type="AMBIGUOUS_TOKEN",
+                        message=f"Prompt block '{block_id}' ai_description contains ambiguity token '{ambig_desc}'.",
+                        severity="WARNING",
+                    )
+                )
+            leak_desc = _check_backend_leak_patterns(ai_desc)
+            if leak_desc:
+                issues.append(
+                    AuditIssue(
+                        collection="prompt_blocks",
+                        entity_id=block_id,
+                        field_path="ai_description",
+                        issue_type="BACKEND_CODE_LEAK",
+                        message=f"Prompt block '{block_id}' ai_description contains backend implementation leak '{leak_desc}'.",
+                    )
+                )
 
         if category_id in (PromptBlockCategory.MATRIX, PromptBlockCategory.MATRIX.value):
             total_matrices += 1
@@ -376,6 +445,58 @@ def audit_prompt_blocks(
                                         )
                                     )
 
+                            # Check Ambiguity Patterns in concept_description
+                            ambig_match = _check_ambiguity_patterns(concept_desc)
+                            if ambig_match:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.concept_description",
+                                        issue_type="AMBIGUOUS_TOKEN",
+                                        message=f"Atom '{tda_id}' concept_description contains open-ended ambiguity token '{ambig_match}'.",
+                                    )
+                                )
+
+                            # Check Backend Leak Patterns in concept_description
+                            leak_match = _check_backend_leak_patterns(concept_desc)
+                            if leak_match:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.concept_description",
+                                        issue_type="BACKEND_CODE_LEAK",
+                                        message=f"Atom '{tda_id}' concept_description contains backend implementation leak '{leak_match}'.",
+                                    )
+                                )
+
+                            # Check Institution Overfitting in concept_description
+                            inst_match = _check_institution_overfit(concept_desc)
+                            if inst_match:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.concept_description",
+                                        issue_type="INSTITUTION_OVERFIT",
+                                        message=f"Atom '{tda_id}' concept_description contains institution overfit '{inst_match}'.",
+                                    )
+                                )
+
+                            # Check Toy Domain Leak in concept_description
+                            toy_match = _check_toy_domain_leak(concept_desc)
+                            if toy_match:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.concept_description",
+                                        issue_type="TOY_DOMAIN_LEAK",
+                                        message=f"Atom '{tda_id}' concept_description contains toy domain reference '{toy_match}'.",
+                                    )
+                                )
+
                         # 2. Check extraction_rule presence and content
                         if (
                             not extraction_rule
@@ -469,21 +590,108 @@ def audit_prompt_blocks(
                                         )
                                     )
 
+                            # Check Ambiguity Patterns in extraction_rule
+                            ambig_rule = _check_ambiguity_patterns(extraction_rule)
+                            if ambig_rule:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.extraction_rule",
+                                        issue_type="AMBIGUOUS_TOKEN",
+                                        message=f"Atom '{tda_id}' extraction_rule contains open-ended ambiguity token '{ambig_rule}'.",
+                                    )
+                                )
+
+                            # Check Backend Leak Patterns in extraction_rule
+                            leak_rule = _check_backend_leak_patterns(extraction_rule)
+                            if leak_rule:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.extraction_rule",
+                                        issue_type="BACKEND_CODE_LEAK",
+                                        message=f"Atom '{tda_id}' extraction_rule contains backend implementation leak '{leak_rule}'.",
+                                    )
+                                )
+
+                            # Check Institution Overfitting in extraction_rule
+                            inst_rule = _check_institution_overfit(extraction_rule)
+                            if inst_rule:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.extraction_rule",
+                                        issue_type="INSTITUTION_OVERFIT",
+                                        message=f"Atom '{tda_id}' extraction_rule contains institution overfit '{inst_rule}'.",
+                                    )
+                                )
+
+                            # Check Toy Domain Leak in extraction_rule
+                            toy_rule = _check_toy_domain_leak(extraction_rule)
+                            if toy_rule:
+                                issues.append(
+                                    AuditIssue(
+                                        collection="prompt_blocks",
+                                        entity_id=tda_id,
+                                        field_path=f"{prefix_path}.extraction_rule",
+                                        issue_type="TOY_DOMAIN_LEAK",
+                                        message=f"Atom '{tda_id}' extraction_rule contains toy domain reference '{toy_rule}'.",
+                                    )
+                                )
+
         else:
             # Non-matrix blocks inspection
             for field_name in ["role_enforcement", "instruction_text", "protocol_instructions"]:
                 if field_name in block:
                     val = block[field_name]
-                    if isinstance(val, str) and _contains_raw_xml(val):
-                        issues.append(
-                            AuditIssue(
-                                collection="prompt_blocks",
-                                entity_id=block_id,
-                                field_path=field_name,
-                                issue_type="RAW_XML",
-                                message=f"Prompt block '{block_id}' contains raw XML in '{field_name}'.",
+                    if isinstance(val, str):
+                        if _contains_raw_xml(val):
+                            issues.append(
+                                AuditIssue(
+                                    collection="prompt_blocks",
+                                    entity_id=block_id,
+                                    field_path=field_name,
+                                    issue_type="RAW_XML",
+                                    message=f"Prompt block '{block_id}' contains raw XML in '{field_name}'.",
+                                )
                             )
-                        )
+                        ambig_blk = _check_ambiguity_patterns(val)
+                        if ambig_blk:
+                            issues.append(
+                                AuditIssue(
+                                    collection="prompt_blocks",
+                                    entity_id=block_id,
+                                    field_path=field_name,
+                                    issue_type="AMBIGUOUS_TOKEN",
+                                    message=f"Prompt block '{block_id}' contains open-ended ambiguity token '{ambig_blk}' in '{field_name}'.",
+                                    severity="WARNING",
+                                )
+                            )
+                        leak_blk = _check_backend_leak_patterns(val)
+                        if leak_blk:
+                            issues.append(
+                                AuditIssue(
+                                    collection="prompt_blocks",
+                                    entity_id=block_id,
+                                    field_path=field_name,
+                                    issue_type="BACKEND_CODE_LEAK",
+                                    message=f"Prompt block '{block_id}' contains backend implementation leak '{leak_blk}' in '{field_name}'.",
+                                )
+                            )
+                        inst_blk = _check_institution_overfit(val)
+                        if inst_blk:
+                            issues.append(
+                                AuditIssue(
+                                    collection="prompt_blocks",
+                                    entity_id=block_id,
+                                    field_path=field_name,
+                                    issue_type="INSTITUTION_OVERFIT",
+                                    message=f"Prompt block '{block_id}' contains institution overfit '{inst_blk}' in '{field_name}'.",
+                                )
+                            )
 
     return issues, total_matrices, total_atoms
 

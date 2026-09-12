@@ -237,6 +237,66 @@ def test_audit_atoms_screaming_imperatives() -> None:
         assert any(i.issue_type == "SCREAMING_IMPERATIVE" for i in issues), f"Failed to flag imperative: {imp}"
 
 
+def test_audit_atoms_ambiguity_tokens() -> None:
+    """Test detection of open-ended ambiguity tokens (e.g., i.e., etc., such as)."""
+    ambiguity_phrases = ["e.g.", "i.e.", "etc.", "such as"]
+    for phrase in ambiguity_phrases:
+        # In concept_description
+        b1 = _create_clean_matrix_block()
+        b1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = (
+            f"Evaluates standards {phrase} industry guidelines."
+        )
+        issues1, _, _ = audit_prompt_blocks([b1])
+        assert any(i.issue_type == "AMBIGUOUS_TOKEN" for i in issues1), f"Failed to flag ambiguity in concept: {phrase}"
+
+        # In extraction_rule
+        b2 = _create_clean_matrix_block()
+        b2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = (
+            f"Locates patterns {phrase} standard markers."
+        )
+        issues2, _, _ = audit_prompt_blocks([b2])
+        assert any(i.issue_type == "AMBIGUOUS_TOKEN" for i in issues2), f"Failed to flag ambiguity in rule: {phrase}"
+
+
+def test_audit_atoms_backend_leaks_and_overfitting() -> None:
+    """Test detection of backend code leaks, institution overfitting, and toy domain tech names."""
+    # 1. Backend code leak in concept_description
+    b1 = _create_clean_matrix_block()
+    b1["scales"][0]["claims"][0]["tda_assertions"][0]["concept_description"] = (
+        "Enforces pydantic validation across external requests."
+    )
+    issues1, _, _ = audit_prompt_blocks([b1])
+    assert any(i.issue_type == "BACKEND_CODE_LEAK" for i in issues1)
+
+    # 2. Institution overfit in extraction_rule
+    b2 = _create_clean_matrix_block()
+    b2["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = (
+        "Cites studies from Stanford University regarding cognitive load."
+    )
+    issues2, _, _ = audit_prompt_blocks([b2])
+    assert any(i.issue_type == "INSTITUTION_OVERFIT" for i in issues2)
+
+    # 3. Toy domain tech names in extraction_rule
+    b3 = _create_clean_matrix_block()
+    b3["scales"][0]["claims"][0]["tda_assertions"][0]["extraction_rule"] = (
+        "Extracts query patterns from PostgreSQL database logs."
+    )
+    issues3, _, _ = audit_prompt_blocks([b3])
+    assert any(i.issue_type == "TOY_DOMAIN_LEAK" for i in issues3)
+
+
+def test_audit_non_matrix_best_practice_checks() -> None:
+    """Test detection of ambiguity and backend code leaks in non-matrix instruction blocks."""
+    non_matrix_block = {
+        "id": "blk_instruction_001",
+        "category_id": "system_rule",
+        "instruction_text": "Verify input constraints (e.g., positive integers) via backend architecture hooks.",
+    }
+    issues, _, _ = audit_prompt_blocks([non_matrix_block])
+    assert any(i.issue_type == "AMBIGUOUS_TOKEN" for i in issues)
+    assert any(i.issue_type == "BACKEND_CODE_LEAK" for i in issues)
+
+
 def test_audit_steps_referential_integrity() -> None:
     """Test detection of missing strategies, orphan criteria_block_ids, and orphan protocol_block_ids."""
     known_block_ids = {"blk_matrix_01", "blk_protocol_01"}
