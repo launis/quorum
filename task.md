@@ -45,10 +45,10 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\9dc6ba62-8cf
 - [x] **Step 5: SDUI ADAPTER MATRIX BINDING & RICH BADGE RENDERING**
   - [x] 5.1: Implement dual-tier role badge resolution in `ExecutiveSummaryAdapter`.
   - [x] 5.2: Add dedicated unit tests for matrix scale name lookup and boundary clamping in `test_executive_summary_adapter.py`.
-- [ ] **Step 6: SEED DATA VAULT HARMONIZATION & SEEDING**
-  - [ ] 6.1: Update scale names of `blk_53f32679aa514fcb` in `backend_v2/seed/seed_data.json`.
-  - [ ] 6.2: Add `"user_role_target_block": "blk_53f32679aa514fcb"` to profiles `prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_01b1d71000000002`, `prf_01b1d71000000003`.
-  - [ ] 6.3: Run seed validation and sync.
+- [x] **Step 6: SEED DATA VAULT HARMONIZATION & SEEDING**
+  - [x] 6.1: Update scale names of `blk_53f32679aa514fcb` in `backend_v2/seed/seed_data.json`.
+  - [x] 6.2: Add `"user_role_target_block": "blk_53f32679aa514fcb"` to profiles `prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_01b1d71000000002`, `prf_01b1d71000000003`.
+  - [x] 6.3: Run seed validation and sync.
 - [ ] **Step 7: GLOBAL AUDIT LOOPS & SDUI SEMANTIC PARITY VERIFICATION**
   - [ ] 7.1: Run full backend audit loop.
   - [ ] 7.2: Run Flutter client domain parity test.

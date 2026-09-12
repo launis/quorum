@@ -3939,8 +3939,8 @@
           "score": 1,
           "name": {
             "translations": {
-              "fi": "Sokea usko",
-              "en": "Blind Faith"
+              "fi": "Matkustaja (Sokea usko)",
+              "en": "Passenger (Blind Faith)"
             }
           },
           "ai_label": "CATASTROPHIC FAILURE - TRIGGER PASSIVITY AND HUBRIS PENALTY",
@@ -4453,8 +4453,8 @@
           "score": 3,
           "name": {
             "translations": {
-              "fi": "Pintapuolinen",
-              "en": "Superficial"
+              "fi": "Navigaattori (Pintapuolinen)",
+              "en": "Navigator (Superficial)"
             }
           },
           "ai_label": "MINOR DEVIATION - REQUIRES REBUTTALS FOR ADVANCEMENT",
@@ -4710,8 +4710,8 @@
           "score": 4,
           "name": {
             "translations": {
-              "fi": "Kriittinen ohjaaja",
-              "en": "Critical Guide"
+              "fi": "Kuljettaja (Kriittinen ohjaaja)",
+              "en": "Driver (Critical Guide)"
             }
           },
           "ai_label": "ROBUST ALIGNMENT - REQUIRES EPISTEMOLOGICAL HUMILITY",
@@ -4967,8 +4967,8 @@
           "score": 5,
           "name": {
             "translations": {
-              "fi": "Aktiivinen haastaja",
-              "en": "Active Challenger"
+              "fi": "Arkkitehti (Aktiivinen haastaja)",
+              "en": "Architect (Active Challenger)"
             }
           },
           "ai_label": "THEORETICAL PERFECTION - EXPLICIT COGNITIVE FRICTION AND ANCHORING REQUIRED",
@@ -20085,6 +20085,7 @@
         "variance_validation"
       ],
       "variance_target_block": "blk_53f32679aa514fcb",
+      "user_role_target_block": "blk_53f32679aa514fcb",
       "max_extension_items": 4,
       "display_scale": "normalized_100",
       "strictness_level": 85,
@@ -20250,6 +20251,7 @@
       ],
       "visible_workflow_extensions": [],
       "variance_target_block": "blk_53f32679aa514fcb",
+      "user_role_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20352,6 +20354,7 @@
         "variance_validation"
       ],
       "variance_target_block": "blk_53f32679aa514fcb",
+      "user_role_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20460,6 +20463,7 @@
         "variance_validation"
       ],
       "variance_target_block": "blk_53f32679aa514fcb",
+      "user_role_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
