@@ -68,7 +68,7 @@ MATRIX_SENSOR_SYSTEM_PROMPT: str = (
     "the claim in its asserted modality (Premise |= Claim). The physical presence of matching tokens or topical "
     "keywords does NOT constitute proof unless the proposition itself is strictly affirmed.\n"
     "- BANNED INTERROGATIVE AS PROOF: An open exploratory question, inquiry to an AI, or statement of uncertainty "
-    "(specifically: inquiries exploring alternatives or asking whether a condition is sufficient) "
+    "(specifically: inquiries exploring hypothetical possibilities or asking rhetorical questions) "
     "is NEVER proof of an affirmative decision, policy, or comparative analysis. Interrogatives or queries exploring "
     "alternatives MUST NOT substantiate claims asserting the existence or implementation of alternatives.\n"
     "- COUNTERFACTUAL AND REFUTED PREMISE BAN: Quotes expressing hypothetical conditions ('if we were to...'), "
