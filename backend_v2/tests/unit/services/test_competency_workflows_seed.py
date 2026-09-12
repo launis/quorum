@@ -152,24 +152,80 @@ def test_ai_description_compiler_xml_sovereignty() -> None:
             assert len(desc) >= 20, f"ai_description for {ei.input_key} must be descriptive (>=20 chars)"
 
 
+FINNISH_PROMPT_MARKERS = [
+    "Toimi ",
+    " ja ",
+    "tarkastajana",
+    "auditoijana",
+    "valmentajana",
+    "sparraajana",
+]
+
+
 def test_output_profiles_binding_and_preset_views() -> None:
     """Verify output profile 1:1 workflow bindings, tone instructions, and valid PresetView enum views."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
 
-    for prf_id in EXPECTED_PROFILE_IDS[1:]:
+    for prf_id in EXPECTED_PROFILE_IDS:
         assert prf_id in profiles, f"OutputProfile {prf_id} missing from seed_data.json"
         prf_model = OutputProfile.model_validate(profiles[prf_id])
         assert prf_model.id == prf_id
         assert prf_model.workflow_id is not None
         assert prf_model.tone_instruction is not None
-        assert len(prf_model.tone_instruction) >= 10, f"Tone instruction in {prf_id} must be non-empty"
+        assert len(prf_model.tone_instruction) >= 10, f"Tone instruction in {prf_id} must be >=10 chars"
+        for marker in FINNISH_PROMPT_MARKERS:
+            assert marker.lower() not in prf_model.tone_instruction.lower(), (
+                f"Finnish marker '{marker}' found in {prf_id} tone_instruction. "
+                f"All prompt directives must be in English per 05_llm_architecture.md."
+            )
+
+        # Verify bilingual custom preface completeness
+        assert prf_model.custom_preface is not None, f"Profile {prf_id} must define custom_preface"
+        assert isinstance(prf_model.custom_preface, I18nText)
+        translations = prf_model.custom_preface.translations
+        assert "fi" in translations and "en" in translations, f"Profile {prf_id} preface must be bilingual"
+        assert len(translations["fi"]) >= 150, f"Profile {prf_id} Finnish preface must be rich (>=150 chars)"
+        assert len(translations["en"]) >= 150, f"Profile {prf_id} English preface must be rich (>=150 chars)"
 
         # Validate matrix synthesis group view_type strings against PresetView enum
         for group in prf_model.matrix_synthesis_groups:
             assert group.view_type in [v.value for v in PresetView], (
                 f"Invalid view_type {group.view_type} in {prf_id}. Must be valid PresetView."
             )
+
+
+def test_baseline_profile_custom_preface_not_truncated() -> None:
+    """Verify baseline profile prf_5d6e7f8091a2b3c4 English preface is complete without ellipsis."""
+    seed_data = load_seed_data()
+    profiles = {p["id"]: p for p in seed_data["output_profiles"]}
+    prf = OutputProfile.model_validate(profiles["prf_5d6e7f8091a2b3c4"])
+    assert prf.custom_preface is not None
+    en_preface = prf.custom_preface.translations["en"]
+    assert not en_preface.strip().endswith("..."), "English preface must not be truncated with ellipsis"
+    assert "Insight" in en_preface
+    assert "Logic & Reasoning" in en_preface or "Logic and Reasoning" in en_preface
+    assert "Reliability" in en_preface
+    assert len(en_preface) >= 250
+
+
+def test_negative_profile_missing_custom_preface_en_rejected() -> None:
+    """ISTQB Negative Test 1: OutputProfile with custom_preface missing 'en' key raises AppException."""
+    seed_data = load_seed_data()
+    profiles = {p["id"]: p for p in seed_data["output_profiles"]}
+    raw_prf = dict(profiles["prf_5d6e7f8091a2b3c4"])
+    raw_prf["custom_preface"] = {"translations": {"fi": "Pelkkä suomi"}}
+
+    with pytest.raises((pydantic.ValidationError, AppException)) as exc_info:
+        OutputProfile.model_validate(raw_prf)
+    assert "English ('en') translation" in str(exc_info.value)
+
+
+def test_negative_profile_finnish_tone_instruction_rejected() -> None:
+    """ISTQB Negative Test 2: OutputProfile configured with Finnish prompt instruction fails language gate."""
+    bad_tone = "Toimi kannustavana valmentajana."
+    detected = any(marker.lower() in bad_tone.lower() for marker in FINNISH_PROMPT_MARKERS)
+    assert detected is True, "Finnish prompt marker detection must catch non-English tone instruction"
 
 
 def test_output_profiles_scoring_configuration() -> None:

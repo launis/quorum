@@ -219,6 +219,7 @@ class ProfileGeneralTab extends ConsumerWidget {
                   decoration: InputDecoration(
                     labelText: l10n.profileToneInstructionLabel,
                     border: const OutlineInputBorder(),
+                    hintText: 'Always write prompt logic in English',
                   ),
                   maxLines: 3,
                   onChanged: (val) {
@@ -229,6 +230,28 @@ class ProfileGeneralTab extends ConsumerWidget {
                       ),
                     );
                   },
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s8),
+                  child: Text(
+                    l10n.adminAiDescriptionHint,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s4),
+                  child: Text(
+                    l10n.adminPromptBestPracticesHint,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
                 ),
                 AppSpacing.h16,
                 I18nTextField(
