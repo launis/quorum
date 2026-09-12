@@ -124,6 +124,43 @@ def test_tda_6ecd649b48c24e68824e27e30ed8a63e_adversarial_roleplay_generalizatio
         assert framework in found_tda.extraction_rule
 
 
+def test_tda_ae5dd6ac930544f4abd77d3438c59ddd_cognitive_friction_generalization() -> None:
+    """Asserts that cognitive friction atom is generalized and free of toy-domain database overfitting."""
+    data = _load_seed_data()
+    prompt_blocks: list[dict[str, Any]] = data["prompt_blocks"]
+
+    found_tda: TDAAssertion | None = None
+    for block in prompt_blocks:
+        if "scales" in block:
+            scales: list[dict[str, Any]] = block["scales"]
+            for scale in scales:
+                claims: list[dict[str, Any]] = scale["claims"]
+                for claim in claims:
+                    for raw_tda in claim["tda_assertions"]:
+                        if raw_tda["tda_id"] == "tda_ae5dd6ac930544f4abd77d3438c59ddd":
+                            found_tda = TDAAssertion.model_validate(raw_tda)
+                            break
+
+    assert found_tda is not None, "Target TDA atom tda_ae5dd6ac930544f4abd77d3438c59ddd not found."
+    assert found_tda.contrastive_example is not None, "Contrastive example must be defined."
+
+    # Assert toy-domain database strings are strictly eradicated
+    banned_db_terms = ["postgresql", "sqlite", "mongodb", "row-level locking"]
+    serialized_contrastive = (
+        f"{found_tda.contrastive_example.acceptable} {found_tda.contrastive_example.rejected}".lower()
+    )
+    for term in banned_db_terms:
+        assert term not in serialized_contrastive, f"Found toy-domain database term '{term}' in contrastive example."
+
+    # Assert domain-neutral alternative evaluation is present
+    assert "evaluated two competing alternatives" in found_tda.contrastive_example.acceptable
+    assert "Option A" in found_tda.contrastive_example.rejected
+
+    # Assert anti-patterns enforce post-hoc rationalization ban
+    assert len(found_tda.anti_patterns) > 0
+    assert "post-hoc rationalization" in found_tda.anti_patterns[0].pattern
+
+
 def test_negative_boundary_partitions_for_overfit_detection() -> None:
     """ISTQB Negative Partition: Asserts that injecting overfitted or ambiguous tokens triggers failures."""
     sample_rule = "Use formal models (e.g. MECE). Act as devil's advocate for Työterveyslaitos."

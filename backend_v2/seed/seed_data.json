@@ -15338,13 +15338,13 @@
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "evaluated after",
+                      "pattern": "post-hoc rationalization, where alternatives are introduced or evaluated only after the final decision has already been declared",
                       "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Before committing to PostgreSQL, we evaluated SQLite and MongoDB against concurrent write requirements, choosing PostgreSQL for row-level locking.",
-                    "rejected": "We selected PostgreSQL as our primary database because it is reliable and popular."
+                    "acceptable": "Prior to finalizing the decision, we evaluated two competing alternatives against scalability and operational constraints, determining that Option A introduced unacceptable latency while Option B failed fault-tolerance requirements.",
+                    "rejected": "We chose Option A because it is the most popular solution and our team prefers it, though Option B could theoretically have been considered afterwards."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
