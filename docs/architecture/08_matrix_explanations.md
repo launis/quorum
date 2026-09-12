@@ -442,8 +442,127 @@ flowchart TD
     Q --> R[Dumb Painter UI & WeasyPrint PDF Export]
 ```
 
-### Toulmin Argumentation Model
+---
 
-The Toulmin Argumentation Model evaluation matrix is mathematically grounded in Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press.. It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks.
+## 7. Modular Competency Workflows & Evaluative Matrix Bindings
 
-Operationally, the matrix controls evaluation precision through targeted parameters including contextual override permissions (allow_contextual_override=True) and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict distinction between universal structural invariants requiring chunk compliance and specialized existential error radars.
+Quorum orchestrates evaluation through six (6) production workflows: one comprehensive baseline audit workflow and five targeted modular competency workflows. Each workflow binds a tailored subset of the academic evaluation matrices defined in Sections 2 and 3, specifies dynamic ingress input contracts, and produces a Server-Driven UI (SDUI) Output Profile calibrated for a distinct organizational role and task domain.
+
+All workflows adhere to the **3-Zone Workflow Governance Standard**:
+1. **Zone A (Ingestion Anchor):** Normalizes, validates, and partitions raw source texts into typed context slots.
+2. **Zone B (Specialist Evaluators):** Executes independent matrix evaluation blocks concurrently in Kahn wave DAG execution.
+3. **Zone C (Funnel Synthesis Anchor):** Reconciles heterogeneous specialist results into a unified qualitative and quantitative synthesis payload.
+
+---
+
+### 7.1. Workflow to Matrix Mapping Compendium
+
+The following matrix cross-references all six system workflows, their permanent Opaque Stripe IDs, bound academic matrices, required ingress inputs, and corresponding architectural profile identifiers.
+
+| Workflow ID | Workflow Slug & Name | Output Profile ID | Evaluated Academic Matrices | Bound Section Refs | Target Ingress Inputs | Preset View Topologies |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `wf_9d68c573802341db` | `holistic_evaluation`<br>**Kokonaisvaltainen auditointi** | `prf_5d6e7f8091a2b3c4` | All 13 Matrices | [§3.1–§3.13](#3-detailed-matrix-profiles--epistemic-input-justifications) | `user_prompt`<br>`response_text`<br>`reference_context` | `1d_metrics`<br>`2d_compare` |
+| `wf_01a1d71000000001` | `tekoalyajokortti_vuorovaikutus_ohjaus`<br>**Tekoälyajokortti: Vuorovaikutus ja Ohjaus** | `prf_01b1d71000000001` | Goodhart (`blk_53f32679aa514fcb`)<br>Toulmin (`blk_440a5fef9331451b`) | [§3.4](#34-performativity--goodharts-law)<br>[§3.1](#31-toulmin-argumentation-model) | `chat_history`<br>`final_deliverable` | `1d_metrics` |
+| `wf_02a1d71000000002` | `strateginen_johtaminen_paatoksenteko`<br>**Strateginen Johtaminen ja Päätöksenteko** | `prf_02b1d71000000002` | Goodhart (`blk_53f32679aa514fcb`)<br>Toulmin (`blk_440a5fef9331451b`)<br>Causal Analyst (`blk_c5804a9143c34cb1`)<br>Falsifier (`blk_b476f89fb732448c`) | [§3.4](#34-performativity--goodharts-law)<br>[§3.1](#31-toulmin-argumentation-model)<br>[§3.6](#36-causal-inference--abductive-reasoning-audit)<br>[§3.7](#37-falsification-audit) | `strategic_memo`<br>`sparring_dialogue` | `2d_compare` |
+| `wf_03a1d71000000003` | `syvallinen_ongelmanratkaisu_kognitio`<br>**Syvällinen Ongelmanratkaisu ja Kognitio** | `prf_03b1d71000000003` | Bloom (`blk_f921c7c0989b47e8`)<br>Kahneman (`blk_109dab5b6b3f403a`)<br>Goodhart (`blk_53f32679aa514fcb`) | [§3.2](#32-blooms-taxonomy)<br>[§3.3](#33-kahnemans-dual-process-theory)<br>[§3.4](#34-performativity--goodharts-law) | `problem_statement`<br>`ideation_log`<br>`synthesis_solution` | `3d_matrix` |
+| `wf_04a1d71000000004` | `faktantarkistus_tiedon_etsinta`<br>**Faktantarkistus ja Tiedon Etsintä** | `prf_04b1d71000000004` | Epistemic Humility (`blk_22e3598e06414409`)<br>Archivist (`blk_fb15f8dcf23f4865`)<br>Toulmin (`blk_440a5fef9331451b`) | [§3.13](#313-epistemic-humility)<br>[§3.5](#35-archival-compliance-audit)<br>[§3.1](#31-toulmin-argumentation-model) | `research_report`<br>`source_dossier` | `1d_metrics` |
+| `wf_05a1d71000000005` | `hallinnollinen_eettinen_audit`<br>**Hallinnollinen ja Eettinen Audit** | `prf_05b1d71000000005` | Taskguard (`blk_80732a33fe1947ee`)<br>Clarity (`blk_f6e286f050c94d60`)<br>Archivist (`blk_fb15f8dcf23f4865`) | [§3.10](#310-responsibility-taskguard)<br>[§3.12](#312-explainability--transparency)<br>[§3.5](#35-archival-compliance-audit) | `system_mandate`<br>`execution_dossier` | `1d_metrics` |
+
+---
+
+### 7.2. Detailed Workflow Profiles & Evaluative Trajectories
+
+#### 7.2.1. Baseline Holistic Audit (`wf_9d68c573802341db`)
+- **Profile ID:** `prf_5d6e7f8091a2b3c4` | **Slug:** `holistic_evaluation`
+- **User Category & Purpose:** Comprehensive organizational audit evaluating end-to-end cognitive, empirical, strategic, and ethical capabilities across human-AI interactions and finalized deliverables. Serves as the system baseline and benchmark execution pipeline.
+- **Dynamic Ingress Specifications:**
+  - `user_prompt`: Assignment definition, instructions, and objectives (`required=True`, `is_chat_history=False`).
+  - `response_text`: Deliverable text, analytical report, or generated asset (`required=True`, `is_chat_history=False`).
+  - `reference_context`: Background briefings, factual source materials, or organizational guidelines (`required=True`, `is_chat_history=False`).
+- **Topological Architecture (15 Steps):**
+  - **Zone A:** `sp_ingest` extracts and validates text chunks.
+  - **Zone B (13 Specialists in Parallel Wave 1):** Executes all 13 canonical matrix blocks (§3.1–§3.13) across Toulmin (`sp_toulmin`), Bloom (`sp_bloom`), Kahneman (`sp_kahneman`), Goodhart (`sp_goodhart`), Archivist (`sp_archivist`), Causal Analyst (`sp_causal`), Falsifier (`sp_falsifier`), Judge (`sp_judge`), XAI Reporter (`sp_xai`), Taskguard (`sp_taskguard`), Causal Abductive (`sp_causal_abductive`), Clarity (`sp_clarity`), and Epistemic Humility (`sp_epistemic_humility`).
+  - **Zone C:** `sp_synthesis` reconciles all specialist evaluations into global executive synthesis.
+- **Output Profile & SDUI Visualization:** Combines 1D metric and 2D comparison views across 7 synthesis groups. Renders full report block order including executive summary, global scores, Cartesian variance validation plane, security penalty warnings, and verified source citations (`show_sources_summary_box=true`).
+
+#### 7.2.2. AI Driving License: Interaction & Steering (`wf_01a1d71000000001`)
+- **Profile ID:** `prf_01b1d71000000001` | **Slug:** `tekoalyajokortti_vuorovaikutus_ohjaus`
+- **User Category & Purpose:** Foundational human-AI interaction evaluation verifying everyday prompt design, iterative steering discipline, and critical evaluation of AI responses. Targeted at knowledge workers, students, and professionals establishing certified AI literacy.
+- **Dynamic Ingress Specifications:**
+  - `chat_history`: Multi-turn dialogue log between user and AI (`required=True`, `is_chat_history=True`). Passes directly into Layer 4 context for interactive prompt trajectory analysis.
+  - `final_deliverable`: Final text produced through the interaction (`required=True`, `is_chat_history=False`). Evaluated for argumentative grounding and independence from uncritical AI acceptance.
+- **Topological Architecture (4 Steps):**
+  - **Zone A:** `step_01_ingest` normalizes the conversation history and deliverable text.
+  - **Zone B (2 Specialists in Parallel Wave 1):**
+    - `step_01_goodhart`: Executes Goodhart Matrix (`blk_53f32679aa514fcb`, [§3.4](#34-performativity--goodharts-law)) against `chat_history` to evaluate steering agency (Driver vs. Passenger).
+    - `step_01_toulmin`: Executes Toulmin Matrix (`blk_440a5fef9331451b`, [§3.1](#31-toulmin-argumentation-model)) against `final_deliverable` to verify evidential backing.
+  - **Zone C:** `step_01_synthesis` compiles coaching feedback.
+- **Epistemic Rationales:** Focuses strictly on conversational steering dynamics and deliverable grounding. Excludes irrelevant administrative criteria (such as OWASP vulnerability scans or statutory archival retention).
+- **Output Profile & SDUI Visualization:** Utilizes supportive coaching tone. Displays two dedicated 1D metric cards (`grp_01e1d71000000001` Steering Dynamics and `grp_01e1d71000000002` Argumentation Rigor) highlighting concrete prompt reformulation guidance. Disables external source summaries (`show_sources_summary_box=false`).
+
+#### 7.2.3. Strategic Leadership & Decision Making (`wf_02a1d71000000002`)
+- **Profile ID:** `prf_02b1d71000000002` | **Slug:** `strateginen_johtaminen_paatoksenteko`
+- **User Category & Purpose:** Executive decision analysis and leadership coaching evaluating strategic reasoning, causal mechanism intervention, and vulnerability to falsification during strategic planning. Designed for C-suite executives, strategy directors, management consultants, and board members.
+- **Dynamic Ingress Specifications:**
+  - `strategic_memo`: Executive deliverable, board memorandum, or policy plan (`required=True`, `is_chat_history=False`).
+  - `sparring_dialogue`: Executive sparring dialogue demonstrating dilemma navigation and iterative assumption testing (`required=True`, `is_chat_history=True`).
+- **Topological Architecture (6 Steps):**
+  - **Zone A:** `step_02_ingest` normalizes strategic memorandum and sparring dialogue.
+  - **Zone B (4 Specialists in Parallel Wave 1):**
+    - `step_02_goodhart`: Evaluates prompt steering and goal specification ([§3.4](#34-performativity--goodharts-law)).
+    - `step_02_toulmin`: Evaluates backing of executive claims and qualification of uncertainty ([§3.1](#31-toulmin-argumentation-model)).
+    - `step_02_causal`: Evaluates structural causal interventions and counterfactual reasoning ([§3.6](#36-causal-inference--abductive-reasoning-audit)).
+    - `step_02_falsifier`: Identifies unstated organizational assumptions and empirical vulnerability ([§3.7](#37-falsification-audit)).
+  - **Zone C:** `step_02_synthesis` delivers strategic counsel.
+- **Epistemic Rationales:** Binds Pearl's causal intervention mechanics with Popper's falsification standards to expose organizational blind spots and post-hoc rationalization.
+- **Output Profile & SDUI Visualization:** Adopts an authoritative Senior Executive Coach persona. Organizes results into two 2D comparison synthesis groups (`grp_02e1d71000000001` Goodhart vs. Toulmin and `grp_02e1d71000000002` Pearl vs. Popper). Activates 2D Cartesian variance evaluation to distinguish authentic strategic deliberation from performative corporate jargon (`visible_workflow_extensions: ["variance_validation"]`).
+
+#### 7.2.4. Deep Problem Solving & Cognition (`wf_03a1d71000000003`)
+- **Profile ID:** `prf_03b1d71000000003` | **Slug:** `syvallinen_ongelmanratkaisu_kognitio`
+- **User Category & Purpose:** Cognitive depth and creative innovation audit evaluating intellectual complexity, metacognitive friction, and navigation of cognitive biases during problem framing. Designed for research scientists, systems architects, product innovators, and analytical specialists.
+- **Dynamic Ingress Specifications:**
+  - `problem_statement`: Complex challenge definition, system constraints, and objectives (`required=True`, `is_chat_history=False`).
+  - `ideation_log`: Multi-turn brainstorming dialogue capturing iterative exploration and problem reframing (`required=True`, `is_chat_history=True`).
+  - `synthesis_solution`: Proposed solution, architectural specification, or conceptual framework (`required=True`, `is_chat_history=False`).
+- **Topological Architecture (5 Steps):**
+  - **Zone A:** `step_03_ingest` normalizes problem statement, ideation log, and solution synthesis.
+  - **Zone B (3 Specialists in Parallel Wave 1):**
+    - `step_03_bloom`: Evaluates cognitive taxonomy level from knowledge recall to synthesis creation ([§3.2](#32-blooms-taxonomy)).
+    - `step_03_kahneman`: Diagnoses heuristic intuition (System 1) versus deliberative friction (System 2) ([§3.3](#33-kahnemans-dual-process-theory)).
+    - `step_03_goodhart`: Assesses cognitive steering and resistance to automated confirmation bias ([§3.4](#34-performativity--goodharts-law)).
+  - **Zone C:** `step_03_synthesis` generates cognitive feedback.
+- **Epistemic Rationales:** Combines Bloom's hierarchical cognitive ascent with Kahneman's dual-process friction to diagnose intellectual comfort zones and promote paradigm reframing.
+- **Output Profile & SDUI Visualization:** Features a cognitive psychology coaching persona. Visualizes multidimensional thinking via a 3D Radar Matrix Synthesis Group (`grp_03e1d71000000001` Cognitive Depth & Heuristics). Activates variance validation to detect authentic epistemic struggle versus regurgitated boilerplate patterns (`show_sources_summary_box=false`).
+
+#### 7.2.5. Fact-Checking & Empirical Research (`wf_04a1d71000000004`)
+- **Profile ID:** `prf_04b1d71000000004` | **Slug:** `faktantarkistus_tiedon_etsinta`
+- **User Category & Purpose:** Investigative factual verification evaluating empirical backing, citation fidelity, and calibration against verifiable evidence. Designed for investigative journalists, legal researchers, compliance analysts, due diligence investigators, and academic auditors.
+- **Dynamic Ingress Specifications:**
+  - `research_report`: Investigative report, article, or deliverable undergoing evidentiary verification (`required=True`, `is_chat_history=False`).
+  - `source_dossier`: Reference corpus, background documents, or primary source texts (`required=True`, `is_chat_history=False`).
+- **Topological Architecture (5 Steps):**
+  - **Zone A:** `step_04_ingest` normalizes the research report and source dossier.
+  - **Zone B (3 Specialists in Parallel Wave 1):**
+    - `step_04_humility`: Audits probabilistic calibration and catches overconfident hallucinations ([§3.13](#313-epistemic-humility)).
+    - `step_04_archivist`: Verifies citation integrity, source fidelity, and archival retention compliance ([§3.5](#35-archival-compliance-audit)).
+    - `step_04_toulmin`: Evaluates evidential warranting and rebuttal robustness ([§3.1](#31-toulmin-argumentation-model)).
+  - **Zone C:** `step_04_synthesis` compiles evidentiary findings.
+- **Epistemic Rationales:** Isolates truth-seeking and empirical grounding from subjective tone or conversational fluency. Employs external research tooling capabilities (`mcp_tavily_search`) exclusively to corroborate real-world factual claims.
+- **Output Profile & SDUI Visualization:** Uses an uncompromising investigative auditor persona. Presents findings in three 1D metric groups (`grp_04e1d71000000001` Epistemic Calibration, `grp_04e1d71000000002` Archival Integrity, and `grp_04e1d71000000003` Argumentation Rigor). Enforces verified source citations and audit trail disclosure (`show_sources_summary_box=true` with `sources_display_mode: "verified_evidence"`).
+
+#### 7.2.6. Compliance, Governance & Mandate Safety (`wf_05a1d71000000005`)
+- **Profile ID:** `prf_05b1d71000000005` | **Slug:** `hallinnollinen_eettinen_audit`
+- **User Category & Purpose:** Independent compliance, governance, and safety audit evaluating regulatory adherence, mandate containment, and transparent explainability in automated decisions. Designed for compliance officers, data protection authorities, legal risk auditors, and security regulators.
+- **Dynamic Ingress Specifications:**
+  - `system_mandate`: Operational charter, statutory guidelines, or policy instructions defining permissible operational boundaries (`required=True`, `is_chat_history=False`).
+  - `execution_dossier`: Comprehensive execution log of automated actions, operational decisions, and audit trails (`required=True`, `is_chat_history=True`).
+- **Topological Architecture (5 Steps):**
+  - **Zone A:** `step_05_ingest` normalizes statutory mandate constraints and operational execution logs.
+  - **Zone B (3 Specialists in Parallel Wave 1):**
+    - `step_05_taskguard`: Enforces zero-trust boundary containment and ethics ([§3.10](#310-responsibility-taskguard)).
+    - `step_05_clarity`: Validates algorithmic interpretability, variable weighting, and reconstructible causal chains ([§3.12](#312-explainability--transparency)).
+    - `step_05_archivist`: Validates statutory record retention and evidential logging ([§3.5](#35-archival-compliance-audit)).
+  - **Zone C:** `step_05_synthesis` compiles administrative audit report.
+- **Epistemic Rationales:** Restricts evaluation to administrative, statutory, and safety compliance. Implements zero-trust containment verification with automated penalty scoring.
+- **Output Profile & SDUI Visualization:** Adopts a neutral, objective compliance auditor persona. Organizes audit findings into three 1D metric groups (`grp_05e1d71000000001` Constraint & Safety Audit, `grp_05e1d71000000002` Explainability & Transparency, and `grp_05e1d71000000003` Regulatory Retention). Applies a mandatory security penalty factor (`security_penalty: 0.15`), activates compliance variance detection (`visible_workflow_extensions: ["variance_validation"]`), and suppresses non-statutory summary boxes (`show_sources_summary_box=false`).
+

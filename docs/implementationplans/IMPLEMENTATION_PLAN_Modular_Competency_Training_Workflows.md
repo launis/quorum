@@ -159,6 +159,8 @@ A comprehensive comparative audit (`@[feature_audit_workflow_data_comparison.md]
 | `visible_block_extensions` | 4 extensions | 4 extensions | **Identical structure.** |
 | `visible_workflow_extensions` | `['variance_validation']` | WF1, WF4: `[]`<br>WF2, WF3: `['variance_validation']`<br>WF5: `['variance_validation', 'penalties']` | **Identical schema, specialized list.** Only relevant extensions displayed. |
 | `security_penalty` | `0.0` | WF1–WF4: `0.0`<br>WF5: `0.15` | **Identical schema, specialized value.** Enforces compliance penalty in WF5. |
+| `strictness_level` | `85` | `85` | **Identical value.** Enforces mandatory scoring strictness required by `matrix_scoring_hook`. |
+| `scoring_strategy` | `"AVERAGE"` | `"AVERAGE"` | **Identical value.** Enforces mandatory scoring aggregation strategy. |
 | `target_block_order` | 10 blocks (all blocks) | WF1: 6 blocks<br>WF2: 10 blocks<br>WF3: 9 blocks<br>WF4: 6 blocks<br>WF5: 8 blocks | **Identical schema, tailored block order.** Irrelevant blocks cleanly omitted. |
 | `matrix_synthesis_groups` | 3x 2D groups (6 matrices) | WF1: 2x 1D groups<br>WF2: 2x 2D groups<br>WF3: 1x 3D group<br>WF4: 3x 1D groups<br>WF5: 3x 1D groups | **Tailored geometries and block bindings.** (See Table 5). |
 | `content_blocks` | `[]` | `[]` | **Identical empty list.** |
