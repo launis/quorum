@@ -9,6 +9,7 @@ from backend_v2.models.dtos.output_profile import (
     OutputProfileUpdateDTO,
 )
 from backend_v2.models.enums import DisplayScale, SourcesDisplayMode, TargetBlockType, XaiExtensionType
+from backend_v2.models.v2_core import OutputProfile
 
 _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "slug": "my-profile",
@@ -215,12 +216,14 @@ def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> N
             "printable_sources_block",
             "audit_trail_block",
         ],
+        "variance_target_block": "blk_1111222233334444",
     }
     dto = OutputProfileCreateDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
     assert dto.target_block_order is not None
     assert len(dto.target_block_order) == 11
     assert dto.target_block_order[0] == TargetBlockType.METADATA_BLOCK
+    assert dto.variance_target_block == "blk_1111222233334444"
 
 
 def test_output_profile_update_dto_accepts_string_enums_from_http_payload() -> None:
@@ -631,3 +634,55 @@ def test_output_profile_matrix_graph_length_constraint_dto_roundtrip() -> None:
     assert resp_dto.matrix_graph_length_constraint == 400
     dumped = resp_dto.model_dump(mode="json")
     assert dumped["matrix_graph_length_constraint"] == 400
+
+
+def test_output_profile_variance_target_block_coherence() -> None:
+    """Enforce that OutputProfile validates variance_target_block coherence with fail-fast validation."""
+    valid_base = {
+        "id": "prf_1234567890abcdef",
+        "slug": "test-prof",
+        "workflow_id": "wf_1234567890abcdef",
+        "name": {"translations": {"en": "Test Profile"}},
+    }
+
+    # 1. Positive: variance_validation_block present with variance_target_block passes
+    prof_valid = OutputProfile.model_validate(
+        {
+            **valid_base,
+            "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+            "variance_target_block": "blk_53f32679aa514fcb",
+        }
+    )
+    assert prof_valid.variance_target_block == "blk_53f32679aa514fcb"
+
+    # 2. Positive: No variance block or extension and variance_target_block=None passes
+    prof_no_variance = OutputProfile.model_validate(
+        {
+            **valid_base,
+            "target_block_order": [TargetBlockType.METADATA_BLOCK],
+            "visible_workflow_extensions": [],
+            "variance_target_block": None,
+        }
+    )
+    assert prof_no_variance.variance_target_block is None
+
+    # 3. Negative: variance_validation_block in target_block_order without variance_target_block fails
+    with pytest.raises(ValidationError, match="variance_target_block.*missing or empty"):
+        OutputProfile.model_validate(
+            {
+                **valid_base,
+                "target_block_order": [TargetBlockType.METADATA_BLOCK, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                "variance_target_block": None,
+            }
+        )
+
+    # 4. Negative: variance_validation in visible_workflow_extensions without variance_target_block fails
+    with pytest.raises(ValidationError, match="variance_target_block.*missing or empty"):
+        OutputProfile.model_validate(
+            {
+                **valid_base,
+                "target_block_order": [TargetBlockType.METADATA_BLOCK],
+                "visible_workflow_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+                "variance_target_block": None,
+            }
+        )

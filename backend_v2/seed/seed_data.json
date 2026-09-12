@@ -20084,6 +20084,7 @@
       "visible_workflow_extensions": [
         "variance_validation"
       ],
+      "variance_target_block": "blk_53f32679aa514fcb",
       "max_extension_items": 4,
       "display_scale": "normalized_100",
       "strictness_level": 85,
@@ -20248,6 +20249,7 @@
         "remediation_steps"
       ],
       "visible_workflow_extensions": [],
+      "variance_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20349,6 +20351,7 @@
       "visible_workflow_extensions": [
         "variance_validation"
       ],
+      "variance_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20456,6 +20459,7 @@
       "visible_workflow_extensions": [
         "variance_validation"
       ],
+      "variance_target_block": "blk_53f32679aa514fcb",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20542,6 +20546,7 @@
         "remediation_steps"
       ],
       "visible_workflow_extensions": [],
+      "variance_target_block": "blk_22e3598e06414409",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "target_block_order": [
@@ -20656,6 +20661,7 @@
       "visible_workflow_extensions": [
         "variance_validation"
       ],
+      "variance_target_block": "blk_fb15f8dcf23f4865",
       "strictness_level": 85,
       "scoring_strategy": "AVERAGE",
       "security_penalty": 0.15,

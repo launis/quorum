@@ -263,6 +263,12 @@ class OutputProfileCreateDTO(V2CoreBase):
         list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
     ] = None
+    variance_target_block: Annotated[
+        str | None,
+        Field(
+            default=None, description="PromptBlock ID providing the cognitive evaluation score for variance validation."
+        ),
+    ] = None
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:
@@ -505,6 +511,12 @@ class OutputProfileUpdateDTO(V2CoreBase):
         list[LaxTargetBlockType] | None,
         Field(default=None, description="Optional block order override."),
     ] = None
+    variance_target_block: Annotated[
+        str | None,
+        Field(
+            default=None, description="PromptBlock ID providing the cognitive evaluation score for variance validation."
+        ),
+    ] = None
 
     @model_validator(mode="after")
     def validate_custom_scale_bounds(self) -> Self:
@@ -592,7 +604,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
                 TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
                 TargetBlockType.PENALTIES_BLOCK,
                 TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
-                TargetBlockType.VARIANCE_VALIDATION_BLOCK,
                 TargetBlockType.PRINTABLE_SOURCES_BLOCK,
                 TargetBlockType.GLOBAL_SCORE_BLOCK,
                 TargetBlockType.AUDIT_TRAIL_BLOCK,
@@ -683,3 +694,9 @@ class OutputProfileResponseDTO(BaseResponseDTO):
             description="Display mode for the bibliography and source verification section.",
         ),
     ] = SourcesDisplayMode.VERIFIED_EVIDENCE
+    variance_target_block: Annotated[
+        str | None,
+        Field(
+            default=None, description="PromptBlock ID providing the cognitive evaluation score for variance validation."
+        ),
+    ] = None

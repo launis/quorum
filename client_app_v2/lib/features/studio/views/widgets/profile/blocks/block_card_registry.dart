@@ -158,6 +158,8 @@ class BlockCardRegistry {
         key: key,
         payload: payload,
         updatePayload: updatePayload,
+        allowedBlockIds: allowedBlockIds,
+        promptBlocksState: promptBlocksState,
         dragHandle: dragHandle,
       ),
       TargetBlockType.printableSourcesBlock => BibliographyBlockCard(

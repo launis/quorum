@@ -293,7 +293,12 @@ void main() {
         createTestWidget(
           child: Builder(
             builder: (context) {
-              return VarianceBlockCard(payload: profile, updatePayload: (_) {});
+              return VarianceBlockCard(
+                payload: profile,
+                updatePayload: (_) {},
+                allowedBlockIds: const {},
+                promptBlocksState: const AsyncValue.data([]),
+              );
             },
           ),
         ),
@@ -301,6 +306,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(VarianceBlockCard), findsOneWidget);
+      expect(
+        find.byKey(const Key('profile_variance_target_block_field')),
+        findsOneWidget,
+      );
     });
   });
 }

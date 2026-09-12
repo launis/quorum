@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.exceptions import AppException
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -31,13 +32,11 @@ def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345
             ps = getattr(payload, "profile_syntheses", None) or (
                 payload.get("profile_syntheses") if isinstance(payload, dict) else None
             )
-            if ps is not None:
-                if isinstance(ps, dict):
-                    res = {}
-                    for k, v in ps.items():
-                        res[k] = v.model_dump(mode="json") if hasattr(v, "model_dump") else v
-                    return res
-                return ps
+            if ps is not None and isinstance(ps, dict):
+                res: dict[str, Any] = {}
+                for k, v in ps.items():
+                    res[str(k)] = v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                return res
     return None
 
 
@@ -59,6 +58,8 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
+        progress=None,
+        status_message=None,
         execution_trace=[
             TraceEvent(
                 v=1,
@@ -220,6 +221,8 @@ def _setup_mock_repo_for_metrics(
         status=ExecutionStatus.PASSED,
         target_locale="fi",
         metadata=ExecutionMetadata(),
+        progress=None,
+        status_message=None,
         execution_trace=trace_events,
         context_variables={},
     )
@@ -300,6 +303,7 @@ def _setup_mock_repo_for_metrics(
         "variance_synthesis_directive": "VARIANCE DIRECTIVE",
         "max_extension_items": 3,
         "visible_workflow_extensions": ["variance_validation"],
+        "variance_target_block": "blk_53f32679aa514fcb",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
     }
@@ -326,7 +330,7 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
             "total_word_count": 100,
         },
         trace_content_det={
-            "blk_det12345678det1": {
+            "blk_53f32679aa514fcb": {
                 "raw_score": 2.5,
                 "justification": "Authenticity evaluation",
                 "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
@@ -356,6 +360,57 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
     assert metrics["performative_phrases_count"] == 2.0
     assert metrics["total_word_count"] == 100
     assert metrics["jargon_density"] == 2.0
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    """Test extracting extension metrics from modernized Coach/Goodhart step."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={
+            "performative_patterns": [
+                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"},
+            ],
+            "total_word_count": 200,
+        },
+        trace_content_det={
+            "blk_53f32679aa514fcb": {
+                "raw_score": 1.5,
+                "justification": "Coach Goodhart evaluation",
+                "level_breakdown": {"1.0": {"hits": 1, "total": 3}, "2.0": {"hits": 2, "total": 3}},
+            },
+            "_step_metadata": {
+                "execution_id": "exec_1234567812345678",
+                "workflow_id": "wf_9d68c573802341db",
+                "step_id": "sr_0228db320e8f41bb",
+                "initiator_id": "system",
+                "timestamp_isot": "2026-08-06T00:00:00Z",
+                "unix_time": 1700000000,
+                "v2_engine": True,
+                "task_blueprint": "sp_25664f44773a4354",
+            },
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678", accept_language="en", profile_id="prof_1111111111111111", redis=None
+    )
+
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    metrics = prof_synth["prof_1111111111111111"].get("extension_metrics")
+    assert metrics is not None
+    assert metrics["authenticity_score"] == 1.5
+    assert metrics["performative_phrases_count"] == 1.0
+    assert metrics["total_word_count"] == 200
 
 
 @pytest.mark.asyncio
@@ -654,7 +709,8 @@ async def test_worker_synthesis_matrix_layout_directives(
             messages = call.kwargs["messages"]
             all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
 
-    assert expected_snippet in all_user_content
+    if expected_snippet is not None:
+        assert expected_snippet in all_user_content
 
 
 @pytest.mark.asyncio
@@ -986,7 +1042,7 @@ async def test_worker_synthesis_custom_directives_resolution(
             "performative_patterns": [{"pattern_id": "1", "detected_phrase": "test phrase", "category": "cat"}]
         },
         trace_content_det={
-            "blk_det12345678det1": {
+            "blk_53f32679aa514fcb": {
                 "raw_score": 3.0,
                 "justification": "Authenticity evaluation",
                 "level_breakdown": {},
@@ -1018,6 +1074,7 @@ async def test_worker_synthesis_custom_directives_resolution(
         "xai_synthesis_directive": "CUSTOM XAI SYNTHESIS DIRECTIVE",
         "variance_synthesis_directive": "CUSTOM VARIANCE DIRECTIVE",
         "visible_workflow_extensions": ["variance_validation"],
+        "variance_target_block": "blk_53f32679aa514fcb",
         "matrix_visible_columns": ["label", "row_explanation"],
         "matrix_synthesis_groups": [],
         "target_block_order": ["variance_validation_block", "matrix_summary_table_block"],
@@ -1063,3 +1120,83 @@ async def test_worker_synthesis_custom_directives_resolution(
 
     assert "CUSTOM XAI SYNTHESIS DIRECTIVE" in all_user_content
     assert "CUSTOM VARIANCE DIRECTIVE" in all_user_content
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_missing_variance_target_block_raises_configuration_error(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    """Test that missing variance_target_block when variance is active raises fail-fast AppException."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={"performative_patterns": [], "total_word_count": 100},
+        trace_content_det={"blk_53f32679aa514fcb": {"raw_score": 2.5, "justification": "test"}},
+    )
+
+    # Override profile without variance_target_block
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_missing_target",
+        "name": {"translations": {"en": "Missing Target"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "visible_workflow_extensions": ["variance_validation"],
+        "variance_target_block": None,
+        "target_block_order": ["variance_validation_block"],
+        "matrix_synthesis_groups": [],
+    }
+
+    with pytest.raises(AppException) as exc_info:
+        await generate_profile_synthesis_and_pdf_task(
+            execution_id="exec_1234567812345678",
+            accept_language="en",
+            profile_id="prof_1111111111111111",
+            redis=None,
+        )
+
+    assert exc_info.value.status_code in (400, 500)
+    assert "variance_target_block" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    """Test that if the configured target block was never evaluated in the trace, synthesis succeeds without variance metrics."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={"performative_patterns": [], "total_word_count": 100},
+        trace_content_det={
+            # Target block is blk_53f32679aa514fcb, but trace only has blk_unrelated99999999
+            "blk_unrelated99999999": {
+                "raw_score": 1.0,
+                "justification": "Other block",
+            }
+        },
+    )
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678",
+        accept_language="en",
+        profile_id="prof_1111111111111111",
+        redis=None,
+    )
+
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
+    assert prof_synth["prof_1111111111111111"].get("extension_metrics") is None

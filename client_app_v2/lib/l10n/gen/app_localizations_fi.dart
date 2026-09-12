@@ -4754,6 +4754,14 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileVarianceLengthHint => 'esim. 500 merkkiä';
 
   @override
+  String get profileVarianceTargetBlockLabel =>
+      'Varianssin kohdearviointilohko';
+
+  @override
+  String get profileVarianceTargetBlockHint =>
+      'Valitse matriisilohko, jonka tuloksista kognitiivinen varianssi arvioidaan';
+
+  @override
   String get profileMatrixGraphLengthLabel =>
       'Kaavioselitteen tavoitepituus (merkkiä / kaavio)';
 

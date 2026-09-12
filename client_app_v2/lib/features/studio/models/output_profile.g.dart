@@ -101,6 +101,7 @@ _OutputProfile _$OutputProfileFromJson(
         'row_explanation_directive',
         'xai_synthesis_directive',
         'variance_synthesis_directive',
+        'variance_target_block',
         'language',
         'matrix_synthesis_groups',
         'content_blocks',
@@ -276,6 +277,10 @@ _OutputProfile _$OutputProfileFromJson(
         'variance_synthesis_directive',
         (v) => v as String?,
       ),
+      varianceTargetBlock: $checkedConvert(
+        'variance_target_block',
+        (v) => v as String?,
+      ),
       language: $checkedConvert(
         'language',
         (v) => $enumDecodeNullable(_$SystemLocaleEnumMap, v),
@@ -366,6 +371,7 @@ _OutputProfile _$OutputProfileFromJson(
     'rowExplanationDirective': 'row_explanation_directive',
     'xaiSynthesisDirective': 'xai_synthesis_directive',
     'varianceSynthesisDirective': 'variance_synthesis_directive',
+    'varianceTargetBlock': 'variance_target_block',
     'matrixSynthesisGroups': 'matrix_synthesis_groups',
     'contentBlocks': 'content_blocks',
     'targetBlockOrder': 'target_block_order',
@@ -418,6 +424,7 @@ Map<String, dynamic> _$OutputProfileToJson(
   'row_explanation_directive': instance.rowExplanationDirective,
   'xai_synthesis_directive': instance.xaiSynthesisDirective,
   'variance_synthesis_directive': instance.varianceSynthesisDirective,
+  'variance_target_block': instance.varianceTargetBlock,
   'language': _$SystemLocaleEnumMap[instance.language],
   'matrix_synthesis_groups': instance.matrixSynthesisGroups
       .map((e) => e.toJson())

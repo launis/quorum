@@ -378,7 +378,7 @@ In Server-Driven UI scorecard tables, each evaluated matrix axis displays a conc
 
 ### 5.1. 2D Cartesian Variance Plane
 The system models cognitive performance across a two-dimensional Cartesian plane:
-- **X-Axis (Cognitive Depth / Authenticity):** Represents the substantive cognitive depth score computed across active analytical matrices, bounded within $[1.0, 3.0]$ and normalized to an interactive plot ratio $[0.0, 1.0]$.
+- **X-Axis (Cognitive Depth / Authenticity):** Represents the substantive cognitive depth score extracted deterministically from the designated evaluation matrix bound to `OutputProfile.variance_target_block` (e.g., `matrix_goodhart` for human-AI interaction or `matrix_archivist` for compliance audits), bounded within $[1.0, 3.0]$ and normalized to an interactive plot ratio $[0.0, 1.0]$.
 - **Y-Axis (Mechanical Load / Jargon Density):** Represents the percentage of the evaluated text comprised of performative, hollow, or ungrounded consultative phrases ($[0.0, 100.0]$), normalized against the configured load ceiling.
 
 ```
@@ -409,6 +409,12 @@ Performative language detection operates dynamically through prompt compilation 
 1. **Inflected Morphology Extraction:** The system compiles linguistic analysis directives targeting morphological structures in the document's native language.
 2. **Tiered Lexical Grounding:** Candidate phrases are verified against physical source text using exact substring search, supplemented by token-set matching for inflected language forms.
 3. **SDUI Integration:** `VarianceAdapter` transforms the calculated coordinates, alignment verdicts, and detected performative patterns into interactive scatter plots, visual badges, and alert cards.
+
+### 5.5. Deterministic Target Matrix Binding & Studio Configuration
+Targeting the authenticity matrix is completely decoupled from background worker heuristics or hardcoded name markers:
+1. **SSOT Contract:** `OutputProfile.variance_target_block` is the sole authoritative binding for the X-axis metric. A Fail-Fast `@model_validator` guarantees that whenever variance validation is enabled, a valid matrix block is explicitly designated.
+2. **Deterministic Worker Extraction:** The Arq synthesis worker (`worker.py`) reads the score directly from `out_content[target_block_id]` using the bound block ID, operating with zero heuristic string matching.
+3. **Studio Scoping:** In Quorum Studio, `VarianceBlockCard` scopes the dropdown selector strictly to matrix blocks evaluated within the active workflow (`allowedBlockIds`), preventing cross-workflow configuration drift.
 
 ---
 
@@ -566,3 +572,8 @@ The following matrix cross-references all six system workflows, their permanent 
 - **Epistemic Rationales:** Restricts evaluation to administrative, statutory, and safety compliance. Implements zero-trust containment verification with automated penalty scoring.
 - **Output Profile & SDUI Visualization:** Adopts a neutral, objective compliance auditor persona. Organizes audit findings into three 1D metric groups (`grp_05e1d71000000001` Constraint & Safety Audit, `grp_05e1d71000000002` Explainability & Transparency, and `grp_05e1d71000000003` Regulatory Retention). Applies a mandatory security penalty factor (`security_penalty: 0.15`), activates compliance variance detection (`visible_workflow_extensions: ["variance_validation"]`), and suppresses non-statutory summary boxes (`show_sources_summary_box=false`).
 
+### Toulmin Argumentation Model
+
+The Toulmin Argumentation Model evaluation matrix is mathematically grounded in Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press.. It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks.
+
+Operationally, the matrix controls evaluation precision through targeted parameters including contextual override permissions (allow_contextual_override=True) and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict distinction between universal structural invariants requiring chunk compliance and specialized existential error radars.

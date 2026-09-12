@@ -66,6 +66,7 @@ async def test_blueprint_variance_validation_success() -> None:
         "name": {"translations": {"en": "test"}},
         "target_block_order": ["variance_validation_block"],
         "visible_workflow_extensions": ["variance_validation"],
+        "variance_target_block": "blk_fb15f8dcf23f4865",
     }
 
     mock_profile_repo.get_all_output_profiles.return_value = [mock_profile_dict]

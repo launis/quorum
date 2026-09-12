@@ -136,7 +136,6 @@ _DEFAULT_TARGET_BLOCK_ORDER = [
     TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
     TargetBlockType.PENALTIES_BLOCK,
     TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
-    TargetBlockType.VARIANCE_VALIDATION_BLOCK,
     TargetBlockType.PRINTABLE_SOURCES_BLOCK,
     TargetBlockType.AUDIT_TRAIL_BLOCK,
 ]
@@ -966,6 +965,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
     )
@@ -1074,6 +1075,8 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
     )
@@ -1260,6 +1263,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
+                "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+                "variance_target_block": "blk_fb15f8dcf23f4865",
             }
         ]
     )
@@ -1614,7 +1619,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 workflow_id="wf_1234abcd1234abcd",
                 name=I18nText(translations={"en": "Default"}),
                 display_scale=DisplayScale.ORIGINAL,
-                target_block_order=_DEFAULT_TARGET_BLOCK_ORDER,
+                target_block_order=[*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
                 matrix_synthesis_groups=[
                     MatrixSynthesisGroup(
                         id="grp_0000000000000001",
@@ -1624,6 +1629,7 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 ],
                 visible_block_extensions=[],
                 visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+                variance_target_block="blk_fb15f8dcf23f4865",
                 max_extension_items=2,
                 strictness_level=85,
             )

@@ -52,6 +52,12 @@
         <mandatory_pattern>The local database tracks active execution runs whose artifacts exist on disk. If `data/db_v2.json` appears modified in git status, ALWAYS preserve it or commit it alongside test run artifacts. NEVER unilaterally roll back runtime database state.</mandatory_pattern>
         <catastrophic_reason>Discarding local database changes reverts database state to older commits, wiping out valid execution runs and causing critical DATA_CORRUPTION desynchronization with physical disk artifacts.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="ban_heuristic_identifier_matching">
+        <banned_pattern>Identifying, filtering, resolving, or targeting workflow steps, prompt blocks, matrices, or execution artifacts in background workers or services using hardcoded identifier tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`, `_NAMES`), or substring searches (`marker in step.name.lower()`).</banned_pattern>
+        <mandatory_pattern>ALL entity targeting for execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Background workers must operate as strictly deterministic executors with zero domain guessing.</mandatory_pattern>
+        <catastrophic_reason>Heuristic substring matching and hardcoded identifier markers break silently whenever workflows are modernized or renamed, causing downstream synthesis and PDF generation to crash with missing metrics.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

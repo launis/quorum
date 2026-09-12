@@ -1,23 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/base_block_card.dart';
 import 'package:client_app/features/studio/views/widgets/profile/blocks/block_card_registry.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 /// Dedicated configuration card for TargetBlockType.varianceValidationBlock in Tab 3 (Section Config).
-/// Allows configuring the localized variance synthesis directive and length constraint.
+/// Allows configuring the localized variance synthesis directive, length constraint, and target evaluation block.
 class VarianceBlockCard extends StatelessWidget {
   final OutputProfile payload;
   final void Function(OutputProfile) updatePayload;
+  final Set<String> allowedBlockIds;
+  final AsyncValue<List<PromptBlock>> promptBlocksState;
   final Widget? dragHandle;
 
   const VarianceBlockCard({
     super.key,
     required this.payload,
     required this.updatePayload,
+    required this.allowedBlockIds,
+    required this.promptBlocksState,
     this.dragHandle,
   });
 
@@ -27,6 +33,19 @@ class VarianceBlockCard extends StatelessWidget {
     final isIncluded = payload.targetBlockOrder.contains(
       TargetBlockType.varianceValidationBlock,
     );
+
+    final blocks = promptBlocksState.value ?? [];
+    final matrixBlocks = blocks.where((b) {
+      final isCategoryMatrix = b is MatrixPromptBlock;
+      if (allowedBlockIds.isEmpty) {
+        return isCategoryMatrix;
+      }
+      return isCategoryMatrix && allowedBlockIds.contains(b.id);
+    }).toList();
+
+    final currentTargetId = payload.varianceTargetBlock;
+    final hasCurrentInList =
+        currentTargetId != null && matrixBlocks.any((b) => b.id == currentTargetId);
 
     return BaseBlockCard(
       blockType: TargetBlockType.varianceValidationBlock,
@@ -109,6 +128,47 @@ class VarianceBlockCard extends StatelessWidget {
                   varianceLengthConstraint: trimmed.isNotEmpty
                       ? int.tryParse(trimmed)
                       : null,
+                ),
+              );
+            },
+          ),
+          AppSpacing.h16,
+          DropdownButtonFormField<String>(
+            key: const Key('profile_variance_target_block_field'),
+            initialValue: currentTargetId,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: l10n.profileVarianceTargetBlockLabel,
+              hintText: l10n.profileVarianceTargetBlockHint,
+              border: const OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: [
+              if (currentTargetId != null && !hasCurrentInList)
+                DropdownMenuItem<String>(
+                  value: currentTargetId,
+                  child: Text(
+                    currentTargetId,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ...matrixBlocks.map((block) {
+                final localeCode =
+                    Localizations.localeOf(context).languageCode;
+                final displayName = block.label.get(localeCode, fallback: 'en');
+                return DropdownMenuItem<String>(
+                  value: block.id,
+                  child: Text(
+                    '$displayName (${block.id})',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                );
+              }),
+            ],
+            onChanged: (val) {
+              updatePayload(
+                payload.copyWith(
+                  varianceTargetBlock: val,
                 ),
               );
             },

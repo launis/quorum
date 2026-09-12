@@ -4721,6 +4721,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileVarianceLengthHint => 'e.g. 500 characters';
 
   @override
+  String get profileVarianceTargetBlockLabel =>
+      'Variance Target Evaluation Block';
+
+  @override
+  String get profileVarianceTargetBlockHint =>
+      'Select matrix block whose results are evaluated for cognitive variance';
+
+  @override
   String get profileMatrixGraphLengthLabel =>
       'Matrix graph explanation target length (characters / graph)';
 

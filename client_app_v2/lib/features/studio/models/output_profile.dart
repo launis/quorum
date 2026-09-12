@@ -90,6 +90,7 @@ abstract class OutputProfile with _$OutputProfile {
     @JsonKey(name: 'xai_synthesis_directive') String? xaiSynthesisDirective,
     @JsonKey(name: 'variance_synthesis_directive')
     String? varianceSynthesisDirective,
+    @JsonKey(name: 'variance_target_block') String? varianceTargetBlock,
     SystemLocale? language,
     @JsonKey(name: 'matrix_synthesis_groups')
     @Default([])

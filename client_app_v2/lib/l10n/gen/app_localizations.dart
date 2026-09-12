@@ -8538,6 +8538,18 @@ abstract class AppLocalizations {
   /// **'e.g. 500 characters'**
   String get profileVarianceLengthHint;
 
+  /// No description provided for @profileVarianceTargetBlockLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Variance Target Evaluation Block'**
+  String get profileVarianceTargetBlockLabel;
+
+  /// No description provided for @profileVarianceTargetBlockHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select matrix block whose results are evaluated for cognitive variance'**
+  String get profileVarianceTargetBlockHint;
+
   /// No description provided for @profileMatrixGraphLengthLabel.
   ///
   /// In en, this message translates to:

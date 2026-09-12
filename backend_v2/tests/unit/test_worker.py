@@ -737,6 +737,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 ],
                 "target_block_order": ["matrix_graphs_block"],
                 "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+                "variance_target_block": "blk_1111222233334444",
                 "max_extension_items": 3,
             }
 
@@ -1638,6 +1639,7 @@ def _get_base_profile_dict() -> dict[str, Any]:
         ],
         "target_block_order": ["matrix_graphs_block"],
         "visible_workflow_extensions": ["variance_validation", "authenticity_evaluation"],
+        "variance_target_block": "blk_1111222233334444",
         "max_extension_items": 3,
     }
 

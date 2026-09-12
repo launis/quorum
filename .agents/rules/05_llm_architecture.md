@@ -41,6 +41,10 @@ trigger: always_on
     <rule_block id="naked_prompt_injection">
         <mandate>NEVER append raw string instructions dynamically without structural boundaries. ALL dynamic prompt insertions MUST be cleanly separated using Markdown headers or explicit XML sections via `prompt_compiler_adapter.py`.</mandate>
     </rule_block>
+
+    <rule_block id="ban_heuristic_identifier_matching">
+        <mandate>NEVER identify, filter, or target workflow steps, prompt blocks, or matrix models in background workers or LLM pipeline services using hardcoded string tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`), or substring matching (`marker in step.name.lower()`). ALL step and block targeting for LLM extraction, synthesis, or metric evaluation MUST be explicitly resolved through typed DTO contracts and dynamic Studio UI parameters.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -130,5 +134,9 @@ trigger: always_on
 
     <rule_block id="litellm_pricing_registry_ssot_mandate">
         <mandate>NEVER define secondary shadow pricing dictionaries in `settings.py`, seed files, or service classes. The LiteLLM Model Pricing Registry (`litellm.model_prices_and_context_window` / `litellm.get_model_info`) is the SOLE authoritative Single Source of Truth (SSOT) for all model unit token rates across the system. Provider adapters MUST extract `PricingConfig` strictly from this single registry and compute `cost_usd` and `estimated_savings_usd` directly without fallback dictionaries.</mandate>
+    </rule_block>
+
+    <rule_block id="studio_driven_parameterization_mandate">
+        <mandate>NEVER decouple or purge schema fields by inventing backend heuristics or trace scrapers. Background workers, synthesis orchestrators, and prompt compilers MUST operate as deterministic pipelines driven 100% by explicit Studio UI configurations (e.g. `OutputProfile.variance_target_block`, `matrix_synthesis_groups`). If a downstream feature requires a specific matrix block or step, expose it as an explicit selector in Quorum Studio and validate it fail-fast in Pydantic.</mandate>
     </rule_block>
 </architectural_invariants>

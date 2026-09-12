@@ -48,10 +48,15 @@ from backend_v2.models.dtos.synthesis import (
 )
 from backend_v2.models.dtos.trace import (
     ExecutionUpdateDTO,
-    StepTraceMetadataDTO,
     TraceEventMetadataEnvelope,
 )
-from backend_v2.models.enums import ExecutionStatus, PresetView, StrictnessAnchor, TargetBlockType
+from backend_v2.models.enums import (
+    ExecutionStatus,
+    PresetView,
+    StrictnessAnchor,
+    TargetBlockType,
+    XaiExtensionType,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
@@ -118,8 +123,6 @@ class VarianceExplanationResult(BaseModel):
 # Initialize settings
 settings = get_settings()
 logger = logging.getLogger(__name__)
-
-_DETECTOR_STEP_MARKERS: tuple[str, ...] = ("perf", "det", "authenticity", "sp_7f9649114d2344dc")
 
 # Pre-register all hooks for background execution
 # --- Worker Job Tasks ---
@@ -1314,14 +1317,47 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
                     )
 
-            if (
-                active_profile_dto
-                and active_profile_dto.visible_workflow_extensions
-                and (
-                    "variance_validation" in active_profile_dto.visible_workflow_extensions
-                    or "authenticity_evaluation" in active_profile_dto.visible_workflow_extensions
+            has_variance_ext = active_profile_dto is not None and (
+                any(
+                    ext
+                    in (
+                        XaiExtensionType.VARIANCE_VALIDATION,
+                        XaiExtensionType.VARIANCE_VALIDATION.value,
+                        "variance_validation",
+                        "authenticity_evaluation",
+                    )
+                    for ext in active_profile_dto.visible_workflow_extensions
                 )
-            ):
+                or any(
+                    t
+                    in (
+                        TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+                        TargetBlockType.VARIANCE_VALIDATION_BLOCK.value,
+                        "variance_validation_block",
+                    )
+                    for t in active_profile_dto.target_block_order
+                )
+            )
+            if has_variance_ext:
+                assert active_profile_dto is not None  # for mypy
+                if not active_profile_dto.variance_target_block:
+                    msg = (
+                        f"OutputProfile '{active_profile_dto.id}' requires 'variance_target_block' "
+                        "when variance validation is active."
+                    )
+                    logger.error(
+                        "[Task] %s: %s",
+                        ErrorCodes.CONFIGURATION_ERROR.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+
+                target_block_id = active_profile_dto.variance_target_block
                 authenticity_score = None
                 performative_phrases_count = None
                 total_word_count = None
@@ -1338,8 +1374,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         if ling_out.total_word_count is not None:
                             total_word_count = int(ling_out.total_word_count)
 
-                # 2. Performativity Detector comes from the DAG step output in the trace
-                # Dynamically resolve missing values from execution trace
+                # 2. Extract configured variance target block output directly from the DAG execution trace
                 if authenticity_score is None or performative_phrases_count is None:
                     for event in reversed(execution.execution_trace):
                         if not isinstance(event, TraceEvent):
@@ -1363,43 +1398,25 @@ async def generate_profile_synthesis_and_pdf_task(
                                     extra={"error": str(e), "execution_id": execution.id},
                                 )
 
-                        # Extract Performativity Detector output by matching step identifiers dynamically
+                        # Direct target block extraction by configured block ID
                         if event.event_type == "output" and authenticity_score is None:
-                            is_match = False
-                            out_content: dict[str, Any] | None = None
                             try:
                                 out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                                if target_block_id in out_content:
+                                    det_out = LightweightMatrixOutput.model_validate(
+                                        out_content[target_block_id], strict=False
+                                    )
+                                    if det_out.raw_score is not None:
+                                        authenticity_score = float(det_out.raw_score)
                             except (ValidationError, TypeError, ValueError) as e:
                                 logger.warning(
-                                    "Failed to parse output content dictionary from trace event",
-                                    extra={"error": str(e), "execution_id": execution.id},
+                                    "Failed to parse target block output from trace event",
+                                    extra={
+                                        "error": str(e),
+                                        "execution_id": execution.id,
+                                        "target_block_id": target_block_id,
+                                    },
                                 )
-                                out_content = None
-
-                            candidate_ids: list[str] = []
-                            if event.step_name and not event.step_name.startswith("sr_"):
-                                candidate_ids.append(event.step_name.lower())
-                            if out_content and "_step_metadata" in out_content:
-                                try:
-                                    step_meta = StepTraceMetadataDTO.model_validate(out_content["_step_metadata"])
-                                    if step_meta.task_blueprint:
-                                        candidate_ids.append(step_meta.task_blueprint.lower())
-                                except (ValidationError, TypeError, ValueError) as e:
-                                    logger.warning(
-                                        "Failed to parse step trace metadata from detector output",
-                                        extra={"error": str(e), "execution_id": execution.id},
-                                    )
-
-                            if any(any(marker in cid for marker in _DETECTOR_STEP_MARKERS) for cid in candidate_ids):
-                                is_match = True
-
-                            if is_match and out_content:
-                                for key, val in out_content.items():
-                                    if key.startswith("blk_"):
-                                        det_out = LightweightMatrixOutput.model_validate(val, strict=False)
-                                        if det_out.raw_score is not None:
-                                            authenticity_score = float(det_out.raw_score)
-                                        break
 
                         if authenticity_score is not None and performative_phrases_count is not None:
                             break

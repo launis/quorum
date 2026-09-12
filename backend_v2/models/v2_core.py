@@ -47,6 +47,7 @@ from backend_v2.models.enums import (
     StrictnessAnchor,
     TargetBlockType,
     TargetSpeaker,
+    XaiExtensionType,
 )
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.settings import get_settings
@@ -1154,7 +1155,6 @@ class OutputProfile(V2CoreBase):
                 TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
                 TargetBlockType.PENALTIES_BLOCK,
                 TargetBlockType.MATRIX_SUMMARY_TABLE_BLOCK,
-                TargetBlockType.VARIANCE_VALIDATION_BLOCK,
                 TargetBlockType.PRINTABLE_SOURCES_BLOCK,
                 TargetBlockType.AUDIT_TRAIL_BLOCK,
             ],
@@ -1180,6 +1180,44 @@ class OutputProfile(V2CoreBase):
             description="Display mode for the bibliography and source verification section.",
         ),
     ] = SourcesDisplayMode.VERIFIED_EVIDENCE
+    variance_target_block: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="PromptBlock ID providing the cognitive evaluation score for variance validation.",
+        ),
+    ] = None
+
+    @model_validator(mode="after")
+    def validate_variance_target_block_coherence(self) -> Self:
+        """Enforce that variance_target_block is populated if variance validation is active."""
+        has_variance_block = any(
+            t
+            in (
+                TargetBlockType.VARIANCE_VALIDATION_BLOCK,
+                TargetBlockType.VARIANCE_VALIDATION_BLOCK.value,
+                "variance_validation_block",
+            )
+            for t in self.target_block_order
+        )
+        has_variance_extension = any(
+            ext
+            in (
+                XaiExtensionType.VARIANCE_VALIDATION,
+                XaiExtensionType.VARIANCE_VALIDATION.value,
+                "variance_validation",
+            )
+            for ext in self.visible_workflow_extensions
+        )
+        if (has_variance_block or has_variance_extension) and not self.variance_target_block:
+            msg = (
+                f"OutputProfile '{self.id}': Variance validation is active (in target_block_order or "
+                "visible_workflow_extensions) but 'variance_target_block' is missing or empty."
+            )
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+        return self
 
     @model_validator(mode="after")
     def validate_matrix_graphs_coherence(self) -> Self:

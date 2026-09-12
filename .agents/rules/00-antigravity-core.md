@@ -121,6 +121,9 @@ trigger: always_on
     <rule_block id="database_persistence_git_ban">
         <mandate>NEVER execute `git checkout data/db_v2.json`, `git restore data/db_v2.json`, or any git commands discarding runtime database modifications. The local database tracks active execution runs whose artifacts exist on disk. If `data/db_v2.json` appears modified in git status, ALWAYS preserve it or commit it alongside test run artifacts. NEVER unilaterally roll back runtime database state.</mandate>
     </rule_block>
+    <rule_block id="ban_heuristic_identifier_matching">
+        <mandate>NEVER identify, filter, target, or resolve workflow steps, prompt blocks, matrices, or execution artifacts in background workers or services using hardcoded identifier tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`, `_NAMES`), or substring searches (`marker in step.name.lower()`). ALL entity targeting for execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Hardcoding heuristic string lookups as a substitute for explicit UI contracts is STRICTLY PROHIBITED.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -147,6 +150,9 @@ trigger: always_on
     </rule_block>
     <rule_block id="universal_ssot_and_normalization_mandate">
         <mandate>Enforce Absolute SSOT & Data Normalization: Every piece of state, telemetry metric, token count, pricing registry, financial cost, configuration mapping, and entity relation MUST have exactly ONE authoritative source and ONE canonical storage location across both Backend and Frontend. All data MUST be maximally normalized at rest and in transit (zero duplicate/denormalized sub-dictionaries, zero split-schema payloads). Both Python and Dart layers MUST consume data strictly from this single normalized location. NEVER define secondary shadow tables, local backup dictionaries, or parallel fallback access chains (`a.get('field') or a.get('sub', {}).get('field')`, `data['x'] ?? data['summary']['x']`, or custom pricing dictionaries duplicating an authoritative registry). If data or metadata is missing from the designated canonical SSOT, Fail-Fast loudly rather than guessing or maintaining shadow data.</mandate>
+    </rule_block>
+    <rule_block id="studio_driven_parameterization_mandate">
+        <mandate>Enforce Studio-Driven Dynamic Parameterization: Background workers (`worker.py`), synthesis services, and report generators are strictly deterministic executors with ZERO domain discretion. Whenever a pipeline feature, variance engine, or synthesis section requires targeting a specific workflow step or matrix block, that target MUST be declared as a first-class, nullable field in the profile/workflow schema and exposed via a dedicated selector component in Quorum Studio UI. NEVER decouple or purge schema fields by replacing them with silent backend defaults, trace scrapers, or heuristic guessing.</mandate>
     </rule_block>
 </architectural_invariants>
 
