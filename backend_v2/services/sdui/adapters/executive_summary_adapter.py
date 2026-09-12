@@ -101,7 +101,7 @@ class ExecutiveSummaryAdapter:
 
             # Fail-Fast: strict key access, NO .get() fallback
             try:
-                _ = EXECUTIVE_SUMMARY_RULES[parsed_role]
+                role_key = EXECUTIVE_SUMMARY_RULES[parsed_role]
             except KeyError as e:
                 msg = f"Missing role mapping for {parsed_role}"
                 logger.error(
@@ -114,7 +114,6 @@ class ExecutiveSummaryAdapter:
                 ) from e
 
             # 3. ASSEMBLE: Resolve translation and construct role badge block
-            role_key = parsed_role.value.lower()
             role_val = LocalizationService.translate(role_key, locale)
 
             if profile.user_role_label:

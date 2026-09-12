@@ -619,7 +619,7 @@ class RoleClassification(StrEnum):
             RoleClassification.DRIVER: "roleDriver",
             RoleClassification.ARCHITECT: "roleArchitect",
         }
-        return _L10N_MAP.get(self, "")
+        return _L10N_MAP[self]
 
 
 class InteractionStrategy(StrEnum):

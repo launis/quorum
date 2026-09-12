@@ -291,3 +291,86 @@ def test_build_unmapped_role_rule_raises_configuration_error(monkeypatch: pytest
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_build_none_profile_cache_returns_empty_list() -> None:
+    """Negative Test: Verify that None profile_cache in AdapterContext returns empty list."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+    )
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=None,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = ExecutiveSummaryAdapter.build(context)
+    assert blocks == []
+
+
+def test_role_classification_l10n_key_strict_mapping() -> None:
+    """Test that all RoleClassification enum variants have explicit camelCase l10n_key mapping."""
+    expected_mappings = {
+        RoleClassification.PASSENGER: "rolePassenger",
+        RoleClassification.NAVIGATOR: "roleNavigator",
+        RoleClassification.DRIVER: "roleDriver",
+        RoleClassification.ARCHITECT: "roleArchitect",
+    }
+    for role, expected_key in expected_mappings.items():
+        assert role.l10n_key == expected_key
+
+
+@pytest.mark.parametrize(
+    ("role", "locale", "expected_text"),
+    [
+        (RoleClassification.PASSENGER, "fi", "**Käyttäjärooli:** Matkustaja"),
+        (RoleClassification.PASSENGER, "en", "**User Role:** Passenger"),
+        (RoleClassification.NAVIGATOR, "fi", "**Käyttäjärooli:** Navigaattori"),
+        (RoleClassification.NAVIGATOR, "en", "**User Role:** Navigator"),
+        (RoleClassification.DRIVER, "fi", "**Käyttäjärooli:** Kuljettaja"),
+        (RoleClassification.DRIVER, "en", "**User Role:** Driver"),
+        (RoleClassification.ARCHITECT, "fi", "**Käyttäjärooli:** Arkkitehti"),
+        (RoleClassification.ARCHITECT, "en", "**User Role:** Architect"),
+    ],
+)
+def test_build_all_role_classifications_bilingual(role: RoleClassification, locale: str, expected_text: str) -> None:
+    """Test that all four roles resolve correctly in both Finnish and English."""
+    profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test",
+        workflow_id="wf_0123456789abcdef0123456789abcdef",
+        name=I18nText(translations={"en": "Test"}),
+        content_blocks=[],
+        target_block_order=[],
+        user_role_label=None,
+    )
+    cache = RenderedSynthesisCache(
+        user_role=role.value,
+        user_role_justification="",
+        section_syntheses={},
+    )
+    context = AdapterContext(
+        execution=None,
+        locale=locale,
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = ExecutiveSummaryAdapter.build(context)
+    assert len(blocks) == 1
+    assert isinstance(blocks[0], ParagraphBlock)
+    assert blocks[0].text == expected_text
