@@ -53,6 +53,7 @@ from backend_v2.models.dtos.trace import (
 from backend_v2.models.enums import (
     ExecutionStatus,
     PresetView,
+    RoleClassification,
     StrictnessAnchor,
     TargetBlockType,
     XaiExtensionType,
@@ -1612,14 +1613,56 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 cache_row_explanations[real_id] = expl
 
+        user_role_val: str | None = exec_dto.user_role if exec_dto else None
+        user_role_just: str | None = exec_dto.user_role_justification if exec_dto else None
+
+        if active_profile_dto and active_profile_dto.user_role_target_block:
+            role_target_block_id = active_profile_dto.user_role_target_block
+            role_raw_score: float | None = None
+            if execution.execution_trace:
+                for event in execution.execution_trace:
+                    if event.event_type == "output":
+                        try:
+                            out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
+                            if role_target_block_id in out_content:
+                                role_mat_out = LightweightMatrixOutput.model_validate(
+                                    out_content[role_target_block_id], strict=False
+                                )
+                                if role_mat_out.raw_score is not None:
+                                    role_raw_score = float(role_mat_out.raw_score)
+                                    break
+                        except (ValidationError, TypeError, ValueError) as e:
+                            logger.warning(
+                                "Failed to parse user role target block output from trace event",
+                                extra={
+                                    "error": str(e),
+                                    "execution_id": execution.id,
+                                    "target_block_id": role_target_block_id,
+                                },
+                            )
+
+            if role_raw_score is not None:
+                clamped_score = max(1, min(5, int(round(role_raw_score))))
+                _role_score_map: dict[int, RoleClassification] = {
+                    1: RoleClassification.PASSENGER,
+                    2: RoleClassification.PASSENGER,
+                    3: RoleClassification.NAVIGATOR,
+                    4: RoleClassification.DRIVER,
+                    5: RoleClassification.ARCHITECT,
+                }
+                user_role_val = _role_score_map[clamped_score].value
+                user_role_just = (
+                    f"Derived deterministically from evaluated matrix '{role_target_block_id}' score {role_raw_score}."
+                )
+
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
             variance_explanation=variance_expl,
             cited_sources=exec_dto.cited_sources if exec_dto else [],
             xai_highlights=xai_highlights_list,
-            user_role=exec_dto.user_role if exec_dto else None,
-            user_role_justification=exec_dto.user_role_justification if exec_dto else None,
+            user_role=user_role_val,
+            user_role_justification=user_role_just,
             extension_metrics=ext_metrics,
         )
 

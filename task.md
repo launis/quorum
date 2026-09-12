@@ -39,9 +39,9 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\9dc6ba62-8cf
   - [x] 3.2: Add `user_role_target_block` to Create, Update, and Response DTOs in `backend_v2/models/dtos/output_profile.py`.
   - [x] 3.3: Add `user_role_target_block` to Freezed model in `client_app_v2/lib/features/studio/models/output_profile.dart`.
   - [x] 3.4: Run Freezed code generation via `flutter_audit_loop.py`.
-- [ ] **Step 4: DETERMINISTIC WORKER TRACE EXTRACTION**
-  - [ ] 4.1: Deterministically extract target block raw_score and compute role in `backend_v2/worker.py`.
-  - [ ] 4.2: Update `backend_v2/tests/unit/test_worker_synthesis.py`.
+- [x] **Step 4: DETERMINISTIC WORKER TRACE EXTRACTION**
+  - [x] 4.1: Deterministically extract target block raw_score and compute role in `backend_v2/worker.py`.
+  - [x] 4.2: Update `backend_v2/tests/unit/test_worker_synthesis.py`.
 - [ ] **Step 5: SDUI ADAPTER MATRIX BINDING & RICH BADGE RENDERING**
   - [ ] 5.1: Implement dual-tier role badge resolution in `ExecutiveSummaryAdapter`.
   - [ ] 5.2: Add dedicated unit tests for matrix scale name lookup and boundary clamping in `test_executive_summary_adapter.py`.

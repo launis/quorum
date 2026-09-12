@@ -1200,3 +1200,55 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     assert prof_synth is not None
     # Since blk_53f32679aa514fcb was never evaluated, extension_metrics should be None
     assert prof_synth["prof_1111111111111111"].get("extension_metrics") is None
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.worker.UnifiedWorkflowRepository")
+@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+async def test_worker_synthesis_extracts_user_role_from_target_block_deterministically(
+    _mock_driver: AsyncMock, mock_repo_class: AsyncMock
+) -> None:
+    """Test that when user_role_target_block is set, user_role is extracted deterministically from trace."""
+    get_settings().use_mock_llm = True
+    mock_repo = AsyncMock()
+    mock_repo_class.return_value = mock_repo
+
+    _setup_mock_repo_for_metrics(
+        mock_repo,
+        trace_content_ling={"performative_patterns": [], "total_word_count": 100},
+        trace_content_det={
+            "blk_53f32679aa514fcb": {
+                "raw_score": 4.0,
+                "justification": "Evaluated Goodhart Driver Score",
+            }
+        },
+    )
+
+    mock_repo.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "prof_role_target",
+        "name": {"translations": {"en": "Role Target Profile"}},
+        "workflow_id": "wf_1234567812345678",
+        "strictness_level": 85,
+        "scoring_strategy": "AVERAGE",
+        "display_scale": "original",
+        "visible_workflow_extensions": ["variance_validation"],
+        "variance_target_block": "blk_53f32679aa514fcb",
+        "user_role_target_block": "blk_53f32679aa514fcb",
+        "target_block_order": ["variance_validation_block"],
+        "matrix_synthesis_groups": [],
+    }
+
+    await generate_profile_synthesis_and_pdf_task(
+        execution_id="exec_1234567812345678",
+        accept_language="en",
+        profile_id="prof_1111111111111111",
+        redis=None,
+    )
+
+    prof_synth = _find_profile_syntheses(mock_repo.update_execution.call_args_list)
+    assert prof_synth is not None
+    cache_dict = prof_synth["prof_1111111111111111"]
+    assert cache_dict["user_role"] == RoleClassification.DRIVER.value
+    assert "blk_53f32679aa514fcb" in str(cache_dict["user_role_justification"])
+    assert "score 4.0" in str(cache_dict["user_role_justification"])
