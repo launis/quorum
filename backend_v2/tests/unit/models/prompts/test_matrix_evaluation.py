@@ -73,7 +73,12 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
     for phrase in banned_mechanical:
         assert phrase not in prompt, f"Found banned mechanical phrase '{phrase}' in system prompt."
 
-    # Negative Partition 4: Assert all XML tags are strictly matched and closed
+    # Negative Partition 4: Assert absence of overfitted test-data interrogative examples
+    assert "inquiries exploring alternatives" not in prompt
+    assert "asking whether a condition is sufficient" not in prompt
+    assert "inquiries exploring hypothetical possibilities or asking rhetorical questions" in prompt
+
+    # Negative Partition 5: Assert all XML tags are strictly matched and closed
     ignored_instruction_tags = {
         "ai_context_directive",
         "user_payload",
