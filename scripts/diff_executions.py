@@ -41,6 +41,7 @@ __all__ = [
     "MacroBlockScoreDTO",
     "RootCauseBreakdownDTO",
     "ScaleBreakdownDTO",
+    "TraceTelemetryDTO",
     "UNICODE_SPACE_REGISTRY",
     "calculate_cohens_kappa",
     "calculate_entropy",
@@ -48,6 +49,7 @@ __all__ = [
     "calculate_pairwise_consistency",
     "classify_disagreement",
     "extract_block_normalized_scores",
+    "extract_trace_telemetry",
     "get_all_evals",
     "get_state",
     "get_trace",
@@ -181,6 +183,110 @@ class InputFileInspectionDTO(BaseModel):
     paragraph_count: int
     bullet_count: int
     normalized_text: str
+
+
+class TraceTelemetryDTO(BaseModel):
+    """Immutable execution trace telemetry container extracted from execution_trace.json."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    step_count: int
+    cache_hit_count: int
+    reasoning_tokens: int
+    mcp_calls: int
+    step_latencies: dict[str, int]
+    first_timestamp: str | None = None
+    last_timestamp: str | None = None
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    cached_tokens: int = 0
+    dag_cost: float = 0.0
+
+
+def extract_trace_telemetry(trace_data: list[Any]) -> TraceTelemetryDTO:
+    """Extract step counts, token usage, cache hits, MCP tool traces, and latencies from raw trace events.
+
+    Args:
+        trace_data: List of raw event dictionaries from execution_trace.json.
+
+    Returns:
+        TraceTelemetryDTO containing aggregated steps, tokens, cache hits, tool calls, and latencies.
+    """
+    step_count = 0
+    cache_hit_count = 0
+    reasoning_tokens = 0
+    mcp_calls = 0
+    step_latencies: dict[str, int] = {}
+    first_ts: str | None = None
+    last_ts: str | None = None
+    prompt_tokens = 0
+    completion_tokens = 0
+    cached_tokens = 0
+    dag_cost = 0.0
+
+    for ev in trace_data:
+        if not isinstance(ev, dict):
+            continue
+        etype = ev.get("event_type")
+        content = ev.get("content")
+        ev_meta = ev.get("metadata") or {}
+
+        # Timestamps for duration fallback
+        ts = None
+        if isinstance(content, dict) and "_step_metadata" in content:
+            ts = content["_step_metadata"].get("timestamp_isot")
+        if not ts and "timestamp" in ev:
+            ts = ev.get("timestamp")
+        if ts:
+            if not first_ts:
+                first_ts = str(ts)
+            last_ts = str(ts)
+
+        # Extract MCP / tool call traces
+        if etype == "decision":
+            if isinstance(content, dict):
+                mcp_traces = content.get("mcp_audit_traces")
+                if isinstance(mcp_traces, list):
+                    mcp_calls += len(mcp_traces)
+            if isinstance(ev_meta, dict):
+                mcp_traces = ev_meta.get("mcp_audit_traces")
+                if isinstance(mcp_traces, list):
+                    mcp_calls += len(mcp_traces)
+
+        # Output steps FinOps and latency
+        if etype == "output" and isinstance(content, dict):
+            meta_step = content.get("_step_metadata")
+            if isinstance(meta_step, dict):
+                u = meta_step.get("token_usage")
+                if isinstance(u, dict):
+                    step_count += 1
+                    c_tok = int(u.get("cached_tokens") or 0)
+                    if c_tok > 0:
+                        cache_hit_count += 1
+                    r_tok = int(u.get("reasoning_tokens") or 0)
+                    reasoning_tokens += r_tok
+                    prompt_tokens += int(u.get("prompt_tokens") or 0)
+                    completion_tokens += int(u.get("completion_tokens") or 0)
+                    cached_tokens += c_tok
+                    dag_cost += float(u.get("cost_usd") or 0.0)
+
+            step_name = ev.get("step_name")
+            if step_name and isinstance(ev_meta, dict) and "latency_ms" in ev_meta:
+                step_latencies[step_name] = int(ev_meta["latency_ms"] or 0)
+
+    return TraceTelemetryDTO(
+        step_count=step_count,
+        cache_hit_count=cache_hit_count,
+        reasoning_tokens=reasoning_tokens,
+        mcp_calls=mcp_calls,
+        step_latencies=step_latencies,
+        first_timestamp=first_ts,
+        last_timestamp=last_ts,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        cached_tokens=cached_tokens,
+        dag_cost=dag_cost,
+    )
 
 
 def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
@@ -1330,21 +1436,34 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             synth_tok = int(run_record.get("cumulative_synthesis_tokens") or 0)
             synth_cost = float(run_record.get("cumulative_synthesis_cost") or 0.0)
 
-            if prompt_tok == 0 and comp_tok == 0 and dag_cost == 0.0 and exe_path.exists():
+            trace_step_count = 0
+            trace_cache_hit_count = 0
+            trace_mcp_calls = 0
+            trace_step_latencies: dict[str, int] = {}
+            first_ts: str | None = None
+            last_ts: str | None = None
+
+            if exe_path.exists():
                 try:
                     with exe_path.open("r", encoding="utf-8") as tf:
                         trace_data = json.load(tf)
-                    for ev in trace_data:
-                        if isinstance(ev, dict) and isinstance(ev.get("content"), dict):
-                            meta_step = ev["content"].get("_step_metadata")
-                            if isinstance(meta_step, dict):
-                                u = meta_step.get("token_usage")
-                                if isinstance(u, dict):
-                                    prompt_tok += int(u.get("prompt_tokens") or 0)
-                                    comp_tok += int(u.get("completion_tokens") or 0)
-                                    cached_tok += int(u.get("cached_tokens") or 0)
-                                    reas_tok += int(u.get("reasoning_tokens") or 0)
-                                    dag_cost += float(u.get("cost_usd") or 0.0)
+                    if isinstance(trace_data, list):
+                        telemetry_dto = extract_trace_telemetry(trace_data)
+                        trace_step_count = telemetry_dto.step_count
+                        trace_cache_hit_count = telemetry_dto.cache_hit_count
+                        trace_mcp_calls = telemetry_dto.mcp_calls
+                        trace_step_latencies = telemetry_dto.step_latencies
+                        first_ts = telemetry_dto.first_timestamp
+                        last_ts = telemetry_dto.last_timestamp
+
+                        if prompt_tok == 0 and comp_tok == 0 and dag_cost == 0.0:
+                            prompt_tok = telemetry_dto.prompt_tokens
+                            comp_tok = telemetry_dto.completion_tokens
+                            cached_tok = telemetry_dto.cached_tokens
+                            dag_cost = telemetry_dto.dag_cost
+
+                        if reas_tok == 0 and telemetry_dto.reasoning_tokens > 0:
+                            reas_tok = telemetry_dto.reasoning_tokens
                 except (json.JSONDecodeError, OSError, TypeError, ValueError) as e:
                     print(f"Warning: execution_trace.json reading error for run {run_name}: {e}")
 
@@ -1368,6 +1487,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 except (json.JSONDecodeError, OSError, ValueError) as e:
                     print(f"Warning: llm_telemetry.jsonl reading error for run {run_name}: {e}")
 
+            # Fallback to execution_trace.json steps when telemetry is absent (e.g. production runs)
+            if total_calls == 0 and trace_step_count > 0:
+                total_calls = trace_step_count
+                cache_hit_count = trace_cache_hit_count
+
             duration_ms = run_record.get("duration_ms", 0)
             if not duration_ms and telem_file.exists():
                 try:
@@ -1379,6 +1503,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                             duration_ms = int((t1 - t0).total_seconds() * 1000)
                 except (json.JSONDecodeError, OSError, ValueError) as e:
                     print(f"Warning: duration parsing error from telemetry for run {run_name}: {e}")
+
+            if not duration_ms and first_ts and last_ts:
+                try:
+                    t0 = datetime.datetime.fromisoformat(first_ts)
+                    t1 = datetime.datetime.fromisoformat(last_ts)
+                    duration_ms = int((t1 - t0).total_seconds() * 1000)
+                except ValueError, TypeError:
+                    pass
 
             duration_str = (
                 f"{duration_ms / 1000 / 60:.1f} minuuttia ({duration_ms / 1000:.1f} s)"
@@ -1432,15 +1564,26 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 f"Chunk size: `{c_size or '-'}`, Max Evals: `{m_eval or '-'}`, Sampling: `{sampling_display}`\n"
             )
             f.write(f"  - **Kesto:** `{duration_str}`\n")
-            f.write(f"  - **API-kutsut:** `{total_calls}` kpl (Välimuistiosumat: `{cache_hit_count}/{total_calls}`)\n")
+            cache_pct_str = f" ({cache_hit_count / total_calls * 100:.1f} %)" if total_calls > 0 else ""
+            f.write(
+                f"  - **API-kutsut:** `{total_calls}` kpl "
+                f"(Välimuistiosumat: `{cache_hit_count}/{total_calls}`{cache_pct_str})\n"
+            )
+            reas_str = f", Ajattelu: `{reas_tok:,}`" if reas_tok > 0 else ""
             f.write(
                 f"  - **Tokenit:** `{combined_tokens:,}` (Syöte: `{prompt_tok:,}`, "
-                f"Tuotos: `{comp_tok:,}`, Välimuisti: `{cached_tok:,}`, Synteesi: `{synth_tok:,}`)\n"
+                f"Tuotos: `{comp_tok:,}`{reas_str}, Välimuisti: `{cached_tok:,}`, Synteesi: `{synth_tok:,}`)\n"
             )
             f.write(
                 f"  - **Kustannusarvio:** `${combined_cost:.4f}` "
                 f"(DAG: `${dag_cost:.4f}`, Synteesi: `${synth_cost:.4f}`)\n"
             )
+            if trace_mcp_calls > 0:
+                f.write(f"  - **Työkalukutsut (MCP / RAG):** `{trace_mcp_calls}` kpl faktojen tarkistuksia\n")
+            if trace_step_latencies:
+                slowest_step = max(trace_step_latencies.items(), key=lambda item: item[1])
+                slowest_s = slowest_step[1] / 1000
+                f.write(f"  - **Hitain askel (Pullonkaula):** `{slowest_step[0]}` ({slowest_s:.1f} s)\n")
             f.write(f"  - **Tekniset virheet (Crash):** `{error_count}` kpl\n")
             f.write(f"  - **DLQ-pudotetut atomit:** `{dlq_count}` kpl\n")
 
@@ -1473,8 +1616,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     "prompt_tok": prompt_tok,
                     "comp_tok": comp_tok,
                     "cached_tok": cached_tok,
+                    "reas_tok": reas_tok,
                     "total_tok": combined_tokens,
                     "cost_usd": combined_cost,
+                    "total_calls": total_calls,
+                    "cache_hit_count": cache_hit_count,
                 }
             )
         f.write("\n")
@@ -1554,14 +1700,17 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("\n")
 
         f.write("#### 2. Pilvitarjoajan Telemetriavahvistus (Zero Cached Tokens)\n")
-        f.write("| Ajo | Välimuistitokenit (Cached Tokens) | Telemetriatodiste | Tulos |\n")
-        f.write("| :--- | :---: | :---: | :---: |\n")
+        f.write("| Ajo | Välimuistitokenit (Cached Tokens) | Välimuistiaste (Osumat) | Telemetriatodiste | Tulos |\n")
+        f.write("| :--- | :---: | :---: | :---: | :---: |\n")
         for fin_item in run_finops:
             r_name = fin_item["run_name"]
             c_tok = fin_item["cached_tok"]
+            t_calls = fin_item.get("total_calls", 0)
+            c_hits = fin_item.get("cache_hit_count", 0)
+            c_rate = f"{c_hits}/{t_calls} ({c_hits / t_calls * 100:.1f} %)" if t_calls > 0 else "-"
             c_status = "OHITETTU (0 tok)" if c_tok == 0 else f"VÄLIMUISTIOSUMA ({c_tok:,} tok)"
             proof_label = "100% Tuore inferenssi" if c_tok == 0 else "Osittainen välimuistihyödyntäminen"
-            f.write(f"| **{r_name}** | {c_tok:,} | {proof_label} | `{c_status}` |\n")
+            f.write(f"| **{r_name}** | {c_tok:,} | {c_rate} | {proof_label} | `{c_status}` |\n")
         f.write("\n")
 
         f.write("#### 3. Hajautettu Variaatiosyvyys ja Unicode-avaruus\n")
