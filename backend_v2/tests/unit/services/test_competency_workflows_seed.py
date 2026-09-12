@@ -5,6 +5,7 @@ baseline workflow non-regression, and ISTQB negative boundary conditions.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -68,9 +69,10 @@ def load_seed_data() -> dict[str, list[dict[str, Any]]]:
 
 
 def test_baseline_monolithic_workflow_preserved() -> None:
-    """Verify that the baseline monolithic workflow and profile remain 100% untouched.
+    """Verify that the baseline monolithic workflow and profile conform to the 12-step 3-zone architecture.
 
-    Ensures zero-regression mandate for wf_9d68c573802341db and prf_5d6e7f8091a2b3c4.
+    Ensures mathematical topology and output profile group invariants for wf_9d68c573802341db
+    and prf_5d6e7f8091a2b3c4.
     """
     seed_data = load_seed_data()
     workflows = {w["id"]: w for w in seed_data["workflows"]}
@@ -85,7 +87,67 @@ def test_baseline_monolithic_workflow_preserved() -> None:
     assert mono_wf.slug == "kokonaisvaltainen_auditointi"
     assert mono_wf.default_profile_id == "prf_5d6e7f8091a2b3c4"
     assert mono_prf.workflow_id == "wf_9d68c573802341db"
-    assert len(mono_wf.steps) > 0
+
+    # 1. Exact 12-step topology and 6 matrix groups
+    assert len(mono_wf.steps) == 12, f"Expected exactly 12 steps in monolith workflow, got {len(mono_wf.steps)}"
+    assert len(mono_prf.matrix_synthesis_groups) == 6, (
+        f"Expected exactly 6 matrix synthesis groups, got {len(mono_prf.matrix_synthesis_groups)}"
+    )
+
+    # 2. Assert pruned step IDs are absent
+    pruned_step_ids = {
+        "sr_0f7947ec7007498c",  # OWASP LLM Guard
+        "sr_99ca8c82a5aa48cd",  # Pearl & Mackenzie Profiler
+        "sr_1d7e6d26b02b457b",  # ARMA Performativity Detector
+        "sr_ba028623acab447a",  # Deming Judge
+    }
+    step_ids = {s.id for s in mono_wf.steps}
+    for pruned_id in pruned_step_ids:
+        assert pruned_id not in step_ids, f"Pruned step {pruned_id} must be absent from monolith workflow"
+
+    # 3. Assert Zone B specialist dependencies and input mappings
+    ingress_id = "sr_f0a26d17cc9b48a7"
+    zone_b_step_ids = {
+        "sr_5a8ae009eee44fe2",  # Analyst (Kahneman)
+        "sr_87f408aeee64462f",  # Logician (Toulmin)
+        "sr_d56fb84fbe13463a",  # Falsifier (Popper)
+        "sr_4d2272d8b4864847",  # Causal Analyst (Pearl)
+        "sr_02b7cc1e7c2a4a62",  # Fact-Checker (Tetlock)
+        "sr_566e3209a60444d3",  # Evaluator (Bloom)
+        "sr_0228db320e8f41bb",  # Coach (Goodhart)
+        "sr_b4c328df1c4141c6",  # Critic (Lipton)
+    }
+    assert zone_b_step_ids.issubset(step_ids), f"Missing Zone B steps: {zone_b_step_ids - step_ids}"
+
+    for step in mono_wf.steps:
+        if step.id in zone_b_step_ids:
+            assert step.depends_on == [ingress_id], (
+                f"Zone B step {step.id} must depend strictly on ingress {ingress_id}, got {step.depends_on}"
+            )
+            assert "prior_analysis" not in step.input_mappings, f"Zone B step {step.id} must not map prior_analysis"
+
+    # 4. Assert Zone C XAI reporter depends on all 8 Zone B steps
+    xai_step = next(s for s in mono_wf.steps if s.id == "sr_5f3dd7712a7f4bb3")
+    assert set(xai_step.depends_on) == zone_b_step_ids, (
+        "XAI reporter sr_5f3dd7712a7f4bb3 must depend on all 8 Zone B specialists"
+    )
+
+    # 5. Assert all 6 matrix synthesis groups have valid grp_ IDs and exact cardinalities
+    expected_group_cardinalities: dict[PresetView | str, int] = {
+        PresetView.METRICS_1D: 1,
+        PresetView.COMPARE_2D: 2,
+        PresetView.MATRIX_3D: 3,
+        PresetView.METRICS_1D.value: 1,
+        PresetView.COMPARE_2D.value: 2,
+        PresetView.MATRIX_3D.value: 3,
+    }
+    grp_id_pattern = re.compile(r"^grp_[a-f0-9]{16}$")
+    for grp in mono_prf.matrix_synthesis_groups:
+        assert grp_id_pattern.match(grp.id), f"Group ID {grp.id} does not match ^grp_[a-f0-9]{{16}}$"
+        expected_count = expected_group_cardinalities[grp.view_type]
+        assert len(grp.target_blocks) == expected_count, (
+            f"Group {grp.id} ({grp.view_type}) requires {expected_count} target_blocks, got {len(grp.target_blocks)}"
+        )
 
 
 def test_all_competency_workflows_exist_and_validate() -> None:

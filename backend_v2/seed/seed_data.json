@@ -17745,8 +17745,8 @@
       },
       "description": {
         "translations": {
-          "fi": "Kokonaisvaltainen ja tieteellisesti syväluotaava 15-vaiheinen auditointiketju, joka arvioi ihmisen ja tekoälyn yhteistyöprosessia kaikkien 13 Quorum-arviointimatriisin (305 atomia) lävitse. Lähtötietoina arvioidaan vuorovaikutusloki (Chat-loki), varsinainen lopputuotos (Product-teksti) sekä käyttäjän reflektio. Työnkulku rinnakkaistaa 11 erikoistunutta asiantuntijaa analysoimaan vuorovaikutuksen ohjausta (Goodhart), argumentaatiolujuutta (Toulmin), kausaalista päättelyä (Pearl), kriittistä kumoamista (Popper), kognitiivista syvyyttä (Bloom, Kahneman), episteemistä kalibraatiota (Tetlock), arkistoeheyttä (ARMA) sekä mandaattirajoja ja selitettävyyttä (Taskguard, Clarity). Tämä monoliittinen arviointi toimii järjestelmän korkeimman tason vertailukohtana ja syväanalyysina vaativimpiin auditointitarpeisiin.",
-          "en": "A comprehensive, scientifically rigorous 15-step audit chain evaluating the full-spectrum human-AI collaborative process across all 13 Quorum evaluation matrices (305 atoms). The evaluation inspects the interactive prompt dialogue (Chat Log), the final synthesized deliverable (Product Text), and metacognitive self-assessment (Reflection). The workflow orchestrates 11 specialized evaluator agents in parallel to assess prompt steering agency (Goodhart), argumentation rigor (Toulmin), causal intervention modeling (Pearl), critical falsification (Popper), cognitive deliberation (Bloom, Kahneman), epistemic humility calibration (Tetlock), archival provenance (ARMA), mandate boundaries (Taskguard), and explainability (Clarity). This monolithic workflow serves as the gold-standard evaluation benchmark for exhaustive organizational audits."
+          "fi": "Kokonaisvaltainen ja tieteellisesti syväluotaava 12-vaiheinen auditointiketju, joka arvioi ihmisen ja tekoälyn yhteistyöprosessia keskeisten tieteellisten arviointimatriisien lävitse. Lähtötietoina arvioidaan vuorovaikutusloki (Chat-loki), varsinainen lopputuotos (Product-teksti) sekä käyttäjän reflektio. Työnkulku rinnakkaistaa 8 erikoistunutta asiantuntijaa analysoimaan vuorovaikutuksen ohjausta (Goodhart), argumentaatiolujuutta (Toulmin), kausaalista päättelyä (Pearl), kriittistä kumoamista (Popper), kognitiivista syvyyttä (Bloom, Kahneman), episteemistä kalibraatiota (Tetlock) sekä selitettävyyttä ja läpinäkyvyyttä (Lipton). Tämä monoliittinen arviointi toimii järjestelmän korkeimman tason vertailukohtana ja syväanalyysina vaativimpiin auditointitarpeisiin.",
+          "en": "A comprehensive, scientifically rigorous 12-step audit chain evaluating the full-spectrum human-AI collaborative process across premier cognitive evaluation matrices. The evaluation inspects the interactive prompt dialogue (Chat Log), the final synthesized deliverable (Product Text), and metacognitive self-assessment (Reflection). The workflow orchestrates 8 specialized evaluator agents in parallel to assess prompt steering agency (Goodhart), argumentation rigor (Toulmin), causal intervention modeling (Pearl), critical falsification (Popper), cognitive deliberation (Bloom, Kahneman), epistemic humility calibration (Tetlock), and explainability and transparency (Lipton). This monolithic workflow serves as the gold-standard evaluation benchmark for exhaustive organizational audits."
         }
       },
       "status": "active",
@@ -17850,8 +17850,56 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_0f7947ec7007498c",
-          "task_blueprint": "sp_ddb7cf7c8a0245d4",
+          "id": "sr_5a8ae009eee44fe2",
+          "task_blueprint": "sp_b5c751d1cbe24735",
+          "depends_on": [
+            "sr_f0a26d17cc9b48a7"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_87f408aeee64462f",
+          "task_blueprint": "sp_8daee218c6b14f02",
+          "depends_on": [
+            "sr_f0a26d17cc9b48a7"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "markdown",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_d56fb84fbe13463a",
+          "task_blueprint": "sp_6f40b964895c426b",
+          "depends_on": [
+            "sr_f0a26d17cc9b48a7"
+          ],
+          "input_mappings": {
+            "product_text": "$inputs.product_text",
+            "chat_log": "$inputs.chat_log",
+            "reflection_text": "$inputs.reflection_text"
+          },
+          "expected_sdui_type": "grid",
+          "is_synthesis_source": true,
+          "ui_pos_x": 0.0,
+          "ui_pos_y": 0.0
+        },
+        {
+          "id": "sr_4d2272d8b4864847",
+          "task_blueprint": "sp_bd0b3054fe664960",
           "depends_on": [
             "sr_f0a26d17cc9b48a7"
           ],
@@ -17869,73 +17917,7 @@
           "id": "sr_02b7cc1e7c2a4a62",
           "task_blueprint": "sp_76eedbc020274f66",
           "depends_on": [
-            "sr_f0a26d17cc9b48a7",
-            "sr_0f7947ec7007498c"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps.sr_0f7947ec7007498c",
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "grid",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_5a8ae009eee44fe2",
-          "task_blueprint": "sp_b5c751d1cbe24735",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_99ca8c82a5aa48cd",
-          "task_blueprint": "sp_6a45d484ad5b497c",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_87f408aeee64462f",
-          "task_blueprint": "sp_8daee218c6b14f02",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_d56fb84fbe13463a",
-          "task_blueprint": "sp_6f40b964895c426b",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
+            "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -17948,10 +17930,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_4d2272d8b4864847",
-          "task_blueprint": "sp_bd0b3054fe664960",
+          "id": "sr_566e3209a60444d3",
+          "task_blueprint": "sp_f22db9f1dde048b7",
           "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
+            "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -17964,10 +17946,10 @@
           "ui_pos_y": 0.0
         },
         {
-          "id": "sr_1d7e6d26b02b457b",
-          "task_blueprint": "sp_7f9649114d2344dc",
+          "id": "sr_0228db320e8f41bb",
+          "task_blueprint": "sp_25664f44773a4354",
           "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
+            "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -17983,56 +17965,7 @@
           "id": "sr_b4c328df1c4141c6",
           "task_blueprint": "sp_dfc365994fa944b2",
           "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_566e3209a60444d3",
-          "task_blueprint": "sp_f22db9f1dde048b7",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_ba028623acab447a",
-          "task_blueprint": "sp_48974af1fc584407",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
-          ],
-          "input_mappings": {
-            "prior_analysis": "$steps.sr_02b7cc1e7c2a4a62",
-            "product_text": "$inputs.product_text",
-            "chat_log": "$inputs.chat_log",
-            "reflection_text": "$inputs.reflection_text"
-          },
-          "expected_sdui_type": "markdown",
-          "is_synthesis_source": true,
-          "ui_pos_x": 0.0,
-          "ui_pos_y": 0.0
-        },
-        {
-          "id": "sr_0228db320e8f41bb",
-          "task_blueprint": "sp_25664f44773a4354",
-          "depends_on": [
-            "sr_02b7cc1e7c2a4a62"
+            "sr_f0a26d17cc9b48a7"
           ],
           "input_mappings": {
             "product_text": "$inputs.product_text",
@@ -18049,15 +17982,13 @@
           "task_blueprint": "sp_192910b5f5a34c79",
           "depends_on": [
             "sr_5a8ae009eee44fe2",
-            "sr_99ca8c82a5aa48cd",
             "sr_87f408aeee64462f",
             "sr_d56fb84fbe13463a",
             "sr_4d2272d8b4864847",
-            "sr_1d7e6d26b02b457b",
-            "sr_b4c328df1c4141c6",
+            "sr_02b7cc1e7c2a4a62",
             "sr_566e3209a60444d3",
-            "sr_ba028623acab447a",
-            "sr_0228db320e8f41bb"
+            "sr_0228db320e8f41bb",
+            "sr_b4c328df1c4141c6"
           ],
           "input_mappings": {
             "prior_analysis": "$steps"
@@ -20174,46 +20105,88 @@
       ],
       "matrix_synthesis_groups": [
         {
-          "id": "grp_440a5fef9331451b",
+          "id": "grp_a1b2c3d4e5f60718",
           "title": {
             "translations": {
-              "fi": "Kriittinen ajattelu ja oivallus",
-              "en": "Critical Thinking & Insight"
+              "en": "Executive Cognitive Radar",
+              "fi": "Johdon kognitiivinen tutka"
             }
           },
           "target_blocks": [
+            "blk_109dab5b6b3f403a",
             "blk_440a5fef9331451b",
+            "blk_b476f89fb732448c"
+          ],
+          "view_type": "3d_matrix"
+        },
+        {
+          "id": "grp_b2c3d4e5f6071829",
+          "title": {
+            "translations": {
+              "en": "Causal Inference & Argument Depth",
+              "fi": "Kausaalipäättely ja argumentaation syvyys"
+            }
+          },
+          "target_blocks": [
+            "blk_c5804a9143c34cb1",
+            "blk_440a5fef9331451b"
+          ],
+          "view_type": "2d_compare"
+        },
+        {
+          "id": "grp_c3d4e5f60718293a",
+          "title": {
+            "translations": {
+              "en": "Critical Falsification & Epistemic Humility",
+              "fi": "Kriittinen haastaminen ja episteeminen nöyryys"
+            }
+          },
+          "target_blocks": [
+            "blk_b476f89fb732448c",
+            "blk_22e3598e06414409"
+          ],
+          "view_type": "2d_compare"
+        },
+        {
+          "id": "grp_d4e5f60718293a4b",
+          "title": {
+            "translations": {
+              "en": "Cognitive Depth & Creative Synthesis",
+              "fi": "Kognitiivinen syvyys ja luova synteesi"
+            }
+          },
+          "target_blocks": [
+            "blk_109dab5b6b3f403a",
             "blk_f921c7c0989b47e8"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_c5804a9143c34cb1",
+          "id": "grp_e5f60718293a4b5c",
           "title": {
             "translations": {
-              "fi": "Kausaalisuus ja falsifioitavuus",
-              "en": "Causality & Falsification"
+              "en": "Steering Agency & Transparency",
+              "fi": "Ohjausote ja läpinäkyvyys"
             }
           },
           "target_blocks": [
-            "blk_c5804a9143c34cb1",
-            "blk_b476f89fb732448c"
+            "blk_53f32679aa514fcb",
+            "blk_f6e286f050c94d60"
           ],
           "view_type": "2d_compare"
         },
         {
-          "id": "grp_6b8c766185294f7e",
+          "id": "grp_f60718293a4b5c6d",
           "title": {
             "translations": {
-              "fi": "Jäljitettävyys ja ankkurointi",
-              "en": "Traceability & Anchoring"
+              "en": "Synthesis Evidentiary Confidence",
+              "fi": "Synteesin luottamustaso"
             }
           },
           "target_blocks": [
-            "blk_6b8c766185294f7e",
-            "blk_f6e286f050c94d60"
+            "blk_6b8c766185294f7e"
           ],
-          "view_type": "2d_compare"
+          "view_type": "1d_metrics"
         }
       ],
       "content_blocks": [],
