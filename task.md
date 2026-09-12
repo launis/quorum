@@ -34,11 +34,11 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\9dc6ba62-8cf
   - [x] 2.2: Make `user_role` and `user_role_justification` optional on `ExecutiveSummarySectionResult` in `backend_v2/models/dtos/synthesis.py`.
   - [x] 2.3: Make `user_role` and `user_role_justification` optional on `SynthesisOutputDTO` in `backend_v2/models/dtos/synthesis.py`.
   - [x] 2.4: Update tests in `backend_v2/tests/unit/models/dtos/test_synthesis.py`.
-- [ ] **Step 3: OUTPUTPROFILE SCHEMA EXPANSION & DTO PARITY**
-  - [ ] 3.1: Add `user_role_target_block` to `OutputProfile` in `backend_v2/models/v2_core.py`.
-  - [ ] 3.2: Add `user_role_target_block` to Create, Update, and Response DTOs in `backend_v2/models/dtos/output_profile.py`.
-  - [ ] 3.3: Add `user_role_target_block` to Freezed model in `client_app_v2/lib/features/studio/models/output_profile.dart`.
-  - [ ] 3.4: Run Freezed code generation via `flutter_audit_loop.py`.
+- [x] **Step 3: OUTPUTPROFILE SCHEMA EXPANSION & DTO PARITY**
+  - [x] 3.1: Add `user_role_target_block` to `OutputProfile` in `backend_v2/models/v2_core.py`.
+  - [x] 3.2: Add `user_role_target_block` to Create, Update, and Response DTOs in `backend_v2/models/dtos/output_profile.py`.
+  - [x] 3.3: Add `user_role_target_block` to Freezed model in `client_app_v2/lib/features/studio/models/output_profile.dart`.
+  - [x] 3.4: Run Freezed code generation via `flutter_audit_loop.py`.
 - [ ] **Step 4: DETERMINISTIC WORKER TRACE EXTRACTION**
   - [ ] 4.1: Deterministically extract target block raw_score and compute role in `backend_v2/worker.py`.
   - [ ] 4.2: Update `backend_v2/tests/unit/test_worker_synthesis.py`.

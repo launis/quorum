@@ -1188,6 +1188,14 @@ class OutputProfile(V2CoreBase):
             description="PromptBlock ID providing the cognitive evaluation score for variance validation.",
         ),
     ] = None
+    user_role_target_block: Annotated[
+        str | None,
+        Field(
+            default=None,
+            pattern=OPAQUE_STRIPE_ID_REGEX,
+            description="PromptBlock ID providing evaluated score for user role classification.",
+        ),
+    ] = None
 
     @model_validator(mode="after")
     def validate_variance_target_block_coherence(self) -> Self:

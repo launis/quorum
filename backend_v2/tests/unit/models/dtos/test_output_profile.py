@@ -217,6 +217,7 @@ def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> N
             "audit_trail_block",
         ],
         "variance_target_block": "blk_1111222233334444",
+        "user_role_target_block": "blk_53f32679aa514fcb",
     }
     dto = OutputProfileCreateDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
@@ -224,6 +225,7 @@ def test_output_profile_create_dto_accepts_string_enums_from_http_payload() -> N
     assert len(dto.target_block_order) == 11
     assert dto.target_block_order[0] == TargetBlockType.METADATA_BLOCK
     assert dto.variance_target_block == "blk_1111222233334444"
+    assert dto.user_role_target_block == "blk_53f32679aa514fcb"
 
 
 def test_output_profile_update_dto_accepts_string_enums_from_http_payload() -> None:
@@ -231,10 +233,12 @@ def test_output_profile_update_dto_accepts_string_enums_from_http_payload() -> N
     payload = {
         "display_scale": "normalized_100",
         "target_block_order": ["metadata_block", "global_score_block"],
+        "user_role_target_block": "blk_53f32679aa514fcb",
     }
     dto = OutputProfileUpdateDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
     assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.GLOBAL_SCORE_BLOCK]
+    assert dto.user_role_target_block == "blk_53f32679aa514fcb"
 
 
 def test_output_profile_response_dto_accepts_string_enums_from_storage_payload() -> None:
@@ -244,10 +248,12 @@ def test_output_profile_response_dto_accepts_string_enums_from_storage_payload()
         "id": "prf_1234abcd",
         "display_scale": "normalized_100",
         "target_block_order": ["metadata_block", "global_score_block"],
+        "user_role_target_block": "blk_53f32679aa514fcb",
     }
     dto = OutputProfileResponseDTO.model_validate(payload)
     assert dto.display_scale == DisplayScale.NORMALIZED_100
     assert dto.target_block_order == [TargetBlockType.METADATA_BLOCK, TargetBlockType.GLOBAL_SCORE_BLOCK]
+    assert dto.user_role_target_block == "blk_53f32679aa514fcb"
 
 
 def test_output_profile_custom_scale_bounds_positive() -> None:
