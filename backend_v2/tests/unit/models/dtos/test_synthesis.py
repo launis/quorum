@@ -9,6 +9,7 @@ from backend_v2.models.dtos.synthesis import (
     XaiHighlightItem,
     XaiHighlightsResult,
 )
+from backend_v2.models.enums import RoleClassification
 from backend_v2.models.view.sdui import ParagraphBlock
 
 
@@ -37,19 +38,19 @@ def test_xai_highlight_strictness() -> None:
 
 def test_executive_summary_section_result_strictness() -> None:
     dto = ExecutiveSummarySectionResult(
-        user_role="ROLE_ARCHITECT",
+        user_role=RoleClassification.ARCHITECT,
         user_role_justification="High maturity",
         cited_sources=["src_1"],
         executive_summary=[
             ParagraphBlock(block_type="paragraph", text="Summary paragraph", exact_quotes=[], citations=[])
         ],
     )
-    assert dto.user_role == "ROLE_ARCHITECT"
+    assert dto.user_role == RoleClassification.ARCHITECT
     assert len(dto.executive_summary) == 1
 
     with pytest.raises(ValidationError):
         ExecutiveSummarySectionResult(
-            user_role="ROLE_ARCHITECT",
+            user_role=RoleClassification.ARCHITECT,
             user_role_justification="High maturity",
             extra_field="fail",
         )  # type: ignore
@@ -117,3 +118,27 @@ def test_synthesis_output_strictness() -> None:
             user_role_justification="Test",
             extra="fail",
         )  # type: ignore
+
+
+def test_executive_summary_section_result_role_optional() -> None:
+    """Verify that user_role and user_role_justification default to None and are optional."""
+    dto = ExecutiveSummarySectionResult(
+        cited_sources=[],
+        executive_summary=[
+            ParagraphBlock(block_type="paragraph", text="Summary narrative", exact_quotes=[], citations=[])
+        ],
+    )
+    assert dto.user_role is None
+    assert dto.user_role_justification is None
+    assert len(dto.executive_summary) == 1
+
+
+def test_synthesis_output_role_optional() -> None:
+    """Verify that SynthesisOutputDTO validates successfully when user_role is omitted."""
+    dto = SynthesisOutputDTO(
+        cited_sources=[],
+        section_syntheses=[],
+        xai_highlights=[],
+    )
+    assert dto.user_role is None
+    assert dto.user_role_justification is None

@@ -29,11 +29,11 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\9dc6ba62-8cf
   - [x] 1.3: Refactor `ExecutiveSummaryAdapter` to replace `parsed_role.value.lower()` with `parsed_role.l10n_key`.
   - [x] 1.4: Expand `test_executive_summary_adapter.py` with negative ISTQB test partitions.
   - [x] 1.5: Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/sdui/adapters/test_executive_summary_adapter.py --test`.
-- [ ] **Step 2: DEPRECATE STOCHASTIC ROLE GENERATION IN PROMPTS & DTOS**
-  - [ ] 2.1: Remove user role extraction and role translation from `SYNTHESIS_SDUI_MANDATES` in `backend_v2/models/prompts/synthesis/sdui_directives.py`.
-  - [ ] 2.2: Make `user_role` and `user_role_justification` optional on `ExecutiveSummarySectionResult` in `backend_v2/models/dtos/synthesis.py`.
-  - [ ] 2.3: Make `user_role` and `user_role_justification` optional on `SynthesisOutputDTO` in `backend_v2/models/dtos/synthesis.py`.
-  - [ ] 2.4: Update tests in `backend_v2/tests/unit/models/dtos/test_synthesis.py`.
+- [x] **Step 2: DEPRECATE STOCHASTIC ROLE GENERATION IN PROMPTS & DTOS**
+  - [x] 2.1: Remove user role extraction and role translation from `SYNTHESIS_SDUI_MANDATES` in `backend_v2/models/prompts/synthesis/sdui_directives.py`.
+  - [x] 2.2: Make `user_role` and `user_role_justification` optional on `ExecutiveSummarySectionResult` in `backend_v2/models/dtos/synthesis.py`.
+  - [x] 2.3: Make `user_role` and `user_role_justification` optional on `SynthesisOutputDTO` in `backend_v2/models/dtos/synthesis.py`.
+  - [x] 2.4: Update tests in `backend_v2/tests/unit/models/dtos/test_synthesis.py`.
 - [ ] **Step 3: OUTPUTPROFILE SCHEMA EXPANSION & DTO PARITY**
   - [ ] 3.1: Add `user_role_target_block` to `OutputProfile` in `backend_v2/models/v2_core.py`.
   - [ ] 3.2: Add `user_role_target_block` to Create, Update, and Response DTOs in `backend_v2/models/dtos/output_profile.py`.

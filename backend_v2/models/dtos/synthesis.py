@@ -138,23 +138,30 @@ class ExecutiveSummarySectionResult(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     user_role: Annotated[
-        LaxRoleClassification,
+        LaxRoleClassification | None,
         Field(
-            description="Extracted targeted user role for the output (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT).",
+            default=None,
+            description="Deprecated user role.",
         ),
-    ]
-    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
+    ] = None
+    user_role_justification: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Deprecated user role justification.",
+        ),
+    ] = None
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description="List of references or citations found."),
-    ]
+    ] = Field(default_factory=list)
     executive_summary: Annotated[
         list[LlmSduiBlock],
         Field(
             default_factory=list,
             description="Structured SDUI content blocks representing the executive summary narrative.",
         ),
-    ]
+    ] = Field(default_factory=list)
 
 
 class MatrixSectionSynthesesResult(V2CoreBase):
@@ -172,7 +179,7 @@ class MatrixSectionSynthesesResult(V2CoreBase):
             default_factory=list,
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
         ),
-    ]
+    ] = Field(default_factory=list)
 
 
 class XaiHighlightsResult(V2CoreBase):
@@ -190,7 +197,7 @@ class XaiHighlightsResult(V2CoreBase):
             default_factory=list,
             description="List of synthesized XAI highlights deduced from the evaluation phase.",
         ),
-    ]
+    ] = Field(default_factory=list)
 
 
 class SynthesisOutputDTO(V2CoreBase):
@@ -210,28 +217,35 @@ class SynthesisOutputDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     user_role: Annotated[
-        str,
+        str | None,
         Field(
-            description="Extracted targeted user role for the output (e.g. ROLE_ARCHITECT).",
+            default=None,
+            description="Deprecated user role.",
         ),
-    ]
-    user_role_justification: Annotated[str, Field(description="LLM justification for role mapping.")]
+    ] = None
+    user_role_justification: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Deprecated user role justification.",
+        ),
+    ] = None
 
     cited_sources: Annotated[
         list[str],
         Field(default_factory=list, description="List of references or citations found."),
-    ]
+    ] = Field(default_factory=list)
     section_syntheses: Annotated[
         list[SynthesisSectionDTO],
         Field(
             default_factory=list,
             description="List of synthesized sections. You MUST generate one item here for EVERY <section_instruction> provided in the system prompt!",
         ),
-    ]
+    ] = Field(default_factory=list)
     xai_highlights: Annotated[
         list[XaiHighlightItem],
         Field(
             default_factory=list,
             description="List of synthesized XAI highlights deduced from the evaluation phase.",
         ),
-    ]
+    ] = Field(default_factory=list)

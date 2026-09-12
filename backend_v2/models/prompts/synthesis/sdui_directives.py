@@ -30,8 +30,6 @@ SYNTHESIS_SDUI_MANDATES: str = (
     "text fields. The UI will render text structurally.\n"
     "- CITATIONS ARRAYS: Instead of inline brackets like [1], you must provide an array of "
     "integers in the `citations: list[int]` field for each block that uses sources.\n"
-    "- USER ROLE EXTRACTION (CRITICAL): You MUST deduce the user's role (ROLE_PASSENGER, ROLE_NAVIGATOR, ROLE_DRIVER, ROLE_ARCHITECT) and output it EXACTLY as the uppercase enum constant in the JSON field `user_role`. Provide reasoning in `user_role_justification`.\n"
-    "- ROLE TRANSLATION: Do NOT translate role constants. Output them exactly as they are so the UI can translate and format them.\n"
     "</sdui_mandate>"
 )
 
