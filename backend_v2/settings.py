@@ -74,9 +74,6 @@ class Settings(BaseSettings):
         scoring_security_cap: Cap on score under security flags.
         scoring_logical_cap: Cap on score under logic flags.
         scoring_performative_threshold: Threshold tracking real vs performative.
-        scoring_security_penalty: Multiplier penalty for threats.
-        scoring_post_hoc_penalty: Multiplier penalty for post-hoc reasoning.
-        scoring_passivity_multiplier: Leniency penalty mapping.
         metrics_short_response_word_count: Target limit for brief inputs.
         metrics_automation_bias_ratio: Bias flag threshold.
         metrics_reflection_min_length: Minimum chars for analytical scans.
@@ -141,7 +138,9 @@ class Settings(BaseSettings):
     rag_preflight_min_input_chars: Annotated[
         int,
         Field(
-            description="Minimum total character length across analytical dynamic inputs required for RAG preflight extraction."
+            description=(
+                "Minimum total character length across analytical dynamic inputs required for RAG preflight extraction."
+            )
         ),
     ] = 100
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
@@ -373,18 +372,6 @@ class Settings(BaseSettings):
     enable_dynamic_performative_extraction: Annotated[
         bool, Field(default=True, description="Feature flag to enable dynamic LLM extraction of performative patterns")
     ] = True
-
-    # --- Scoring Penalties (Zero-Compromise: Configurable) ---
-    scoring_security_penalty: Annotated[
-        float, Field(description="Penalty multiplier for Security Threats (0.0 to 1.0)")
-    ] = 0.20
-    scoring_post_hoc_penalty: Annotated[
-        float, Field(description="Penalty multiplier for Post-Hoc Rationalization (0.0 to 1.0)")
-    ] = 0.15
-
-    scoring_passivity_multiplier: Annotated[
-        float, Field(description="Penalty multiplier for Passivity/Low Quality")
-    ] = 1.0
 
     # Behavioral Metrics (Heuristics)
     metrics_short_response_word_count: Annotated[int, Field(description="Max words to consider a response 'short'")] = 5

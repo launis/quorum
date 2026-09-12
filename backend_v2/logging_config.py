@@ -372,8 +372,4 @@ def log_startup_system_parameters(logger: logging.Logger, component_name: str) -
     logger.info("  Vertex:                   %s", settings.pacing_delay_vertex_seconds)
     logger.info("  OpenAI:                   %s", settings.pacing_delay_openai_seconds)
     logger.info("  Mock:                     %s", settings.pacing_delay_mock_seconds)
-    logger.info("Scoring Penalties:")
-    logger.info("  Security Threat Penalty:  %s", settings.scoring_security_penalty)
-    logger.info("  Post-Hoc Penalty:         %s", settings.scoring_post_hoc_penalty)
-    logger.info("  Passivity Multiplier:     %s", settings.scoring_passivity_multiplier)
     logger.info("======================================================================")

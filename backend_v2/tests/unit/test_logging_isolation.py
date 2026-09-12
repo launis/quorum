@@ -115,10 +115,6 @@ def test_log_startup_system_parameters_banner(caplog: pytest.LogCaptureFixture) 
     assert "Use Vertex LLM:" in full_output
     assert "Use Mock LLM:" in full_output
     assert "Pacing Delays (s):" in full_output
-    assert "Scoring Penalties:" in full_output
-    assert "Security Threat Penalty:" in full_output
-    assert "Post-Hoc Penalty:" in full_output
-    assert "Passivity Multiplier:" in full_output
 
     # Verify log level and zero secret leakage
     for record in caplog.records:
