@@ -83,11 +83,30 @@ class ExecutiveSummaryAdapter:
         profile = context.profile
         locale = context.locale
 
-        if context.is_data_starved or not profile_cache:
+        if context.is_data_starved:
+            return blocks
+
+        if not profile_cache and not profile.user_role_target_block:
             return blocks
 
         # 2. TRANSFORM: Strict validation and lookup of user role badge if present
-        if profile_cache.user_role:
+        role_val: str | None = None
+
+        if profile.user_role_target_block:
+            if profile.user_role_target_block in context.parsed_matrices:
+                target_matrix = context.parsed_matrices[profile.user_role_target_block]
+                if target_matrix.score is not None and target_matrix.level_names:
+                    min_scale = int(target_matrix.scale_min) if target_matrix.scale_min is not None else 1
+                    max_scale = int(target_matrix.scale_max) if target_matrix.scale_max is not None else 5
+                    int_score = max(min_scale, min(max_scale, int(round(target_matrix.score))))
+
+                    int_key = str(int_score)
+                    float_key = str(float(int_score))
+                    if int_key in target_matrix.level_names:
+                        role_val = target_matrix.level_names[int_key]
+                    elif float_key in target_matrix.level_names:
+                        role_val = target_matrix.level_names[float_key]
+        elif profile_cache and profile_cache.user_role:
             try:
                 parsed_role = RoleClassification(profile_cache.user_role)
             except ValueError as e:
@@ -116,6 +135,7 @@ class ExecutiveSummaryAdapter:
             # 3. ASSEMBLE: Resolve translation and construct role badge block
             role_val = LocalizationService.translate(role_key, locale)
 
+        if role_val:
             if profile.user_role_label:
                 prefix = profile.user_role_label.resolve(locale)
             else:
@@ -130,7 +150,7 @@ class ExecutiveSummaryAdapter:
             )
 
         # 4. DYNAMIC SYNTHESES: Append executive summary section syntheses if present
-        if profile_cache.section_syntheses:
+        if profile_cache and profile_cache.section_syntheses:
             target_key = TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value
             if target_key in profile_cache.section_syntheses:
                 for sb in profile_cache.section_syntheses[target_key]:

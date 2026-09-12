@@ -42,9 +42,9 @@ Implementation Plan: @[c:\Users\risto\.gemini\antigravity-ide\brain\9dc6ba62-8cf
 - [x] **Step 4: DETERMINISTIC WORKER TRACE EXTRACTION**
   - [x] 4.1: Deterministically extract target block raw_score and compute role in `backend_v2/worker.py`.
   - [x] 4.2: Update `backend_v2/tests/unit/test_worker_synthesis.py`.
-- [ ] **Step 5: SDUI ADAPTER MATRIX BINDING & RICH BADGE RENDERING**
-  - [ ] 5.1: Implement dual-tier role badge resolution in `ExecutiveSummaryAdapter`.
-  - [ ] 5.2: Add dedicated unit tests for matrix scale name lookup and boundary clamping in `test_executive_summary_adapter.py`.
+- [x] **Step 5: SDUI ADAPTER MATRIX BINDING & RICH BADGE RENDERING**
+  - [x] 5.1: Implement dual-tier role badge resolution in `ExecutiveSummaryAdapter`.
+  - [x] 5.2: Add dedicated unit tests for matrix scale name lookup and boundary clamping in `test_executive_summary_adapter.py`.
 - [ ] **Step 6: SEED DATA VAULT HARMONIZATION & SEEDING**
   - [ ] 6.1: Update scale names of `blk_53f32679aa514fcb` in `backend_v2/seed/seed_data.json`.
   - [ ] 6.2: Add `"user_role_target_block": "blk_53f32679aa514fcb"` to profiles `prf_5d6e7f8091a2b3c4`, `prf_01b1d71000000001`, `prf_01b1d71000000002`, `prf_01b1d71000000003`.
