@@ -30,10 +30,14 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+from backend_v2.models.v2_core import ContrastivePairDTO
 
 __all__ = [
+    "AtomEvaluationSnapshotDTO",
     "BlockHeatmapDTO",
+    "DiffReportSnapshotDTO",
     "DisagreementRootCause",
     "EvidenceDistributionDTO",
     "InputFileInspectionDTO",
@@ -41,8 +45,10 @@ __all__ = [
     "KappaMetricsDTO",
     "MacroBlockScoreDTO",
     "PhysicalModelBindingDTO",
+    "PromptProvenanceDTO",
     "RootCauseBreakdownDTO",
     "ScaleBreakdownDTO",
+    "TdaAtomDefinitionDTO",
     "TraceTelemetryDTO",
     "UNICODE_SPACE_REGISTRY",
     "UserDocumentationVolumeDTO",
@@ -184,8 +190,8 @@ class MacroBlockScoreDTO(BaseModel):
     scale_max: float = 5.0
     run1_waterfall_breakpoint: str | None = None
     run2_waterfall_breakpoint: str | None = None
-    run1_level_breakdown: dict[str, Any] = Field(default_factory=dict)
-    run2_level_breakdown: dict[str, Any] = Field(default_factory=dict)
+    run1_level_breakdown: dict[str, int] = Field(default_factory=dict)
+    run2_level_breakdown: dict[str, int] = Field(default_factory=dict)
 
 
 class EvidenceDistributionDTO(BaseModel):
@@ -276,6 +282,114 @@ class TraceTelemetryDTO(BaseModel):
     completion_tokens: int = 0
     cached_tokens: int = 0
     dag_cost: float = 0.0
+
+
+class TdaAtomDefinitionDTO(BaseModel):
+    """Immutable snapshot of the 13 canonical TDA parameters for an evaluated atom."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    atom_id: str
+    block_id: str
+    block_name: str
+    scale_score: float
+    scale_name: str
+    concept_description: str
+    extraction_rule: str | None = None
+    anchor_target: str | None = None
+    contrastive_example: ContrastivePairDTO | None = None
+    anti_patterns: list[str] = Field(default_factory=list)
+    acceptance_criteria: list[str] = Field(default_factory=list)
+    syntactic_anchors: list[str] = Field(default_factory=list)
+    target_speaker: str = "USER"
+    bounding_box_scope: str = "paragraph"
+    inverse_evidence: bool = False
+    evaluation_track: str = "COGNITIVE_JUDGEMENT"
+    enforce_pre_flight: bool = False
+    aggregation_mode: str = "EXISTS"
+
+
+class AtomEvaluationSnapshotDTO(BaseModel):
+    """Immutable single-run evaluation state snapshot for an atom."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    run_name: str
+    state: str
+    has_quote: bool
+    quote_text: str
+    quote_length: int
+    quote_verified: bool
+    contextual_override: bool
+    reasoning_trace: str
+
+
+class PromptProvenanceDTO(BaseModel):
+    """Immutable snapshot of system directives, model bindings, and workflow provenance."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    directives_hash: str
+    directives_char_count: int
+    physical_models: list[PhysicalModelBindingDTO] = Field(default_factory=list)
+    workflow_provenance: WorkflowProvenanceDTO | None = None
+
+
+class DiffReportSnapshotDTO(BaseModel):
+    """Immutable aggregated archaeological benchmark snapshot across compared runs."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    execution_ids: list[str]
+    timestamp: str
+    global_consistency: float
+    fleiss_kappa: float
+    cohen_kappa: KappaMetricsDTO | None = None
+    average_entropy: float
+    total_common_atoms: int
+    mismatch_count: int
+    variance_rate: float
+    summary_2way: dict[str, int]
+    root_causes: RootCauseBreakdownDTO | None = None
+    isolation_audit: IsolationAuditDTO | None = None
+    scale_breakdowns: list[ScaleBreakdownDTO] = Field(default_factory=list)
+    block_heatmaps: list[BlockHeatmapDTO] = Field(default_factory=list)
+    macro_scores: list[MacroBlockScoreDTO] = Field(default_factory=list)
+    evidence_distributions: list[EvidenceDistributionDTO] = Field(default_factory=list)
+    prompt_provenance: PromptProvenanceDTO
+    atom_definitions: dict[str, TdaAtomDefinitionDTO]
+    all_evaluations: dict[str, list[AtomEvaluationSnapshotDTO]]
+
+
+def _extract_level_breakdown_counts(raw_levels: Any) -> dict[str, int]:
+    """Normalize raw level breakdown into strictly typed dict[str, int] of hits per level.
+
+    Args:
+        raw_levels: Raw level breakdown mapping from trace or model.
+
+    Returns:
+        Mapping of scale level string to integer hit count.
+    """
+    if not isinstance(raw_levels, dict):
+        return {}
+    res: dict[str, int] = {}
+    for k, v in raw_levels.items():
+        if isinstance(v, dict):
+            res[str(k)] = int(v.get("hits", 0))
+        elif isinstance(v, (int, float)):
+            res[str(k)] = int(v)
+        elif isinstance(v, str):
+            if "/" in v:
+                try:
+                    res[str(k)] = int(v.split("/")[0])
+                except ValueError:
+                    res[str(k)] = 0
+            else:
+                try:
+                    res[str(k)] = int(v)
+                except ValueError:
+                    res[str(k)] = 0
+    return res
 
 
 def extract_trace_telemetry(trace_data: list[Any]) -> TraceTelemetryDTO:
@@ -1260,6 +1374,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     atom_rules: dict[str, str] = {}
     atom_details: dict[str, dict[str, Any]] = {}
     atom_to_block: dict[str, str] = {}
+    atom_definitions: dict[str, TdaAtomDefinitionDTO] = {}
 
     for block in seed.get("prompt_blocks", []):
         bid = block.get("id")
@@ -1290,12 +1405,51 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     rule = (tda.get("extraction_rule") or "").strip()
                     anchor = (tda.get("anchor_target") or "").strip()
                     c_ex = tda.get("contrastive_example")
-                    contrastive_pair: dict[str, str] | None = None
-                    if c_ex:
-                        contrastive_pair = {
-                            "acceptable": c_ex["acceptable"],
-                            "rejected": c_ex["rejected"],
-                        }
+                    contrastive_pair_dto: ContrastivePairDTO | None = None
+                    contrastive_pair_dict: dict[str, str] | None = None
+                    if isinstance(c_ex, dict) and c_ex.get("acceptable") and c_ex.get("rejected"):
+                        try:
+                            contrastive_pair_dto = ContrastivePairDTO(
+                                acceptable=str(c_ex["acceptable"]),
+                                rejected=str(c_ex["rejected"]),
+                            )
+                            contrastive_pair_dict = {
+                                "acceptable": contrastive_pair_dto.acceptable,
+                                "rejected": contrastive_pair_dto.rejected,
+                            }
+                        except ValidationError:
+                            contrastive_pair_dto = None
+                            contrastive_pair_dict = None
+
+                    raw_anti = tda.get("anti_patterns", [])
+                    anti_patterns: list[str] = []
+                    if isinstance(raw_anti, list):
+                        for ap in raw_anti:
+                            if isinstance(ap, dict) and "pattern" in ap:
+                                anti_patterns.append(str(ap["pattern"]))
+                            elif isinstance(ap, str) and ap.strip():
+                                anti_patterns.append(ap.strip())
+
+                    raw_crit = tda.get("acceptance_criteria", [])
+                    acceptance_criteria: list[str] = []
+                    if isinstance(raw_crit, list):
+                        for ac in raw_crit:
+                            if isinstance(ac, dict) and "instruction" in ac:
+                                acceptance_criteria.append(str(ac["instruction"]))
+                            elif isinstance(ac, str) and ac.strip():
+                                acceptance_criteria.append(ac.strip())
+
+                    raw_anchors = tda.get("syntactic_anchors", [])
+                    syntactic_anchors: list[str] = (
+                        [str(x) for x in raw_anchors if x] if isinstance(raw_anchors, list) else []
+                    )
+
+                    target_speaker = str(tda.get("target_speaker") or "USER")
+                    bounding_box_scope = str(tda.get("bounding_box_scope") or "paragraph")
+                    inverse_evidence = bool(tda.get("inverse_evidence", False))
+                    evaluation_track = str(tda.get("evaluation_track") or "COGNITIVE_JUDGEMENT")
+                    enforce_pre_flight = bool(tda.get("enforce_pre_flight", False))
+                    aggregation_mode = str(tda.get("aggregation_mode") or "EXISTS")
 
                     if desc.startswith("DEPRECATED"):
                         desc = ""
@@ -1311,12 +1465,33 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         "concept_description": desc,
                         "extraction_rule": rule,
                         "anchor_target": anchor,
-                        "contrastive_example": contrastive_pair,
-                        "inverse_evidence": tda.get("inverse_evidence", False),
-                        "bounding_box_scope": tda.get("bounding_box_scope", "sentence"),
+                        "contrastive_example": contrastive_pair_dict,
+                        "inverse_evidence": inverse_evidence,
+                        "bounding_box_scope": bounding_box_scope,
                     }
                     if bid:
                         atom_to_block[tid] = bid
+
+                    atom_definitions[tid] = TdaAtomDefinitionDTO(
+                        atom_id=tid,
+                        block_id=bid or "",
+                        block_name=bname or bid or "",
+                        scale_score=float(scale.get("score") or 0.0),
+                        scale_name=sname,
+                        concept_description=desc,
+                        extraction_rule=rule if rule else None,
+                        anchor_target=anchor if anchor else None,
+                        contrastive_example=contrastive_pair_dto,
+                        anti_patterns=anti_patterns,
+                        acceptance_criteria=acceptance_criteria,
+                        syntactic_anchors=syntactic_anchors,
+                        target_speaker=target_speaker,
+                        bounding_box_scope=bounding_box_scope,
+                        inverse_evidence=inverse_evidence,
+                        evaluation_track=evaluation_track,
+                        enforce_pre_flight=enforce_pre_flight,
+                        aggregation_mode=aggregation_mode,
+                    )
 
     valid_common_atoms: set[str] = set()
     for atom in common_atoms:
@@ -1326,6 +1501,30 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         valid_common_atoms.add(atom)
 
     common_atoms = valid_common_atoms
+
+    # Ensure all common atoms have a TdaAtomDefinitionDTO entry even if missing from seed
+    for atom in common_atoms:
+        if atom not in atom_definitions:
+            atom_definitions[atom] = TdaAtomDefinitionDTO(
+                atom_id=atom,
+                block_id=atom_to_block.get(atom, "blk_unknown"),
+                block_name=atom_to_block.get(atom, "Unknown Block"),
+                scale_score=1.0,
+                scale_name="Scale 1",
+                concept_description=atom_rules.get(atom, f"Evaluation atom {atom}"),
+                extraction_rule=None,
+                anchor_target=None,
+                contrastive_example=None,
+                anti_patterns=[],
+                acceptance_criteria=[],
+                syntactic_anchors=[],
+                target_speaker="USER",
+                bounding_box_scope="paragraph",
+                inverse_evidence=False,
+                evaluation_track="COGNITIVE_JUDGEMENT",
+                enforce_pre_flight=False,
+                aggregation_mode="EXISTS",
+            )
 
     atom_states: dict[str, list[str]] = {}
     atom_entropies: dict[str, float] = {}
@@ -1670,12 +1869,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 scale_max=b_max,
                 run1_waterfall_breakpoint=d1.get("waterfall_breakpoint"),
                 run2_waterfall_breakpoint=d2.get("waterfall_breakpoint"),
-                run1_level_breakdown=d1.get("level_breakdown", {}),
-                run2_level_breakdown=d2.get("level_breakdown", {}),
+                run1_level_breakdown=_extract_level_breakdown_counts(d1.get("level_breakdown")),
+                run2_level_breakdown=_extract_level_breakdown_counts(d2.get("level_breakdown")),
             )
         )
 
     # Lexical Grounding Audit
+    run_corpuses: list[str] = []
+    run_norm_corpuses: list[str] = []
     grounding_results_by_run: list[dict[str, Any]] = []
     for idx, (r_name, p) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
         run_in_dir = p.parent / "inputs"
@@ -1691,6 +1892,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         pass
             corpus = "\n".join(corpus_parts)
             norm_corpus = " ".join(corpus.split())
+        run_corpuses.append(corpus)
+        run_norm_corpuses.append(norm_corpus)
 
         ev_map = evals_list[idx]
         total_quotes = 0
@@ -1717,6 +1920,39 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 "authenticity_rate": auth_rate,
             }
         )
+
+    all_evaluations: dict[str, list[AtomEvaluationSnapshotDTO]] = {}
+    for atom in sorted(list(common_atoms)):
+        atom_snapshots: list[AtomEvaluationSnapshotDTO] = []
+        for r_idx, (r_name, evals) in enumerate(zip(loaded_runs, evals_list, strict=False)):
+            ev = evals.get(atom, {})
+            st = get_state(ev)
+            has_q = has_quote(ev)
+            eq = ev.get("exact_quote", ev.get("exact_quotes", ev.get("source_quote")))
+            if isinstance(eq, list):
+                eq_text = " ".join(str(x) for x in eq)
+            elif eq is not None:
+                eq_text = str(eq)
+            else:
+                eq_text = ""
+
+            is_verified = False
+            if has_q and eq_text:
+                is_verified = verify_quote_in_corpus(eq_text, run_corpuses[r_idx], run_norm_corpuses[r_idx])
+
+            atom_snapshots.append(
+                AtomEvaluationSnapshotDTO(
+                    run_name=r_name,
+                    state=st,
+                    has_quote=has_q,
+                    quote_text=eq_text,
+                    quote_length=len(eq_text),
+                    quote_verified=is_verified,
+                    contextual_override=uses_contextual_override(ev),
+                    reasoning_trace=get_trace(ev),
+                )
+            )
+        all_evaluations[atom] = atom_snapshots
 
     frozen_context_info = "Ei saatavilla"
     first_run_record: dict[str, Any] = (
@@ -1829,9 +2065,20 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             f.write(f"  - **R{idx + 1}:** `{run_name}`\n")
         f.write(f"- **Aktiiviset Säännöt ja Asetukset (Frozen Context):** {frozen_context_info}\n")
 
-        # Workflow Provenance Snapshot
+        # Prompt Provenance Snapshot
         first_wf_id = first_run_record.get("workflow_id") or first_run_record.get("metadata", {}).get("workflow_id")
         wf_prov = extract_workflow_provenance(seed, first_wf_id)
+        model_bindings = resolve_physical_model_bindings(seed)
+        blocks_json = json.dumps(seed.get("prompt_blocks", []), sort_keys=True, ensure_ascii=False)
+        directives_hash = hashlib.sha256(blocks_json.encode("utf-8")).hexdigest()
+        directives_char_count = len(blocks_json)
+        prompt_provenance = PromptProvenanceDTO(
+            directives_hash=directives_hash,
+            directives_char_count=directives_char_count,
+            physical_models=model_bindings,
+            workflow_provenance=wf_prov,
+        )
+
         if wf_prov:
             ovr_switch_str = "SALLITTU (ENABLED)" if wf_prov.enable_contextual_overrides else "ESTETTY (DISABLED)"
             f.write("- **Työnkulun Provenienssi ja Hallintokytkimet (Workflow Provenance & Invariants):**\n")
@@ -1845,9 +2092,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 f"Pisteytystapa: `{wf_prov.default_scoring_strategy}`, "
                 f"Tiukkuustaso: `{wf_prov.default_strictness_level}`\n"
             )
+            f.write(
+                f"  - **Prompt-direktiivien tiiviste (SHA-256):** `{directives_hash[:16]}...` "
+                f"({directives_char_count:,} merkkiä)\n"
+            )
 
-        # Physical Model Bindings
-        model_bindings = resolve_physical_model_bindings(seed)
         if model_bindings:
             f.write("- **Fyysiset Mallisidokset (Physical Model Bindings):**\n")
             for mb in model_bindings:
@@ -2352,6 +2601,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             "Kontekstuaaliset ohitukset | Sääntödemootiot | Hylätyt (FAILED) | Yhteensä arvioitu |\n"
         )
         f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+        evidence_distributions: list[EvidenceDistributionDTO] = []
         for r_idx, (r_name, ev_map) in enumerate(zip(loaded_runs, evals_list, strict=False)):
             r_rec: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == r_name), {})
             r_wf_id = r_rec.get("workflow_id") or r_rec.get("metadata", {}).get("workflow_id")
@@ -2360,6 +2610,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             dist = extract_evidence_distribution(
                 ev_map, atom_details, enable_contextual_overrides=r_override_enabled, run_name=r_name
             )
+            evidence_distributions.append(dist)
             f.write(
                 f"| **R{r_idx + 1} ({r_name})** | {dist.empirical_quotes} | {dist.inverse_passes} | "
                 f"{dist.contextual_overrides} | {dist.demoted_by_policy} | {dist.failures} | {dist.total_evaluated} |\n"
@@ -2489,6 +2740,77 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 f.write(f"  - **Perustelu:** *{trace_content}*\n")
             f.write("\n---\n\n")
 
+        # Complete Atom Consensus Manifest
+        f.write("## Kaikkien Arvioitujen Atomien Yhteenvetotaulukko (Complete Atom Consensus Manifest)\n\n")
+        f.write(
+            "Taulukko listaa kaikki vertailluissa ajoissa arvioidut yhteiset atomit, "
+            "niiden tason ja lohkon, suoritustilat sekä lainausten aitoustarkastuksen tilan.\n\n"
+        )
+        if len(loaded_runs) == 2:
+            f.write(
+                "| Atom-ID | Lohko (Block) | Taso (Scale) | Run 1 | Run 2 | Konsistenssi | Sitaatti | Verifioitu |\n"
+            )
+            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |\n")
+            for atom in sorted(list(common_atoms)):
+                a_def = atom_definitions.get(atom)
+                b_name = a_def.block_name if a_def else "-"
+                s_name = a_def.scale_name if a_def else "-"
+                snaps = all_evaluations.get(atom, [])
+                r1_st = snaps[0].state.upper() if len(snaps) > 0 else "-"
+                r2_st = snaps[1].state.upper() if len(snaps) > 1 else "-"
+                cons = f"{atom_consistencies.get(atom, 1.0) * 100:.0f}%"
+                any_q = any(s.has_quote for s in snaps)
+                any_v = any(s.quote_verified for s in snaps)
+                q_label = "Kyllä" if any_q else "Ei"
+                v_label = "Kyllä" if any_v else ("-" if not any_q else "Ei")
+                f.write(f"| `{atom}` | `{b_name}` | {s_name} | {r1_st} | {r2_st} | {cons} | {q_label} | {v_label} |\n")
+        else:
+            run_headers = " | ".join(f"R{idx + 1}" for idx in range(len(loaded_runs)))
+            align_headers = " | ".join(":---:" for _ in range(len(loaded_runs)))
+            f.write(
+                f"| Atom-ID | Lohko (Block) | Taso (Scale) | {run_headers} | Konsistenssi | Sitaatti | Verifioitu |\n"
+            )
+            f.write(f"| :--- | :--- | :--- | {align_headers} | :---: | :---: | :---: |\n")
+            for atom in sorted(list(common_atoms)):
+                a_def = atom_definitions.get(atom)
+                b_name = a_def.block_name if a_def else "-"
+                s_name = a_def.scale_name if a_def else "-"
+                snaps = all_evaluations.get(atom, [])
+                run_cells = " | ".join(s.state.upper() for s in snaps)
+                cons = f"{atom_consistencies.get(atom, 1.0) * 100:.0f}%"
+                any_q = any(s.has_quote for s in snaps)
+                any_v = any(s.quote_verified for s in snaps)
+                q_label = "Kyllä" if any_q else "Ei"
+                v_label = "Kyllä" if any_v else ("-" if not any_q else "Ei")
+                f.write(f"| `{atom}` | `{b_name}` | {s_name} | {run_cells} | {cons} | {q_label} | {v_label} |\n")
+        f.write("\n")
+
+    # Structured JSON snapshot sidecar
+    variance_rate = (len(mismatching_atoms) / len(common_atoms)) if common_atoms else 0.0
+    snapshot_dto = DiffReportSnapshotDTO(
+        execution_ids=loaded_runs,
+        timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        global_consistency=global_consistency,
+        fleiss_kappa=global_kappa,
+        cohen_kappa=cohen_kappa_dto,
+        average_entropy=global_entropy,
+        total_common_atoms=len(common_atoms),
+        mismatch_count=len(mismatching_atoms),
+        variance_rate=variance_rate,
+        summary_2way=summary_2way,
+        root_causes=root_cause_breakdown,
+        isolation_audit=isolation_audit,
+        scale_breakdowns=scale_breakdowns,
+        block_heatmaps=block_heatmaps,
+        macro_scores=macro_block_scores,
+        evidence_distributions=evidence_distributions,
+        prompt_provenance=prompt_provenance,
+        atom_definitions=atom_definitions,
+        all_evaluations=all_evaluations,
+    )
+    json_path = report_path.with_suffix(".json")
+    json_path.write_text(snapshot_dto.model_dump_json(indent=2), encoding="utf-8")
+
     print(f"Done! Evaluated {len(common_atoms)} common atoms.")
     print(f"Mismatching atoms: {len(mismatching_atoms)}")
     if len(common_atoms) > 0:
@@ -2509,6 +2831,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         )
     print(f"Average Entropy: {global_entropy:.4f}")
     print(f"Report written to: {report_path}")
+    print(f"JSON snapshot written to: {json_path}")
     return str(report_path)
 
 
@@ -2521,9 +2844,15 @@ def main() -> None:
         default=None,
         help="Execution IDs or directory paths to compare (defaults to latest 3 executions)",
     )
+    parser.add_argument(
+        "-o",
+        "--output",
+        default=None,
+        help="Explicit file path to write the differential Markdown report",
+    )
     args = parser.parse_args()
     cli_args = args.execution_ids if args.execution_ids else None
-    run_diff(cli_args)
+    run_diff(cli_args, output_file=args.output)
 
 
 if __name__ == "__main__":

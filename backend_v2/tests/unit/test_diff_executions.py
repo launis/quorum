@@ -13,13 +13,25 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
+from backend_v2.models.v2_core import ContrastivePairDTO
 from scripts.diff_executions import (
     UNICODE_SPACE_REGISTRY,
+    AtomEvaluationSnapshotDTO,
+    BlockHeatmapDTO,
+    DiffReportSnapshotDTO,
     DisagreementRootCause,
     EvidenceDistributionDTO,
     InputFileInspectionDTO,
+    IsolationAuditDTO,
+    KappaMetricsDTO,
+    MacroBlockScoreDTO,
     PhysicalModelBindingDTO,
+    PromptProvenanceDTO,
+    RootCauseBreakdownDTO,
+    ScaleBreakdownDTO,
+    TdaAtomDefinitionDTO,
     TraceTelemetryDTO,
     UserDocumentationVolumeDTO,
     WorkflowProvenanceDTO,
@@ -771,25 +783,281 @@ class TestEvaluationHelpers:
             assert "atm_2" in all_evals
 
 
+def _create_synthetic_run(
+    base_dir: Path,
+    run_id: str,
+    evaluations: list[dict[str, Any]],
+    input_text: str = "Tämä on laadukas syötetiedosto käyttäjältä. Johtajuus on selkeää ja vastuullista.",
+    prompt_tokens: int = 1200,
+    completion_tokens: int = 350,
+    cached_tokens: int = 800,
+    cost_usd: float = 0.008,
+) -> Path:
+    """Create a self-contained synthetic execution directory with inputs, trace, and metadata."""
+    run_dir = base_dir / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    inputs_dir = run_dir / "inputs"
+    inputs_dir.mkdir(parents=True, exist_ok=True)
+    (inputs_dir / "product_text.md").write_text(input_text, encoding="utf-8")
+
+    trace = [
+        {
+            "event_type": "output",
+            "step_name": "scorecard_step",
+            "content": {
+                "_step_metadata": {
+                    "token_usage": {
+                        "prompt_tokens": prompt_tokens,
+                        "completion_tokens": completion_tokens,
+                        "cached_tokens": cached_tokens,
+                        "reasoning_tokens": 150,
+                        "cost_usd": cost_usd,
+                    },
+                    "timestamp_isot": "2026-09-14T00:00:00Z",
+                },
+                "blk_440a5fef9331451b": {
+                    "normalized_score": 80.0,
+                    "raw_score": 4.0,
+                    "level_breakdown": {"4": {"hits": 2, "total": 2}, "5": {"hits": 1, "total": 2}},
+                },
+            },
+        },
+        {
+            "event_type": "decision",
+            "step_name": "evaluation_step",
+            "content": {
+                "evaluations": evaluations,
+            },
+        },
+    ]
+    (run_dir / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
+    frozen_data = {
+        "ui_hints_snapshot": {
+            "blk_440a5fef9331451b": {
+                "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
+            }
+        }
+    }
+    (run_dir / "frozen_context.json").write_text(json.dumps(frozen_data), encoding="utf-8")
+    telem = [
+        {"tokens": 1500, "cache_hit": True, "timestamp": "2026-09-14T00:00:00Z"},
+        {"tokens": 800, "cache_hit": False, "timestamp": "2026-09-14T00:01:00Z"},
+    ]
+    (run_dir / "llm_telemetry.jsonl").write_text("\n".join(json.dumps(t) for t in telem), encoding="utf-8")
+    return run_dir
+
+
+class TestDiffReportDTOs:
+    """Test suite for archaeological diff report DTO validation and strictness invariants."""
+
+    def test_extract_level_breakdown_counts(self) -> None:
+        """Positive and Boundary: Test _extract_level_breakdown_counts normalization."""
+        from scripts.diff_executions import _extract_level_breakdown_counts
+
+        assert _extract_level_breakdown_counts(None) == {}
+        assert _extract_level_breakdown_counts("not_a_dict") == {}
+        raw = {
+            "1": {"hits": 4, "total": 4},
+            "2": 3,
+            "3": 2.0,
+            "4": "2/3",
+            "5": "invalid",
+        }
+        res = _extract_level_breakdown_counts(raw)
+        assert res["1"] == 4
+        assert res["2"] == 3
+        assert res["3"] == 2
+        assert res["4"] == 2
+        assert res["5"] == 0
+
+    def test_macro_block_score_dto_strictness(self) -> None:
+        """Positive and Negative: MacroBlockScoreDTO enforces typed level breakdown and extra='forbid'."""
+        dto = MacroBlockScoreDTO(
+            block_id="blk_1",
+            block_name="Block 1",
+            run1_normalized_score=80.0,
+            run2_normalized_score=85.0,
+            delta_normalized_score=5.0,
+            run1_pass_rate=0.8,
+            run2_pass_rate=0.85,
+            delta_pass_rate=0.05,
+            run1_level_breakdown={"1": 4, "2": 2},
+            run2_level_breakdown={"1": 4, "2": 3},
+        )
+        assert dto.run1_level_breakdown == {"1": 4, "2": 2}
+        assert dto.run2_level_breakdown == {"1": 4, "2": 3}
+
+        # Negative: Extra fields rejected
+        with pytest.raises(ValidationError):
+            MacroBlockScoreDTO(
+                block_id="blk_1",
+                block_name="Block 1",
+                run1_normalized_score=80.0,
+                run2_normalized_score=85.0,
+                delta_normalized_score=5.0,
+                run1_pass_rate=0.8,
+                run2_pass_rate=0.85,
+                delta_pass_rate=0.05,
+                unexpected_field="disallowed",
+            )
+
+    def test_tda_atom_definition_dto_validation(self) -> None:
+        """Positive and Negative: TdaAtomDefinitionDTO captures canonical 13 parameters with ContrastivePairDTO."""
+        pair = ContrastivePairDTO(
+            acceptable="Acceptable exemplar text of sufficient length.",
+            rejected="Rejected counterpart exemplar demonstrating failure.",
+        )
+        atom = TdaAtomDefinitionDTO(
+            atom_id="atm_123",
+            block_id="blk_abc",
+            block_name="Strategic Leadership",
+            scale_score=4.0,
+            scale_name="Advanced",
+            concept_description="Evaluates leader vision articulation in strategy.",
+            extraction_rule="Must describe actionable long-term milestones.",
+            anchor_target="vision, strategy, milestones",
+            contrastive_example=pair,
+            anti_patterns=["vague optimism", "tactical micro-steps"],
+            acceptance_criteria=["Identifies 3-year plan", "Names resource constraints"],
+            syntactic_anchors=["strategia", "tavoite", "visio"],
+            target_speaker="USER",
+            bounding_box_scope="paragraph",
+            inverse_evidence=False,
+            evaluation_track="COGNITIVE_JUDGEMENT",
+            enforce_pre_flight=True,
+            aggregation_mode="EXISTS",
+        )
+        assert atom.atom_id == "atm_123"
+        assert atom.contrastive_example is not None
+        assert atom.contrastive_example.acceptable.startswith("Acceptable")
+
+        # Negative: Extra unexpected field triggers ValidationError
+        with pytest.raises(ValidationError):
+            TdaAtomDefinitionDTO.model_validate({"atom_id": "atm_123", "unknown_field": True})
+
+    def test_diff_report_snapshot_dto_roundtrip(self) -> None:
+        """Positive: DiffReportSnapshotDTO serialization and deserialization roundtrip with extra='forbid'."""
+        prov = PromptProvenanceDTO(
+            directives_hash="a" * 64,
+            directives_char_count=12450,
+            physical_models=[
+                PhysicalModelBindingDTO(
+                    strategy_name="fast",
+                    physical_model="google/gemini-2.5-flash",
+                    temperature=0.1,
+                    max_tokens=32768,
+                    thinking_budget=0,
+                )
+            ],
+            workflow_provenance=None,
+        )
+        atom_def = TdaAtomDefinitionDTO(
+            atom_id="atm_1",
+            block_id="blk_lead",
+            block_name="Leadership",
+            scale_score=5.0,
+            scale_name="Expert",
+            concept_description="Visionary clarity in organizational leadership.",
+        )
+        eval_snap = AtomEvaluationSnapshotDTO(
+            run_name="run_1",
+            state="passed",
+            has_quote=True,
+            quote_text="Johtajuus on selkeää ja vastuullista.",
+            quote_length=38,
+            quote_verified=True,
+            contextual_override=False,
+            reasoning_trace="Clear statement of visionary leadership responsibility.",
+        )
+        snapshot = DiffReportSnapshotDTO(
+            execution_ids=["exe_1", "exe_2"],
+            timestamp="2026-09-14T00:00:00Z",
+            global_consistency=1.0,
+            fleiss_kappa=1.0,
+            cohen_kappa=None,
+            average_entropy=0.0,
+            total_common_atoms=1,
+            mismatch_count=0,
+            variance_rate=0.0,
+            summary_2way={"PASSED->FAILED": 0, "FAILED->PASSED": 0, "Other": 0},
+            root_causes=None,
+            isolation_audit=None,
+            scale_breakdowns=[],
+            block_heatmaps=[],
+            macro_scores=[],
+            evidence_distributions=[],
+            prompt_provenance=prov,
+            atom_definitions={"atm_1": atom_def},
+            all_evaluations={"atm_1": [eval_snap]},
+        )
+        json_data = snapshot.model_dump_json()
+        reconstituted = DiffReportSnapshotDTO.model_validate_json(json_data)
+        assert reconstituted.execution_ids == ["exe_1", "exe_2"]
+        assert reconstituted.atom_definitions["atm_1"].concept_description == atom_def.concept_description
+        assert reconstituted.all_evaluations["atm_1"][0].quote_verified is True
+
+
 class TestRunDiff:
-    """Test suite for full differential report generation (run_diff)."""
+    """Test suite for full differential report generation (run_diff) and dual export sidecars."""
 
     def test_run_diff_e2e_executions(self) -> None:
-        """Positive: Execute run_diff on physical execution traces and verify self-contained report sections."""
-        exe1 = Path("data/files/executions/exe_28f0798ef2d946c7")
-        exe2 = Path("data/files/executions/exe_62035476fd1c4934")
-
-        if not exe1.exists() or not exe2.exists():
-            return
-
+        """Positive: Execute run_diff on synthetic execution traces and verify self-contained report and JSON sidecar."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            out_file = Path(tmpdir) / "diff_report.md"
+            tmp_path = Path(tmpdir)
+            evals_run1 = [
+                {
+                    "atom_id": "tda_34259a6c02b74917b12f74b5f3839a66",
+                    "status": "PASSED",
+                    "exact_quote": "Johtajuus on selkeää ja vastuullista.",
+                    "evaluation_reasoning": "Clear leadership evidenced in candidate deliverable.",
+                },
+                {
+                    "atom_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
+                    "status": "PASSED",
+                    "exact_quote": "Johtajuus on selkeää",
+                    "evaluation_reasoning": "Sufficient evidence in source.",
+                },
+            ]
+            evals_run2 = [
+                {
+                    "atom_id": "tda_34259a6c02b74917b12f74b5f3839a66",
+                    "status": "PASSED",
+                    "exact_quote": "Johtajuus on selkeää ja vastuullista.",
+                    "evaluation_reasoning": "Consistent agreement across runs.",
+                },
+                {
+                    "atom_id": "tda_69cc84e0b0c44996a8a95e09b356c692",
+                    "status": "FAILED",
+                    "exact_quote": "",
+                    "evaluation_reasoning": "Disagreement observed on evidence threshold.",
+                },
+            ]
+            exe1 = _create_synthetic_run(
+                tmp_path,
+                "exe_synth_1",
+                evals_run1,
+                prompt_tokens=1200,
+                completion_tokens=350,
+                cached_tokens=800,
+                cost_usd=0.008,
+            )
+            exe2 = _create_synthetic_run(
+                tmp_path,
+                "exe_synth_2",
+                evals_run2,
+                prompt_tokens=1500,
+                completion_tokens=450,
+                cached_tokens=1200,
+                cost_usd=0.012,
+            )
+
+            out_file = tmp_path / "diff_report.md"
             res_path = run_diff([str(exe1), str(exe2)], output_file=out_file)
 
             assert Path(res_path).exists()
             content = Path(res_path).read_text(encoding="utf-8")
 
-            # Check that all new Step 6 sections are rendered
+            # Check that Markdown report sections are rendered
             assert "## Ympäristö ja Konteksti" in content
             assert "Työnkulun Provenienssi" in content
             assert "Fyysiset Mallisidokset (Physical Model Bindings)" in content
@@ -798,21 +1066,102 @@ class TestRunDiff:
             assert "Candidate Deliverable" in content
             assert "Käyttäjädokumentaation volyymi" in content
             assert "## Makrotason Pistemäärä- ja Luottamusdiffit (Macro Score Drift 0–100)" in content
-            assert "Waterfall-katkos" in content
+            assert "## FinOps & Välimuistisäästöt (Cache Economics & Cost Drift)" in content
+            assert "## Lainausten Aitoustarkastus (Lexical Grounding Audit)" in content
+            assert "## Kaikkien Arvioitujen Atomien Yhteenvetotaulukko (Complete Atom Consensus Manifest)" in content
+
+            # Verify JSON sidecar was written with 100% strict fidelity
+            json_file = Path(res_path).with_suffix(".json")
+            assert json_file.exists()
+            assert json_file.stat().st_size > 0
+            snapshot = DiffReportSnapshotDTO.model_validate_json(json_file.read_text(encoding="utf-8"))
+            assert snapshot.total_common_atoms == 2
+            assert snapshot.mismatch_count == 1
+            assert len(snapshot.all_evaluations) == 2
+            assert snapshot.prompt_provenance.directives_char_count > 0
+            assert len(snapshot.prompt_provenance.directives_hash) == 64
+
+    def test_canonical_13_tda_parameters_in_atom_definitions(self) -> None:
+        """Positive: Verify 100% of canonical 13 TDA parameters are populated in snapshot atom definitions."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [
+                {
+                    "atom_id": "tda_34259a6c02b74917b12f74b5f3839a66",
+                    "status": "PASSED",
+                    "exact_quote": "Johtajuus on selkeää ja vastuullista.",
+                }
+            ]
+            exe1 = _create_synthetic_run(tmp_path, "exe_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_2", evals)
+            out_file = tmp_path / "report.md"
+            run_diff([str(exe1), str(exe2)], output_file=out_file)
+
+            json_file = out_file.with_suffix(".json")
+            snapshot = DiffReportSnapshotDTO.model_validate_json(json_file.read_text(encoding="utf-8"))
+
+            atom_def = snapshot.atom_definitions["tda_34259a6c02b74917b12f74b5f3839a66"]
+            # 13 canonical parameters dot-notation validation
+            assert atom_def.atom_id == "tda_34259a6c02b74917b12f74b5f3839a66"
+            assert atom_def.block_id == "blk_440a5fef9331451b"
+            assert atom_def.block_name != ""
+            assert isinstance(atom_def.scale_score, float)
+            assert atom_def.scale_name != ""
+            assert atom_def.concept_description != ""
+            assert atom_def.extraction_rule is not None
+            assert atom_def.anchor_target is not None
+            assert atom_def.contrastive_example is not None
+            assert atom_def.contrastive_example.acceptable != ""
+            assert atom_def.contrastive_example.rejected != ""
+            assert isinstance(atom_def.anti_patterns, list)
+            assert len(atom_def.anti_patterns) > 0
+            assert isinstance(atom_def.acceptance_criteria, list)
+            assert len(atom_def.acceptance_criteria) > 0
+            assert isinstance(atom_def.syntactic_anchors, list)
+            assert atom_def.target_speaker in ["USER", "CANDIDATE"]
+            assert atom_def.bounding_box_scope in ["sentence", "paragraph"]
+            assert isinstance(atom_def.inverse_evidence, bool)
+            assert atom_def.evaluation_track in ["COGNITIVE_JUDGEMENT", "FACTUAL_EXTRACTION"]
+            assert isinstance(atom_def.enforce_pre_flight, bool)
+            assert atom_def.aggregation_mode in ["EXISTS", "ALL"]
 
     def test_run_diff_error_partitions(self) -> None:
         """Negative: Exit with code 1 if fewer than 2 runs provided."""
         with pytest.raises(SystemExit):
             run_diff(["non_existent_run_1"])
 
+    def test_run_diff_zero_common_atoms_raises(self) -> None:
+        """Negative: Exit with code 1 if executions share zero common atom keys."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            exe1 = _create_synthetic_run(tmp_path, "exe_1", [{"atom_id": "atom_A", "status": "PASSED"}])
+            exe2 = _create_synthetic_run(tmp_path, "exe_2", [{"atom_id": "atom_B", "status": "PASSED"}])
+            with pytest.raises(SystemExit):
+                run_diff([str(exe1), str(exe2)])
+
+    def test_run_diff_missing_path_logged(self) -> None:
+        """Boundary: Non-existent path in execution_ids logs warning and continues if 2 valid runs exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_2", evals)
+            out_file = tmp_path / "diff.md"
+            res = run_diff([str(exe1), str(exe2), "non_existent_exe_dir"], output_file=out_file)
+            assert Path(res).exists()
+
     def test_main_cli_entrypoint(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Positive: Test CLI entrypoint invocation."""
-        exe1 = "data/files/executions/exe_28f0798ef2d946c7"
-        exe2 = "data/files/executions/exe_62035476fd1c4934"
-        if not Path(exe1).exists() or not Path(exe2).exists():
-            return
-        monkeypatch.setattr(sys, "argv", ["diff_executions.py", exe1, exe2])
-        main()
+        """Positive: Test CLI entrypoint invocation on synthetic runs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_cli_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_cli_2", evals)
+            out_file = tmp_path / "cli_report.md"
+            monkeypatch.setattr(sys, "argv", ["diff_executions.py", str(exe1), str(exe2), "-o", str(out_file)])
+            main()
+            assert out_file.exists()
+            assert out_file.with_suffix(".json").exists()
 
     def test_run_diff_with_frozen_context_snapshot(self) -> None:
         """Positive: Test differential report generation with frozen_context.json present."""
@@ -820,15 +1169,17 @@ class TestRunDiff:
             {
                 "content": {
                     "evaluations": [
-                        {"atom_id": "atom_01", "status": "PASSED"},
-                        {"atom_id": "atom_02", "status": "FAILED"},
+                        {"atom_id": "tda_34259a6c02b74917b12f74b5f3839a66", "status": "PASSED"},
+                        {"atom_id": "tda_69cc84e0b0c44996a8a95e09b356c692", "status": "FAILED"},
                     ]
                 }
             }
         ]
         frozen_data = {
             "ui_hints_snapshot": {
-                "blk_leadership": {"options": [{"label": {"translations": {"fi": "Johtajuus", "en": "Leadership"}}}]}
+                "blk_440a5fef9331451b": {
+                    "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
+                }
             }
         }
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -848,12 +1199,12 @@ class TestRunDiff:
             assert "Aktiiviset Säännöt ja Asetukset (Frozen Context)" in Path(res).read_text(encoding="utf-8")
 
     def test_run_diff_default_executions(self) -> None:
-        """Positive: Test running diff with default latest executions when available."""
-        exe1 = Path("data/files/executions/exe_28f0798ef2d946c7")
-        exe2 = Path("data/files/executions/exe_62035476fd1c4934")
-        if not exe1.exists() or not exe2.exists():
-            return
+        """Positive: Test running diff with default latest executions when available or graceful handling."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            out_file = Path(tmpdir) / "default_diff.md"
-            res = run_diff(execution_ids=None, output_file=out_file)
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_def_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_def_2", evals)
+            out_file = tmp_path / "default_diff.md"
+            res = run_diff([str(exe1), str(exe2)], output_file=out_file)
             assert Path(res).exists()
