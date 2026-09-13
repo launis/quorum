@@ -1842,7 +1842,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             )
             f.write(
                 f"  - **Hallintokytkimet:** Kontekstuaaliset ohitukset: `{ovr_switch_str}`, "
-                f"Pisteytystapa: `{wf_prov.default_scoring_strategy}`, Tiukkuustaso: `{wf_prov.default_strictness_level}`\n"
+                f"Pisteytystapa: `{wf_prov.default_scoring_strategy}`, "
+                f"Tiukkuustaso: `{wf_prov.default_strictness_level}`\n"
             )
 
         # Physical Model Bindings
@@ -2095,7 +2096,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 "(Data Sparsity vs. Cognitive Failure) sekä semanttisen ekvivalenssin.\n\n"
             )
             f.write(
-                "| Ajo | Tiedosto | Ontologinen Rooli | Sanat | Lauseet | Merkit | Kappaleet | Luetelmat | Variaatio / Kohina |\n"
+                "| Ajo | Tiedosto | Ontologinen Rooli | Sanat | Lauseet | Merkit | "
+                "Kappaleet | Luetelmat | Variaatio / Kohina |\n"
             )
             f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n")
             for fname, run_dict in all_input_files.items():
@@ -2119,9 +2121,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 r_in_files = {fn: rd[r_name] for fn, rd in all_input_files.items() if r_name in rd}
                 vol = calculate_user_documentation_volume(r_in_files, run_name=r_name)
                 f.write(
-                    f"| **YHTEENSÄ R{r_idx + 1}** | **{vol.user_file_count} tiedostoa** | **Käyttäjädokumentaation volyymi** | "
-                    f"**{vol.total_words:,}** | **{vol.total_sentences:,}** | **{vol.total_characters:,}** | "
-                    f"**{vol.total_paragraphs:,}** | **{vol.total_bullets:,}** | **Puhdas kandidaattisisältö** |\n"
+                    f"| **YHTEENSÄ R{r_idx + 1}** | **{vol.user_file_count} tiedostoa** | "
+                    f"**Käyttäjädokumentaation volyymi** | **{vol.total_words:,}** | "
+                    f"**{vol.total_sentences:,}** | **{vol.total_characters:,}** | "
+                    f"**{vol.total_paragraphs:,}** | **{vol.total_bullets:,}** | "
+                    "**Puhdas kandidaattisisältö** |\n"
                 )
             f.write("\n")
 
@@ -2267,8 +2271,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         for bh in block_heatmaps:
             b_min, b_max = block_extrema.get(bh.block_id, (1.0, 5.0))
             f.write(
-                f"| **{bh.block_name}** | `{bh.block_id}` | {b_min:.0f}–{b_max:.0f} | {bh.total_atoms} | {bh.mismatches} | "
-                f"{bh.consistency_rate * 100:.1f} % |\n"
+                f"| **{bh.block_name}** | `{bh.block_id}` | {b_min:.0f}–{b_max:.0f} | "
+                f"{bh.total_atoms} | {bh.mismatches} | {bh.consistency_rate * 100:.1f} % |\n"
             )
         f.write("\n")
 
@@ -2331,7 +2335,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             dp_str = f"{ms.delta_pass_rate * 100:+.1f} %"
             b_label = f"`{ms.block_id}` ({ms.block_name}, Asteikko {ms.scale_min:.0f}–{ms.scale_max:.0f})"
             f.write(
-                f"| **{b_label}** | {s1_full} | {s2_full} | {d_str} | {bp1_str} | {bp2_str} | {p1_str} | {p2_str} | {dp_str} |\n"
+                f"| **{b_label}** | {s1_full} | {s2_full} | {d_str} | "
+                f"{bp1_str} | {bp2_str} | {p1_str} | {p2_str} | {dp_str} |\n"
             )
         f.write("\n")
 

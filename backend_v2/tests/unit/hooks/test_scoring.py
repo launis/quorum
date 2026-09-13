@@ -1842,7 +1842,6 @@ async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None
     assert delta["pb_1234567890123456"]["raw_score"] < 5.0
 
 
-
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""

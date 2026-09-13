@@ -101,9 +101,7 @@ def test_reduce_matrix() -> None:
         step_2: dict[str, Any]
 
     evt_output_dict = MagicMock(event_type="output", content={"step_1": {"extensions": [{"id": "ext1"}]}})
-    evt_output_model = MagicMock(
-        event_type="output", content=MockOutputModel(step_2={"extensions": [{"id": "ext2"}]})
-    )
+    evt_output_model = MagicMock(event_type="output", content=MockOutputModel(step_2={"extensions": [{"id": "ext2"}]}))
     evt_input = MagicMock(event_type="input", content="some text")
     evt_primitive = MagicMock(event_type="output", content="plain string")
     evt_none = MagicMock(event_type="output", content=None)
@@ -146,4 +144,3 @@ def test_reduce_matrix_empty_step_states() -> None:
     assert len(reduced.reduced_atoms) == 0
     assert reduced.global_metrics["total_atoms"] == 0
     assert reduced.global_metrics["duration_ms"] == 50
-

@@ -251,4 +251,3 @@ def test_result_projector_inverse_evidence_failed():
     assert results[0].source_quote is None
     assert results[0].contextual_override is False
     assert results[0].is_inverse_evidence is False
-

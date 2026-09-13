@@ -338,7 +338,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         )
                                     except ValidationError as e:
                                         logger.warning(
-                                            "[ScoringHook] Evaluation item failed dict validation for infra DLQ check: %s",
+                                            "[ScoringHook] Evaluation item failed dict validation for "
+                                            "infra DLQ check: %s",
                                             e,
                                         )
 

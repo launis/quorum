@@ -82,9 +82,9 @@ class ExtractedAtom(BaseModel):
             default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."
         ),
     ] = False
-    is_inverse: Annotated[
-        bool, Field(default=False, description="Set to True if this is an inverse assertion.")
-    ] = False
+    is_inverse: Annotated[bool, Field(default=False, description="Set to True if this is an inverse assertion.")] = (
+        False
+    )
     source_quote: Annotated[
         str | None,
         Field(default=None, description="The exact verbatim quote from the original text. Immutable evidence."),

@@ -846,9 +846,7 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
     executor = AsyncMock(spec=LLMTaskExecutor)
     client = AsyncMock(spec=LLMClient)
     executor.execute_structured_task.return_value = (
-        MockResponse(
-            results=[MockResult(alias="a1", reasoning="ok", is_true=True)]
-        ),
+        MockResponse(results=[MockResult(alias="a1", reasoning="ok", is_true=True)]),
         TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
     )
 
@@ -875,4 +873,3 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
         assert val_ctx.get("execution_id") == "exe_test1234567890"
         assert val_ctx.get("step_id") == "stp_step1234567890"
         assert "extractive_sensor_bo3_call_" in val_ctx.get("sub_task", "")
-

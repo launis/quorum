@@ -1,6 +1,7 @@
 """Unit tests for SourceDocumentPacker."""
 
 import re
+from typing import Any
 
 import pytest
 
@@ -344,5 +345,3 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
             )
         assert exc_info.value.status_code == 500
         assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.name
-
-

@@ -117,9 +117,8 @@ class SourceDocumentPacker:
                     clean_value = value.strip()
                     if key in meta_map:
                         directive = meta_map[key]
-                        sections.append(
-                            f'<ai_context_directive document="{key}">{directive}</ai_context_directive>\n\n{clean_value}'
-                        )
+                        dir_tag = f'<ai_context_directive document="{key}">{directive}</ai_context_directive>'
+                        sections.append(f"{dir_tag}\n\n{clean_value}")
                     else:
                         sections.append(clean_value)
 
@@ -184,7 +183,8 @@ class SourceDocumentPacker:
             if specific_step_targets:
                 missing_targets = specific_step_targets - available_step_ids
                 if missing_targets:
-                    msg = f"Strict Fail-Fast: Mapped step(s) {sorted(list(missing_targets))} not found in prior step outputs."
+                    missing_sorted = sorted(list(missing_targets))
+                    msg = f"Strict Fail-Fast: Mapped step(s) {missing_sorted} not found in prior step outputs."
                     logger.error("[SourceDocumentPacker] %s", msg)
                     raise AppException(
                         message=msg,

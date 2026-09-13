@@ -10,6 +10,7 @@ import json
 import sys
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -649,13 +650,23 @@ class TestStatisticalMetrics:
     def test_calculate_cohens_kappa_benchmarks(self) -> None:
         """Positive: Test Substantial, Moderate, and Poor agreement classification tiers."""
         # Substantial: kappa in [0.61, 0.80]
-        ratings_sub = [["passed", "passed"]] * 9 + [["passed", "failed"]] * 1 + [["failed", "failed"]] * 8 + [["failed", "passed"]] * 2
+        ratings_sub = (
+            [["passed", "passed"]] * 9
+            + [["passed", "failed"]] * 1
+            + [["failed", "failed"]] * 8
+            + [["failed", "passed"]] * 2
+        )
         res_sub = calculate_cohens_kappa(ratings_sub, ["passed", "failed"])
         assert 0.61 <= res_sub.kappa <= 0.80
         assert "Huomattava / Vahva" in res_sub.benchmark_category
 
         # Moderate: kappa in [0.41, 0.60]
-        ratings_mod = [["passed", "passed"]] * 8 + [["passed", "failed"]] * 2 + [["failed", "failed"]] * 7 + [["failed", "passed"]] * 3
+        ratings_mod = (
+            [["passed", "passed"]] * 8
+            + [["passed", "failed"]] * 2
+            + [["failed", "failed"]] * 7
+            + [["failed", "passed"]] * 3
+        )
         res_mod = calculate_cohens_kappa(ratings_mod, ["passed", "failed"])
         assert 0.41 <= res_mod.kappa <= 0.60
         assert "Kohtalainen" in res_mod.benchmark_category
@@ -817,11 +828,7 @@ class TestRunDiff:
         ]
         frozen_data = {
             "ui_hints_snapshot": {
-                "blk_leadership": {
-                    "options": [
-                        {"label": {"translations": {"fi": "Johtajuus", "en": "Leadership"}}}
-                    ]
-                }
+                "blk_leadership": {"options": [{"label": {"translations": {"fi": "Johtajuus", "en": "Leadership"}}}]}
             }
         }
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -850,5 +857,3 @@ class TestRunDiff:
             out_file = Path(tmpdir) / "default_diff.md"
             res = run_diff(execution_ids=None, output_file=out_file)
             assert Path(res).exists()
-
-
