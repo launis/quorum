@@ -408,7 +408,9 @@ def test_build_xml_context() -> None:
 
 
 def test_build_xml_context_assignment_mode() -> None:
-    """Verifies that ExpectedInput with 'assignment' mode wraps into <assignment_context> and excludes <user_payload>."""
+    """Verify that ExpectedInput with 'assignment' mode wraps into
+    <assignment_context> and excludes <user_payload>.
+    """
     from backend_v2.models.v2_core import ExpectedInput, I18nText
 
     compiler = PromptCompiler()
@@ -461,6 +463,156 @@ def test_build_xml_context_assignment_mode() -> None:
         "<user_payload>\n<![CDATA[Here is the comprehensive liquidity risk report.]]>\n</user_payload>" in doc_section
     )
     assert "<assignment_context>" not in doc_section
+
+
+def test_input_meta_dto_is_assignment_predicate() -> None:
+    """Verify is_assignment predicate behavior on _InputMetaDTO and ExpectedInput."""
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.services.orchestrator.prompt_compiler import _InputMetaDTO
+
+    meta_assignment = _InputMetaDTO(
+        label="Assignment",
+        desc="Desc",
+        is_chat_history=False,
+        input_modes=["assignment", "file", "paste"],
+    )
+    assert meta_assignment.is_assignment is True
+
+    meta_standard = _InputMetaDTO(
+        label="Standard",
+        desc="Desc",
+        is_chat_history=False,
+        input_modes=["file", "paste"],
+    )
+    assert meta_standard.is_assignment is False
+
+    meta_empty = _InputMetaDTO(
+        label="Empty",
+        desc="Desc",
+        is_chat_history=False,
+        input_modes=[],
+    )
+    assert meta_empty.is_assignment is False
+
+    # Also verify ExpectedInput domain model predicate parity
+    ei_assignment = ExpectedInput(
+        input_key="assignment_doc",
+        label=I18nText(translations={"en": "Brief"}),
+        description=I18nText(translations={"en": "Desc"}),
+        is_chat_history=False,
+        input_modes=["assignment", "file"],
+        required=False,
+    )
+    assert ei_assignment.is_assignment is True
+
+    ei_standard = ExpectedInput(
+        input_key="standard_doc",
+        label=I18nText(translations={"en": "Doc"}),
+        description=I18nText(translations={"en": "Desc"}),
+        is_chat_history=False,
+        input_modes=["file", "paste"],
+        required=True,
+    )
+    assert ei_standard.is_assignment is False
+
+
+def test_build_xml_context_unmapped_inputs_raises_app_exception() -> None:
+    """Verify that an unmapped $inputs reference triggers immediate Fail-Fast AppException."""
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+
+    compiler = PromptCompiler()
+    state = {
+        "inputs": {
+            "declared_input": "Valid content",
+            "undeclared_input": "Orphan content",
+        }
+    }
+    expected_inputs = [
+        ExpectedInput(
+            input_key="declared_input",
+            label=I18nText(translations={"en": "Declared"}),
+            description=I18nText(translations={"en": "Desc"}),
+            is_chat_history=False,
+            input_modes=["file", "paste"],
+            required=True,
+        )
+    ]
+
+    # Reference an input that is not in expected_inputs ($inputs.undeclared_input)
+    input_mappings = {
+        "doc": "$inputs.undeclared_input",
+    }
+
+    with pytest.raises(AppException) as exc_info:
+        compiler.build_xml_context(
+            input_mappings=input_mappings,
+            state_data=state,
+            target_locale="en",
+            expected_inputs=expected_inputs,
+        )
+
+    assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR
+    assert "Unmapped input reference '$inputs.undeclared_input'" in str(exc_info.value)
+    assert exc_info.value.details.get("source_path") == "$inputs.undeclared_input"
+    assert exc_info.value.details.get("base_path") == "$inputs.undeclared_input"
+
+
+def test_all_standard_input_types_wrapped_in_user_payload() -> None:
+    """Verify that standard deliverable inputs are wrapped in <user_payload> with <document_metadata>."""
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+
+    compiler = PromptCompiler()
+    standard_keys = [
+        ("product_text", "Candidate Deliverable Memo"),
+        ("reflection_text", "Metacognitive Self-Assessment"),
+        ("source_evidence", "Primary Corpus Verification Dossier"),
+        ("compliance_framework", "Statutory Safety Charter"),
+    ]
+
+    state = {
+        "inputs": {key: f"Content for {key}" for key, _ in standard_keys},
+    }
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key=key,
+            label=I18nText(translations={"en": label_en}),
+            description=I18nText(translations={"en": f"Description for {key}"}),
+            ai_description=f"COGNITIVE DIRECTIVE: Evaluate {key}",
+            is_chat_history=False,
+            input_modes=["file", "paste"],
+            required=True,
+        )
+        for key, label_en in standard_keys
+    ]
+
+    input_mappings = {key: f"$inputs.{key}" for key, _ in standard_keys}
+
+    xml = compiler.build_xml_context(
+        input_mappings=input_mappings,
+        state_data=state,
+        target_locale="en",
+        expected_inputs=expected_inputs,
+    )
+
+    for key, label_en in standard_keys:
+        assert f'<matrix_input source_id="{key}">' in xml
+        section = xml.split(f'source_id="{key}"')[1].split("</matrix_input>")[0]
+
+        # Metadata checks
+        assert "<document_metadata>" in section
+        assert f"<document_id>{key}</document_id>" in section
+        assert f"<document_name>{label_en}</document_name>" in section
+        assert f"<ai_context_mandate>COGNITIVE DIRECTIVE: Evaluate {key}</ai_context_mandate>" in section
+        assert "</document_metadata>" in section
+
+        # User payload encapsulation checks
+        assert f"<user_payload>\n<![CDATA[Content for {key}]]>\n</user_payload>" in section
+
+        # Strict non-leakage checks: standard deliverables must never be wrapped in assignment context
+        assert "<assignment_context>" not in section
+        assert "<ai_draft_context>" not in section
 
 
 def test_extract_value_from_state() -> None:

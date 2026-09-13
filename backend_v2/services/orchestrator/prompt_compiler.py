@@ -53,6 +53,15 @@ class _InputMetaDTO(BaseModel):
     is_chat_history: bool
     input_modes: list[str] = Field(default_factory=list)
 
+    @property
+    def is_assignment(self) -> bool:
+        """Whether this input metadata includes the assignment modality.
+
+        Returns:
+            bool: True if 'assignment' is in input_modes.
+        """
+        return "assignment" in self.input_modes
+
 
 class PromptCompiler:
     """Core translation engine for workflow execution.
@@ -236,34 +245,42 @@ class PromptCompiler:
                     source_id_to_use = alias
 
                 base_path = ".".join(source_path.split(".")[:2]) if source_path.startswith("$") else source_path
-                meta = input_meta_map.get(base_path)
 
                 desc_text = ""
-                if meta is not None:
+                encapsulated_val = TemplateProcessor.encapsulate_payload(value)
+
+                if source_path.startswith("$inputs"):
+                    if base_path not in input_meta_map:
+                        msg = (
+                            f"Unmapped input reference '{source_path}' in step input mappings "
+                            "(missing expected_input definition)."
+                        )
+                        logger.error("[PromptCompiler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=400,
+                            details={
+                                "error_code": ErrorCodes.CONFIGURATION_ERROR.value,
+                                "source_path": source_path,
+                                "base_path": base_path,
+                            },
+                        )
+                    meta = input_meta_map[base_path]
+
                     desc_text += "  <document_metadata>\n"
                     desc_text += f"    <document_id>{source_id_to_use}</document_id>\n"
                     if meta.label:
                         desc_text += f"    <document_name>{meta.label}</document_name>\n"
-
                     if meta.ai_desc:
                         desc_text += f"    <ai_context_mandate>{meta.ai_desc}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
-                is_chat_history = meta.is_chat_history if meta is not None else False
-                encapsulated_val = TemplateProcessor.encapsulate_payload(value)
-
-                # Phase 2, Step 2.3: Structural XML wrapper resolution with assignment_context encapsulation
-                is_assignment = (meta is not None and "assignment" in meta.input_modes) or source_path.endswith(
-                    ".assignment_context"
-                )
-
-                if is_assignment:
-                    wrapped_val = f"<assignment_context>\n{encapsulated_val}\n</assignment_context>"
-                elif source_path.startswith("$inputs"):
-                    if not is_chat_history:
-                        wrapped_val = f"<user_payload>\n{encapsulated_val}\n</user_payload>"
-                    else:
+                    if meta.is_assignment:
+                        wrapped_val = f"<assignment_context>\n{encapsulated_val}\n</assignment_context>"
+                    elif meta.is_chat_history:
                         wrapped_val = encapsulated_val
+                    else:
+                        wrapped_val = f"<user_payload>\n{encapsulated_val}\n</user_payload>"
                 elif source_path.startswith("$steps"):
                     wrapped_val = f"<ai_draft_context>\n{encapsulated_val}\n</ai_draft_context>"
                 else:

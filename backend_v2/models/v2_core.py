@@ -707,6 +707,15 @@ class ExpectedInput(V2CoreBase):
         default_factory=list, description="Definitions if 'questionnaire' is in input_modes."
     )
 
+    @property
+    def is_assignment(self) -> bool:
+        """Whether this input is configured with the assignment modality.
+
+        Returns:
+            bool: True if 'assignment' is in input_modes.
+        """
+        return "assignment" in self.input_modes
+
     @model_validator(mode="after")
     def validate_modes(self) -> ExpectedInput:
         """Strict validation for input modes.

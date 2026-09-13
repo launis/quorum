@@ -528,3 +528,42 @@ def test_negative_tavily_in_non_research_workflow_rejected() -> None:
                 assert "mcp_tavily_search" not in bp_model.allowed_mcp_tools, (
                     f"Tavily tool detected in non-research workflow {wf_id}"
                 )
+
+
+def test_competency_workflow_assignment_context_governance() -> None:
+    """Verify Tri-Zone assignment_context input modes and Zone C step 7 mapping across competency workflows."""
+    seed_data = load_seed_data()
+    workflows = {w["id"]: w for w in seed_data["workflows"]}
+
+    # 1. Assert wf_02 and wf_03 declare complete input_modes ["assignment", "file", "paste"]
+    for wf_id in ["wf_02a1d71000000002", "wf_03a1d71000000003"]:
+        assert wf_id in workflows, f"Workflow {wf_id} missing from seed_data"
+        wf = Workflow.model_validate(workflows[wf_id])
+        assignment_inputs = [ei for ei in wf.expected_inputs if ei.input_key == "assignment_context"]
+        assert len(assignment_inputs) == 1, f"Workflow {wf_id} must define exactly one 'assignment_context' input"
+        ei = assignment_inputs[0]
+        assert "assignment" in ei.input_modes, f"Workflow {wf_id} assignment_context must declare 'assignment' mode"
+        assert set(ei.input_modes) == {"assignment", "file", "paste"}, (
+            f"Workflow {wf_id} assignment_context must declare ['assignment', 'file', 'paste'], got {ei.input_modes}"
+        )
+        assert ei.is_assignment is True, f"Workflow {wf_id} ExpectedInput.is_assignment predicate must return True"
+        assert ei.is_chat_history is False, f"Workflow {wf_id} assignment_context cannot be chat history"
+
+    # 2. Assert wf_03 step 7 (sr_03c1d71000000007) maps assignment_context under input_mappings
+    wf_03 = Workflow.model_validate(workflows["wf_03a1d71000000003"])
+    step_7 = next((s for s in wf_03.steps if s.id == "sr_03c1d71000000007"), None)
+    assert step_7 is not None, "Step sr_03c1d71000000007 missing from wf_03"
+    assert "assignment_context" in step_7.input_mappings, (
+        f"Step sr_03c1d71000000007 in wf_03 must map 'assignment_context', got {step_7.input_mappings}"
+    )
+    assert step_7.input_mappings["assignment_context"] == "$inputs.assignment_context"
+    assert step_7.is_synthesis_source is True
+
+    # 3. Assert wf_02 step 4 (sr_02c1d71000000004) also preserves assignment_context mapping
+    wf_02 = Workflow.model_validate(workflows["wf_02a1d71000000002"])
+    step_4 = next((s for s in wf_02.steps if s.id == "sr_02c1d71000000004"), None)
+    assert step_4 is not None, "Step sr_02c1d71000000004 missing from wf_02"
+    assert "assignment_context" in step_4.input_mappings, (
+        f"Step sr_02c1d71000000004 in wf_02 must map 'assignment_context', got {step_4.input_mappings}"
+    )
+    assert step_4.input_mappings["assignment_context"] == "$inputs.assignment_context"

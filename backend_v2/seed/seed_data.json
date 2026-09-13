@@ -18251,6 +18251,7 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": false,
           "input_modes": [
+            "assignment",
             "file",
             "paste"
           ],
@@ -18505,6 +18506,7 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": false,
           "input_modes": [
+            "assignment",
             "file",
             "paste"
           ],
@@ -18683,7 +18685,8 @@
           ],
           "input_mappings": {
             "results": "$steps.sr_03c1d71000000006",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
+            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
+            "assignment_context": "$inputs.assignment_context"
           },
           "expected_sdui_type": "markdown",
           "is_synthesis_source": true,
