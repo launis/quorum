@@ -755,7 +755,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
                     user_role=RoleClassification.ARCHITECT,
                     user_role_justification="Target executive persona",
                     cited_sources=[],
-                    executive_summary=[],
+                    executive_summary=[ParagraphBlock(text="Executive Summary", exact_quotes=[], citations=[])],
                 ),
                 usage,
             )

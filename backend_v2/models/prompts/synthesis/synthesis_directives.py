@@ -8,6 +8,7 @@ from backend_v2.models.enums import TargetBlockType
 
 __all__ = [
     "EXECUTIVE_SUMMARY_SECTION_ID",
+    "EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX",
     "ROW_EXPLANATION_SYSTEM_PROMPT",
     "SYNTHESIS_SECTION_RULES_PREFIX",
     "SYNTHESIS_SYSTEM_PROMPT",
@@ -50,4 +51,14 @@ SYNTHESIS_SECTION_RULES_PREFIX: str = (
     "short sentences.\n"
     "- You MUST ALSO provide targeted synthesized summaries for the following distinct "
     "sections as an array in `section_syntheses`.\n\n"
+)
+
+EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX: str = (
+    "<section_rules>\n"
+    "## Executive Summary Synthesis\n"
+    "- CRITICAL BREVITY MANDATE: Limit the summary to an absolute maximum of 2-3 "
+    "short sentences.\n"
+    "- You MUST provide structured SDUI content blocks representing the executive summary "
+    "narrative in `executive_summary`.\n"
+    "- Follow the specific directive below for the executive summary narrative:\n\n"
 )

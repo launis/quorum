@@ -62,6 +62,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.prompts import (
     ANTI_JARGON_MANDATE_BLOCK,
     EXECUTIVE_SUMMARY_SECTION_ID,
+    EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX,
     ROW_EXPLANATION_SYSTEM_PROMPT,
     SECTION_SYNTHESIS_DIRECTIVE_BLOCK,
     STATIC_LINGUISTIC_PROTOCOL,
@@ -1102,7 +1103,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                 f"<section_budget>{active_profile_dto.synthesis_length_constraint}</section_budget>"
                             )
                         exec_section_rule = (
-                            f'{SYNTHESIS_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
+                            f'{EXECUTIVE_SUMMARY_SECTION_RULES_PREFIX}\n<section_instruction id="{EXECUTIVE_SUMMARY_SECTION_ID}" title="Executive Summary">\n'
                             f"{exec_directive}\n"
                             "</section_instruction>\n"
                         )

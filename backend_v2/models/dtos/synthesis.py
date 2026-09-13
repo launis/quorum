@@ -158,10 +158,11 @@ class ExecutiveSummarySectionResult(V2CoreBase):
     executive_summary: Annotated[
         list[LlmSduiBlock],
         Field(
-            default_factory=list,
+            ...,
+            min_length=1,
             description="Structured SDUI content blocks representing the executive summary narrative.",
         ),
-    ] = Field(default_factory=list)
+    ]
 
 
 class MatrixSectionSynthesesResult(V2CoreBase):

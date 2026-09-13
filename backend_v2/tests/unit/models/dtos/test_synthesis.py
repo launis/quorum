@@ -52,6 +52,7 @@ def test_executive_summary_section_result_strictness() -> None:
         ExecutiveSummarySectionResult(
             user_role=RoleClassification.ARCHITECT,
             user_role_justification="High maturity",
+            executive_summary=[ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])],
             extra_field="fail",
         )  # type: ignore
 
@@ -59,6 +60,7 @@ def test_executive_summary_section_result_strictness() -> None:
         ExecutiveSummarySectionResult(
             user_role="ROLE_EXECUTIVE_STRATEGIST",  # type: ignore[arg-type]
             user_role_justification="Invalid role hallucination",
+            executive_summary=[ParagraphBlock(block_type="paragraph", text="Valid", exact_quotes=[], citations=[])],
         )
 
 
@@ -142,3 +144,12 @@ def test_synthesis_output_role_optional() -> None:
     )
     assert dto.user_role is None
     assert dto.user_role_justification is None
+
+
+def test_executive_summary_section_result_requires_executive_summary() -> None:
+    """Regression test: ExecutiveSummarySectionResult must strictly require non-empty executive_summary."""
+    with pytest.raises(ValidationError):
+        ExecutiveSummarySectionResult(
+            cited_sources=[],
+            executive_summary=[],
+        )

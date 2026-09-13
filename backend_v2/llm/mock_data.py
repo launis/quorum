@@ -60,6 +60,7 @@ from backend_v2.models.enums import (
     VerificationResult,
 )
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.view.sdui import ParagraphBlock
 
 # 0. Shared Metadata
 MOCK_METADATA = Metadata(
@@ -295,7 +296,14 @@ MOCK_EXECUTIVE_SUMMARY_OUTPUT = ExecutiveSummarySectionResult(
     user_role=RoleClassification.ARCHITECT,
     user_role_justification="Default mock role assignment",
     cited_sources=[],
-    executive_summary=[],
+    executive_summary=[
+        ParagraphBlock(
+            block_type="paragraph",
+            text="Executive summary narrative synthesis.",
+            exact_quotes=[],
+            citations=[],
+        )
+    ],
 )
 
 MOCK_MATRIX_SECTION_SYNTHESES_OUTPUT = MatrixSectionSynthesesResult(
