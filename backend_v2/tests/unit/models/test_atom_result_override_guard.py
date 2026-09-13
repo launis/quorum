@@ -20,7 +20,7 @@ def test_failed_atom_strips_override_and_quote() -> None:
 
 def test_passed_atom_requires_quote_or_override() -> None:
     # Neither provided
-    with pytest.raises(ValidationError, match="source_quote is mandatory unless contextual_override is True"):
+    with pytest.raises(ValidationError, match="source_quote is mandatory unless contextual_override or is_inverse_evidence is True"):
         AtomResultDTO(
             tda_id="test_id",
             status=ExecutionStatus.PASSED,
