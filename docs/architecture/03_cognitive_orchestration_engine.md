@@ -110,6 +110,11 @@ Dynamic execution inputs are encapsulated into three distinct semantic context c
 - **Assignment Context Capsule (`<assignment_context>`)**: Encapsulates external task assignments, problem briefs, evaluation criteria, and operational guidelines (`assignment` in `input_modes` or `.assignment_context` input paths).
 All context capsules are shielded against CDATA breakout. Layer 1 system instructions explicitly direct foundational models that `<assignment_context>` provides framing instructions rather than authorial evidence and must never be quoted as factual proof for either `USER` or `AI` claims, eliminating prompt injection and quote hijacking.
 
+### 2.18. Inter-Step Context Packing & Execution Trace Matrix Reduction
+When workflows chain analytical findings across sequential steps, context transit preserves structured domain payloads without intermediate dictionary degradation:
+- **Compound Step Target Resolution**: Downstream steps can target prior step outputs using simple step identifiers (`$steps.{step_id}`) or compound targets (`$steps.{step_id}.{block_id}`). The source document packer resolves matching outputs deterministically, verifying all explicitly referenced steps exist and serializing structured payloads (`BaseModel`, `list[BaseModel]`) into formatted JSON capsules.
+- **Execution Trace Matrix Reduction**: The matrix reducer extracts evaluated atoms and behavioral extensions directly from authoritative runtime state in `ExecutionRecord.execution_trace` (`event_type == 'output'` containing `results: list[AtomResultDTO]`). Evaluated atoms are filtered and compressed into `LightweightMatrixDTO`, populating `evaluated_matrices` alongside `reduced_atoms` to provide downstream synthesis and dependent specialist steps with compact, zero-loss analytical state while saving context window space.
+
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
 ```mermaid
