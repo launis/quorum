@@ -49,7 +49,7 @@ class _InputMetaDTO(BaseModel):
 
     label: str
     desc: str
-    ai_desc: str
+    ai_desc: str | None = None
     is_chat_history: bool
     input_modes: list[str] = Field(default_factory=list)
 
@@ -217,12 +217,11 @@ class PromptCompiler:
                 # Fail-Fast Mandatory I18n extraction
                 label_str = self.resolve_i18n(ei.label, target_locale)
                 desc_str = self.resolve_i18n(ei.description, target_locale)
-                ai_desc = ei.ai_description if ei.ai_description is not None else ""
 
                 input_meta_map[f"$inputs.{key}"] = _InputMetaDTO(
                     label=label_str,
                     desc=desc_str,
-                    ai_desc=ai_desc,
+                    ai_desc=ei.ai_description,
                     is_chat_history=ei.is_chat_history,
                     input_modes=ei.input_modes,
                 )
@@ -253,7 +252,14 @@ class PromptCompiler:
                 is_chat_history = meta.is_chat_history if meta is not None else False
                 encapsulated_val = TemplateProcessor.encapsulate_payload(value)
 
-                if source_path.startswith("$inputs"):
+                # Phase 2, Step 2.3: Structural XML wrapper resolution with assignment_context encapsulation
+                is_assignment = (meta is not None and "assignment" in meta.input_modes) or source_path.endswith(
+                    ".assignment_context"
+                )
+
+                if is_assignment:
+                    wrapped_val = f"<assignment_context>\n{encapsulated_val}\n</assignment_context>"
+                elif source_path.startswith("$inputs"):
                     if not is_chat_history:
                         wrapped_val = f"<user_payload>\n{encapsulated_val}\n</user_payload>"
                     else:

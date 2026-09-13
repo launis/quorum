@@ -136,6 +136,53 @@ def test_anchor_validation_non_chat_document_user_claim_passes() -> None:
     assert extracted[0] == "strateginen muistio"
 
 
+def test_anchor_validation_provenance_user_rejects_assignment_text() -> None:
+    """Provenance protection: USER claim quoting assignment brief raises PROVENANCE_VIOLATION."""
+    pdf_text = (
+        "<assignment_context>Analyze the financial liquidity risk under Basel III.</assignment_context> "
+        "<user_payload>The liquidity coverage ratio was maintained at 120% throughout the fiscal period.</user_payload>"
+    )
+    exact_quotes = ["Analyze the financial liquidity risk under Basel III."]
+
+    with pytest.raises(SemanticEvidenceError, match="PROVENANCE_VIOLATION"):
+        AnchorValidationService.validate_evidence(pdf_text, exact_quotes, target_speaker=TargetSpeaker.USER)
+
+
+def test_anchor_validation_provenance_ai_rejects_assignment_text() -> None:
+    """Provenance protection: AI claim quoting assignment brief raises PROVENANCE_VIOLATION."""
+    pdf_text = (
+        "<assignment_context>Analyze the financial liquidity risk under Basel III.</assignment_context> "
+        "<ai_draft_context>AI drafted response regarding risk metrics.</ai_draft_context>"
+    )
+    exact_quotes = ["Analyze the financial liquidity risk under Basel III."]
+
+    with pytest.raises(SemanticEvidenceError, match="PROVENANCE_VIOLATION"):
+        AnchorValidationService.validate_evidence(pdf_text, exact_quotes, target_speaker=TargetSpeaker.AI)
+
+
+def test_anchor_validation_provenance_only_assignment_rejects_all_quotes() -> None:
+    """Provenance protection: Document with solely assignment_context rejects extraction attempts."""
+    pdf_text = "<assignment_context>General instructions and rubric for candidate evaluation.</assignment_context>"
+    exact_quotes = ["General instructions and rubric"]
+
+    with pytest.raises(SemanticEvidenceError, match="PROVENANCE_VIOLATION"):
+        AnchorValidationService.validate_evidence(pdf_text, exact_quotes, target_speaker=TargetSpeaker.USER)
+
+
+def test_anchor_validation_provenance_user_accepts_user_text_with_assignment() -> None:
+    """Provenance protection: Valid quote from user_payload passes when assignment_context is present."""
+    pdf_text = (
+        "<assignment_context>Analyze the financial liquidity risk under Basel III.</assignment_context> "
+        "<user_payload>The liquidity coverage ratio was maintained at 120 throughout the fiscal period.</user_payload>"
+    )
+    exact_quotes = ["The liquidity coverage ratio was maintained at 120"]
+
+    extracted = AnchorValidationService.validate_evidence(pdf_text, exact_quotes, target_speaker=TargetSpeaker.USER)
+    assert extracted is not None
+    assert len(extracted) == 1
+    assert extracted[0] == "The liquidity coverage ratio was maintained at 120"
+
+
 def test_anchor_validation_empty_inputs() -> None:
     assert AnchorValidationService.normalize_text_with_mapping("") == ("", [])
     assert AnchorValidationService.strict_match("", ["quote"]) is False

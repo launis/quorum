@@ -407,6 +407,63 @@ def test_build_xml_context() -> None:
     assert "<ai_draft_context>\n<![CDATA[ai drafted this]]>\n</ai_draft_context>" in xml
 
 
+def test_build_xml_context_assignment_mode() -> None:
+    """Verifies that ExpectedInput with 'assignment' mode wraps into <assignment_context> and excludes <user_payload>."""
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+
+    compiler = PromptCompiler()
+    state = {
+        "inputs": {
+            "assignment_brief": "Analyze the financial liquidity risk under Basel III.",
+            "deliverable": "Here is the comprehensive liquidity risk report.",
+        },
+    }
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key="assignment_brief",
+            label=I18nText(translations={"en": "Task Brief", "fi": "Tehtävänanto"}),
+            description=I18nText(translations={"en": "Brief instructions"}),
+            is_chat_history=False,
+            input_modes=["assignment"],
+            required=True,
+        ),
+        ExpectedInput(
+            input_key="deliverable",
+            label=I18nText(translations={"en": "Candidate Report"}),
+            description=I18nText(translations={"en": "Evaluated text"}),
+            is_chat_history=False,
+            input_modes=["file", "paste"],
+            required=True,
+        ),
+    ]
+
+    input_mappings = {
+        "brief": "$inputs.assignment_brief",
+        "doc": "$inputs.deliverable",
+    }
+
+    xml = compiler.build_xml_context(input_mappings, state, "en", expected_inputs=expected_inputs)
+
+    # brief: assignment mode -> strictly wrapped in <assignment_context>, NEVER <user_payload>
+    assert '<matrix_input source_id="brief">' in xml
+    brief_section = xml.split('source_id="brief"')[1].split("</matrix_input>")[0]
+    assert (
+        "<assignment_context>\n<![CDATA[Analyze the financial liquidity risk under Basel III.]]>\n</assignment_context>"
+        in brief_section
+    )
+    assert "<user_payload>" not in brief_section
+
+    # doc: file/paste mode -> wrapped in <user_payload>, NOT <assignment_context>
+    assert '<matrix_input source_id="doc">' in xml
+    doc_section = xml.split('source_id="doc"')[1].split("</matrix_input>")[0]
+    assert (
+        "<user_payload>\n<![CDATA[Here is the comprehensive liquidity risk report.]]>\n</user_payload>"
+        in doc_section
+    )
+    assert "<assignment_context>" not in doc_section
+
+
 def test_extract_value_from_state() -> None:
     compiler = PromptCompiler()
     state = {
@@ -499,3 +556,71 @@ def test_get_schema_healing_prompt_strictness_100() -> None:
     )
     assert "[STRICTNESS OVERRIDE ACTIVE: level >= 100]" in prompt
     assert "'contextual_override'" in prompt
+
+
+def test_calibrate_strictness_values() -> None:
+    compiler = PromptCompiler()
+    assert compiler.calibrate_strictness(50) == "SCORING_STRICTNESS: 50/100"
+    assert compiler.calibrate_strictness(150) == "SCORING_STRICTNESS: 100/100"
+    assert compiler.calibrate_strictness(-10) == "SCORING_STRICTNESS: 0/100"
+
+
+def test_get_schema_healing_prompt_eof_and_logical() -> None:
+    compiler = PromptCompiler()
+    eof_prompt = compiler.get_schema_healing_prompt("EOF error", is_logical_error=False, is_eof=True)
+    assert "[SYSTEM: EOF DETECTED]" in eof_prompt
+
+    logical_prompt = compiler.get_schema_healing_prompt("Logical mismatch", is_logical_error=True, is_eof=False)
+    assert "[SYSTEM: STRICT LOGICAL COMPLIANCE REQUIRED]" in logical_prompt
+    assert "Logical mismatch" in logical_prompt
+
+
+def test_build_xml_context_with_alias_engine_and_generic_path() -> None:
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.utils.alias_engine import AliasEngine
+
+    compiler = PromptCompiler()
+    alias_engine = AliasEngine()
+    expected_inputs = [
+        ExpectedInput(
+            input_key="doc1",
+            label=I18nText(translations={"en": "Doc 1", "fi": "Dok 1"}),
+            description=I18nText(translations={"en": "Desc 1", "fi": "Kuv 1"}),
+            required=True,
+            input_modes=["file"],
+            ai_description="Context mandate for doc1",
+        )
+    ]
+    state_data = {"inputs": {"doc1": "Document content"}, "other_var": 42}
+    input_mappings = {"doc1": "$inputs.doc1", "other": "other_var"}
+
+    result = compiler.build_xml_context(
+        input_mappings=input_mappings,
+        state_data=state_data,
+        target_locale="en",
+        expected_inputs=expected_inputs,
+        alias_engine=alias_engine,
+    )
+    assert "<matrix_input source_id=" in result
+    assert "<ai_context_mandate>Context mandate for doc1</ai_context_mandate>" in result
+    assert "42" in result
+
+
+def test_extract_value_from_state_complex_types() -> None:
+    class DummyModel(BaseModel):
+        field_a: str
+        count: int
+
+    compiler = PromptCompiler()
+    state = {
+        "model": DummyModel(field_a="hello", count=10),
+        "nested": {"nested_model": DummyModel(field_a="world", count=20)},
+        "number": 99,
+        "flag": True,
+        "json_list": ["item1", "item2"],
+    }
+    assert "hello" in compiler._extract_value_from_state("model", state)
+    assert "world" in compiler._extract_value_from_state("nested.nested_model.field_a", state)
+    assert compiler._extract_value_from_state("number", state) == "99"
+    assert compiler._extract_value_from_state("flag", state) == "True"
+

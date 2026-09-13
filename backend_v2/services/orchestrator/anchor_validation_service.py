@@ -244,12 +244,15 @@ class AnchorValidationService:
             if quote and len(quote) > 1000:
                 raise SemanticEvidenceError(message=f"Quote length exceeds safety limit ({len(quote)} > 1000 chars).")
 
-        # Pre-Flight Provenance Check
+        # Phase 2, Step 2.5: Pre-Flight Provenance Check with assignment_context boundary defense
         user_payload_matches = re.findall(r"<user_payload>(.*?)</user_payload>", pdf_text, re.IGNORECASE | re.DOTALL)
         ai_draft_matches = re.findall(
             r"<ai_draft_context>(.*?)</ai_draft_context>", pdf_text, re.IGNORECASE | re.DOTALL
         )
-        if user_payload_matches or ai_draft_matches:
+        assignment_matches = re.findall(
+            r"<assignment_context>(.*?)</assignment_context>", pdf_text, re.IGNORECASE | re.DOTALL
+        )
+        if user_payload_matches or ai_draft_matches or assignment_matches:
             if target_speaker == TargetSpeaker.USER:
                 allowed_source_text = "\n\n".join(user_payload_matches)
             else:

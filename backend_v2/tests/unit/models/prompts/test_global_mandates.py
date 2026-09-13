@@ -40,8 +40,10 @@ def test_global_mandates_constants() -> None:
 
     assert isinstance(CONTEXT_SEGREGATION_MANDATE, str)
     assert "<context_segregation_mandate>" in CONTEXT_SEGREGATION_MANDATE
+    assert "<assignment_context>" in CONTEXT_SEGREGATION_MANDATE
 
     assert isinstance(GLOBAL_MANDATES_XML, str)
     assert "<global_system_mandates>" in GLOBAL_MANDATES_XML
     assert "<context_segregation_mandate>" in GLOBAL_MANDATES_XML
+    assert "<assignment_context>" in GLOBAL_MANDATES_XML
     assert "<anti_score_mandate>" in GLOBAL_MANDATES_XML
