@@ -369,33 +369,32 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         if ev_dto.matrix_id is not None and ev_dto.matrix_id != pb_id:
                                             continue
 
-                                        allow_override = atom_mapping[aid].allow_contextual_override
+                                        rule = atom_mapping[aid]
+                                        allow_override = rule.allow_contextual_override
                                         effective_override = enable_contextual_overrides and allow_override
+                                        is_inverse = ev_dto.is_inverse_evidence or rule.is_inverse_assertion
 
                                         status_str = ev_dto.status.name
 
                                         if status_str == "DLQ":
                                             final_state = "DLQ"
-                                        elif status_str == "PASSED" and ev_dto.contextual_override:
-                                            if effective_override:
+                                        elif status_str == "PASSED":
+                                            if is_inverse:
                                                 final_state = "TRUE"
+                                            elif ev_dto.contextual_override:
+                                                final_state = "TRUE" if effective_override else "FALSE"
                                             else:
-                                                final_state = "FALSE"
+                                                final_state = "TRUE"
                                         else:
-                                            if status_str == "PASSED":
-                                                is_satisfied = True
-                                            else:
-                                                is_satisfied = False
-
                                             if (
-                                                (not is_satisfied)
+                                                not is_inverse
                                                 and effective_override
                                                 and ev_dto.contextual_override
                                                 and status_str != "FAILED"
                                             ):
-                                                is_satisfied = True
-
-                                            final_state = "TRUE" if is_satisfied else "FALSE"
+                                                final_state = "TRUE"
+                                            else:
+                                                final_state = "FALSE"
 
                                         if ev_dto.source_quote:
                                             eq_dto = QuoteEvidenceDTO.model_validate(
@@ -413,7 +412,9 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                     "quote": eq_dto,
                                                 }
                                             )
-                                        elif ev_dto.contextual_override and effective_override:
+                                        elif (ev_dto.contextual_override and effective_override) or (
+                                            is_inverse and status_str == "PASSED"
+                                        ):
                                             loc = "Unknown location"
                                             rsn = "No reasoning provided"
                                             if (

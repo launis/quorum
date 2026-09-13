@@ -1626,6 +1626,224 @@ async def test_matrix_scoring_hook_inverse_evidence_failed_blocks_level() -> Non
 
 
 @pytest.mark.asyncio
+async def test_matrix_scoring_hook_inverse_evidence_passed_without_quote_survives_disabled_overrides() -> None:
+    """Verifies that inverse_evidence=True with status=PASSED and source_quote=None satisfies levels even with enable_contextual_overrides=False."""
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+
+    class MockRepoWaterfallInverseNoOverrides(MockRepoWaterfall):
+        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
+            scales = [
+                {
+                    "score": i,
+                    "ai_label": f"Level {i}",
+                    "claims": [
+                        {
+                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
+                            "tda_assertions": [
+                                {
+                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                                    "concept_description": f"Inverse assertion {i}",
+                                    "inverse_evidence": True,
+                                    "aggregation_mode": "EXISTS",
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for i in range(1, 6)
+            ]
+            return _build_valid_pb_dict(self.pb_id, scales)
+
+        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+            wf = await super().get_workflow_by_id(workflow_id)
+            if wf:
+                wf["enable_contextual_overrides"] = False
+            return wf
+
+    evaluations = [
+        {
+            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"Inverse verified without quote {i}",
+            "source_quote": None,
+            "contextual_override": False,
+            "is_inverse_evidence": True,
+        }
+        for i in range(1, 6)
+    ]
+
+    state = HookState(
+        execution_id="ex_1111222233334444",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    repo = MockRepoWaterfallInverseNoOverrides()
+    deps = HookDependencies(
+        exec_repo=cast(Any, repo),
+        workflow_repo=cast(Any, repo),
+        comp_repo=cast(Any, repo),
+        prompt_block_repo=cast(Any, repo),
+        output_profile_repo=cast(Any, repo),
+        identity_repo=cast(Any, repo),
+        audit_repo=cast(Any, repo),
+        system_repo=cast(Any, repo),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    # All 5 levels with inverse_evidence=True should be satisfied despite enable_contextual_overrides=False
+    assert delta["pb_1234567890123456"]["raw_score"] == 5.0
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_non_inverse_override_demoted_when_overrides_disabled() -> None:
+    """Verifies that a non-inverse atom with contextual_override=True is demoted to FALSE when enable_contextual_overrides=False."""
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+
+    class MockRepoWaterfallNoOverrides(MockRepoWaterfall):
+        async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
+            wf = await super().get_workflow_by_id(workflow_id)
+            if wf:
+                wf["enable_contextual_overrides"] = False
+            return wf
+
+    evaluations = [
+        {
+            "tda_id": generate_atom_hash("atom_1", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": "Contextual override without empirical quote",
+            "source_quote": None,
+            "contextual_override": True,
+            "is_inverse_evidence": False,
+        }
+    ] + [
+        {
+            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"Valid quote {i}",
+            "source_quote": "exact quote",
+            "contextual_override": False,
+            "is_inverse_evidence": False,
+        }
+        for i in range(2, 6)
+    ]
+
+    state = HookState(
+        execution_id="ex_2222333344445555",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    repo = MockRepoWaterfallNoOverrides()
+    deps = HookDependencies(
+        exec_repo=cast(Any, repo),
+        workflow_repo=cast(Any, repo),
+        comp_repo=cast(Any, repo),
+        prompt_block_repo=cast(Any, repo),
+        output_profile_repo=cast(Any, repo),
+        identity_repo=cast(Any, repo),
+        audit_repo=cast(Any, repo),
+        system_repo=cast(Any, repo),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    # Level 1 has an unpermitted contextual override, demoted to FALSE -> waterfall ceiling caps score < 5.0
+    assert delta["pb_1234567890123456"]["raw_score"] < 5.0
+
+
+@pytest.mark.asyncio
+async def test_matrix_scoring_hook_failed_inverse_claim_resolves_false() -> None:
+    """Verifies that an inverse assertion with status=FAILED resolves to FALSE even with enable_contextual_overrides=True."""
+    mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
+
+    class MockRepoWaterfallInverse(MockRepoWaterfall):
+        async def get_prompt_block_by_id(self, pb_id: str) -> dict[str, Any]:
+            scales = [
+                {
+                    "score": i,
+                    "ai_label": f"Level {i}",
+                    "claims": [
+                        {
+                            "label": {"translations": {"en": f"Claim {i}", "fi": f"Väite {i}"}},
+                            "tda_assertions": [
+                                {
+                                    "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+                                    "concept_description": f"Inverse assertion {i}",
+                                    "inverse_evidence": True,
+                                    "aggregation_mode": "EXISTS",
+                                }
+                            ],
+                        }
+                    ],
+                }
+                for i in range(1, 6)
+            ]
+            return _build_valid_pb_dict(self.pb_id, scales)
+
+    evaluations = [
+        {
+            "tda_id": generate_atom_hash("atom_1", mandate),
+            "status": ExecutionStatus.FAILED,
+            "evaluation_reasoning": "Negative condition detected in text",
+            "source_quote": None,
+            "contextual_override": False,
+            "is_inverse_evidence": True,
+        }
+    ] + [
+        {
+            "tda_id": generate_atom_hash(f"atom_{i}", mandate),
+            "status": ExecutionStatus.PASSED,
+            "evaluation_reasoning": f"No violation {i}",
+            "source_quote": None,
+            "contextual_override": False,
+            "is_inverse_evidence": True,
+        }
+        for i in range(2, 6)
+    ]
+
+    state = HookState(
+        execution_id="ex_3333444455556666",
+        workflow_id="wf1",
+        step_id="step1",
+        task_blueprint="step1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"results": evaluations, "extracted_facts": {}}),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    repo = MockRepoWaterfallInverse()
+    deps = HookDependencies(
+        exec_repo=cast(Any, repo),
+        workflow_repo=cast(Any, repo),
+        comp_repo=cast(Any, repo),
+        prompt_block_repo=cast(Any, repo),
+        output_profile_repo=cast(Any, repo),
+        identity_repo=cast(Any, repo),
+        audit_repo=cast(Any, repo),
+        system_repo=cast(Any, repo),
+    )
+
+    result = await cast(Awaitable[HookResult], matrix_scoring_hook(state, deps))
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    # Level 1 failed, so waterfall ceiling caps raw_score < 5.0
+    assert delta["pb_1234567890123456"]["raw_score"] < 5.0
+
+
+
+@pytest.mark.asyncio
 async def test_matrix_scoring_hook_ceiling_cap() -> None:
     """Test that the waterfall ceiling caps the final score despite high weighted score."""
     mandate = EvaluationMandate.FAIL_FAST_NO_EVIDENCE.value
