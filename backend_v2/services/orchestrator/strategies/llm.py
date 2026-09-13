@@ -125,7 +125,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         inputs_unwrapped = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
 
-        global_source_text = SourceDocumentPacker.pack(inputs_unwrapped, context.expected_inputs)
+        allowed_keys = SourceDocumentPacker.resolve_allowed_keys(step.input_mappings)
+        global_source_text = SourceDocumentPacker.pack(
+            inputs_unwrapped, context.expected_inputs, allowed_keys=allowed_keys
+        )
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,
             "inputs": inputs_unwrapped,

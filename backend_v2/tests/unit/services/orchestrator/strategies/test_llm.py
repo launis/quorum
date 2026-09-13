@@ -2041,7 +2041,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     step = MagicMock()
     step.id = "step_multi_doc"
     step.task_blueprint = "bp_multi_doc"
-    step.input_mappings = {}
+    step.input_mappings = {"chat_log": "$inputs.chat_log", "product_text": "$inputs.product_text"}
     step.allowed_mcp_tools = []
 
     projector = MagicMock()
@@ -2126,7 +2126,15 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     )
 
     mock_hook_state = MagicMock()
-    mock_hook_state.inputs = ExecutionInputsDTO(dynamic_inputs={"chat_log": "Strategic question."})
+    mock_hook_state.inputs = ExecutionInputsDTO(
+        dynamic_inputs={
+            "inputs": {
+                "chat_log": "Strategic question.",
+                "product_text": "Executive recommendation deliverable.",
+            },
+            "steps": projector.snapshot,
+        }
+    )
     mock_hook_state.global_context_vars = {}
 
     with (
@@ -2163,3 +2171,211 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
             '<ai_context_directive document="product_text">Candidate final deliverable.</ai_context_directive>'
             in global_source_text
         )
+
+
+@pytest.mark.asyncio
+async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeStrategy, mock_repo: MagicMock) -> None:
+    """Verify LLMNodeStrategy.execute scopes global_source_text strictly based on step.input_mappings."""
+    from unittest.mock import AsyncMock, patch
+
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+    from backend_v2.models.dtos.engine import EngineExecutionResult
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.state import StepOutputDTO
+    from backend_v2.models.v2_core import ExpectedInput
+
+    projector = MagicMock()
+    projector.snapshot = [
+        StepOutputDTO(
+            step_id="inputs",
+            block_id="inputs",
+            data_type="unknown",
+            payload={
+                "chat_log": "User: Strategic question.",
+                "product_text": "Executive recommendation deliverable.",
+            },
+        ),
+    ]
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key="chat_log",
+            label=I18nText(translations={"en": "Chat Log"}),
+            required=True,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Chat Log"}),
+            ai_description="Dialogue between coach and user.",
+        ),
+        ExpectedInput(
+            input_key="product_text",
+            label=I18nText(translations={"en": "Product Text"}),
+            required=True,
+            input_modes=["paste"],
+            description=I18nText(translations={"en": "Product Text"}),
+            ai_description="Candidate final deliverable.",
+        ),
+    ]
+
+    prompt_blocks_raw = [
+        {
+            "id": "blk_4444444444444444",
+            "slug": "criteria_rule",
+            "category_id": "system_rule",
+            "type": "string",
+            "label": {"translations": {"en": "Criteria"}},
+            "description": {"translations": {"en": "Criteria"}},
+            "instruction_text": "Evaluate.",
+        },
+        {
+            "id": "blk_3333333333333333",
+            "slug": "zero_trust",
+            "category_id": "protocol",
+            "type": "instruction",
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
+            "protocol_instructions": "Zero trust protocol.",
+        },
+    ]
+
+    context = MagicMock()
+    context.execution_id = "exec_step_scoped"
+    context.workflow_id = "wf_step_scoped"
+    context.global_context_vars = {}
+    context.metadata = ExecutionMetadata()
+    context.model_strategy = "standard"
+    context.expected_inputs = expected_inputs
+    context.strictness_level = 0
+    context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_0123456789abcdef0123456789abcdef",
+        "slug": "scoped_step",
+        "name": {"translations": {"en": "Scoped Step"}},
+        "description": {"translations": {"en": "Scoped Step"}},
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_3333333333333333",
+        "criteria_block_ids": ["blk_4444444444444444"],
+        "model_strategy": "standard",
+    }
+    mock_repo.get_all_prompt_blocks.return_value = prompt_blocks_raw
+
+    mock_engine = llm_strategy._engine
+    mock_engine.execute.return_value = EngineExecutionResult(
+        results=[], hydrated_references={}, synthesis_output={"output": "Scoped output"}
+    )
+
+    mock_hook_state = MagicMock()
+    mock_hook_state.inputs = ExecutionInputsDTO(
+        dynamic_inputs={
+            "inputs": {
+                "chat_log": "Strategic question.",
+                "product_text": "Executive recommendation deliverable.",
+            },
+            "steps": projector.snapshot,
+        }
+    )
+    mock_hook_state.global_context_vars = {}
+
+    # Case A: step maps ONLY product_text -> chat_log is strictly excluded
+    step_a = MagicMock()
+    step_a.id = "step_a"
+    step_a.task_blueprint = "bp_scoped"
+    step_a.input_mappings = {"product_text": "$inputs.product_text"}
+    step_a.allowed_mcp_tools = []
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = ExecutionInputsDTO(dynamic_inputs={"output": "Scoped execution"})
+        mock_post.return_value = (mock_post_hook_state, [])
+
+        await llm_strategy.execute(
+            step=step_a,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
+
+        req_call = mock_req.call_args
+        assert req_call is not None
+        source_text_a = req_call.kwargs.get("global_source_text")
+        assert source_text_a is not None
+        assert "Candidate final deliverable." in source_text_a
+        assert "Executive recommendation deliverable." in source_text_a
+        assert "chat_log" not in source_text_a
+        assert "Strategic question." not in source_text_a
+
+    # Case B: step maps only $steps (e.g. synthesis node) -> global_source_text is empty string
+    step_b = MagicMock()
+    step_b.id = "step_b"
+    step_b.task_blueprint = "bp_scoped"
+    step_b.input_mappings = {"prior_analysis": "$steps"}
+    step_b.allowed_mcp_tools = []
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = ExecutionInputsDTO(dynamic_inputs={"output": "Scoped execution"})
+        mock_post.return_value = (mock_post_hook_state, [])
+
+        await llm_strategy.execute(
+            step=step_b,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
+
+        req_call = mock_req.call_args
+        assert req_call is not None
+        source_text_b = req_call.kwargs.get("global_source_text")
+        assert source_text_b == ""
+
+    # Case C: step has empty input_mappings={} -> global_source_text is empty string
+    step_c = MagicMock()
+    step_c.id = "step_c"
+    step_c.task_blueprint = "bp_scoped"
+    step_c.input_mappings = {}
+    step_c.allowed_mcp_tools = []
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
+        patch("litellm.token_counter", return_value=10),
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_post_hook_state = MagicMock()
+        mock_post_hook_state.inputs = ExecutionInputsDTO(dynamic_inputs={"output": "Scoped execution"})
+        mock_post.return_value = (mock_post_hook_state, [])
+
+        await llm_strategy.execute(
+            step=step_c,
+            projector=projector,
+            context=context,
+            frozen_ctx=None,
+            trace=[],
+            semaphore=asyncio.Semaphore(2),
+        )
+
+        req_call = mock_req.call_args
+        assert req_call is not None
+        source_text_c = req_call.kwargs.get("global_source_text")
+        assert source_text_c == ""

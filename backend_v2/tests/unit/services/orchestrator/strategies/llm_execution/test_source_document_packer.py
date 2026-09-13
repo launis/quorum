@@ -140,3 +140,61 @@ def test_source_document_packer_survives_tda_paragraph_split() -> None:
     for cp in content_paragraphs:
         assert "<" not in cp
         assert ">" not in cp
+
+
+def test_source_document_packer_step_scoping_and_allowed_keys() -> None:
+    """Verify resolve_allowed_keys resolution and pack() key filtering according to step contracts."""
+    # 1. resolve_allowed_keys canonical $inputs.<key> resolution
+    mappings = {
+        "text": "$inputs.product_text",
+        "chat": "$inputs.chat_log",
+        "nested": "$inputs.assignment_brief",
+    }
+    assert SourceDocumentPacker.resolve_allowed_keys(mappings) == {
+        "product_text",
+        "chat_log",
+        "assignment_brief",
+    }
+
+    # 2. Non-$inputs mappings (e.g. $steps) are deterministically ignored
+    step_mappings = {
+        "prior_1": "$steps.node_1",
+        "prior_2": "$steps.node_2.output",
+        "raw_step": "$steps",
+    }
+    assert SourceDocumentPacker.resolve_allowed_keys(step_mappings) == set()
+
+    # Mixed mappings
+    mixed = {
+        "doc": "$inputs.target_doc",
+        "step": "$steps.previous",
+    }
+    assert SourceDocumentPacker.resolve_allowed_keys(mixed) == {"target_doc"}
+
+    # 3. Empty or None mappings yield empty set
+    assert SourceDocumentPacker.resolve_allowed_keys({}) == set()
+    assert SourceDocumentPacker.resolve_allowed_keys(None) == set()
+
+    # 4. pack with allowed_keys excluding unmapped inputs
+    inputs = {
+        "product_text": "Substantive memo text.",
+        "chat_log": "Dialogue to be excluded.",
+        "extra_doc": "Extra unmapped document.",
+    }
+    expected_inputs = [
+        _build_expected_input("product_text", "Executive memo description."),
+        _build_expected_input("chat_log", "Dialogue description."),
+    ]
+    packed = SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys={"product_text"})
+    assert "Substantive memo text." in packed
+    assert '<ai_context_directive document="product_text">' in packed
+    assert "Dialogue to be excluded." not in packed
+    assert "chat_log" not in packed
+    assert "Extra unmapped document." not in packed
+
+    # 5. pack with empty allowed_keys set() returns empty string for both dict and str payloads
+    assert SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys=set()) == ""
+    assert SourceDocumentPacker.pack("Standalone raw document", allowed_keys=set()) == ""
+
+    # Non-existent key in allowed_keys yields empty string
+    assert SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys={"non_existent_key"}) == ""
