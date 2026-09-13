@@ -127,7 +127,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         allowed_keys = SourceDocumentPacker.resolve_allowed_keys(step.input_mappings)
         global_source_text = SourceDocumentPacker.pack(
-            inputs_unwrapped, context.expected_inputs, allowed_keys=allowed_keys
+            inputs_unwrapped,
+            context.expected_inputs,
+            allowed_keys=allowed_keys,
+            step_outputs=projector.snapshot,
         )
         current_state: dict[str, Any] = {
             "steps": projector.snapshot,

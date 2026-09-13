@@ -6,6 +6,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
 
@@ -159,20 +160,24 @@ def test_source_document_packer_step_scoping_and_allowed_keys() -> None:
         "assignment_brief",
     }
 
-    # 2. Non-$inputs mappings (e.g. $steps) are deterministically ignored
+    # 2. $steps and $steps.<step_id> mappings are resolved into allowed keys
     step_mappings = {
         "prior_1": "$steps.node_1",
         "prior_2": "$steps.node_2.output",
         "raw_step": "$steps",
     }
-    assert SourceDocumentPacker.resolve_allowed_keys(step_mappings) == set()
+    assert SourceDocumentPacker.resolve_allowed_keys(step_mappings) == {
+        "$steps.node_1",
+        "$steps.node_2.output",
+        "$steps",
+    }
 
     # Mixed mappings
     mixed = {
         "doc": "$inputs.target_doc",
         "step": "$steps.previous",
     }
-    assert SourceDocumentPacker.resolve_allowed_keys(mixed) == {"target_doc"}
+    assert SourceDocumentPacker.resolve_allowed_keys(mixed) == {"target_doc", "$steps.previous"}
 
     # 3. Empty or None mappings yield empty set
     assert SourceDocumentPacker.resolve_allowed_keys({}) == set()
@@ -201,3 +206,143 @@ def test_source_document_packer_step_scoping_and_allowed_keys() -> None:
 
     # Non-existent key in allowed_keys yields empty string
     assert SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys={"non_existent_key"}) == ""
+
+
+def test_source_document_packer_step_outputs_packing_positive() -> None:
+    """Positive: assert packing steps with $steps mappings emits non-empty source text with <step_output> headers."""
+    step_outputs = [
+        StepOutputDTO(
+            step_id="sr_step_1",
+            block_id="blk_1",
+            data_type="text",
+            payload="First stage analysis summary.",
+        ),
+        StepOutputDTO(
+            step_id="sr_step_2",
+            block_id="blk_2",
+            data_type="text",
+            payload="Second stage evaluation findings.",
+        ),
+        StepOutputDTO(
+            step_id="inputs",
+            block_id="inputs",
+            data_type="unknown",
+            payload={"raw": "initial"},
+        ),
+    ]
+
+    # Wildcard $steps packing
+    packed = SourceDocumentPacker.pack(
+        inputs_payload=None,
+        allowed_keys={"$steps"},
+        step_outputs=step_outputs,
+    )
+    assert '<step_output step_id="sr_step_1">' in packed
+    assert "First stage analysis summary." in packed
+    assert '<step_output step_id="sr_step_2">' in packed
+    assert "Second stage evaluation findings." in packed
+    assert "inputs" not in packed
+
+    # Specific step targeting $steps.sr_step_1
+    packed_single = SourceDocumentPacker.pack(
+        inputs_payload=None,
+        allowed_keys={"$steps.sr_step_1"},
+        step_outputs=step_outputs,
+    )
+    assert '<step_output step_id="sr_step_1">' in packed_single
+    assert "First stage analysis summary." in packed_single
+    assert '<step_output step_id="sr_step_2">' not in packed_single
+
+    # Mixed inputs + step outputs
+    inputs = {"memo": "Candidate deliverable text"}
+    packed_mixed = SourceDocumentPacker.pack(
+        inputs_payload=inputs,
+        allowed_keys={"memo", "$steps.sr_step_2"},
+        step_outputs=step_outputs,
+    )
+    assert "Candidate deliverable text" in packed_mixed
+    assert '<step_output step_id="sr_step_2">' in packed_mixed
+    assert "Second stage evaluation findings." in packed_mixed
+    assert "sr_step_1" not in packed_mixed
+
+
+def test_source_document_packer_non_existent_step_reference_fails_fast() -> None:
+    """Negative Partition 2: assert unmapped or non-existent step references fail fast without fallback."""
+    step_outputs = [
+        StepOutputDTO(
+            step_id="sr_existing",
+            block_id="blk_1",
+            data_type="text",
+            payload="Existing step output.",
+        ),
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        SourceDocumentPacker.pack(
+            inputs_payload=None,
+            allowed_keys={"$steps.sr_nonexistent"},
+            step_outputs=step_outputs,
+        )
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.name
+    assert "sr_nonexistent" in exc_info.value.message
+
+
+def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None:
+    """Test structured payload dictionary parsing, non-string mappings, and invalid items."""
+    # 1. Non-string value in input_mappings
+    mappings: dict[str, Any] = {"doc": "$inputs.valid", "bad": 12345}
+    assert SourceDocumentPacker.resolve_allowed_keys(mappings) == {"valid"}
+
+    # 2. Structured dict payloads in step_outputs (text, markdown, content, and empty)
+    step_outputs = [
+        StepOutputDTO(
+            step_id="sr_text",
+            block_id="blk_t",
+            data_type="text",
+            payload={"text": "Text payload field"},
+        ),
+        StepOutputDTO(
+            step_id="sr_md",
+            block_id="blk_m",
+            data_type="text",
+            payload={"markdown": "Markdown payload field"},
+        ),
+        StepOutputDTO(
+            step_id="sr_cnt",
+            block_id="blk_c",
+            data_type="text",
+            payload={"content": "Content payload field"},
+        ),
+        StepOutputDTO(
+            step_id="sr_nontext",
+            block_id="blk_n",
+            data_type="text",
+            payload={"other": 12345},
+        ),
+    ]
+
+    packed = SourceDocumentPacker.pack(
+        allowed_keys={"$steps"},
+        step_outputs=step_outputs,
+    )
+    assert '<step_output step_id="sr_text">' in packed
+    assert "Text payload field" in packed
+    assert '<step_output step_id="sr_md">' in packed
+    assert "Markdown payload field" in packed
+    assert '<step_output step_id="sr_cnt">' in packed
+    assert "Content payload field" in packed
+    assert "sr_nontext" not in packed
+
+    # 3. Invalid dict or scalar item in step_outputs raises AppException
+    for invalid_item in [{"step_id": "invalid_missing_fields"}, 12345]:
+        with pytest.raises(AppException) as exc_info:
+            SourceDocumentPacker.pack(
+                allowed_keys={"$steps"},
+                step_outputs=[invalid_item],
+            )
+        assert exc_info.value.status_code == 500
+        assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.name
+
+
