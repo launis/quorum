@@ -39,6 +39,10 @@ _SYSTEM_INSTRUCTION = build_system_directive(
             "NEVER generate, summarize, paraphrase, or rewrite the turn content. "
             "The extraction MUST be 100% exact verbatim substrings."
         ),
+        (
+            "Include all formatting characters, markdown syntax, and table borders (such as '|') "
+            "exactly as they appear in the source text without omitting or stripping them."
+        ),
         "Ignore all UI fluff (e.g., 'Copy code', 'Share', 'Regenerate', sidebar text).",
         "Return the data EXACTLY matching the ChatTurnAnchorsResponseDTO schema.",
     ],
@@ -63,6 +67,8 @@ class ChatParserService:
         First attempts exact substring match via str.find(). If that fails due to
         Unicode whitespace variations (e.g. non-breaking spaces, en spaces, newlines),
         falls back to exact token sequence matching with flexible whitespace.
+        If that fails, falls back to delimiter-flexible token sequence matching
+        to handle phrases separated by markdown table pipes and borders.
 
         Args:
             text: Source text to search within.
@@ -73,7 +79,7 @@ class ChatParserService:
             Tuple of (start_idx, end_idx) in text.
 
         Raises:
-            ValueError: If phrase cannot be found after start_pos.
+            ValueError: If phrase cannot be found after start_pos or contains no valid tokens.
         """
         clean_phrase = phrase.strip()
         if not clean_phrase:
@@ -95,6 +101,17 @@ class ChatParserService:
         match = pattern.search(text, start_pos)
         if match:
             return match.start(), match.end()
+
+        # 3. Delimiter-flexible token sequence match for markdown tables
+        clean_tokens = [t.strip("| \t\r\n") for t in clean_phrase.split() if t.strip("| \t\r\n")]
+        if not clean_tokens:
+            msg = f"Anchor phrase contains no valid tokens after delimiter normalization: '{phrase}'"
+            raise ValueError(msg)
+
+        table_pattern = re.compile(r"[\s|]+".join(map(re.escape, clean_tokens)))
+        table_match = table_pattern.search(text, start_pos)
+        if table_match:
+            return table_match.start(), table_match.end()
 
         msg = f"Anchor phrase not found in source text after position {start_pos}: '{phrase}'"
         raise ValueError(msg)

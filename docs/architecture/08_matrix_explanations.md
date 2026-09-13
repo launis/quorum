@@ -585,8 +585,28 @@ The following matrix cross-references all six system workflows, their permanent 
 - **Epistemic Rationales:** Restricts evaluation to administrative, statutory, and safety compliance. Implements zero-trust containment verification with automated penalty scoring.
 - **Output Profile & SDUI Visualization:** Adopts a neutral, objective compliance auditor persona. Organizes audit findings into three 1D metric groups (`grp_05e1d71000000001` Constraint & Safety Audit, `grp_05e1d71000000002` Explainability & Transparency, and `grp_05e1d71000000003` Regulatory Retention). Applies a mandatory security penalty factor (`security_penalty: 0.15`), activates compliance variance detection (`visible_workflow_extensions: ["variance_validation"]`), and suppresses non-statutory summary boxes (`show_sources_summary_box=false`).
 
-### Toulmin Argumentation Model
+## 8. Zero-Trust Blind Flattening & Empirical Bottom-Up Evaluation Architecture
 
-The Toulmin Argumentation Model evaluation matrix is mathematically grounded in Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press.. It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks.
+### 8.1 The Zero-Trust Blind Evaluation Principle
+Traditional assessment methodologies and naive LLM evaluators suffer from profound cognitive confirmation bias: when asked to grade a deliverable on a scale of 1 to 5, foundational models exhibit severe "Halo Effects", selecting a holistic score subjectively and retroactively rationalizing evidence to fit that predetermined score level.
 
-Operationally, the matrix controls evaluation precision through targeted parameters including contextual override permissions (allow_contextual_override=True) and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict distinction between universal structural invariants requiring chunk compliance and specialized existential error radars.
+Quorum completely eliminates this subjective vulnerability through **Bottom-Up Empirical Evaluation**. Evaluative matrices do not prompt models to pick a score level. Instead, scoring is decomposed into an array of discrete, binary Test-Driven Assertion (TDA) atoms evaluated in complete isolation under zero-trust conditions.
+
+### 8.2 Atom Flattening Hook (`atom_flattening_hook`)
+Prior to LLM prompt generation, the orchestration pipeline triggers the deterministic `atom_flattening_hook` (`backend_v2/hooks/atom_flattening.py`):
+1. **Multi-Scale Atom Extraction:** The hook iterates through all configured scale levels (`MatrixPromptBlock.scales`) for the target matrix block. For every `MatrixScale`, it traverses its `claims` and extracts all underlying `tda_assertions`.
+2. **Metadata Stripping & De-Scoring:** All level metadata, numerical score values (e.g., `score=1`, `score=5`), scale names, and target labels are systematically stripped from each assertion. Every assertion is converted into a neutral `FlattenedAtom` DTO containing solely the propositional question, extraction rule, syntactic anchors, and causal dependencies (`depends_on`).
+3. **Stratified Sampling & Deterministic Shuffling:** When matrix sampling limits are configured in metadata (`matrix_sampling_strategy`), the hook samples proportionally across each scale level before performing Transitive Causal Closure to guarantee that parent causal assertions are never severed. The resulting atom collection is randomized using an execution-locked seed into a single blind list (`shuffled_atoms`).
+
+### 8.3 Blind Multi-Scale Claim Execution
+The LLM receives the source documents alongside the randomized `shuffled_atoms` list mapped to opaque aliases (`a0`, `a1`, ...). The model has zero visibility into:
+- The score level associated with any individual atom (e.g., whether `a1` represents a Level 1 baseline check or a Level 5 advanced mastery criterion).
+- The total number of scale levels or the overall structure of the matrix.
+
+The model evaluates each atom independently, determining strictly whether the empirical claim is substantiated in the source material (`is_true: bool`), providing verbatim textual evidence (`source_quote`) and reasoning. Every level of the matrix is thus actively and concurrently audited across the identical text.
+
+### 8.4 Mathematical Bottom-Up Scoring & Distribution
+Once the model returns the batch evaluation results:
+1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level, the platform computes the exact hit ratio $k/N$, where $k$ is the number of passed atoms and $N$ is the total number of atoms evaluated for that scale (e.g., Level 1: 5/5, Level 2: 3/5, Level 3: 2/5).
+2. **Deterministic Composite Scoring:** The overall score (e.g., 1.9 / 3) and waterfall threshold state are calculated mathematically from the bottom up based on passed criteria, completely free of LLM subjective discretion.
+3. **Downstream Specialization Feeding:** The raw atom results are preserved in `ExecutionRecord.execution_trace`, where intermediate reducers (`MatrixReducer`) extract them during DAG execution to isolate failures and feed diagnostic synthesis steps.

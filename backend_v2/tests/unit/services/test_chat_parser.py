@@ -267,3 +267,66 @@ def test_find_anchor_span_empty_or_whitespace_raises_value_error() -> None:
 
     with pytest.raises(ValueError, match="Anchor phrase cannot be empty"):
         ChatParserService._find_anchor_span("Some text", "   \t\n  ", 0)
+
+
+def test_find_anchor_span_delimiter_only_raises_value_error() -> None:
+    """Ensure _find_anchor_span raises ValueError when phrase contains only delimiters."""
+    with pytest.raises(ValueError, match="Anchor phrase contains no valid tokens after delimiter normalization"):
+        ChatParserService._find_anchor_span("Some text", "| | |", 0)
+
+
+def test_find_anchor_span_markdown_table_pipe_resilience() -> None:
+    """Ensure _find_anchor_span resolves phrases whose words are separated by markdown table pipes."""
+    table_text = (
+        "| Teema | Nykytila | Suunta |\n"
+        "| :--- | :--- | :--- |\n"
+        "| ongelmia | ja | osaamistarpeidenjatkuvaakehitystä |  |  |\n"
+    )
+    phrase = "ja osaamistarpeidenjatkuvaakehitystä"
+    start_idx, end_idx = ChatParserService._find_anchor_span(table_text, phrase, 0)
+    matched = table_text[start_idx:end_idx]
+    assert "ja" in matched
+    assert "osaamistarpeidenjatkuvaakehitystä" in matched
+    assert start_idx == table_text.find("ja")
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.chat_parser.LLMClient.from_strategy")
+async def test_chat_parser_markdown_table_anchor_resilience(
+    mock_from_strategy: AsyncMock, mock_repository: AsyncMock
+) -> None:
+    """Ensure chat parser succeeds when turn boundaries fall on markdown table rows with stripped pipes."""
+    mock_client = AsyncMock()
+    mock_anchors = ChatTurnAnchorsResponseDTO(
+        turns=[
+            ChatTurnAnchorDTO(
+                speaker="user",
+                start_phrase="koosta näistä vastauksista 1 sivun",
+                end_phrase="1 sivun raportti",
+            ),
+            ChatTurnAnchorDTO(
+                speaker="ai",
+                start_phrase="Analyysi Sitran Megatrendien Evoluutiosta",
+                end_phrase="ja osaamistarpeidenjatkuvaakehitystä",
+            ),
+        ]
+    )
+    mock_client.run_structured_task.return_value = (
+        mock_anchors,
+        {"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+    )
+    mock_from_strategy.return_value = mock_client
+
+    raw_source = (
+        "koosta näistä vastauksista 1 sivun raportti\n\n"
+        "Analyysi Sitran Megatrendien Evoluutiosta (2017-2023)\n\n"
+        "| Työnmurros | Vaikka murros tunnistettiin |\n"
+        "| :--- | :--- |\n"
+        "| ongelmia | ja | osaamistarpeidenjatkuvaakehitystä |  |  |\n"
+    )
+
+    history = await ChatParserService.parse_pasted_chat(raw_source, mock_repository)
+    assert len(history.conversation) == 2
+    assert history.conversation[0].role == "user"
+    assert history.conversation[1].role == "ai"
+    assert "osaamistarpeidenjatkuvaakehitystä" in history.conversation[1].content

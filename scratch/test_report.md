@@ -1,0 +1,284 @@
+# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)
+
+## Ympäristö ja Konteksti (Execution State)
+> **[ONNISTUNUT] (Kaikki kelvollista):** Kaikki vertaillut ajot ovat valmistuneet onnistuneesti (PASSED) ilman teknisiä kaatumisia, DLQ-pudotuksia tai aineiston näivettymistä (Data Starvation).
+
+> **[ERISTETTY] TÄYSI SYÖTE-ERISTYS (Ei välimuistivuotoa):** Kaikkien syötetiedostojen SHA-256-tiivisteet poikkesivat toisistaan ajojen välillä. Googlen prefiksipohjainen KV-välimuisti ei ole voinut siirtyä ajosta toiseen.
+
+- **Palvelintason välimuistikytkin:** `DISABLE_VERTEX_CACHE=false` (Oletustila / Ei pakotettu)
+- **Git / Epic -tila:** Branch: main | Commit: 5240d3e0 - feat(orchestrator): support prior step output ingestion in source document packer (Sun Sep 13 17:20:50 2026 +0300)
+- **Kriittiset järjestelmäarvot (Enums):**
+  - **ExecutionStatus**: PASSED = PASSED, FAILED = FAILED, N_A = N_A, SYSTEM_ERROR = SYSTEM_ERROR, BLOCKED = BLOCKED, PENDING = PENDING, RUNNING = RUNNING, QUEUED = QUEUED
+  - **VerificationResult**: VERIFIED = RESULT_VERIFIED, DEBUNKED = RESULT_DEBUNKED, UNVERIFIED = RESULT_UNVERIFIED
+  - **EvaluationRunCount**: STANDARD = 1, ENSEMBLE = 3
+  - **EvaluationCategory**: MATHEMATICAL = MATHEMATICAL, SEMANTIC = SEMANTIC, LINGUISTIC = LINGUISTIC, LOGICAL = LOGICAL, BEHAVIORAL = BEHAVIORAL, UNKNOWN = UNKNOWN
+  - **ScoringStrategy**: WATERFALL = WATERFALL, AVERAGE = AVERAGE, WEIGHTED_AVERAGE = WEIGHTED_AVERAGE, PURE_MATH = PURE_MATH
+  - **LLMProviderName**: VERTEX_AI = vertex_ai, GOOGLE = google, AI_STUDIO = ai_studio, ANTHROPIC = anthropic, OPENAI = openai, DEEPSEEK = deepseek, MOCK = mock_llm_99
+  - **LLMCachingStrategy**: PROMPT_CACHING = prompt_caching, EPHEMERAL = ephemeral, ANTHROPIC_EPHEMERAL = anthropic_ephemeral, GEMINI_NATIVE = gemini_native, NONE = none
+  - **SystemConcurrency (Settings)**:
+    - max_concurrent_llm_steps = 3
+    - llm_max_retries = 0
+- **Vertailtavat ajot (R1, R2...):**
+  - **R1:** `exe_28f0798ef2d946c7`
+  - **R2:** `exe_62035476fd1c4934`
+- **Aktiiviset Säännöt ja Asetukset (Frozen Context):** Ei saatavilla
+- **Työnkulun Provenienssi ja Hallintokytkimet (Workflow Provenance & Invariants):**
+  - **Työnkulku:** `wf_03a1d71000000003` (Syvällinen Ongelmanratkaisu ja Kognitio / Deep Problem Solving & Cognition)
+  - **Versio:** v1 | **Aktiivisia askeleita:** 7 kpl | **Koko atomipopulaatio:** 85 atomia
+  - **Hallintokytkimet:** Kontekstuaaliset ohitukset: `ESTETTY (DISABLED)`, Pisteytystapa: `AVERAGE`, Tiukkuustaso: `50`
+- **Fyysiset Mallisidokset (Physical Model Bindings):**
+  - **fast:** `gemini/gemini-3.8-flash` (T=0.1, MaxTok=32768)
+  - **reasoning:** `gemini/gemini-3.8-flash` (T=0.2, MaxTok=65536, Thinking=8192 tok)
+  - **synthesis:** `gemini/gemini-3.8-flash` (T=0.3, MaxTok=65536, Thinking=2048 tok)
+  - **deep:** `gemini/gemini-3.8-flash` (T=0.2, MaxTok=65536, Thinking=4096 tok)
+  - **strict:** `gemini/gemini-3.8-flash` (T=0.0, MaxTok=32768)
+
+## Ajojen Lähdetiedostot ja Syötteet
+- **Run 1:** `exe_28f0798ef2d946c7` (Lähde: [data\files\executions\exe_28f0798ef2d946c7\execution_trace.json](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/execution_trace.json))
+  - **Malli(t):** `fast (701,577 tok), reasoning (395,090 tok), synthesis (51,350 tok)` (Chunk size: None, Max Evals: None, Sampling: 0 (Kaikki 85 atomia, Tuotanto))
+  - **Ajotila ja Rinnakkaisuus:** Tila: `production`, Max retries: `2`, Chunk size: `-`, Max Evals: `-`, Sampling: `0 (Kaikki 85 atomia, Tuotanto)`
+  - **Kesto:** `5.6 minuuttia (335.8 s)`
+  - **API-kutsut:** `6` kpl (Välimuistiosumat: `4/6` (66.7 %))
+  - **Tokenit:** `1,415,441` (Syöte: `963,844`, Tuotos: `184,173`, Ajattelu: `143,155`, Välimuisti: `461,602`, Synteesi: `124,269`)
+  - **Kustannusarvio:** `$1.2211` (DAG: `$1.1020`, Synteesi: `$0.1191`)
+  - **Hitain askel (Pullonkaula):** `sr_03c1d71000000004` (117.0 s)
+  - **Tekniset virheet (Crash):** `0` kpl
+  - **DLQ-pudotetut atomit:** `0` kpl
+  - **Kelvollisuus:** [KELVOLLINEN]
+  - **Käytetyt syötetiedostot:**
+    - [input_assignment_context.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_assignment_context.md) (SHA-256: `0b35e7bf98d61336...`, Variaatio: `En Space (U+2002)`)
+    - [input_chat_log.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_chat_log.md) (SHA-256: `cf6eaabff885c03a...`, Variaatio: `No-Break Space (U+00A0), En Space (U+2002)`)
+    - [input_chat_log_ai_only.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_chat_log_ai_only.md) (SHA-256: `73d775680737373d...`, Variaatio: `En Space (U+2002)`)
+    - [input_chat_log_user_only.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_chat_log_user_only.md) (SHA-256: `ca15f4f319c4fa0f...`, Variaatio: `No-Break Space (U+00A0), En Space (U+2002)`)
+    - [input_product_text.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_product_text.md) (SHA-256: `733c893514dca15e...`, Variaatio: `En Space (U+2002)`)
+    - [input_reflection_text.md](file:///C:/src/quorum/data/files/executions/exe_28f0798ef2d946c7/inputs/input_reflection_text.md) (SHA-256: `cd91b605a16e8ad6...`, Variaatio: `En Space (U+2002)`)
+- **Run 2:** `exe_62035476fd1c4934` (Lähde: [data\files\executions\exe_62035476fd1c4934\execution_trace.json](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/execution_trace.json))
+  - **Malli(t):** `fast (705,421 tok), reasoning (393,878 tok), synthesis (56,395 tok)` (Chunk size: None, Max Evals: None, Sampling: 0 (Kaikki 85 atomia, Tuotanto))
+  - **Ajotila ja Rinnakkaisuus:** Tila: `production`, Max retries: `2`, Chunk size: `-`, Max Evals: `-`, Sampling: `0 (Kaikki 85 atomia, Tuotanto)`
+  - **Kesto:** `5.5 minuuttia (327.1 s)`
+  - **API-kutsut:** `6` kpl (Välimuistiosumat: `4/6` (66.7 %))
+  - **Tokenit:** `1,434,610` (Syöte: `963,133`, Tuotos: `192,561`, Ajattelu: `147,948`, Välimuisti: `413,623`, Synteesi: `130,968`)
+  - **Kustannusarvio:** `$1.2889` (DAG: `$1.1653`, Synteesi: `$0.1236`)
+  - **Hitain askel (Pullonkaula):** `sr_03c1d71000000002` (120.4 s)
+  - **Tekniset virheet (Crash):** `0` kpl
+  - **DLQ-pudotetut atomit:** `0` kpl
+  - **Kelvollisuus:** [KELVOLLINEN]
+  - **Käytetyt syötetiedostot:**
+    - [input_assignment_context.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_assignment_context.md) (SHA-256: `dd696117a237be5f...`, Variaatio: `No-Break Space (U+00A0)`)
+    - [input_chat_log.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_chat_log.md) (SHA-256: `d4d5acb66ff55aa2...`, Variaatio: `No-Break Space (U+00A0)`)
+    - [input_chat_log_ai_only.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_chat_log_ai_only.md) (SHA-256: `1cd607aa212bb5a3...`, Variaatio: `No-Break Space (U+00A0)`)
+    - [input_chat_log_user_only.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_chat_log_user_only.md) (SHA-256: `c8557723f9ecca62...`, Variaatio: `No-Break Space (U+00A0)`)
+    - [input_product_text.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_product_text.md) (SHA-256: `41c484dd97d537a2...`, Variaatio: `No-Break Space (U+00A0)`)
+    - [input_reflection_text.md](file:///C:/src/quorum/data/files/executions/exe_62035476fd1c4934/inputs/input_reflection_text.md) (SHA-256: `ea0dcff828f98b52...`, Variaatio: `No-Break Space (U+00A0)`)
+
+### Syöteaineiston Profiili ja Rakenneanalyysi (Input Corpus Profile)
+
+Taulukko erittelee syötetiedostojen volyymin (sanat, lauseet, merkit) ja rakenteen (kappaleet, luetelmat) kustakin ajosta. Tämä todentaa aineiston riittävyyden (Data Sparsity vs. Cognitive Failure) sekä semanttisen ekvivalenssin.
+
+| Ajo | Tiedosto | Ontologinen Rooli | Sanat | Lauseet | Merkit | Kappaleet | Luetelmat | Variaatio / Kohina |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **R1 (exe_28f0798ef2d946c7)** | `input_assignment_context.md` | Ulkoinen konteksti (External Normative Context) | 117 | 9 | 1,018 | 16 | 4 | En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_assignment_context.md` | Ulkoinen konteksti (External Normative Context) | 117 | 9 | 1,018 | 16 | 4 | No-Break Space (U+00A0) |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log.md` | Raakaloki (Combined Raw Dialogue) | 5,485 | 330 | 48,738 | 461 | 0 | No-Break Space (U+00A0), En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log.md` | Raakaloki (Combined Raw Dialogue) | 5,485 | 330 | 48,738 | 461 | 0 | No-Break Space (U+00A0) |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_ai_only.md` | Ulkoinen konteksti (External Normative Context) | 5,332 | 328 | 47,114 | 447 | 0 | En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_ai_only.md` | Ulkoinen konteksti (External Normative Context) | 5,332 | 328 | 47,114 | 447 | 0 | No-Break Space (U+00A0) |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_user_only.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 113 | 2 | 922 | 14 | 0 | No-Break Space (U+00A0), En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_user_only.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 113 | 2 | 922 | 14 | 0 | No-Break Space (U+00A0) |
+| **R1 (exe_28f0798ef2d946c7)** | `input_product_text.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 442 | 42 | 5,355 | 22 | 9 | En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_product_text.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 442 | 42 | 5,355 | 22 | 9 | No-Break Space (U+00A0) |
+| **R1 (exe_28f0798ef2d946c7)** | `input_reflection_text.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 128 | 13 | 1,053 | 7 | 0 | En Space (U+2002) |
+| **R2 (exe_62035476fd1c4934)** | `input_reflection_text.md` | Käyttäjädokumentaatio (Candidate Deliverable) | 128 | 13 | 1,053 | 7 | 0 | No-Break Space (U+00A0) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **YHTEENSÄ R1** | **3 tiedostoa** | **Käyttäjädokumentaation volyymi** | **683** | **57** | **7,330** | **43** | **9** | **Puhdas kandidaattisisältö** |
+| **YHTEENSÄ R2** | **3 tiedostoa** | **Käyttäjädokumentaation volyymi** | **683** | **57** | **7,330** | **43** | **9** | **Puhdas kandidaattisisältö** |
+
+> **[100% SEMANTTINEN IDENTTISYYS]:** Kaikkien syötetiedostojen teksti on 100% identtistä normalisoidun tekstivertailun (whitespace-stripped) perusteella. Syötteiden sanallinen sisältö on identtinen riippumatta injektoiduista Unicode-välimerkeistä (Data Sparsity poissuljettu).
+
+### Syöte-eristyksen ja Välimuistiohituksen Matemaattiset Todisteet
+
+Tämä osio todentaa matemaattisesti ja empiirisesti, että jokainen ajo on suoritettu toisistaan täysin eristetyillä syötteillä ilman pilvitarjoajan kontekstivälimuistivuotoa (Context Cache Bleed).
+
+#### 1. Kryptografinen SHA-256 Hajautustiiviste-erottelu
+| Ajo | Tiedosto | SHA-256 Tiiviste (Hash) | Status |
+| :--- | :--- | :--- | :---: |
+| **R1 (exe_28f0798ef2d946c7)** | `input_assignment_context.md` | `0b35e7bf98d6133699d0a0f25c39530d1ff5dfe34a5549a73ed7268132d02044` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_assignment_context.md` | `dd696117a237be5f17d0f65f60749982ccb7e245eed6a8be840d298b8f2fd2b0` | `ERISTETTY` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log.md` | `cf6eaabff885c03a715a2056979e1656c4851650bac9270c440ec9d52cf64af8` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log.md` | `d4d5acb66ff55aa22e9959ee4f39b8f9b713051e7014723c096a16f213483d39` | `ERISTETTY` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_ai_only.md` | `73d775680737373d39442ee6a3fb2f043166b0fbb7dbe553c3e3055cdce6fd78` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_ai_only.md` | `1cd607aa212bb5a391e0fec4d0ddcacb28b21b7320a2ddcd34ab8911a6f69429` | `ERISTETTY` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_user_only.md` | `ca15f4f319c4fa0feb26d45b49d2a507a6ef785229fe370bfa2a697d7fc3c2ae` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_user_only.md` | `c8557723f9ecca625891378bcb6528ae45d0e02e1e0870d37f11dfad15a47eeb` | `ERISTETTY` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_product_text.md` | `733c893514dca15eb32014f269a741e31ae9c95a7717954236bcbddd5b143af8` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_product_text.md` | `41c484dd97d537a241102352418ceb523ec57d38060184fadc57c6ee2fe821ec` | `ERISTETTY` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_reflection_text.md` | `cd91b605a16e8ad6957e100ea9650093d5ed5152a73f092182ef7f3ca1f5c483` | `ERISTETTY` |
+| **R2 (exe_62035476fd1c4934)** | `input_reflection_text.md` | `ea0dcff828f98b5252cb9656b45bdd18b514334f34b012cb93d74290d71db3cc` | `ERISTETTY` |
+
+#### 2. Pilvitarjoajan Telemetriavahvistus (Zero Cached Tokens)
+| Ajo | Välimuistitokenit (Cached Tokens) | Välimuistiaste (Osumat) | Telemetriatodiste | Tulos |
+| :--- | :---: | :---: | :---: | :---: |
+| **exe_28f0798ef2d946c7** | 461,602 | 4/6 (66.7 %) | Osittainen välimuistihyödyntäminen | `VÄLIMUISTIOSUMA (461,602 tok)` |
+| **exe_62035476fd1c4934** | 413,623 | 4/6 (66.7 %) | Osittainen välimuistihyödyntäminen | `VÄLIMUISTIOSUMA (413,623 tok)` |
+
+#### 3. Hajautettu Variaatiosyvyys ja Unicode-avaruus
+| Ajo | Tiedosto | Havaittu Unicode-avaruus | Sanat | Semanttinen Invarianssi |
+| :--- | :--- | :--- | :---: | :---: |
+| **R1 (exe_28f0798ef2d946c7)** | `input_assignment_context.md` | En Space (U+2002) | 117 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_assignment_context.md` | No-Break Space (U+00A0) | 117 | `TÄYSI (100%)` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log.md` | No-Break Space (U+00A0), En Space (U+2002) | 5,485 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log.md` | No-Break Space (U+00A0) | 5,485 | `TÄYSI (100%)` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_ai_only.md` | En Space (U+2002) | 5,332 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_ai_only.md` | No-Break Space (U+00A0) | 5,332 | `TÄYSI (100%)` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_chat_log_user_only.md` | No-Break Space (U+00A0), En Space (U+2002) | 113 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_chat_log_user_only.md` | No-Break Space (U+00A0) | 113 | `TÄYSI (100%)` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_product_text.md` | En Space (U+2002) | 442 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_product_text.md` | No-Break Space (U+00A0) | 442 | `TÄYSI (100%)` |
+| **R1 (exe_28f0798ef2d946c7)** | `input_reflection_text.md` | En Space (U+2002) | 128 | `TÄYSI (100%)` |
+| **R2 (exe_62035476fd1c4934)** | `input_reflection_text.md` | No-Break Space (U+00A0) | 128 | `TÄYSI (100%)` |
+
+## Globaalit Metriikat & Tieteellinen Luotettavuus (Kappa Benchmark)
+- **Arvioitujen ajojen määrä ($M$):** 2
+- **Yhteisten arvioitujen atomien määrä ($N$):** 85
+- **Havaittujen luokkien kirjo:** failed, passed
+- **Parittainen konsistenssi (Self-Consistency):** 97.65 %
+  > *Kuvaa mallin itse-konsistenssia eli kuinka todennäköisesti kaksi satunnaista ajoa päätyy samaan lopputulokseen samalla syötteellä.*
+- **Fleissin Kappa ($\kappa_{Fleiss}$):** 0.9505
+  > *Yleinen tieteellinen sopivuuskerroin, joka eliminoi puhtaan sattuman vaikutuksen arvioinnissa ja toimii kaikilla ajomäärillä.*
+- **Cohenin Kappa ($\kappa_{Cohen}$):** 0.9505
+- **Kappan Tieteellinen Tasoluokitus:** Lähes täydellinen sopivuus (Almost Perfect Agreement)
+- **Keskivirhe (SE) ja 95 % Luottamusväli:** SE = `0.0346`, 95% CI = `[0.8826, 1.0000]`
+- **Vertailu Ihmisasiantuntijoiden Benchmarkiin:** Ylittää ihmisasiantuntijoiden tyypillisen tason (0.65–0.80) — huipputason luotettavuus.
+- **Marginaalinen vinouma (Marginal Bias / Run 1 vs Run 2):** `+0.0000`
+- **Keskimääräinen Shannonin Entropia:** 0.0235
+  > *Mittaa vastausten yleistä epävarmuutta ja hajontaa. Lähellä nollaa oleva arvo tarkoittaa erittäin stabiilia mallia.*
+
+## Skaalatasokohtainen Erimielisyysjakauma (0–100 Vaativuustasot)
+
+Atomit on normalisoitu emolohkonsa ääriarvojen perusteella universaalille 0–100 % vaativuusasteikolle. Tämä eliminoi eri pituisten asteikkojen (1–5 vs 1–6) aiheuttamat vertailuvirheet.
+
+| Normalisoitu Vaativuustaso (0–100 %) | Yhteensä Atomeja | Erimielisyydet | Konsistenssi (%) |
+| :--- | :---: | :---: | :---: |
+| **81–100%: Korkein vaativuustaso (Top Mastery / Critical Rigor)** | 20 | 0 | 100.0 % |
+| **61–80%: Korkea vaativuustaso (High Standard)** | 10 | 0 | 100.0 % |
+| **41–60%: Keskitaso (Mid Standard)** | 20 | 0 | 100.0 % |
+| **21–40%: Matala vaativuustaso (Low Standard)** | 10 | 1 | 90.0 % |
+| **0–20%: Perustaso (Baseline / Minimum Viable)** | 25 | 1 | 96.0 % |
+
+## Lohkokohtainen Erimielisyyskartta (Block Heatmap)
+
+Taulukko havainnollistaa, missä matriisilohkoissa ilmenee eniten arviointieroja ajojen välillä. Lohkot, joissa on eniten erimielisyyksiä, on nostettu kärkeen sääntöjen kirkastamista varten.
+
+| Lohko / Matriisi | Lohkon ID | Asteikko | Atomeja Yhteensä | Erimielisyydet | Konsistenssi (%) |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| **Luovuus ja syvyys (Bloomin Taksonomia)** | `blk_f921c7c0989b47e8` | 1–6 | 30 | 2 | 93.3 % |
+| **Harkintakyky (Kahnemanin Kaksoisprosessiteoria)** | `blk_109dab5b6b3f403a` | 1–3 | 15 | 0 | 100.0 % |
+| **Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki)** | `blk_53f32679aa514fcb` | 1–5 | 25 | 0 | 100.0 % |
+| **Luottamusarvio (XAI-Raportoija)** | `blk_6b8c766185294f7e` | 1–3 | 15 | 0 | 100.0 % |
+
+## Erimielisyyksien Juurisyydiagnoosi (Root Cause Triage)
+
+Kaikki erimielisyydet on luokiteltu deterministisesti neljään kategoriaan: 1) Tiedonhaun aukko (yksi ajo löysi sitaatin, toinen ei), 2) Päättelyn aukko (molemmat löysivät tai molemmilta puuttui, mutta päätös eri), 3) Kontekstuaalinen ohitus, ja 4) Tekninen virhe / DLQ.
+
+| Erimielisyyden Juurisyy | Esiintymiskerrat | Osuus Erimielisyyksistä (%) |
+| :--- | :---: | :---: |
+| **Tiedonhaun aukko (Retrieval Gap)** | 1 | 50.0 % |
+| **Päättelyn aukko (Reasoning Gap)** | 0 | 0.0 % |
+| **Kontekstuaalinen ohitus (Contextual Override)** | 1 | 50.0 % |
+| **Tekninen virhe / DLQ (Technical Error)** | 0 | 0.0 % |
+| **Yhteensä** | **2** | **100.0 %** |
+
+## Makrotason Pistemäärä- ja Luottamusdiffit (Macro Score Drift 0–100)
+
+Lohkokohtaiset pistemäärät perustuvat ajojen `normalized_score` -kenttään (0–100 asteikko) sekä atomitason läpäisyasteeseen.
+
+- **Keskimääräinen itseisarvopoikkeama (MAD - Mean Absolute Delta):** `0.13` pistettä
+- **Suurin yksittäisen lohkon poikkeama (Max Drift):** `0.53` pistettä
+
+| Lohko / Matriisi | Run 1 Pisteet (Raaka & Norm) | Run 2 Pisteet (Raaka & Norm) | $\Delta$ Norm | Run 1 Waterfall-katkos | Run 2 Waterfall-katkos | Run 1 Läpäisy | Run 2 Läpäisy | $\Delta$ Läpäisy |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`blk_109dab5b6b3f403a` (Harkintakyky (Kahnemanin Kaksoisprosessiteoria), Asteikko 1–3)** | Raw: 1.1 / 3 | Norm: 4.7 % | Raw: 1.1 / 3 | Norm: 4.7 % | +0.0 % | Taso 1.0 (2/5 osumaa) | Taso 1.0 (2/5 osumaa) | 66.7 % | 66.7 % | +0.0 % |
+| **`blk_f921c7c0989b47e8` (Luovuus ja syvyys (Bloomin Taksonomia), Asteikko 1–6)** | Raw: 1.2 / 6 | Norm: 4.3 % | Raw: 1.2 / 6 | Norm: 3.8 % | -0.5 % | Taso 1.0 (0/5 osumaa) | Taso 1.0 (0/5 osumaa) | 63.3 % | 63.3 % | +0.0 % |
+| **`blk_53f32679aa514fcb` (Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki), Asteikko 1–5)** | Raw: 1.0 / 5 | Norm: 0.0 % | Raw: 1.0 / 5 | Norm: 0.0 % | +0.0 % | Taso 1.0 (0/5 osumaa) | Taso 1.0 (0/5 osumaa) | 52.0 % | 52.0 % | +0.0 % |
+| **`blk_6b8c766185294f7e` (Luottamusarvio (XAI-Raportoija), Asteikko 1–3)** | Raw: 1.0 / 3 | Norm: 0.0 % | Raw: 1.0 / 3 | Norm: 0.0 % | +0.0 % | Taso 1.0 (0/5 osumaa) | Taso 1.0 (0/5 osumaa) | 66.7 % | 66.7 % | +0.0 % |
+
+## Evidenssiluokkien ja Ohitusten Jakauma (Evidence Class & Override Distribution)
+
+Taulukko erittelee arvioitujen atomien jakauman kussakin ajossa: suorat empiiriset sitaatit, käänteisen evidenssin läpäisyt (Null Hypothesis), kontekstuaaliset ohitukset, sääntödemootiot ja hylkäykset.
+
+| Ajo | Empiiriset sitaatit | Käänteiset läpäisyt (Null Hypothesis) | Kontekstuaaliset ohitukset | Sääntödemootiot | Hylätyt (FAILED) | Yhteensä arvioitu |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **R1 (exe_28f0798ef2d946c7)** | 8 | 44 | 0 | 0 | 33 | 85 |
+| **R2 (exe_62035476fd1c4934)** | 7 | 45 | 0 | 0 | 33 | 85 |
+
+## FinOps & Välimuistisäästöt (Cache Economics & Cost Drift)
+
+| FinOps -metriikka | Run 1 | Run 2 | $\Delta$ (R2 - R1) |
+| :--- | :---: | :---: | :---: |
+| **Kokonaiskustannus ($)** | $1.2211 | $1.2889 | $+0.0678 |
+| **Syötetokenit (Prompt)** | 963,844 | 963,133 | -711 |
+| **Tuotostokenit (Completion)** | 184,173 | 192,561 | +8,388 |
+| **Välimuistitokenit (Cached)** | 461,602 | 413,623 | -47,979 |
+| **Välimuistin tuoma säästö ($)** | $0.0260 | $0.0233 | -0.0027 |
+
+## Lainausten Aitoustarkastus (Lexical Grounding Audit)
+
+Kaikki mallin poimimat suorat sitaatit tarkastetaan sanatarkasti ja whitespace-normalisoidusti (`str.find`) suhteessa alkuperäisiin syötetiedostoihin chimera- ja hallusinaatioriskien varalta.
+
+| Ajo | Syötteet Saatavilla | Sitaatteja | Verifioidut | Vahvistamattomat | Aitoustaso (%) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **exe_28f0798ef2d946c7** | Kyllä | 8 | 7 | 1 | 87.5 % |
+| **exe_62035476fd1c4934** | Kyllä | 7 | 6 | 1 | 85.7 % |
+
+## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)
+- **Erimielisyyttä näiden välillä:** 2 kpl
+- **Contextual Override -lähtöiset erimielisyydet koko setissä:** 1 / 2
+- **PASSED -> FAILED:** 1
+- **FAILED -> PASSED:** 1
+- **Muut siirtymät:** 0
+
+## Epävakaimmat Testitapaukset / Kysytyt Säännöt (Järjestetty Entropian mukaan)
+Alla on listattu kaikki säännöt ja kysymykset, joissa ilmeni erimielisyyttä tai epävakautta eri ajokertojen välillä. Kaikkein vaihtelevimmat/epävakaimmat tapaukset (korkein entropia) ovat listan alussa.
+
+### Atom-ID: `tda_6a779cd5e9714994b83168dd0fef0ef7` (Entropia: 1.000, Konsistenssi: 0.0%)
+- **Lohko / Matriisi:** `Luovuus ja syvyys (Bloomin Taksonomia)` (`blk_f921c7c0989b47e8`)
+- **Skaala / Taso:** `Soveltaminen` (Arvo: `3`)
+- **Skooppi (Scope):** `paragraph` | **Käänteinen evidenssi (Inverse):** `Ei (False)`
+- **Kysymys / Konsepti:** Applying an abstract conceptual rule directly to an operational entity or workflow problem.
+- **Etsintäsääntö (Extraction Rule):** The text applies an abstract framework to govern a concrete operational scenario or architectural artifact.
+- **Ankkuritargetti (Anchor Target):** Find theoretical frameworks mapped to operational workflows.
+- **Esimerkki (Contrastive Example):**
+  - *Acceptable:* Applying the principle of bounded contexts, we assign customer billing and catalog management to separate isolated domain services.
+  - *Rejected:* Bounded contexts represent linguistic and operational boundaries within Domain-Driven Design.
+
+**Havaitut tilat, sitaatit ja perustelut ajoittain:**
+- **Run 1 (exe_28f0798ef2d946c7) - [PASSED]:**
+  - **Sitaatti (Löytyi, 63 merkkiä):** `Toimitusketjun lyhentäminen ja läpinäkyvyys vähentävät riskejä.`
+  - **Perustelu:** *Tekstissä sovelletaan abstraktia megatrendianalyysia suoraan operatiivisiin toimenpiteisiin, kuten toimitusketjujen lyhentämiseen ja päästöttömyystiekarttoihin.*
+- **Run 2 (exe_62035476fd1c4934) - [FAILED]:**
+  - **Sitaatti (Ei sitaattia):** -
+  - **Perustelu:** *Suositellut toimenpiteet pysyvät yleisellä strategisella tasolla, eikä abstraktia sääntöä sovelleta suoraan konkreettiseen tekniseen tai operatiiviseen työnkulkuun.*
+
+---
+
+### Atom-ID: `tda_216cc3fd45284deb8d51ea4cf2b2fd93` (Entropia: 1.000, Konsistenssi: 0.0%)
+- **Lohko / Matriisi:** `Luovuus ja syvyys (Bloomin Taksonomia)` (`blk_f921c7c0989b47e8`)
+- **Skaala / Taso:** `Muistaminen` (Arvo: `1`)
+- **Skooppi (Scope):** `paragraph` | **Käänteinen evidenssi (Inverse):** `Kyllä (True)`
+- **Kysymys / Konsepti:** Dogmatic assertion of universal fact presented without epistemic qualification, empirical proof, or literature citation.
+- **Etsintäsääntö (Extraction Rule):** The proposition asserts absolute certainty regarding an empirical claim without providing epistemic boundaries or citation.
+- **Ankkuritargetti (Anchor Target):** Find dogmatic assertions of unchallengeable fact.
+- **Esimerkki (Contrastive Example):**
+  - *Acceptable:* It is universally established that monolithic architectures are obsolete for all contemporary software deployments.
+  - *Rejected:* Empirical studies suggest that microservice topologies yield scaling advantages primarily when team boundaries align with bounded contexts.
+
+**Havaitut tilat, sitaatit ja perustelut ajoittain:**
+- **Run 1 (exe_28f0798ef2d946c7) - [FAILED]:**
+  - **Sitaatti (Ei sitaattia):** -
+  - **Perustelu:** *Tekstissä esitetään ehdottomia yleistyksiä ja väitteitä ainoasta mahdollisesta kehityskulusta ilman episteemisiä varauksia tai empiirisiä viitteitä.*
+- **Run 2 (exe_62035476fd1c4934) - [PASSED] **[CONTEXTUAL OVERRIDE]**:**
+  - **Sitaatti (Ei sitaattia):** -
+  - **Perustelu:** *Tekstissä esitetyt näkemykset ankkuroidaan eksplisiittisesti viitattuihin Sitran megatrendiraportteihin, eikä niitä esitetä dogmaattisina universaaleina totuuksina ilman kontekstia.*
+
+---
+

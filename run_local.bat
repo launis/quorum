@@ -60,7 +60,8 @@ echo.
 :: Aggressive cleanup: Kill lingering processes that might hold file locks
 echo [Cleaning orphaned processes...]
 :: Snipe headless Python workers that lost window headers, preventing database/log file locks
-powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | ? { $_.Name -eq 'python.exe' -and $_.CommandLine -match 'backend_v2|uvicorn' } | Stop-Process -Force -ErrorAction SilentlyContinue"
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | ? { $_.Name -eq 'python.exe' -and ($_.CommandLine -match 'backend_v2\.main|backend_v2\.run_worker|run_worker|uvicorn') -and ($_.CommandLine -notmatch 'run_e2e_variance_test') } | Stop-Process -Force -ErrorAction SilentlyContinue"
+
 taskkill /F /IM uvicorn.exe >nul 2>&1
 FOR /F "tokens=5" %%P IN ('netstat -a -n -o ^| findstr :8000 ^| findstr LISTENING') DO taskkill /F /T /PID %%P >nul 2>&1
 taskkill /F /T /FI "WINDOWTITLE eq CQ Backend V2*" >nul 2>&1

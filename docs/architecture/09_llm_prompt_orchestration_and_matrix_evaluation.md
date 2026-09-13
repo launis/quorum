@@ -393,6 +393,16 @@ The underlying sensor model `BooleanEvaluationResult` enforces the **Null Hypoth
 
 The service layer resolves `a0` to its concrete assertion ID via `AliasEngine`, applies the `is_inverse = True` mapping, and marks the result as `ExecutionStatus.FAILED` with the exact citation preserved for Server-Driven UI (SDUI) rendering.
 
+### 3.4 Zero-Trust Blind Flattening (`atom_flattening_hook`) & Multi-Scale Independence
+A critical architectural invariant in Quorum is the absolute prohibition of holistic score selection by foundational models. Prompts that instruct an LLM to evaluate a document against a 1-to-5 BARS scale predictably succumb to the **Halo Effect**: the model forms an early intuitive judgment, selects an arbitrary score level (e.g., Level 3), and selectively ignores evidence that contradicts that level.
+
+To enforce objective, verifiable evaluation, the prompt compiler implements **Zero-Trust Blind Flattening**:
+1. **Hook Interception (`atom_flattening_hook`):** When a step executes a matrix block, the pre-hook extracts assertions from all scale levels (`MatrixPromptBlock.scales`).
+2. **De-Scoring & Anonymization:** Every assertion is transformed into a `FlattenedAtom` DTO. All numerical scores, level labels (e.g., `ai_label: CATASTROPHIC FAILURE`), and tier rankings are completely removed.
+3. **Deterministic Random Shuffling:** The assertions are shuffled into `shuffled_atoms` using an execution-locked pseudo-random seed. The LLM receives an unstructured, blind pool of claims (`a0` through `aN`) where assertions from Level 1, Level 2, and Level 5 sit side-by-side without any indication of their evaluative difficulty.
+4. **Independent Atomic Verification:** The model must evaluate every claim strictly on its empirical merits against the source text (`PASSED` vs `FAILED`), providing verbatim textual evidence.
+5. **Deterministic Post-Execution Aggregation:** The backend maps each evaluated atom back to its original BARS scale level, calculating exact scale hit distributions ($k/N$) and computing final matrix scores via mathematical algorithms rather than generative opinion.
+
 ---
 
 ## 4. Comprehensive Non-Matrix Prompt Block Reference
