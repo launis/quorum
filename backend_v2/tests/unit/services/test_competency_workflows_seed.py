@@ -559,7 +559,7 @@ def test_competency_workflow_assignment_context_governance() -> None:
     assert step_7.input_mappings["assignment_context"] == "$inputs.assignment_context"
     assert step_7.is_synthesis_source is True
 
-    # 3. Assert wf_02 step 4 (sr_02c1d71000000004) also preserves assignment_context mapping
+    # 3. Assert wf_02 step 4 (sr_02c1d71000000004) and step 8 (sr_02c1d71000000008) preserve assignment_context mapping
     wf_02 = Workflow.model_validate(workflows["wf_02a1d71000000002"])
     step_4 = next((s for s in wf_02.steps if s.id == "sr_02c1d71000000004"), None)
     assert step_4 is not None, "Step sr_02c1d71000000004 missing from wf_02"
@@ -567,3 +567,40 @@ def test_competency_workflow_assignment_context_governance() -> None:
         f"Step sr_02c1d71000000004 in wf_02 must map 'assignment_context', got {step_4.input_mappings}"
     )
     assert step_4.input_mappings["assignment_context"] == "$inputs.assignment_context"
+
+    step_8 = next((s for s in wf_02.steps if s.id == "sr_02c1d71000000008"), None)
+    assert step_8 is not None, "Step sr_02c1d71000000008 missing from wf_02"
+    assert "assignment_context" in step_8.input_mappings, (
+        f"Step sr_02c1d71000000008 in wf_02 must map 'assignment_context', got {step_8.input_mappings}"
+    )
+    assert step_8.input_mappings["assignment_context"] == "$inputs.assignment_context"
+
+    # 4. Assert external normative frameworks declare complete input_modes ["assignment", "file", "paste"]
+    wf_04 = Workflow.model_validate(workflows["wf_04a1d71000000004"])
+    se_04 = next((ei for ei in wf_04.expected_inputs if ei.input_key == "source_evidence"), None)
+    assert se_04 is not None, "source_evidence missing from wf_04"
+    assert set(se_04.input_modes) == {"assignment", "file", "paste"}
+    assert se_04.is_assignment is True
+
+    wf_05 = Workflow.model_validate(workflows["wf_05a1d71000000005"])
+    cf_05 = next((ei for ei in wf_05.expected_inputs if ei.input_key == "compliance_framework"), None)
+    assert cf_05 is not None, "compliance_framework missing from wf_05"
+    assert set(cf_05.input_modes) == {"assignment", "file", "paste"}
+    assert cf_05.is_assignment is True
+    se_05 = next((ei for ei in wf_05.expected_inputs if ei.input_key == "source_evidence"), None)
+    assert se_05 is not None, "source_evidence missing from wf_05"
+    assert set(se_05.input_modes) == {"assignment", "file", "paste"}
+    assert se_05.is_assignment is True
+
+    # 5. Assert enable_contextual_overrides is True across all competency workflows
+    for wf_id in [
+        "wf_01a1d71000000001",
+        "wf_02a1d71000000002",
+        "wf_03a1d71000000003",
+        "wf_04a1d71000000004",
+        "wf_05a1d71000000005",
+    ]:
+        wf_model = Workflow.model_validate(workflows[wf_id])
+        assert wf_model.enable_contextual_overrides is True, (
+            f"Workflow {wf_id} must have enable_contextual_overrides=True"
+        )

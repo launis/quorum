@@ -18057,7 +18057,7 @@
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "default_strictness_level": 50,
       "default_scoring_strategy": "AVERAGE",
-      "enable_contextual_overrides": false,
+      "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
       "system_audit_trail": false,
@@ -18446,7 +18446,8 @@
           ],
           "input_mappings": {
             "results": "$steps.sr_02c1d71000000007",
-            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms"
+            "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
+            "assignment_context": "$inputs.assignment_context"
           },
           "expected_sdui_type": "markdown",
           "is_synthesis_source": true,
@@ -18483,7 +18484,7 @@
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "default_strictness_level": 50,
       "default_scoring_strategy": "AVERAGE",
-      "enable_contextual_overrides": false,
+      "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
       "system_audit_trail": false,
@@ -18723,7 +18724,7 @@
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "default_strictness_level": 50,
       "default_scoring_strategy": "AVERAGE",
-      "enable_contextual_overrides": false,
+      "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
       "system_audit_trail": false,
@@ -18746,6 +18747,7 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": false,
           "input_modes": [
+            "assignment",
             "file",
             "paste"
           ],
@@ -18935,7 +18937,7 @@
       "mcp_gateway_id": "sys_8172bda70c8641c5",
       "default_strictness_level": 50,
       "default_scoring_strategy": "AVERAGE",
-      "enable_contextual_overrides": false,
+      "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
       "system_audit_trail": false,
@@ -18958,6 +18960,7 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": false,
           "input_modes": [
+            "assignment",
             "file",
             "paste"
           ],
@@ -19006,6 +19009,7 @@
           "is_chat_history": false,
           "scan_for_performative_patterns": false,
           "input_modes": [
+            "assignment",
             "file",
             "paste"
           ],
