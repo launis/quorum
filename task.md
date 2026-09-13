@@ -68,6 +68,12 @@
   - [x] Run `uv run pytest backend_v2/tests/unit -q` (3,318 tests passed)
   - [x] Run `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`
 
+- [x] Step 10: Post-Audit Quality Gate Remediation
+  - [x] Import `Any` from `typing` in `test_source_document_packer.py` and `test_diff_executions.py` (resolving fatal `F821 Undefined name Any`)
+  - [x] Wrap lines exceeding 120 chars across `matrix_hook.py`, `source_document_packer.py`, `diff_executions.py`, and `test_diff_executions.py`
+  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2 --test` and confirm 100% PASS with exit code 0 (94.64% test coverage, 3,318 tests passed)
+  - [x] Perform atomic git commit `b7683c11`
+
 ---
 
 # Session Handover Context
@@ -82,16 +88,18 @@
 - **Step 7 (`c02390bc`):** Harmonized workflow invariants in `seed_data.json` (`enable_contextual_overrides: true`, `assignment` input modes for external frameworks), updated seed assertions, and re-seeded database.
 - **Step 8 (`5a02fda6`):** Resolved ghost matrix reduction by iterating `record.step_states.values()` instead of `record.steps`, forwarded `execution_id` and `step_id` from `TDAEngine` through `EnrichedDagExecutor` to `ExtractiveSensorService.evaluate_atom_boolean_batch` in `validation_context`.
 - **Step 9 (`092a4016`):** Verified ISTQB negative partitions, updated model regex error assertions, confirmed 3,318/3,318 unit tests passed and SDUI semantic parity verified.
+- **Step 10 (`b7683c11`):** Post-Audit Quality Gate Remediation: fixed `F821` missing `Any` imports in `test_source_document_packer.py` and `test_diff_executions.py`, wrapped lines exceeding 120 chars, and verified 100% exit code 0 across all 6 stages of `backend_audit_loop.py backend_v2 --test` with 94.64% coverage.
 
 ## Learned
 - Iterating `record.steps` in `MatrixReducer.reduce_matrix` starved Phase 2 synthesis of all 85 evaluated atoms because `scorecard_atoms` is populated on `record.step_states.values()`.
 - Error messages in Pydantic validators must be kept strictly synchronized with ISTQB test assertions when adding new domain invariants like `is_inverse_evidence`.
+- Static analysis via `ruff check` catches deferred-evaluation type annotation scope leaks (such as `dict[str, Any]` missing `from typing import Any`) that Python 3.14 deferred evaluation allows during localized runtime test execution.
 
 ## Remaining
-- All implementation plan steps (1-9) are 100% COMPLETE.
-- Mandatory Red-Team Audit routing via `/tier8-audit-plan`.
+- All implementation plan and remediation steps (1-10) are 100% COMPLETE.
+- Mandatory Red-Team Audit sign-off via `/tier8-audit-plan`.
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="@[implementation_plan.md]" --workflow=/tier8-audit-plan
+/tier5-resume --target="@[task.md]" --workflow=/tier8-audit-plan
 ```
