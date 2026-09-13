@@ -58,6 +58,17 @@
         <mandatory_pattern>ALL entity targeting for execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Background workers must operate as strictly deterministic executors with zero domain guessing.</mandatory_pattern>
         <catastrophic_reason>Heuristic substring matching and hardcoded identifier markers break silently whenever workflows are modernized or renamed, causing downstream synthesis and PDF generation to crash with missing metrics.</catastrophic_reason>
     </rule_block>
+    <rule_block id="zero_backward_compatibility_planning_ban">
+        <banned_pattern>Proposing, planning, or implementing "backwards compatibility", "legacy fallbacks", "defensive fallbacks", "safe defaults", or "all-inclusive fallbacks" (such as "if unmapped, fall back to passing all documents", or "if key missing, keep old behavior").</banned_pattern>
+        <mandatory_pattern>In all Epics, Implementation Plans, and domain code, backwards compatibility and legacy fallback chains are STRICTLY BANNED. If a step, contract, or domain model expects X, a missing or unmapped X MUST deterministically resolve to an empty set or trigger Fail-Fast (`AppException`). You are STRICTLY FORBIDDEN from rationalizing fallback mechanisms as "zero regressions" or "backward safety".</mandatory_pattern>
+        <catastrophic_reason>Defensive fallback thinking bypasses step contracts, leaks unauthorized context, creates parallel logic branches, and guarantees catastrophic context pollution.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="single_pipeline_invariant_mandate">
+        <banned_pattern>Creating bifurcated pipelines or parallel execution paths where a "new strict logic" coexists with a "legacy permissive logic" (such as branching based on presence of mappings or flags).</banned_pattern>
+        <mandatory_pattern>ALL execution paths MUST flow through exactly ONE sovereign, deterministic pipeline. Every step and worker must be evaluated against the exact same mathematical invariants from the very first line of code, without conditional modes or legacy escape hatches.</mandatory_pattern>
+        <catastrophic_reason>Bifurcated pipelines destroy the Single Source of Truth, double test maintenance overhead, and allow broken legacy behavior to permanently evade modern quality gates.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

@@ -458,8 +458,7 @@ def test_build_xml_context_assignment_mode() -> None:
     assert '<matrix_input source_id="doc">' in xml
     doc_section = xml.split('source_id="doc"')[1].split("</matrix_input>")[0]
     assert (
-        "<user_payload>\n<![CDATA[Here is the comprehensive liquidity risk report.]]>\n</user_payload>"
-        in doc_section
+        "<user_payload>\n<![CDATA[Here is the comprehensive liquidity risk report.]]>\n</user_payload>" in doc_section
     )
     assert "<assignment_context>" not in doc_section
 
@@ -546,7 +545,7 @@ def test_calibrate_strictness_exceptions_and_none() -> None:
     compiler = PromptCompiler()
     assert compiler.calibrate_strictness(None) == ""
     with pytest.raises(AppException):
-        compiler.calibrate_strictness("invalid_string")
+        compiler.calibrate_strictness("invalid_string")  # type: ignore[arg-type]
 
 
 def test_get_schema_healing_prompt_strictness_100() -> None:
@@ -623,4 +622,3 @@ def test_extract_value_from_state_complex_types() -> None:
     assert "world" in compiler._extract_value_from_state("nested.nested_model.field_a", state)
     assert compiler._extract_value_from_state("number", state) == "99"
     assert compiler._extract_value_from_state("flag", state) == "True"
-

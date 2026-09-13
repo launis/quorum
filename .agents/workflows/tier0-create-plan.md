@@ -94,6 +94,8 @@ description: Tier 0 (Create Plan) - Generates a single-phase architectural imple
         11. Exact String Matching: `str.find()` for forensic quote evidence (no regex or fuzzy matching).
         12. AST Guardrail Mandate: Structural testing of new architectural constraints must precede execution.
         13. Scoped Boy Scout Rule &amp; Technical Debt Sweep: Actively inspect touched target files for existing anti-patterns (getattr, .get, unvalidated model_copy, magic numbers, hardcoded UI strings/colors) and enforce their resolution in Phase 1 before new business logic is added.
+        14. Zero Backward Compatibility Planning Ban: Prohibits phrases and planning concepts like "backwards compatibility", "legacy fallback", "defensive fallback", "safe defaults", or "all-inclusive default". If a contract requires X, missing X deterministically yields an empty set or Fail-Fast AppException.
+        15. Single Invariant Pipeline Law: Strictly bans bifurcated pipelines where "new strict logic" coexists with "legacy permissive logic". All steps flow through one single sovereign pipeline.
       </constraint>
     </step>
 

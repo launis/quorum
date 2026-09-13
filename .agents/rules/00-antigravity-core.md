@@ -124,6 +124,12 @@ trigger: always_on
     <rule_block id="ban_heuristic_identifier_matching">
         <mandate>NEVER identify, filter, target, or resolve workflow steps, prompt blocks, matrices, or execution artifacts in background workers or services using hardcoded identifier tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`, `_NAMES`), or substring searches (`marker in step.name.lower()`). ALL entity targeting for execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Hardcoding heuristic string lookups as a substitute for explicit UI contracts is STRICTLY PROHIBITED.</mandate>
     </rule_block>
+    <rule_block id="zero_backward_compatibility_planning_ban">
+        <mandate>NEVER propose, plan, design, or implement "backwards compatibility", "legacy fallbacks", "defensive fallbacks", "safe defaults", or "all-inclusive fallbacks" (such as "if unmapped, fall back to passing all documents", or "if key missing, keep old behavior"). In all Epics, Implementation Plans, and domain code, backwards compatibility and legacy fallback chains are STRICTLY BANNED. If a step, contract, or domain model expects X, a missing or unmapped X MUST deterministically resolve to an empty set or trigger Fail-Fast (`AppException`). Rationalizing fallback mechanisms as "zero regressions" or "backward safety" is STRICTLY FORBIDDEN.</mandate>
+    </rule_block>
+    <rule_block id="single_pipeline_invariant_mandate">
+        <mandate>NEVER create bifurcated pipelines or parallel execution paths where a "new strict logic" coexists with a "legacy permissive logic" (such as branching based on presence of mappings or flags). ALL execution paths MUST flow through exactly ONE sovereign, deterministic pipeline. Every step and worker must be evaluated against the exact same mathematical invariants from the very first line of code, without conditional modes or legacy escape hatches.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>

@@ -61,6 +61,8 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
         - LLM Architect: `LLMClient.from_strategy()` via Model Garden, static cache prefix survival (Layer 1-3 prefix, Layer 4 dynamic tail), exact `str.find()` evidence.
         - Flutter &amp; SDUI: 1:1 cross-domain DTO parity with Dart Freezed (`@Freezed(unionKey: ...)` without fallback defaults), `AppErrorBoundary` wrapping.
         - Anti-Pattern Sweep: Eradicate "e.g." ambiguity, raw dict passing, hardcoded timeouts/strings, and lazy `.get()`/`or` defaults.
+        - Zero Backward Compatibility Sweep: Eradicate phrases and planning concepts like "backwards compatibility", "legacy fallback", "defensive fallback", "safe defaults", or "all-inclusive default". Missing inputs must yield empty set or Fail-Fast AppException.
+        - Single Invariant Pipeline Law: Strictly eliminate bifurcated pipelines where "new strict logic" coexists with "legacy permissive logic". All execution flows through one sovereign pipeline.
       </constraint>
       <constraint name="PHASE_C_FIVE_AXIS_SYSTEM2_DECONSTRUCTION">
         For every core architectural concept, execute rigorous Five-Axis Adversarial Cross-Examination:
