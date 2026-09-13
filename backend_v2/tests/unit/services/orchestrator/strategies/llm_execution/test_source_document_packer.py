@@ -2,6 +2,9 @@
 
 import re
 
+import pytest
+
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
@@ -81,11 +84,11 @@ def test_source_document_packer_istqb_negatives() -> None:
     assert SourceDocumentPacker.pack("   ") == ""
     assert SourceDocumentPacker.pack({}) == ""
 
-    # Invalid primitive / collection types
-    assert SourceDocumentPacker.pack(12345) == ""
-    assert SourceDocumentPacker.pack(3.14) == ""
-    assert SourceDocumentPacker.pack(True) == ""
-    assert SourceDocumentPacker.pack(["doc1", "doc2"]) == ""
+    # Invalid primitive / collection types raise fail-fast AppException
+    for invalid_val in [12345, 3.14, True, ["doc1", "doc2"]]:
+        with pytest.raises(AppException) as exc_info:
+            SourceDocumentPacker.pack(invalid_val)
+        assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
     # Dictionary with non-string, whitespace, or empty values
     inputs_with_garbage = {

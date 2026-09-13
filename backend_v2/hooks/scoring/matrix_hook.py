@@ -4,7 +4,7 @@ import logging
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import (
     GlobalContextVarsDTO,
@@ -31,7 +31,20 @@ from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["matrix_scoring_hook"]
+__all__ = ["AtomScoringRuleDTO", "matrix_scoring_hook"]
+
+
+class AtomScoringRuleDTO(BaseModel):
+    """Encapsulates matrix scoring criteria and attribution rules for a single TDA atom."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    block_id: str
+    scale_value: float
+    concept_description: str
+    aggregation_mode: str
+    is_inverse_assertion: bool
+    allow_contextual_override: bool
 
 
 @hook_registry.register(name="matrix_scoring_hook")
@@ -178,7 +191,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        atom_mapping: dict[str, tuple[str, float, str, str, bool, bool]] = {}
+        atom_mapping: dict[str, AtomScoringRuleDTO] = {}
         blocks_meta: dict[str, dict[str, Any]] = {}
 
         # 1. Reverse extraction of Atom Hashes
@@ -201,13 +214,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     if tda_assertions:
                         for tda in tda_assertions:
                             aid = str(tda.tda_id)
-                            atom_mapping[aid] = (
-                                pb_id,
-                                s_val,
-                                tda.concept_description,
-                                str(tda.aggregation_mode),
-                                tda.inverse_evidence,
-                                pb_model.allow_contextual_override,
+                            atom_mapping[aid] = AtomScoringRuleDTO(
+                                block_id=pb_id,
+                                scale_value=s_val,
+                                concept_description=tda.concept_description,
+                                aggregation_mode=str(tda.aggregation_mode),
+                                is_inverse_assertion=bool(tda.inverse_evidence),
+                                allow_contextual_override=bool(pb_model.allow_contextual_override),
                             )
 
             if not blocks_meta[pb_id]["scales"]:
@@ -239,7 +252,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 ev_dto_check = AtomResultDTO.model_validate(ev) if not isinstance(ev, AtomResultDTO) else ev
                 if str(ev_dto_check.status) == "DLQ" or ev_dto_check.status == ExecutionStatus.SYSTEM_ERROR:
                     is_val = True
-            except ValidationError:
+            except ValidationError as err:
                 # Check for infra DLQ envelope
                 try:
                     ev_dict_check = TypeAdapter(dict[str, Any]).validate_python(ev)
@@ -247,8 +260,12 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                         is_infra = True
                     elif "status" in ev_dict_check and str(ev_dict_check["status"]) == "DLQ":
                         is_val = True
-                except ValidationError:
-                    pass
+                except ValidationError as dict_err:
+                    logger.warning(
+                        "[ScoringHook] Item in evaluations failed both AtomResultDTO and dict validation: %s; %s",
+                        err,
+                        dict_err,
+                    )
 
             if is_infra or is_val:
                 dlq_evals += 1
@@ -319,8 +336,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         is_ev_infra_dlq = (
                                             "_dlq_status" in ev_dict_tmp and ev_dict_tmp["_dlq_status"] == "FAILED/DLQ"
                                         )
-                                    except ValidationError:
-                                        pass
+                                    except ValidationError as e:
+                                        logger.warning(
+                                            "[ScoringHook] Evaluation item failed dict validation for infra DLQ check: %s",
+                                            e,
+                                        )
 
                                     if is_ev_infra_dlq:
                                         continue
@@ -349,7 +369,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         if ev_dto.matrix_id is not None and ev_dto.matrix_id != pb_id:
                                             continue
 
-                                        allow_override = atom_mapping[aid][5]
+                                        allow_override = atom_mapping[aid].allow_contextual_override
                                         effective_override = enable_contextual_overrides and allow_override
 
                                         status_str = ev_dto.status.name

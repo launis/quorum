@@ -1,10 +1,14 @@
 """Source document packer for TDA and LLM evaluation strategies."""
 
+import logging
 from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.v2_core import ExpectedInput
+
+logger = logging.getLogger(__name__)
 
 
 class SourceDocumentPacker:
@@ -75,8 +79,13 @@ class SourceDocumentPacker:
 
         try:
             dict_payload = TypeAdapter(dict[str, Any]).validate_python(inputs_payload)
-        except ValidationError:
-            return ""
+        except ValidationError as e:
+            logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", e)
+            raise AppException(
+                message=f"Inputs payload validation failed: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
 
         sections: list[str] = []
         for key, value in dict_payload.items():

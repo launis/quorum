@@ -1531,7 +1531,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
             sampling_val = meta.get("matrix_sampling_strategy") if isinstance(meta, dict) else None
             if sampling_val == 0:
-                sampling_display = "0 (Kaikki 305 atomia, Tuotanto)"
+                sampling_display = "0 (Kaikki atomit, Tuotanto)"
             elif sampling_val is not None and sampling_val > 0:
                 sampling_display = f"{sampling_val} (Kehitystilan otanta)"
             elif s_lim is not None:
