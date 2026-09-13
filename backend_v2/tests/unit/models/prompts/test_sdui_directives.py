@@ -21,8 +21,9 @@ def test_sdui_and_section_directives_valid_xml() -> None:
     """Verify that global synthesis mandate and section directive are valid XML."""
     root_sdui = ET.fromstring(SYNTHESIS_SDUI_MANDATES)
     assert root_sdui.tag in ("sdui_mandate", "sdui_synthesis_mandate")
-    assert "USER ROLE EXTRACTION" in SYNTHESIS_SDUI_MANDATES
-    assert "ROLE_ARCHITECT" in SYNTHESIS_SDUI_MANDATES
+    assert "SDUI POLYMORPHIC SYNTHESIS MANDATE" in SYNTHESIS_SDUI_MANDATES
+    assert "ALLOWED SDUI BLOCKS" in SYNTHESIS_SDUI_MANDATES
+    assert "BULLET LISTS MUST USE OBJECTS" in SYNTHESIS_SDUI_MANDATES
 
     root_section = ET.fromstring(SECTION_SYNTHESIS_DIRECTIVE_BLOCK)
     assert root_section.tag == "section_synthesis_directive"

@@ -38,6 +38,7 @@ def _create_profile(extensions: list[XaiExtensionType] | None = None) -> OutputP
         content_blocks=[],
         target_block_order=[],
         visible_workflow_extensions=extensions if extensions is not None else [XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block="blk_0123456789abcdef",
     )
 
 

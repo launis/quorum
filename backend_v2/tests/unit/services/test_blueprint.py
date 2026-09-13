@@ -2244,7 +2244,7 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
     """Verifies that OutputProfile settings strictly drive SDUI block dispatch, metadata filtering, and XAI highlight limits."""
     from datetime import datetime, timezone
 
-    from backend_v2.models.view.sdui import AccordionBlock, SduiMetadataBlock
+    from backend_v2.models.view.sdui import AccordionBlock, ParagraphBlock, SduiMetadataBlock
 
     custom_profile = OutputProfile(
         id="prf_1111222233334444",
@@ -2293,7 +2293,11 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
                     XaiHighlightItem(extension_type="coaching", content="Avoid monolithic God classes."),
                     XaiHighlightItem(extension_type="falsification", content="Validate performance assumptions."),
                 ],
-                section_syntheses={},
+                section_syntheses={
+                    TargetBlockType.EXECUTIVE_SUMMARY_BLOCK.value: [
+                        ParagraphBlock(text="Executive summary content.", exact_quotes=[], citations=[])
+                    ]
+                },
             )
         },
         target_locale="fi",

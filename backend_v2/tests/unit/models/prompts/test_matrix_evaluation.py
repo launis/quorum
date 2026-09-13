@@ -83,6 +83,7 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
         "ai_context_directive",
         "user_payload",
         "ai_draft_context",
+        "assignment_context",
         "target_speaker",
     }
     structural_open_tags = [t for t in re.findall(r"<([a-z_]+)>", prompt) if t not in ignored_instruction_tags]

@@ -4,6 +4,9 @@ Provides baseline default templates as plain English str constants used exclusiv
 for seeding and Studio UI 'New Profile' creation. Never invoked during runtime synthesis.
 """
 
+import re
+
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.enums import PresetView, TargetBlockType
 from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 from backend_v2.settings import get_settings
@@ -89,8 +92,13 @@ def build_draft_output_profile(
         TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
         TargetBlockType.SYNTHESIS_TEXT_BLOCK,
         TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
-        TargetBlockType.VARIANCE_VALIDATION_BLOCK,
     ]
+
+    valid_variance_block = (
+        initial_target_block
+        if initial_target_block and re.match(OPAQUE_STRIPE_ID_REGEX, initial_target_block)
+        else None
+    )
 
     matrix_synthesis_groups: list[MatrixSynthesisGroup] = []
     if initial_target_block:
@@ -102,12 +110,15 @@ def build_draft_output_profile(
                 view_type=PresetView.METRICS_1D,
             )
         )
+    if valid_variance_block:
+        target_block_order.append(TargetBlockType.VARIANCE_VALIDATION_BLOCK)
 
     return OutputProfile(
         id=profile_id,
         slug="draft-profile",
         workflow_id=workflow_id,
         organization_id=organization_id,
+        variance_target_block=valid_variance_block,
         name=I18nText(translations={"en": "New Output Profile", "fi": "Uusi tulosprofiili"}),
         description=I18nText(
             translations={

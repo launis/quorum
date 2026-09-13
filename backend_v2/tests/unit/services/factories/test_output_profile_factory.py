@@ -33,7 +33,6 @@ def test_build_draft_output_profile_default() -> None:
         TargetBlockType.EXECUTIVE_SUMMARY_BLOCK,
         TargetBlockType.SYNTHESIS_TEXT_BLOCK,
         TargetBlockType.GROUPED_EXTENSIONS_BLOCK,
-        TargetBlockType.VARIANCE_VALIDATION_BLOCK,
     ]
     assert profile.target_block_order == expected_blocks
     assert all(isinstance(block, TargetBlockType) for block in profile.target_block_order)
