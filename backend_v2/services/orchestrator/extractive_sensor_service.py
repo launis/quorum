@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Annotated, Self
+from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from rapidfuzz import fuzz
@@ -393,6 +393,8 @@ class ExtractiveSensorService:
         target_locale: str,
         matrix_context: MatrixEvaluationContext | None = None,
         current_states: dict[str, AtomExecutionState] | None = None,
+        execution_id: str | None = None,
+        step_id: str | None = None,
     ) -> tuple[dict[str, AtomEvaluationResultDTO], TokenUsage]:
         """Evaluates a batch of atom claims against the source text using an LLM.
 
@@ -404,6 +406,8 @@ class ExtractiveSensorService:
             target_locale: Target locale/language code for scorecard reasoning (e.g. 'fi').
             matrix_context: Optional evaluation context for matrix-level overrides.
             current_states: Optional dictionary of current atom execution states.
+            execution_id: Optional execution identifier for telemetry and logging.
+            step_id: Optional step identifier for telemetry and logging.
 
         Returns:
             A tuple of:
@@ -474,11 +478,16 @@ class ExtractiveSensorService:
         async def _single_ensemble_call(call_idx: int) -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
             async with semaphore:
                 try:
+                    validation_context: dict[str, Any] = {
+                        "sub_task": f"extractive_sensor_bo3_call_{call_idx}",
+                        "execution_id": execution_id,
+                        "step_id": step_id,
+                    }
                     result, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,
                         response_model=BatchEvaluationResponse,
-                        validation_context={"sub_task": f"extractive_sensor_bo3_call_{call_idx}"},
+                        validation_context=validation_context,
                     )
 
                     call_results: dict[str, AtomEvaluationResultDTO] = {}

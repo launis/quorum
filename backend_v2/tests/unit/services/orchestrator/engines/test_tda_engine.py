@@ -112,6 +112,9 @@ async def test_tda_engine_execute_success(
 
     mock_atomizer_instance.execute_phase_0.assert_called_once()
     mock_dag_executor_instance.execute_graph.assert_called_once()
+    _, eg_kwargs = mock_dag_executor_instance.execute_graph.call_args
+    assert eg_kwargs.get("execution_id") == engine_request.context.execution_id
+    assert eg_kwargs.get("step_id") == engine_request.step.id
     mock_projector.project.assert_called_once()
 
     assert engine_request.progress_callback is not None

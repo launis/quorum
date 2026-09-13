@@ -188,6 +188,8 @@ class TDAEngine(ExecutionEngine):
                 evaluation_context,
                 request.target_locale,
                 progress_callback=dag_progress_matrix,
+                execution_id=request.context.execution_id,
+                step_id=request.step.id,
                 semaphore=request.semaphore,
                 matrix_context=matrix_context,
             )

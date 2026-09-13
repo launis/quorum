@@ -101,7 +101,7 @@ class MatrixReducer:
         reduced_atoms: list[ReducedAtomDTO] = []
         total_atoms = 0
 
-        for step_state in record.steps:
+        for step_state in record.step_states.values():
             for atom_id, atom in step_state.scorecard_atoms.items():
                 total_atoms += 1
                 if not atom.status:
@@ -117,9 +117,12 @@ class MatrixReducer:
                 source_quote: str | None = None
                 if atom.exact_quotes:
                     first_quote = atom.exact_quotes[0]
-                    source_quote = first_quote.quote if isinstance(first_quote, QuoteEvidenceDTO) else None
+                    if isinstance(first_quote, QuoteEvidenceDTO):
+                        source_quote = first_quote.quote
 
-                extracted_data: dict[str, Any] | None = atom.extracted_facts if atom.extracted_facts else None
+                extracted_data: dict[str, Any] | None = None
+                if atom.extracted_facts:
+                    extracted_data = atom.extracted_facts
 
                 reduced_atom = ReducedAtomDTO(
                     tda_id=atom_id,

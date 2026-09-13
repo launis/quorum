@@ -54,6 +54,7 @@ class EnrichedDagExecutor:
         locale: str | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         execution_id: str = "default_run",
+        step_id: str | None = None,
         semaphore: asyncio.Semaphore | None = None,
         matrix_context: MatrixEvaluationContext | None = None,
     ) -> tuple[dict[str, AtomExecutionState], TokenUsage]:
@@ -65,6 +66,7 @@ class EnrichedDagExecutor:
             locale: Optional target locale/language code.
             progress_callback: Optional progress reporter callback function.
             execution_id: Execution identifier path.
+            step_id: Optional step identifier for telemetry and logging.
             semaphore: Concurrency limiter semaphore.
             matrix_context: Optional Matrix evaluation context.
 
@@ -120,6 +122,8 @@ class EnrichedDagExecutor:
                         target_locale=locale,
                         matrix_context=matrix_context,
                         current_states=current_states,
+                        execution_id=execution_id,
+                        step_id=step_id,
                     )
                 accumulated_usage = accumulated_usage + chunk_usage
                 res = {**pre_flight_results, **llm_results}

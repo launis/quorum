@@ -813,3 +813,66 @@ async def test_evaluate_atom_boolean_batch_invalid_locale_fails_fast(invalid_loc
     assert exc_info.value.status_code == 400
     assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
     assert "target_locale must be a non-empty string" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -> None:
+    """Verifies that execution_id and step_id are propagated to validation_context in execute_structured_task."""
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason",
+            resolved_claim="claim",
+            source_quote="quote",
+            source_id="src",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        source_quote: str | None = None
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+    executor.execute_structured_task.return_value = (
+        MockResponse(
+            results=[MockResult(alias="a1", reasoning="ok", is_true=True)]
+        ),
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.register", return_value="a1"),
+        patch(
+            "backend_v2.services.orchestrator.extractive_sensor_service.AliasEngine.resolve_alias",
+            return_value="tda_11111111111111111111111111111111",
+        ),
+    ):
+        await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            nodes=[node],
+            executor=executor,
+            client=client,
+            context_text="Test context",
+            target_locale="fi",
+            execution_id="exe_test1234567890",
+            step_id="stp_step1234567890",
+        )
+
+        assert executor.execute_structured_task.called
+        call_kwargs = executor.execute_structured_task.call_args.kwargs
+        val_ctx = call_kwargs.get("validation_context", {})
+        assert val_ctx.get("execution_id") == "exe_test1234567890"
+        assert val_ctx.get("step_id") == "stp_step1234567890"
+        assert "extractive_sensor_bo3_call_" in val_ctx.get("sub_task", "")
+

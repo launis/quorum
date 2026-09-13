@@ -97,6 +97,8 @@ async def test_execute_graph_callback(mock_llm_executor: AsyncMock, mock_llm_cli
             target_locale="fi",
             matrix_context=None,
             current_states={},
+            execution_id="default_run",
+            step_id=None,
         )
 
 
