@@ -129,16 +129,24 @@ class ResultProjector:
             if status == ExecutionStatus.FAILED:
                 source_quote_for_dto = None
                 contextual_override = False
+                is_inverse_evidence = False
             elif status == ExecutionStatus.PASSED:
                 if quote_val:
                     source_quote_for_dto = quote_val
                     contextual_override = False
+                    is_inverse_evidence = False
+                elif node.atom.is_inverse:
+                    source_quote_for_dto = None
+                    contextual_override = False
+                    is_inverse_evidence = True
                 else:
                     source_quote_for_dto = None
                     contextual_override = True
+                    is_inverse_evidence = False
             else:
                 source_quote_for_dto = quote_val
                 contextual_override = node.atom.is_logical_deduction
+                is_inverse_evidence = False
 
             res = AtomResultDTO(
                 tda_id=tda_id,
@@ -147,6 +155,7 @@ class ResultProjector:
                 extracted_data=None,
                 source_quote=source_quote_for_dto,
                 contextual_override=contextual_override,
+                is_inverse_evidence=is_inverse_evidence,
                 evaluation_reasoning=reasoning,
                 extensions=extensions,
                 error_details=error_details,

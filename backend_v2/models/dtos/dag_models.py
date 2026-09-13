@@ -82,6 +82,9 @@ class ExtractedAtom(BaseModel):
             default=False, description="Set to True if the claim is deduced purely via logic, allowing a null quote."
         ),
     ] = False
+    is_inverse: Annotated[
+        bool, Field(default=False, description="Set to True if this is an inverse assertion.")
+    ] = False
     source_quote: Annotated[
         str | None,
         Field(default=None, description="The exact verbatim quote from the original text. Immutable evidence."),
@@ -100,18 +103,18 @@ class ExtractedAtom(BaseModel):
 
     @model_validator(mode="after")
     def validate_logical_deduction_and_quote(self) -> Self:
-        """Validate that source_quote is provided if and only if is_logical_deduction is False.
+        """Validate that source_quote is provided if and only if is_logical_deduction or is_inverse is False.
 
         Returns:
             Self: The validated model instance.
 
         Raises:
-            ValueError: If source_quote is present on a logical deduction, or missing on an empirical claim.
+            ValueError: If source_quote is present on a logical deduction or inverse claim, or missing on an empirical claim.
         """
-        if self.is_logical_deduction and self.source_quote is not None:
-            raise ValueError("source_quote must be None if is_logical_deduction is True.")
-        if not self.is_logical_deduction and not self.source_quote:
-            raise ValueError("source_quote is mandatory unless is_logical_deduction is True.")
+        if (self.is_logical_deduction or self.is_inverse) and self.source_quote is not None:
+            raise ValueError("source_quote must be None if is_logical_deduction or is_inverse is True.")
+        if not self.is_logical_deduction and not self.is_inverse and not self.source_quote:
+            raise ValueError("source_quote is mandatory unless is_logical_deduction or is_inverse is True.")
         return self
 
 

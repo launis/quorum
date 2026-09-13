@@ -167,3 +167,88 @@ def test_result_projector_missing_reasoning_fails_fast():
         ResultProjector.project([node], {"tda_f0000001": state})
 
     assert exc_info.value.status_code == 400
+
+
+def test_result_projector_inverse_evidence_passed():
+    """Positive: assert projecting a passed inverse atom yields source_quote=None, contextual_override=False, and is_inverse_evidence=True."""
+    atom = ExtractedAtom(
+        tda_id="tda_1111aaaa",
+        reasoning="Testing inverse pass",
+        resolved_claim="Candidate does not display hostility",
+        is_logical_deduction=False,
+        is_inverse=True,
+        source_quote=None,
+        source_id="chunk_0",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+    state = AtomExecutionState(
+        tda_id="tda_1111aaaa",
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="No hostile statements observed in text.",
+    )
+
+    results, refs = ResultProjector.project([node], {"tda_1111aaaa": state})
+
+    assert len(results) == 1
+    assert results[0].status == ExecutionStatus.PASSED
+    assert results[0].source_quote is None
+    assert results[0].contextual_override is False
+    assert results[0].is_inverse_evidence is True
+
+
+def test_result_projector_non_inverse_missing_quote_override():
+    """Negative Partition 1: assert positive non-inverse atom without quote triggers contextual_override=True and is_inverse_evidence=False."""
+    atom = ExtractedAtom(
+        tda_id="tda_2222bbbb",
+        reasoning="Testing logical deduction bypass",
+        resolved_claim="Logical deduction claim",
+        is_logical_deduction=True,
+        is_inverse=False,
+        source_quote=None,
+        source_id="chunk_0",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+    state = AtomExecutionState(
+        tda_id="tda_2222bbbb",
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="Deduction verified.",
+    )
+
+    results, refs = ResultProjector.project([node], {"tda_2222bbbb": state})
+
+    assert len(results) == 1
+    assert results[0].status == ExecutionStatus.PASSED
+    assert results[0].source_quote is None
+    assert results[0].contextual_override is True
+    assert results[0].is_inverse_evidence is False
+
+
+def test_result_projector_inverse_evidence_failed():
+    """Negative Partition 2: assert failed atom projection yields source_quote=None, contextual_override=False, and is_inverse_evidence=False regardless of whether claim was inverse."""
+    atom = ExtractedAtom(
+        tda_id="tda_3333cccc",
+        reasoning="Testing inverse failure",
+        resolved_claim="Candidate does not display hostility",
+        is_logical_deduction=False,
+        is_inverse=True,
+        source_quote=None,
+        source_id="chunk_0",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+    state = AtomExecutionState(
+        tda_id="tda_3333cccc",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Hostile statements were observed.",
+    )
+
+    results, refs = ResultProjector.project([node], {"tda_3333cccc": state})
+
+    assert len(results) == 1
+    assert results[0].status == ExecutionStatus.FAILED
+    assert results[0].source_quote is None
+    assert results[0].contextual_override is False
+    assert results[0].is_inverse_evidence is False
+
