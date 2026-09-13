@@ -290,6 +290,8 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   * **Option B: Multi-Turn Conversational Dialogue (`is_chat_history == True`):**
     * *`target_speaker = TargetSpeaker.USER`:* Evaluates human intent, direction, agency, and constraints. Evidence quotes must reside strictly within `<user_payload>` tags; any citation found only in `<ai_draft_context>` triggers a semantic provenance violation.
     * *`target_speaker = TargetSpeaker.AI`:* Evaluates model sycophancy, adherence, hallucination, or tool usage. Evidence quotes must reside strictly within `<ai_draft_context>` tags; any citation found only in `<user_payload>` triggers a semantic provenance violation.
+  * **Option C: Assignment Brief Context Isolation:**
+    * When inputs are configured with `assignment` in `input_modes`, their content is wrapped in `<assignment_context>` tags. Evaluated claims maintain strictly binary `target_speaker` (`USER` or `AI`), and models are instructed that `<assignment_context>` defines problem constraints rather than authorial evidence. Any evidence quote extracted from `<assignment_context>` triggers an immediate `SemanticEvidenceError` (`ErrorCodes.PROVENANCE_VIOLATION`).
 * **Prompt Wrapper & Mechanics:**
   Encapsulated inside a CDATA block within `<target_speaker>` inside the `<claim>` block:
   ```xml
@@ -302,6 +304,7 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   ```xml
   <speaker_attribution_protocol>
   - SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
+  - ASSIGNMENT CONTEXT QUARANTINE: If the context contains <assignment_context>, this section contains instructions, guidelines, or problem definitions. You MUST NEVER quote from <assignment_context> as source evidence for either 'USER' or 'AI' claims. All evaluated evidence MUST originate strictly from the deliverable itself (<user_payload> or <ai_draft_context>).
   </speaker_attribution_protocol>
   ```
 
@@ -321,6 +324,7 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 
 <speaker_attribution_protocol>
 - SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
+- ASSIGNMENT CONTEXT QUARANTINE: If the context contains <assignment_context>, this section contains instructions, guidelines, or problem definitions. You MUST NEVER quote from <assignment_context> as source evidence for either 'USER' or 'AI' claims. All evaluated evidence MUST originate strictly from the deliverable itself (<user_payload> or <ai_draft_context>).
 </speaker_attribution_protocol>
 
 <epistemic_decision_protocol>

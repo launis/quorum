@@ -364,3 +364,77 @@ async def test_dynamic_synthesis_model_strategy_routing(
             pass
 
     mock_reduce.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
+    mock_repo: AsyncMock, mock_compiler: AsyncMock
+) -> None:
+    """Verify transient DB lock failure during intermediate progress reporting does not crash the step."""
+    from backend_v2.exceptions import ErrorCodes
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    workflow = Workflow(
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        id="wf_1111222233334444",
+        slug="wf_progress_test",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        name=I18nText(translations={"en": "Progress Test", "fi": "Progress Test"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        steps=[
+            StepRule(id="step_1111222233334444", task_blueprint="bp_1111222233334444"),
+        ],
+    )
+
+    in_progress_cb = False
+
+    async def flaky_update_execution(execution_id: str, update_dto: Any) -> Any:
+        if in_progress_cb:
+            raise AppException(
+                message=f"Failed to commit execution trace for {execution_id}",
+                details={"error_code": ErrorCodes.PROGRESS_UPDATE_FAILED},
+                status_code=500,
+            )
+        return {"id": execution_id}
+
+    mock_repo.update_execution = AsyncMock(side_effect=flaky_update_execution)
+
+    async def mock_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
+        nonlocal in_progress_cb
+        progress_cb = kwargs.get("progress_callback")
+        if progress_cb:
+            in_progress_cb = True
+            try:
+                await progress_cb(50, 100)
+            finally:
+                in_progress_cb = False
+        return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
+
+    from backend_v2.core.hook_registry import HookDeltaDTO
+
+    with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
+        with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
+            result = await executor.execute_workflow(
+                execution_id="exe_1111222233334444",
+                workflow=workflow,
+                raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
+            )
+            assert result.step_states["step_1111222233334444"].status == ExecutionStatus.PASSED

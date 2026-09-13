@@ -103,6 +103,13 @@ Matrix sensor prompt compilation enforces structured semantic grounding with CDA
 - **CDATA Breakout Shielding**: All dynamic assertion text is wrapped in `<![CDATA[...]]>` containers via `TemplateProcessor.encapsulate_payload()`, strictly preventing user-authored quotation marks, XML characters (`<`, `>`, `&`), or punctuation from escaping tag boundaries and executing prompt injection.
 - **Prompt Fidelity Expansion**: Structured few-shot contrastive pairs and anti-patterns provide nuanced cognitive boundaries, expanding prompt tokens (+100–400 tokens per atom) while remaining strictly bounded within model context ceilings by `MatrixSamplingStrategy`.
 
+### 2.17. Tripartite Context Capsule Segregation
+Dynamic execution inputs are encapsulated into three distinct semantic context capsules based on configured input modalities and conversational flags:
+- **User Deliverable Capsule (`<user_payload>`)**: Encapsulates human-authored submissions, uploaded documents, audio transcriptions, or user turns in conversational dialogues.
+- **Model Output Capsule (`<ai_draft_context>`)**: Encapsulates AI assistant turns and generated responses within multi-turn dialogues (`is_chat_history == True`).
+- **Assignment Context Capsule (`<assignment_context>`)**: Encapsulates external task assignments, problem briefs, evaluation criteria, and operational guidelines (`assignment` in `input_modes` or `.assignment_context` input paths).
+All context capsules are shielded against CDATA breakout. Layer 1 system instructions explicitly direct foundational models that `<assignment_context>` provides framing instructions rather than authorial evidence and must never be quoted as factual proof for either `USER` or `AI` claims, eliminating prompt injection and quote hijacking.
+
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
 ```mermaid

@@ -729,8 +729,16 @@ class DAGExecutor:
                         exec_record = exec_record.model_copy(
                             update={"step_states": new_states, "progress": prog, "status_message": label}
                         )
-                    await _safe_commit()
-                    logger.info("Progress updated for step %s: %s", step_id, label)
+                    try:
+                        await _safe_commit()
+                        logger.info("Progress updated for step %s: %s", step_id, label)
+                    except Exception as commit_err:
+                        logger.warning(
+                            "[DAGExecutor] %s: Non-terminal intermediate progress commit skipped for step %s: %s",
+                            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                            step_id,
+                            commit_err,
+                        )
 
                 try:
                     settings = get_settings()
@@ -925,7 +933,15 @@ class DAGExecutor:
                     async with _update_lock:
                         exec_record.execution_trace.append(evt)
                         projector.apply_delta(evt)
-                    await _safe_commit()
+                    try:
+                        await _safe_commit()
+                    except Exception as commit_err:
+                        logger.warning(
+                            "[DAGExecutor] %s: Non-terminal preflight progress commit skipped for step %s: %s",
+                            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+                            virtual_step_id,
+                            commit_err,
+                        )
 
                 try:
                     blackboard_payload = await self.rag_preflight.execute(

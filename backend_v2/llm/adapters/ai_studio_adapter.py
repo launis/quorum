@@ -405,8 +405,8 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
             cache_id = call_kwargs["cached_content"]
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
                 call_kwargs["extra_body"] = {}
+            # Step 1: Preserving ONLY canonical camelCase cachedContent to avoid Google proto3 oneof collision
             call_kwargs["extra_body"]["cachedContent"] = cache_id
-            call_kwargs["extra_body"]["cached_content"] = cache_id
 
             if "messages" in call_kwargs:
                 system_msgs = [m for m in call_kwargs["messages"] if m.get("role") == "system"]

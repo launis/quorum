@@ -179,7 +179,7 @@ def test_ai_studio_adapter_prepare_kwargs_thinking_and_cached_content() -> None:
     result = adapter.prepare_kwargs(call_kwargs, config=config)
 
     assert result["extra_body"]["cachedContent"] == "cachedContents/ai-studio-cache-123"
-    assert result["extra_body"]["cached_content"] == "cachedContents/ai-studio-cache-123"
+    assert "cached_content" not in result["extra_body"]
     assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 2048
     assert len(result["messages"]) == 1
     assert result["messages"][0]["role"] == "user"
@@ -445,3 +445,26 @@ async def test_ai_studio_real_get_redis_client(monkeypatch: pytest.MonkeyPatch) 
     assert client is not None
     client2 = await ai_module.get_redis_client()
     assert client2 is client
+
+
+def test_ai_studio_adapter_prepare_kwargs_no_duplicate_oneof_cached_content() -> None:
+    """Verify prepare_kwargs does not pass conflicting snake_case cached_content violating proto3 oneof."""
+    adapter = GoogleAIStudioCacheAdapter()
+
+    config = ModelProfile(
+        provider="google",
+        model_name="gemini/gemini-3.7-flash",
+    )
+
+    call_kwargs: dict[str, Any] = {
+        "cached_content": "cachedContents/ai-studio-cache-123",
+        "messages": [{"role": "user", "content": "User prompt"}],
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert result["extra_body"]["cachedContent"] == "cachedContents/ai-studio-cache-123"
+    assert "cached_content" not in result["extra_body"], (
+        "Google API 400 Bad Request: proto3 oneof _cached_content cannot have both "
+        "cachedContent and cached_content set in request payload."
+    )

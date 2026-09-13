@@ -46,6 +46,9 @@ Architectural invariants (prohibition of reflection, lazy default fallbacks, duc
 ### 2.13. Agent Context Quarantine
 To prevent context amnesia and token saturation, complex agent workflows isolate planning from execution. Automated implementation plans are compiled into structured execution protocol blocks, allowing execution sessions to consume clean, validated instructions without carrying conversational history debt.
 
+### 2.14. Binary TargetSpeaker Contract & Input Modality Separation
+All speaker attribution contracts across backend and frontend strictly enforce a binary target speaker contract (`USER` vs `AI`). Speaker attribution designates exclusively the human participant (`TargetSpeaker.USER`) or the artificial intelligence model (`TargetSpeaker.AI`). Environmental inputs, prompt instructions, and evaluation briefs are configured as dedicated input modalities (`assignment` in `ExpectedInput.input_modes`) and isolated into specific prompt context capsules (`<assignment_context>`), completely decoupled from speaker attribution. The system strictly prohibits expanding `TargetSpeaker` to represent assignment briefs or environmental guidelines; all assertions and criteria evaluate the performance of the human or model in relation to assignment constraints, preserving epistemic determinism and strict speaker boundary defense.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
