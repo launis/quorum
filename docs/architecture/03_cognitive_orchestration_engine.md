@@ -34,9 +34,9 @@ This two-tier separation prevents parent pipeline tasks and nested model calls f
 External inputs (documents, web resources, uploaded files, and chat transcripts) are processed through dedicated ingestion providers that extract, sanitize, and flatten raw text. Before model execution, context preflight validates token consumption against window constraints, applying deterministic pagination and chunking where required to ensure that model input limits are never exceeded.
 
 ### 2.6. Two-Pass Atomization & Topological DAG Execution
-Complex evaluation workflows decompose tasks into atomic units through two-pass atomization:
-1. **Pass 1 (Ontology Extraction)**: Extracts global domain entities, document themes, and semantic anchors.
-2. **Pass 2 (Atom Extraction)**: Evaluates specific individual assertions, extracting boolean states and forensic quotes anchored to source text.
+Complex evaluation workflows decompose tasks into atomic units and structured matrix assertions:
+1. **Pass 1 (Ontology Extraction)**: Extracts global domain entities, document themes, and semantic anchors into a unified `GlobalOntologyMap` injected into evaluation contexts.
+2. **Matrix Causal DAG (Pre-compiled Assertions)**: Operates on pre-compiled matrix assertions carrying pre-defined causal dependencies (`FlattenedAtom.depends_on`). Local chunk claim extraction (Pass 2) and the Sliding Window Linker operate as decoupled exploratory knowledge extraction services (e.g., during RAG Preflight).
 These units form a Directed Acyclic Graph (DAG) whose dependencies, edge constraints, and topological order are resolved before dispatching to specialized cognitive engines. The topological evaluator uses non-blocking task groups and per-node signaling events to execute independent nodes concurrently, immediately short-circuiting dependent children when causal preconditions fail.
 
 ### 2.7. Asynchronous Background Workers & Non-Blocking Handshake
@@ -45,8 +45,8 @@ Workflows execute completely outside the synchronous HTTP request-response cycle
 2. The router returns an immediate `HTTP 202 Accepted` response with the execution record, preventing thread blocking.
 3. The client connects to an independent Server-Sent Events (SSE) stream (`/executions/{id}/stream`) to receive real-time execution progress, status updates, and trace events while background worker processes compute the graph.
 
-### 2.8. Sensor Caching Parity (Matrix vs. Regular TDA)
-The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across both regular TDA and matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.
+### 2.8. Sensor Caching Parity & Enriched Context Caching
+The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.
 
 ### 2.9. Synthesis Payload Compression & Token Shield Stratification
 Before qualitative text synthesis, execution states are distilled into compact payloads via dedicated synthesis payload compression:
@@ -179,7 +179,7 @@ flowchart TB
     MSPB --> TDA
 
     AE --> TPA --> TDA
-    GL --> SWL --> TDA
+    GL --> SWL
 
     SD & HP & SD2 & STY --> WRK
     OP & EX --> WRK
@@ -199,8 +199,8 @@ flowchart TB
 |---|---|---|---|---|
 | 1 | Primary DAG Prompt Factory | Multi-layer DAG evaluation prompt assembly across steps | `prompt_blocks`, `workflows`, `steps`, `system_config` | Global Mandates XML, Linguistic Context, PromptBlock operational texts |
 | 2 | Matrix Sensor Prompt Builder | Segregated cacheable TDA matrix sensor evaluation | `prompt_blocks` (`MatrixPromptBlock`, `TDAAssertion`) | Global Mandates XML, Matrix Sensor System Prompt |
-| 3 | Two-Pass Atomizer | Global ontology and fine-grained atom extraction | None (runtime source document chunks) | Ontology & Atom Extraction System Prompts |
-| 4 | Sliding Window Linker | Causal DAG dependency extraction across sliding windows | None (runtime extracted atoms) | Linker System & User Prompts |
+| 3 | Two-Pass Atomizer | Global ontology mapping (Phase 0 in TDA) and local claim extraction (in RAG Preflight) | None (runtime source document chunks) | Ontology & Atom Extraction System Prompts |
+| 4 | Sliding Window Linker | Causal DAG dependency extraction across sliding windows (decoupled exploratory utility) | None (runtime extracted atoms) | Linker System & User Prompts |
 | 5 | Profile Synthesis Pipeline | Executive summary, section syntheses, row explanations, variance, XAI highlights | `output_profiles`, `executions`, `prompt_blocks` | Synthesis System Prompt, SDUI Mandates, Section Directives, Row & Variance Directives, Profile section budgets |
 | 6 | Chat Parser Service | Unstructured conversational text reconstruction into structured turns | None (raw pasted chat text) | Module-level markdown directive via System Directive Builder |
 | 7 | Interaction Role Analyzer | User cognitive role classification (Passenger to Architect) | None (runtime chat history) | Interaction Objective & Rules via System Directive Builder |
@@ -240,9 +240,9 @@ sequenceDiagram
         end
     and Execution Stage: Heavy DAG Computation
         Arq->>DAG: Dispatch execution task -> Execute Workflow DAG
-        DAG->>LLM: 1. Extract atoms and link causal DAG (TwoPassAtomizer)
-        LLM-->>DAG: Extracted atoms and causal dependency links
-        DAG->>LLM: 2. Sensor matrix evaluations (TDAEngine / Best-of-3)
+        DAG->>LLM: 1. Extract Global Ontology Map (TwoPassAtomizer Phase 0)
+        LLM-->>DAG: Enriched ontology map and contextual entities
+        DAG->>LLM: 2. Matrix Causal DAG Sensor evaluations (TDAEngine / Best-of-3 Flash)
         LLM-->>DAG: Evaluation observations and scale scores (1-5)
         DAG->>DAG: 3. Execute hooks, validation & MatrixReducer scoring math
         DAG->>DB: Update ExecutionRecord (TraceEvents, step_states)
@@ -271,7 +271,7 @@ sequenceDiagram
    - The API Ingress router initializes and persists the `ExecutionRecord` with `status=RUNNING`, stores the frozen context snapshot, enqueues the workflow execution job to the background task queue, and returns an immediate `HTTP 202 Accepted` response to eliminate thread blocking.
 2. **Real-Time SSE Telemetry & Graph Execution (Execution Stage):**
    - The client establishes an independent Server-Sent Events stream (`GET /executions/{id}/stream`) to receive real-time state broadcasts.
-   - The background worker executes the Directed Acyclic Graph, orchestrating two-pass atom extraction, causal graph linking, TDA matrix evaluation via Best-of-Three consensus, and mathematical normalization.
+   - The background worker executes the Directed Acyclic Graph, orchestrating Phase 0 global ontology extraction, topological wave evaluation of matrix assertions via Best-of-Three consensus, and mathematical normalization.
    - The final execution state is committed to persistence, and the worker enqueues the subsequent synthesis stage.
 3. **Structured Qualitative Synthesis (Synthesis Stage):**
    - The synthesis task distills and compresses the raw DAG evaluation state, filtering out unparsed ingestion steps via `is_synthesis_source` and applying Token Shield 70% deficit stratification.

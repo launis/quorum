@@ -79,11 +79,11 @@ Conversational inputs and meeting transcripts enter the system through a multi-c
 - **PDF Vector Geometry Channel:** Ingests document attachments and conversation transcripts in PDF format. Using vector drawing analysis and geometric bounding-box evaluation, the extractor detects speech bubbles, identifies sender alignment (distinguishing participant channels by coordinate layout), extracts speaker avatars and timestamps, and preserves chronological turn sequencing. To prevent MuPDF C-level layout conflicts when alternating between vector extraction (`page.find_tables()`) and markdown conversion, the engine enforces layout state isolation (`use_layout(False)`). If a document does not contain visual conversation geometry, it falls back to structured markdown prose extraction.
 - **Clipboard & Text Ingress Channel:** Processes raw pasted transcripts by stripping system prompts, UI fluff, copy buttons, and timestamp artifacts. A fast-path regular expression engine detects conversational turn patterns, falling back to lightweight model-based boundary slicing when formatting is highly irregular. Both channels output standardized dialogue turn structures.
 
-### 2.11. Context-Enriched Dual-Path Execution (Regular vs Matrix TDA)
-The engine supports two distinct operational modes tailored to evaluation context:
-- **Dynamic Extracted TDA:** Used for open-ended documents where claims, entities, and causal relationships are dynamically extracted and linked via the sliding window linker.
-- **Predefined Matrix Assertion TDA:** Used for structured compliance and evaluation matrices. Assertions are predefined in the database ontology, preserving authoritative identifiers throughout execution. Because matrix assertions represent independent evaluation criteria, sliding window linking is bypassed, and assertions map directly into independent topological evaluation nodes.
-- **Enriched Static Context Caching:** Both paths construct a static-first context container containing all verified facts, entity maps, and source text. Positioning static context at the prefix guarantees high context-caching efficiency across parallel model calls.
+### 2.11. Predefined Matrix Causal DAG Execution & Enriched Context Caching
+The TDA evaluation engine executes strictly against predefined matrix assertions resolved directly from the Single Source of Truth (SSOT) database ontology and Studio UI configuration:
+- **Deterministic Matrix Assertion Contract:** Matrix steps require pre-compiled assertions (`shuffled_atoms`) encapsulating domain questions, scales, and pre-compiled causal dependencies (`depends_on: tuple[CausalEdge, ...]`). The engine enforces Fail-Fast validation; runtime free-form fallback is prohibited.
+- **Enriched Static Context Caching:** Before DAG evaluation, the engine invokes Two-Pass Atomizer Phase 0 to construct a global ontology map (`<ontology>`). Concatenating hydrated source paragraphs with this ontology builds an unbroken, static-first context prefix (`evaluation_context`), guaranteeing high context-caching efficiency (>95% cache hit rate) across parallel model calls.
+- **Decoupled Exploratory Graph Components:** Secondary extraction components—specifically Two-Pass Atomizer Phase 1 (local chunk claim extraction) and the Sliding Window Linker—operate as decoupled modules leveraged during preflight knowledge ingestion (`RAGPreflightService`) and exploratory document processing, completely separated from the deterministic matrix evaluation pipeline.
 
 ### 2.12. Result Projection & Server-Driven UI Decoupling
 The graph engine maintains strict structural decoupling between internal execution states and presentation layers:
@@ -107,17 +107,13 @@ flowchart TD
     C --> E[Standardized Ingress Data]
     D --> E
     
-    E --> F{Evaluation Mode}
+    E --> F[Paragraph Hydration & Alias Engine]
+    F --> G[Two-Pass Atomizer: Phase 0 Global Ontology Map]
+    G --> H[Enriched Static Context Prefix]
     
-    F -- Dynamic Extraction --> G[First Pass: Global Ontology Map-Reduce]
-    G --> H[Second Pass: Local Chunk Claim Extraction]
-    H --> I[Sliding Window Causal Linker]
-    I --> J[Linked Atom Graph Definition]
+    I[Predefined Matrix Assertions SSOT: shuffled_atoms] --> J[Linked Atom Graph Definition with Causal Edges]
     
-    F -- Matrix Compliance --> K[Predefined Matrix Assertions SSOT]
-    K --> J
-    
-    J --> L[Thread-Isolated Cycle & Phantom Edge Verification]
+    H & J --> L[Thread-Isolated Cycle & Phantom Edge Verification]
     L --> M[Topological Evaluator: Kahn Wave Generation]
     
     M --> N{In-Degree 0 Wave Inspection}
