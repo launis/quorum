@@ -620,6 +620,7 @@
   "inputModeFile": "tiedosto",
   "inputModePaste": "teksti",
   "inputModeQuestionnaire": "kysely",
+  "inputModeAssignment": "tehtävä",
   "workflowInputLabelTitle": "Otsikko (UI-lomakkeen Nimi, esim. 'Lopputuote')",
   "workflowInputDescriptionTitle": "Kuvaus (UI-vihje, esim. 'Liitä lopputuote PDF muodossa')",
   "workflowInputAiDescriptionTitle": "Tekoälyn Semanttinen Kuvaus (LLM-pohjustus)",

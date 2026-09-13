@@ -1895,6 +1895,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get inputModeQuestionnaire => 'kysely';
 
   @override
+  String get inputModeAssignment => 'tehtävä';
+
+  @override
   String get workflowInputLabelTitle =>
       'Otsikko (UI-lomakkeen Nimi, esim. \'Lopputuote\')';
 

@@ -138,9 +138,12 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   selected: def.isChatHistory,
                   onSelected: (val) {
                     var newModes = List<String>.from(modes);
-                    if (val && newModes.contains('questionnaire')) {
-                      newModes.clear();
-                      if (!newModes.contains('file')) newModes.add('file');
+                    if (val) {
+                      newModes.remove('questionnaire');
+                      newModes.remove('assignment');
+                      if (newModes.isEmpty) {
+                        newModes.add('file');
+                      }
                     }
                     _update(
                       def.copyWith(isChatHistory: val, inputModes: newModes),
@@ -163,12 +166,16 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
             ),
             Wrap(
               spacing: 8,
-              children: ['file', 'paste', 'questionnaire'].map((mode) {
-                final modeStr = mode == 'file'
-                    ? l10n.inputModeFile
-                    : mode == 'paste'
-                    ? l10n.inputModePaste
-                    : l10n.inputModeQuestionnaire;
+              children: ['file', 'paste', 'questionnaire', 'assignment'].map((
+                mode,
+              ) {
+                final modeStr = switch (mode) {
+                  'file' => l10n.inputModeFile,
+                  'paste' => l10n.inputModePaste,
+                  'questionnaire' => l10n.inputModeQuestionnaire,
+                  'assignment' => l10n.inputModeAssignment,
+                  _ => mode,
+                };
                 return FilterChip(
                   label: Text(modeStr),
                   selected: modes.contains(mode),
@@ -181,6 +188,12 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                         newModes.clear();
                         newModes.add(mode);
                         wasChatHistory = false;
+                      } else if (mode == 'assignment') {
+                        newModes.remove('questionnaire');
+                        wasChatHistory = false;
+                        if (!newModes.contains('assignment')) {
+                          newModes.add('assignment');
+                        }
                       } else {
                         if (newModes.contains('questionnaire')) {
                           newModes.remove('questionnaire');

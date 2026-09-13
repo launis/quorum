@@ -3554,6 +3554,12 @@ abstract class AppLocalizations {
   /// **'questionnaire'**
   String get inputModeQuestionnaire;
 
+  /// No description provided for @inputModeAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'assignment'**
+  String get inputModeAssignment;
+
   /// No description provided for @workflowInputLabelTitle.
   ///
   /// In en, this message translates to:

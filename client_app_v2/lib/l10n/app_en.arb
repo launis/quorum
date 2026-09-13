@@ -832,6 +832,7 @@
   "inputModeFile": "file",
   "inputModePaste": "paste",
   "inputModeQuestionnaire": "questionnaire",
+  "inputModeAssignment": "assignment",
   "workflowInputLabelTitle": "Label (UI Form Title, e.g. 'Final Product')",
   "workflowInputDescriptionTitle": "Description (UI Hint, e.g. 'Paste the final product in PDF format')",
   "workflowInputAiDescriptionTitle": "AI Semantic Description (For LLM Grounding)",

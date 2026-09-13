@@ -139,6 +139,7 @@ class DynamicStartScreen extends HookConsumerWidget {
                       .map((e) => e.toString())
                       .toList();
                   final isQuestionnaire = inputModes.contains('questionnaire');
+                  final isAssignment = inputModes.contains('assignment');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
@@ -164,6 +165,9 @@ class DynamicStartScreen extends HookConsumerWidget {
                                 label: label + (requiredParam ? ' *' : ''),
                                 keyName: semanticRole,
                                 currentValue: localValue.value,
+                                icon: isAssignment
+                                    ? Icons.assignment_outlined
+                                    : null,
                                 onChanged: (val) {
                                   localValue.value = val;
                                   collectedInputs[semanticRole] = val;

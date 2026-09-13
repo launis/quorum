@@ -1886,6 +1886,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inputModeQuestionnaire => 'questionnaire';
 
   @override
+  String get inputModeAssignment => 'assignment';
+
+  @override
   String get workflowInputLabelTitle =>
       'Label (UI Form Title, e.g. \'Final Product\')';
 
