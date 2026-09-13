@@ -117,7 +117,7 @@ def _normalize_token(text: str) -> str:
     Returns:
         Cleaned lowercase alphanumeric string.
     """
-    return re.sub(r"[^a-z0-9]", "", text.lower())
+    return re.sub(r"[^\w\d]", "", text.lower(), flags=re.UNICODE)
 
 
 def _match_input_key(
@@ -196,6 +196,19 @@ def _match_input_key(
                     tier2_matches.add(key)
                     break
 
+            # Word-level stem matching for compound filenames (e.g., 'Tehtävä 3 - sitra' -> 'Tehtävänanto ja Reunaehdot')
+            cand_tokens = [
+                re.sub(r"[^\w\d]", "", t.lower(), flags=re.UNICODE) for t in re.split(r"[\s\-_]+", candidate)
+            ]
+            cand_tokens = [t for t in cand_tokens if len(t) >= 4]
+            label_tokens = [
+                re.sub(r"[^\w\d]", "", t.lower(), flags=re.UNICODE) for t in re.split(r"[\s\-_]+", base_label)
+            ]
+            label_tokens = [t for t in label_tokens if len(t) >= 4]
+            if any(ct.startswith(lt) or lt.startswith(ct) for ct in cand_tokens for lt in label_tokens):
+                tier2_matches.add(key)
+                break
+
     if len(tier2_matches) == 1:
         return next(iter(tier2_matches))
     if len(tier2_matches) > 1:
@@ -269,15 +282,15 @@ def load_inputs_from_path(
                     PdfChatExtractorService,
                 )
 
-                with file_path.open("rb") as f:
-                    content_bytes = f.read()
-                doc = fitz.open(stream=content_bytes, filetype="pdf")
+                pymupdf4llm.use_layout(False)
+                doc = fitz.open(file_path)
                 try:
                     if PdfChatExtractorService.is_conversation_pdf(doc):
                         chat_dto = PdfChatExtractorService.extract_conversation(doc)
                         inputs[mapped_key] = chat_dto.model_dump_json()
                     else:
                         md_text = str(pymupdf4llm.to_markdown(doc))
+                        pymupdf4llm.use_layout(False)
                         inputs[mapped_key] = md_text.strip()
 
                     metadata = doc.metadata or {}
@@ -291,6 +304,7 @@ def load_inputs_from_path(
                         if parsed_date:
                             extracted_dates.append(parsed_date)
                 finally:
+                    pymupdf4llm.use_layout(False)
                     doc.close()
             elif ext == ".json":
                 with file_path.open("r", encoding="utf-8") as f:
@@ -608,7 +622,8 @@ def force_kill_services() -> None:
         "Get-CimInstance Win32_Process | "
         "Where-Object { "
         "  ($_.Name -eq 'python.exe' -or $_.Name -eq 'uv.exe') -and "
-        "  ($_.CommandLine -match 'backend_v2|run_worker|uvicorn|arq') -and "
+        "  ($_.CommandLine -match 'backend_v2\\.main|backend_v2\\.run_worker|run_worker|uvicorn|arq') -and "
+        "  ($_.CommandLine -notmatch 'run_e2e_variance_test') -and "
         f"  ($_.ProcessId -ne {current_pid}) "
         "} | "
         "ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue; $_.ProcessId }"
