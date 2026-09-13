@@ -1,15 +1,29 @@
 """Source document packer for TDA and LLM evaluation strategies."""
 
+import json
 import logging
+from dataclasses import dataclass
 from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExpectedInput
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class PriorStepOutput:
+    """Internal container for resolved prior step outputs."""
+
+    step_id: str
+    block_id: str
+    text_content: str
+
+
+_dict_adapter: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
 
 
 class SourceDocumentPacker:
@@ -53,6 +67,32 @@ class SourceDocumentPacker:
             elif val == "$steps" or val.startswith("$steps."):
                 allowed.add(val)
         return allowed
+
+    @staticmethod
+    def _is_step_target_matched(
+        step_id: str,
+        compound_target: str,
+        specific_targets: set[str],
+        is_wildcard: bool,
+    ) -> bool:
+        """Determines if a prior step output matches the requested target specification.
+
+        Args:
+            step_id: Base step identifier.
+            compound_target: Formatted step and block identifier (e.g. 'step_id.block_id').
+            specific_targets: Set of specifically targeted step references.
+            is_wildcard: Whether all steps are requested via wildcard.
+
+        Returns:
+            True if the step output should be included in prompt context.
+        """
+        if is_wildcard:
+            return True
+        if step_id in specific_targets:
+            return True
+        if compound_target and compound_target in specific_targets:
+            return True
+        return False
 
     @staticmethod
     def pack(
@@ -100,7 +140,7 @@ class SourceDocumentPacker:
                     sections.append(clean_str)
             else:
                 try:
-                    dict_payload = TypeAdapter(dict[str, Any]).validate_python(inputs_payload)
+                    dict_payload = _dict_adapter.validate_python(inputs_payload)
                 except ValidationError as e:
                     logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", e)
                     raise AppException(
@@ -136,7 +176,8 @@ class SourceDocumentPacker:
                             specific_step_targets.add(target)
 
             available_step_ids: set[str] = set()
-            prior_steps_list: list[tuple[str, str]] = []
+            available_compound_targets: set[str] = set()
+            prior_steps_list: list[PriorStepOutput] = []
 
             if step_outputs:
                 for item in step_outputs:
@@ -147,6 +188,7 @@ class SourceDocumentPacker:
                             else TypeAdapter(StepOutputDTO).validate_python(item)
                         )
                         s_id = dto.step_id
+                        b_id = dto.block_id
                         payload = dto.payload
                     except ValidationError as e:
                         logger.error("[SourceDocumentPacker] Invalid StepOutputDTO item: %s", e)
@@ -160,28 +202,48 @@ class SourceDocumentPacker:
                         continue
 
                     available_step_ids.add(s_id)
+                    if b_id:
+                        available_compound_targets.add(f"{s_id}.{b_id}")
 
                     text_content = ""
                     if isinstance(payload, str):
                         text_content = payload.strip()
                     else:
+                        step_dict_payload: dict[str, Any] | None = None
                         try:
-                            dict_data = TypeAdapter(dict[str, Any]).validate_python(payload)
+                            raw_data = payload.model_dump(mode="json") if isinstance(payload, BaseModel) else payload
+                            step_dict_payload = _dict_adapter.validate_python(raw_data)
                             for field in ("text", "markdown", "content"):
-                                if field in dict_data:
-                                    field_val = dict_data[field]
+                                if field in step_dict_payload:
+                                    field_val = step_dict_payload[field]
                                     if isinstance(field_val, str):
                                         text_content = field_val.strip()
                                         break
                         except ValidationError:
-                            text_content = ""
+                            step_dict_payload = None
+
+                        if not text_content:
+                            should_serialize = isinstance(payload, list)
+                            if step_dict_payload is not None and dto.data_type != "text":
+                                should_serialize = True
+
+                            if should_serialize and payload:
+                                try:
+                                    data_to_dump = step_dict_payload if step_dict_payload is not None else payload
+                                    text_content = json.dumps(data_to_dump, indent=2, ensure_ascii=False, default=str)
+                                except TypeError, ValueError:
+                                    text_content = ""
 
                     if text_content:
-                        prior_steps_list.append((s_id, text_content))
+                        prior_steps_list.append(PriorStepOutput(step_id=s_id, block_id=b_id, text_content=text_content))
 
-            # Fail-fast check: if specific step targets were requested, all must exist in available_step_ids
+            # Fail-fast check: if specific step targets were requested, all must exist
             if specific_step_targets:
-                missing_targets = specific_step_targets - available_step_ids
+                missing_targets: set[str] = set()
+                for target in specific_step_targets:
+                    if target not in available_step_ids and target not in available_compound_targets:
+                        missing_targets.add(target)
+
                 if missing_targets:
                     missing_sorted = sorted(list(missing_targets))
                     msg = f"Strict Fail-Fast: Mapped step(s) {missing_sorted} not found in prior step outputs."
@@ -192,8 +254,17 @@ class SourceDocumentPacker:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
-            for s_id, text in prior_steps_list:
-                if wildcard_steps or s_id in specific_step_targets:
-                    sections.append(f'<step_output step_id="{s_id}">\n\n{text}\n\n</step_output>')
+            for item in prior_steps_list:
+                s_id = item.step_id
+                compound = ""
+                if b_id:
+                    compound = f"{s_id}.{b_id}"
+                if SourceDocumentPacker._is_step_target_matched(
+                    step_id=s_id,
+                    compound_target=compound,
+                    specific_targets=specific_step_targets,
+                    is_wildcard=wildcard_steps,
+                ):
+                    sections.append(f'<step_output step_id="{s_id}">\n\n{item.text_content}\n\n</step_output>')
 
         return "\n\n".join(sections)

@@ -345,3 +345,39 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
             )
         assert exc_info.value.status_code == 500
         assert exc_info.value.error_code == ErrorCodes.VALIDATION_FAILED.name
+
+
+def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> None:
+    """Regression test proving failure when dotted step mappings ($steps.matrix_reducer.reduced_atoms) are checked."""
+    step_outputs = [
+        StepOutputDTO(
+            step_id="matrix_reducer",
+            block_id="reduced_atoms",
+            data_type="unknown",
+            payload=[{"tda_id": "tda_1", "status": "FAILED"}],
+        ),
+        StepOutputDTO(
+            step_id="sr_03c1d71000000006",
+            block_id="results",
+            data_type="text",
+            payload={"text": "Step 6 evaluation output."},
+        ),
+    ]
+
+    mappings = {
+        "results": "$steps.sr_03c1d71000000006",
+        "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
+        "assignment_context": "$inputs.assignment_context",
+    }
+    allowed = SourceDocumentPacker.resolve_allowed_keys(mappings)
+
+    # Must NOT raise AppException: Strict Fail-Fast: Mapped step(s) ['matrix_reducer.reduced_atoms'] not found in prior step outputs.
+    packed = SourceDocumentPacker.pack(
+        inputs_payload={"assignment_context": "The assignment brief."},
+        allowed_keys=allowed,
+        step_outputs=step_outputs,
+    )
+    assert '<step_output step_id="sr_03c1d71000000006">' in packed
+    assert "Step 6 evaluation output." in packed
+    assert "The assignment brief." in packed
+

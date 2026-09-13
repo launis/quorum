@@ -144,3 +144,64 @@ def test_reduce_matrix_empty_step_states() -> None:
     assert len(reduced.reduced_atoms) == 0
     assert reduced.global_metrics["total_atoms"] == 0
     assert reduced.global_metrics["duration_ms"] == 50
+
+
+def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
+    """Regression test proving failure when reduce_matrix runs during real DAG execution.
+
+    During real runtime, record.step_states has empty scorecard_atoms={}.
+    The evaluated atoms exist exclusively as AtomResultDTOs inside record.execution_trace output events.
+    """
+    from backend_v2.models.v2_core import AtomResultDTO, ExecutionStatus, ExtractedValueDTO
+
+    atom_1 = AtomResultDTO(
+        tda_id="tda_11111111111111111111111111111111",
+        status=ExecutionStatus.PASSED,
+        source_quote="Valid quote",
+        evaluation_reasoning="Passed reasoning",
+    )
+    atom_2 = AtomResultDTO(
+        tda_id="tda_22222222222222222222222222222222",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Failed reasoning",
+    )
+    atom_3 = AtomResultDTO(
+        tda_id="tda_33333333333333333333333333333333",
+        status=ExecutionStatus.PASSED,
+        source_quote="Data quote",
+        evaluation_reasoning="Passed with quantitative data",
+        extracted_data=ExtractedValueDTO(value="100", unit="EUR"),
+    )
+
+    record = MagicMock()
+    record.id = "exe_c8df6e711ca54b6900000000000000"
+    record.duration_ms = 250
+    # In real DAG execution, step_states has empty scorecard_atoms
+    empty_state = MagicMock()
+    empty_state.scorecard_atoms = {}
+    record.step_states = {
+        "sr_step_1": empty_state,
+        "sr_step_2": empty_state,
+    }
+    record.steps = []
+
+    # Real execution trace containing output events with results
+    evt_step_1 = MagicMock(
+        event_type="output",
+        content={"results": [atom_1.model_dump(), atom_2.model_dump()]},
+    )
+    evt_step_2 = MagicMock(
+        event_type="output",
+        content={"results": [atom_3.model_dump()]},
+    )
+    record.execution_trace = [evt_step_1, evt_step_2]
+
+    reduced = MatrixReducer.reduce_matrix(record)
+
+    # Must extract all 3 atoms from execution trace and reduce them
+    assert reduced.global_metrics["total_atoms"] == 3
+    assert len(reduced.reduced_atoms) == 2  # atom_2 (FAILED) and atom_3 (PASSED with data)
+    reduced_ids = {a.tda_id for a in reduced.reduced_atoms}
+    assert "tda_22222222222222222222222222222222" in reduced_ids
+    assert "tda_33333333333333333333333333333333" in reduced_ids
+

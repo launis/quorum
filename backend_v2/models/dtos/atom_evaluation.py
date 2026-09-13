@@ -32,10 +32,18 @@ class ReducedAtomDTO(V2CoreBase):
 
 
 class LightweightMatrixDTO(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
     """Token-compressed matrix payload for Synthesis Generation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
 
     execution_id: str
     reduced_atoms: list[ReducedAtomDTO]
     global_metrics: dict[str, Any]
-    raw_extensions: list[dict[str, Any]] = Field(default_factory=list)
+    evaluated_matrices: Annotated[
+        list[dict[str, Any]],
+        Field(default_factory=list, description="Evaluated matrix references"),
+    ]
+    raw_extensions: Annotated[
+        list[dict[str, Any]],
+        Field(default_factory=list, description="Raw XAI extensions from execution trace"),
+    ]
