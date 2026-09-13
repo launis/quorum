@@ -50,6 +50,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
         'extracted_data',
         'source_quote',
         'contextual_override',
+        'is_inverse_evidence',
         'evaluation_reasoning',
         'error_details',
         'extensions',
@@ -73,6 +74,10 @@ _AtomResultDTO _$AtomResultDTOFromJson(
       sourceQuote: $checkedConvert('source_quote', (v) => v as String?),
       contextualOverride: $checkedConvert(
         'contextual_override',
+        (v) => v as bool? ?? false,
+      ),
+      isInverseEvidence: $checkedConvert(
+        'is_inverse_evidence',
         (v) => v as bool? ?? false,
       ),
       evaluationReasoning: $checkedConvert(
@@ -112,6 +117,7 @@ _AtomResultDTO _$AtomResultDTOFromJson(
     'extractedData': 'extracted_data',
     'sourceQuote': 'source_quote',
     'contextualOverride': 'contextual_override',
+    'isInverseEvidence': 'is_inverse_evidence',
     'evaluationReasoning': 'evaluation_reasoning',
     'errorDetails': 'error_details',
     'dependsOnTdaIds': 'depends_on_tda_ids',
@@ -127,6 +133,7 @@ Map<String, dynamic> _$AtomResultDTOToJson(_AtomResultDTO instance) =>
       'extracted_data': instance.extractedData?.toJson(),
       'source_quote': instance.sourceQuote,
       'contextual_override': instance.contextualOverride,
+      'is_inverse_evidence': instance.isInverseEvidence,
       'evaluation_reasoning': instance.evaluationReasoning,
       'error_details': instance.errorDetails?.toJson(),
       'extensions': instance.extensions,

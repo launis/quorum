@@ -39,6 +39,9 @@ abstract class AtomResultDTO with _$AtomResultDTO {
     @JsonKey(name: 'contextual_override')
     @Default(false)
     bool contextualOverride,
+    @JsonKey(name: 'is_inverse_evidence')
+    @Default(false)
+    bool isInverseEvidence,
     @JsonKey(name: 'evaluation_reasoning') String? evaluationReasoning,
     @JsonKey(name: 'error_details') ErrorDetailsDTO? errorDetails,
     @JsonKey(name: 'extensions') @Default({}) Map<String, String> extensions,

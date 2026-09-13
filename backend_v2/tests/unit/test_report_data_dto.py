@@ -25,20 +25,77 @@ def test_atom_result_cognitive_vs_system_state_missing_reasoning() -> None:
 
 
 def test_atom_result_cognitive_vs_system_state_missing_quote_and_override() -> None:
-    """Test that PASSED/FAILED require either a source_quote or contextual_override."""
+    """Test that PASSED requires source_quote unless contextual_override or is_inverse_evidence is True."""
     with pytest.raises(ValidationError) as exc_info:
         AtomResultDTO(
             tda_id="tda_1234567890abcdef1234567890abcdef",
             status=ExecutionStatus.PASSED,
             evaluation_reasoning="Because I said so",
             contextual_override=False,
+            is_inverse_evidence=False,
             source_quote=None,
             error_details=None,
             extracted_data=None,
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote is mandatory unless contextual_override is True" in str(exc_info.value)
+    assert "source_quote is mandatory unless contextual_override or is_inverse_evidence is True" in str(exc_info.value)
+
+
+def test_atom_result_inverse_evidence_success() -> None:
+    """Test that is_inverse_evidence=True allows PASSED with source_quote=None."""
+    atom = AtomResultDTO(
+        tda_id="tda_1234567890abcdef1234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="No negative evidence found (null hypothesis verified).",
+        contextual_override=False,
+        is_inverse_evidence=True,
+        source_quote=None,
+        error_details=None,
+        extracted_data=None,
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    assert atom.status == ExecutionStatus.PASSED
+    assert atom.is_inverse_evidence is True
+    assert atom.contextual_override is False
+    assert atom.source_quote is None
+
+
+def test_atom_result_inverse_evidence_nullifies_quote() -> None:
+    """Test that is_inverse_evidence=True resets non-null quote to None."""
+    atom = AtomResultDTO(
+        tda_id="tda_1234567890abcdef1234567890abcdef",
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="Absence verified.",
+        contextual_override=False,
+        is_inverse_evidence=True,
+        source_quote="Should be dropped per null hypothesis guardrail",
+        error_details=None,
+        extracted_data=None,
+        depends_on_tda_ids=[],
+        short_circuit_reason_tda_ids=[],
+    )
+    assert atom.source_quote is None
+    assert atom.is_inverse_evidence is True
+
+
+def test_atom_result_failed_whitespace_reasoning() -> None:
+    """Test that FAILED status with whitespace reasoning raises ValidationError."""
+    with pytest.raises(ValidationError) as exc_info:
+        AtomResultDTO(
+            tda_id="tda_1234567890abcdef1234567890abcdef",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="   \t\n  ",
+            contextual_override=False,
+            is_inverse_evidence=False,
+            source_quote=None,
+            error_details=None,
+            extracted_data=None,
+            depends_on_tda_ids=[],
+            short_circuit_reason_tda_ids=[],
+        )
+    assert "Reasoning is mandatory for cognitive status" in str(exc_info.value)
 
 
 def test_atom_result_cognitive_vs_system_state_override_nullifies_quote() -> None:

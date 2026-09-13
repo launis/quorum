@@ -825,6 +825,13 @@ class AtomResultDTO(BaseModel):
     contextual_override: Annotated[
         bool, Field(default=False, description="Allows cognitive override without a verbatim quote")
     ] = False
+    is_inverse_evidence: Annotated[
+        bool,
+        Field(
+            default=False,
+            description="True if assertion evaluates absence of negative evidence (null hypothesis).",
+        ),
+    ] = False
     evaluation_reasoning: Annotated[
         str | None, Field(default=None, description="Strictly AI cognitive reasoning, no infra errors")
     ] = None
@@ -844,19 +851,21 @@ class AtomResultDTO(BaseModel):
     def validate_cognitive_vs_system_state(self) -> Self:
         """Fail-Fast validation for cognitive state consistency."""
         if self.status == ExecutionStatus.FAILED:
-            if not self.evaluation_reasoning:
+            if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
             if self.contextual_override:
                 object.__setattr__(self, "contextual_override", False)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
+            if self.is_inverse_evidence:
+                object.__setattr__(self, "is_inverse_evidence", False)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
             if self.source_quote is not None:
                 object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
 
         elif self.status == ExecutionStatus.PASSED:
-            if not self.evaluation_reasoning:
+            if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
-            if not self.contextual_override and not self.source_quote:
-                raise ValueError("source_quote is mandatory unless contextual_override is True")
-            if self.contextual_override and self.source_quote is not None:
+            if not self.contextual_override and not self.is_inverse_evidence and not self.source_quote:
+                raise ValueError("source_quote is mandatory unless contextual_override or is_inverse_evidence is True")
+            if (self.contextual_override or self.is_inverse_evidence) and self.source_quote is not None:
                 object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
 
         elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
