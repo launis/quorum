@@ -363,10 +363,9 @@ class AnchorValidationService:
         if atom.evaluation_reasoning:
             hydrated_reasoning = engine.hydrate_reasoning_text(atom.evaluation_reasoning)
 
+        # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
         if atom.contextual_override:
-            return AtomResultDTO.model_validate(
-                atom.model_dump() | {"source_quote": None, "evaluation_reasoning": hydrated_reasoning}
-            )
+            return atom.model_copy(update={"source_quote": None, "evaluation_reasoning": hydrated_reasoning})
 
         def _is_match(doc_text: str, q_text: str) -> bool:
             norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(doc_text)
@@ -412,6 +411,5 @@ class AnchorValidationService:
                         matched = True
                         break
 
-        return AtomResultDTO.model_validate(
-            atom.model_dump() | {"source_quote": validated_quote, "evaluation_reasoning": hydrated_reasoning}
-        )
+        # Phase 1, Step 1.1: Shallow C-level update via model_copy(update={...})
+        return atom.model_copy(update={"source_quote": validated_quote, "evaluation_reasoning": hydrated_reasoning})

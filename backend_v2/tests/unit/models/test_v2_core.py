@@ -8,6 +8,7 @@ from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadat
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.llm import TokenUsage
 from backend_v2.models.v2_core import (
+    ALLOWED_INPUT_MODES,
     AllowedMCPTool,
     ExecutionRecord,
     ExecutionStep,
@@ -531,6 +532,71 @@ def test_expected_input_questionnaire_validations() -> None:
             input_modes=["text"],
             questionnaire_definition=[valid_q_item],
         )
+
+
+def test_expected_input_assignment_validations() -> None:
+    """Verifies ExpectedInput assignment mode positive and negative constraints."""
+    # Positive: valid assignment mode
+    inp_assignment = ExpectedInput(
+        input_key="assignment_brief",
+        label=I18nText(translations={"en": "Task Brief", "fi": "Tehtävänanto"}),
+        description=I18nText(translations={"en": "Assignment instructions", "fi": "Tehtävän ohjeet"}),
+        required=True,
+        input_modes=["assignment"],
+    )
+    assert "assignment" in inp_assignment.input_modes
+    assert inp_assignment.is_chat_history is False
+
+    # Positive: assignment combined with file
+    inp_combo = ExpectedInput(
+        input_key="assignment_doc",
+        label=I18nText(translations={"en": "Assignment Document"}),
+        description=I18nText(translations={"en": "File or assignment"}),
+        required=False,
+        input_modes=["file", "assignment"],
+    )
+    assert set(inp_combo.input_modes) == {"file", "assignment"}
+
+    # Negative 1: assignment cannot mix with questionnaire
+    valid_q_item = QuestionnaireItem(
+        question_id="q1",
+        question=I18nText(translations={"en": "Q1"}),
+        type="text",
+    )
+    with pytest.raises(ValueError, match="cannot mix 'questionnaire' with other input modes"):
+        ExpectedInput(
+            input_key="bad_assignment_q",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["questionnaire", "assignment"],
+            questionnaire_definition=[valid_q_item],
+        )
+
+    # Negative 2: assignment cannot be chat history
+    with pytest.raises(ValueError, match="cannot use 'assignment' mode when flagged as chat history"):
+        ExpectedInput(
+            input_key="bad_assignment_chat",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["assignment"],
+            is_chat_history=True,
+        )
+
+    # Negative 3: invalid input mode string rejected by closed set
+    with pytest.raises(ValueError, match="contains invalid input_modes"):
+        ExpectedInput(
+            input_key="bad_mode",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["unknown_mode"],
+        )
+
+    # Verify ALLOWED_INPUT_MODES closed set completeness
+    assert "assignment" in ALLOWED_INPUT_MODES
+    assert ALLOWED_INPUT_MODES == frozenset({"file", "paste", "text", "questionnaire", "assignment"})
 
 
 def test_output_profile_synthesis_properties_and_custom_scale_validation() -> None:

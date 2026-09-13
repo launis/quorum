@@ -14,7 +14,7 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.registry import EvidenceType, StrippedBaseMatrixXAI
 from backend_v2.core.template_processor import TemplateProcessor
@@ -32,6 +32,26 @@ __all__ = [
 ]
 
 logger = logging.getLogger(__name__)
+
+
+class _InputMetaDTO(BaseModel):
+    """Strongly typed immutable DTO for expected input metadata in prompt compilation.
+
+    Attributes:
+        label: Localized label string.
+        desc: Localized description string.
+        ai_desc: Cognitive instruction for LLM.
+        is_chat_history: Whether the input represents multi-turn dialogue.
+        input_modes: Allowed input modes for this input.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    label: str
+    desc: str
+    ai_desc: str
+    is_chat_history: bool
+    input_modes: list[str] = Field(default_factory=list)
 
 
 class PromptCompiler:
@@ -183,8 +203,8 @@ class PromptCompiler:
         """
         xml_blocks = []
 
-        # Build a lookup for expected inputs by input_key for full semantic context injection
-        input_meta_map = {}
+        # Phase 1, Step 1.1: Refactor raw dictionary lookups into strongly typed _InputMetaDTO
+        input_meta_map: dict[str, _InputMetaDTO] = {}
         if expected_inputs:
             for ei in expected_inputs:
                 if not isinstance(ei, ExpectedInput):
@@ -195,22 +215,17 @@ class PromptCompiler:
                     continue
 
                 # Fail-Fast Mandatory I18n extraction
-                label_obj = ei.label
-                label_dict = label_obj.model_dump(mode="json") if isinstance(label_obj, BaseModel) else label_obj
-                label_str = self.resolve_i18n(label_dict, target_locale) if label_dict else ""
+                label_str = self.resolve_i18n(ei.label, target_locale)
+                desc_str = self.resolve_i18n(ei.description, target_locale)
+                ai_desc = ei.ai_description if ei.ai_description is not None else ""
 
-                desc_obj = ei.description
-                desc_dict = desc_obj.model_dump(mode="json") if isinstance(desc_obj, BaseModel) else desc_obj
-                desc_str = self.resolve_i18n(desc_dict, target_locale) if desc_dict else ""
-
-                ai_desc = ei.ai_description or ""
-
-                input_meta_map[f"$inputs.{key}"] = {
-                    "label": label_str,
-                    "desc": desc_str,
-                    "ai_desc": ai_desc,
-                    "is_chat_history": ei.is_chat_history,
-                }
+                input_meta_map[f"$inputs.{key}"] = _InputMetaDTO(
+                    label=label_str,
+                    desc=desc_str,
+                    ai_desc=ai_desc,
+                    is_chat_history=ei.is_chat_history,
+                    input_modes=ei.input_modes,
+                )
 
         for logical_name, source_path in input_mappings.items():
             value = self._extract_value_from_state(source_path, state_data)
@@ -225,17 +240,17 @@ class PromptCompiler:
                 meta = input_meta_map.get(base_path)
 
                 desc_text = ""
-                if meta:
+                if meta is not None:
                     desc_text += "  <document_metadata>\n"
                     desc_text += f"    <document_id>{source_id_to_use}</document_id>\n"
-                    if meta["label"]:
-                        desc_text += f"    <document_name>{meta['label']}</document_name>\n"
+                    if meta.label:
+                        desc_text += f"    <document_name>{meta.label}</document_name>\n"
 
-                    if meta["ai_desc"]:
-                        desc_text += f"    <ai_context_mandate>{meta['ai_desc']}</ai_context_mandate>\n"
+                    if meta.ai_desc:
+                        desc_text += f"    <ai_context_mandate>{meta.ai_desc}</ai_context_mandate>\n"
                     desc_text += "  </document_metadata>\n"
 
-                is_chat_history = meta["is_chat_history"] if meta and "is_chat_history" in meta else False
+                is_chat_history = meta.is_chat_history if meta is not None else False
                 encapsulated_val = TemplateProcessor.encapsulate_payload(value)
 
                 if source_path.startswith("$inputs"):

@@ -56,6 +56,7 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = [
+    "ALLOWED_INPUT_MODES",
     "AcceptanceCriterion",
     "AllowedMCPTool",
     "AntiPattern",
@@ -677,6 +678,9 @@ class QuestionnaireItem(V2CoreBase):
     type: str = Field(description="Input type, e.g., 'text'.")
 
 
+ALLOWED_INPUT_MODES: frozenset[str] = frozenset({"file", "paste", "text", "questionnaire", "assignment"})
+
+
 class ExpectedInput(V2CoreBase):
     """Definition of an input required by a workflow."""
 
@@ -691,7 +695,9 @@ class ExpectedInput(V2CoreBase):
     scan_for_performative_patterns: bool = Field(
         default=False, description="Whether to scan this input for performative AI jargon."
     )
-    input_modes: list[str] = Field(default_factory=list, description="Allowed modes: 'file', 'paste', 'questionnaire'.")
+    input_modes: list[str] = Field(
+        default_factory=list, description="Allowed modes: 'file', 'paste', 'text', 'questionnaire', 'assignment'."
+    )
     description: I18nText = Field(description="Localized description/help text.")
     ai_description: str | None = Field(
         default=None,
@@ -711,10 +717,26 @@ class ExpectedInput(V2CoreBase):
         Returns:
             The sanitized ExpectedInput matching schema expectations.
         """
+        # Phase 1, Step 1.2: Strict input modes validation with closed set ALLOWED_INPUT_MODES
         if not self.input_modes:
             msg = f"ExpectedInput '{self.input_key}' must have at least one input_mode."
             logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
             raise ValueError(msg)
+
+        if not set(self.input_modes).issubset(ALLOWED_INPUT_MODES):
+            msg = f"ExpectedInput '{self.input_key}' contains invalid input_modes."
+            logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+            raise ValueError(msg)
+
+        if "assignment" in self.input_modes:
+            if "questionnaire" in self.input_modes:
+                msg = f"ExpectedInput '{self.input_key}' cannot mix 'questionnaire' with other input modes."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+            if self.is_chat_history:
+                msg = f"ExpectedInput '{self.input_key}' cannot use 'assignment' mode when flagged as chat history."
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
 
         if "questionnaire" in self.input_modes:
             if self.is_chat_history:
