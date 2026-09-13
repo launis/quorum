@@ -30,31 +30,41 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 __all__ = [
     "BlockHeatmapDTO",
     "DisagreementRootCause",
+    "EvidenceDistributionDTO",
+    "InputFileInspectionDTO",
     "IsolationAuditDTO",
     "KappaMetricsDTO",
-    "InputFileInspectionDTO",
     "MacroBlockScoreDTO",
+    "PhysicalModelBindingDTO",
     "RootCauseBreakdownDTO",
     "ScaleBreakdownDTO",
     "TraceTelemetryDTO",
     "UNICODE_SPACE_REGISTRY",
+    "UserDocumentationVolumeDTO",
+    "WorkflowProvenanceDTO",
     "calculate_cohens_kappa",
     "calculate_entropy",
     "calculate_fleiss_kappa",
     "calculate_pairwise_consistency",
+    "calculate_user_documentation_volume",
     "classify_disagreement",
+    "classify_input_ontology",
     "extract_block_normalized_scores",
+    "extract_block_scoring_diagnostics",
+    "extract_evidence_distribution",
     "extract_trace_telemetry",
+    "extract_workflow_provenance",
     "get_all_evals",
     "get_state",
     "get_trace",
     "has_quote",
     "main",
+    "resolve_physical_model_bindings",
     "run_diff",
     "uses_contextual_override",
     "verify_quote_in_corpus",
@@ -167,6 +177,71 @@ class MacroBlockScoreDTO(BaseModel):
     run1_pass_rate: float
     run2_pass_rate: float
     delta_pass_rate: float
+    run1_raw_score: float | None = None
+    run2_raw_score: float | None = None
+    delta_raw_score: float | None = None
+    scale_min: float = 1.0
+    scale_max: float = 5.0
+    run1_waterfall_breakpoint: str | None = None
+    run2_waterfall_breakpoint: str | None = None
+    run1_level_breakdown: dict[str, Any] = Field(default_factory=dict)
+    run2_level_breakdown: dict[str, Any] = Field(default_factory=dict)
+
+
+class EvidenceDistributionDTO(BaseModel):
+    """Immutable aggregate distribution of evaluation evidence classes per run."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    run_name: str
+    empirical_quotes: int
+    inverse_passes: int
+    contextual_overrides: int
+    demoted_by_policy: int
+    failures: int
+    total_evaluated: int
+
+
+class WorkflowProvenanceDTO(BaseModel):
+    """Immutable workflow provenance and governance switches snapshot."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    workflow_id: str
+    name_fi: str
+    name_en: str
+    version: int
+    enable_contextual_overrides: bool
+    default_scoring_strategy: str
+    default_strictness_level: int
+    total_active_steps: int
+    total_workflow_atoms: int
+
+
+class PhysicalModelBindingDTO(BaseModel):
+    """Immutable resolved physical model binding and execution parameters."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    strategy_name: str
+    physical_model: str
+    temperature: float
+    max_tokens: int
+    thinking_budget: int = 0
+
+
+class UserDocumentationVolumeDTO(BaseModel):
+    """Immutable aggregated volume metrics across user-authored deliverable files."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    run_name: str
+    total_words: int
+    total_sentences: int
+    total_characters: int
+    total_paragraphs: int
+    total_bullets: int
+    user_file_count: int
 
 
 # Phase 1, Step 1.4: Strongly typed, immutable input file inspection DTO
@@ -787,6 +862,332 @@ def extract_block_normalized_scores(trace_path: Path) -> dict[str, float]:
     return scores
 
 
+def extract_block_scoring_diagnostics(trace_path: Path) -> dict[str, dict[str, Any]]:
+    """Extract block-level raw scores, normalized scores, and waterfall diagnostics from trace.
+
+    Args:
+        trace_path: Path to execution_trace.json.
+
+    Returns:
+        Mapping of block ID to dict with normalized_score, raw_score, level_breakdown, waterfall_breakpoint.
+    """
+    diagnostics: dict[str, dict[str, Any]] = {}
+    if not trace_path.exists():
+        return diagnostics
+    try:
+        with trace_path.open("r", encoding="utf-8") as tf:
+            trace = json.load(tf)
+        for ev in trace:
+            if isinstance(ev, dict) and isinstance(ev.get("content"), dict):
+                content = ev["content"]
+                for k, v in content.items():
+                    if isinstance(v, dict) and "normalized_score" in v and v["normalized_score"] is not None:
+                        try:
+                            norm_sc = float(v["normalized_score"])
+                            raw_sc = float(v["raw_score"]) if "raw_score" in v and v["raw_score"] is not None else None
+                            levels = v.get("level_breakdown", {})
+
+                            bp: str | None = None
+                            if isinstance(levels, dict) and levels:
+                                try:
+                                    sorted_lvls = sorted(levels.keys(), key=lambda x: float(x))
+                                    for lvl in sorted_lvls:
+                                        stats = levels[lvl]
+                                        if isinstance(stats, dict):
+                                            hits = stats.get("hits", 0)
+                                            tot = stats.get("total", 0)
+                                            if hits < tot:
+                                                bp = f"Taso {lvl} ({hits}/{tot} osumaa)"
+                                                break
+                                    if bp is None:
+                                        bp = "Kaikki tasot läpäisty"
+                                except ValueError, TypeError:
+                                    pass
+
+                            diagnostics[k] = {
+                                "normalized_score": norm_sc,
+                                "raw_score": raw_sc,
+                                "level_breakdown": levels if isinstance(levels, dict) else {},
+                                "waterfall_breakpoint": bp,
+                            }
+                        except ValueError, TypeError:
+                            pass
+    except json.JSONDecodeError, OSError:
+        pass
+    return diagnostics
+
+
+def classify_input_ontology(filename: str) -> str:
+    """Classify an input file into the Two-Tier Input Ontology.
+
+    Candidate Deliverables (User Documentation):
+        - chat_log_user_only (candidate steering prompts)
+        - product_text (candidate deliverables)
+        - reflection_text (candidate reflection)
+
+    External Normative Context (Quarantined):
+        - assignment_context (assignment briefs)
+        - compliance_framework (regulatory framework)
+        - source_evidence (empirical ground truth)
+        - chat_log_ai_only (AI dialogue responses)
+
+    Raw Combined:
+        - chat_log (unseparated full conversation)
+
+    Args:
+        filename: Name of the input file.
+
+    Returns:
+        One of 'candidate_deliverable', 'external_context', or 'raw_log'.
+    """
+    fn = filename.lower()
+    if "user_only" in fn or "product_text" in fn or "reflection_text" in fn:
+        return "candidate_deliverable"
+    if "assignment" in fn or "compliance" in fn or "source_evidence" in fn or "ai_only" in fn:
+        return "external_context"
+    if "chat_log" in fn and "user_only" not in fn and "ai_only" not in fn:
+        return "raw_log"
+    return "candidate_deliverable"
+
+
+def calculate_user_documentation_volume(
+    input_files: dict[str, InputFileInspectionDTO],
+    run_name: str = "",
+) -> UserDocumentationVolumeDTO:
+    """Aggregate volume metrics across user-authored deliverable files only.
+
+    Filters out external frameworks, assignment briefs, and AI-generated dialogue.
+
+    Args:
+        input_files: Mapping of filename to InputFileInspectionDTO.
+        run_name: Name of the execution run.
+
+    Returns:
+        UserDocumentationVolumeDTO with sum of words, sentences, characters, paragraphs, bullets.
+    """
+    tot_words = 0
+    tot_sentences = 0
+    tot_chars = 0
+    tot_paragraphs = 0
+    tot_bullets = 0
+    user_file_count = 0
+
+    for fname, dto in input_files.items():
+        if classify_input_ontology(fname) == "candidate_deliverable":
+            tot_words += dto.word_count
+            tot_sentences += dto.sentence_count
+            tot_chars += dto.char_count
+            tot_paragraphs += dto.paragraph_count
+            tot_bullets += dto.bullet_count
+            user_file_count += 1
+
+    return UserDocumentationVolumeDTO(
+        run_name=run_name,
+        total_words=tot_words,
+        total_sentences=tot_sentences,
+        total_characters=tot_chars,
+        total_paragraphs=tot_paragraphs,
+        total_bullets=tot_bullets,
+        user_file_count=user_file_count,
+    )
+
+
+def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -> WorkflowProvenanceDTO | None:
+    """Extract workflow provenance and governance switches snapshot from seed data.
+
+    Args:
+        seed: Complete seed data dictionary containing workflows, steps, and prompt blocks.
+        workflow_id: Target workflow ID to resolve.
+
+    Returns:
+        WorkflowProvenanceDTO containing metadata and total atom population, or None if not resolvable.
+    """
+    workflows = seed.get("workflows", [])
+    if not workflows:
+        return None
+
+    target_wf: dict[str, Any] | None = None
+    if workflow_id:
+        target_wf = next((w for w in workflows if w.get("id") == workflow_id), None)
+    if target_wf is None and workflows:
+        target_wf = workflows[0]
+
+    if target_wf is None:
+        return None
+
+    wf_id = str(target_wf.get("id", ""))
+    name_dict = target_wf.get("name", {})
+    if isinstance(name_dict, dict):
+        translations = name_dict.get("translations", {})
+        name_fi = str(translations.get("fi") or target_wf.get("slug") or wf_id)
+        name_en = str(translations.get("en") or target_wf.get("slug") or wf_id)
+    else:
+        name_fi = str(name_dict or target_wf.get("slug") or wf_id)
+        name_en = name_fi
+
+    version = int(target_wf.get("version", 1))
+    enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", True))
+    default_scoring_strategy = str(target_wf.get("default_scoring_strategy", "AVERAGE"))
+    default_strictness_level = int(target_wf.get("default_strictness_level", 50))
+    steps = target_wf.get("steps", [])
+    total_active_steps = len(steps)
+
+    step_blueprints = {s["id"]: s for s in seed.get("steps", []) if isinstance(s, dict) and "id" in s}
+    prompt_blocks_map = {b["id"]: b for b in seed.get("prompt_blocks", []) if isinstance(b, dict) and "id" in b}
+
+    wf_criteria_blocks: set[str] = set()
+    for st in steps:
+        if isinstance(st, dict):
+            bp_id = st.get("task_blueprint")
+            bp = step_blueprints.get(bp_id)
+            if bp:
+                for bid in bp.get("criteria_block_ids", []):
+                    wf_criteria_blocks.add(bid)
+
+    total_atoms = 0
+    for bid in wf_criteria_blocks:
+        blk = prompt_blocks_map.get(bid)
+        if blk:
+            for sc in blk.get("scales", []):
+                for cl in sc.get("claims", []):
+                    total_atoms += len(cl.get("tda_assertions", []))
+
+    return WorkflowProvenanceDTO(
+        workflow_id=wf_id,
+        name_fi=name_fi,
+        name_en=name_en,
+        version=version,
+        enable_contextual_overrides=enable_contextual_overrides,
+        default_scoring_strategy=default_scoring_strategy,
+        default_strictness_level=default_strictness_level,
+        total_active_steps=total_active_steps,
+        total_workflow_atoms=total_atoms,
+    )
+
+
+def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelBindingDTO]:
+    """Resolve physical model bindings and execution hyperparameters from system config.
+
+    Args:
+        seed: Complete seed data dictionary containing system_config.
+
+    Returns:
+        List of PhysicalModelBindingDTOs for active strategies (e.g. fast, reasoning, synthesis).
+    """
+    bindings: list[PhysicalModelBindingDTO] = []
+    sys_configs = seed.get("system_config", [])
+    if isinstance(sys_configs, list):
+        for cfg in sys_configs:
+            if isinstance(cfg, dict) and cfg.get("type") == "model_registry":
+                models = cfg.get("models", {})
+                for strat_name in ["fast", "reasoning", "synthesis", "deep", "strict"]:
+                    if strat_name in models and isinstance(models[strat_name], dict):
+                        model_cfg = models[strat_name]
+                        bindings.append(
+                            PhysicalModelBindingDTO(
+                                strategy_name=strat_name,
+                                physical_model=model_cfg.get("model_name", "unknown"),
+                                temperature=float(model_cfg.get("temperature", 0.0)),
+                                max_tokens=int(model_cfg.get("max_tokens", 32768)),
+                                thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0)),
+                            )
+                        )
+    if not bindings:
+        bindings = [
+            PhysicalModelBindingDTO(
+                strategy_name="fast",
+                physical_model="google/gemini-2.5-flash",
+                temperature=0.1,
+                max_tokens=32768,
+                thinking_budget=0,
+            ),
+            PhysicalModelBindingDTO(
+                strategy_name="reasoning",
+                physical_model="google/gemini-2.5-pro",
+                temperature=0.2,
+                max_tokens=65536,
+                thinking_budget=8192,
+            ),
+            PhysicalModelBindingDTO(
+                strategy_name="synthesis",
+                physical_model="anthropic/claude-3-5-sonnet",
+                temperature=0.3,
+                max_tokens=65536,
+                thinking_budget=2048,
+            ),
+        ]
+    return bindings
+
+
+def extract_evidence_distribution(
+    evals: dict[str, dict[str, Any]],
+    atom_details: dict[str, dict[str, Any]] | None = None,
+    enable_contextual_overrides: bool = True,
+    run_name: str = "",
+) -> EvidenceDistributionDTO:
+    """Aggregate distribution of evaluation evidence classes per execution run.
+
+    Counts:
+        - empirical_quotes: passed with verified quotes
+        - inverse_passes: null hypothesis passed assertions without quotes
+        - contextual_overrides: subjective overrides without quotes
+        - demoted_by_policy: demoted because overrides were disabled
+        - failures: failed assertions
+
+    Args:
+        evals: Mapping of atom ID to evaluation dictionaries.
+        atom_details: Optional mapping of atom ID to prompt block atom definitions.
+        enable_contextual_overrides: Workflow governance switch.
+        run_name: Name of the execution run.
+
+    Returns:
+        EvidenceDistributionDTO containing counts for each evidence class.
+    """
+    empirical_quotes = 0
+    inverse_passes = 0
+    contextual_overrides = 0
+    demoted_by_policy = 0
+    failures = 0
+    details_map = atom_details or {}
+
+    passed_states = {"true", "passed", "1", "pass"}
+
+    for aid, ev in evals.items():
+        st = get_state(ev).lower()
+        is_passed = st in passed_states
+        has_q = has_quote(ev)
+        det = details_map.get(aid, {})
+        is_inv = bool(ev.get("is_inverse_evidence") or det.get("inverse_evidence", False))
+        is_ovr = bool(ev.get("contextual_override") or uses_contextual_override(ev))
+        was_demoted = bool(
+            ev.get("demoted_by_override_policy") or (is_ovr and not is_inv and not enable_contextual_overrides)
+        )
+
+        if was_demoted:
+            demoted_by_policy += 1
+        elif not is_passed:
+            failures += 1
+        else:
+            if is_inv and not has_q:
+                inverse_passes += 1
+            elif is_ovr and not is_inv:
+                contextual_overrides += 1
+            elif has_q:
+                empirical_quotes += 1
+            else:
+                empirical_quotes += 1
+
+    return EvidenceDistributionDTO(
+        run_name=run_name,
+        empirical_quotes=empirical_quotes,
+        inverse_passes=inverse_passes,
+        contextual_overrides=contextual_overrides,
+        demoted_by_policy=demoted_by_policy,
+        failures=failures,
+        total_evaluated=len(evals),
+    )
+
+
 def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | None = None) -> str:
     """Perform differential analysis between execution traces and generate Markdown report.
 
@@ -862,7 +1263,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
     for block in seed.get("prompt_blocks", []):
         bid = block.get("id")
-        bname_raw = block.get("name")
+        bname_raw = block.get("label") or block.get("name")
         bname = bid
         if isinstance(bname_raw, dict):
             bname = bname_raw.get("translations", {}).get("fi") or bname_raw.get("translations", {}).get("en") or bid
@@ -1230,6 +1631,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     # Macro Block Score Drift (0-100)
     run1_scores = extract_block_normalized_scores(loaded_paths[0]) if loaded_paths else {}
     run2_scores = extract_block_normalized_scores(loaded_paths[1]) if len(loaded_paths) > 1 else {}
+    run1_diag = extract_block_scoring_diagnostics(loaded_paths[0]) if loaded_paths else {}
+    run2_diag = extract_block_scoring_diagnostics(loaded_paths[1]) if len(loaded_paths) > 1 else {}
 
     macro_block_scores: list[MacroBlockScoreDTO] = []
     for bid, bname in blocks_in_play.items():
@@ -1242,6 +1645,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         r1_norm = run1_scores.get(bid)
         r2_norm = run2_scores.get(bid)
         d_norm = (r2_norm - r1_norm) if (r1_norm is not None and r2_norm is not None) else None
+
+        d1 = run1_diag.get(bid, {})
+        d2 = run2_diag.get(bid, {})
+        r1_raw = d1.get("raw_score")
+        r2_raw = d2.get("raw_score")
+        d_raw = (r2_raw - r1_raw) if (r1_raw is not None and r2_raw is not None) else None
+        b_min, b_max = block_extrema.get(bid, (1.0, 5.0))
+
         macro_block_scores.append(
             MacroBlockScoreDTO(
                 block_id=bid,
@@ -1252,6 +1663,15 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 run1_pass_rate=r1_pass,
                 run2_pass_rate=r2_pass,
                 delta_pass_rate=r2_pass - r1_pass,
+                run1_raw_score=r1_raw,
+                run2_raw_score=r2_raw,
+                delta_raw_score=d_raw,
+                scale_min=b_min,
+                scale_max=b_max,
+                run1_waterfall_breakpoint=d1.get("waterfall_breakpoint"),
+                run2_waterfall_breakpoint=d2.get("waterfall_breakpoint"),
+                run1_level_breakdown=d1.get("level_breakdown", {}),
+                run2_level_breakdown=d2.get("level_breakdown", {}),
             )
         )
 
@@ -1407,7 +1827,35 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("- **Vertailtavat ajot (R1, R2...):**\n")
         for idx, run_name in enumerate(loaded_runs):
             f.write(f"  - **R{idx + 1}:** `{run_name}`\n")
-        f.write(f"- **Aktiiviset Säännöt ja Asetukset (Frozen Context):** {frozen_context_info}\n\n")
+        f.write(f"- **Aktiiviset Säännöt ja Asetukset (Frozen Context):** {frozen_context_info}\n")
+
+        # Workflow Provenance Snapshot
+        first_wf_id = first_run_record.get("workflow_id") or first_run_record.get("metadata", {}).get("workflow_id")
+        wf_prov = extract_workflow_provenance(seed, first_wf_id)
+        if wf_prov:
+            ovr_switch_str = "SALLITTU (ENABLED)" if wf_prov.enable_contextual_overrides else "ESTETTY (DISABLED)"
+            f.write("- **Työnkulun Provenienssi ja Hallintokytkimet (Workflow Provenance & Invariants):**\n")
+            f.write(f"  - **Työnkulku:** `{wf_prov.workflow_id}` ({wf_prov.name_fi} / {wf_prov.name_en})\n")
+            f.write(
+                f"  - **Versio:** v{wf_prov.version} | **Aktiivisia askeleita:** {wf_prov.total_active_steps} kpl | "
+                f"**Koko atomipopulaatio:** {wf_prov.total_workflow_atoms} atomia\n"
+            )
+            f.write(
+                f"  - **Hallintokytkimet:** Kontekstuaaliset ohitukset: `{ovr_switch_str}`, "
+                f"Pisteytystapa: `{wf_prov.default_scoring_strategy}`, Tiukkuustaso: `{wf_prov.default_strictness_level}`\n"
+            )
+
+        # Physical Model Bindings
+        model_bindings = resolve_physical_model_bindings(seed)
+        if model_bindings:
+            f.write("- **Fyysiset Mallisidokset (Physical Model Bindings):**\n")
+            for mb in model_bindings:
+                think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
+                f.write(
+                    f"  - **{mb.strategy_name}:** `{mb.physical_model}` "
+                    f"(T={mb.temperature}, MaxTok={mb.max_tokens}{think_str})\n"
+                )
+        f.write("\n")
 
         f.write("## Ajojen Lähdetiedostot ja Syötteet\n")
         for idx, (run_name, exe_path) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
@@ -1529,9 +1977,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             m_eval = sys_snap.get("SCHEMA_MAX_EVALUATIONS")
             s_lim = sys_snap.get("MATRIX_SAMPLING_LIMIT")
 
+            wf_prov_run = extract_workflow_provenance(seed, run_record.get("workflow_id") or meta.get("workflow_id"))
+            tot_wf_atoms = wf_prov_run.total_workflow_atoms if wf_prov_run else len(common_atoms)
             sampling_val = meta.get("matrix_sampling_strategy") if isinstance(meta, dict) else None
             if sampling_val == 0:
-                sampling_display = "0 (Kaikki atomit, Tuotanto)"
+                sampling_display = f"0 (Kaikki {tot_wf_atoms} atomia, Tuotanto)"
             elif sampling_val is not None and sampling_val > 0:
                 sampling_display = f"{sampling_val} (Kehitystilan otanta)"
             elif s_lim is not None:
@@ -1644,17 +2094,35 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 "rakenteen (kappaleet, luetelmat) kustakin ajosta. Tämä todentaa aineiston riittävyyden "
                 "(Data Sparsity vs. Cognitive Failure) sekä semanttisen ekvivalenssin.\n\n"
             )
-            f.write("| Ajo | Tiedosto | Sanat | Lauseet | Merkit | Kappaleet | Luetelmat | Variaatio / Kohina |\n")
-            f.write("| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n")
+            f.write(
+                "| Ajo | Tiedosto | Ontologinen Rooli | Sanat | Lauseet | Merkit | Kappaleet | Luetelmat | Variaatio / Kohina |\n"
+            )
+            f.write("| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |\n")
             for fname, run_dict in all_input_files.items():
+                role_key = classify_input_ontology(fname)
+                if role_key == "candidate_deliverable":
+                    role_desc = "Käyttäjädokumentaatio (Candidate Deliverable)"
+                elif role_key == "external_context":
+                    role_desc = "Ulkoinen konteksti (External Normative Context)"
+                else:
+                    role_desc = "Raakaloki (Combined Raw Dialogue)"
                 for r_idx, r_name in enumerate(loaded_runs):
                     if r_name in run_dict:
                         fi = run_dict[r_name]
                         f.write(
-                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {fi.word_count:,} | "
+                            f"| **R{r_idx + 1} ({r_name})** | `{fname}` | {role_desc} | {fi.word_count:,} | "
                             f"{fi.sentence_count:,} | {fi.char_count:,} | {fi.paragraph_count} | "
                             f"{fi.bullet_count} | {fi.noise} |\n"
                         )
+            f.write("| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n")
+            for r_idx, r_name in enumerate(loaded_runs):
+                r_in_files = {fn: rd[r_name] for fn, rd in all_input_files.items() if r_name in rd}
+                vol = calculate_user_documentation_volume(r_in_files, run_name=r_name)
+                f.write(
+                    f"| **YHTEENSÄ R{r_idx + 1}** | **{vol.user_file_count} tiedostoa** | **Käyttäjädokumentaation volyymi** | "
+                    f"**{vol.total_words:,}** | **{vol.total_sentences:,}** | **{vol.total_characters:,}** | "
+                    f"**{vol.total_paragraphs:,}** | **{vol.total_bullets:,}** | **Puhdas kandidaattisisältö** |\n"
+                )
             f.write("\n")
 
             if len(loaded_runs) >= 2:
@@ -1794,11 +2262,12 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             "Taulukko havainnollistaa, missä matriisilohkoissa ilmenee eniten arviointieroja ajojen välillä. "
             "Lohkot, joissa on eniten erimielisyyksiä, on nostettu kärkeen sääntöjen kirkastamista varten.\n\n"
         )
-        f.write("| Lohko / Matriisi | Lohkon ID | Atomeja Yhteensä | Erimielisyydet | Konsistenssi (%) |\n")
-        f.write("| :--- | :--- | :---: | :---: | :---: |\n")
+        f.write("| Lohko / Matriisi | Lohkon ID | Asteikko | Atomeja Yhteensä | Erimielisyydet | Konsistenssi (%) |\n")
+        f.write("| :--- | :--- | :---: | :---: | :---: | :---: |\n")
         for bh in block_heatmaps:
+            b_min, b_max = block_extrema.get(bh.block_id, (1.0, 5.0))
             f.write(
-                f"| **{bh.block_name}** | `{bh.block_id}` | {bh.total_atoms} | {bh.mismatches} | "
+                f"| **{bh.block_name}** | `{bh.block_id}` | {b_min:.0f}–{b_max:.0f} | {bh.total_atoms} | {bh.mismatches} | "
                 f"{bh.consistency_rate * 100:.1f} % |\n"
             )
         f.write("\n")
@@ -1843,18 +2312,53 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write(f"- **Keskimääräinen itseisarvopoikkeama (MAD - Mean Absolute Delta):** `{mad_score:.2f}` pistettä\n")
         f.write(f"- **Suurin yksittäisen lohkon poikkeama (Max Drift):** `{max_drift:.2f}` pistettä\n\n")
         f.write(
-            "| Lohko / Matriisi | Run 1 Pisteet (0–100) | Run 2 Pisteet (0–100) | $\\Delta$ Pisteet | "
-            "Run 1 Läpäisy | Run 2 Läpäisy | $\\Delta$ Läpäisy |\n"
+            "| Lohko / Matriisi | Run 1 Pisteet (Raaka & Norm) | Run 2 Pisteet (Raaka & Norm) | $\\Delta$ Norm | "
+            "Run 1 Waterfall-katkos | Run 2 Waterfall-katkos | Run 1 Läpäisy | Run 2 Läpäisy | $\\Delta$ Läpäisy |\n"
         )
-        f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+        f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n")
         for ms in macro_block_scores:
-            s1_str = f"{ms.run1_normalized_score:.1f}" if ms.run1_normalized_score is not None else "-"
-            s2_str = f"{ms.run2_normalized_score:.1f}" if ms.run2_normalized_score is not None else "-"
-            d_str = f"{ms.delta_normalized_score:+.1f}" if ms.delta_normalized_score is not None else "-"
+            s1_norm = f"{ms.run1_normalized_score:.1f} %" if ms.run1_normalized_score is not None else "-"
+            s2_norm = f"{ms.run2_normalized_score:.1f} %" if ms.run2_normalized_score is not None else "-"
+            s1_raw = f"{ms.run1_raw_score:.1f} / {ms.scale_max:.0f}" if ms.run1_raw_score is not None else "-"
+            s2_raw = f"{ms.run2_raw_score:.1f} / {ms.scale_max:.0f}" if ms.run2_raw_score is not None else "-"
+            s1_full = f"Raw: {s1_raw} | Norm: {s1_norm}" if ms.run1_normalized_score is not None else "-"
+            s2_full = f"Raw: {s2_raw} | Norm: {s2_norm}" if ms.run2_normalized_score is not None else "-"
+            d_str = f"{ms.delta_normalized_score:+.1f} %" if ms.delta_normalized_score is not None else "-"
+            bp1_str = ms.run1_waterfall_breakpoint or "-"
+            bp2_str = ms.run2_waterfall_breakpoint or "-"
             p1_str = f"{ms.run1_pass_rate * 100:.1f} %"
             p2_str = f"{ms.run2_pass_rate * 100:.1f} %"
             dp_str = f"{ms.delta_pass_rate * 100:+.1f} %"
-            f.write(f"| **{ms.block_name}** | {s1_str} | {s2_str} | {d_str} | {p1_str} | {p2_str} | {dp_str} |\n")
+            b_label = f"`{ms.block_id}` ({ms.block_name}, Asteikko {ms.scale_min:.0f}–{ms.scale_max:.0f})"
+            f.write(
+                f"| **{b_label}** | {s1_full} | {s2_full} | {d_str} | {bp1_str} | {bp2_str} | {p1_str} | {p2_str} | {dp_str} |\n"
+            )
+        f.write("\n")
+
+        # Evidence Class & Override Distribution
+        f.write("## Evidenssiluokkien ja Ohitusten Jakauma (Evidence Class & Override Distribution)\n\n")
+        f.write(
+            "Taulukko erittelee arvioitujen atomien jakauman kussakin ajossa: "
+            "suorat empiiriset sitaatit, käänteisen evidenssin läpäisyt (Null Hypothesis), "
+            "kontekstuaaliset ohitukset, sääntödemootiot ja hylkäykset.\n\n"
+        )
+        f.write(
+            "| Ajo | Empiiriset sitaatit | Käänteiset läpäisyt (Null Hypothesis) | "
+            "Kontekstuaaliset ohitukset | Sääntödemootiot | Hylätyt (FAILED) | Yhteensä arvioitu |\n"
+        )
+        f.write("| :--- | :---: | :---: | :---: | :---: | :---: | :---: |\n")
+        for r_idx, (r_name, ev_map) in enumerate(zip(loaded_runs, evals_list, strict=False)):
+            r_rec: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == r_name), {})
+            r_wf_id = r_rec.get("workflow_id") or r_rec.get("metadata", {}).get("workflow_id")
+            r_prov = extract_workflow_provenance(seed, r_wf_id)
+            r_override_enabled = r_prov.enable_contextual_overrides if r_prov else True
+            dist = extract_evidence_distribution(
+                ev_map, atom_details, enable_contextual_overrides=r_override_enabled, run_name=r_name
+            )
+            f.write(
+                f"| **R{r_idx + 1} ({r_name})** | {dist.empirical_quotes} | {dist.inverse_passes} | "
+                f"{dist.contextual_overrides} | {dist.demoted_by_policy} | {dist.failures} | {dist.total_evaluated} |\n"
+            )
         f.write("\n")
 
         # FinOps & Cache Economics
