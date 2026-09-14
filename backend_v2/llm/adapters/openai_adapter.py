@@ -135,8 +135,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             raw_params = info.get("supported_openai_params")
             supported_params: list[str] = []
             if isinstance(raw_params, list):
-                supported_params = raw_params
-            if info.get("supports_reasoning") or "reasoning_effort" in supported_params:
+                supported_params = [str(param) for param in raw_params if isinstance(param, str)]
+            if bool(info.get("supports_reasoning")) or "reasoning_effort" in supported_params:
                 is_reasoning_model = True
         except Exception:  # noqa: QGR003 [REASON: Non-fatal fallback to prefix heuristic for local or unmapped models]
             # Fallback for local, mock, unmapped, or cutting-edge unindexed models
@@ -181,13 +181,20 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         self._apply_strict_schema_invariants(schema_dict)
 
     def _apply_strict_schema_invariants(self, node: Any) -> None:
-        """Recursively enforce additionalProperties=False, saturated required lists, and strip defaults.
+        """Recursively enforce OpenAI strict invariants including anyOf conversion and discriminator removal.
+
+        Mutates schema in-place to enforce additionalProperties=False, saturate required lists,
+        strip default values, convert oneOf unions to anyOf, and remove unsupported discriminator objects.
 
         Args:
             node: Node within the JSON schema graph to inspect and mutate in-place.
         """
         if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary transformation for OpenAI strict API]
             node.pop("default", None)
+            node.pop("discriminator", None)
+            if "oneOf" in node:
+                node["anyOf"] = node.pop("oneOf")
+
             if node.get("type") == "object" or "properties" in node:
                 node["additionalProperties"] = False
                 if "properties" in node:

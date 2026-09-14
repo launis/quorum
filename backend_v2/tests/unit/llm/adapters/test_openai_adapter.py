@@ -219,3 +219,34 @@ def test_openai_adapter_gpt4o_mini_non_reasoning() -> None:
     assert "reasoning_effort" not in result
     assert result.get("temperature") == 0.0
     assert result.get("top_p") == 1.0
+
+
+def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
+    """Verify OpenAICacheAdapter transforms 'oneOf' to 'anyOf' and removes 'discriminator' for OpenAI strict compatibility.
+
+    OpenAI's strict schema validator explicitly rejects 'oneOf' with:
+    "Invalid schema for response_format: 'oneOf' is not permitted."
+    """
+    from backend_v2.models.dtos.synthesis import ExecutiveSummarySectionResult, MatrixSectionSynthesesResult
+
+    adapter = OpenAICacheAdapter()
+
+    # 1. ExecutiveSummarySectionResult
+    result1 = adapter.prepare_structured_output(ExecutiveSummarySectionResult)
+    assert isinstance(result1, dict)
+    schema1 = result1["json_schema"]["schema"]
+    exec_summary_items = schema1["properties"]["executive_summary"]["items"]
+    assert "oneOf" not in exec_summary_items, f"'oneOf' must not be present in OpenAI schema items: {exec_summary_items}"
+    assert "discriminator" not in exec_summary_items, f"'discriminator' must not be present in OpenAI schema items: {exec_summary_items}"
+    assert "anyOf" in exec_summary_items, f"'anyOf' must be present in OpenAI schema items: {exec_summary_items}"
+    assert len(exec_summary_items["anyOf"]) == 5
+
+    # 2. MatrixSectionSynthesesResult
+    result2 = adapter.prepare_structured_output(MatrixSectionSynthesesResult)
+    assert isinstance(result2, dict)
+    schema2 = result2["json_schema"]["schema"]
+    section_items = schema2["$defs"]["SynthesisSectionDTO"]["properties"]["content_blocks"]["items"]
+    assert "oneOf" not in section_items, f"'oneOf' must not be present in SynthesisSectionDTO items: {section_items}"
+    assert "discriminator" not in section_items, f"'discriminator' must not be present in SynthesisSectionDTO items: {section_items}"
+    assert "anyOf" in section_items, f"'anyOf' must be present in SynthesisSectionDTO items: {section_items}"
+    assert len(section_items["anyOf"]) == 5
