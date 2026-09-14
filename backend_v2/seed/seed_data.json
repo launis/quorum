@@ -76,9 +76,9 @@
         },
         "openai_strict": {
           "max_tokens": 16384,
-          "model_name": "openai/gpt-4o-mini",
+          "model_name": "openai/gpt-5.1",
           "temperature": 0.0,
-          "thinking_budget_tokens": 0,
+          "thinking_budget_tokens": 2048,
           "supports_grounding": false,
           "tpm_limit": 2000000,
           "rpm_limit": 500,

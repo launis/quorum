@@ -118,10 +118,29 @@ class OpenAICacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        model_name = str(
-            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
-        ).lower()
-        is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4"))
+        resolved_model: str = ""
+        if "model" in call_kwargs and call_kwargs["model"]:
+            resolved_model = str(call_kwargs["model"])
+        elif isinstance(config, ModelProfile):
+            resolved_model = config.model_name
+        model_name = resolved_model.lower()
+
+        # Epistemic SSOT: Query authoritative LiteLLM registry dynamically instead of hardcoded prefix guessing
+        is_reasoning_model = False
+        try:
+            import litellm
+
+            clean_model = model_name.removeprefix("openai/")
+            info = litellm.get_model_info(clean_model)
+            raw_params = info.get("supported_openai_params")
+            supported_params: list[str] = []
+            if isinstance(raw_params, list):
+                supported_params = raw_params
+            if info.get("supports_reasoning") or "reasoning_effort" in supported_params:
+                is_reasoning_model = True
+        except Exception:  # noqa: QGR003 [REASON: Non-fatal fallback to prefix heuristic for local or unmapped models]
+            # Fallback for local, mock, unmapped, or cutting-edge unindexed models
+            is_reasoning_model = any(prefix in model_name for prefix in ("o1", "o3", "o4", "o5", "gpt-5"))
 
         thinking_budget: int | None = None
         if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:

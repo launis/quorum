@@ -173,3 +173,49 @@ def test_openai_adapter_credential_fail_fast(monkeypatch: pytest.MonkeyPatch) ->
             model_name="openai/gpt-4o-mini",
             api_key=None,
         )
+
+
+def test_openai_adapter_gpt51_dynamic_reasoning_detection() -> None:
+    """Verify that gpt-5.1 (not starting with 'o') is dynamically recognized as a reasoning model via registry."""
+    adapter = OpenAICacheAdapter()
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-5.1",
+        temperature=0.0,
+        thinking_budget_tokens=2048,
+    )
+    call_kwargs = {
+        "model": "openai/gpt-5.1",
+        "temperature": 0.0,
+        "top_p": 1.0,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert result["reasoning_effort"] == "low"
+    assert "temperature" not in result
+    assert "top_p" not in result
+
+
+def test_openai_adapter_gpt4o_mini_non_reasoning() -> None:
+    """Verify that gpt-4o-mini is recognized as non-reasoning and retains temperature and top_p."""
+    adapter = OpenAICacheAdapter()
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-4o-mini",
+        temperature=0.0,
+        thinking_budget_tokens=0,
+    )
+    call_kwargs = {
+        "model": "openai/gpt-4o-mini",
+        "temperature": 0.0,
+        "top_p": 1.0,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config)
+
+    assert "reasoning_effort" not in result
+    assert result.get("temperature") == 0.0
+    assert result.get("top_p") == 1.0
