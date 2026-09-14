@@ -87,7 +87,6 @@ void main() {
         'custom_scale_min': 0.0,
         'custom_scale_max': 100.0,
         'strictness_level': 85,
-        'scoring_strategy': 'WATERFALL',
         'synthesis_length_constraint': 300,
         'max_quotes_per_matrix': 5,
         'max_unmet_criteria': 3,
@@ -129,7 +128,7 @@ void main() {
       expect(profile.id, 'op_1234567890abcdef');
       expect(profile.displayScale, DisplayScale.custom);
       expect(profile.maxExtensionItems, 5);
-      expect(profile.scoringStrategy, ScoringStrategy.waterfall);
+      expect(profile.strictnessLevel, 85);
       expect(profile.synthesisLengthConstraint, 300);
       expect(profile.maxQuotesPerMatrix, 5);
       expect(profile.maxUnmetCriteria, 3);

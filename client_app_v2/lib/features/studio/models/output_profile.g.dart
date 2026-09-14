@@ -81,7 +81,6 @@ _OutputProfile _$OutputProfileFromJson(
         'custom_scale_min',
         'custom_scale_max',
         'strictness_level',
-        'scoring_strategy',
         'synthesis_length_constraint',
         'row_explanation_length_constraint',
         'xai_length_constraint',
@@ -199,11 +198,7 @@ _OutputProfile _$OutputProfileFromJson(
       ),
       strictnessLevel: $checkedConvert(
         'strictness_level',
-        (v) => (v as num?)?.toInt(),
-      ),
-      scoringStrategy: $checkedConvert(
-        'scoring_strategy',
-        (v) => $enumDecodeNullable(_$ScoringStrategyEnumMap, v),
+        (v) => (v as num?)?.toInt() ?? 50,
       ),
       synthesisLengthConstraint: $checkedConvert(
         'synthesis_length_constraint',
@@ -356,7 +351,6 @@ _OutputProfile _$OutputProfileFromJson(
     'customScaleMin': 'custom_scale_min',
     'customScaleMax': 'custom_scale_max',
     'strictnessLevel': 'strictness_level',
-    'scoringStrategy': 'scoring_strategy',
     'synthesisLengthConstraint': 'synthesis_length_constraint',
     'rowExplanationLengthConstraint': 'row_explanation_length_constraint',
     'xaiLengthConstraint': 'xai_length_constraint',
@@ -410,7 +404,6 @@ Map<String, dynamic> _$OutputProfileToJson(
   'custom_scale_min': instance.customScaleMin,
   'custom_scale_max': instance.customScaleMax,
   'strictness_level': instance.strictnessLevel,
-  'scoring_strategy': _$ScoringStrategyEnumMap[instance.scoringStrategy],
   'synthesis_length_constraint': instance.synthesisLengthConstraint,
   'row_explanation_length_constraint': instance.rowExplanationLengthConstraint,
   'xai_length_constraint': instance.xaiLengthConstraint,
@@ -466,13 +459,6 @@ const _$DisplayScaleEnumMap = {
   DisplayScale.original: 'original',
   DisplayScale.custom: 'custom',
   DisplayScale.normalized100: 'normalized_100',
-};
-
-const _$ScoringStrategyEnumMap = {
-  ScoringStrategy.waterfall: 'WATERFALL',
-  ScoringStrategy.average: 'AVERAGE',
-  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
-  ScoringStrategy.pureMath: 'PURE_MATH',
 };
 
 const _$SystemLocaleEnumMap = {SystemLocale.en: 'en', SystemLocale.fi: 'fi'};

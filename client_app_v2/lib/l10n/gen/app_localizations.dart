@@ -3884,36 +3884,6 @@ abstract class AppLocalizations {
   /// **'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.'**
   String get strictnessWarningLvl5;
 
-  /// No description provided for @strictnessFullFlex.
-  ///
-  /// In en, this message translates to:
-  /// **'Full Flexibility (0)'**
-  String get strictnessFullFlex;
-
-  /// No description provided for @strictnessLenient.
-  ///
-  /// In en, this message translates to:
-  /// **'Lenient (15)'**
-  String get strictnessLenient;
-
-  /// No description provided for @strictnessBalanced.
-  ///
-  /// In en, this message translates to:
-  /// **'Balanced (50 - Default)'**
-  String get strictnessBalanced;
-
-  /// No description provided for @strictnessStrict.
-  ///
-  /// In en, this message translates to:
-  /// **'Strict (85)'**
-  String get strictnessStrict;
-
-  /// No description provided for @strictnessAbsolute.
-  ///
-  /// In en, this message translates to:
-  /// **'Absolute Strictness (100)'**
-  String get strictnessAbsolute;
-
   /// No description provided for @strictnessSelectorTitle.
   ///
   /// In en, this message translates to:
@@ -6467,36 +6437,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reasoning: {count}'**
   String reportReasoningTokens(String count);
-
-  /// No description provided for @strategyKoearvostelu.
-  ///
-  /// In en, this message translates to:
-  /// **'Koearvostelu (Test Evaluation)'**
-  String get strategyKoearvostelu;
-
-  /// No description provided for @strategySyvaarvostelu.
-  ///
-  /// In en, this message translates to:
-  /// **'Syväarvostelu (Deep Evaluation)'**
-  String get strategySyvaarvostelu;
-
-  /// No description provided for @strategyLineaarinenKeskiarvo.
-  ///
-  /// In en, this message translates to:
-  /// **'Lineaarinen Keskiarvo (Linear Average)'**
-  String get strategyLineaarinenKeskiarvo;
-
-  /// No description provided for @strategyPainotettuKeskiarvo.
-  ///
-  /// In en, this message translates to:
-  /// **'Painotettu Keskiarvo (Weighted Average)'**
-  String get strategyPainotettuKeskiarvo;
-
-  /// No description provided for @strategyPuhdasMatematiikka.
-  ///
-  /// In en, this message translates to:
-  /// **'Puhdas Matematiikka (Pure Math)'**
-  String get strategyPuhdasMatematiikka;
 
   /// No description provided for @allowContextualOverrideLabel.
   ///
@@ -9053,6 +8993,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'OK'**
   String get dialogOk;
+
+  /// No description provided for @strictnessSliderHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring Strictness Level'**
+  String get strictnessSliderHeader;
+
+  /// No description provided for @strictnessPresetFree.
+  ///
+  /// In en, this message translates to:
+  /// **'0% Free'**
+  String get strictnessPresetFree;
+
+  /// No description provided for @strictnessPresetNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'50% Normal'**
+  String get strictnessPresetNormal;
+
+  /// No description provided for @strictnessPresetStrict.
+  ///
+  /// In en, this message translates to:
+  /// **'85% Strict'**
+  String get strictnessPresetStrict;
+
+  /// No description provided for @strictnessPresetAbsolute.
+  ///
+  /// In en, this message translates to:
+  /// **'100% Absolute'**
+  String get strictnessPresetAbsolute;
+
+  /// No description provided for @strictnessConsequenceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Semantic Consequences of Evaluation'**
+  String get strictnessConsequenceTitle;
+
+  /// No description provided for @strictnessConsequenceFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free (0%): Pure linear points ratio without strictness penalties or exponent dampening.'**
+  String get strictnessConsequenceFree;
+
+  /// No description provided for @strictnessConsequenceNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal (50%): Balanced evaluation with standard exponent dampening (1.25). Recommended for general use.'**
+  String get strictnessConsequenceNormal;
+
+  /// No description provided for @strictnessConsequenceStrict.
+  ///
+  /// In en, this message translates to:
+  /// **'Strict (85%): Expert-level criteria with elevated rigor (1.70). Minor omissions visibly impact scoring.'**
+  String get strictnessConsequenceStrict;
+
+  /// No description provided for @strictnessConsequenceAbsolute.
+  ///
+  /// In en, this message translates to:
+  /// **'Absolute (100%): Zero-Trust level (2.20). Only exact lexical quotes accepted, contextual overrides disabled.'**
+  String get strictnessConsequenceAbsolute;
+
+  /// Accessibility semantic label for strictness slider
+  ///
+  /// In en, this message translates to:
+  /// **'Scoring strictness level: {percentage} percent'**
+  String strictnessSliderSemanticLabel(int percentage);
 }
 
 class _AppLocalizationsDelegate

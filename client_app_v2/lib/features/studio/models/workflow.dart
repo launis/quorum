@@ -144,9 +144,6 @@ abstract class Workflow with _$Workflow {
     @JsonKey(name: 'default_strictness_level')
     @Default(50)
     int defaultStrictnessLevel,
-    @JsonKey(name: 'default_scoring_strategy')
-    @Default(ScoringStrategy.average)
-    ScoringStrategy defaultScoringStrategy,
     @JsonKey(name: 'enable_contextual_overrides')
     @Default(false)
     bool enableContextualOverrides,

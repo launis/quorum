@@ -539,7 +539,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_profile_id',
         'mcp_gateway_id',
         'default_strictness_level',
-        'default_scoring_strategy',
         'enable_contextual_overrides',
         'enable_semantic_smoothing',
         'enable_eager_anonymization',
@@ -590,12 +589,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
         (v) => (v as num?)?.toInt() ?? 50,
-      ),
-      defaultScoringStrategy: $checkedConvert(
-        'default_scoring_strategy',
-        (v) =>
-            $enumDecodeNullable(_$ScoringStrategyEnumMap, v) ??
-            ScoringStrategy.average,
       ),
       enableContextualOverrides: $checkedConvert(
         'enable_contextual_overrides',
@@ -649,7 +642,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'defaultProfileId': 'default_profile_id',
     'mcpGatewayId': 'mcp_gateway_id',
     'defaultStrictnessLevel': 'default_strictness_level',
-    'defaultScoringStrategy': 'default_scoring_strategy',
     'enableContextualOverrides': 'enable_contextual_overrides',
     'enableSemanticSmoothing': 'enable_semantic_smoothing',
     'enableEagerAnonymization': 'enable_eager_anonymization',
@@ -675,8 +667,6 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'default_profile_id': instance.defaultProfileId,
   'mcp_gateway_id': instance.mcpGatewayId,
   'default_strictness_level': instance.defaultStrictnessLevel,
-  'default_scoring_strategy':
-      _$ScoringStrategyEnumMap[instance.defaultScoringStrategy]!,
   'enable_contextual_overrides': instance.enableContextualOverrides,
   'enable_semantic_smoothing': instance.enableSemanticSmoothing,
   'enable_eager_anonymization': instance.enableEagerAnonymization,
@@ -685,11 +675,4 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'historical_context_mode': instance.historicalContextMode,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),
-};
-
-const _$ScoringStrategyEnumMap = {
-  ScoringStrategy.waterfall: 'WATERFALL',
-  ScoringStrategy.average: 'AVERAGE',
-  ScoringStrategy.weightedAverage: 'WEIGHTED_AVERAGE',
-  ScoringStrategy.pureMath: 'PURE_MATH',
 };

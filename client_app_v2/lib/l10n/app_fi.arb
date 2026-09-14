@@ -667,11 +667,6 @@
   "strictnessZeroTrust": "Taso 5: Nollaluottamus (Zero-Trust)",
   "strictnessWarningLvl4": "Varoitus: Taso 4 on antagonistinen ja etsii virheitä. Arvosanat voivat laskea merkittävästi.",
   "strictnessWarningLvl5": "Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.",
-  "strictnessFullFlex": "Täysi joustavuus (0)",
-  "strictnessLenient": "Salliva (15)",
-  "strictnessBalanced": "Tasapainoinen (50 - Oletus)",
-  "strictnessStrict": "Tiukka (85)",
-  "strictnessAbsolute": "Ehdottomuus (100)",
   "strictnessSelectorTitle": "Arvioinnin tiukkuus",
   "strictnessSelectorDescription": "Määritä kuinka ankarasti tekoälyn tulee noudattaa sääntöjä ja vaatia todisteita.",
   "barsCompliance1": "Critically Misaligned - Täysin satunnainen prosessi",
@@ -878,11 +873,6 @@
   "deleteExecutionTooltip": "Poista suoritus",
   "errSaveTimeout": "Tiedoston tallennusikkuna ei vastannut (Timeout).",
   "startWorkflowTitle": "Käynnistä työnkulku: {id}",
-  "strategyKoearvostelu": "Koearvostelu",
-  "strategySyvaarvostelu": "Syväarvostelu",
-  "strategyLineaarinenKeskiarvo": "Lineaarinen Keskiarvo",
-  "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo",
-  "strategyPuhdasMatematiikka": "Puhdas Matematiikka",
   "failedToLoadSchema": "Skeeman lataaminen epäonnistui: {error}",
   "navSystemInspector": "Järjestelmätarkastaja",
   "gatewayMetadataTitle": "Yhdyskäytävän metatiedot",
@@ -1775,5 +1765,24 @@
   "noExpectedInputsNotice": "Askeleelle ei ole määritelty odotettuja syötteitä.",
   "stepSimulationExecutionTime": "Suoritusaika",
   "stepSimulationEstimatedTokens": "Arvioidut tokenit",
-  "dialogOk": "Selvä"
+  "dialogOk": "Selvä",
+  "strictnessSliderHeader": "Pisteytyksen ankaruustaso",
+  "strictnessPresetFree": "0% Vapaa",
+  "strictnessPresetNormal": "50% Normaali",
+  "strictnessPresetStrict": "85% Tiukka",
+  "strictnessPresetAbsolute": "100% Ehdoton",
+  "strictnessConsequenceTitle": "Arvioinnin semanttiset seuraukset",
+  "strictnessConsequenceFree": "Vapaa (0%): Puhdas suora pistelaskenta ilman tiukkuuskorotuksia tai eksponenttivaimennusta.",
+  "strictnessConsequenceNormal": "Normaali (50%): Tasapainotettu arviointi standardilla eksponenttivaimennuksella (1.25). Suositeltu yleiskäyttöön.",
+  "strictnessConsequenceStrict": "Tiukka (85%): Asiantuntijatason kriteeristö korotetulla vaatimustasolla (1.70). Pienetkin puutteet näkyvät pisteytyksessä.",
+  "strictnessConsequenceAbsolute": "Ehdoton (100%): Zero-Trust -taso (2.20). Vain eksaktit leksikaaliset sitaatit hyväksytään, kontekstuaaliset ylikirjoitukset estetty.",
+  "strictnessSliderSemanticLabel": "Pisteytyksen ankaruustaso: {percentage} prosenttia",
+  "@strictnessSliderSemanticLabel": {
+    "description": "Accessibility semantic label for strictness slider",
+    "placeholders": {
+      "percentage": {
+        "type": "int"
+      }
+    }
+  }
 }

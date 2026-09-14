@@ -2099,21 +2099,6 @@ class AppLocalizationsFi extends AppLocalizations {
       'Varoitus: Zero-Trust. Nolla pistettä, ellei ulkoisia viitteitä ja kovaa evidenssiä käytetä virheettömästi.';
 
   @override
-  String get strictnessFullFlex => 'Täysi joustavuus (0)';
-
-  @override
-  String get strictnessLenient => 'Salliva (15)';
-
-  @override
-  String get strictnessBalanced => 'Tasapainoinen (50 - Oletus)';
-
-  @override
-  String get strictnessStrict => 'Tiukka (85)';
-
-  @override
-  String get strictnessAbsolute => 'Ehdottomuus (100)';
-
-  @override
   String get strictnessSelectorTitle => 'Arvioinnin tiukkuus';
 
   @override
@@ -3561,21 +3546,6 @@ class AppLocalizationsFi extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Päättely: $count';
   }
-
-  @override
-  String get strategyKoearvostelu => 'Koearvostelu';
-
-  @override
-  String get strategySyvaarvostelu => 'Syväarvostelu';
-
-  @override
-  String get strategyLineaarinenKeskiarvo => 'Lineaarinen Keskiarvo';
-
-  @override
-  String get strategyPainotettuKeskiarvo => 'Painotettu Keskiarvo';
-
-  @override
-  String get strategyPuhdasMatematiikka => 'Puhdas Matematiikka';
 
   @override
   String get allowContextualOverrideLabel => 'Salli kognitiivinen ohitus';
@@ -5052,4 +5022,43 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get dialogOk => 'Selvä';
+
+  @override
+  String get strictnessSliderHeader => 'Pisteytyksen ankaruustaso';
+
+  @override
+  String get strictnessPresetFree => '0% Vapaa';
+
+  @override
+  String get strictnessPresetNormal => '50% Normaali';
+
+  @override
+  String get strictnessPresetStrict => '85% Tiukka';
+
+  @override
+  String get strictnessPresetAbsolute => '100% Ehdoton';
+
+  @override
+  String get strictnessConsequenceTitle => 'Arvioinnin semanttiset seuraukset';
+
+  @override
+  String get strictnessConsequenceFree =>
+      'Vapaa (0%): Puhdas suora pistelaskenta ilman tiukkuuskorotuksia tai eksponenttivaimennusta.';
+
+  @override
+  String get strictnessConsequenceNormal =>
+      'Normaali (50%): Tasapainotettu arviointi standardilla eksponenttivaimennuksella (1.25). Suositeltu yleiskäyttöön.';
+
+  @override
+  String get strictnessConsequenceStrict =>
+      'Tiukka (85%): Asiantuntijatason kriteeristö korotetulla vaatimustasolla (1.70). Pienetkin puutteet näkyvät pisteytyksessä.';
+
+  @override
+  String get strictnessConsequenceAbsolute =>
+      'Ehdoton (100%): Zero-Trust -taso (2.20). Vain eksaktit leksikaaliset sitaatit hyväksytään, kontekstuaaliset ylikirjoitukset estetty.';
+
+  @override
+  String strictnessSliderSemanticLabel(int percentage) {
+    return 'Pisteytyksen ankaruustaso: $percentage prosenttia';
+  }
 }

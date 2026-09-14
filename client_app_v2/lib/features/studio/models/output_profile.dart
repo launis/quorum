@@ -60,8 +60,7 @@ abstract class OutputProfile with _$OutputProfile {
     DisplayScale displayScale,
     @JsonKey(name: 'custom_scale_min') double? customScaleMin,
     @JsonKey(name: 'custom_scale_max') double? customScaleMax,
-    @JsonKey(name: 'strictness_level') int? strictnessLevel,
-    @JsonKey(name: 'scoring_strategy') ScoringStrategy? scoringStrategy,
+    @JsonKey(name: 'strictness_level') @Default(50) int strictnessLevel,
     @JsonKey(name: 'synthesis_length_constraint')
     int? synthesisLengthConstraint,
     @JsonKey(name: 'row_explanation_length_constraint')

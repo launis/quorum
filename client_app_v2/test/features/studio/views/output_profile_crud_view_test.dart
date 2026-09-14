@@ -112,7 +112,6 @@ void main() {
     int maxExtensionItems = 3,
     DisplayScale displayScale = DisplayScale.original,
     int strictnessLevel = 50,
-    ScoringStrategy scoringStrategy = ScoringStrategy.waterfall,
     List<String> visibleMetadata = const ['date', 'user', 'organization'],
     List<XaiExtensionType> visibleBlockExtensions = const [
       XaiExtensionType.citation,
@@ -134,7 +133,6 @@ void main() {
       customPreface: const I18nText(translations: {'en': 'Test preface'}),
       displayScale: displayScale,
       strictnessLevel: strictnessLevel,
-      scoringStrategy: scoringStrategy,
       visibleMetadata: visibleMetadata,
       maxExtensionItems: maxExtensionItems,
       visibleBlockExtensions: visibleBlockExtensions,
@@ -315,7 +313,6 @@ void main() {
         nameEn: 'Executive Summary Profile',
         slug: 'exec-summary',
         strictnessLevel: 50,
-        scoringStrategy: ScoringStrategy.waterfall,
       );
       final overrides = [
         outputProfileFormProvider(
@@ -347,8 +344,10 @@ void main() {
       await tester.tap(find.text('Scoring'));
       await tester.pumpAndSettle();
 
-      // Expected on Tab 2: finds strictness and scoring strategy dropdowns
-      expect(find.text('Balanced (50 - Default)'), findsOneWidget);
+      // Expected on Tab 2: finds strictness slider and preset chips
+      expect(find.byType(Slider), findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+      expect(find.text('50% Normal'), findsOneWidget);
     });
 
     testWidgets('test_crud_view_displays_workflow_selector_and_extensions', (

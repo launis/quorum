@@ -2089,21 +2089,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.';
 
   @override
-  String get strictnessFullFlex => 'Full Flexibility (0)';
-
-  @override
-  String get strictnessLenient => 'Lenient (15)';
-
-  @override
-  String get strictnessBalanced => 'Balanced (50 - Default)';
-
-  @override
-  String get strictnessStrict => 'Strict (85)';
-
-  @override
-  String get strictnessAbsolute => 'Absolute Strictness (100)';
-
-  @override
   String get strictnessSelectorTitle => 'Evaluation Strictness';
 
   @override
@@ -3533,23 +3518,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String reportReasoningTokens(String count) {
     return 'Reasoning: $count';
   }
-
-  @override
-  String get strategyKoearvostelu => 'Koearvostelu (Test Evaluation)';
-
-  @override
-  String get strategySyvaarvostelu => 'Syväarvostelu (Deep Evaluation)';
-
-  @override
-  String get strategyLineaarinenKeskiarvo =>
-      'Lineaarinen Keskiarvo (Linear Average)';
-
-  @override
-  String get strategyPainotettuKeskiarvo =>
-      'Painotettu Keskiarvo (Weighted Average)';
-
-  @override
-  String get strategyPuhdasMatematiikka => 'Puhdas Matematiikka (Pure Math)';
 
   @override
   String get allowContextualOverrideLabel => 'Allow Contextual Override';
@@ -5016,4 +4984,44 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialogOk => 'OK';
+
+  @override
+  String get strictnessSliderHeader => 'Scoring Strictness Level';
+
+  @override
+  String get strictnessPresetFree => '0% Free';
+
+  @override
+  String get strictnessPresetNormal => '50% Normal';
+
+  @override
+  String get strictnessPresetStrict => '85% Strict';
+
+  @override
+  String get strictnessPresetAbsolute => '100% Absolute';
+
+  @override
+  String get strictnessConsequenceTitle =>
+      'Semantic Consequences of Evaluation';
+
+  @override
+  String get strictnessConsequenceFree =>
+      'Free (0%): Pure linear points ratio without strictness penalties or exponent dampening.';
+
+  @override
+  String get strictnessConsequenceNormal =>
+      'Normal (50%): Balanced evaluation with standard exponent dampening (1.25). Recommended for general use.';
+
+  @override
+  String get strictnessConsequenceStrict =>
+      'Strict (85%): Expert-level criteria with elevated rigor (1.70). Minor omissions visibly impact scoring.';
+
+  @override
+  String get strictnessConsequenceAbsolute =>
+      'Absolute (100%): Zero-Trust level (2.20). Only exact lexical quotes accepted, contextual overrides disabled.';
+
+  @override
+  String strictnessSliderSemanticLabel(int percentage) {
+    return 'Scoring strictness level: $percentage percent';
+  }
 }

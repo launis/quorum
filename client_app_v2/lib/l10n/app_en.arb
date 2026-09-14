@@ -965,11 +965,6 @@
   "strictnessZeroTrust": "Level 5: Zero-Trust",
   "strictnessWarningLvl4": "Warning: Level 4 is adversarial and searches for flaws. Expect significantly lower scores.",
   "strictnessWarningLvl5": "Warning: Zero-Trust. Zero points unless external frameworks and hard evidence are used flawlessly.",
-  "strictnessFullFlex": "Full Flexibility (0)",
-  "strictnessLenient": "Lenient (15)",
-  "strictnessBalanced": "Balanced (50 - Default)",
-  "strictnessStrict": "Strict (85)",
-  "strictnessAbsolute": "Absolute Strictness (100)",
   "strictnessSelectorTitle": "Evaluation Strictness",
   "strictnessSelectorDescription": "Define how rigorously the AI must enforce rules and validate evidence.",
   "barsCompliance1": "Critically Misaligned - Completely random process",
@@ -1827,11 +1822,6 @@
   "@eventLlmAnomalyRetry": {
     "description": "Message shown when the AI self-correction circuit breaker triggers"
   },
-  "strategyKoearvostelu": "Koearvostelu (Test Evaluation)",
-  "strategySyvaarvostelu": "Syväarvostelu (Deep Evaluation)",
-  "strategyLineaarinenKeskiarvo": "Lineaarinen Keskiarvo (Linear Average)",
-  "strategyPainotettuKeskiarvo": "Painotettu Keskiarvo (Weighted Average)",
-  "strategyPuhdasMatematiikka": "Puhdas Matematiikka (Pure Math)",
   "allowContextualOverrideLabel": "Allow Contextual Override",
   "allowContextualOverrideDescription": "Allows the LLM to justify semantic verification without a literal quotation if exact text evidence is physically absent.",
   "enableContextualOverridesLabel": "Enable Contextual Overrides",
@@ -2475,6 +2465,25 @@
   "noExpectedInputsNotice": "No expected inputs declared for this step.",
   "stepSimulationExecutionTime": "Execution Time",
   "stepSimulationEstimatedTokens": "Estimated Tokens",
-  "dialogOk": "OK"
+  "dialogOk": "OK",
+  "strictnessSliderHeader": "Scoring Strictness Level",
+  "strictnessPresetFree": "0% Free",
+  "strictnessPresetNormal": "50% Normal",
+  "strictnessPresetStrict": "85% Strict",
+  "strictnessPresetAbsolute": "100% Absolute",
+  "strictnessConsequenceTitle": "Semantic Consequences of Evaluation",
+  "strictnessConsequenceFree": "Free (0%): Pure linear points ratio without strictness penalties or exponent dampening.",
+  "strictnessConsequenceNormal": "Normal (50%): Balanced evaluation with standard exponent dampening (1.25). Recommended for general use.",
+  "strictnessConsequenceStrict": "Strict (85%): Expert-level criteria with elevated rigor (1.70). Minor omissions visibly impact scoring.",
+  "strictnessConsequenceAbsolute": "Absolute (100%): Zero-Trust level (2.20). Only exact lexical quotes accepted, contextual overrides disabled.",
+  "strictnessSliderSemanticLabel": "Scoring strictness level: {percentage} percent",
+  "@strictnessSliderSemanticLabel": {
+    "description": "Accessibility semantic label for strictness slider",
+    "placeholders": {
+      "percentage": {
+        "type": "int"
+      }
+    }
+  }
 }
 

@@ -184,6 +184,176 @@ class ProfileScoringTab extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.strictnessSliderHeader,
+                        style: Theme.of(context).textTheme.titleSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${payload.strictnessLevel}%',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                AppSpacing.h12,
+                Wrap(
+                  spacing: AppSpacing.s8,
+                  runSpacing: AppSpacing.s4,
+                  children:
+                      [
+                        (0, l10n.strictnessPresetFree),
+                        (50, l10n.strictnessPresetNormal),
+                        (85, l10n.strictnessPresetStrict),
+                        (100, l10n.strictnessPresetAbsolute),
+                      ].map((preset) {
+                        final (val, label) = preset;
+                        return ChoiceChip(
+                          label: Text(label),
+                          selected: payload.strictnessLevel == val,
+                          onSelected: (selected) {
+                            if (selected) {
+                              updatePayload(
+                                payload.copyWith(strictnessLevel: val),
+                              );
+                            }
+                          },
+                        );
+                      }).toList(),
+                ),
+                AppSpacing.h8,
+                Slider(
+                  value: payload.strictnessLevel.toDouble(),
+                  min: 0,
+                  max: 100,
+                  divisions: 100,
+                  label: '${payload.strictnessLevel}%',
+                  semanticFormatterCallback: (val) =>
+                      l10n.strictnessSliderSemanticLabel(val.round()),
+                  onChanged: (val) => updatePayload(
+                    payload.copyWith(strictnessLevel: val.round()),
+                  ),
+                ),
+                AppSpacing.h8,
+                Builder(
+                  builder: (context) {
+                    final level = payload.strictnessLevel;
+                    final Color consequenceBgColor;
+                    final Color consequenceTextColor;
+                    final IconData consequenceIcon;
+                    final String consequenceDescription;
+
+                    if (level == 0) {
+                      consequenceBgColor = Theme.of(
+                        context,
+                      ).colorScheme.tertiaryContainer;
+                      consequenceTextColor = Theme.of(
+                        context,
+                      ).colorScheme.onTertiaryContainer;
+                      consequenceIcon = Icons.info_outline;
+                      consequenceDescription = l10n.strictnessConsequenceFree;
+                    } else if (level <= 50) {
+                      consequenceBgColor = Theme.of(
+                        context,
+                      ).colorScheme.primaryContainer;
+                      consequenceTextColor = Theme.of(
+                        context,
+                      ).colorScheme.onPrimaryContainer;
+                      consequenceIcon = Icons.check_circle_outline;
+                      consequenceDescription = l10n.strictnessConsequenceNormal;
+                    } else if (level <= 85) {
+                      consequenceBgColor = Theme.of(
+                        context,
+                      ).colorScheme.secondaryContainer;
+                      consequenceTextColor = Theme.of(
+                        context,
+                      ).colorScheme.onSecondaryContainer;
+                      consequenceIcon = Icons.shield_outlined;
+                      consequenceDescription = l10n.strictnessConsequenceStrict;
+                    } else {
+                      consequenceBgColor = Theme.of(
+                        context,
+                      ).colorScheme.errorContainer;
+                      consequenceTextColor = Theme.of(
+                        context,
+                      ).colorScheme.onErrorContainer;
+                      consequenceIcon = Icons.warning_amber_rounded;
+                      consequenceDescription =
+                          l10n.strictnessConsequenceAbsolute;
+                    }
+
+                    return Card(
+                      color: consequenceBgColor,
+                      elevation: 0,
+                      child: Padding(
+                        padding: AppSpacing.p12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  consequenceIcon,
+                                  size: 16,
+                                  color: consequenceTextColor,
+                                ),
+                                AppSpacing.w8,
+                                Expanded(
+                                  child: Text(
+                                    l10n.strictnessConsequenceTitle,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: consequenceTextColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            AppSpacing.h4,
+                            Text(
+                              consequenceDescription,
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: consequenceTextColor),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+        AppSpacing.h16,
+        Card(
+          child: Padding(
+            padding: AppSpacing.p16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
                 Text(
                   l10n.penaltiesSectionTitle,
                   style: Theme.of(context).textTheme.titleSmall,
