@@ -401,14 +401,13 @@ class BlueprintTransformer:
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens
 
+        strat_resolved = (
+            profile.scoring_strategy if profile.scoring_strategy is not None else workflow_obj.default_scoring_strategy
+        )
         scoring_engine_val = (
-            str(profile.scoring_strategy)
-            if profile.scoring_strategy is not None
-            else (
-                str(workflow_obj.default_scoring_strategy)
-                if workflow_obj.default_scoring_strategy is not None
-                else "AVERAGE"
-            )
+            (strat_resolved.value if isinstance(strat_resolved, ScoringStrategy) else str(strat_resolved))
+            if strat_resolved is not None
+            else "UNIFIED"
         )
         org_name = execution.organization_id
         if execution.organization_id:
@@ -445,13 +444,6 @@ class BlueprintTransformer:
                     status_code=404,
                     details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
                 ) from u_err
-
-        strat_enum = (
-            profile.scoring_strategy if profile.scoring_strategy is not None else workflow_obj.default_scoring_strategy
-        )
-        s_strat = strat_enum.value if isinstance(strat_enum, ScoringStrategy) else str(strat_enum)
-
-        engine_str = str(s_strat)
 
         try:
             if combined_tokens == 0 and execution.execution_trace:
@@ -510,12 +502,6 @@ class BlueprintTransformer:
                 if profile.strictness_level is not None
                 else workflow_obj.default_strictness_level
             )
-            strat_raw = (
-                profile.scoring_strategy
-                if profile.scoring_strategy is not None
-                else workflow_obj.default_scoring_strategy
-            )
-            scoring_strategy = strat_raw.value if isinstance(strat_raw, ScoringStrategy) else str(strat_raw)
 
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:
@@ -627,8 +613,8 @@ class BlueprintTransformer:
 
             report_dto = ReportDataDTO(
                 strictness_level=strictness_level,
-                scoring_strategy=scoring_strategy,
-                scoring_engine_name=engine_str,
+                scoring_strategy=scoring_engine_val,
+                scoring_engine_name=scoring_engine_val,
                 user_name=user_name,
                 workflow_id=execution.workflow_id,
                 execution_id=execution_id,

@@ -144,9 +144,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         workflow = Workflow.model_validate(raw_workflow, strict=False)
         enable_contextual_overrides = workflow.enable_contextual_overrides
 
-        # Dynamic Orchestration & Scoring Resolution
+        # Dynamic Orchestration & Scoring Resolution (Phase 1, Step 1: Anti-Duct-Tape)
         strictness_level = None
-        scoring_strategy = None
         visible_block_extensions = []
         locale = execution_data.target_locale
 
@@ -156,10 +155,9 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             if profile_dict:
                 profile_model = OutputProfile.model_validate(profile_dict, strict=False)
                 strictness_level = profile_model.strictness_level
-                scoring_strategy = profile_model.scoring_strategy
                 visible_block_extensions = profile_model.visible_block_extensions
 
-        if strictness_level is None or scoring_strategy is None:
+        if strictness_level is None:
             msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(

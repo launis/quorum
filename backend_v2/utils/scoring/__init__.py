@@ -48,5 +48,11 @@ def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineProtocol
         case ScoringStrategy.PURE_MATH:
             return PureMathScoringEngine()
         case _:
-            # Absolute fallback
-            return WaterfallScoringEngine()
+            msg = f"Unsupported scoring strategy: {strategy}"
+            logger = logging.getLogger(__name__)
+            logger.error("[ScoringEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )

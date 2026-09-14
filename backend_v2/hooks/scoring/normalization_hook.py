@@ -1,6 +1,7 @@
 """Normalization and recalculation scoring hook module."""
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
@@ -243,48 +244,62 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if matrix format or extensions are invalid.
     """
-    try:
-        payload_dict = TypeAdapter(dict[str, Any]).validate_python(payload)
-    except ValidationError:
+    if profile_id is None:
         return
 
-    strictness_level = None
-    scoring_strategy = None
-    if profile_id:
-        profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
-        if profile_dict:
-            profile_model = OutputProfile.model_validate(profile_dict, strict=False)
-            strictness_level = profile_model.strictness_level
-            scoring_strategy = profile_model.scoring_strategy
+    profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
+    if not profile_dict:
+        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    profile_model = OutputProfile.model_validate(profile_dict, strict=False)
+    strictness_level = profile_model.strictness_level
+    scoring_strategy = profile_model.scoring_strategy
 
     if strictness_level is None or scoring_strategy is None:
-        logger.error("[ScoringHook] Missing mandatory scoring configuration in profile '%s'.", profile_id)
-        return
+        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     total_true_atoms = 0
     total_false_atoms = 0
 
     matrix_keys: list[str] = []
-    for k, v in payload_dict.items():
-        try:
-            v_dict = TypeAdapter(dict[str, Any]).validate_python(v)
-        except ValidationError:
+    for k, v in payload.items():
+        if isinstance(v, LightweightMatrixOutput):
+            if not (v.evaluated_atoms or v.justification):
+                continue
+        elif isinstance(v, Mapping):
+            if "evaluated_atoms" not in v and "justification" not in v:
+                continue
+        else:
             continue
 
-        if "evaluated_atoms" in v_dict or "justification" in v_dict:
-            pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
-            if pb_data:
-                pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
-                if isinstance(pb_model, MatrixPromptBlock):
-                    try:
-                        _ = LightweightMatrixOutput.model_validate(v)
-                        matrix_keys.append(k)
-                    except ValidationError as e:
-                        msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput for matrix '{k}': {e}"
-                        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise AppException(
-                            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                        ) from e
+        pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(k)
+        if not pb_data:
+            continue
+        pb_model = PromptBlockAdapter.validate_python(pb_data, strict=False)
+        if not isinstance(pb_model, MatrixPromptBlock):
+            continue
+
+        try:
+            _ = LightweightMatrixOutput.model_validate(v, strict=False)
+            matrix_keys.append(k)
+        except ValidationError as e:
+            msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput for matrix '{k}': {e}"
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
 
     for pb_id in matrix_keys:
         raw_data = payload[pb_id]

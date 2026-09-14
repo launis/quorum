@@ -224,7 +224,6 @@ class WorkflowProvenanceDTO(BaseModel):
     name_en: str
     version: int
     enable_contextual_overrides: bool
-    default_scoring_strategy: str
     default_strictness_level: int
     total_active_steps: int
     total_workflow_atoms: int
@@ -1185,7 +1184,6 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
 
     version = int(target_wf.get("version", 1))
     enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", True))
-    default_scoring_strategy = str(target_wf.get("default_scoring_strategy", "AVERAGE"))
     default_strictness_level = int(target_wf.get("default_strictness_level", 50))
     steps = target_wf.get("steps", [])
     total_active_steps = len(steps)
@@ -1216,7 +1214,6 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
         name_en=name_en,
         version=version,
         enable_contextual_overrides=enable_contextual_overrides,
-        default_scoring_strategy=default_scoring_strategy,
         default_strictness_level=default_strictness_level,
         total_active_steps=total_active_steps,
         total_workflow_atoms=total_atoms,
@@ -2185,8 +2182,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             )
             f.write(
                 f"  - **Hallintokytkimet:** Kontekstuaaliset ohitukset: `{ovr_switch_str}`, "
-                f"Pisteytystapa: `{wf_prov.default_scoring_strategy}`, "
-                f"Tiukkuustaso: `{wf_prov.default_strictness_level}`\n"
+                f"Tiukkuustaso: `{wf_prov.default_strictness_level}%`\n"
             )
             f.write(
                 f"  - **Prompt-direktiivien tiiviste (SHA-256):** `{directives_hash[:16]}...` "

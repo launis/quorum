@@ -54,7 +54,6 @@ from backend_v2.models.enums import (
     ExecutionStatus,
     PresetView,
     RoleClassification,
-    StrictnessAnchor,
     TargetBlockType,
     XaiExtensionType,
 )
@@ -901,22 +900,30 @@ async def generate_profile_synthesis_and_pdf_task(
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None
 
-        strictness_level = StrictnessAnchor.STANDARD.value
-        scoring_strategy_val = "AVERAGE"
-        if active_profile_dto:
-            if active_profile_dto.strictness_level is not None:
-                strictness_level = active_profile_dto.strictness_level
-            elif workflow_def:
-                strictness_level = workflow_def.default_strictness_level
-
-            if active_profile_dto.scoring_strategy is not None:
-                scoring_strategy_val = str(active_profile_dto.scoring_strategy)
-            elif workflow_def:
-                scoring_strategy_val = str(workflow_def.default_scoring_strategy)
+        # Resolve strictness level directly from profile or workflow (Phase 1, Step 1: Anti-Duct-Tape)
+        strictness_level: int
+        if active_profile_dto and active_profile_dto.strictness_level is not None:
+            strictness_level = int(active_profile_dto.strictness_level)
+        elif workflow_def:
+            strictness_level = int(workflow_def.default_strictness_level)
         else:
-            if workflow_def:
-                strictness_level = workflow_def.default_strictness_level
-                scoring_strategy_val = str(workflow_def.default_scoring_strategy)
+            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+            logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
+        scoring_strategy_val = (
+            str(active_profile_dto.scoring_strategy)
+            if active_profile_dto and active_profile_dto.scoring_strategy is not None
+            else (
+                str(workflow_def.default_scoring_strategy)
+                if workflow_def and workflow_def.default_scoring_strategy is not None
+                else "AVERAGE"
+            )
+        )
 
         # Calculate scores dynamically for all matrices
         engine = get_scoring_engine(scoring_strategy_val)
@@ -936,16 +943,15 @@ async def generate_profile_synthesis_and_pdf_task(
             data = step_dto.payload
             if pb_id in blocks_meta:
                 try:
-                    try:
-                        data_dict = TypeAdapter(dict[str, Any]).validate_python(data)
-                        clean_data = {k: v for k, v in data_dict.items() if k in LightweightMatrixOutput.model_fields}
-                    except Exception:
-                        clean_data = data
-                    lw_matrix = LightweightMatrixOutput.model_validate(clean_data, strict=False)
+                    lw_matrix = (
+                        data
+                        if isinstance(data, LightweightMatrixOutput)
+                        else LightweightMatrixOutput.model_validate(data, strict=False)
+                    )
                     if lw_matrix.level_breakdown:
                         stats = {
-                            float(k): LevelStatsDTO(
-                                hits=v["hits"], total=v["total"], dlqs=v["dlqs"] if "dlqs" in v else 0
+                            float(k): (
+                                v if isinstance(v, LevelStatsDTO) else LevelStatsDTO.model_validate(v, strict=False)
                             )
                             for k, v in lw_matrix.level_breakdown.items()
                         }

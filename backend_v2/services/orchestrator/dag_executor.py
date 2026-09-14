@@ -36,7 +36,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionErr
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
-from backend_v2.models.enums import ScoringStrategy, StepType, StrictnessAnchor
+from backend_v2.models.enums import StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
 from backend_v2.models.v2_core import (
@@ -365,7 +365,6 @@ class DAGExecutor:
         workflow: Workflow,
         raw_inputs: WorkflowInputs,
         strictness_level: int | None = None,
-        scoring_strategy: ScoringStrategy = ScoringStrategy.WATERFALL,
         arq_pool: Any | None = None,
     ) -> ExecutionRecord:
         """Main entrypoint for Workflow Execution.
@@ -375,7 +374,6 @@ class DAGExecutor:
             workflow: Loaded configuration parameters.
             raw_inputs: Unprocessed raw input structures.
             strictness_level: User-override context threshold limits.
-            scoring_strategy: Mathematical aggregation model selection.
             arq_pool: Target task queue backend integration.
 
         Returns:
