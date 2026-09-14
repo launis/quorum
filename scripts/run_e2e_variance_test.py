@@ -1080,8 +1080,14 @@ def run_variance_test(
             print("Timeout waiting for execution!")
             sys.exit(1)
 
-        # Validate kelvollisuus (Data Starvation & Sufficiency Check)
+        # Persist execution_trace to disk if available on target_exec
         trace_file = Path(f"data/files/executions/{exec_id}/execution_trace.json")
+        trace_file.parent.mkdir(parents=True, exist_ok=True)
+        if "execution_trace" in target_exec:
+            with trace_file.open("w", encoding="utf-8") as tf:
+                json.dump(target_exec["execution_trace"], tf, indent=2)
+
+        # Validate kelvollisuus (Data Starvation & Sufficiency Check)
         is_valid, reason = validate_execution_kelvollisuus(target_exec, trace_file)
         if not is_valid:
             print("\n[FAILED] RUN HALTED (DATA STARVATION):")
@@ -1104,6 +1110,7 @@ def run_variance_test(
         encoding="utf-8",
         errors="replace",
         shell=True,
+        cwd=str(_project_root),
     )
     if res.stdout:
         print(res.stdout)

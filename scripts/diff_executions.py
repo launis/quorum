@@ -30,6 +30,11 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+# Ensure project root is in sys.path before any local or third-party project imports
+_workspace_root = str(Path(__file__).resolve().parent.parent)
+if _workspace_root not in sys.path:
+    sys.path.insert(0, _workspace_root)
+
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.models.v2_core import ContrastivePairDTO
@@ -1302,6 +1307,38 @@ def extract_evidence_distribution(
     )
 
 
+def _ensure_trace_file(trace_file: Path, run_name: str) -> bool:
+    """Ensure trace_file exists on disk, reconstituting from db_v2.json if needed.
+
+    Args:
+        trace_file: Target path to execution_trace.json.
+        run_name: Execution ID (e.g. exe_...).
+
+    Returns:
+        True if trace_file exists or was successfully reconstituted, False otherwise.
+    """
+    if trace_file.exists():
+        return True
+    db_path = Path("data/db_v2.json")
+    if not db_path.exists():
+        return False
+    try:
+        with db_path.open("r", encoding="utf-8") as db_f:
+            db_data = json.load(db_f)
+        exec_record = next(
+            (rec for rec in db_data.get("executions", {}).values() if rec.get("id") == run_name),
+            None,
+        )
+        if exec_record and "execution_trace" in exec_record:
+            trace_file.parent.mkdir(parents=True, exist_ok=True)
+            with trace_file.open("w", encoding="utf-8") as tf:
+                json.dump(exec_record["execution_trace"], tf, indent=2)
+            return True
+    except json.JSONDecodeError, OSError:
+        pass
+    return False
+
+
 def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | None = None) -> str:
     """Perform differential analysis between execution traces and generate Markdown report.
 
@@ -1327,7 +1364,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 trace_file = base_executions_dir / exe_id / "execution_trace.json"
                 name = exe_id
 
-            if trace_file.exists():
+            if _ensure_trace_file(trace_file, name):
                 evals_list.append(get_all_evals(trace_file))
                 loaded_runs.append(name)
                 loaded_paths.append(trace_file)
@@ -1339,12 +1376,14 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             key=lambda d: d.stat().st_mtime,
             reverse=True,
         )
-        for d in exe_dirs[:3]:
+        for d in exe_dirs:
             trace_file = d / "execution_trace.json"
-            if trace_file.exists():
+            if _ensure_trace_file(trace_file, d.name):
                 evals_list.append(get_all_evals(trace_file))
                 loaded_runs.append(d.name)
                 loaded_paths.append(trace_file)
+                if len(loaded_runs) >= 3:
+                    break
 
     if len(evals_list) < 2:
         print("Error: At least two executions are required for differential comparison.")
@@ -1623,8 +1662,6 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
     sys_enums = "Ei saatavilla"
     try:
-        if "." not in sys.path:
-            sys.path.insert(0, ".")
         import backend_v2.models.enums as enums
 
         def _format_enum(enum_cls: Any) -> str:
