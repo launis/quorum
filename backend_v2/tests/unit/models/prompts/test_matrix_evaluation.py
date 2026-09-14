@@ -22,6 +22,7 @@ def test_matrix_sensor_system_prompt_structure() -> None:
         "reasoning_constraints",
         "anti_repetition_mandate",
         "evidence_extraction_mandate",
+        "speaker_attribution_protocol",
         "contextual_override_directive",
         "output_mandate",
     ]
@@ -53,6 +54,9 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "BANNED SPECULATIVE OVERRIDES:" in prompt
     assert "QUALIFYING CRITERIA:" in prompt
     assert "NULL HYPOTHESIS BURDEN:" in prompt
+    assert "COGNITIVE AGENCY VS. ECHO PARROTING:" in prompt
+    assert "SUBMITTED DELIVERABLES & ARTIFACTS:" in prompt
+    assert "Verbatim repetitions, passive echoing, or copying" in prompt
 
 
 def test_matrix_sensor_system_prompt_negative_partitions() -> None:
