@@ -14,19 +14,19 @@
 - [x] Step 1: Technical Debt Cleanup & Baseline Test Suite Verification
   - [x] In `backend_v2/tests/unit/test_diff_executions.py#L885-L898`, change `MacroBlockScoreDTO(..., unexpected_field="disallowed")` to `MacroBlockScoreDTO.model_validate({...})` to preserve runtime `ValidationError` verification under `extra='forbid'` while satisfying MyPy strict typing (`[call-arg]`)
   - [x] Run baseline unit tests to guarantee clean starting state (`test_diff_executions.py -k TestVerifyQuoteInCorpus` and `test_matrix_evaluation.py`)
-- [ ] Step 2: Enhance `verify_quote_in_corpus` with Dual-Substitution Normalization
-  - [ ] In `scripts/diff_executions.py#L20-L32`, add `import re` in alphabetical order between `os` and `subprocess`
-  - [ ] In `scripts/diff_executions.py#L886-L925`, define module-level compiled regexes: `_HTML_TAG_PATTERN` and `_MARKDOWN_DECORATOR_PATTERN`
-  - [ ] In `scripts/diff_executions.py#L888-L924`, upgrade `verify_quote_in_corpus` to 4 tiers: literal exact, whitespace-normalized, HTML-tag-normalized, and Markdown-decorator-relaxed
-  - [ ] In `scripts/diff_executions.py#L1915-L1985`, pre-compute `html_norm_corpus` and `md_norm_corpus` in outer loop for O(1) matching
-- [ ] Step 3: Expand `test_diff_executions.py` Unit Test Suite
-  - [ ] Positive: `<br>`, `<br/>`, `<br />` table cell variants (`ja<br>**omaan**` vs `ja\n**omaan**`)
-  - [ ] Positive: Markdown bold/italic decorators adjacent to punctuation (`*huomio*.`, `**huomio**,`, `(*huomio*)`)
-  - [ ] Positive: Generic types in text (`List<String>`, `Dict<str, Any>`) shielded
-  - [ ] Positive: Mathematical inequalities (`x < y and y > z`, `x <y and y> z`) shielded
-  - [ ] Positive: Snake_case identifiers (`user_id_column`, `_user_id_column_`) shielded
-  - [ ] Negative & boundary: character typos ("Näitä" vs "Nämä"), unanchored text, HTML-only/whitespace-only/empty inputs
-  - [ ] Run `uv run pytest backend_v2/tests/unit/test_diff_executions.py -k TestVerifyQuoteInCorpus`
+- [x] Step 2: Enhance `verify_quote_in_corpus` with Dual-Substitution Normalization
+  - [x] In `scripts/diff_executions.py#L20-L32`, add `import re` in alphabetical order between `os` and `subprocess`
+  - [x] In `scripts/diff_executions.py#L886-L925`, define module-level compiled regexes: `_HTML_TAG_PATTERN` and `_MARKDOWN_DECORATOR_PATTERN`
+  - [x] In `scripts/diff_executions.py#L888-L924`, upgrade `verify_quote_in_corpus` to 4 tiers: literal exact, whitespace-normalized, HTML-tag-normalized, and Markdown-decorator-relaxed
+  - [x] In `scripts/diff_executions.py#L1915-L1985`, pre-compute `html_norm_corpus` and `md_norm_corpus` in outer loop for O(1) matching
+- [x] Step 3: Expand `test_diff_executions.py` Unit Test Suite
+  - [x] Positive: `<br>`, `<br/>`, `<br />` table cell variants (`ja<br>**omaan**` vs `ja\n**omaan**`)
+  - [x] Positive: Markdown bold/italic decorators adjacent to punctuation (`*huomio*.`, `**huomio**,`, `(*huomio*)`)
+  - [x] Positive: Generic types in text (`List<String>`, `Dict<str, Any>`) shielded
+  - [x] Positive: Mathematical inequalities (`x < y and y > z`, `x <y and y> z`) shielded
+  - [x] Positive: Snake_case identifiers (`user_id_column`, `_user_id_column_`) shielded
+  - [x] Negative & boundary: character typos ("Näitä" vs "Nämä"), unanchored text, HTML-only/whitespace-only/empty inputs
+  - [x] Run `uv run pytest backend_v2/tests/unit/test_diff_executions.py -k TestVerifyQuoteInCorpus`
 - [ ] Step 4: Update Layer 1 Speaker Attribution Protocol in Matrix Evaluation
   - [ ] In `backend_v2/models/prompts/execution/matrix_evaluation.py#L99-L112`, expand `<speaker_attribution_protocol>` with Cognitive Agency vs. Echo Parroting and Submitted Deliverables & Artifacts
   - [ ] Preserve `+ CONTEXTUAL_OVERRIDE_DIRECTIVE + "\n"` concatenation

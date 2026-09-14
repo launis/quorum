@@ -185,6 +185,85 @@ class TestVerifyQuoteInCorpus:
         assert verify_quote_in_corpus("   ", "Some corpus text.") is False
         assert verify_quote_in_corpus("Some quote.", "") is False
 
+    def test_html_table_cell_br_newline_match(self) -> None:
+        """Positive: Quote with newline matches table cell with raw HTML <br> tag."""
+        corpus = "Vertailu ja<br>**omaan** tuotantoon liittyvät seikat."
+        quote = "ja\n**omaan**"
+        assert verify_quote_in_corpus(quote, corpus) is True
+        quote_clean = "ja omaan"
+        assert verify_quote_in_corpus(quote_clean, corpus) is True
+
+    def test_html_br_variants_match(self) -> None:
+        """Positive: Quote matches corpus containing <br/> and <br /> HTML variants."""
+        corpus = "Ensimmäinen rivi<br/>toinen rivi<br />kolmas rivi."
+        quote = "Ensimmäinen rivi toinen rivi kolmas rivi."
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_markdown_bold_decorators_match_raw_and_vice_versa(self) -> None:
+        """Positive: Markdown decorators are unwrapped so styled text matches plain quote and vice-versa."""
+        corpus = "Tämä on **tärkeä havainto** raportissa."
+        quote = "tärkeä havainto"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+        corpus_plain = "Tämä on tärkeä havainto raportissa."
+        quote_bold = "**tärkeä havainto**"
+        assert verify_quote_in_corpus(quote_bold, corpus_plain) is True
+
+    def test_markdown_decorators_adjacent_to_punctuation(self) -> None:
+        """Positive: Markdown decorators adjacent to punctuation preserve punctuation without artificial spaces."""
+        corpus = "Tehtiin *huomio*. Lisäksi **huomio**, ja (*huomio*) suluissa."
+        quote = "Tehtiin huomio. Lisäksi huomio, ja (huomio) suluissa."
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_generic_types_shielded_and_preserved(self) -> None:
+        """Positive: Generic type definitions like List<String> and Dict<str, Any> are shielded from tag stripping."""
+        corpus = "Koodissa käytetään List<String> ja Dict<str, Any> tyyppejä."
+        quote = "käytetään List<String> ja Dict<str, Any> tyyppejä."
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+        quote_mismatch = "käytetään List<Integer> tyyppejä."
+        assert verify_quote_in_corpus(quote_mismatch, corpus) is False
+
+    def test_mathematical_inequalities_shielded_and_preserved(self) -> None:
+        """Positive: Mathematical inequality expressions are shielded from tag stripping."""
+        corpus = "Ehto toteutuu kun x < y and y > z sekä x <y and y> z."
+        quote_spaced = "x < y and y > z"
+        assert verify_quote_in_corpus(quote_spaced, corpus) is True
+
+        quote_tight = "x <y and y> z"
+        assert verify_quote_in_corpus(quote_tight, corpus) is True
+
+        quote_invalid = "x > y and y < z"
+        assert verify_quote_in_corpus(quote_invalid, corpus) is False
+
+    def test_snake_case_identifiers_preserved(self) -> None:
+        """Positive: Internal underscores in snake_case identifiers are preserved while boundary decorators strip."""
+        corpus = "Taulussa on sarake user_id_column sekä _user_id_column_ merkintä."
+        quote_plain = "sarake user_id_column"
+        assert verify_quote_in_corpus(quote_plain, corpus) is True
+
+        quote_target = "user_id_column"
+        assert verify_quote_in_corpus(quote_target, corpus) is True
+
+    def test_genuine_character_typo_fails_negative(self) -> None:
+        """Negative: Quote with genuine character substitution typo fails verification."""
+        corpus = "Nämä ovat tärkeitä havaintoja prosessista."
+        quote_typo = "Näitä ovat tärkeitä havaintoja"
+        assert verify_quote_in_corpus(quote_typo, corpus) is False
+
+    def test_unanchored_text_fails_negative(self) -> None:
+        """Negative: Text not present in corpus fails verification."""
+        corpus = "Kokous pidettiin maanantaina klo 10."
+        quote_unanchored = "Kokous pidettiin tiistaina klo 14."
+        assert verify_quote_in_corpus(quote_unanchored, corpus) is False
+
+    def test_html_only_and_whitespace_only_boundary_negative(self) -> None:
+        """Boundary: Quote containing only stripped HTML tags or whitespace evaluates to False."""
+        corpus = "<div><span><br/><hr/></span></div>"
+        assert verify_quote_in_corpus("<br/>", corpus) is False
+        assert verify_quote_in_corpus("<span><br/></span>", corpus) is False
+        assert verify_quote_in_corpus("   \n\t  ", corpus) is False
+
 
 class TestExtractTraceTelemetry:
     """Test suite for extract_trace_telemetry and TraceTelemetryDTO."""

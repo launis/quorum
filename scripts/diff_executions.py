@@ -24,6 +24,7 @@ import io
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 from enum import StrEnum
@@ -885,21 +886,33 @@ def uses_contextual_override(e: dict[str, Any]) -> bool:
     return isinstance(eq, str) and "[INFERRED]" in eq
 
 
+_HTML_TAG_PATTERN = re.compile(
+    r"</?(?:br|p|div|span|b|strong|i|em|u|a|table|thead|tbody|tr|th|td|ul|ol|li|code|pre|blockquote|sub|sup|hr|img)\b[^>]*>|<!--.*?-->",
+    re.IGNORECASE,
+)
+_MARKDOWN_DECORATOR_PATTERN = re.compile(r"\*\*|__|~~|(?<!\w)[*_~`]+|[*_~`]+(?!\w)")
+
+
 def verify_quote_in_corpus(
     quote: str,
     corpus: str,
     norm_corpus: str | None = None,
+    html_norm_corpus: str | None = None,
+    md_norm_corpus: str | None = None,
 ) -> bool:
-    """Verify whether an extracted quote exists in the corpus using exact or whitespace-normalized search.
+    """Verify whether an extracted quote exists in the corpus using tiered forensic search.
 
-    Primary Gate: Exact literal match (corpus.find).
-    Secondary Gate: Whitespace-normalized match (collapsing newlines, tabs, and unicode spaces)
-    to prevent false unverified alarms when an LLM joins multi-line sentences with single spaces.
+    Tier 1: Exact literal match (corpus.find).
+    Tier 2: Whitespace-normalized match (collapsing newlines, tabs, and unicode spaces).
+    Tier 3: HTML-tag-normalized match, substituting known HTML tags with space before whitespace normalization.
+    Tier 4: Markdown-boundary-relaxed match, stripping markdown delimiters while preserving adjacent punctuation.
 
     Args:
         quote: Raw quote string extracted from LLM evaluation.
         corpus: Raw concatenated corpus text from input files.
         norm_corpus: Pre-normalized corpus text for O(1) matching, or computed on demand.
+        html_norm_corpus: Pre-normalized HTML-stripped corpus for O(1) matching, or computed on demand.
+        md_norm_corpus: Pre-normalized Markdown-stripped corpus for O(1) matching, or computed on demand.
 
     Returns:
         True if the quote is verified in corpus, False otherwise.
@@ -908,11 +921,15 @@ def verify_quote_in_corpus(
     if not eq_clean or not corpus:
         return False
 
-    # 1. Primary check: exact literal match
+    # Quotes consisting exclusively of HTML tags and whitespace lack substantive text
+    if not _HTML_TAG_PATTERN.sub("", eq_clean).strip():
+        return False
+
+    # 1. Tier 1: Exact literal match
     if corpus.find(eq_clean) != -1:
         return True
 
-    # 2. Secondary check: whitespace-normalized match
+    # 2. Tier 2: Whitespace-normalized match
     norm_eq = " ".join(eq_clean.split())
     if not norm_eq:
         return False
@@ -920,7 +937,29 @@ def verify_quote_in_corpus(
     if norm_corpus is None:
         norm_corpus = " ".join(corpus.split())
 
-    return norm_corpus.find(norm_eq) != -1
+    if norm_corpus.find(norm_eq) != -1:
+        return True
+
+    # 3. Tier 3: HTML-tag-normalized match (tags replaced with space)
+    html_eq = " ".join(_HTML_TAG_PATTERN.sub(" ", eq_clean).split())
+    if not html_eq:
+        return False
+
+    if html_norm_corpus is None:
+        html_norm_corpus = " ".join(_HTML_TAG_PATTERN.sub(" ", corpus).split())
+
+    if html_norm_corpus.find(html_eq) != -1:
+        return True
+
+    # 4. Tier 4: Markdown-boundary-relaxed match (decorators removed with empty string)
+    md_eq = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", eq_clean)).split())
+    if not md_eq:
+        return False
+
+    if md_norm_corpus is None:
+        md_norm_corpus = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus)).split())
+
+    return md_norm_corpus.find(md_eq) != -1
 
 
 def classify_disagreement(eval_1: dict[str, Any], eval_2: dict[str, Any]) -> DisagreementRootCause:
@@ -1914,11 +1953,15 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     # Lexical Grounding Audit
     run_corpuses: list[str] = []
     run_norm_corpuses: list[str] = []
+    run_html_norm_corpuses: list[str] = []
+    run_md_norm_corpuses: list[str] = []
     grounding_results_by_run: list[dict[str, Any]] = []
     for idx, (r_name, p) in enumerate(zip(loaded_runs, loaded_paths, strict=False)):
         run_in_dir = p.parent / "inputs"
         corpus = ""
         norm_corpus = ""
+        html_norm_corpus = ""
+        md_norm_corpus = ""
         if run_in_dir.is_dir():
             corpus_parts: list[str] = []
             for in_f in sorted(run_in_dir.iterdir()):
@@ -1929,8 +1972,12 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                         pass
             corpus = "\n".join(corpus_parts)
             norm_corpus = " ".join(corpus.split())
+            html_norm_corpus = " ".join(_HTML_TAG_PATTERN.sub(" ", corpus).split())
+            md_norm_corpus = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus)).split())
         run_corpuses.append(corpus)
         run_norm_corpuses.append(norm_corpus)
+        run_html_norm_corpuses.append(html_norm_corpus)
+        run_md_norm_corpuses.append(md_norm_corpus)
 
         ev_map = evals_list[idx]
         total_quotes = 0
@@ -1941,7 +1988,13 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 total_quotes += 1
                 eq = ev.get("exact_quote", ev.get("exact_quotes", ev.get("source_quote")))
                 eq_str = " ".join(str(x) for x in eq) if isinstance(eq, list) else str(eq)
-                if verify_quote_in_corpus(eq_str, corpus, norm_corpus):
+                if verify_quote_in_corpus(
+                    eq_str,
+                    corpus,
+                    norm_corpus,
+                    html_norm_corpus=html_norm_corpus,
+                    md_norm_corpus=md_norm_corpus,
+                ):
                     verified_quotes += 1
                 elif corpus:
                     unverified_quotes += 1
@@ -1975,7 +2028,13 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
             is_verified = False
             if has_q and eq_text:
-                is_verified = verify_quote_in_corpus(eq_text, run_corpuses[r_idx], run_norm_corpuses[r_idx])
+                is_verified = verify_quote_in_corpus(
+                    eq_text,
+                    run_corpuses[r_idx],
+                    run_norm_corpuses[r_idx],
+                    html_norm_corpus=run_html_norm_corpuses[r_idx],
+                    md_norm_corpus=run_md_norm_corpuses[r_idx],
+                )
 
             atom_snapshots.append(
                 AtomEvaluationSnapshotDTO(
