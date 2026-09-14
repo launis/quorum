@@ -1,58 +1,26 @@
 """Scoring engine factory and strategy implementations."""
 
-import logging
+from typing import Any
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import ScoringStrategy
-from backend_v2.utils.scoring.average_engine import PureAverageScoringEngine, WeightedAverageScoringEngine
+from backend_v2.models.dtos.lightweight_matrix import ScoringResultDTO
 from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
-from backend_v2.utils.scoring.pure_math_engine import PureMathScoringEngine
-from backend_v2.utils.scoring.waterfall_engine import WaterfallScoringEngine
+from backend_v2.utils.scoring.unified_engine import UnifiedScoringEngine
 
-__all__ = ["ScoringEngineProtocol", "get_scoring_engine"]
+__all__ = [
+    "ScoringEngineProtocol",
+    "ScoringResultDTO",
+    "UnifiedScoringEngine",
+    "get_scoring_engine",
+]
 
 
-def get_scoring_engine(strategy: ScoringStrategy | str) -> ScoringEngineProtocol:
-    """Strategy Pattern Factory. Returns the correct mathematical engine based on the execution strategy.
+def get_scoring_engine(_strategy: Any = None) -> ScoringEngineProtocol:
+    """Returns the unified continuous scoring engine.
 
     Args:
-        strategy: The scoring strategy to use, either as an enum or string.
+        _strategy: Unused legacy strategy parameter preserved for backward-compatible call sites.
 
     Returns:
-        The instantiated scoring engine.
-
-    Raises:
-        AppException: If the provided strategy is invalid (VALIDATION_FAILED).
+        The instantiated UnifiedScoringEngine.
     """
-    # Normalize to enum
-    if isinstance(strategy, str):
-        try:
-            strategy = ScoringStrategy(strategy)
-        except ValueError as e:
-            logger = logging.getLogger(__name__)
-            msg = f"Invalid scoring strategy string: {strategy}"
-            logger.error("[ScoringEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
-
-    match strategy:
-        case ScoringStrategy.WATERFALL:
-            return WaterfallScoringEngine()
-        case ScoringStrategy.AVERAGE:
-            return PureAverageScoringEngine()
-        case ScoringStrategy.WEIGHTED_AVERAGE:
-            return WeightedAverageScoringEngine()
-        case ScoringStrategy.PURE_MATH:
-            return PureMathScoringEngine()
-        case _:
-            msg = f"Unsupported scoring strategy: {strategy}"
-            logger = logging.getLogger(__name__)
-            logger.error("[ScoringEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+    return UnifiedScoringEngine()

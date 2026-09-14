@@ -91,3 +91,19 @@ class MergedFactsDTO(V2CoreBase):
     """
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+
+class ScoringResultDTO(V2CoreBase):
+    """Encapsulates the typed output of a matrix scoring calculation.
+
+    Attributes:
+        score: The calculated raw score mapped between math_min and math_max.
+        xai_log: Structured XAI trace and pedagogical key.
+        breakdown: Level breakdown dictionary mapping levels to metric counts.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    score: float
+    xai_log: XAILogDto
+    breakdown: dict[str, dict[str, int]]

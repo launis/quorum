@@ -5,90 +5,12 @@ prioritizing strict validation and Fail Fast principles.
 """
 
 import logging
-from typing import Annotated, Any
-
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
-from backend_v2.models.enums import StrictnessAnchor, WaterfallThreshold
 
 logger = logging.getLogger(__name__)
-
-
-class StrictnessConfig(BaseModel):
-    """Configuration for mathematical strictness penalities.
-
-    Attributes:
-        base_forgiveness: Base modifier for failure forgiveness.
-        sigmoid_midpoint: Midpoint for logistic scaling curves.
-        dynamic_exponent: Non-linear exponent for penalty scaling.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-    base_forgiveness: Annotated[float, Field(description="Base modifier for failure forgiveness.")]
-    sigmoid_midpoint: Annotated[float, Field(description="Midpoint for logistic scaling curves.")]
-    dynamic_exponent: Annotated[float, Field(description="Non-linear exponent for penalty scaling.")]
-
-    @field_validator("base_forgiveness", "sigmoid_midpoint")
-    @classmethod
-    def validate_zero_to_one(cls, v: float) -> float:
-        if not (0.0 <= v <= 1.0):
-            raise ValueError("Must be between 0.0 and 1.0")
-        return v
-
-    @field_validator("dynamic_exponent")
-    @classmethod
-    def validate_exponent(cls, v: float) -> float:
-        if not (0.2 <= v <= 3.0):
-            raise ValueError("Must be between 0.2 and 3.0")
-        return v
-
-
-STRICTNESS_ANCHOR_CONFIGS = {
-    StrictnessAnchor.NONE: StrictnessConfig(base_forgiveness=0.50, sigmoid_midpoint=0.3, dynamic_exponent=0.5),
-    StrictnessAnchor.RELAXED: StrictnessConfig(base_forgiveness=0.40, sigmoid_midpoint=0.4, dynamic_exponent=0.8),
-    StrictnessAnchor.STANDARD: StrictnessConfig(base_forgiveness=0.30, sigmoid_midpoint=0.5, dynamic_exponent=1.0),
-    StrictnessAnchor.BALANCED: StrictnessConfig(base_forgiveness=0.20, sigmoid_midpoint=0.6, dynamic_exponent=1.2),
-    StrictnessAnchor.STRICT: StrictnessConfig(base_forgiveness=0.10, sigmoid_midpoint=0.7, dynamic_exponent=1.5),
-    StrictnessAnchor.ABSOLUTE: StrictnessConfig(base_forgiveness=0.00, sigmoid_midpoint=0.9, dynamic_exponent=3.0),
-}
-
-
-def get_strictness_config(strictness_level: int) -> StrictnessConfig:
-    """Retrieves or interpolates the StrictnessConfig for a given level.
-
-    Calculates exact linear interpolation between anchor points.
-
-    Args:
-        strictness_level: Integer representing the strictness.
-
-    Returns:
-        Configuration containing math penalties.
-    """
-    level = max(0, min(100, strictness_level))
-
-    for anchor, config in STRICTNESS_ANCHOR_CONFIGS.items():
-        if anchor.value == level:
-            return config
-
-    anchors = sorted(STRICTNESS_ANCHOR_CONFIGS.keys())
-    lower_anchor = max([a for a in anchors if a < level])
-    upper_anchor = min([a for a in anchors if a > level])
-
-    lower_cfg = STRICTNESS_ANCHOR_CONFIGS[lower_anchor]
-    upper_cfg = STRICTNESS_ANCHOR_CONFIGS[upper_anchor]
-
-    t = (level - lower_anchor.value) / (upper_anchor.value - lower_anchor.value)
-
-    def lerp(start: float, end: float, t: float) -> float:
-        return start + (end - start) * t
-
-    return StrictnessConfig(
-        base_forgiveness=lerp(lower_cfg.base_forgiveness, upper_cfg.base_forgiveness, t),
-        sigmoid_midpoint=lerp(lower_cfg.sigmoid_midpoint, upper_cfg.sigmoid_midpoint, t),
-        dynamic_exponent=lerp(lower_cfg.dynamic_exponent, upper_cfg.dynamic_exponent, t),
-    )
 
 
 def clamp_score(score: float, math_min: float, math_max: float) -> float:
@@ -208,86 +130,6 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
     actual_max = max(target_min, target_max)
 
     return max(actual_min, min(actual_max, scaled))
-
-
-def convert_strictness_to_forgiveness(strictness_level: int) -> float:
-    """Converts UI strictness level to a forgiveness multiplier.
-
-    DEPRECATED: Use get_strictness_config() directly. Left for legacy engine support.
-
-    Args:
-        strictness_level: Integer representing the strictness (must be >= 85).
-
-    Returns:
-        The base forgiveness multiplier (0.0 - 1.0).
-    """
-    return get_strictness_config(strictness_level).base_forgiveness
-
-
-def calculate_soft_waterfall_score(
-    level_stats: dict[float, LevelStatsDTO],
-    math_min: float,
-    math_max: float,
-    threshold: float = WaterfallThreshold.STANDARD.value,
-    base_forgiveness: float = 0.0,
-) -> float:
-    """Calculate a soft waterfall score (Benefit of the Doubt).
-
-    Instead of completely halting at the first failure, a failure reduces the value
-    of all subsequent higher levels based on a penalty multiplier directly derived
-    from base_forgiveness.
-
-    Args:
-        level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
-        math_min: The minimum floor.
-        math_max: The maximum ceiling.
-        threshold: The passage fraction (default 0.75).
-        base_forgiveness: The joustokerroin (0.0 - 1.0) defining how much of the remaining points pass through.
-
-    Returns:
-        The calculated soft waterfall score.
-
-    Raises:
-        AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
-    """
-    if math_min >= math_max:
-        msg = f"Invalid scale definition: math_min ({math_min}) >= math_max ({math_max})."
-        logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=500,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
-        )
-
-    achieved_score = float(math_min)
-    current_multiplier = 1.0
-    prev_level = float(math_min)
-
-    sorted_levels = sorted(level_stats.keys())
-    for level in sorted_levels:
-        stats = level_stats[level]
-        total = stats.total - stats.dlqs
-        hits = stats.hits
-
-        hit_rate = (hits / total) if total > 0 else 0.0
-        step_value = level - prev_level
-
-        if hit_rate >= threshold:
-            achieved_score += step_value * current_multiplier
-        else:
-            if threshold == 0.0:
-                shortfall = 0.0
-            else:
-                shortfall = (threshold - hit_rate) / threshold
-
-            sliding_penalty = 1.0 - (shortfall * (1.0 - base_forgiveness))
-
-            achieved_score += step_value * hit_rate * current_multiplier
-            current_multiplier *= sliding_penalty
-
-        prev_level = level
-
-    return clamp_score(achieved_score, math_min, math_max)
 
 
 def calculate_linear_ratio_score(
