@@ -290,7 +290,10 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   * **Option B: Multi-Turn Conversational Dialogue (`is_chat_history == True`):**
     * *`target_speaker = TargetSpeaker.USER`:* Evaluates human intent, direction, agency, and constraints. Evidence quotes must reside strictly within `<user_payload>` tags; any citation found only in `<ai_draft_context>` triggers a semantic provenance violation.
     * *`target_speaker = TargetSpeaker.AI`:* Evaluates model sycophancy, adherence, hallucination, or tool usage. Evidence quotes must reside strictly within `<ai_draft_context>` tags; any citation found only in `<user_payload>` triggers a semantic provenance violation.
-  * **Option C: Assignment Brief Context Isolation:**
+    * *Echo Parroting & Cognitive Agency Boundary:* When evaluating user competence in dialogue across model providers (such as OpenAI GPT-4 models and Google Gemini), the candidate must demonstrate authentic cognitive agency and independent reasoning. Verbatim repetitions, passive echoing, or copying of preceding AI draft suggestions, environmental task rubrics, or background slogans without operational application, synthesis, or critical challenge do not satisfy cognitive competence claims for the user.
+  * **Option C: Standalone Submitted Deliverables (Track B Dual-Track Attribution):**
+    * For standalone non-dialogue deliverables, essays, or final product texts (`is_chat_history == False`), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable without conversational provenance splitting.
+  * **Option D: Assignment Brief Context Isolation:**
     * When inputs are configured with `assignment` in `input_modes`, their content is wrapped in `<assignment_context>` tags. Evaluated claims maintain strictly binary `target_speaker` (`USER` or `AI`), and models are instructed that `<assignment_context>` defines problem constraints rather than authorial evidence. Any evidence quote extracted from `<assignment_context>` triggers an immediate `SemanticEvidenceError` (`ErrorCodes.PROVENANCE_VIOLATION`).
 * **Prompt Wrapper & Mechanics:**
   Encapsulated inside a CDATA block within `<target_speaker>` inside the `<claim>` block:
@@ -303,8 +306,16 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   Bound to Layer 1 `<speaker_attribution_protocol>`:
   ```xml
   <speaker_attribution_protocol>
-  - SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
-  - ASSIGNMENT CONTEXT QUARANTINE: If the context contains <assignment_context>, this section contains instructions, guidelines, or problem definitions. You MUST NEVER quote from <assignment_context> as source evidence for either 'USER' or 'AI' claims. All evaluated evidence MUST originate strictly from the deliverable itself (<user_payload> or <ai_draft_context>).
+  - SPEAKER PROVENANCE & ATTRIBUTION: When evaluating multi-turn dialogue containing <user_payload> and <ai_draft_context> tags:
+    * If a claim's <target_speaker> is 'USER', your exact evidence quote MUST be drawn exclusively from within <user_payload>.
+    * If a claim's <target_speaker> is 'AI', your exact evidence quote MUST be drawn exclusively from within <ai_draft_context>.
+    * Never attribute AI dialogue to the USER, and never attribute USER statements to the AI.
+  - COGNITIVE AGENCY VS. ECHO PARROTING: When evaluating USER claims on conversational dialogue (<user_payload>):
+    * The evidence must demonstrate the candidate's authentic cognitive agency and independent reasoning.
+    * Verbatim repetitions, passive echoing, or copying of preceding AI suggestions, task rubrics, or background slogans without operational application, synthesis, or critical challenge do NOT satisfy cognitive competence claims for the USER.
+  - SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable.
+  - ASSIGNMENT BRIEFS & CONTEXT: <assignment_context> tags contain environmental task briefs, instructions, or evaluation rubrics. You MUST read this to understand assignment requirements, but you must NEVER quote from <assignment_context> as evidence for either USER or AI claims.
+  - SINGLE-AUTHOR DELIVERABLES: For non-dialogue documents without dialogue tags, the entire text is author text (USER), and evidence is drawn directly from the primary document.
   </speaker_attribution_protocol>
   ```
 
@@ -323,8 +334,16 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 </evaluation_directives>
 
 <speaker_attribution_protocol>
-- SPEAKER ATTRIBUTION MANDATE: When evaluating conversational dialogue (is_chat_history == True), evaluate claims with target_speaker 'USER' strictly against human dialogue turns (<user_payload>). Evaluate claims with target_speaker 'AI' strictly against assistant/model generation turns (<ai_draft_context>). For non-dialogue deliverables (is_chat_history == False), the entire context belongs unconditionally to the user.
-- ASSIGNMENT CONTEXT QUARANTINE: If the context contains <assignment_context>, this section contains instructions, guidelines, or problem definitions. You MUST NEVER quote from <assignment_context> as source evidence for either 'USER' or 'AI' claims. All evaluated evidence MUST originate strictly from the deliverable itself (<user_payload> or <ai_draft_context>).
+- SPEAKER PROVENANCE & ATTRIBUTION: When evaluating multi-turn dialogue containing <user_payload> and <ai_draft_context> tags:
+  * If a claim's <target_speaker> is 'USER', your exact evidence quote MUST be drawn exclusively from within <user_payload>.
+  * If a claim's <target_speaker> is 'AI', your exact evidence quote MUST be drawn exclusively from within <ai_draft_context>.
+  * Never attribute AI dialogue to the USER, and never attribute USER statements to the AI.
+- COGNITIVE AGENCY VS. ECHO PARROTING: When evaluating USER claims on conversational dialogue (<user_payload>):
+  * The evidence must demonstrate the candidate's authentic cognitive agency and independent reasoning.
+  * Verbatim repetitions, passive echoing, or copying of preceding AI suggestions, task rubrics, or background slogans without operational application, synthesis, or critical challenge do NOT satisfy cognitive competence claims for the USER.
+- SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable.
+- ASSIGNMENT BRIEFS & CONTEXT: <assignment_context> tags contain environmental task briefs, instructions, or evaluation rubrics. You MUST read this to understand assignment requirements, but you must NEVER quote from <assignment_context> as evidence for either USER or AI claims.
+- SINGLE-AUTHOR DELIVERABLES: For non-dialogue documents without dialogue tags, the entire text is author text (USER), and evidence is drawn directly from the primary document.
 </speaker_attribution_protocol>
 
 <epistemic_decision_protocol>
