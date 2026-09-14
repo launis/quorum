@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import time
 import uuid
 from abc import ABC, abstractmethod
@@ -14,10 +15,12 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from tenacity import (
     AsyncRetrying,
+    RetryCallState,
     retry_if_exception,
     stop_after_attempt,
     wait_exponential_jitter,
 )
+from tenacity.wait import wait_base
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -232,6 +235,129 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
         return True
 
     return False
+
+
+_RETRY_AFTER_REGEX = re.compile(r"(?:please\s+)?try again in ([0-9.]+)s", re.IGNORECASE)
+
+
+def _extract_retry_after_seconds(e: BaseException, _visited: set[int] | None = None) -> float | None:
+    """Extract retry-after delay in seconds from exception headers or message.
+
+    Recursively inspects causes, contexts, and child exceptions.
+
+    Args:
+        e: The caught exception.
+        _visited: Set of visited object IDs to prevent circular reference cycles.
+
+    Returns:
+        Positive delay in seconds if detected, or None if no upstream delay found.
+    """
+    if _visited is None:
+        _visited = set()
+    if id(e) in _visited:
+        return None
+    _visited.add(id(e))
+
+    # 1. Check headers (direct or via response attribute)
+    headers = getattr(e, "headers", None)
+    if headers is None:
+        response = getattr(e, "response", None)
+        headers = getattr(response, "headers", None)
+    if headers and hasattr(headers, "items"):
+        for k, v in headers.items():
+            if str(k).lower() == "retry-after":
+                try:
+                    val = float(v)
+                    if val > 0:
+                        return val
+                except ValueError, TypeError:
+                    pass
+
+    # 2. Check message string for 'Please try again in X.Xs'
+    msg = str(e)
+    match = _RETRY_AFTER_REGEX.search(msg)
+    if match:
+        try:
+            val = float(match.group(1))
+            if val > 0:
+                return val
+        except ValueError, TypeError:
+            pass
+
+    # 3. Check BaseExceptionGroup
+    if isinstance(e, BaseExceptionGroup):
+        candidates: list[float] = []
+        for sub in e.exceptions:
+            child_val = _extract_retry_after_seconds(sub, _visited)
+            if child_val is not None:
+                candidates.append(child_val)
+        if candidates:
+            return max(candidates)
+
+    # 4. Recursively check original_error, __cause__, __context__
+    original_error = getattr(e, "original_error", None)
+    if isinstance(original_error, BaseException):
+        child_val = _extract_retry_after_seconds(original_error, _visited)
+        if child_val is not None:
+            return child_val
+
+    if e.__cause__ is not None:
+        child_val = _extract_retry_after_seconds(e.__cause__, _visited)
+        if child_val is not None:
+            return child_val
+
+    if e.__context__ is not None and not getattr(e, "__suppress_context__", False):
+        child_val = _extract_retry_after_seconds(e.__context__, _visited)
+        if child_val is not None:
+            return child_val
+
+    return None
+
+
+class _AdaptiveWaitWithRetryAfter(wait_base):
+    """Tenacity wait strategy that respects upstream Retry-After delays.
+
+    Attributes:
+        base_wait: Underlying wait strategy (e.g. exponential jitter).
+        max_seconds: Hard ceiling on the computed sleep duration in seconds.
+    """
+
+    def __init__(
+        self,
+        base_wait: wait_base,
+        max_seconds: float,
+    ) -> None:
+        """Initialize adaptive retry waiter.
+
+        Args:
+            base_wait: Underlying wait strategy.
+            max_seconds: Hard ceiling on sleep duration.
+        """
+        self.base_wait = base_wait
+        self.max_seconds = max_seconds
+
+    def __call__(self, retry_state: RetryCallState) -> float:
+        """Calculate wait time considering upstream Retry-After headers.
+
+        Args:
+            retry_state: Current state of the retry invocation.
+
+        Returns:
+            Calculated sleep delay in seconds.
+        """
+        base_delay = float(self.base_wait(retry_state))
+        exc: BaseException | None = None
+        if retry_state.outcome and retry_state.outcome.failed:
+            exc = retry_state.outcome.exception()
+
+        if exc is not None:
+            retry_after = _extract_retry_after_seconds(exc)
+            if retry_after is not None and retry_after > 0:
+                # Add 0.5s safety margin and clamp to max_seconds
+                adaptive_delay = min(retry_after + 0.5, self.max_seconds)
+                return max(base_delay, adaptive_delay)
+
+        return min(base_delay, self.max_seconds)
 
 
 _INTERNAL_NON_API_KEYS: frozenset[str] = frozenset({"mock_identity", "validation_context"})
@@ -691,15 +817,21 @@ class LiteLLMProvider(LLMProvider):
             max_rate_limit_retries = get_settings().llm_max_transient_retries
             response = None
 
-            # Phase 3, Step 4: Enforce Exponential Backoff with Random Jitter
+            # Phase 3, Step 4: Enforce Adaptive Exponential Backoff with Upstream Retry-After
+            base_wait = wait_exponential_jitter(
+                initial=get_settings().llm_retry_jitter_initial_seconds,
+                max=get_settings().llm_retry_max_seconds,
+                exp_base=get_settings().llm_retry_jitter_exp_base,
+                jitter=1,
+            )
+            adaptive_wait = _AdaptiveWaitWithRetryAfter(
+                base_wait=base_wait,
+                max_seconds=float(get_settings().llm_retry_max_seconds),
+            )
+
             async for attempt in AsyncRetrying(
                 stop=stop_after_attempt(max_rate_limit_retries + 1),
-                wait=wait_exponential_jitter(
-                    initial=get_settings().llm_retry_jitter_initial_seconds,
-                    max=get_settings().llm_retry_max_seconds,
-                    exp_base=get_settings().llm_retry_jitter_exp_base,
-                    jitter=1,
-                ),
+                wait=adaptive_wait,
                 retry=retry_if_exception(_is_transient_llm_error),
                 reraise=True,
                 before_sleep=lambda rs: logger.warning(
@@ -726,9 +858,10 @@ class LiteLLMProvider(LLMProvider):
                                 if self._config
                                 else (self.model_name.split("/")[0] if "/" in self.model_name else self.model_name)
                             )
+                            target_resource = self._config.model_name if self._config else self.model_name
                             await apply_provider_pacing(
                                 provider_name=provider_key,
-                                strategy_id=self._config.id if self._config else None,
+                                strategy_id=target_resource,
                                 rpm_limit=self._config.rpm_limit if self._config else None,
                             )
                             return await self.router.acompletion(**call_kwargs)

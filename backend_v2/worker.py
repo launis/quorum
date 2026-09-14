@@ -4,6 +4,7 @@ Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
 import asyncio
+import contextlib
 import logging
 import uuid
 from collections.abc import Sequence
@@ -1038,6 +1039,12 @@ async def generate_profile_synthesis_and_pdf_task(
         t_variance = None
         ext_metrics = None
 
+        synthesis_sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+
+        async def _run_with_sem(coro: Any) -> Any:
+            async with synthesis_sem if synthesis_sem is not None else contextlib.nullcontext():
+                return await coro
+
         async with asyncio.TaskGroup() as tg:
             if is_synthesis_expected:
                 # sys_prompt MUST remain 100% static for cache prefix survival
@@ -1117,10 +1124,12 @@ async def generate_profile_synthesis_and_pdf_task(
                             },
                         ]
                         t_exec_summary = tg.create_task(
-                            client.run_structured_task(
-                                messages=exec_messages,
-                                response_model=ExecutiveSummarySectionResult,
-                                mock_identity="ExecutiveSummaryTask",
+                            _run_with_sem(
+                                client.run_structured_task(
+                                    messages=exec_messages,
+                                    response_model=ExecutiveSummarySectionResult,
+                                    mock_identity="ExecutiveSummaryTask",
+                                )
                             )
                         )
                     else:
@@ -1191,10 +1200,12 @@ async def generate_profile_synthesis_and_pdf_task(
                             },
                         ]
                         task_handle = tg.create_task(
-                            client.run_structured_task(
-                                messages=grp_messages,
-                                response_model=MatrixSectionSynthesesResult,
-                                mock_identity=f"MatrixSectionTask_{grp_id}",
+                            _run_with_sem(
+                                client.run_structured_task(
+                                    messages=grp_messages,
+                                    response_model=MatrixSectionSynthesesResult,
+                                    mock_identity=f"MatrixSectionTask_{grp_id}",
+                                )
                             )
                         )
                         t_matrix_sections.append((grp_id, task_handle))
@@ -1253,10 +1264,12 @@ async def generate_profile_synthesis_and_pdf_task(
                             },
                         ]
                         t_xai = tg.create_task(
-                            client.run_structured_task(
-                                messages=xai_messages,
-                                response_model=XaiHighlightsResult,
-                                mock_identity="XaiHighlightsTask",
+                            _run_with_sem(
+                                client.run_structured_task(
+                                    messages=xai_messages,
+                                    response_model=XaiHighlightsResult,
+                                    mock_identity="XaiHighlightsTask",
+                                )
                             )
                         )
 
@@ -1308,10 +1321,12 @@ async def generate_profile_synthesis_and_pdf_task(
                         },
                     ]
                     t_row = tg.create_task(
-                        client.run_structured_task(
-                            messages=row_messages,
-                            response_model=MatrixExplanationsResult,
-                            mock_identity="row_explainer",
+                        _run_with_sem(
+                            client.run_structured_task(
+                                messages=row_messages,
+                                response_model=MatrixExplanationsResult,
+                                mock_identity="row_explainer",
+                            )
                         )
                     )
 
@@ -1491,10 +1506,12 @@ async def generate_profile_synthesis_and_pdf_task(
                         ]
 
                         t_variance = tg.create_task(
-                            client_var.run_structured_task(
-                                messages=var_messages,
-                                response_model=VarianceExplanationResult,
-                                mock_identity="variance_explainer",
+                            _run_with_sem(
+                                client_var.run_structured_task(
+                                    messages=var_messages,
+                                    response_model=VarianceExplanationResult,
+                                    mock_identity="variance_explainer",
+                                )
                             )
                         )
 
