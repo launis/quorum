@@ -84,7 +84,10 @@ class UnifiedScoringEngine(ScoringEngineProtocol):
             max_weights += eff_total * s_level
             log_lines.append(f"Level {s_level} (Weight x{s_level}): {t_hits}/{eff_total} hits")
 
-        ratio = (achieved_weights / max_weights) if max_weights > 0 else 0.0
+        if max_weights > 0:
+            ratio = achieved_weights / max_weights
+        else:
+            ratio = 0.0
         curved_ratio = ratio**exponent
         pct = int(ratio * 100)
         curved_pct = int(curved_ratio * 100)
