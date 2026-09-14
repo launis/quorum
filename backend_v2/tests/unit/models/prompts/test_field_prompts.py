@@ -8,8 +8,8 @@ from backend_v2.models.prompts.execution.field_prompts import (
     DESC_COACHING,
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
-    DESC_EXACT_QUOTES,
     DESC_EXACT_QUOTE_TEXT,
+    DESC_EXACT_QUOTES,
     DESC_FALSIFICATION,
     DESC_IS_TRUE,
     DESC_REASONING_TRACE,
@@ -59,4 +59,3 @@ def test_xai_field_descriptions() -> None:
     assert isinstance(XAI_DESC_REMEDIATION_STEPS, str) and len(XAI_DESC_REMEDIATION_STEPS) > 0
     assert isinstance(XAI_DESC_EMOTIONAL_SENTIMENT, str) and len(XAI_DESC_EMOTIONAL_SENTIMENT) > 0
     assert isinstance(XAI_DESC_THEORY_LINK, str) and len(XAI_DESC_THEORY_LINK) > 0
-

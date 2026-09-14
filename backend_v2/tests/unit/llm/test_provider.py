@@ -223,7 +223,9 @@ async def test_lite_llm_provider_strips_internal_mock_identity_from_call_kwargs(
         completion_tokens_details=MagicMock(reasoning_tokens=0),
     )
     mock_response = MagicMock(
-        choices=[MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))],
+        choices=[
+            MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))
+        ],
         usage=mock_usage,
         system_fingerprint="fp_123",
         _hidden_params={},
@@ -265,7 +267,9 @@ async def test_lite_llm_provider_strips_unpacked_internal_keys_from_call_kwargs(
         completion_tokens_details=MagicMock(reasoning_tokens=0),
     )
     mock_response = MagicMock(
-        choices=[MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))],
+        choices=[
+            MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))
+        ],
         usage=mock_usage,
         system_fingerprint="fp_123",
         _hidden_params={},
@@ -295,6 +299,7 @@ async def test_lite_llm_provider_strips_unpacked_internal_keys_from_call_kwargs(
 async def test_mock_provider_consumes_mock_identity_directly() -> None:
     """Verify MockProvider consumes mock_identity directly without kwargs dictionary inspection."""
     from unittest.mock import patch
+
     from backend_v2.llm.provider import MockProvider
 
     provider = MockProvider(model_name="mock-model")
@@ -320,6 +325,7 @@ async def test_mock_provider_consumes_mock_identity_directly() -> None:
 async def test_mock_provider_defaults_to_none_mock_identity() -> None:
     """Verify MockProvider defaults mock_identity to None cleanly."""
     from unittest.mock import patch
+
     from backend_v2.llm.provider import MockProvider
 
     provider = MockProvider(model_name="mock-model")

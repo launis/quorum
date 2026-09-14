@@ -121,4 +121,3 @@ def test_schema_compiler_all_xai_extensions_descriptions() -> None:
     assert props[f"eval_1_{XaiExtensionType.REMEDIATION_STEPS.value}"]["description"] == XAI_DESC_REMEDIATION_STEPS
     assert props[f"eval_1_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}"]["description"] == XAI_DESC_EMOTIONAL_SENTIMENT
     assert props[f"eval_1_{XaiExtensionType.THEORY_LINK.value}"]["description"] == XAI_DESC_THEORY_LINK
-

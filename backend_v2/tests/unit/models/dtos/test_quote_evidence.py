@@ -116,10 +116,12 @@ def test_quote_evidence_missing_context():
         QuoteEvidenceDTO.model_validate({"quote": "No context quote.", "source_alias": ["DOC-1"]})
 
     # Allowed if verified_source_ids already in payload
-    dto = QuoteEvidenceDTO.model_validate({
-        "quote": "Pre-verified quote.",
-        "verified_source_ids": ["doc_1"],
-    })
+    dto = QuoteEvidenceDTO.model_validate(
+        {
+            "quote": "Pre-verified quote.",
+            "verified_source_ids": ["doc_1"],
+        }
+    )
     assert dto.verified_source_ids == ["doc_1"]
 
 
@@ -162,5 +164,3 @@ def test_quote_evidence_non_dict_context() -> None:
         context="invalid_context_type",
     )
     assert dto.unverified_aliases == ["DOC-1"]
-
-

@@ -75,7 +75,7 @@
           "additional_params": {}
         },
         "openai_strict": {
-          "max_tokens": 16384,
+          "max_tokens": 32768,
           "model_name": "openai/gpt-5.1",
           "temperature": 0.0,
           "thinking_budget_tokens": 2048,

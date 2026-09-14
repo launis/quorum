@@ -1,3 +1,7 @@
+"""Unit tests for OpenAICacheAdapter strict JSON schema transformations and request preparations."""
+
+from typing import Annotated, Any, Literal
+
 import pytest
 from pydantic import BaseModel, Field
 
@@ -222,7 +226,7 @@ def test_openai_adapter_gpt4o_mini_non_reasoning() -> None:
 
 
 def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
-    """Verify OpenAICacheAdapter transforms 'oneOf' to 'anyOf' and removes 'discriminator' for OpenAI strict compatibility.
+    """Verify OpenAICacheAdapter transforms 'oneOf' to 'anyOf' and removes 'discriminator'.
 
     OpenAI's strict schema validator explicitly rejects 'oneOf' with:
     "Invalid schema for response_format: 'oneOf' is not permitted."
@@ -236,8 +240,12 @@ def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
     assert isinstance(result1, dict)
     schema1 = result1["json_schema"]["schema"]
     exec_summary_items = schema1["properties"]["executive_summary"]["items"]
-    assert "oneOf" not in exec_summary_items, f"'oneOf' must not be present in OpenAI schema items: {exec_summary_items}"
-    assert "discriminator" not in exec_summary_items, f"'discriminator' must not be present in OpenAI schema items: {exec_summary_items}"
+    assert "oneOf" not in exec_summary_items, (
+        f"'oneOf' must not be present in OpenAI schema items: {exec_summary_items}"
+    )
+    assert "discriminator" not in exec_summary_items, (
+        f"'discriminator' must not be present in OpenAI schema items: {exec_summary_items}"
+    )
     assert "anyOf" in exec_summary_items, f"'anyOf' must be present in OpenAI schema items: {exec_summary_items}"
     assert len(exec_summary_items["anyOf"]) == 5
 
@@ -247,6 +255,75 @@ def test_openai_adapter_transforms_discriminated_union_oneof_to_anyof() -> None:
     schema2 = result2["json_schema"]["schema"]
     section_items = schema2["$defs"]["SynthesisSectionDTO"]["properties"]["content_blocks"]["items"]
     assert "oneOf" not in section_items, f"'oneOf' must not be present in SynthesisSectionDTO items: {section_items}"
-    assert "discriminator" not in section_items, f"'discriminator' must not be present in SynthesisSectionDTO items: {section_items}"
+    assert "discriminator" not in section_items, (
+        f"'discriminator' must not be present in SynthesisSectionDTO items: {section_items}"
+    )
     assert "anyOf" in section_items, f"'anyOf' must be present in SynthesisSectionDTO items: {section_items}"
     assert len(section_items["anyOf"]) == 5
+
+
+def test_openai_adapter_handles_empty_and_malformed_unions_safely() -> None:
+    """ISTQB Partition 4: Verify schema traversal safely handles empty or boundary union nodes without crashing."""
+    adapter = OpenAICacheAdapter()
+
+    raw_schema: dict[str, Any] = {
+        "type": "object",
+        "properties": {
+            "empty_union": {"oneOf": []},
+            "discriminated_empty": {"oneOf": [], "discriminator": {"propertyName": "type"}},
+        },
+    }
+    adapter._enforce_openai_strict_schema(raw_schema)
+
+    empty_union = raw_schema["properties"]["empty_union"]
+    assert "oneOf" not in empty_union
+    assert "anyOf" in empty_union
+    assert empty_union["anyOf"] == []
+
+    discriminated = raw_schema["properties"]["discriminated_empty"]
+    assert "discriminator" not in discriminated
+    assert "anyOf" in discriminated
+    assert raw_schema["additionalProperties"] is False
+    assert set(raw_schema["required"]) == {"empty_union", "discriminated_empty"}
+
+
+def test_openai_adapter_strips_unsupported_constraints_from_union_branches() -> None:
+    """ISTQB Partition 5: Verify child schema constraints inside union branches are cleanly stripped."""
+
+    class OptionABlock(BaseModel):
+        block_type: Literal["opt_a"] = "opt_a"
+        title: Annotated[str, Field(min_length=3, max_length=50, pattern=r"^[A-Z]+$")]
+
+    class OptionBBlock(BaseModel):
+        block_type: Literal["opt_b"] = "opt_b"
+        count: Annotated[int, Field(ge=1, le=100)]
+
+    type OptionUnion = Annotated[OptionABlock | OptionBBlock, Field(discriminator="block_type")]
+
+    class ContainerModel(BaseModel):
+        blocks: list[OptionUnion]
+
+    adapter = OpenAICacheAdapter()
+    result = adapter.prepare_structured_output(ContainerModel)
+    assert isinstance(result, dict)
+    schema = result["json_schema"]["schema"]
+
+    # Verify union definition in $defs
+    defs = schema.get("$defs", {})
+    assert "OptionUnion" in defs
+    union_def = defs["OptionUnion"]
+    assert "anyOf" in union_def
+    assert "oneOf" not in union_def
+    assert "discriminator" not in union_def
+
+    # Verify constraints stripped from child branches ($defs)
+    assert "OptionABlock" in defs
+    opt_a_props = defs["OptionABlock"]["properties"]
+    assert "minLength" not in opt_a_props["title"]
+    assert "maxLength" not in opt_a_props["title"]
+    assert "pattern" not in opt_a_props["title"]
+
+    assert "OptionBBlock" in defs
+    opt_b_props = defs["OptionBBlock"]["properties"]
+    assert "minimum" not in opt_b_props["count"]
+    assert "maximum" not in opt_b_props["count"]
