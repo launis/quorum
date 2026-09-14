@@ -13,7 +13,16 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.execution.field_prompts import DESC_SEMANTIC_REASONING, DESC_SOURCE_QUOTE
+from backend_v2.models.prompts.execution.field_prompts import (
+    DESC_ALIAS,
+    DESC_COACHING,
+    DESC_CONTEXTUAL_OVERRIDE,
+    DESC_FALSIFICATION,
+    DESC_IS_TRUE,
+    DESC_REMEDIATION_STEPS,
+    DESC_SEMANTIC_REASONING,
+    DESC_SOURCE_QUOTE,
+)
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
@@ -777,10 +786,14 @@ async def test_extractive_sensor_service_evaluate_batch_extracts_source_quote() 
 
 def test_boolean_evaluation_result_schema_description() -> None:
     """Verifies that BooleanEvaluationResult descriptions match centralized constants."""
-    reasoning_field = BooleanEvaluationResult.model_fields["reasoning"]
-    assert reasoning_field.description == DESC_SEMANTIC_REASONING
-    source_quote_field = BooleanEvaluationResult.model_fields["source_quote"]
-    assert source_quote_field.description == DESC_SOURCE_QUOTE
+    assert BooleanEvaluationResult.model_fields["alias"].description == DESC_ALIAS
+    assert BooleanEvaluationResult.model_fields["reasoning"].description == DESC_SEMANTIC_REASONING
+    assert BooleanEvaluationResult.model_fields["is_true"].description == DESC_IS_TRUE
+    assert BooleanEvaluationResult.model_fields["source_quote"].description == DESC_SOURCE_QUOTE
+    assert BooleanEvaluationResult.model_fields["contextual_override"].description == DESC_CONTEXTUAL_OVERRIDE
+    assert BooleanEvaluationResult.model_fields["coaching"].description == DESC_COACHING
+    assert BooleanEvaluationResult.model_fields["falsification"].description == DESC_FALSIFICATION
+    assert BooleanEvaluationResult.model_fields["remediation_steps"].description == DESC_REMEDIATION_STEPS
 
 
 @pytest.mark.asyncio

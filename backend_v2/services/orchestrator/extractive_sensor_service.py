@@ -20,7 +20,16 @@ from backend_v2.models.dtos.dag_models import (
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.prompts.common import DESC_SEMANTIC_REASONING, DESC_SOURCE_QUOTE
+from backend_v2.models.prompts.common import (
+    DESC_ALIAS,
+    DESC_COACHING,
+    DESC_CONTEXTUAL_OVERRIDE,
+    DESC_FALSIFICATION,
+    DESC_IS_TRUE,
+    DESC_REMEDIATION_STEPS,
+    DESC_SEMANTIC_REASONING,
+    DESC_SOURCE_QUOTE,
+)
 from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
@@ -44,9 +53,9 @@ class BooleanEvaluationResult(BaseModel):
     """Schema for a single boolean evaluation result from LLM."""
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-    alias: Annotated[str, Field(description="The alias assigned to the claim (e.g., 'a0', 'a1').")]
+    alias: Annotated[str, Field(description=DESC_ALIAS)]
     reasoning: Annotated[str, Field(description=DESC_SEMANTIC_REASONING)]
-    is_true: Annotated[bool, Field(description="True if the text confirms the claim, False otherwise.")]
+    is_true: Annotated[bool, Field(description=DESC_IS_TRUE)]
     source_quote: Annotated[
         str | None,
         Field(
@@ -55,16 +64,10 @@ class BooleanEvaluationResult(BaseModel):
             description=DESC_SOURCE_QUOTE,
         ),
     ] = None
-    contextual_override: Annotated[bool | None, Field(default=None, description="True if bypass was used.")] = None
-    coaching: Annotated[str | None, Field(description="Provide a coaching tip if the claim failed.", default=None)] = (
-        None
-    )
-    falsification: Annotated[
-        str | None, Field(description="Provide a falsification argument if the claim failed.", default=None)
-    ] = None
-    remediation_steps: Annotated[
-        list[str] | None, Field(description="Step-by-step remediation if the claim failed.", default=None)
-    ] = None
+    contextual_override: Annotated[bool | None, Field(default=None, description=DESC_CONTEXTUAL_OVERRIDE)] = None
+    coaching: Annotated[str | None, Field(description=DESC_COACHING, default=None)] = None
+    falsification: Annotated[str | None, Field(description=DESC_FALSIFICATION, default=None)] = None
+    remediation_steps: Annotated[list[str] | None, Field(description=DESC_REMEDIATION_STEPS, default=None)] = None
 
     @field_validator("source_quote", mode="before")
     @classmethod
