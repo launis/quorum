@@ -10,6 +10,8 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -301,3 +303,77 @@ class TestLoadInputsAndKeyMatching:
         (tmp_path / "my_data.txt").write_text("Sample data", encoding="utf-8")
         inputs = load_inputs_from_path(tmp_path, expected_inputs=None)
         assert inputs["my_data"] == "Sample data"
+
+
+class TestVarianceRunnerStrategies:
+    """Test suite for CLI --strategies, --no-noise, and dynamic strategy routing."""
+
+    def test_run_e2e_variance_test_cli_strategies_parsing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify --strategies strict openai_strict is parsed and forwarded to run_variance_test."""
+        from scripts import run_e2e_variance_test
+
+        mock_runner = MagicMock(return_value=["exe_1", "exe_2"])
+        monkeypatch.setattr(run_e2e_variance_test, "run_variance_test", mock_runner)
+
+        run_e2e_variance_test.main(["--strategies", "strict", "openai_strict"])
+
+        mock_runner.assert_called_once()
+        _, kwargs = mock_runner.call_args
+        assert kwargs["strategies"] == ["strict", "openai_strict"]
+        assert kwargs["no_noise"] is False
+
+    def test_run_e2e_variance_test_cli_no_noise_parsing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify --no-noise flag sets no_noise=True in run_variance_test."""
+        from scripts import run_e2e_variance_test
+
+        mock_runner = MagicMock(return_value=[])
+        monkeypatch.setattr(run_e2e_variance_test, "run_variance_test", mock_runner)
+
+        run_e2e_variance_test.main(["--no-noise"])
+
+        mock_runner.assert_called_once()
+        _, kwargs = mock_runner.call_args
+        assert kwargs["no_noise"] is True
+
+    def test_run_e2e_variance_test_cli_strategies_empty_fails(self) -> None:
+        """ISTQB Negative Boundary: Verify passing --strategies without values triggers argparse SystemExit with code 2."""
+        from scripts import run_e2e_variance_test
+
+        with pytest.raises(SystemExit) as exc_info:
+            run_e2e_variance_test.main(["--strategies"])
+        assert exc_info.value.code == 2
+
+    def test_run_e2e_variance_test_empty_strategies_validation(self) -> None:
+        """ISTQB Negative Boundary: Passing empty list to run_variance_test raises ValueError."""
+        from scripts.run_e2e_variance_test import run_variance_test
+
+        with pytest.raises(ValueError, match="At least one strategy must be provided to --strategies"):
+            run_variance_test(strategies=[])
+
+    def test_run_e2e_variance_test_strategy_alias_injection(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify run_variance_test constructs correct STRATEGY_ALIASES for active strategy."""
+        from scripts import run_e2e_variance_test
+
+        captured_envs: list[dict[str, str]] = []
+
+        def mock_popen(cmd: list[str], **kwargs: Any) -> Any:
+            captured_envs.append(dict(kwargs.get("env", {})))
+            return MagicMock()
+
+        monkeypatch.setattr(run_e2e_variance_test, "force_kill_services", lambda: None)
+        monkeypatch.setattr(run_e2e_variance_test.subprocess, "Popen", mock_popen)
+        monkeypatch.setattr(run_e2e_variance_test, "check_backend", lambda: False)
+
+        with pytest.raises(SystemExit):
+            run_e2e_variance_test.run_variance_test(
+                inputs_target="dummy.json",
+                strategies=["openai_strict"],
+            )
+
+        assert len(captured_envs) == 1
+        raw_aliases = captured_envs[0].get("STRATEGY_ALIASES")
+        assert raw_aliases is not None
+        aliases = json.loads(raw_aliases)
+        assert aliases["strict"] == "openai_strict"
+        assert aliases["reasoning"] == "openai_strict"
+        assert aliases["evaluation_strategy"] == "openai_strict"

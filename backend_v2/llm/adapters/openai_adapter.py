@@ -143,11 +143,54 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         return call_kwargs
 
+    def _enforce_openai_strict_schema(
+        self,
+        schema_dict: Any,
+        known_discriminators: set[str] | None = None,
+    ) -> None:
+        """Enforce strict OpenAI JSON schema requirements across root and nested definitions.
+
+        Args:
+            schema_dict: The root or nested JSON schema dictionary to transform.
+            known_discriminators: Optional set of discriminator property names.
+        """
+        if known_discriminators is None:
+            known_discriminators = set()
+            self._collect_discriminator_names(schema_dict, known_discriminators)
+
+        self._strip_unsupported_constraints(schema_dict, known_discriminators=known_discriminators)
+        self._apply_strict_schema_invariants(schema_dict)
+
+    def _apply_strict_schema_invariants(self, node: Any) -> None:
+        """Recursively enforce additionalProperties=False, saturated required lists, and strip defaults.
+
+        Args:
+            node: Node within the JSON schema graph to inspect and mutate in-place.
+        """
+        if isinstance(node, dict):  # noqa: QGR012 [REASON: Recursive raw JSON schema dictionary transformation for OpenAI strict API]
+            node.pop("default", None)
+            if node.get("type") == "object" or "properties" in node:
+                node["additionalProperties"] = False
+                if "properties" in node:
+                    properties = node["properties"]
+                    if isinstance(properties, dict):  # noqa: QGR012 [REASON: JSON schema properties dictionary inspection]
+                        if "required" not in node or not isinstance(node["required"], list):
+                            node["required"] = []
+                        for prop_name in properties:
+                            if prop_name not in node["required"]:
+                                node["required"].append(prop_name)
+
+            for v in list(node.values()):
+                self._apply_strict_schema_invariants(v)
+        elif isinstance(node, list):
+            for item in node:
+                self._apply_strict_schema_invariants(item)
+
     def prepare_structured_output(self, response_model: type[BaseModel]) -> dict[str, Any] | type[BaseModel]:
         """Convert a Pydantic model into OpenAI specific strict structured output format.
 
-        OpenAI strict structured outputs (JSON Schema mode) require strict=True and
-        stripped constraints.
+        OpenAI strict structured outputs (JSON Schema mode) require strict=True,
+        additionalProperties=False, saturated required lists, and stripped constraints.
 
         Args:
             response_model: The Pydantic model defining the expected JSON structure.
@@ -156,7 +199,7 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             A dictionary matching LiteLLM's structured output format.
         """
         json_schema = response_model.model_json_schema()
-        self._strip_unsupported_constraints(json_schema)
+        self._enforce_openai_strict_schema(json_schema)
 
         return {
             "type": "json_schema",

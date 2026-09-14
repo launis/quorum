@@ -113,3 +113,63 @@ def test_openai_adapter_prepare_structured_output() -> None:
     assert result["json_schema"]["name"] == "SampleOutputModel"
     assert result["json_schema"]["strict"] is True
     assert "properties" in result["json_schema"]["schema"]
+
+
+def test_openai_adapter_strict_json_schema_compliance() -> None:
+    """Verify OpenAI strict structured outputs conform to OpenAI's strict JSON schema specification."""
+    adapter = OpenAICacheAdapter()
+
+    class SubItem(BaseModel):
+        item_id: str = Field(description="Item identifier")
+        note: str | None = Field(default=None, description="Optional note")
+
+    class ComplexTestModel(BaseModel):
+        title: str = Field(description="Title", min_length=3, max_length=50)
+        count: int = Field(default=1, description="Item count", ge=0)
+        items: list[SubItem] = Field(description="List of nested items")
+        optional_tag: str | None = Field(default=None, description="Optional tag")
+
+    result = adapter.prepare_structured_output(ComplexTestModel)
+
+    assert isinstance(result, dict)
+    assert result["type"] == "json_schema"
+    assert result["json_schema"]["name"] == "ComplexTestModel"
+    assert result["json_schema"]["strict"] is True
+
+    schema = result["json_schema"]["schema"]
+    assert schema["additionalProperties"] is False
+    assert "title" in schema["required"]
+    assert "count" in schema["required"]
+    assert "items" in schema["required"]
+    assert "optional_tag" in schema["required"]
+    assert "default" not in schema["properties"]["count"]
+    assert "minLength" not in schema["properties"]["title"]
+    assert "maxLength" not in schema["properties"]["title"]
+
+    # Check nested $defs
+    defs = schema.get("$defs", {})
+    assert "SubItem" in defs
+    sub_schema = defs["SubItem"]
+    assert sub_schema["additionalProperties"] is False
+    assert "item_id" in sub_schema["required"]
+    assert "note" in sub_schema["required"]
+    assert "default" not in sub_schema["properties"]["note"]
+
+
+def test_openai_adapter_credential_fail_fast(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify LLMFactory raises ConfigurationError when OpenAI credentials are completely absent."""
+    from backend_v2.exceptions import ConfigurationError
+    from backend_v2.llm.provider import LLMFactory
+    from backend_v2.settings import get_settings
+
+    mock_settings = get_settings().model_copy(update={"use_mock_llm": False, "openai_api_key": None})
+    monkeypatch.setattr("backend_v2.llm.provider.get_settings", lambda: mock_settings)
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    with pytest.raises(ConfigurationError, match="Fail-Fast: OPENAI_API_KEY is not configured"):
+        LLMFactory.create_provider(
+            provider_type="openai",
+            model_name="openai/gpt-4o-mini",
+            api_key=None,
+        )

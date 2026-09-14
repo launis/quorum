@@ -1433,6 +1433,20 @@ class LLMFactory:
                     if not resolved_api_key:
                         resolved_api_key = os.getenv("ANTHROPIC_API_KEY")
 
+        if (
+            provider_type.lower() == "openai"
+            or (config and config.provider == "openai")
+            or "openai/" in model_name.lower()
+        ) and not resolved_api_key:
+            logger.error(
+                "Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
+            )
+            raise ConfigurationError(
+                message="Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
+
         return LiteLLMProvider(
             model_name=model_name,
             api_key=resolved_api_key,

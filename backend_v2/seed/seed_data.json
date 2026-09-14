@@ -73,6 +73,20 @@
           "provider": "google",
           "caching_strategy": "prompt_caching",
           "additional_params": {}
+        },
+        "openai_strict": {
+          "max_tokens": 32768,
+          "model_name": "openai/gpt-4o-mini",
+          "temperature": 0.0,
+          "thinking_budget_tokens": 0,
+          "supports_grounding": false,
+          "tpm_limit": 2000000,
+          "rpm_limit": 500,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "openai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
         }
       }
     },
@@ -2077,6 +2091,10 @@
                     {
                       "pattern": "application remains purely hypothetical without concrete operational context",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "listing concrete operational actions, tactical measures, or practical implementations without explicitly naming and mapping an abstract governing rule or theoretical framework",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -2590,6 +2608,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "judgment is purely emotional or visceral preference without rationale",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "broad predictive assertions or dogmatic claims of future viability, efficacy, or success presented without documented empirical evidence, comparative criteria, or analytical substantiation",
                       "allows_contextual_excuse": false
                     }
                   ],

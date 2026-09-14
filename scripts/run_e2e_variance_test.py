@@ -867,6 +867,8 @@ def run_variance_test(
     workflow: str | None = None,
     profile: str | None = None,
     locale: str = "fi",
+    strategies: list[str] | None = None,
+    no_noise: bool = False,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -881,10 +883,18 @@ def run_variance_test(
         workflow: Optional workflow ID or slug to execute.
         profile: Optional output profile ID to apply.
         locale: Target locale for output generation (default: fi).
+        strategies: Optional list of model strategies to run sequentially for cross-model differential comparison.
+        no_noise: Disable Unicode space noise injection to evaluate byte-for-byte identical inputs.
 
     Returns:
         List of generated execution IDs.
     """
+    if strategies is not None:
+        if len(strategies) < 1:
+            msg = "At least one strategy must be provided to --strategies."
+            raise ValueError(msg)
+        num_runs = len(strategies)
+
     if not inputs_target:
         inputs_target = os.environ.get("TEST_INPUTS_PATH", "")
         if not inputs_target:
@@ -909,6 +919,25 @@ def run_variance_test(
         os.environ["ENVIRONMENT"] = environment
         backend_env = os.environ.copy()
         backend_env["ENVIRONMENT"] = environment
+
+        if strategies:
+            active_strategy = strategies[i]
+            print(f"[Strategy Routing] Run {i + 1} targeting strategy: '{active_strategy}'")
+            aliases = {
+                s: active_strategy
+                for s in [
+                    "strict",
+                    "fast",
+                    "strict_strategy",
+                    "evaluation_strategy",
+                    "test_strategy",
+                    "deep",
+                    "sdui",
+                    "synthesis",
+                    "reasoning",
+                ]
+            }
+            backend_env["STRATEGY_ALIASES"] = json.dumps(aliases)
 
         run_bat = Path("run_local.bat").resolve()
         cmd: list[str] = [str(run_bat)]
@@ -984,29 +1013,36 @@ def run_variance_test(
         expected_inputs = resolved_workflow.get("expected_inputs", [])
         raw_inputs = load_inputs_from_path(inputs_target, expected_inputs=expected_inputs)
 
-        print(f"Injecting unique deterministic marker into inputs for Run {i + 1}...")
-        marked_payload = inject_unique_run_marker(raw_inputs, run_index=i)
-        marked_inputs = marked_payload.marked_inputs
-        meta = marked_payload.marker_metadata
-
-        if not meta.injected_keys:
-            msg = "Failed to inject Unicode noise: No whitespace found in any string input fields"
-            raise RuntimeError(msg)
-
-        print(
-            f"Injected Unicode space variant {meta.injected_char_hex} ({meta.injected_char_name}) "
-            f"into {len(meta.injected_keys)} input fields: {meta.injected_keys} "
-            f"(stride={meta.stride}, offset={meta.replacement_offset})"
-        )
-
         scratch_inputs_dir = Path("scratch/variance_inputs")
         scratch_inputs_dir.mkdir(parents=True, exist_ok=True)
         output_filename = f"e2e_inputs_run{i + 1}.json"
         output_path = scratch_inputs_dir / output_filename
 
-        with output_path.open("w", encoding="utf-8") as f:
-            json.dump(marked_inputs, f)
-        os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
+        if no_noise:
+            print(f"Bypassing noise injection (--no-noise active). Using byte-identical raw inputs for Run {i + 1}...")
+            marked_inputs = raw_inputs
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(marked_inputs, f)
+            os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
+        else:
+            print(f"Injecting unique deterministic marker into inputs for Run {i + 1}...")
+            marked_payload = inject_unique_run_marker(raw_inputs, run_index=i)
+            marked_inputs = marked_payload.marked_inputs
+            meta = marked_payload.marker_metadata
+
+            if not meta.injected_keys:
+                msg = "Failed to inject Unicode noise: No whitespace found in any string input fields"
+                raise RuntimeError(msg)
+
+            print(
+                f"Injected Unicode space variant {meta.injected_char_hex} ({meta.injected_char_name}) "
+                f"into {len(meta.injected_keys)} input fields: {meta.injected_keys} "
+                f"(stride={meta.stride}, offset={meta.replacement_offset})"
+            )
+
+            with output_path.open("w", encoding="utf-8") as f:
+                json.dump(marked_inputs, f)
+            os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
 
         exec_id = trigger_execution(
             marked_inputs,
@@ -1092,6 +1128,17 @@ def main(argv: list[str] | None = None) -> list[str]:
     parser.add_argument("--num-runs", type=int, default=2, help="Number of consecutive runs to compare")
     parser.add_argument("--timeout-seconds", type=int, default=7200, help="Polling timeout per execution in seconds")
     parser.add_argument("--dev", action="store_true", help="Run in fast development mode instead of full production")
+    parser.add_argument(
+        "--strategies",
+        nargs="+",
+        default=None,
+        help="List of model strategies to run sequentially for cross-model differential comparison (e.g. strict openai_strict)",
+    )
+    parser.add_argument(
+        "--no-noise",
+        action="store_true",
+        help="Disable Unicode space noise injection to evaluate byte-for-byte identical inputs",
+    )
 
     args = parser.parse_args(argv)
     inputs_path = args.inputs_opt or args.inputs_target
@@ -1106,6 +1153,8 @@ def main(argv: list[str] | None = None) -> list[str]:
         workflow=args.workflow,
         profile=args.profile,
         locale=args.locale,
+        strategies=args.strategies,
+        no_noise=args.no_noise,
     )
 
 
