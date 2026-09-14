@@ -7,6 +7,7 @@ from typing import Annotated, Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.prompts.common import DESC_EXACT_QUOTE_TEXT
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,7 @@ class LLMExtractedQuote(BaseSourceId):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    text: Annotated[str, Field(description="Tarkka lainaus tekstistä")]
+    text: Annotated[str, Field(description=DESC_EXACT_QUOTE_TEXT)]
 
     @model_validator(mode="before")
     @classmethod

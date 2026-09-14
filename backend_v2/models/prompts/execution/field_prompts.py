@@ -40,6 +40,8 @@ DESC_REASONING_TRACE = "Extensive analytical reasoning trace explaining the deci
 
 DESC_EVALUATION_NOTES = "General qualitative evaluation notes and analytical synthesis."
 
+DESC_EXACT_QUOTE_TEXT = "Exact verbatim sentence strictly entailing the claim in its asserted modality extracted directly from the source text."
+
 STRICT_JSON_STRUCTURE_MANDATE = (
     "\n\n<json_structure_mandate>\nOutput must match this JSON Schema:\n{schema_json}\n</json_structure_mandate>"
 )
@@ -55,3 +57,16 @@ XAI_DESC_COACHING = "One concrete, actionable step to patch the observed data or
 XAI_DESC_CONFIDENCE = "Numerical confidence from 0.0 to 100.0 based strictly on source evidence."
 
 XAI_DESC_FALSIFICATION = "One direct counter-argument or missing perspective that challenges the {block_id} reasoning."
+
+XAI_DESC_MISSING_CONTEXT = (
+    "Exact missing data from the provided text that would have altered the evaluation score. "
+    "No theoretical assumptions."
+)
+
+XAI_DESC_RISK_FLAG = "True ONLY if there is a severe, documentable risk present; False otherwise."
+
+XAI_DESC_REMEDIATION_STEPS = "Numbered actionable list of distinct textual remediation steps."
+
+XAI_DESC_EMOTIONAL_SENTIMENT = "Analysis of the user's emotional state or tone regarding this metric."
+
+XAI_DESC_THEORY_LINK = "Direct logical connection of the observation back to the governing theory framework."

@@ -4,6 +4,13 @@ from pydantic import ValidationError
 from backend_v2.llm.schema_builder import SchemaCompilerService
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
+from backend_v2.models.prompts.common import (
+    XAI_DESC_EMOTIONAL_SENTIMENT,
+    XAI_DESC_MISSING_CONTEXT,
+    XAI_DESC_REMEDIATION_STEPS,
+    XAI_DESC_RISK_FLAG,
+    XAI_DESC_THEORY_LINK,
+)
 from backend_v2.models.v2_core import I18nText
 
 
@@ -89,3 +96,29 @@ def test_schema_compiler_xai_extensions() -> None:
 
     assert coaching_key in properties
     assert falsification_key in properties
+
+
+def test_schema_compiler_all_xai_extensions_descriptions() -> None:
+    """Test that all 5 advanced XAI Extensions are injected with SSOT descriptions."""
+    block = create_mock_block(
+        "obs_2",
+        BlockDataType.STRING,
+        [
+            XaiExtensionType.MISSING_CONTEXT.value,
+            XaiExtensionType.RISK_FLAG.value,
+            XaiExtensionType.REMEDIATION_STEPS.value,
+            XaiExtensionType.EMOTIONAL_SENTIMENT.value,
+            XaiExtensionType.THEORY_LINK.value,
+        ],
+    )
+
+    DynamicModel = SchemaCompilerService.compile([block])
+    schema = DynamicModel.model_json_schema()
+    props = schema.get("properties", {})
+
+    assert props[f"eval_1_{XaiExtensionType.MISSING_CONTEXT.value}"]["description"] == XAI_DESC_MISSING_CONTEXT
+    assert props[f"eval_1_{XaiExtensionType.RISK_FLAG.value}"]["description"] == XAI_DESC_RISK_FLAG
+    assert props[f"eval_1_{XaiExtensionType.REMEDIATION_STEPS.value}"]["description"] == XAI_DESC_REMEDIATION_STEPS
+    assert props[f"eval_1_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}"]["description"] == XAI_DESC_EMOTIONAL_SENTIMENT
+    assert props[f"eval_1_{XaiExtensionType.THEORY_LINK.value}"]["description"] == XAI_DESC_THEORY_LINK
+

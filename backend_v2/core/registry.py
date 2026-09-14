@@ -22,6 +22,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
+    DESC_EXACT_QUOTE_TEXT,
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
@@ -360,7 +361,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                         description="Auto-resolved document ID (e.g. doc0, a1)",
                     ),
                 ),
-                text=(str, Field(..., description="Tarkka lainaus tekstistä")),
+                text=(str, Field(..., description=DESC_EXACT_QUOTE_TEXT)),
                 __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
             )
 

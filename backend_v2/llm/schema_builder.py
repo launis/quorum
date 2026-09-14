@@ -12,8 +12,13 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_CITATION,
     XAI_DESC_COACHING,
     XAI_DESC_CONFIDENCE,
+    XAI_DESC_EMOTIONAL_SENTIMENT,
     XAI_DESC_FALSIFICATION,
     XAI_DESC_JUSTIFICATION,
+    XAI_DESC_MISSING_CONTEXT,
+    XAI_DESC_REMEDIATION_STEPS,
+    XAI_DESC_RISK_FLAG,
+    XAI_DESC_THEORY_LINK,
 )
 
 
@@ -155,8 +160,7 @@ class SchemaCompilerService:
                     (
                         f"{block_id}_{XaiExtensionType.MISSING_CONTEXT.value}",
                         str,
-                        "Exact missing data from the provided text that would have altered the evaluation score. "
-                        "No theoretical assumptions.",
+                        XAI_DESC_MISSING_CONTEXT,
                         f"{alias_name}_{XaiExtensionType.MISSING_CONTEXT.value}",
                     )
                 )
@@ -165,7 +169,7 @@ class SchemaCompilerService:
                     (
                         f"{block_id}_{XaiExtensionType.RISK_FLAG.value}",
                         bool,
-                        "True ONLY if there is a severe, documentable risk present; False otherwise.",
+                        XAI_DESC_RISK_FLAG,
                         f"{alias_name}_{XaiExtensionType.RISK_FLAG.value}",
                     )
                 )
@@ -174,7 +178,7 @@ class SchemaCompilerService:
                     (
                         f"{block_id}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                         list[str],
-                        "Numbered actionable list of distinct textual remediation steps.",
+                        XAI_DESC_REMEDIATION_STEPS,
                         f"{alias_name}_{XaiExtensionType.REMEDIATION_STEPS.value}",
                     )
                 )
@@ -183,7 +187,7 @@ class SchemaCompilerService:
                     (
                         f"{block_id}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                         str,
-                        "Analysis of the user's emotional state or tone regarding this metric.",
+                        XAI_DESC_EMOTIONAL_SENTIMENT,
                         f"{alias_name}_{XaiExtensionType.EMOTIONAL_SENTIMENT.value}",
                     )
                 )
@@ -192,7 +196,7 @@ class SchemaCompilerService:
                     (
                         f"{block_id}_{XaiExtensionType.THEORY_LINK.value}",
                         str,
-                        "Direct logical connection of the observation back to the governing theory framework.",
+                        XAI_DESC_THEORY_LINK,
                         f"{alias_name}_{XaiExtensionType.THEORY_LINK.value}",
                     )
                 )
