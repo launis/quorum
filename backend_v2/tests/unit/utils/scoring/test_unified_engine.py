@@ -136,3 +136,86 @@ def test_unified_scoring_engine_dto_immutability() -> None:
     with pytest.raises(ValidationError):
         # Trying to mutate frozen Pydantic model raises error
         result.score = 99.0  # type: ignore[misc]
+
+
+def test_unified_scoring_engine_dto_forbids_extra_fields() -> None:
+    """Verify ScoringResultDTO rejects arbitrary undeclared fields."""
+    engine = UnifiedScoringEngine()
+    stats = {1.0: LevelStatsDTO(hits=5, total=10, dlqs=0)}
+    result = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
+
+    with pytest.raises(ValidationError):
+        ScoringResultDTO(
+            score=result.score,
+            xai_log=result.xai_log,
+            breakdown=result.breakdown,
+            arbitrary_extra_field=123,  # type: ignore[call-arg]
+        )
+
+
+def test_calculate_strictness_exponent_boundary_values() -> None:
+    """Verify boundary values around piecewise transitions (0, 50, 85, 100) and clamping."""
+    assert calculate_strictness_exponent(-100) == 1.0
+    assert calculate_strictness_exponent(-1) == 1.0
+    assert calculate_strictness_exponent(0) == 1.0
+    assert calculate_strictness_exponent(1) > 1.0
+
+    assert calculate_strictness_exponent(49) < 1.25
+    assert calculate_strictness_exponent(50) == 1.25
+    assert calculate_strictness_exponent(51) > 1.25
+
+    assert calculate_strictness_exponent(84) < 1.70
+    assert calculate_strictness_exponent(85) == 1.70
+    assert calculate_strictness_exponent(86) > 1.70
+
+    assert calculate_strictness_exponent(99) < 2.20
+    assert calculate_strictness_exponent(100) == 2.20
+    assert calculate_strictness_exponent(101) == 2.20
+    assert calculate_strictness_exponent(200) == 2.20
+
+
+def test_unified_scoring_engine_empty_stats() -> None:
+    """Verify empty stats dictionary yields math_min without crashing."""
+    engine = UnifiedScoringEngine()
+    result = engine.calculate(stats={}, math_min=1.0, math_max=5.0, strictness_level=50)
+
+    assert abs(result.score - 1.0) < 1e-6
+    assert result.breakdown == {}
+
+
+def test_unified_scoring_engine_all_dlqs() -> None:
+    """Verify 100% DLQ atoms (zero effective total) yields math_min safely."""
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=0, total=10, dlqs=10),
+        2.0: LevelStatsDTO(hits=0, total=5, dlqs=5),
+    }
+
+    result = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
+    assert abs(result.score - 1.0) < 1e-6
+
+
+def test_unified_scoring_engine_equal_min_max_raises() -> None:
+    """Verify math_min == math_max raises AppException."""
+    engine = UnifiedScoringEngine()
+    stats = {1.0: LevelStatsDTO(hits=5, total=10, dlqs=0)}
+
+    with pytest.raises(AppException):
+        engine.calculate(stats=stats, math_min=5.0, math_max=5.0, strictness_level=50)
+
+
+def test_unified_scoring_engine_negative_scale_range() -> None:
+    """Verify scoring works on negative-to-positive scale (-5.0 to +5.0)."""
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=10, total=10, dlqs=0),
+    }
+
+    # 100% hits -> math_max (+5.0)
+    res_max = engine.calculate(stats=stats, math_min=-5.0, math_max=5.0, strictness_level=50)
+    assert abs(res_max.score - 5.0) < 1e-6
+
+    # 0% hits -> math_min (-5.0)
+    stats_zero = {1.0: LevelStatsDTO(hits=0, total=10, dlqs=0)}
+    res_min = engine.calculate(stats=stats_zero, math_min=-5.0, math_max=5.0, strictness_level=50)
+    assert abs(res_min.score - (-5.0)) < 1e-6
