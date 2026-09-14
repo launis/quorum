@@ -884,16 +884,18 @@ class TestDiffReportDTOs:
 
         # Negative: Extra fields rejected
         with pytest.raises(ValidationError):
-            MacroBlockScoreDTO(
-                block_id="blk_1",
-                block_name="Block 1",
-                run1_normalized_score=80.0,
-                run2_normalized_score=85.0,
-                delta_normalized_score=5.0,
-                run1_pass_rate=0.8,
-                run2_pass_rate=0.85,
-                delta_pass_rate=0.05,
-                unexpected_field="disallowed",
+            MacroBlockScoreDTO.model_validate(
+                {
+                    "block_id": "blk_1",
+                    "block_name": "Block 1",
+                    "run1_normalized_score": 80.0,
+                    "run2_normalized_score": 85.0,
+                    "delta_normalized_score": 5.0,
+                    "run1_pass_rate": 0.8,
+                    "run2_pass_rate": 0.85,
+                    "delta_pass_rate": 0.05,
+                    "unexpected_field": "disallowed",
+                }
             )
 
     def test_tda_atom_definition_dto_validation(self) -> None:
@@ -996,7 +998,7 @@ class TestRunDiff:
     """Test suite for full differential report generation (run_diff) and dual export sidecars."""
 
     def test_run_diff_e2e_executions(self) -> None:
-        """Positive: Execute run_diff on synthetic execution traces and verify self-contained report and JSON sidecar."""
+        """Positive: Execute run_diff on synthetic execution traces and verify report and JSON sidecar."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
             evals_run1 = [

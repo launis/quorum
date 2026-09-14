@@ -95,11 +95,16 @@ def run_tests_with_strict_coverage(target: str) -> None:
                     prefix = "/".join(sub_parts) + "/" if sub_parts else ""
                     glob_pattern = f"{prefix}**/{clean_name}.py"
                     found = list(Path("backend_v2").glob(glob_pattern))
+                    if not found and not sub_parts:
+                        found = list(Path("scripts").glob(f"**/{clean_name}.py"))
                     if found:
-                        rel_found = found[0].relative_to("backend_v2")
-                        cov_target = "backend_v2." + str(rel_found).removesuffix(".py").replace("\\", ".").replace(
-                            "/", "."
-                        )
+                        if found[0].is_relative_to(Path("backend_v2")):
+                            rel_found = found[0].relative_to("backend_v2")
+                            cov_target = "backend_v2." + str(rel_found).removesuffix(".py").replace("\\", ".").replace(
+                                "/", "."
+                            )
+                        else:
+                            cov_target = str(found[0]).removesuffix(".py").replace("\\", ".").replace("/", ".")
                     else:
                         cov_target = "backend_v2." + ".".join(rel_parts)
                 else:
