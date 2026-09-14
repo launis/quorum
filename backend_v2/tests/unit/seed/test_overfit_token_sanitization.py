@@ -175,3 +175,67 @@ def test_negative_boundary_partitions_for_overfit_detection() -> None:
 
     with pytest.raises(AssertionError):
         assert "työterveyslaitos" not in sample_rule.lower()
+
+
+def test_tda_bloom_anti_patterns_domain_neutrality() -> None:
+    """Asserts that Bloom Level 3 and 5 anti-patterns are generalized and non-overfitted."""
+    data = _load_seed_data()
+    prompt_blocks: list[dict[str, Any]] = data["prompt_blocks"]
+
+    bloom_block = next((b for b in prompt_blocks if b["id"] == "blk_f921c7c0989b47e8"), None)
+    assert bloom_block is not None, "Bloom matrix block blk_f921c7c0989b47e8 not found."
+
+    banned_tokens = [
+        "e.g.",
+        "etc.",
+        "such as",
+        "investoinn",
+        "kiertotalou",
+        "oppilaitos",
+        "kampus",
+        "liiketoimintamalli",
+        "market",
+        "capital",
+        "revenue",
+    ]
+
+    # Verify Scale 3 atom
+    scale_3 = next((s for s in bloom_block["scales"] if s["score"] == 3), None)
+    assert scale_3 is not None
+    tda_scale_3 = scale_3["claims"][0]["tda_assertions"][0]
+    assert tda_scale_3["tda_id"] == "tda_6a779cd5e9714994b83168dd0fef0ef7"
+    assert len(tda_scale_3["anti_patterns"]) == 2
+    assert any("abstract governing rule" in ap["pattern"] for ap in tda_scale_3["anti_patterns"])
+    for ap in tda_scale_3["anti_patterns"]:
+        for token in banned_tokens:
+            assert token not in ap["pattern"].lower()
+
+    # Verify Scale 5 atom
+    scale_5 = next((s for s in bloom_block["scales"] if s["score"] == 5), None)
+    assert scale_5 is not None
+    tda_scale_5 = scale_5["claims"][0]["tda_assertions"][0]
+    assert tda_scale_5["tda_id"] == "tda_a3d407a71ade4ea4aa3afeaf1bb61b3c"
+    assert len(tda_scale_5["anti_patterns"]) == 2
+    assert any("broad predictive assertions" in ap["pattern"] for ap in tda_scale_5["anti_patterns"])
+    for ap in tda_scale_5["anti_patterns"]:
+        for token in banned_tokens:
+            assert token not in ap["pattern"].lower()
+
+
+def test_negative_boundary_partitions_bloom_anti_patterns() -> None:
+    """ISTQB Negative Partition: Asserts that injecting overfit or ambiguous tokens into Bloom anti-patterns fails."""
+    banned_tokens = ["e.g.", "kiertotalous", "kampustyöntekijöiden"]
+
+    corrupted_pattern_scale_3 = "listing concrete operational actions (e.g. kiertotalous) without governing theory"
+    detected_violations_scale_3 = [t for t in banned_tokens if t in corrupted_pattern_scale_3.lower()]
+    assert len(detected_violations_scale_3) == 2
+
+    with pytest.raises(AssertionError):
+        assert "kiertotalous" not in corrupted_pattern_scale_3.lower()
+
+    corrupted_pattern_scale_5 = "broad claims about kampustyöntekijöiden eduista without evidence"
+    detected_violations_scale_5 = [t for t in banned_tokens if t in corrupted_pattern_scale_5.lower()]
+    assert len(detected_violations_scale_5) == 1
+
+    with pytest.raises(AssertionError):
+        assert "kampustyöntekijöiden" not in corrupted_pattern_scale_5.lower()

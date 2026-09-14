@@ -204,4 +204,3 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     reduced_ids = {a.tda_id for a in reduced.reduced_atoms}
     assert "tda_22222222222222222222222222222222" in reduced_ids
     assert "tda_33333333333333333333333333333333" in reduced_ids
-

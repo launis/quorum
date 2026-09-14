@@ -41,4 +41,3 @@ def test_lightweight_matrix_dto_validation() -> None:
     assert isinstance(dto.global_metrics, dict)
     assert isinstance(dto.evaluated_matrices, list)
     assert isinstance(dto.raw_extensions, list)
-

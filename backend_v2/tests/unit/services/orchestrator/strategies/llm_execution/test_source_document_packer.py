@@ -380,4 +380,3 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
     assert '<step_output step_id="sr_03c1d71000000006">' in packed
     assert "Step 6 evaluation output." in packed
     assert "The assignment brief." in packed
-

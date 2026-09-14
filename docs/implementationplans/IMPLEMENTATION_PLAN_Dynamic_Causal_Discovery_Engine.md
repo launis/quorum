@@ -25,10 +25,10 @@
 
 > [!IMPORTANT]
 > **Single Pipeline Invariant & Zero-Fallback Compliance:**
-> `CausalDiscoveryEngine` toteutetaan täysin itsenäisenä `ExecutionEngine`-moottorina omalla reititystunnisteellaan (`EngineOverrideStrategy.CAUSAL_DISCOVERY`). Se **EI** saa olla minkäänlainen fallback-haara `TDAEngine`n sisällä. `TDAEngine` säilyttää 100 % tiukan Fail-Fast-sopimuksensa (`request.shuffled_atoms` pakollinen).
+> `CausalDiscoveryEngine` toteutetaan täysin itsenäisenä `ExecutionEngine`-moottorina, joka kytketään askeleelle `step_def.model_strategy == "causal_discovery"` -tunnisteella. Se **EI** saa olla minkäänlainen fallback-haara `TDAEngine`n sisällä. `TDAEngine` säilyttää 100 % tiukan Fail-Fast-sopimuksensa (`request.shuffled_atoms` pakollinen).
 >
 > **SSOT ja Pydantic V2 -sopimukset:**
-> Kaikki graafin solmut (`LinkedAtomGraph`), reunat (`CausalEdge`), uutetut väitteet (`ExtractedAtom`) ja SDUI-lohkot (`CausalGraphBlock`) noudattavat tiukkaa `ConfigDict(strict=True, extra='forbid', frozen=True)` -mallia ilman paljaita sanakirjoja (`dict[str, Any]`).
+> Kaikki graafin solmut (`LinkedAtomGraph`), reunat (`CausalEdge`), uutetut väitteet (`ExtractedAtom`) ja SDUI-lohkot (`SduiCausalGraphBlock`) noudattavat tiukkaa `ConfigDict(strict=True, extra='forbid', frozen=True)` -mallia ilman paljaita sanakirjoja (`dict[str, Any]`).
 >
 > **Resurssien hallinta ja tausta-ajo (Arq Worker):**
 > Koska dynaaminen uutto ja liukuva linkitys vaativat useita peräkkäisiä ja rinnakkaisia LLM-kutsuja (Phase 0 ontologia -> Phase 1 lohkot -> Sliding Window linkitys -> Topologinen evaluointi), moottori ajetaan aina asynkronisessa taustaprosessissa (`worker.py`), raportoiden edistymistä reaaliaikaisesti SSE-virtaan.
@@ -42,7 +42,6 @@
 - `[NEW]` @[backend_v2/models/dtos/causal_discovery.py]
 - `[NEW]` @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
 - `[MODIFY]` @[backend_v2/settings.py]
-- `[MODIFY]` @[backend_v2/models/enums.py]
 - `[MODIFY]` @[backend_v2/models/view/sdui.py]
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py]
 - `[NEW]` @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]
@@ -70,10 +69,6 @@
   - `causal_discovery_max_atoms_per_window: int = 25`
   - `causal_discovery_max_total_atoms: int = 100`
 
-#### [MODIFY] @[backend_v2/models/enums.py]
-- Lisätään `EngineOverrideStrategy.CAUSAL_DISCOVERY = "CAUSAL_DISCOVERY"`.
-- Lisätään `SduiBlockType.CAUSAL_GRAPH = "CAUSAL_GRAPH"`.
-
 #### [NEW] @[backend_v2/models/dtos/causal_discovery.py]
 - Määritellään tyypitetyt DTOt dynaamiselle kausaaligraafille:
   - `CausalNodeDTO(BaseModel)`: `node_id: str`, `claim: str`, `source_quote: str | None`, `status: ExecutionStatus`, `blame_parent_ids: list[str]`.
@@ -96,7 +91,7 @@
     6. **Result Projection**: Projisoi tilat `ResultProjector.project()`:lla palauttaen `EngineExecutionResult`.
 
 #### [MODIFY] @[backend_v2/services/orchestrator/dag_executor.py]
-- Lisätään `NodeExecutor.execute()`:n reititykseen tuki `EngineOverrideStrategy.CAUSAL_DISCOVERY`:lle:
+- Lisätään `_resolve_execution_engine`:n reititykseen tuki `step_def.model_strategy == "causal_discovery"`:
   - Injektoi puhtaasti `CausalDiscoveryEngine(self.deps.prompt_compiler)`.
   - Ei koske `TDAEngine`-haaraan (säilyttää SSOT-invarianssin).
 
@@ -105,11 +100,11 @@
 ### Phase 3: SDUI Presentation & Client Visualization
 
 #### [MODIFY] @[backend_v2/models/view/sdui.py]
-- Lisätään `CausalGraphBlock(AnySduiBlock)` polymorfiseen SDUI-blokkijoukkoon.
+- Lisätään `SduiCausalGraphBlock(SduiBlockBase)` polymorfiseen SDUI-blokkijoukkoon `AnySduiBlock`.
 - Sisältää interaktiivisen graafin renderöintitiedot (`nodes`, `edges`, `blame_attributions`, `summary`).
 
 #### [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py]
-- Toteutetaan adapteri, joka muuntaa `EngineExecutionResult`:n `CausalGraphBlock`-lohkoiksi raportointinäkymään.
+- Toteutetaan adapteri, joka muuntaa `EngineExecutionResult`:n `SduiCausalGraphBlock`-lohkoiksi raportointinäkymään.
 
 #### [NEW] @[client_app_v2/lib/features/execution/presentation/causal_graph_view.dart]
 - Toteutetaan Flutter-komponentti interaktiivisen suunnatun graafin visualisointiin (solmut, kaaret, syyllisyyskaskadit, sitaattitarkastelu).
@@ -122,7 +117,6 @@
 <execution_protocol>
   <step id="1" name="SETTINGS_AND_DTO_FOUNDATION">
     <action>Add causal discovery configuration parameters to `settings.py`.</action>
-    <action>Add `CAUSAL_DISCOVERY` engine override and `CAUSAL_GRAPH` block type to `models/enums.py`.</action>
     <action>Create strictly typed immutable DTOs in `models/dtos/causal_discovery.py`.</action>
     <constraint invariant="the_zero_compromise_pledge">Enforce ConfigDict(strict=True, extra='forbid', frozen=True) on all DTOs with zero naked dicts.</constraint>
     <constraint invariant="dry_composition_mandate">Reuse existing CausalEdge and ExtractedAtom types rather than inventing duplicate models.</constraint>
@@ -137,12 +131,12 @@
   </step>
 
   <step id="3" name="DAG_ROUTER_INTEGRATION">
-    <action>Mount `CausalDiscoveryEngine` in `dag_executor.py` under `EngineOverrideStrategy.CAUSAL_DISCOVERY`.</action>
-    <constraint invariant="engine_override_ban">Ensure routing resolves deterministically from step blueprint metadata or explicit typed override.</constraint>
+    <action>Mount `CausalDiscoveryEngine` in `dag_executor.py` under `step_def.model_strategy == "causal_discovery"`.</action>
+    <constraint invariant="engine_override_ban">Ensure routing resolves dynamically and deterministically from step blueprint model_strategy without hardcoded override flags.</constraint>
   </step>
 
   <step id="4" name="SDUI_MODEL_AND_ADAPTER">
-    <action>Add `CausalGraphBlock` to `models/view/sdui.py`.</action>
+    <action>Add `SduiCausalGraphBlock` to `models/view/sdui.py`.</action>
     <action>Implement `CausalGraphAdapter` in `services/sdui/adapters/causal_graph_adapter.py`.</action>
     <constraint invariant="sdui_contract_fracture_prevention">Ensure 100% semantic parity between Python SDUI model and Flutter Freezed representation.</constraint>
   </step>

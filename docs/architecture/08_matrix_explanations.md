@@ -610,3 +610,9 @@ Once the model returns the batch evaluation results:
 1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level, the platform computes the exact hit ratio $k/N$, where $k$ is the number of passed atoms and $N$ is the total number of atoms evaluated for that scale (e.g., Level 1: 5/5, Level 2: 3/5, Level 3: 2/5).
 2. **Deterministic Composite Scoring:** The overall score (e.g., 1.9 / 3) and waterfall threshold state are calculated mathematically from the bottom up based on passed criteria, completely free of LLM subjective discretion.
 3. **Downstream Specialization Feeding:** The raw atom results are preserved in `ExecutionRecord.execution_trace`, where intermediate reducers (`MatrixReducer`) extract them during DAG execution to isolate failures and feed diagnostic synthesis steps.
+
+### Toulmin Argumentation Model
+
+The Toulmin Argumentation Model evaluation matrix is mathematically grounded in Toulmin, S. E. (1958). The Uses of Argument. Cambridge University Press.. It provides a structured Behaviorally Anchored Rating Scale (BARS) spanning Levels 1 to 5, transitioning from ungrounded claims and subjective rhetoric to rigorous, evidence-backed propositions. By eliminating cognitive biases and rhetorical ornamentation, it enforces objective, verifiable standards across analytical tasks.
+
+Operationally, the matrix controls evaluation precision through targeted parameters including contextual override permissions (allow_contextual_override=True) and calibrated evidence search distance across bounding boxes. Steering mechanisms enforce strict distinction between universal structural invariants requiring chunk compliance and specialized existential error radars.
