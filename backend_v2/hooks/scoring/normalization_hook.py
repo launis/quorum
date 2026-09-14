@@ -259,9 +259,8 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
 
     profile_model = OutputProfile.model_validate(profile_dict, strict=False)
     strictness_level = profile_model.strictness_level
-    scoring_strategy = profile_model.scoring_strategy
 
-    if strictness_level is None or scoring_strategy is None:
+    if strictness_level is None:
         msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
@@ -366,16 +365,19 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                 f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
             )
         else:
-            engine = get_scoring_engine(scoring_strategy)
+            engine = get_scoring_engine()
             stats = {
                 float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v["dlqs"]) for k, v in raw_stats.items()
             }
-            raw_score, xai_log, formatted_breakdown = engine.calculate(
+            scoring_result = engine.calculate(
                 stats=stats,
                 math_min=math_min,
                 math_max=math_max,
                 strictness_level=strictness_level,
             )
+            raw_score = scoring_result.score
+            xai_log = scoring_result.xai_log
+            formatted_breakdown = scoring_result.breakdown
 
         allowed_exts = None
         if pb_model.output_extensions:

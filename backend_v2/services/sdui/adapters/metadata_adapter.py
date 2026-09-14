@@ -74,9 +74,15 @@ class MetadataAdapter:
             elif field == "scoring_engine" and context.scoring_engine:
                 lbl = LocalizationService.translate("metadata_scoring_engine", context.locale)
                 metadata_lines.append(f"{lbl}: {context.scoring_engine}")
-            elif field == "strictness" and context.profile.strictness_level is not None:
-                lbl = LocalizationService.translate("metadata_strictness", context.locale)
-                metadata_lines.append(f"{lbl}: {context.profile.strictness_level}")
+            elif field == "strictness":
+                strictness_val = (
+                    context.profile.strictness_level
+                    if context.profile and context.profile.strictness_level is not None
+                    else context.strictness_level
+                )
+                if strictness_val is not None:
+                    lbl = LocalizationService.translate("metadata_strictness", context.locale)
+                    metadata_lines.append(f"{lbl}: {strictness_val}%")
             elif field == "cost" and context.cost is not None:
                 costs_val = LocalizationService.format_cost(context.cost, context.locale)
             elif field == "tokens" and context.tokens is not None:

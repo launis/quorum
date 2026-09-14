@@ -21,7 +21,6 @@ async def test_blueprint_variance_validation_success() -> None:
 
     mock_workflow_repo = AsyncMock()
     mock_wf = AsyncMock()
-    mock_wf.default_scoring_strategy = "AVERAGE"
     mock_wf.default_strictness_level = 85
     mock_workflow_repo.get_workflow.return_value = mock_wf
     mock_workflow_repo.get_workflow_by_id.return_value = {

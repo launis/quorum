@@ -11,6 +11,7 @@ from typing import Any
 
 import pydantic
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, WorkflowCompilationError
 from backend_v2.models.core_base import I18nText
@@ -291,9 +292,9 @@ def test_negative_profile_finnish_tone_instruction_rejected() -> None:
 
 
 def test_output_profiles_scoring_configuration() -> None:
-    """Verify that all output profiles define mandatory strictness_level and scoring_strategy.
+    """Verify that all output profiles define mandatory strictness_level.
 
-    The matrix_scoring_hook and worker fail-fast require strictness_level and scoring_strategy
+    The matrix_scoring_hook and worker fail-fast require strictness_level
     to be explicitly configured on the profile.
     """
     seed_data = load_seed_data()
@@ -306,25 +307,20 @@ def test_output_profiles_scoring_configuration() -> None:
         assert prf_model.strictness_level is not None, (
             f"Profile '{prf_id}' missing mandatory strictness_level required by matrix_scoring_hook"
         )
-        assert prf_model.scoring_strategy is not None, (
-            f"Profile '{prf_id}' missing mandatory scoring_strategy required by matrix_scoring_hook"
-        )
+        assert prf_model.strictness_level == 50, f"Profile '{prf_id}' strictness_level should be normalized to 50"
 
 
 def test_negative_profile_missing_scoring_config_detected() -> None:
-    """ISTQB Negative Test: OutputProfile without strictness_level or scoring_strategy fails assertion."""
+    """ISTQB Negative Test: OutputProfile strictness_level validation bounds."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
     raw_prf = dict(profiles["prf_5d6e7f8091a2b3c4"])
 
-    # Remove strictness_level and scoring_strategy
+    # Test out-of-range strictness_level
     corrupt_prf = dict(raw_prf)
-    corrupt_prf["strictness_level"] = None
-    corrupt_prf["scoring_strategy"] = None
-    model = OutputProfile.model_validate(corrupt_prf)
-
-    assert model.strictness_level is None
-    assert model.scoring_strategy is None
+    corrupt_prf["strictness_level"] = 150
+    with pytest.raises(ValidationError):
+        OutputProfile.model_validate(corrupt_prf)
 
 
 # --- ISTQB Negative & Edge Case Tests ---

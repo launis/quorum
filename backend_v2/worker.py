@@ -915,18 +915,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        scoring_strategy_val = (
-            str(active_profile_dto.scoring_strategy)
-            if active_profile_dto and active_profile_dto.scoring_strategy is not None
-            else (
-                str(workflow_def.default_scoring_strategy)
-                if workflow_def and workflow_def.default_scoring_strategy is not None
-                else "AVERAGE"
-            )
-        )
-
-        # Calculate scores dynamically for all matrices
-        engine = get_scoring_engine(scoring_strategy_val)
+        # Calculate scores dynamically for all matrices using UnifiedScoringEngine
+        engine = get_scoring_engine()
 
         # Pre-fetch block metadata for math_min/math_max
         all_blocks_raw = await repo.get_all_prompt_blocks()
@@ -959,19 +949,19 @@ async def generate_profile_synthesis_and_pdf_task(
                         if b_meta:
                             math_min = b_meta["math_min"]
                             math_max = b_meta["math_max"]
-                            calculated_score, xai_log_dto, _ = engine.calculate(
+                            scoring_result = engine.calculate(
                                 stats, math_min, math_max, strictness_level=strictness_level
                             )
                             norm_val = normalize_score_to_100(
-                                score=calculated_score,
+                                score=scoring_result.score,
                                 math_min=b_meta["math_min"],
                                 math_max=b_meta["math_max"],
                             )
                             lw_matrix = lw_matrix.model_copy(
                                 update={
-                                    "raw_score": float(calculated_score),
+                                    "raw_score": float(scoring_result.score),
                                     "normalized_score": float(norm_val),
-                                    "xai_log": xai_log_dto,
+                                    "xai_log": scoring_result.xai_log,
                                 }
                             )
 

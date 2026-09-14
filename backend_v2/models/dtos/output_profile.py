@@ -4,7 +4,7 @@ These models handle the ingestion and output formats for the Output Profile REST
 """
 
 import logging
-from typing import Annotated, Literal, Self
+from typing import Annotated, Self
 
 from pydantic import ConfigDict, Field, model_validator
 
@@ -14,7 +14,6 @@ from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
     DisplayScale,
     LaxDisplayScale,
-    LaxScoringStrategy,
     LaxSourcesDisplayMode,
     LaxSystemLocale,
     LaxTargetBlockType,
@@ -56,7 +55,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
         max_unmet_criteria: Per-profile override for unmet criteria per matrix.
         strictness_level: Profile-level strictness override setting.
-        scoring_strategy: Profile-level strategy calculation override.
         matrix_synthesis_groups: Sequence of comparative matrix synthesis groups.
         security_penalty: Penalty ratio for security threats (default 0.0 = no penalty).
         post_hoc_penalty: Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).
@@ -175,11 +173,8 @@ class OutputProfileCreateDTO(V2CoreBase):
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
     strictness_level: Annotated[
-        Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
-    ]
-    scoring_strategy: Annotated[
-        LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
-    ]
+        int, Field(default=50, ge=0, le=100, description="Profile-level strictness level (0-100 continuous).")
+    ] = 50
     synthesis_length_constraint: Annotated[
         int | None,
         Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
@@ -318,7 +313,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         max_quotes_per_matrix: Optional override for quotes per matrix in explanations.
         max_unmet_criteria: Optional override for unmet criteria per matrix.
         strictness_level: Optional override strictness bounds.
-        scoring_strategy: Optional strategy engine overriding defaults.
         matrix_synthesis_groups: Optional sequence of comparative matrix synthesis groups.
         security_penalty: Optional penalty ratio for security threats.
         post_hoc_penalty: Optional penalty ratio for post-hoc rationalization.
@@ -434,11 +428,8 @@ class OutputProfileUpdateDTO(V2CoreBase):
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
     strictness_level: Annotated[
-        Literal[85, 100] | None, Field(default=None, description="Profile-level strictness override.")
-    ]
-    scoring_strategy: Annotated[
-        LaxScoringStrategy | None, Field(default=None, description="Profile-level strategy override.")
-    ]
+        int | None, Field(default=None, ge=0, le=100, description="Profile-level strictness override (0-100).")
+    ] = None
     synthesis_length_constraint: Annotated[
         int | None,
         Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
@@ -568,7 +559,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
         max_unmet_criteria: Per-profile override for unmet criteria per matrix.
         strictness_level: Validated override value configuring verification rigor.
-        scoring_strategy: Mapped logic algorithm enum mapping engine implementation.
         matrix_synthesis_groups: Ordered array of discrete comparative synthesis groups.
         security_penalty: Penalty ratio for security threats.
         post_hoc_penalty: Penalty ratio for post-hoc rationalization.
@@ -658,8 +648,7 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     ] = DisplayScale.ORIGINAL
     custom_scale_min: float | None = None
     custom_scale_max: float | None = None
-    strictness_level: Literal[85, 100] | None = None
-    scoring_strategy: LaxScoringStrategy | None = None
+    strictness_level: int | None = None
     synthesis_length_constraint: int | None = None
     row_explanation_length_constraint: int | None = None
     xai_length_constraint: int | None = None

@@ -25,7 +25,6 @@ from backend_v2.models.dtos.trace import (
     TraceScoringPayloadDTO,
 )
 from backend_v2.models.enums import (
-    ScoringStrategy,
     TargetBlockType,
     VirtualSystemStepID,
 )
@@ -401,14 +400,7 @@ class BlueprintTransformer:
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens
 
-        strat_resolved = (
-            profile.scoring_strategy if profile.scoring_strategy is not None else workflow_obj.default_scoring_strategy
-        )
-        scoring_engine_val = (
-            (strat_resolved.value if isinstance(strat_resolved, ScoringStrategy) else str(strat_resolved))
-            if strat_resolved is not None
-            else "UNIFIED"
-        )
+        scoring_engine_val = "UNIFIED"
         org_name = execution.organization_id
         if execution.organization_id:
             try:
@@ -572,6 +564,7 @@ class BlueprintTransformer:
                 mcp_tools_map=mcp_tools_map,
                 local_time_str=local_time_str,
                 scoring_engine=scoring_engine_val,
+                strictness_level=strictness_level if strictness_level is not None else 50,
                 cost=combined_cost,
                 tokens=combined_tokens,
             )

@@ -1183,7 +1183,7 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
         name_en = name_fi
 
     version = int(target_wf.get("version", 1))
-    enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", True))
+    enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", False))
     default_strictness_level = int(target_wf.get("default_strictness_level", 50))
     steps = target_wf.get("steps", [])
     total_active_steps = len(steps)

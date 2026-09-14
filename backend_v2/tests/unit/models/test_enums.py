@@ -14,7 +14,6 @@ from backend_v2.models.enums import (
     LaxStepType,
     LaxXaiExtensionType,
     RoleClassification,
-    ScoringStrategy,
     SDUIComponentType,
     StepType,
     TitleKey,
@@ -127,6 +126,3 @@ def test_enum_l10n_properties() -> None:
 
     assert TitleKey.TITLE_TIMELINE.l10n_key == "titleTimeline"
     assert TitleKey.SECURITY.l10n_key == ""
-
-    assert ScoringStrategy.WATERFALL.l10n_key == "strategyKoearvostelu"
-    assert ScoringStrategy.AVERAGE.l10n_key == "strategyLineaarinenKeskiarvo"

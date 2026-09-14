@@ -17,10 +17,8 @@ from backend_v2.models.enums import (
     BlockDataType,
     HistoricalContextMode,
     LaxHistoricalContextMode,
-    LaxScoringStrategy,
     LaxStepType,
     PromptBlockCategory,
-    ScoringStrategy,
     StepType,
 )
 from backend_v2.models.v2_core import (
@@ -140,9 +138,6 @@ class WorkflowCreateDTO(V2CoreBase):
         "sys_8172bda70c8641c5"
     )
     default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
-    default_scoring_strategy: Annotated[
-        LaxScoringStrategy, Field(default=ScoringStrategy.AVERAGE, description="Default scoring strategy")
-    ] = ScoringStrategy.AVERAGE
     enable_contextual_overrides: Annotated[bool, Field(default=False, description="Enable contextual overrides")] = (
         False
     )

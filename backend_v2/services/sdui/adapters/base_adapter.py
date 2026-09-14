@@ -40,6 +40,7 @@ class AdapterContext(BaseModel):
     mcp_tools_map: dict[str, AllowedMCPTool] = Field(default_factory=dict)
     local_time_str: str | None = None
     scoring_engine: str | None = None
+    strictness_level: int = 50
     cost: float | None = None
     tokens: int | None = None
 

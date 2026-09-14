@@ -1,6 +1,7 @@
 """Unit tests for UnifiedScoringEngine and continuous strictness calculation."""
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO
@@ -132,6 +133,6 @@ def test_unified_scoring_engine_dto_immutability() -> None:
     stats = {1.0: LevelStatsDTO(hits=5, total=10, dlqs=0)}
     result = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         # Trying to mutate frozen Pydantic model raises error
         result.score = 99.0  # type: ignore[misc]

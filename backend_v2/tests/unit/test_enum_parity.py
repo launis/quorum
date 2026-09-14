@@ -83,11 +83,6 @@ def assert_enum_parity(dart_code: str, python_code: str, enum_name: str) -> None
     assert not missing_in_python, f"Missing in Python {enum_name}: {missing_in_python}"
 
 
-def test_scoring_strategy_parity() -> None:
-    """Verify ScoringStrategy members match between Python and Dart."""
-    assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "ScoringStrategy")
-
-
 def test_xai_extension_type_parity() -> None:
     """Verify XaiExtensionType members match between Python and Dart."""
     assert_enum_parity(read_file(DART_ENUM_PATH), read_file(PYTHON_ENUMS_PATH), "XaiExtensionType")
@@ -150,17 +145,12 @@ def test_extract_python_literal_values_ast_single_constant() -> None:
 
 def test_enum_l10n_keys() -> None:
     """Verify that all members of UI-facing enums resolve to a valid non-empty l10n_key."""
-    from backend_v2.models.enums import DisplayScale, ScoringStrategy, XaiExtensionType
+    from backend_v2.models.enums import DisplayScale, XaiExtensionType
 
     for scale_member in DisplayScale:
         assert scale_member.l10n_key, f"Missing l10n_key for DisplayScale.{scale_member.name}"
         assert isinstance(scale_member.l10n_key, str)
         assert scale_member.l10n_key.startswith("displayScale")
-
-    for strategy_member in ScoringStrategy:
-        assert strategy_member.l10n_key, f"Missing l10n_key for ScoringStrategy.{strategy_member.name}"
-        assert isinstance(strategy_member.l10n_key, str)
-        assert strategy_member.l10n_key.startswith("strategy")
 
     # XAI extensions that are exposed in UI
     for xai_member in [

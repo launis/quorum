@@ -436,8 +436,6 @@ class TestWorkflowProvenance:
                     "id": "wf_test_first",
                     "name": {"translations": {"fi": "Ensimmäinen", "en": "First"}},
                     "version": 2,
-                    "enable_contextual_overrides": False,
-                    "default_scoring_strategy": "WATERFALL",
                     "default_strictness_level": 75,
                     "steps": [],
                 }

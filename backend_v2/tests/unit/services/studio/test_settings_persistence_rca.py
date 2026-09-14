@@ -27,7 +27,6 @@ from backend_v2.models.enums import (
     BlockDataType,
     HistoricalContextMode,
     PromptBlockCategory,
-    ScoringStrategy,
     StepType,
     TargetBlockType,
 )
@@ -70,7 +69,6 @@ def _create_sample_workflow(workflow_id: str = "wf_1234567890abcdef") -> Workflo
         version=1,
         default_profile_id="prf_1234567890abcdef",
         default_strictness_level=50,
-        default_scoring_strategy=ScoringStrategy.AVERAGE,
         allowed_exports=["pdf", "docx"],
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],

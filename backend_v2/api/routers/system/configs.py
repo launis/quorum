@@ -5,7 +5,6 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.models.dtos.system import StrictnessConfigDTO, StrictnessConfigListResponse
-from backend_v2.models.enums import StrictnessAnchor
 
 logger = logging.getLogger(__name__)
 
@@ -23,8 +22,10 @@ async def get_strictness_configurations() -> StrictnessConfigListResponse:
         AppException: If fetching strictness configurations fails.
     """
     configs = [
-        StrictnessConfigDTO(level=StrictnessAnchor.STRICT.value, localization_key="strictnessStrict"),
-        StrictnessConfigDTO(level=StrictnessAnchor.ABSOLUTE.value, localization_key="strictnessAbsolute"),
+        StrictnessConfigDTO(level=0, localization_key="strictnessFree"),
+        StrictnessConfigDTO(level=50, localization_key="strictnessNormal"),
+        StrictnessConfigDTO(level=85, localization_key="strictnessStrict"),
+        StrictnessConfigDTO(level=100, localization_key="strictnessAbsolute"),
     ]
 
     return StrictnessConfigListResponse(configs=configs)

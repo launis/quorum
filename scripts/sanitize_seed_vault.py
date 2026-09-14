@@ -395,6 +395,8 @@ def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for workflow in workflows:
         w = dict(workflow)
         w.pop("ui_schema", None)
+        w.pop("default_scoring_strategy", None)
+        w["default_strictness_level"] = 50
         validated_model = adapter_workflows.validate_python(w)
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
@@ -416,6 +418,8 @@ def sanitize_output_profiles(output_profiles: list[dict[str, Any]]) -> list[dict
 
     for profile in output_profiles:
         p = dict(profile)
+        p.pop("scoring_strategy", None)
+        p["strictness_level"] = 50
         validated_model = adapter_profiles.validate_python(p)
         serialized_profile = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_profiles.append(serialized_profile)

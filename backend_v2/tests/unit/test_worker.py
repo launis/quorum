@@ -136,7 +136,6 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_execution.return_value = None
 
@@ -161,7 +160,6 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": None,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = None
     mock_repo.get_execution.return_value = {
@@ -193,7 +191,6 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -201,7 +198,6 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -246,7 +242,6 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -254,7 +249,6 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -811,7 +805,6 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
                 "default_strictness_level": 50,
-                "default_scoring_strategy": "AVERAGE",
             }
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
@@ -861,7 +854,6 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -869,7 +861,6 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -957,7 +948,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "workflow_id": "wf_1234567890123456",
                 "name": {"translations": {"en": "Profile"}},
                 "strictness_level": 85,
-                "scoring_strategy": "AVERAGE",
                 "display_scale": "original",
                 "matrix_synthesis_groups": [],
                 "target_block_order": [],
@@ -975,7 +965,6 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
                 "default_strictness_level": 85,
-                "default_scoring_strategy": "AVERAGE",
             }
 
             mock_repo.get_all_prompt_blocks.return_value = [
@@ -1207,7 +1196,6 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -1215,7 +1203,6 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -1322,7 +1309,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -1330,7 +1316,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -1468,7 +1453,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "id": "prof_1111222233334444",
@@ -1476,7 +1460,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "workflow_id": "wf_1234567890123456",
         "name": {"translations": {"en": "Profile 1"}},
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "display_scale": "original",
         "matrix_synthesis_groups": [],
         "target_block_order": [],
@@ -1613,7 +1596,6 @@ def _get_base_workflow_dict() -> dict[str, Any]:
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
         "default_strictness_level": 50,
-        "default_scoring_strategy": "AVERAGE",
     }
 
 

@@ -13,7 +13,6 @@ from backend_v2.models.enums import (
     DisplayScale,
     ExecutionStatus,
     HistoricalContextMode,
-    ScoringStrategy,
     TargetBlockType,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -70,7 +69,6 @@ def mock_blueprint_repos() -> AsyncMock:
         allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
         default_strictness_level=85,
-        default_scoring_strategy=ScoringStrategy.WATERFALL,
         steps=[],
     )
 

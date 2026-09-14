@@ -265,16 +265,6 @@ def test_output_profiles_enums_valid() -> None:
         data = json.load(f)
 
     valid_display_scales = {"original", "custom", "normalized_100"}
-    valid_scoring_strategies = {
-        "AVERAGE",
-        "WATERFALL",
-        "WEIGHTED_AVERAGE",
-        "PURE_MATH",
-        "average",
-        "waterfall",
-        "weighted_average",
-        "pure_math",
-    }
 
     profiles = data.get("output_profiles", [])
     assert profiles, "At least one output profile must exist in master seed"
@@ -284,27 +274,30 @@ def test_output_profiles_enums_valid() -> None:
             assert profile["display_scale"] in valid_display_scales, (
                 f"Invalid display_scale '{profile['display_scale']}' in profile '{profile.get('id')}'"
             )
-        if "scoring_strategy" in profile:
-            assert profile["scoring_strategy"] in valid_scoring_strategies, (
-                f"Invalid scoring_strategy '{profile['scoring_strategy']}' in profile '{profile.get('id')}'"
-            )
+        assert "scoring_strategy" not in profile, (
+            f"Legacy scoring_strategy must be pruned from profile '{profile.get('id')}'"
+        )
+        assert "strictness_level" in profile, f"Mandatory strictness_level missing from profile '{profile.get('id')}'"
+        assert 0 <= profile["strictness_level"] <= 100, (
+            f"strictness_level out of bounds in profile '{profile.get('id')}'"
+        )
 
     # Anti-happy-path negative verification
     def validate_profile_enums(profile_dict: dict[str, Any]) -> bool:
         if "display_scale" in profile_dict and profile_dict["display_scale"] not in valid_display_scales:
             return False
-        if "scoring_strategy" in profile_dict and profile_dict["scoring_strategy"] not in valid_scoring_strategies:
+        if "strictness_level" in profile_dict and not (0 <= profile_dict["strictness_level"] <= 100):
             return False
         return True
 
     assert validate_profile_enums(
         {
             "display_scale": "original",
-            "scoring_strategy": "AVERAGE",
+            "strictness_level": 50,
         }
     )
     assert not validate_profile_enums({"display_scale": "unsupported_scale_1000"})
-    assert not validate_profile_enums({"scoring_strategy": "NON_EXISTENT_STRATEGY"})
+    assert not validate_profile_enums({"strictness_level": 150})
 
 
 def test_model_registry_calibrated_limits() -> None:

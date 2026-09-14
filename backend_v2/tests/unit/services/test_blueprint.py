@@ -112,7 +112,7 @@ def fix_mock_dict(d: Any) -> Any:
 from datetime import datetime, timezone
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.enums import DisplayScale, ExecutionStatus, ScoringStrategy, TargetBlockType, XaiExtensionType
+from backend_v2.models.enums import DisplayScale, ExecutionStatus, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
@@ -180,7 +180,6 @@ def mock_repo_transformer() -> Any:
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
                 "prf_dddd1111dddd1111": {
@@ -237,7 +236,6 @@ def mock_repo_transformer() -> Any:
                 "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -427,7 +425,6 @@ def mock_repo_microcot() -> Any:
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
             "output_profiles": {
                 "prf_1234567890abcdef": {
@@ -491,7 +488,6 @@ def mock_repo_microcot() -> Any:
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -590,7 +586,6 @@ def mock_repo_sdui() -> AsyncMock:
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [],
         }
     )
@@ -635,7 +630,6 @@ def mock_repo_sdui() -> AsyncMock:
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -874,7 +868,6 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [
                 {
                     "id": "sr_1234",
@@ -962,7 +955,6 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -1072,7 +1064,6 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -1171,7 +1162,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "default_strictness_level": 85,
-            "default_scoring_strategy": ScoringStrategy.WATERFALL,
             "steps": [
                 {
                     "id": "sr_1d7e6d26b02b457b",
@@ -1260,7 +1250,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                 },
                 "max_extension_items": 2,
                 "strictness_level": 85,
-                "scoring_strategy": None,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -2258,7 +2247,6 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         visible_block_extensions=[XaiExtensionType.COACHING, XaiExtensionType.FALSIFICATION],
         max_extension_items=2,
         strictness_level=85,
-        scoring_strategy=ScoringStrategy.WATERFALL,
         display_scale=DisplayScale.NORMALIZED_100,
         target_block_order=[
             TargetBlockType.METADATA_BLOCK,
@@ -2968,7 +2956,6 @@ async def test_blueprint_transformer_data_starvation_renders_only_warning_and_me
     mock_wf = SimpleNamespace(
         id="wf_1234abcd1234abcd1234abcd1234abcd",
         default_profile_id=profile.id,
-        default_scoring_strategy=ScoringStrategy.AVERAGE,
         default_strictness_level=80,
         mcp_gateway_id=None,
         expected_inputs=[],

@@ -33,7 +33,6 @@ async def test_worker_preserves_models_used() -> None:
         "description": "Test WF",
         "default_profile_id": "prf_a1b2c3d4e5f67890",
         "default_strictness_level": 1,
-        "default_scoring_strategy": "AVERAGE",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "steps": [],

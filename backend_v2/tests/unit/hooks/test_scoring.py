@@ -172,7 +172,6 @@ class MockRepository:
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
-            "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -270,7 +269,6 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test", "fi": "Test"}},
                 "strictness_level": 85,
-                "scoring_strategy": "WATERFALL",
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_0000000000000001",
@@ -633,7 +631,6 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 85,
-        "scoring_strategy": "WATERFALL",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -703,7 +700,6 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 85,
-        "scoring_strategy": "WATERFALL",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -762,7 +758,6 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 85,
-        "scoring_strategy": "WATERFALL",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -867,7 +862,6 @@ class MockRepoWaterfall:
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
-            "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -930,7 +924,6 @@ class MockRepoWaterfallMixed:
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
-            "scoring_strategy": "WATERFALL",
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -1475,7 +1468,7 @@ async def test_matrix_scoring_hook_pass_all() -> None:
     assert delta is not None
     assert delta["pb_1234567890123456"]["raw_score"] == 5.0
     assert delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
-    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_waterfall_engine_breakdown"
+    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_unified_engine_breakdown"
 
 
 @pytest.mark.asyncio
@@ -1885,7 +1878,7 @@ async def test_matrix_scoring_hook_ceiling_cap() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
 
-    assert abs(delta["pb_1234567890123456"]["raw_score"] - 1.3) < 0.01
+    assert abs(delta["pb_1234567890123456"]["raw_score"] - 4.136) < 0.01
 
 
 @pytest.mark.asyncio
@@ -1984,7 +1977,6 @@ class MockRepoWaterfallSimulation:
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
             "strictness_level": 85,
-            "scoring_strategy": "AVERAGE",
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -2084,7 +2076,7 @@ async def test_matrix_scoring_hook_full_simulation() -> None:
     assert delta is not None
     assert delta["pb_1234567890123456"]["raw_score"] > 1.0
     assert delta["pb_1234567890123456"]["justification"] == "[INITIALIZING]"
-    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_pure_average_engine_breakdown"
+    assert delta["pb_1234567890123456"]["xai_log"]["pedagogical_key"] == "xai_unified_engine_breakdown"
 
 
 @pytest.mark.asyncio
@@ -2334,7 +2326,6 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 85,
-        "scoring_strategy": "WATERFALL",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -2500,7 +2491,6 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "strictness_level": 85,
-        "scoring_strategy": "WATERFALL",
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -2585,7 +2575,6 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
                 "strictness_level": 100,
-                "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": ["coaching", "falsification", "remediation_steps"],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2656,7 +2645,6 @@ async def test_scoring_matrix_namespace_isolation() -> None:
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
                 "strictness_level": 100,
-                "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2723,7 +2711,6 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
                 "strictness_level": 100,
-                "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2790,7 +2777,6 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
                 "strictness_level": 100,
-                "scoring_strategy": "WATERFALL",
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -3734,7 +3720,6 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
             "name": {"translations": {"en": "Prof", "fi": "Prof"}},
             "workflow_id": "wf_123",
             "strictness_level": 85,
-            "scoring_strategy": "AVERAGE",
             "target_block_order": [],
             "visible_block_extensions": [],
         }

@@ -101,7 +101,6 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "id": "prof_1111111111111111",
         "strictness_level": 85,
-        "scoring_strategy": "AVERAGE",
         "max_extension_items": 3,
         "synthesis_length_constraint": 1000,
         "tone_instruction": "Professional",

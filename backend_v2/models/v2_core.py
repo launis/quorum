@@ -33,7 +33,6 @@ from backend_v2.models.enums import (
     LaxExecutionStatus,
     LaxHistoricalContextMode,
     LaxPresetView,
-    LaxScoringStrategy,
     LaxSDUIComponentType,
     LaxSourcesDisplayMode,
     LaxStepType,
@@ -41,10 +40,8 @@ from backend_v2.models.enums import (
     LaxTargetBlockType,
     LaxXaiExtensionType,
     PresetView,
-    ScoringStrategy,
     SourcesDisplayMode,
     StepType,
-    StrictnessAnchor,
     TargetBlockType,
     TargetSpeaker,
     XaiExtensionType,
@@ -1121,8 +1118,10 @@ class OutputProfile(V2CoreBase):
         float | None,
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
-    strictness_level: Literal[85, 100] | None = Field(default=None, description="Profile-level strictness override.")
-    scoring_strategy: LaxScoringStrategy | None = Field(default=None, description="Profile-level strategy override.")
+    strictness_level: Annotated[
+        int,
+        Field(default=50, ge=0, le=100, description="Profile-level strictness level (0-100 continuous)."),
+    ] = 50
     synthesis_length_constraint: Annotated[
         int | None,
         Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
@@ -1382,12 +1381,10 @@ class Workflow(V2CoreBase):
         pattern=r"^sys_[a-fA-F0-9]{16,32}$",
         description="The system_config ID of the MCP gateways configuration attached to this workflow.",
     )
-    default_strictness_level: int = Field(
-        default=StrictnessAnchor.STANDARD.value, ge=0, le=100, description="Fallback strictness level."
-    )
-    default_scoring_strategy: LaxScoringStrategy = Field(
-        default=ScoringStrategy.AVERAGE, description="Fallback strategy."
-    )
+    default_strictness_level: Annotated[
+        int,
+        Field(default=50, ge=0, le=100, description="Fallback strictness level (0-100 continuous)."),
+    ] = 50
     enable_contextual_overrides: bool = Field(
         default=False,
         description="Global flag to enable contextual overrides across assertions.",

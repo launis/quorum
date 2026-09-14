@@ -56,7 +56,6 @@ __all__ = [
     "LaxPromptBlockCategory",
     "LaxRiskLevel",
     "LaxRoleClassification",
-    "LaxScoringStrategy",
     "LaxSDUIComponentType",
     "LaxSearchStatus",
     "LaxStepType",
@@ -79,8 +78,6 @@ __all__ = [
     "RiskLevel",
     "RoleClassification",
     "SDUIComponentType",
-    "ScoringCalibrationThresholds",
-    "ScoringStrategy",
     "SearchStatus",
     "SelfHealingThresholdRatio",
     "SimulationType",
@@ -100,7 +97,6 @@ __all__ = [
     "VerificationResult",
     "VirtualSystemStepID",
     "VisualIntent",
-    "WaterfallThreshold",
     "XaiExtensionScope",
     "XaiExtensionType",
 ]
@@ -365,24 +361,6 @@ class SelfHealingThresholdRatio(float, Enum):
     STRICT = 0.75
     LENIENT = 0.50
     NONE = 0.00
-
-
-class WaterfallThreshold(float, Enum):
-    """Guttman Waterfall mathematical passing threshold.
-    Defines the hit rate percentage required to pass a scale level.
-    """
-
-    STRICT = 0.70  # Requires ~70% consensus (Strict 85)
-    STANDARD = 0.40  # Requires ~40% consensus (Balanced 50)
-    LENIENT = 0.15  # Requires ~15% consensus (Lenient 15)
-
-
-class ScoringCalibrationThresholds(float, Enum):
-    """Thresholds for Benefit of the Doubt leniency and Double Jeopardy caps."""
-
-    DINA_FLOOR = 0.30
-    PENALTY_CAP = 0.25
-    BENEFIT_OF_DOUBT_BONUS = 0.15
 
 
 class EvaluationCategory(StrEnum):
@@ -750,26 +728,6 @@ class ReferenceTitle(StrEnum):
     PREVIOUS_REPORT = "REF_PREVIOUS_REPORT"
 
 
-class ScoringStrategy(StrEnum):
-    """Selects the mathematical engine used to calculate final matrix scores."""
-
-    WATERFALL = "WATERFALL"
-    AVERAGE = "AVERAGE"
-    WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE"
-    PURE_MATH = "PURE_MATH"
-
-    @property
-    def l10n_key(self) -> str:
-        """Explicit mapping to Frontend ARB camelCase translation keys."""
-        _L10N_MAP = {
-            ScoringStrategy.WATERFALL: "strategyKoearvostelu",
-            ScoringStrategy.AVERAGE: "strategyLineaarinenKeskiarvo",
-            ScoringStrategy.WEIGHTED_AVERAGE: "strategyPainotettuKeskiarvo",
-            ScoringStrategy.PURE_MATH: "strategyPuhdasMatematiikka",
-        }
-        return _L10N_MAP.get(self, "")
-
-
 # --- Lax Type Aliases (Pydantic V2) ---
 LaxSearchStatus = Annotated[SearchStatus, Field(strict=False)]
 LaxUiVariant = Annotated[UiVariant, Field(strict=False)]
@@ -788,7 +746,6 @@ LaxBlockDataType = Annotated[BlockDataType, Field(strict=False)]
 LaxComponentType = Annotated[ComponentType, Field(strict=False)]
 LaxVisualIntent = Annotated[VisualIntent, Field(strict=False)]
 LaxHistoricalContextMode = Annotated[HistoricalContextMode, Field(strict=False)]
-LaxScoringStrategy = Annotated[ScoringStrategy, Field(strict=False)]
 LaxVirtualSystemStepID = Annotated[VirtualSystemStepID, Field(strict=False)]
 LaxPromptBlockCategory = Annotated[PromptBlockCategory, Field(strict=False)]
 LaxEvaluationRunCount = Annotated[EvaluationRunCount, Field(strict=False)]

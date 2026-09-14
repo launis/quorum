@@ -1,4 +1,4 @@
-from backend_v2.utils.scoring import ScoringEngineProtocol, ScoringResultDTO, UnifiedScoringEngine, get_scoring_engine
+from backend_v2.utils.scoring import ScoringEngineProtocol, UnifiedScoringEngine, get_scoring_engine
 
 
 def test_get_scoring_engine() -> None:
@@ -11,4 +11,3 @@ def test_get_scoring_engine_legacy_arg() -> None:
     engine = get_scoring_engine("WATERFALL")
     assert isinstance(engine, ScoringEngineProtocol)
     assert isinstance(engine, UnifiedScoringEngine)
-
