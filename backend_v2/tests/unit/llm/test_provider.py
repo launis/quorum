@@ -197,3 +197,144 @@ async def test_lite_llm_provider_model_info_id_registration(caplog: pytest.LogCa
         )
 
     assert "not in built-in cost map" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_strips_internal_mock_identity_from_call_kwargs() -> None:
+    """Verify LiteLLMProvider does not leak internal mock_identity into litellm router call_kwargs.
+
+    OpenAI API strictly rejects unknown parameters ('mock_identity') with HTTP 400.
+    """
+    from backend_v2.settings import get_settings
+
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.1",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+
+    mock_usage = MagicMock(
+        prompt_tokens=10,
+        completion_tokens=5,
+        total_tokens=15,
+        prompt_tokens_details=MagicMock(cached_tokens=0),
+        completion_tokens_details=MagicMock(reasoning_tokens=0),
+    )
+    mock_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))],
+        usage=mock_usage,
+        system_fingerprint="fp_123",
+        _hidden_params={},
+        model_extra={},
+    )
+    mock_response.model_dump.return_value = {}
+
+    provider.router.acompletion = AsyncMock(return_value=mock_response)
+
+    await provider.generate(
+        prompt="Hello",
+        temperature=0.0,
+        max_tokens=100,
+        mock_identity="ExecutiveSummaryTask",
+    )
+
+    called_kwargs = provider.router.acompletion.call_args[1]
+    assert "mock_identity" not in called_kwargs, f"Internal 'mock_identity' leaked into call_kwargs: {called_kwargs}"
+
+
+@pytest.mark.asyncio
+async def test_lite_llm_provider_strips_unpacked_internal_keys_from_call_kwargs() -> None:
+    """Verify LiteLLMProvider purges unpacked internal keys (e.g. from kwargs) from call_kwargs."""
+    from backend_v2.settings import get_settings
+
+    LiteLLMProvider._router_cache.clear()
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.1",
+        api_key="test-key",
+        limits={"tpm": 100, "rpm": 10},
+        settings=get_settings(),
+    )
+
+    mock_usage = MagicMock(
+        prompt_tokens=10,
+        completion_tokens=5,
+        total_tokens=15,
+        prompt_tokens_details=MagicMock(cached_tokens=0),
+        completion_tokens_details=MagicMock(reasoning_tokens=0),
+    )
+    mock_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content='{"result": "ok"}', tool_calls=None, provider_specific_fields=None))],
+        usage=mock_usage,
+        system_fingerprint="fp_123",
+        _hidden_params={},
+        model_extra={},
+    )
+    mock_response.model_dump.return_value = {}
+
+    provider.router.acompletion = AsyncMock(return_value=mock_response)
+
+    unpacked_kwargs: dict[str, Any] = {
+        "mock_identity": "DynamicTask",
+        "validation_context": {"rule": 1},
+    }
+    await provider.generate(
+        prompt="Hello",
+        temperature=0.0,
+        max_tokens=100,
+        **unpacked_kwargs,
+    )
+
+    called_kwargs = provider.router.acompletion.call_args[1]
+    assert "mock_identity" not in called_kwargs, f"Internal 'mock_identity' leaked: {called_kwargs}"
+    assert "validation_context" not in called_kwargs, f"Internal 'validation_context' leaked: {called_kwargs}"
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_consumes_mock_identity_directly() -> None:
+    """Verify MockProvider consumes mock_identity directly without kwargs dictionary inspection."""
+    from unittest.mock import patch
+    from backend_v2.llm.provider import MockProvider
+
+    provider = MockProvider(model_name="mock-model")
+
+    with patch("backend_v2.llm.provider.MockLLMService") as mock_service_cls:
+        mock_service_instance = MagicMock()
+        mock_service_instance.generate_content.return_value = '{"status": "ok"}'
+        mock_service_cls.return_value = mock_service_instance
+
+        await provider.generate(
+            prompt="Hello mock",
+            temperature=0.0,
+            max_tokens=100,
+            mock_identity="ExecutiveSummaryTask",
+        )
+
+        mock_service_instance.generate_content.assert_called_once()
+        call_kwargs = mock_service_instance.generate_content.call_args[1]
+        assert call_kwargs["agent_identity"] == "ExecutiveSummaryTask"
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_defaults_to_none_mock_identity() -> None:
+    """Verify MockProvider defaults mock_identity to None cleanly."""
+    from unittest.mock import patch
+    from backend_v2.llm.provider import MockProvider
+
+    provider = MockProvider(model_name="mock-model")
+
+    with patch("backend_v2.llm.provider.MockLLMService") as mock_service_cls:
+        mock_service_instance = MagicMock()
+        mock_service_instance.generate_content.return_value = '{"status": "ok"}'
+        mock_service_cls.return_value = mock_service_instance
+
+        await provider.generate(
+            prompt="Hello mock",
+            temperature=0.0,
+            max_tokens=100,
+        )
+
+        mock_service_instance.generate_content.assert_called_once()
+        call_kwargs = mock_service_instance.generate_content.call_args[1]
+        assert call_kwargs["agent_identity"] is None

@@ -234,6 +234,9 @@ def _is_transient_llm_error(e: BaseException, _visited: set[int] | None = None) 
     return False
 
 
+_INTERNAL_NON_API_KEYS: frozenset[str] = frozenset({"mock_identity", "validation_context"})
+
+
 class LLMProvider(ABC):
     """Abstract base class for LLM providers.
 
@@ -255,6 +258,7 @@ class LLMProvider(ABC):
         presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
+        mock_identity: str | None = None,
         **kwargs: Any,
     ) -> LLMResponse:
         """Generates content from the LLM.
@@ -272,6 +276,7 @@ class LLMProvider(ABC):
             presence_penalty: Penalizes tokens based on their presence.
             pass_reasoning_token: Encrypted state blob from previous turn.
             validation_context: Optional context for validation.
+            mock_identity: Optional internal mock identity for unit test routing.
             **kwargs: Additional provider-specific arguments.
 
         Returns:
@@ -468,6 +473,7 @@ class LiteLLMProvider(LLMProvider):
         presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
+        mock_identity: str | None = None,
         **kwargs: Any,
     ) -> LLMResponse:
         """Generates content using LiteLLM.
@@ -485,6 +491,7 @@ class LiteLLMProvider(LLMProvider):
             presence_penalty: Penalizes tokens based on their presence.
             pass_reasoning_token: Encrypted state blob from previous turn.
             validation_context: Optional context for validation.
+            mock_identity: Optional internal mock identity for unit test routing.
             **kwargs: Additional provider-specific arguments.
 
         Returns:
@@ -623,6 +630,8 @@ class LiteLLMProvider(LLMProvider):
             # Inject dynamic extra params (top_p, top_k, etc.) provided via kwargs
             # Filter out internal keys if necessary, but litellm.drop_params=True handles most.
             call_kwargs.update(kwargs)
+            for key in _INTERNAL_NON_API_KEYS:
+                call_kwargs.pop(key, None)
 
             # Delegate provider-specific kwargs adjustments (e.g., Vertex caching, location)
             if adapter:
@@ -650,6 +659,8 @@ class LiteLLMProvider(LLMProvider):
             # --- CALL LiteLLM (Unstructured or Structured Native) ---
             # Remove keys that shouldn't be passed directly
             call_kwargs["model"] = self.model_name
+            for key in _INTERNAL_NON_API_KEYS:
+                call_kwargs.pop(key, None)
 
             # Tier 4 Fix: HTTPX Configuration for Server Disconnected Issues
             _timeout_val = float(call_kwargs.get("timeout", self.settings.llm_default_timeout))
@@ -1110,6 +1121,7 @@ class MockProvider(LLMProvider):
         presence_penalty: float | None = None,
         pass_reasoning_token: str | None = None,
         validation_context: dict[str, Any] | None = None,
+        mock_identity: str | None = None,
         **kwargs: Any,
     ) -> LLMResponse:
         """Simulates generation by invoking the MockLLMService.
@@ -1127,6 +1139,7 @@ class MockProvider(LLMProvider):
             presence_penalty: Penalty for new topic presence.
             pass_reasoning_token: Blob.
             validation_context: Custom dict.
+            mock_identity: Explicit mock fixture identity.
             **kwargs: Extra parameters.
 
         Returns:
@@ -1177,7 +1190,7 @@ class MockProvider(LLMProvider):
         mock = MockLLMService()  # MockLLMService on untyped legacy moduuli
 
         # Extract explicit identity if provided
-        agent_identity = kwargs["mock_identity"] if "mock_identity" in kwargs else None
+        agent_identity = mock_identity
 
         prompt_str = prompt or ""
         if messages and not prompt_str:
