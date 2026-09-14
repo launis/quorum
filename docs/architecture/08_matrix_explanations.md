@@ -608,7 +608,7 @@ The model evaluates each atom independently, determining strictly whether the em
 ### 8.4 Mathematical Bottom-Up Scoring & Distribution
 Once the model returns the batch evaluation results:
 1. **Scale-Level Hit Distribution ($k/N$):** The service layer maps each evaluated atom back to its originating scale level. For each scale level, the platform computes the exact hit ratio $k/N$, where $k$ is the number of passed atoms and $N$ is the total number of atoms evaluated for that scale (e.g., Level 1: 5/5, Level 2: 3/5, Level 3: 2/5).
-2. **Deterministic Composite Scoring:** The overall score (e.g., 1.9 / 3) and waterfall threshold state are calculated mathematically from the bottom up based on passed criteria, completely free of LLM subjective discretion.
+2. **Deterministic Composite Scoring:** The overall score (e.g., 1.9 / 3) is calculated mathematically by the UnifiedScoringEngine from the bottom up based on passed criteria and the continuous strictness level, completely free of LLM subjective discretion.
 3. **Downstream Specialization Feeding:** The raw atom results are preserved in `ExecutionRecord.execution_trace`, where intermediate reducers (`MatrixReducer`) extract them during DAG execution to isolate failures and feed diagnostic synthesis steps.
 
 ### Toulmin Argumentation Model

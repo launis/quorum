@@ -32,7 +32,7 @@ When causal preconditions are violated, the topological engine short-circuits ex
 - **Precondition Evaluation:** Before dispatching an in-degree zero node to model evaluation, its incoming edges are compared against the resolved states of its causal parents. If any parent fails to reach the expected status required by the edge, the child node is immediately short-circuited to a not-applicable status.
 - **Blame Determinism:** Short-circuited nodes record the specific parent identifiers that triggered the cascade in their runtime state, providing clear diagnostic blame attribution in audit logs.
 - **Error Propagation:** If a parent node resolves to a system error or blocked state, downstream children transition immediately to blocked, preventing downstream evaluation of corrupted or unresolvable causal branches.
-- **Matrix Waterfall Soft-Penalties:** In structured evaluation matrices with soft scoring hierarchies, failing lower-level atoms apply proportional score penalty multipliers rather than abruptly aborting the entire evaluation branch, propagating continuous scoring adjustments downstream.
+- **Unified Continuous Scoring:** In structured evaluation matrices, scoring is calculated via the UnifiedScoringEngine using weighted level ratios and continuous strictness power-curve dampening rather than legacy multi-engine branching, propagating deterministic scoring adjustments downstream.
 
 ### 2.5. Thread-Isolated Graph Verification & Cyclic Deadlock Defense
 Graph structures undergo pre-flight topological verification prior to wave execution:

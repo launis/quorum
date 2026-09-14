@@ -147,7 +147,7 @@ The matrix summary table (`MatrixSummaryTableAdapter` / `SduiMatrixTableBlock`) 
 2. **`Jakauma` ($k/N$ Scale Hit Distribution)**:
    - Deconstructs the overall evaluation into discrete, empirical BARS scale hit fractions $k/N$.
    - In each scale row (e.g., `1 - Systeemi 1 (Nopea): 5/5`, `2 - Siirtymä: 3/5`, `3 - Systeemi 2 (Hidas): 2/5`), the denominator $N$ represents the total number of TDA assertions defined for that scale tier in the seed vault, while the numerator $k$ represents the count of assertions that achieved `PASSED` status during blind evaluation.
-   - The overall pass rate is computed as the sum of passed atoms over total atoms (e.g., $10/15 = 66.7\%$). The composite normalized score (e.g., 1.9 / 3 or 46.3%) and waterfall break level (e.g., Taso 2.0) are calculated deterministically from this distribution without subjective LLM scoring.
+   - The overall pass rate is computed as the sum of passed atoms over total atoms (e.g., $10/15 = 66.7\%$). The composite normalized score (e.g., 1.9 / 3 or 46.3%) is calculated deterministically by the UnifiedScoringEngine using weighted ratio hit distribution and continuous strictness power-curve dampening without subjective LLM scoring.
 
 3. **`Selitys` (Diagnostic Narrative Synthesis & Reducer Synergy)**:
    - Rather than summarizing the entire document, the diagnostic narrative provides a focused, single-sentence explanation of cognitive deficits and performative breakdowns.
