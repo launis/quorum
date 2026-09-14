@@ -76,6 +76,43 @@ class TestModelRegistryDiscoveryPositivePartitions:
             assert "gemini/gemini-2.5-flash" in models
             assert "gemini/gemini-2.5-pro" in models
 
+    def test_fetch_openai_models_prefixes_and_filters(self) -> None:
+        """Verifies that _fetch_openai_models prefixes model IDs with openai/ and filters out non-chat modalities."""
+        repo = InMemorySystemRepository()
+        handler = LLMHandler(repo=repo)
+        mock_settings = MagicMock()
+        mock_settings.openai_api_key = "test-openai-key"
+
+        mock_models = [
+            MagicMock(id="gpt-4o-mini"),
+            MagicMock(id="gpt-4o"),
+            MagicMock(id="o1-mini"),
+            MagicMock(id="o3-mini"),
+            MagicMock(id="chatgpt-image-latest"),
+            MagicMock(id="whisper-1"),
+            MagicMock(id="text-embedding-3-small"),
+            MagicMock(id="gpt-4o-transcribe"),
+        ]
+
+        mock_client = MagicMock()
+        mock_client.models.list.return_value = mock_models
+
+        with patch("openai.OpenAI", return_value=mock_client):
+            models_dict: dict[str, list[str] | str] = {}
+            handler._fetch_openai_models(["openai"], mock_settings, models_dict)
+
+            discovered = models_dict["openai"]
+            assert isinstance(discovered, list)
+            assert "openai/gpt-4o-mini" in discovered
+            assert "openai/gpt-4o" in discovered
+            assert "openai/o1-mini" in discovered
+            assert "openai/o3-mini" in discovered
+            assert "openai/chatgpt-image-latest" not in discovered
+            assert "chatgpt-image-latest" not in discovered
+            assert "openai/whisper-1" not in discovered
+            assert "openai/text-embedding-3-small" not in discovered
+            assert "openai/gpt-4o-transcribe" not in discovered
+
     def test_fetch_all_available_models_routes_by_platform(self) -> None:
         """Verifies that fetch_all_available_models correctly filters by platform parameter."""
         repo = InMemorySystemRepository()
@@ -249,6 +286,20 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
         with patch("os.environ.get", return_value=None):
             with pytest.raises(ConfigurationError) as exc_info:
                 handler._fetch_ai_studio_models(settings=mock_settings)
+
+            assert exc_info.value.details.get("error_code") == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
+
+    def test_openai_discovery_fails_fast_when_api_key_missing(self) -> None:
+        """Negative Boundary 1b: OpenAI discovery raises ConfigurationError when API key is missing."""
+        repo = InMemorySystemRepository()
+        handler = LLMHandler(repo=repo)
+        mock_settings = MagicMock()
+        mock_settings.openai_api_key = None
+
+        with patch("os.environ.get", return_value=None):
+            models_dict: dict[str, list[str] | str] = {}
+            with pytest.raises(ConfigurationError) as exc_info:
+                handler._fetch_openai_models(["openai"], mock_settings, models_dict)
 
             assert exc_info.value.details.get("error_code") == ErrorCodes.SERVICE_DEPENDENCY_MISSING.value
 

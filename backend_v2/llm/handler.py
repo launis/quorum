@@ -298,17 +298,55 @@ class LLMHandler:
             self._cached_google_models = final_list
 
     def _fetch_openai_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
+        """Discovers and validates models available via OpenAI API key.
+
+        Args:
+            providers: Provider identifier list containing target providers.
+            settings: Central application settings.
+            models: Output dictionary mapping provider keys to discovered model names.
+
+        Raises:
+            ConfigurationError: If OpenAI API key is missing.
+            ServiceUnavailableError: If communication with OpenAI API fails.
+        """
         if "openai" in providers:
             try:
                 if self._cached_openai_models:
                     models["openai"] = self._cached_openai_models
                 else:
                     api_key = settings.openai_api_key
+                    if not api_key:
+                        import os
+
+                        api_key = os.environ.get("OPENAI_API_KEY")
+
                     if api_key:
                         openai_client = openai.OpenAI(api_key=api_key)
+                        discovered: list[str] = []
                         for m in openai_client.models.list():
-                            if "gpt" in m.id:
-                                self._cached_openai_models.append(m.id)
+                            model_id = str(m.id)
+                            clean_id = model_id.lower()
+                            is_candidate = any(p in clean_id for p in ("gpt", "o1", "o3", "o4"))
+                            is_excluded = any(
+                                ex in clean_id
+                                for ex in (
+                                    "image",
+                                    "realtime",
+                                    "audio",
+                                    "transcription",
+                                    "transcribe",
+                                    "tts",
+                                    "whisper",
+                                    "embedding",
+                                    "moderation",
+                                    "dall-e",
+                                )
+                            )
+                            if is_candidate and not is_excluded:
+                                formatted_name = model_id if model_id.startswith("openai/") else f"openai/{model_id}"
+                                discovered.append(formatted_name)
+
+                        self._cached_openai_models = sorted(list(set(discovered)))
                         models["openai"] = self._cached_openai_models
                     else:
                         raise ConfigurationError(
