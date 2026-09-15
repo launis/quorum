@@ -17,7 +17,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxXaiExtensionType
-from backend_v2.models.v2_core import OutputProfile, Step
+from backend_v2.models.v2_core import OutputProfile, Step, Workflow
 from backend_v2.utils.math_utils import normalize_score_to_100
 from backend_v2.utils.scoring import get_scoring_engine
 
@@ -258,10 +258,21 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         )
 
     profile_model = OutputProfile.model_validate(profile_dict, strict=False)
-    strictness_level = profile_model.strictness_level
+    workflow_dict = await deps.workflow_repo.get_workflow_by_id(profile_model.workflow_id)
+    if not workflow_dict:
+        msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{profile_model.workflow_id}' for profile '{profile_id}'."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
+
+    workflow_model = Workflow.model_validate(workflow_dict, strict=False)
+    strictness_level = workflow_model.default_strictness_level
 
     if strictness_level is None:
-        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{workflow_model.id}'."
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,

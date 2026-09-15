@@ -210,18 +210,8 @@ async def execute_workflow_job(
             # Enforce schema validation
             exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
 
-            # Dynamic Strictness Level resolution
-            profile_id = exec_record.output_profile_id
-
-            p_dict = await repository.get_output_profile_by_id(profile_id) if profile_id else None
-            active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
-
-            strictness_level: int | None = None
-            if active_profile_dto and active_profile_dto.strictness_level is not None:
-                strictness_level = active_profile_dto.strictness_level
-            elif workflow_def:
-                strictness_level = workflow_def.default_strictness_level
-
+            # Sovereign Workflow Strictness Level resolution (Tripartite Phase 1 Sovereignty)
+            strictness_level: int | None = workflow_def.default_strictness_level
             if strictness_level is None:
                 msg = (
                     "Strict Fail-Fast Enforced: Missing mandatory "
@@ -901,20 +891,16 @@ async def generate_profile_synthesis_and_pdf_task(
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None
 
-        # Resolve strictness level directly from profile or workflow (Phase 1, Step 1: Anti-Duct-Tape)
-        strictness_level: int
-        if active_profile_dto and active_profile_dto.strictness_level is not None:
-            strictness_level = int(active_profile_dto.strictness_level)
-        elif workflow_def:
-            strictness_level = int(workflow_def.default_strictness_level)
-        else:
-            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+        # Sovereign Workflow Strictness Level resolution (Tripartite Phase 1 Sovereignty)
+        if not workflow_def or workflow_def.default_strictness_level is None:
+            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
+        strictness_level: int = int(workflow_def.default_strictness_level)
 
         # Calculate scores dynamically for all matrices using UnifiedScoringEngine
         engine = get_scoring_engine()

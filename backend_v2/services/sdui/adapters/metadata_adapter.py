@@ -75,11 +75,7 @@ class MetadataAdapter:
                 lbl = LocalizationService.translate("metadata_scoring_engine", context.locale)
                 metadata_lines.append(f"{lbl}: {context.scoring_engine}")
             elif field == "strictness":
-                strictness_val = (
-                    context.profile.strictness_level
-                    if context.profile and context.profile.strictness_level is not None
-                    else context.strictness_level
-                )
+                strictness_val = context.strictness_level
                 if strictness_val is not None:
                     lbl = LocalizationService.translate("metadata_strictness", context.locale)
                     metadata_lines.append(f"{lbl}: {strictness_val}%")

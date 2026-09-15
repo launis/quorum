@@ -587,6 +587,9 @@ class WorkflowUpdateDTO(BaseDTO):
     allowed_exports: Annotated[list[Literal["pdf", "docx", "raw_json", "xlsx"]] | None, Field(default=None)] = None
     historical_context_mode: Annotated[LaxHistoricalContextMode | None, Field(default=None)] = None
     default_profile_id: Annotated[str | None, Field(default=None)] = None
+    default_strictness_level: Annotated[
+        int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow strictness level")
+    ] = None
     status: Annotated[str | None, Field(default=None)] = None
 
 

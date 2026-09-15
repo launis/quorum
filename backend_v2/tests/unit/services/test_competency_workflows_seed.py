@@ -292,10 +292,10 @@ def test_negative_profile_finnish_tone_instruction_rejected() -> None:
 
 
 def test_output_profiles_scoring_configuration() -> None:
-    """Verify that all output profiles define mandatory strictness_level.
+    """Verify that all output profiles have strictness_level pruned and workflows define default_strictness_level.
 
-    The matrix_scoring_hook and worker fail-fast require strictness_level
-    to be explicitly configured on the profile.
+    The Tripartite Phase 1 architecture mandates sovereign strictness ownership on Workflow,
+    pruned from OutputProfile.
     """
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
@@ -304,21 +304,27 @@ def test_output_profiles_scoring_configuration() -> None:
         assert prf_id in profiles, f"OutputProfile {prf_id} missing from seed_data.json"
         prf = profiles[prf_id]
         prf_model = OutputProfile.model_validate(prf)
-        assert prf_model.strictness_level is not None, (
-            f"Profile '{prf_id}' missing mandatory strictness_level required by matrix_scoring_hook"
+        assert not hasattr(prf_model, "strictness_level"), (
+            f"Profile '{prf_id}' must not contain strictness_level"
         )
-        assert prf_model.strictness_level == 50, f"Profile '{prf_id}' strictness_level should be normalized to 50"
+        assert "strictness_level" not in prf, f"Raw profile '{prf_id}' must not contain strictness_level"
+
+    workflows = {w["id"]: w for w in seed_data["workflows"]}
+    for wf in workflows.values():
+        wf_model = Workflow.model_validate(wf)
+        assert wf_model.default_strictness_level is not None
+        assert wf_model.default_strictness_level == 50
 
 
 def test_negative_profile_missing_scoring_config_detected() -> None:
-    """ISTQB Negative Test: OutputProfile strictness_level validation bounds."""
+    """ISTQB Negative Test: OutputProfile extra='forbid' rejects strictness_level injection."""
     seed_data = load_seed_data()
     profiles = {p["id"]: p for p in seed_data["output_profiles"]}
     raw_prf = dict(profiles["prf_5d6e7f8091a2b3c4"])
 
-    # Test out-of-range strictness_level
+    # Test that injecting strictness_level triggers ValidationError (extra forbidden)
     corrupt_prf = dict(raw_prf)
-    corrupt_prf["strictness_level"] = 150
+    corrupt_prf["strictness_level"] = 50
     with pytest.raises(ValidationError):
         OutputProfile.model_validate(corrupt_prf)
 

@@ -277,27 +277,35 @@ def test_output_profiles_enums_valid() -> None:
         assert "scoring_strategy" not in profile, (
             f"Legacy scoring_strategy must be pruned from profile '{profile.get('id')}'"
         )
-        assert "strictness_level" in profile, f"Mandatory strictness_level missing from profile '{profile.get('id')}'"
-        assert 0 <= profile["strictness_level"] <= 100, (
-            f"strictness_level out of bounds in profile '{profile.get('id')}'"
+        assert "strictness_level" not in profile, (
+            f"strictness_level must be pruned from profile '{profile.get('id')}' and owned by Workflow"
+        )
+
+    workflows = data.get("workflows", [])
+    assert workflows, "At least one workflow must exist in master seed"
+    for workflow in workflows:
+        assert "default_strictness_level" in workflow, (
+            f"Mandatory default_strictness_level missing from workflow '{workflow.get('id')}'"
+        )
+        assert 0 <= workflow["default_strictness_level"] <= 100, (
+            f"default_strictness_level out of bounds in workflow '{workflow.get('id')}'"
         )
 
     # Anti-happy-path negative verification
     def validate_profile_enums(profile_dict: dict[str, Any]) -> bool:
         if "display_scale" in profile_dict and profile_dict["display_scale"] not in valid_display_scales:
             return False
-        if "strictness_level" in profile_dict and not (0 <= profile_dict["strictness_level"] <= 100):
+        if "strictness_level" in profile_dict:
             return False
         return True
 
     assert validate_profile_enums(
         {
             "display_scale": "original",
-            "strictness_level": 50,
         }
     )
     assert not validate_profile_enums({"display_scale": "unsupported_scale_1000"})
-    assert not validate_profile_enums({"strictness_level": 150})
+    assert not validate_profile_enums({"strictness_level": 50})
 
 
 def test_model_registry_calibrated_limits() -> None:

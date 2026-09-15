@@ -489,11 +489,7 @@ class BlueprintTransformer:
                                 axis_names.add(block_to_axis[block_id])
                         mcp_audit_data[idx] = audit.model_copy(update={"impacted_axis_names": sorted(list(axis_names))})
 
-            strictness_level = (
-                profile.strictness_level
-                if profile.strictness_level is not None
-                else workflow_obj.default_strictness_level
-            )
+            strictness_level = workflow_obj.default_strictness_level
 
             resolved_preface_md = custom_preface_md
             if profile.custom_preface:

@@ -419,7 +419,7 @@ def sanitize_output_profiles(output_profiles: list[dict[str, Any]]) -> list[dict
     for profile in output_profiles:
         p = dict(profile)
         p.pop("scoring_strategy", None)
-        p["strictness_level"] = 50
+        p.pop("strictness_level", None)
         validated_model = adapter_profiles.validate_python(p)
         serialized_profile = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_profiles.append(serialized_profile)

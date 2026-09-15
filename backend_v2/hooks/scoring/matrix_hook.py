@@ -145,20 +145,24 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         enable_contextual_overrides = workflow.enable_contextual_overrides
 
         # Dynamic Orchestration & Scoring Resolution (Phase 1, Step 1: Anti-Duct-Tape)
-        strictness_level = None
+        strictness_level = workflow.default_strictness_level
         visible_block_extensions = []
         locale = execution_data.target_locale
 
         profile_id = execution_data.output_profile_id
         if profile_id:
             profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
-            if profile_dict:
-                profile_model = OutputProfile.model_validate(profile_dict, strict=False)
-                strictness_level = profile_model.strictness_level
-                visible_block_extensions = profile_model.visible_block_extensions
+            if not profile_dict:
+                msg = f"Strict Fail-Fast Enforced: Missing mandatory output profile '{profile_id}'."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                )
+            profile_model = OutputProfile.model_validate(profile_dict, strict=False)
+            visible_block_extensions = profile_model.visible_block_extensions
 
         if strictness_level is None:
-            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in profile '{profile_id}'."
+            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{execution_data.workflow_id}'."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}

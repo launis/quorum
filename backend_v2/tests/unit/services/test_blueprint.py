@@ -90,8 +90,7 @@ def fix_mock_dict(d: Any) -> Any:
             and len(d["concept_description"]) < 10
         ):
             d["concept_description"] = "concept_description_valid"
-        if "strictness_level" in d:
-            d["strictness_level"] = 85
+        d.pop("strictness_level", None)
         if "default_strictness_level" in d:
             d["default_strictness_level"] = 85
         if "level_name" in d and "structural_location" in d:
@@ -235,7 +234,6 @@ def mock_repo_transformer() -> Any:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": ["remediation_steps", "risk_flag", "coaching"],
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -326,7 +324,6 @@ def mock_repo_transformer() -> Any:
                     XaiExtensionType.RISK_FLAG,
                 ],
                 max_extension_items=2,
-                strictness_level=85,
                 matrix_visible_columns=["label", "score", "distribution", "quotes"],
             )
         ]
@@ -487,7 +484,6 @@ def mock_repo_microcot() -> Any:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -629,7 +625,6 @@ def mock_repo_sdui() -> AsyncMock:
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "matrix_visible_columns": ["label", "score", "distribution", "quotes"],
@@ -954,7 +949,6 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
                     XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -1063,7 +1057,6 @@ async def test_blueprint_variance_validation_reproduce_crash(mock_repo_transform
                     XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -1249,7 +1242,6 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
                     XaiExtensionType.VARIANCE_VALIDATION: {"translations": {"en": "Variance"}},
                 },
                 "max_extension_items": 2,
-                "strictness_level": 85,
                 "visible_metadata": [],
                 "custom_preface": None,
                 "target_block_order": [*_DEFAULT_TARGET_BLOCK_ORDER, TargetBlockType.VARIANCE_VALIDATION_BLOCK],
@@ -1620,7 +1612,6 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
                 visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
                 variance_target_block="blk_fb15f8dcf23f4865",
                 max_extension_items=2,
-                strictness_level=85,
             )
         ]
     )
@@ -1728,7 +1719,6 @@ async def test_blueprint_transformer_custom_scale_missing_bounds(mock_repo_trans
                 visible_block_extensions=[],
                 visible_workflow_extensions=[],
                 max_extension_items=2,
-                strictness_level=85,
             )
         ]
     )
@@ -2186,7 +2176,6 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
                 visible_block_extensions=[],
                 visible_workflow_extensions=[],
                 max_extension_items=2,
-                strictness_level=85,
                 security_penalty=0.10,
                 post_hoc_penalty=0.15,
                 passivity_penalty=0.05,
@@ -2246,7 +2235,6 @@ async def test_output_profile_target_blocks_sdui_dispatch(mock_repo_transformer:
         visible_metadata=["user", "date", "scoring_engine"],
         visible_block_extensions=[XaiExtensionType.COACHING, XaiExtensionType.FALSIFICATION],
         max_extension_items=2,
-        strictness_level=85,
         display_scale=DisplayScale.NORMALIZED_100,
         target_block_order=[
             TargetBlockType.METADATA_BLOCK,

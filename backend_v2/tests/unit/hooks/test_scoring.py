@@ -159,6 +159,7 @@ class MockRepository:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
+            "default_strictness_level": 85,
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
@@ -171,7 +172,6 @@ class MockRepository:
             "slug": "test_slug",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "strictness_level": 85,
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -257,6 +257,7 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "status": "active",
                 "version": 1,
                 "default_profile_id": "prof_1111111111111111",
+                "default_strictness_level": 85,
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "enable_contextual_overrides": True,
@@ -268,7 +269,6 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "slug": "test_slug",
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test", "fi": "Test"}},
-                "strictness_level": 85,
                 "matrix_synthesis_groups": [
                     {
                         "id": "grp_0000000000000001",
@@ -625,12 +625,24 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
 
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+    }
     mock_workflow.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "test_profile",
-        "workflow_id": "wf_123",
+        "workflow_id": "wflow_1234567890123456",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "strictness_level": 85,
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -694,12 +706,24 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
     # Ensure prompt block repo returns pb_dict
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+    }
     mock_workflow.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "test_profile",
-        "workflow_id": "wf_123",
+        "workflow_id": "wflow_1234567890123456",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "strictness_level": 85,
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -752,12 +776,24 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
 
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+    }
     mock_workflow.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
         "slug": "test_profile",
-        "workflow_id": "wf_123",
+        "workflow_id": "wflow_1234567890123456",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "strictness_level": 85,
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -807,6 +843,234 @@ async def test_recalculate_none_profile_returns_early() -> None:
     assert payload == {"pb_1": 123}
 
 
+@pytest.mark.asyncio
+async def test_recalculate_profile_not_found_raises() -> None:
+    """Test recalculate raises VALIDATION_FAILED when output profile is not found."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    payload: dict[str, Any] = {"pb_1": 123}
+    mock_workflow = AsyncMock()
+    mock_workflow.get_output_profile_by_id.return_value = None
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await recalculate(payload, "prof_missing", deps)
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_recalculate_workflow_not_found_raises() -> None:
+    """Test recalculate raises VALIDATION_FAILED when associated workflow is not found."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    payload: dict[str, Any] = {"pb_1": 123}
+    mock_workflow = AsyncMock()
+    mock_workflow.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "test_profile",
+        "workflow_id": "wflow_1234567890123456",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_0000000000000001",
+                "title": {"translations": {"en": "Default", "fi": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
+        "display_scale": "original",
+    }
+    mock_workflow.get_workflow_by_id.return_value = None
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await recalculate(payload, "prof_1111111111111111", deps)
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_normalize_matrix_scores_missing_scales_raises() -> None:
+    """Test normalize_matrix_scores raises CONFIGURATION_ERROR when prompt block has empty scales."""
+    from backend_v2.hooks.scoring.normalization_hook import normalize_matrix_scores_hook
+
+    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=[])
+    matrix_dto = LightweightMatrixOutput(
+        raw_score=3.0,
+        normalized_score=None,
+        justification="Evaluation text",
+        evaluated_atoms={},
+        extensions={},
+    )
+    mock_workflow = AsyncMock()
+    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["pb_1234567890123456"])
+    state = HookState(
+        execution_id="ex_1111222233334444",
+        workflow_id="wf_123",
+        step_id="st_1234567890123456",
+        task_blueprint="st_1234567890123456",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    with pytest.raises(AppException) as exc_info:
+        await normalize_matrix_scores_hook(state, deps)
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
+    """Test recalculate handles indeterminate DLQ ratio and N_A atoms."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    scales = [_build_valid_scale(1, ["atom_1"]), _build_valid_scale(5, ["atom_5"])]
+    pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
+    atom_1_id = f"tda_{hashlib.md5(b'atom_1').hexdigest()[:32]}"
+    atom_5_id = f"tda_{hashlib.md5(b'atom_5').hexdigest()[:32]}"
+    matrix_dto = LightweightMatrixOutput(
+        raw_score=1.0,
+        normalized_score=0.0,
+        justification="Evaluation text",
+        evaluated_atoms={
+            atom_1_id: ExecutionStatus.SYSTEM_ERROR,
+            atom_5_id: ExecutionStatus.N_A,
+        },
+        extensions={},
+    )
+    payload: dict[str, Any] = {
+        "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+    }
+    mock_workflow = AsyncMock()
+    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+    }
+    mock_workflow.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "test_profile",
+        "workflow_id": "wflow_1234567890123456",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_0000000000000001",
+                "title": {"translations": {"en": "Default", "fi": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
+        "display_scale": "original",
+    }
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    await recalculate(payload, "prof_1111111111111111", deps)
+    assert "[INDETERMINATE]" in payload["pb_1234567890123456"]["justification"]
+
+
+@pytest.mark.asyncio
+async def test_recalculate_skips_non_matrix_prompt_block() -> None:
+    """Test recalculate gracefully skips prompt blocks that are not MatrixPromptBlock."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    pb_instruction = _build_valid_pb_dict("pi_1234567890123456", [], pb_type="instruction", category_id="system_rule")
+    matrix_dto = LightweightMatrixOutput(
+        raw_score=1.0,
+        normalized_score=0.0,
+        justification="Evaluation text",
+        evaluated_atoms={"atom_1": ExecutionStatus.PASSED},
+        extensions={},
+    )
+    payload: dict[str, Any] = {
+        "pi_1234567890123456": matrix_dto.model_dump(mode="json"),
+    }
+    mock_workflow = AsyncMock()
+    mock_workflow.get_prompt_block_by_id.return_value = pb_instruction
+    mock_workflow.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "description": {"translations": {"en": "Test Desc", "fi": "Test Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+    }
+    mock_workflow.get_output_profile_by_id.return_value = {
+        "id": "prof_1111111111111111",
+        "slug": "test_profile",
+        "workflow_id": "wflow_1234567890123456",
+        "name": {"translations": {"en": "Test", "fi": "Test"}},
+        "matrix_synthesis_groups": [
+            {
+                "id": "grp_0000000000000001",
+                "title": {"translations": {"en": "Default", "fi": "Default"}},
+                "target_blocks": ["*"],
+            }
+        ],
+        "display_scale": "original",
+    }
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    await recalculate(payload, "prof_1111111111111111", deps)
+    assert payload["true_atoms_count"] == 0
+
+
 # ==============================================================================
 # 2. matrix_scoring_hook tests
 # ==============================================================================
@@ -849,6 +1113,7 @@ class MockRepoWaterfall:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
+            "default_strictness_level": 85,
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
@@ -861,7 +1126,6 @@ class MockRepoWaterfall:
             "slug": "test_slug",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "strictness_level": 85,
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -911,6 +1175,7 @@ class MockRepoWaterfallMixed:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
+            "default_strictness_level": 85,
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
@@ -923,7 +1188,6 @@ class MockRepoWaterfallMixed:
             "slug": "test_slug",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "strictness_level": 85,
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -1964,6 +2228,7 @@ class MockRepoWaterfallSimulation:
             "status": "active",
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
+            "default_strictness_level": 85,
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
@@ -1976,7 +2241,6 @@ class MockRepoWaterfallSimulation:
             "slug": "test_slug",
             "workflow_id": "wf_123",
             "name": {"translations": {"en": "Test", "fi": "Test"}},
-            "strictness_level": 85,
             "matrix_synthesis_groups": [
                 {
                     "id": "grp_0000000000000001",
@@ -2316,6 +2580,7 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         "status": "active",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "enable_contextual_overrides": False,
@@ -2325,7 +2590,6 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         "slug": "test_profile",
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "strictness_level": 85,
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -2481,6 +2745,7 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         "status": "active",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "enable_contextual_overrides": True,
@@ -2490,7 +2755,6 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         "slug": "test_profile",
         "workflow_id": "wf_123",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
-        "strictness_level": 85,
         "matrix_synthesis_groups": [
             {
                 "id": "grp_0000000000000001",
@@ -2574,7 +2838,6 @@ async def test_matrix_scoring_hook_propagates_extensions() -> None:
                 "slug": "test_slug",
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "strictness_level": 100,
                 "visible_block_extensions": ["coaching", "falsification", "remediation_steps"],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2644,7 +2907,6 @@ async def test_scoring_matrix_namespace_isolation() -> None:
                 "slug": "test_slug",
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "strictness_level": 100,
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2710,7 +2972,6 @@ async def test_scoring_regular_tda_path_bypasses_namespace_check() -> None:
                 "slug": "test_slug",
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "strictness_level": 100,
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -2776,7 +3037,6 @@ async def test_failed_atom_with_override_does_not_inflate_score() -> None:
                 "slug": "test_slug",
                 "workflow_id": "wf_123",
                 "name": {"translations": {"en": "Test Profile", "fi": "Test Profile"}},
-                "strictness_level": 100,
                 "visible_block_extensions": [],
                 "visible_workflow_extensions": [],
                 "matrix_synthesis_groups": [
@@ -3719,7 +3979,6 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
             "slug": "prof_1111111111111111",
             "name": {"translations": {"en": "Prof", "fi": "Prof"}},
             "workflow_id": "wf_123",
-            "strictness_level": 85,
             "target_block_order": [],
             "visible_block_extensions": [],
         }

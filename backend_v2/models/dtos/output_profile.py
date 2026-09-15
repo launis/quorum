@@ -54,7 +54,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         synthesis_length_constraint: Optional length constraint for synthesized text.
         max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
         max_unmet_criteria: Per-profile override for unmet criteria per matrix.
-        strictness_level: Profile-level strictness override setting.
         matrix_synthesis_groups: Sequence of comparative matrix synthesis groups.
         security_penalty: Penalty ratio for security threats (default 0.0 = no penalty).
         post_hoc_penalty: Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).
@@ -172,9 +171,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         float | None,
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
-    strictness_level: Annotated[
-        int, Field(default=50, ge=0, le=100, description="Profile-level strictness level (0-100 continuous).")
-    ] = 50
     synthesis_length_constraint: Annotated[
         int | None,
         Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
@@ -312,7 +308,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         synthesis_length_constraint: Optional length constraint for synthesized text.
         max_quotes_per_matrix: Optional override for quotes per matrix in explanations.
         max_unmet_criteria: Optional override for unmet criteria per matrix.
-        strictness_level: Optional override strictness bounds.
         matrix_synthesis_groups: Optional sequence of comparative matrix synthesis groups.
         security_penalty: Optional penalty ratio for security threats.
         post_hoc_penalty: Optional penalty ratio for post-hoc rationalization.
@@ -426,9 +421,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
     custom_scale_max: Annotated[
         float | None,
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
-    ] = None
-    strictness_level: Annotated[
-        int | None, Field(default=None, ge=0, le=100, description="Profile-level strictness override (0-100).")
     ] = None
     synthesis_length_constraint: Annotated[
         int | None,
@@ -558,7 +550,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
         synthesis_length_constraint: Optional length constraint for synthesized text.
         max_quotes_per_matrix: Per-profile override for quotes per matrix in explanations.
         max_unmet_criteria: Per-profile override for unmet criteria per matrix.
-        strictness_level: Validated override value configuring verification rigor.
         matrix_synthesis_groups: Ordered array of discrete comparative synthesis groups.
         security_penalty: Penalty ratio for security threats.
         post_hoc_penalty: Penalty ratio for post-hoc rationalization.
@@ -648,7 +639,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     ] = DisplayScale.ORIGINAL
     custom_scale_min: float | None = None
     custom_scale_max: float | None = None
-    strictness_level: int | None = None
     synthesis_length_constraint: int | None = None
     row_explanation_length_constraint: int | None = None
     xai_length_constraint: int | None = None

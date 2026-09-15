@@ -114,7 +114,6 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
         content_blocks=[],
         target_block_order=[],
         visible_metadata=["user", "organization", "date", "scoring_engine", "strictness", "cost", "tokens"],
-        strictness_level=85,
     )
     execution = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
@@ -138,6 +137,7 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
         org_name="Tech Corp",
         parsed_matrices={},
         scoring_engine="TopologicalV2",
+        strictness_level=85,
         cost=1.25,
         tokens=1500,
     )

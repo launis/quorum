@@ -8,6 +8,7 @@ from backend_v2.models.dtos.output_profile import (
     OutputProfileResponseDTO,
     OutputProfileUpdateDTO,
 )
+from backend_v2.models.dtos.studio import WorkflowUpdateDTO
 from backend_v2.models.enums import DisplayScale, SourcesDisplayMode, TargetBlockType, XaiExtensionType
 from backend_v2.models.v2_core import OutputProfile
 
@@ -61,6 +62,15 @@ def test_output_profile_create_dto_strictness() -> None:
             {
                 **_VALID_CREATE_PAYLOAD,
                 "performativity_detector_step_id": "sp_123",
+            }
+        )
+
+    # Negative test for strictness_level (must be rejected as extra on profile create)
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        OutputProfileCreateDTO.model_validate(
+            {
+                **_VALID_CREATE_PAYLOAD,
+                "strictness_level": 50,
             }
         )
 
@@ -153,6 +163,28 @@ def test_output_profile_update_dto_strictness() -> None:
 
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
         OutputProfileUpdateDTO.model_validate({"invalid_field": "boom"})
+
+    # Negative test for strictness_level (must be rejected as extra on profile update)
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        OutputProfileUpdateDTO.model_validate({"strictness_level": 50})
+
+
+def test_workflow_update_dto_default_strictness_level_bounds() -> None:
+    """ISTQB Boundary Test: WorkflowUpdateDTO validates default_strictness_level bounds (0-100)."""
+    # Valid boundaries
+    dto_0 = WorkflowUpdateDTO.model_validate({"default_strictness_level": 0})
+    assert dto_0.default_strictness_level == 0
+
+    dto_100 = WorkflowUpdateDTO.model_validate({"default_strictness_level": 100})
+    assert dto_100.default_strictness_level == 100
+
+    # Negative boundary: -1
+    with pytest.raises(ValidationError, match="greater than or equal to 0"):
+        WorkflowUpdateDTO.model_validate({"default_strictness_level": -1})
+
+    # Negative boundary: 101
+    with pytest.raises(ValidationError, match="less than or equal to 100"):
+        WorkflowUpdateDTO.model_validate({"default_strictness_level": 101})
 
 
 def test_update_dto_max_extension_items_boundary_negative() -> None:

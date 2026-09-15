@@ -1118,10 +1118,6 @@ class OutputProfile(V2CoreBase):
         float | None,
         Field(default=None, description="Maximum score boundary when display_scale is CUSTOM."),
     ] = None
-    strictness_level: Annotated[
-        int,
-        Field(default=50, ge=0, le=100, description="Profile-level strictness level (0-100 continuous)."),
-    ] = 50
     synthesis_length_constraint: Annotated[
         int | None,
         Field(default=None, ge=100, le=5000, description="Optional length constraint for synthesized text."),
@@ -1383,7 +1379,7 @@ class Workflow(V2CoreBase):
     )
     default_strictness_level: Annotated[
         int,
-        Field(default=50, ge=0, le=100, description="Fallback strictness level (0-100 continuous)."),
+        Field(default=50, ge=0, le=100, description="Sovereign workflow strictness level (0-100 continuous)."),
     ] = 50
     enable_contextual_overrides: bool = Field(
         default=False,
