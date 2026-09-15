@@ -1607,6 +1607,10 @@
   "workflowTabGeneral": "1. General & Outputs",
   "workflowTabInputs": "2. Inputs",
   "workflowTabSteps": "3. Steps & Dependencies",
+  "workflowTabStrictness": "4. Evaluation Rigor",
+  "@workflowTabStrictness": {
+    "description": "Label for workflow builder Tab 4"
+  },
   "errNavigationFallback": "Navigation Error: {uri} not found. Returning to workspace...",
   "@errNavigationFallback": {
     "placeholders": {

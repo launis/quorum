@@ -3170,6 +3170,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowTabSteps => '3. Stepit & Riippuvuudet';
 
   @override
+  String get workflowTabStrictness => '4. Arvioinnin ankaruus';
+
+  @override
   String errNavigationFallback(String uri) {
     return 'Navigointivirhe: $uri ei löytynyt. Palataan työtilaan...';
   }

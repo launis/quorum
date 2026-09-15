@@ -111,7 +111,6 @@ void main() {
     String nameEn = 'Executive Summary Profile',
     int maxExtensionItems = 3,
     DisplayScale displayScale = DisplayScale.original,
-    int strictnessLevel = 50,
     List<String> visibleMetadata = const ['date', 'user', 'organization'],
     List<XaiExtensionType> visibleBlockExtensions = const [
       XaiExtensionType.citation,
@@ -132,7 +131,6 @@ void main() {
       description: const I18nText(translations: {'en': 'Test description'}),
       customPreface: const I18nText(translations: {'en': 'Test preface'}),
       displayScale: displayScale,
-      strictnessLevel: strictnessLevel,
       visibleMetadata: visibleMetadata,
       maxExtensionItems: maxExtensionItems,
       visibleBlockExtensions: visibleBlockExtensions,
@@ -308,11 +306,10 @@ void main() {
     testWidgets('test_crud_view_displays_identity_and_scoring_fields', (
       WidgetTester tester,
     ) async {
-      // Input: OutputProfile with name "Executive Summary Profile", slug "exec-summary", strictness balanced
+      // Input: OutputProfile with name "Executive Summary Profile", slug "exec-summary"
       final profile = createValidProfile(
         nameEn: 'Executive Summary Profile',
         slug: 'exec-summary',
-        strictnessLevel: 50,
       );
       final overrides = [
         outputProfileFormProvider(
@@ -344,10 +341,9 @@ void main() {
       await tester.tap(find.text('Scoring'));
       await tester.pumpAndSettle();
 
-      // Expected on Tab 2: finds strictness slider and preset chips
-      expect(find.byType(Slider), findsOneWidget);
-      expect(find.text('50%'), findsOneWidget);
-      expect(find.text('50% Normal'), findsOneWidget);
+      // Expected on Tab 2: finds display scale selector, does not find strictness slider
+      expect(find.byType(DropdownButton<DisplayScale>), findsOneWidget);
+      expect(find.byType(Slider), findsNothing);
     });
 
     testWidgets('test_crud_view_displays_workflow_selector_and_extensions', (

@@ -45,7 +45,8 @@ class VarianceBlockCard extends StatelessWidget {
 
     final currentTargetId = payload.varianceTargetBlock;
     final hasCurrentInList =
-        currentTargetId != null && matrixBlocks.any((b) => b.id == currentTargetId);
+        currentTargetId != null &&
+        matrixBlocks.any((b) => b.id == currentTargetId);
 
     return BaseBlockCard(
       blockType: TargetBlockType.varianceValidationBlock,
@@ -147,14 +148,10 @@ class VarianceBlockCard extends StatelessWidget {
               if (currentTargetId != null && !hasCurrentInList)
                 DropdownMenuItem<String>(
                   value: currentTargetId,
-                  child: Text(
-                    currentTargetId,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: Text(currentTargetId, overflow: TextOverflow.ellipsis),
                 ),
               ...matrixBlocks.map((block) {
-                final localeCode =
-                    Localizations.localeOf(context).languageCode;
+                final localeCode = Localizations.localeOf(context).languageCode;
                 final displayName = block.label.get(localeCode, fallback: 'en');
                 return DropdownMenuItem<String>(
                   value: block.id,
@@ -166,11 +163,7 @@ class VarianceBlockCard extends StatelessWidget {
               }),
             ],
             onChanged: (val) {
-              updatePayload(
-                payload.copyWith(
-                  varianceTargetBlock: val,
-                ),
-              );
+              updatePayload(payload.copyWith(varianceTargetBlock: val));
             },
           ),
         ],

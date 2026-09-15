@@ -3152,6 +3152,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get workflowTabSteps => '3. Steps & Dependencies';
 
   @override
+  String get workflowTabStrictness => '4. Evaluation Rigor';
+
+  @override
   String errNavigationFallback(String uri) {
     return 'Navigation Error: $uri not found. Returning to workspace...';
   }

@@ -139,7 +139,7 @@ void main() {
         // Find the ActionChip for Variance Validation in the available blocks tray
         final varianceChipFinder = find.widgetWithText(
           ActionChip,
-          'Variance Validation',
+          'Cognitive Depth & Phrase Analysis',
         );
         expect(varianceChipFinder, findsOneWidget);
 

@@ -80,7 +80,6 @@ _OutputProfile _$OutputProfileFromJson(
         'display_scale',
         'custom_scale_min',
         'custom_scale_max',
-        'strictness_level',
         'synthesis_length_constraint',
         'row_explanation_length_constraint',
         'xai_length_constraint',
@@ -195,10 +194,6 @@ _OutputProfile _$OutputProfileFromJson(
       customScaleMax: $checkedConvert(
         'custom_scale_max',
         (v) => (v as num?)?.toDouble(),
-      ),
-      strictnessLevel: $checkedConvert(
-        'strictness_level',
-        (v) => (v as num?)?.toInt() ?? 50,
       ),
       synthesisLengthConstraint: $checkedConvert(
         'synthesis_length_constraint',
@@ -350,7 +345,6 @@ _OutputProfile _$OutputProfileFromJson(
     'displayScale': 'display_scale',
     'customScaleMin': 'custom_scale_min',
     'customScaleMax': 'custom_scale_max',
-    'strictnessLevel': 'strictness_level',
     'synthesisLengthConstraint': 'synthesis_length_constraint',
     'rowExplanationLengthConstraint': 'row_explanation_length_constraint',
     'xaiLengthConstraint': 'xai_length_constraint',
@@ -403,7 +397,6 @@ Map<String, dynamic> _$OutputProfileToJson(
   'display_scale': _$DisplayScaleEnumMap[instance.displayScale]!,
   'custom_scale_min': instance.customScaleMin,
   'custom_scale_max': instance.customScaleMax,
-  'strictness_level': instance.strictnessLevel,
   'synthesis_length_constraint': instance.synthesisLengthConstraint,
   'row_explanation_length_constraint': instance.rowExplanationLengthConstraint,
   'xai_length_constraint': instance.xaiLengthConstraint,

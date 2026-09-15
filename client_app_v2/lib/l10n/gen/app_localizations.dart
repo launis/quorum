@@ -5798,6 +5798,12 @@ abstract class AppLocalizations {
   /// **'3. Steps & Dependencies'**
   String get workflowTabSteps;
 
+  /// Label for workflow builder Tab 4
+  ///
+  /// In en, this message translates to:
+  /// **'4. Evaluation Rigor'**
+  String get workflowTabStrictness;
+
   /// No description provided for @errNavigationFallback.
   ///
   /// In en, this message translates to:

@@ -17,6 +17,7 @@ import 'package:client_app/core/logging/logger_service.dart';
 import 'widgets/workflow/workflow_general_tab.dart';
 import 'widgets/workflow/workflow_inputs_tab.dart';
 import 'widgets/workflow/workflow_steps_tab.dart';
+import 'widgets/workflow/workflow_strictness_tab.dart';
 
 /// **Workflow DAG Builder (Gold Standard Phase 9)**
 ///
@@ -340,7 +341,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
     }
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: AppExceptionBoundary(
         child: Scaffold(
           appBar: AppBar(
@@ -429,6 +430,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                   icon: const Icon(Icons.account_tree),
                   text: l10n.workflowTabSteps,
                 ),
+                Tab(
+                  icon: const Icon(Icons.balance),
+                  text: l10n.workflowTabStrictness,
+                ),
               ],
             ),
           ),
@@ -445,6 +450,10 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
                 workflow: payload,
                 blueprints: blueprints,
                 mcpGateways: mcpGateways,
+                onChanged: triggerUpdate,
+              ),
+              WorkflowStrictnessTab(
+                workflow: payload,
                 onChanged: triggerUpdate,
               ),
             ],

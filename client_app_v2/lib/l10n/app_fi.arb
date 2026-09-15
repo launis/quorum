@@ -1032,6 +1032,7 @@
   "workflowTabGeneral": "1. Yleiset & Tulosteet",
   "workflowTabInputs": "2. Syötteet",
   "workflowTabSteps": "3. Stepit & Riippuvuudet",
+  "workflowTabStrictness": "4. Arvioinnin ankaruus",
   "errNavigationFallback": "Navigointivirhe: {uri} ei löytynyt. Palataan työtilaan...",
   "studioWorkflowIdOpaque": "Opaque Workflow ID (Järjestelmän luoma)",
   "studioWorkflowSlugSemantic": "Semanttinen reititys (esim. audit-master)",
