@@ -69,6 +69,12 @@
         <mandatory_pattern>ALL execution paths MUST flow through exactly ONE sovereign, deterministic pipeline. Every step and worker must be evaluated against the exact same mathematical invariants from the very first line of code, without conditional modes or legacy escape hatches.</mandatory_pattern>
         <catastrophic_reason>Bifurcated pipelines destroy the Single Source of Truth, double test maintenance overhead, and allow broken legacy behavior to permanently evade modern quality gates.</catastrophic_reason>
     </rule_block>
+
+    <rule_block id="ban_drive_by_schema_mutations">
+        <banned_pattern>Autonomously adding new fields, optional attributes (`field: T | None = None`), or fallback keys to existing Pydantic DTOs or domain models as a drive-by fix to silence advisory AST warnings (`⚠️ WARN`), linter notices, or typecheckers during unrelated tasks.</banned_pattern>
+        <mandatory_pattern>DTO schemas are permanent SSOT contracts that directly dictate serialization payloads across boundaries. NEVER add fields to Pydantic models as a drive-by fix. If an advisory AST warning appears outside your explicit task target boundary, record it as technical debt in audit findings. If a schema mutation is legitimately required by an approved plan, you MUST enforce Full-Duplex Serialization Parity: synchronously audit and test all downstream hydration models (`model_validate`) and enforce `exclude_none=True` on trace event serializations.</mandatory_pattern>
+        <catastrophic_reason>Adding uncoordinated fields to writer DTOs causes unannounced serialization changes (e.g. dumping null keys) that violently crash downstream reader DTOs enforcing Pydantic extra='forbid' validation.</catastrophic_reason>
+    </rule_block>
 </catastrophic_system_bans>
 
 <agentic_control_center>

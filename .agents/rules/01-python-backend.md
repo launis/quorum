@@ -453,6 +453,10 @@
     <rule_block id="graceful_text_truncation_validator">
         <mandate>NEVER rely solely on `max_length=N` in `Field()` for LLM text generation without a truncation mechanism. ALWAYS implement `@field_validator(..., mode="before")` to truncate strings rounding down to the nearest sentence (`.`).</mandate>
     </rule_block>
+
+    <rule_block id="trace_serialization_hygiene_mandate">
+        <mandate>NEVER serialize DTOs or state dictionaries into `execution_trace` or persistent event logs using bare `model_dump(mode="json")` without `exclude_none=True`. ALL trace event and step output serialization MUST enforce `exclude_none=True` (`matrix_dto.model_dump(mode="json", exclude_none=True)`). Emitting superfluous `"field": null` entries into execution traces pollutes event logs, inflates storage, and triggers catastrophic `extra="forbid"` validation failures in downstream consumer DTOs.</mandate>
+    </rule_block>
 </architectural_invariants>
 
 <agentic_safety_guardrails>
@@ -461,7 +465,7 @@
     </rule_block>
 
     <rule_block id="pydantic_schema_freeze_mandate">
-        <mandate>NEVER autonomously tighten structural types, remove `Optional` (`| None`) bounds, or change field signatures on existing Pydantic models. Log warnings in audit matrix instead; schema mutability is strictly forbidden without explicit instruction.</mandate>
+        <mandate>NEVER autonomously add new fields, optional attributes (`field: T | None = None`), tighten structural types, remove `Optional` (`| None`) bounds, or change field signatures on existing Pydantic models or DTOs to appease advisory AST warnings (`⚠️ WARN`), linter notices, or typecheckers during unrelated tasks. Log warnings in the audit matrix instead; schema mutability is strictly forbidden without an explicit roadmap or task mandate. Whenever a schema is legitimately modified in an approved task, enforce the Full-Duplex Serialization Parity Mandate: synchronously audit and test all downstream hydration models (`model_validate`) and enforce `exclude_none=True` on trace event serializations.</mandate>
     </rule_block>
 
     <rule_block id="pydantic_validation_bypass_ban">

@@ -130,6 +130,9 @@ trigger: always_on
     <rule_block id="single_pipeline_invariant_mandate">
         <mandate>NEVER create bifurcated pipelines or parallel execution paths where a "new strict logic" coexists with a "legacy permissive logic" (such as branching based on presence of mappings or flags). ALL execution paths MUST flow through exactly ONE sovereign, deterministic pipeline. Every step and worker must be evaluated against the exact same mathematical invariants from the very first line of code, without conditional modes or legacy escape hatches.</mandate>
     </rule_block>
+    <rule_block id="ban_drive_by_schema_mutations">
+        <mandate>NEVER autonomously add new fields, optional attributes (`field: T | None = None`), or fallback keys to existing Pydantic DTOs, domain models, or state structures as a drive-by fix to silence advisory AST warnings (`⚠️ WARN`), linter notices, or typecheckers during unrelated tasks. Schema mutations are permanent SSOT contracts that alter serialization payloads. Pre-existing advisory warnings outside the active task's explicit boundary MUST be reported as technical debt in audit findings, NOT patched ad-hoc without a two-sided contract audit.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
@@ -159,6 +162,9 @@ trigger: always_on
     </rule_block>
     <rule_block id="studio_driven_parameterization_mandate">
         <mandate>Enforce Studio-Driven Dynamic Parameterization: Background workers (`worker.py`), synthesis services, and report generators are strictly deterministic executors with ZERO domain discretion. Whenever a pipeline feature, variance engine, or synthesis section requires targeting a specific workflow step or matrix block, that target MUST be declared as a first-class, nullable field in the profile/workflow schema and exposed via a dedicated selector component in Quorum Studio UI. NEVER decouple or purge schema fields by replacing them with silent backend defaults, trace scrapers, or heuristic guessing.</mandate>
+    </rule_block>
+    <rule_block id="full_duplex_serialization_parity_mandate">
+        <mandate>Enforce Full-Duplex Serialization Parity across all pipeline boundaries: Whenever any field is added, modified, or typed in a pipeline model that serializes to persistent state, events, or execution traces (`model_dump()`), you MUST synchronously trace and verify all downstream hydration models (`model_validate()`) consuming that payload. A unilateral modification to a writer DTO without verifying and testing the corresponding reader DTO is a fatal contract fracture. Furthermore, all event and trace serialization into `execution_trace` MUST explicitly enforce `exclude_none=True` to prevent empty `null` keys from polluting state and triggering `extra="forbid"` crashes in downstream consumers.</mandate>
     </rule_block>
 </architectural_invariants>
 
