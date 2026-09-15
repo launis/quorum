@@ -195,7 +195,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 allowed_extensions=parsed_payload.allowed_extensions,
             )
 
-            dumped_matrix = matrix_dto.model_dump(mode="json")
+            dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
             new_payload[pb_id] = dumped_matrix
 
             if pb_model.is_evaluative:
@@ -260,7 +260,10 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
     profile_model = OutputProfile.model_validate(profile_dict, strict=False)
     workflow_dict = await deps.workflow_repo.get_workflow_by_id(profile_model.workflow_id)
     if not workflow_dict:
-        msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{profile_model.workflow_id}' for profile '{profile_id}'."
+        msg = (
+            f"Strict Fail-Fast Enforced: Missing mandatory workflow '{profile_model.workflow_id}' "
+            f"for profile '{profile_id}'."
+        )
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,

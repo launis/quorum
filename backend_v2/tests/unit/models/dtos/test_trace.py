@@ -38,6 +38,27 @@ def test_trace_matrix_payload_accepts_allowed_extensions() -> None:
     assert dto.allowed_extensions == ["falsification", "coaching", "remediation_steps"]
 
 
+def test_trace_matrix_payload_accepts_atom_quotes() -> None:
+    """Strict TDD: Test that TraceMatrixPayloadDTO accepts atom_quotes field without raising ValidationError."""
+    payload_none = {
+        "raw_score": 4.5,
+        "normalized_score": 90.0,
+        "justification": "Test justification",
+        "atom_quotes": None,
+    }
+    dto_none = TraceMatrixPayloadDTO.model_validate(payload_none)
+    assert dto_none.atom_quotes is None
+
+    payload_list = {
+        "raw_score": 4.5,
+        "normalized_score": 90.0,
+        "justification": "Test justification",
+        "atom_quotes": [{"level": 1.0, "quote": "Evidence quote"}],
+    }
+    dto_list = TraceMatrixPayloadDTO.model_validate(payload_list)
+    assert dto_list.atom_quotes == [{"level": 1.0, "quote": "Evidence quote"}]
+
+
 def test_trace_matrix_payload_coerces_failed_string() -> None:
     """Test that TraceMatrixPayloadDTO correctly coerces 'FAILED' string to ExecutionStatus.FAILED."""
     payload = {"raw_score": 4.5, "evaluated_atoms": {"a0": "FAILED", "a1": "PASSED"}}

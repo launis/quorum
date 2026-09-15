@@ -1,3 +1,5 @@
+"""Data Transfer Objects for execution traces and lifecycle events."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -186,6 +188,10 @@ class TraceMatrixPayloadDTO(BaseDTO):
         Field(default=None, description="Typed XAI audit log scalar metadata"),
     ] = None
     allowed_extensions: Annotated[list[str] | None, Field(description="List of allowed extensions")] = None
+    atom_quotes: Annotated[
+        list[Any] | None,
+        Field(default=None, description="Optional accumulated atom quotes from matrix evaluation"),
+    ] = None
 
 
 class TraceScoringPayloadDTO(BaseDTO):

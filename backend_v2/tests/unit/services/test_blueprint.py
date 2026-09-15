@@ -3,7 +3,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.models.auth import User, UserRole
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
@@ -3239,3 +3239,95 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     assert "tda_0000000000000001" in report.hydrated_references
     assert report.total_tokens == 170
     assert report.cost_estimate == 0.05
+
+
+def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
+    """Strict TDD: Verify MatrixDomainParser.parse_matrices processes payloads with atom_quotes."""
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+    from backend_v2.models.v2_core import I18nText, MatrixScale, OutputProfile
+    from backend_v2.services.matrix_domain_parser import MatrixDomainParser
+
+    pb_id = "blk_0000000000000001"
+    pb = MatrixPromptBlock(
+        id=pb_id,
+        slug="test_matrix",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        label=I18nText(translations={"en": "Test Matrix", "fi": "Testi matriisi"}),
+        description=I18nText(translations={"en": "Desc"}),
+        scales=[
+            MatrixScale(score=1, name=I18nText(translations={"en": "Scale 1"}), ai_label="S1"),
+            MatrixScale(score=5, name=I18nText(translations={"en": "Scale 5"}), ai_label="S5"),
+        ],
+    )
+
+    profile = OutputProfile(
+        id="prof_0000000000000001",
+        slug="test_profile",
+        workflow_id="wor_0000000000000001",
+        name=I18nText(translations={"en": "Profile"}),
+        target_block_order=[],
+    )
+
+    class FoldedStepOutput(BaseModel):
+        step_id: str
+        block_id: str
+        payload: Any
+
+    # 1. Payload with atom_quotes=None
+    step_output_none = FoldedStepOutput(
+        step_id="stp_0000000000000001",
+        block_id=pb_id,
+        payload={
+            "raw_score": 4.5,
+            "normalized_score": 90.0,
+            "justification": "Score justification",
+            "atom_quotes": None,
+        },
+    )
+
+    eval_m, _, all_parsed, _ = MatrixDomainParser.parse_matrices(
+        results=[step_output_none],
+        locale="fi",
+        blocks_by_id={pb_id: pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={pb_id: "Explanation"},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row_key = f"{step_output_none.step_id}_{pb_id}"
+    assert len(eval_m) == 1
+    assert eval_m[0].block_id == pb_id
+    assert row_key in all_parsed
+    assert all_parsed[row_key].score == 4.5
+
+    # 2. Payload with atom_quotes as a populated list
+    step_output_list = FoldedStepOutput(
+        step_id="stp_0000000000000001",
+        block_id=pb_id,
+        payload={
+            "raw_score": 4.5,
+            "normalized_score": 90.0,
+            "justification": "Score justification",
+            "atom_quotes": [{"level": 1.0, "quote": "Evidence quote"}],
+        },
+    )
+
+    eval_m2, _, all_parsed2, _ = MatrixDomainParser.parse_matrices(
+        results=[step_output_list],
+        locale="fi",
+        blocks_by_id={pb_id: pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={pb_id: "Explanation"},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row_key2 = f"{step_output_list.step_id}_{pb_id}"
+    assert len(eval_m2) == 1
+    assert eval_m2[0].block_id == pb_id
+    assert row_key2 in all_parsed2
+    assert all_parsed2[row_key2].score == 4.5
