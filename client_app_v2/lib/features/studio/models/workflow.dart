@@ -144,6 +144,9 @@ abstract class Workflow with _$Workflow {
     @JsonKey(name: 'default_strictness_level')
     @Default(50)
     int defaultStrictnessLevel,
+    @JsonKey(name: 'security_penalty') @Default(0.0) double securityPenalty,
+    @JsonKey(name: 'post_hoc_penalty') @Default(0.0) double postHocPenalty,
+    @JsonKey(name: 'passivity_penalty') @Default(0.0) double passivityPenalty,
     @JsonKey(name: 'enable_contextual_overrides')
     @Default(false)
     bool enableContextualOverrides,

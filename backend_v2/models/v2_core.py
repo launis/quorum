@@ -1151,33 +1151,6 @@ class OutputProfile(V2CoreBase):
         int | None,
         Field(default=None, description="Per-profile override for unmet criteria per matrix."),
     ] = None
-    security_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for security threats (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    post_hoc_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    passivity_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
     target_block_order: Annotated[
         list[LaxTargetBlockType],
         Field(
@@ -1381,6 +1354,33 @@ class Workflow(V2CoreBase):
         int,
         Field(default=50, ge=0, le=100, description="Sovereign workflow strictness level (0-100 continuous)."),
     ] = 50
+    security_penalty: Annotated[
+        float,
+        Field(
+            default=0.0,
+            ge=0.0,
+            le=1.0,
+            description="Penalty ratio for security threats (default 0.0 = no penalty).",
+        ),
+    ] = 0.0
+    post_hoc_penalty: Annotated[
+        float,
+        Field(
+            default=0.0,
+            ge=0.0,
+            le=1.0,
+            description="Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).",
+        ),
+    ] = 0.0
+    passivity_penalty: Annotated[
+        float,
+        Field(
+            default=0.0,
+            ge=0.0,
+            le=1.0,
+            description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
+        ),
+    ] = 0.0
     enable_contextual_overrides: bool = Field(
         default=False,
         description="Global flag to enable contextual overrides across assertions.",

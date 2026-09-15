@@ -397,6 +397,12 @@ def sanitize_workflows(workflows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         w.pop("ui_schema", None)
         w.pop("default_scoring_strategy", None)
         w["default_strictness_level"] = 50
+        if "security_penalty" not in w:
+            w["security_penalty"] = 0.15 if w.get("id") == "wf_05a1d71000000005" else 0.0
+        if "post_hoc_penalty" not in w:
+            w["post_hoc_penalty"] = 0.0
+        if "passivity_penalty" not in w:
+            w["passivity_penalty"] = 0.0
         validated_model = adapter_workflows.validate_python(w)
         serialized_workflow = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_workflows.append(serialized_workflow)
@@ -420,6 +426,9 @@ def sanitize_output_profiles(output_profiles: list[dict[str, Any]]) -> list[dict
         p = dict(profile)
         p.pop("scoring_strategy", None)
         p.pop("strictness_level", None)
+        p.pop("security_penalty", None)
+        p.pop("post_hoc_penalty", None)
+        p.pop("passivity_penalty", None)
         validated_model = adapter_profiles.validate_python(p)
         serialized_profile = validated_model.model_dump(mode="json", exclude_none=True)
         sanitized_profiles.append(serialized_profile)

@@ -57,7 +57,7 @@ void main() {
 
   group('ProfileScoringTab Tests', () {
     testWidgets(
-      'test_scoring_tab_renders_display_scale_and_penalties_without_slider',
+      'test_scoring_tab_renders_display_scale_without_slider_or_penalties',
       (WidgetTester tester) async {
         final profile = createTestProfile();
 
@@ -66,10 +66,10 @@ void main() {
 
         expect(find.byType(DropdownButton<DisplayScale>), findsOneWidget);
         expect(find.byType(DropdownButton<int>), findsNothing);
-        // Slider and strictness chips MUST NOT be rendered on ProfileScoringTab
+        // Slider, strictness chips, and penalties MUST NOT be rendered on ProfileScoringTab
         expect(find.byType(Slider), findsNothing);
         expect(find.byType(ChoiceChip), findsNothing);
-        expect(find.byType(TextFormField), findsWidgets);
+        expect(find.byType(TextFormField), findsNothing);
       },
     );
 

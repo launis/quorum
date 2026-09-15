@@ -18358,7 +18358,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     },
     {
       "id": "wf_01a1d71000000001",
@@ -18528,7 +18531,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     },
     {
       "id": "wf_02a1d71000000002",
@@ -18783,7 +18789,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     },
     {
       "id": "wf_03a1d71000000003",
@@ -19022,7 +19031,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     },
     {
       "id": "wf_04a1d71000000004",
@@ -19234,7 +19246,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.0,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     },
     {
       "id": "wf_05a1d71000000005",
@@ -19448,7 +19463,10 @@
         "pdf",
         "raw_json"
       ],
-      "historical_context_mode": "DISABLED"
+      "historical_context_mode": "DISABLED",
+      "security_penalty": 0.15,
+      "post_hoc_penalty": 0.0,
+      "passivity_penalty": 0.0
     }
   ],
   "steps": [
@@ -20414,9 +20432,6 @@
       "xai_length_constraint": 300,
       "variance_length_constraint": 500,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
@@ -20578,9 +20593,6 @@
       "row_explanation_length_constraint": 250,
       "xai_length_constraint": 300,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "global_score_block",
@@ -20685,9 +20697,6 @@
       "xai_length_constraint": 300,
       "variance_length_constraint": 500,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
@@ -20798,9 +20807,6 @@
       "xai_length_constraint": 300,
       "variance_length_constraint": 500,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
@@ -20890,9 +20896,6 @@
       "synthesis_length_constraint": 1000,
       "row_explanation_length_constraint": 250,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.0,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",
@@ -21008,9 +21011,6 @@
       "xai_length_constraint": 300,
       "variance_length_constraint": 500,
       "matrix_graph_length_constraint": 400,
-      "security_penalty": 0.15,
-      "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0,
       "target_block_order": [
         "metadata_block",
         "executive_summary_block",

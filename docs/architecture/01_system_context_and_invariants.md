@@ -49,6 +49,14 @@ To prevent context amnesia and token saturation, complex agent workflows isolate
 ### 2.14. Binary TargetSpeaker Contract & Input Modality Separation
 All speaker attribution contracts across backend and frontend strictly enforce a binary target speaker contract (`USER` vs `AI`). Speaker attribution designates exclusively the human participant (`TargetSpeaker.USER`) or the artificial intelligence model (`TargetSpeaker.AI`). Environmental inputs, prompt instructions, and evaluation briefs are configured as dedicated input modalities (`assignment` in `ExpectedInput.input_modes`) and isolated into specific prompt context capsules (`<assignment_context>`), completely decoupled from speaker attribution. The system strictly prohibits expanding `TargetSpeaker` to represent assignment briefs or environmental guidelines; all assertions and criteria evaluate the performance of the human or model in relation to assignment constraints, preserving epistemic determinism and strict speaker boundary defense.
 
+### 2.15. Tripartite Pipeline Isolation & Evaluation Score Sovereignty
+The architecture strictly isolates three decoupled functional tiers:
+1. **Execution Tier (Evaluation & Atom Graph Engine):** Governs candidate evaluation, objective data extraction, matrix scaling, and score deduction. All evaluation rigor parameters (`default_strictness_level`) and automated deduction penalties (`security_penalty`, `post_hoc_penalty`, `passivity_penalty`) belong sovereignly to `Workflow` entities and are calculated deterministically during execution.
+2. **Synthesis Tier (Qualitative Summarization & Reporting):** Generates human-readable narrative prose and section explanations driven by `OutputProfile` styling directives. Operates strictly on finalized execution states without modifying evaluation scores.
+3. **Presentation Tier (Server-Driven UI & Dumb Painter):** Assembles declarative UI components and PDF export documents via `BlueprintTransformer`, operating as a read-only painter that projects finalized evaluation scores without recalculating penalties or mutating metrics.
+
+Presentation profiles (`OutputProfile`) are strictly decoupled from execution rigor. Switching presentation profiles alters layout ordering, narrative tone, and block visibility, but never alters or recalculates evaluation scores.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

@@ -201,6 +201,111 @@ class WorkflowStrictnessTab extends StatelessWidget {
               ),
             ),
           ),
+          AppSpacing.h16,
+          Card(
+            child: Padding(
+              padding: AppSpacing.p16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    l10n.penaltiesSectionTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  AppSpacing.h16,
+                  TextFormField(
+                    initialValue: (workflow.securityPenalty * 100).toStringAsFixed(
+                      workflow.securityPenalty * 100 ==
+                              (workflow.securityPenalty * 100).roundToDouble()
+                          ? 0
+                          : 1,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: l10n.penaltySecurityLabel,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      suffixText: '%',
+                    ),
+                    onChanged: (val) {
+                      if (val.trim().isEmpty) {
+                        onChanged(workflow.copyWith(securityPenalty: 0.0));
+                        return;
+                      }
+                      final parsed = double.tryParse(val.trim());
+                      if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                        onChanged(
+                          workflow.copyWith(securityPenalty: parsed / 100.0),
+                        );
+                      }
+                    },
+                  ),
+                  AppSpacing.h16,
+                  TextFormField(
+                    initialValue: (workflow.postHocPenalty * 100).toStringAsFixed(
+                      workflow.postHocPenalty * 100 ==
+                              (workflow.postHocPenalty * 100).roundToDouble()
+                          ? 0
+                          : 1,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: l10n.penaltyPostHocLabel,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      suffixText: '%',
+                    ),
+                    onChanged: (val) {
+                      if (val.trim().isEmpty) {
+                        onChanged(workflow.copyWith(postHocPenalty: 0.0));
+                        return;
+                      }
+                      final parsed = double.tryParse(val.trim());
+                      if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                        onChanged(
+                          workflow.copyWith(postHocPenalty: parsed / 100.0),
+                        );
+                      }
+                    },
+                  ),
+                  AppSpacing.h16,
+                  TextFormField(
+                    initialValue: (workflow.passivityPenalty * 100).toStringAsFixed(
+                      workflow.passivityPenalty * 100 ==
+                              (workflow.passivityPenalty * 100).roundToDouble()
+                          ? 0
+                          : 1,
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: l10n.penaltyPassivityLabel,
+                      isDense: true,
+                      border: const OutlineInputBorder(),
+                      suffixText: '%',
+                    ),
+                    onChanged: (val) {
+                      if (val.trim().isEmpty) {
+                        onChanged(workflow.copyWith(passivityPenalty: 0.0));
+                        return;
+                      }
+                      final parsed = double.tryParse(val.trim());
+                      if (parsed != null && parsed >= 0.0 && parsed <= 100.0) {
+                        onChanged(
+                          workflow.copyWith(passivityPenalty: parsed / 100.0),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

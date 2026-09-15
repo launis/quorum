@@ -54,7 +54,6 @@ def mock_blueprint_repos() -> AsyncMock:
             )
         ],
         visible_metadata=["user", "organization", "date", "cost", "tokens"],
-        strictness_level=85,
         matrix_visible_columns=["label", "score", "distribution", "quotes"],
     )
 

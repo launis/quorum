@@ -539,6 +539,9 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'default_profile_id',
         'mcp_gateway_id',
         'default_strictness_level',
+        'security_penalty',
+        'post_hoc_penalty',
+        'passivity_penalty',
         'enable_contextual_overrides',
         'enable_semantic_smoothing',
         'enable_eager_anonymization',
@@ -589,6 +592,18 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
         (v) => (v as num?)?.toInt() ?? 50,
+      ),
+      securityPenalty: $checkedConvert(
+        'security_penalty',
+        (v) => (v as num?)?.toDouble() ?? 0.0,
+      ),
+      postHocPenalty: $checkedConvert(
+        'post_hoc_penalty',
+        (v) => (v as num?)?.toDouble() ?? 0.0,
+      ),
+      passivityPenalty: $checkedConvert(
+        'passivity_penalty',
+        (v) => (v as num?)?.toDouble() ?? 0.0,
       ),
       enableContextualOverrides: $checkedConvert(
         'enable_contextual_overrides',
@@ -642,6 +657,9 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'defaultProfileId': 'default_profile_id',
     'mcpGatewayId': 'mcp_gateway_id',
     'defaultStrictnessLevel': 'default_strictness_level',
+    'securityPenalty': 'security_penalty',
+    'postHocPenalty': 'post_hoc_penalty',
+    'passivityPenalty': 'passivity_penalty',
     'enableContextualOverrides': 'enable_contextual_overrides',
     'enableSemanticSmoothing': 'enable_semantic_smoothing',
     'enableEagerAnonymization': 'enable_eager_anonymization',
@@ -667,6 +685,9 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'default_profile_id': instance.defaultProfileId,
   'mcp_gateway_id': instance.mcpGatewayId,
   'default_strictness_level': instance.defaultStrictnessLevel,
+  'security_penalty': instance.securityPenalty,
+  'post_hoc_penalty': instance.postHocPenalty,
+  'passivity_penalty': instance.passivityPenalty,
   'enable_contextual_overrides': instance.enableContextualOverrides,
   'enable_semantic_smoothing': instance.enableSemanticSmoothing,
   'enable_eager_anonymization': instance.enableEagerAnonymization,

@@ -495,61 +495,12 @@ class BlueprintTransformer:
             if profile.custom_preface:
                 resolved_preface_md = profile.custom_preface.resolve(locale)
             visible_metadata = profile.visible_metadata if profile.visible_metadata else []
-
-            active_penalties_for_adapter: list[str] = []
-            total_penalty = 0.0
-            seen_types: set[str] = set()
-            for penalty_str in penalties_applied:
-                if penalty_str == "PENALTY_SECURITY" or penalty_str.startswith("PENALTY_SECURITY:"):
-                    if "SECURITY" not in seen_types:
-                        seen_types.add("SECURITY")
-                        ratio = profile.security_penalty
-                        total_penalty += ratio
-                        if ratio > 0.0:
-                            pct = int(round(ratio * 100))
-                            active_penalties_for_adapter.append(f"PENALTY_SECURITY:{pct}")
-                elif penalty_str == "PENALTY_POST_HOC" or penalty_str.startswith("PENALTY_POST_HOC:"):
-                    if "POST_HOC" not in seen_types:
-                        seen_types.add("POST_HOC")
-                        ratio = profile.post_hoc_penalty
-                        total_penalty += ratio
-                        if ratio > 0.0:
-                            pct = int(round(ratio * 100))
-                            active_penalties_for_adapter.append(f"PENALTY_POST_HOC:{pct}")
-                elif penalty_str == "PENALTY_PASSIVITY" or penalty_str.startswith("PENALTY_PASSIVITY:"):
-                    if "PASSIVITY" not in seen_types:
-                        seen_types.add("PASSIVITY")
-                        ratio = profile.passivity_penalty
-                        total_penalty += ratio
-                        if ratio > 0.0:
-                            pct = int(round(ratio * 100))
-                            active_penalties_for_adapter.append(f"PENALTY_PASSIVITY:{pct}")
-                else:
-                    # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
-                    msg_fmt = f"Zero-Compromise Check Failed: Unsupported or legacy penalty format: '{penalty_str}'"
-                    logger.error("[BlueprintTransformer] %s", msg_fmt)
-                    raise AppException(
-                        message=msg_fmt,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-
-            if evaluative_matrices and not (profile_cache and profile_cache.data_starvation is not None):
-                total_norm = sum(m.normalized_score for m in evaluative_matrices if m.normalized_score is not None)
-                count_norm = sum(1 for m in evaluative_matrices if m.normalized_score is not None)
-                if count_norm > 0:
-                    base_avg = total_norm / count_norm
-                    effective_penalty = min(total_penalty, 0.40)
-                    recalc_final = base_avg * (1.0 - effective_penalty)
-                    global_score = float(
-                        round(max(0.0, recalc_final), 1)
-                    )  # Phase 2: Assemble final visualization blocks
             inner_sdui_blocks: list[AnySduiBlock] = []
 
             adapter_context = AdapterContext(
                 execution=execution,
                 locale=locale,
-                penalties_applied=active_penalties_for_adapter,
+                penalties_applied=penalties_applied,
                 mcp_audit_map={t.id: t for t in mcp_audit_data if t.id} if mcp_audit_data else None,
                 global_score=global_score,
                 profile=profile,

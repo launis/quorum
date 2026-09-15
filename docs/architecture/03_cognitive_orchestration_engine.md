@@ -115,6 +115,21 @@ When workflows chain analytical findings across sequential steps, context transi
 - **Compound Step Target Resolution**: Downstream steps can target prior step outputs using simple step identifiers (`$steps.{step_id}`) or compound targets (`$steps.{step_id}.{block_id}`). The source document packer resolves matching outputs deterministically, verifying all explicitly referenced steps exist and serializing structured payloads (`BaseModel`, `list[BaseModel]`) into formatted JSON capsules.
 - **Execution Trace Matrix Reduction**: The matrix reducer extracts evaluated atoms and behavioral extensions directly from authoritative runtime state in `ExecutionRecord.execution_trace` (`event_type == 'output'` containing `results: list[AtomResultDTO]`). Evaluated atoms are filtered and compressed into `LightweightMatrixDTO`, populating `evaluated_matrices` alongside `reduced_atoms` to provide downstream synthesis and dependent specialist steps with compact, zero-loss analytical state while saving context window space.
 
+### 2.19. Continuous Strictness & Unified Matrix Scoring Engine
+Evaluation rigor across matrix models flows through a unified scoring engine parameterized by a continuous strictness level bounded between 0 and 100 inclusive (`default_strictness_level` on `Workflow`):
+- **Weighted Hit Ratio**: Calculates the exact weighted hit ratio across evaluated scale levels while excluding disqualified (DLQ) observations from the denominator.
+- **Piecewise Power-Curve Exponent**: Modulates the ratio using a continuous piecewise exponent curve ($e=1.00$ at 0% Free, $e=1.25$ at 50% Normal, $e=1.70$ at 85% Strict, and $e=2.20$ at 100% Absolute Zero-Trust), anchoring scoring to mathematical extrema derived dynamically from prompt block scales.
+- **Typed Return Contract**: Returns an immutable `ScoringResultDTO` containing the normalized score, structured XAI audit trace, and per-level breakdown, eliminating anonymous tuple passing.
+
+### 2.20. Automated Score Deduction Penalties & Execution Hook Lifecycle
+Automated score deduction percentages are execution-tier parameters defined on `Workflow` entities and evaluated deterministically inside the scoring logic hook (`apply_scoring_logic_hook`):
+- **Automated Penalty Modalities**:
+  - *Security Penalty (`security_penalty`)*: Deducted when prompt injection, jailbreak attempts, or unauthorized role escape patterns are detected in inputs.
+  - *Post-Hoc Penalty (`post_hoc_penalty`)*: Deducted when post-hoc rationalization, retrospective excuses, or confabulated causality patterns are identified.
+  - *Passivity Penalty (`passivity_penalty`)*: Deducted when evasive, non-responsive, or passive avoidance behaviors are detected in candidate deliverables.
+- **Cumulative Clamping & Safety Bounds**: Cumulative penalty percentages are capped at `MAX_TOTAL_PENALTY_RATIO = 0.40` (40% maximum deduction). The finalized score is computed as `final_score = round(max(0.0, average_score * (1.0 - effective_penalty)), 1)`.
+- **Token Formatting & Audit Trail**: Active penalties are formatted as tokens (`PENALTY_<TYPE>:<PERCENTAGE>`) and stored in `scoring_result.penalties_applied` within `TraceScoringPayloadDTO`, locking the evaluation score permanently upon execution completion.
+
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
 ```mermaid

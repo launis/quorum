@@ -19,16 +19,21 @@ from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.state import StepOutputDTO
+from backend_v2.models.v2_core import Workflow
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "MAX_TOTAL_PENALTY_RATIO",
     "ScoringPayloadWrapper",
     "StateInputWrapper",
     "_extract_payloads",
     "apply_scoring_logic_hook",
 ]
+
+MAX_TOTAL_PENALTY_RATIO: float = 0.40
 
 
 class ScoringPayloadWrapper(V2CoreBase):
@@ -69,11 +74,11 @@ class StateInputWrapper(V2CoreBase):
     passivity_detected: bool | None = None
 
 
-def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[ScoringPayloadWrapper]:
+def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[ScoringPayloadWrapper]:
     """Strict Phase 9 Extractor. No V1 Fallbacks. No Naked Dict guessing.
 
     Args:
-        data: The execution inputs DTO or dictionary representation.
+        data: The execution inputs DTO or StateInputWrapper representation.
 
     Returns:
         A list of strictly parsed ScoringPayloadWrapper objects.
@@ -84,11 +89,11 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
     payloads: list[ScoringPayloadWrapper] = []
 
     try:
-        hydrated_state = (
-            data
-            if isinstance(data, StateInputWrapper)
-            else StateInputWrapper.model_validate(data.raw_inputs if isinstance(data, ExecutionInputsDTO) else data)
-        )
+        if isinstance(data, StateInputWrapper):
+            hydrated_state = data
+        else:
+            raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
+            hydrated_state = StateInputWrapper.model_validate(raw_source)
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Execution snapshot validation failed: {e}"
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -111,8 +116,12 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
                 eval_map = TypeAdapter(dict[str, float]).validate_python(valid_dto.payload)
                 payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
                 continue
-            except ValidationError:
-                pass
+            except ValidationError as e:
+                msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO '_evaluative_matrices' payload: {e}"
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                ) from e
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
             if wrapper.has_scoring_data:
@@ -127,19 +136,22 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
     # Add explicitly injected top-level inputs
     for extra_inputs in [hydrated_state.inputs, hydrated_state.raw_inputs]:
         if extra_inputs is not None:
-            candidate_dicts = (
-                [extra_inputs.raw_inputs, extra_inputs.dynamic_inputs]
-                if isinstance(extra_inputs, ExecutionInputsDTO)
-                else [extra_inputs]
-            )
+            if isinstance(extra_inputs, ExecutionInputsDTO):
+                candidate_dicts = [extra_inputs.raw_inputs, extra_inputs.dynamic_inputs]
+            else:
+                candidate_dicts = [extra_inputs]
             for extra_dict in candidate_dicts:
                 if extra_dict:
                     if "_evaluative_matrices" in extra_dict:
                         try:
                             eval_map = TypeAdapter(dict[str, float]).validate_python(extra_dict["_evaluative_matrices"])
                             payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
-                        except ValidationError:
-                            pass
+                        except ValidationError as e:
+                            msg = f"Strict Fail-Fast Enforced: Invalid top-level '_evaluative_matrices': {e}"
+                            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                            ) from e
                     try:
                         wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
                         payloads.append(wrapper)
@@ -149,14 +161,14 @@ def _extract_payloads(data: ExecutionInputsDTO | dict[str, Any]) -> list[Scoring
     return payloads
 
 
-def _extract_guard_flag(data: ExecutionInputsDTO | dict[str, Any]) -> bool | None:
+def _extract_guard_flag(data: ExecutionInputsDTO | StateInputWrapper) -> bool | None:
     """Extracts the security threat flag from the guard output in the state.
 
     Iterates over the V2 execution snapshot to find the input processing result.
     Silent Fallback is BANNED. If the data is malformed, we raise an exception.
 
     Args:
-        data: The execution inputs DTO or dictionary representation.
+        data: The execution inputs DTO or StateInputWrapper representation.
 
     Returns:
         Boolean indicating if a threat was detected, or None if guard data is missing.
@@ -171,13 +183,13 @@ def _extract_guard_flag(data: ExecutionInputsDTO | dict[str, Any]) -> bool | Non
     return None
 
 
-def _extract_falsifier_data(data: ExecutionInputsDTO | dict[str, Any]) -> FalsifierData | None:
+def _extract_falsifier_data(data: ExecutionInputsDTO | StateInputWrapper) -> FalsifierData | None:
     """Extracts falsifier data from either step_falsifier or step_panel outputs in V2 state.
 
     Iterates over the V2 execution snapshot. Silent Fallback is BANNED.
 
     Args:
-        data: The execution inputs DTO or dictionary representation.
+        data: The execution inputs DTO or StateInputWrapper representation.
 
     Returns:
         FalsifierData if present, or None if falsifier data is missing.
@@ -207,39 +219,47 @@ def _calculate_falsifier_penalty(falsifier_data: FalsifierData | None) -> bool:
     return False
 
 
-def _extract_passivity_flag(data: ExecutionInputsDTO | dict[str, Any]) -> bool:
+def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> bool:
     """Extracts passivity penalty detection flag from state snapshot or step payloads.
 
     Args:
-        data: The execution inputs DTO or dictionary representation.
+        data: The execution inputs DTO or StateInputWrapper representation.
 
     Returns:
         bool: True if passivity penalty was detected, False otherwise.
+
+    Raises:
+        AppException: With ErrorCodes.VALIDATION_FAILED if data validation fails.
     """
     for wrapper in _extract_payloads(data):
         if wrapper.passivity_detected is True:
             return True
 
     try:
-        hydrated_state = (
-            data
-            if isinstance(data, StateInputWrapper)
-            else StateInputWrapper.model_validate(data.raw_inputs if isinstance(data, ExecutionInputsDTO) else data)
-        )
+        if isinstance(data, StateInputWrapper):
+            hydrated_state = data
+        else:
+            raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
+            hydrated_state = StateInputWrapper.model_validate(raw_source)
         if hydrated_state.passivity_detected is True:
             return True
-    except ValidationError:
-        pass
+    except ValidationError as e:
+        msg = f"Strict Fail-Fast Enforced: Invalid passivity detection state: {e}"
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+        ) from e
 
     return False
 
 
 @hook_registry.register(name="apply_scoring_logic")
-def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookResult:
+async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookResult:
     """Workflow Data wrapper for apply_scoring_logic.
 
     Aggregates scores from Judge/Evaluation steps, applies penalties based on
-    Security (Guard) and Falsifier findings, and returns the strictly updated dict.
+    Workflow configuration, Security (Guard), Falsifier findings, and Passivity detection,
+    and returns the strictly updated dict.
 
     Args:
         state: The execution state of the workflow step.
@@ -249,38 +269,74 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
         The hook execution result with state_delta containing updated scoring results.
 
     Raises:
-        AppException: With ErrorCodes.VALIDATION_FAILED if state data is invalid or missing.
+        AppException: With ErrorCodes.VALIDATION_FAILED if state data is invalid or missing,
+            HOOK_EXECUTION_FAILED if dependencies are missing, or RESOURCE_NOT_FOUND if workflow is not found.
     """
     logger.debug("[ScoringHook] Calculating final scores...")
 
     if not state:
         msg = "Strict Fail-Fast Enforced: Missing HookState in apply_scoring_logic_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    lookup_ctx = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
+    if not deps or deps.workflow_repo is None:
+        msg = "Strict Fail-Fast Enforced: Missing workflow_repo dependency in apply_scoring_logic_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
+
+    workflow_raw = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
+    if workflow_raw is None:
+        msg = f"Strict Fail-Fast Enforced: Workflow not found for ID '{state.workflow_id}'."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+        raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
+
+    if isinstance(workflow_raw, Workflow):
+        workflow = workflow_raw
+    else:
+        workflow = Workflow.model_validate(workflow_raw, strict=False)
 
     # 1. Security Penalty Check (Guard)
-    security_threat = _extract_guard_flag(lookup_ctx)
+    security_threat = _extract_guard_flag(state.inputs)
 
     # 2. Falsifier Penalty Check
-    falsifier_data = _extract_falsifier_data(lookup_ctx)
+    falsifier_data = _extract_falsifier_data(state.inputs)
     is_post_hoc = _calculate_falsifier_penalty(falsifier_data)
 
     # 3. Passivity Penalty Check
-    passivity_detected = _extract_passivity_flag(lookup_ctx)
+    passivity_detected = _extract_passivity_flag(state.inputs)
 
     penalties: list[str] = []
+    total_penalty = 0.0
+
     if security_threat:
-        penalties.append("PENALTY_SECURITY")
-        logger.warning("[ScoringHook] Security threat detected; recorded PENALTY_SECURITY observation token.")
+        total_penalty += workflow.security_penalty
+        if workflow.security_penalty > 0:
+            pct = int(round(workflow.security_penalty * 100))
+            token = f"PENALTY_SECURITY:{pct}"
+        else:
+            token = "PENALTY_SECURITY"
+        penalties.append(token)
+        logger.warning("[ScoringHook] Security threat detected; recorded %s observation token.", token)
 
     if is_post_hoc:
-        penalties.append("PENALTY_POST_HOC")
-        logger.warning("[ScoringHook] Post-hoc rationalization detected; recorded PENALTY_POST_HOC observation token.")
+        total_penalty += workflow.post_hoc_penalty
+        if workflow.post_hoc_penalty > 0:
+            pct = int(round(workflow.post_hoc_penalty * 100))
+            token = f"PENALTY_POST_HOC:{pct}"
+        else:
+            token = "PENALTY_POST_HOC"
+        penalties.append(token)
+        logger.warning("[ScoringHook] Post-hoc rationalization detected; recorded %s observation token.", token)
 
     if passivity_detected:
-        penalties.append("PENALTY_PASSIVITY")
-        logger.warning("[ScoringHook] Passivity detected; recorded PENALTY_PASSIVITY observation token.")
+        total_penalty += workflow.passivity_penalty
+        if workflow.passivity_penalty > 0:
+            pct = int(round(workflow.passivity_penalty * 100))
+            token = f"PENALTY_PASSIVITY:{pct}"
+        else:
+            token = "PENALTY_PASSIVITY"
+        penalties.append(token)
+        logger.warning("[ScoringHook] Passivity detected; recorded %s observation token.", token)
 
     total_score_accum = 0.0
     count = 0
@@ -293,7 +349,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
             for block_id, norm_val in source.evaluative_matrices.items():
                 unique_matrices[block_id] = float(norm_val)
 
-    for wrapper in _extract_payloads(lookup_ctx):
+    for wrapper in _extract_payloads(state.inputs):
         _extract_scores(wrapper)
 
     for v_float in unique_matrices.values():
@@ -303,6 +359,7 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
     if count == 0:
         is_valid_indeterminate = False
+        lookup_ctx = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
         for _, v in lookup_ctx.items():
             try:
                 matrix_out = LightweightMatrixOutput.model_validate(v)
@@ -314,13 +371,18 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
 
         if is_valid_indeterminate:
             logger.warning("[ScoringHook] All matrices are INDETERMINATE. Skipping aggregation.")
-            indet_result = {
-                "total_score": None,
-                "final_score": None,
-                "penalties_applied": penalties,
-                "aggregation_status": "INDETERMINATE - Cognitive Collapse / Quality Check Failed",
-            }
-            return HookResult(success=True, state_delta=HookDeltaDTO(delta={"scoring_result": indet_result}))
+            indet_dto = TraceScoringPayloadDTO(
+                total_score=None,
+                final_score=None,
+                penalties_applied=penalties,
+                aggregation_status="INDETERMINATE - Cognitive Collapse / Quality Check Failed",
+            )
+            return HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(
+                    delta={"scoring_result": indet_dto.model_dump(mode="json", exclude_none=True)}
+                ),
+            )
 
         msg = (
             "Strict Fail-Fast Enforced: '_evaluative_matrices' missing from state. "
@@ -331,21 +393,27 @@ def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> HookRe
     else:
         average_score = total_score_accum / count
 
-    # 4. Pure Commensurate Averaging (Calibration occurs in Phase 3 Blueprint)
-    final_score = round(max(0.0, average_score), 2)
+    # 4. Phase 1 Sovereign Execution Penalty Deduction
+    effective_penalty = min(total_penalty, MAX_TOTAL_PENALTY_RATIO)
+    final_score = round(max(0.0, average_score * (1.0 - effective_penalty)), 1)
 
-    # 5. Create Result with True Averaging
-    result = {
-        "total_score": final_score,
-        "final_score": final_score,
-        "penalties_applied": penalties,
-        "aggregation_status": f"V2 Commensurate Average of {count} matrices",
-    }
+    # 5. Create Result with TraceScoringPayloadDTO
+    score_dto = TraceScoringPayloadDTO(
+        total_score=final_score,
+        final_score=final_score,
+        penalties_applied=penalties,
+        aggregation_status=f"V2 Commensurate Average of {count} matrices",
+    )
 
     logger.info(
-        "[ScoringHook] Scoring validation complete. Commensurate Base Average: %.1f, Final: %.1f. Penalties: %d",
+        "[ScoringHook] Scoring validation complete. Commensurate Base Average: %.1f, "
+        "Final: %.1f. Penalties: %d (Effective: %.2f)",
         average_score,
         final_score,
         len(penalties),
+        effective_penalty,
     )
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"scoring_result": result}))
+    return HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(delta={"scoring_result": score_dto.model_dump(mode="json", exclude_none=True)}),
+    )

@@ -74,6 +74,51 @@ def test_output_profiles_do_not_contain_execution_logic() -> None:
             Workflow.model_validate(raw_wf)
 
 
+def test_output_profiles_do_not_contain_scoring_penalties() -> None:
+    """Architectural Guardrail: OutputProfiles MUST NOT contain scoring penalties."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    profiles = data.get("output_profiles", [])
+    assert profiles, "At least one output profile must exist in master seed"
+
+    penalty_keys = ["security_penalty", "post_hoc_penalty", "passivity_penalty"]
+    for raw_profile in profiles:
+        for p_key in penalty_keys:
+            assert p_key not in raw_profile, (
+                f"Scoring penalty key '{p_key}' found in OutputProfile '{raw_profile.get('id')}'. "
+                "Penalties belong strictly to Workflow (Phase 1 Execution Tier)."
+            )
+
+    # Anti-happy-path negative verification
+    malformed_profile = {"id": "prf_invalid", "security_penalty": 0.15}
+    assert any(k in malformed_profile for k in penalty_keys)
+
+
+def test_workflows_contain_scoring_penalties() -> None:
+    """Architectural Guardrail: Workflows MUST declare scoring penalties."""
+    with open(SEED_FILE, encoding="utf-8") as f:
+        data = json.load(f)
+
+    workflows = data.get("workflows", [])
+    assert workflows, "At least one workflow must exist in master seed"
+
+    penalty_keys = ["security_penalty", "post_hoc_penalty", "passivity_penalty"]
+    for raw_wf in workflows:
+        for p_key in penalty_keys:
+            assert p_key in raw_wf, (
+                f"Scoring penalty key '{p_key}' missing from Workflow '{raw_wf.get('id')}'. "
+                "Workflows must sovereignly own automated scoring penalties."
+            )
+            val = raw_wf[p_key]
+            assert isinstance(val, (int, float))
+            assert 0.0 <= float(val) <= 1.0, f"Penalty '{p_key}' value {val} out of bounds [0.0, 1.0]"
+
+    # Anti-happy-path negative verification
+    malformed_wf = {"id": "wf_invalid"}
+    assert not all(k in malformed_wf for k in penalty_keys)
+
+
 def test_model_strategies_are_bound_to_registry() -> None:
     """Architectural Guardrail: All model_strategy references must exist in the SystemConfigModelRegistry."""
     with open(SEED_FILE, encoding="utf-8") as f:

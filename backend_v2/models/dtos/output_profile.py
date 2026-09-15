@@ -204,33 +204,6 @@ class OutputProfileCreateDTO(V2CoreBase):
         int | None,
         Field(default=None, description="Per-profile override for unmet criteria per matrix."),
     ] = None
-    security_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for security threats (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    post_hoc_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    passivity_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup],
         Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
@@ -455,33 +428,6 @@ class OutputProfileUpdateDTO(V2CoreBase):
         int | None,
         Field(default=None, description="Per-profile override for unmet criteria per matrix."),
     ] = None
-    security_penalty: Annotated[
-        float | None,
-        Field(
-            default=None,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for security threats (default 0.0 = no penalty).",
-        ),
-    ] = None
-    post_hoc_penalty: Annotated[
-        float | None,
-        Field(
-            default=None,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).",
-        ),
-    ] = None
-    passivity_penalty: Annotated[
-        float | None,
-        Field(
-            default=None,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
-        ),
-    ] = None
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup] | None,
         Field(default=None, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),
@@ -646,33 +592,6 @@ class OutputProfileResponseDTO(BaseResponseDTO):
     matrix_graph_length_constraint: int | None = None
     max_quotes_per_matrix: int | None = None
     max_unmet_criteria: int | None = None
-    security_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for security threats (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    post_hoc_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for post-hoc rationalization (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
-    passivity_penalty: Annotated[
-        float,
-        Field(
-            default=0.0,
-            ge=0.0,
-            le=1.0,
-            description="Penalty ratio for passivity or lowest-quality score (default 0.0 = no penalty).",
-        ),
-    ] = 0.0
     matrix_synthesis_groups: Annotated[
         list[MatrixSynthesisGroup],
         Field(default_factory=list, description="Optional matrix synthesis groups for 2D/3D comparative graphs."),

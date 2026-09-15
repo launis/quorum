@@ -138,6 +138,13 @@ class WorkflowCreateDTO(V2CoreBase):
         "sys_8172bda70c8641c5"
     )
     default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
+    security_penalty: Annotated[
+        float, Field(default=0.0, ge=0.0, le=1.0, description="Security threat penalty ratio")
+    ] = 0.0
+    post_hoc_penalty: Annotated[
+        float, Field(default=0.0, ge=0.0, le=1.0, description="Post-hoc rationalization penalty ratio")
+    ] = 0.0
+    passivity_penalty: Annotated[float, Field(default=0.0, ge=0.0, le=1.0, description="Passivity penalty ratio")] = 0.0
     enable_contextual_overrides: Annotated[bool, Field(default=False, description="Enable contextual overrides")] = (
         False
     )
@@ -589,6 +596,15 @@ class WorkflowUpdateDTO(BaseDTO):
     default_profile_id: Annotated[str | None, Field(default=None)] = None
     default_strictness_level: Annotated[
         int | None, Field(default=None, ge=0, le=100, description="Updated sovereign workflow strictness level")
+    ] = None
+    security_penalty: Annotated[
+        float | None, Field(default=None, ge=0.0, le=1.0, description="Updated security threat penalty ratio")
+    ] = None
+    post_hoc_penalty: Annotated[
+        float | None, Field(default=None, ge=0.0, le=1.0, description="Updated post-hoc rationalization penalty ratio")
+    ] = None
+    passivity_penalty: Annotated[
+        float | None, Field(default=None, ge=0.0, le=1.0, description="Updated passivity penalty ratio")
     ] = None
     status: Annotated[str | None, Field(default=None)] = None
 

@@ -163,6 +163,9 @@ class MockRepository:
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "enable_contextual_overrides": True,
+            "security_penalty": 0.0,
+            "post_hoc_penalty": 0.0,
+            "passivity_penalty": 0.0,
         }
 
     async def get_output_profile_by_id(self, profile_id: str) -> dict[str, Any]:
@@ -3158,7 +3161,8 @@ async def test_phase_1_5_negative_raw_boolean_crashes_validation() -> None:
 # ==============================================================================
 
 
-def test_apply_scoring_logic_hook_success() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_success() -> None:
     """Test that apply_scoring_logic_hook computes commensurate average score correctly without penalties."""
     eval_matrices = {"blk_1": 80.0, "blk_2": 90.0}
     state = HookState(
@@ -3181,7 +3185,7 @@ def test_apply_scoring_logic_hook_success() -> None:
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3193,7 +3197,8 @@ def test_apply_scoring_logic_hook_success() -> None:
     assert scoring_result["aggregation_status"] == "V2 Commensurate Average of 2 matrices"
 
 
-def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
     """Test that apply_scoring_logic_hook extracts evaluative matrices from hoisted StepOutputDTO list."""
     step_output = StepOutputDTO(
         step_id="st_matrix",
@@ -3221,7 +3226,7 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3229,7 +3234,8 @@ def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
     assert scoring_result["final_score"] == 80.0
 
 
-def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() -> None:
     """Test that apply_scoring_logic_hook records security and post-hoc penalty observation tokens."""
     sec_dto = InputProcessingOutputDTO(
         thought_process="Analyzing input for injection threats",
@@ -3301,7 +3307,7 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() -> Non
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3311,7 +3317,8 @@ def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() -> Non
     assert "PENALTY_POST_HOC" in scoring_result["penalties_applied"]
 
 
-def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
     """Test that apply_scoring_logic_hook records passivity penalty observation token."""
     eval_matrices = {"blk_1": 80.0}
     inputs: dict[str, Any] = {
@@ -3342,7 +3349,7 @@ def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
@@ -3351,7 +3358,8 @@ def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
     assert "PENALTY_PASSIVITY" in scoring_result["penalties_applied"]
 
 
-def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
     """Test that apply_scoring_logic_hook gracefully handles indeterminate matrix evaluations."""
     state = HookState(
         execution_id="exec_0000000000000004",
@@ -3378,17 +3386,18 @@ def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     scoring_result = delta["scoring_result"]
-    assert scoring_result["total_score"] is None
-    assert scoring_result["final_score"] is None
+    assert scoring_result.get("total_score") is None
+    assert scoring_result.get("final_score") is None
     assert "INDETERMINATE" in scoring_result["aggregation_status"]
 
 
-def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
     """Test that missing evaluative matrices without indeterminate reason raises AppException."""
     state = HookState(
         execution_id="exec_0000000000000005",
@@ -3411,13 +3420,14 @@ def test_apply_scoring_logic_hook_missing_evaluative_matrices_raises() -> None:
     )
 
     with pytest.raises(AppException) as exc_info:
-        apply_scoring_logic_hook(state, deps)
+        await apply_scoring_logic_hook(state, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
     assert "_evaluative_matrices' missing" in exc_info.value.message
 
 
-def test_apply_scoring_logic_hook_missing_state_raises() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_missing_state_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when state is None."""
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -3431,12 +3441,13 @@ def test_apply_scoring_logic_hook_missing_state_raises() -> None:
     )
 
     with pytest.raises(AppException) as exc_info:
-        apply_scoring_logic_hook(cast(Any, None), deps)
+        await apply_scoring_logic_hook(cast(Any, None), deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
 
 
-def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when steps key is missing."""
     state = HookState(
         execution_id="exec_0000000000000006",
@@ -3459,13 +3470,14 @@ def test_apply_scoring_logic_hook_missing_steps_in_snapshot_raises() -> None:
     )
 
     with pytest.raises(AppException) as exc_info:
-        apply_scoring_logic_hook(state, deps)
+        await apply_scoring_logic_hook(state, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
     assert "Execution snapshot 'steps' missing" in exc_info.value.message
 
 
-def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
     """Test that apply_scoring_logic_hook raises VALIDATION_FAILED when step payload is an invalid dict."""
     state = HookState(
         execution_id="exec_0000000000000007",
@@ -3499,13 +3511,14 @@ def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
     )
 
     with pytest.raises(AppException) as exc_info:
-        apply_scoring_logic_hook(state, deps)
+        await apply_scoring_logic_hook(state, deps)
 
     assert exc_info.value.error_code == "VALIDATION_FAILED"
     assert "Invalid StepOutputDTO payload" in exc_info.value.message
 
 
-def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> None:
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> None:
     """Test that apply_scoring_logic_hook extracts threat and falsifier data from SanitizationResult and StepPanelDTO."""
     sanitization_dto = SanitizationResultDTO(
         sanitized_inputs={"user_input": "Cleaned user input"},
@@ -3579,11 +3592,261 @@ def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> None:
         system_repo=cast(Any, MockRepository()),
     )
 
-    result = apply_scoring_logic_hook(state, deps)
+    result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     assert "scoring_result" in delta
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_missing_workflow_repo_raises() -> None:
+    """Test that apply_scoring_logic_hook raises HOOK_EXECUTION_FAILED when workflow_repo is None."""
+    state = HookState(
+        execution_id="exec_0000000000000001",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "inputs": {"_evaluative_matrices": {"blk_1": 80.0}}}),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, None),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await apply_scoring_logic_hook(state, deps)
+
+    assert exc_info.value.error_code == "HOOK_EXECUTION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
+    """Test that apply_scoring_logic_hook raises RESOURCE_NOT_FOUND when workflow is not found."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_workflow_by_id.return_value = None
+    state = HookState(
+        execution_id="exec_0000000000000001",
+        workflow_id="wf_nonexistent",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "inputs": {"_evaluative_matrices": {"blk_1": 80.0}}}),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, mock_workflow_repo),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await apply_scoring_logic_hook(state, deps)
+
+    assert exc_info.value.error_code == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> None:
+    """Test that non-zero workflow penalties deduct from score and format tokens with percentage."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "penalized_workflow",
+        "name": {"translations": {"en": "Penalized", "fi": "Penalized"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+        "security_penalty": 0.15,
+        "post_hoc_penalty": 0.10,
+        "passivity_penalty": 0.05,
+    }
+    sec_dto = InputProcessingOutputDTO(
+        thought_process="Analyzing input",
+        conclusion="Threat detected",
+        confidence_score=0.95,
+        is_safe=False,
+        rejection_reason="Threat detected",
+        security_check=SecurityCheck(
+            threat_detected=True,
+            risk_level=LaxRiskLevel.HIGH,
+            risk_score=3.0,
+            simulation_score=1.0,
+            anonymized=False,
+            pii_findings=[],
+        ),
+    )
+    state = HookState(
+        execution_id="exec_0000000000000001",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "steps": [],
+                "inputs": {
+                    "_evaluative_matrices": {"blk_1": 100.0},
+                    "step_input_processing": sec_dto.model_dump(mode="json"),
+                    "passivity_detected": True,
+                },
+            }
+        ),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, mock_workflow_repo),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    result = await apply_scoring_logic_hook(state, deps)
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
+    # security 0.15 + passivity 0.05 = 0.20 total penalty
+    # final_score = 100.0 * (1.0 - 0.20) = 80.0
+    assert scoring_result["final_score"] == 80.0
+    assert "PENALTY_SECURITY:15" in scoring_result["penalties_applied"]
+    assert "PENALTY_PASSIVITY:5" in scoring_result["penalties_applied"]
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> None:
+    """Test that cumulative penalties exceeding MAX_TOTAL_PENALTY_RATIO (0.40) are clamped."""
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wflow_1234567890123456",
+        "slug": "heavy_penalty_workflow",
+        "name": {"translations": {"en": "Heavy", "fi": "Heavy"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1111111111111111",
+        "default_strictness_level": 85,
+        "allowed_exports": ["pdf"],
+        "historical_context_mode": "DISABLED",
+        "enable_contextual_overrides": True,
+        "security_penalty": 0.30,
+        "post_hoc_penalty": 0.20,
+        "passivity_penalty": 0.15,
+    }
+    sec_dto = InputProcessingOutputDTO(
+        thought_process="Analyzing input",
+        conclusion="Threat detected",
+        confidence_score=0.95,
+        is_safe=False,
+        rejection_reason="Threat detected",
+        security_check=SecurityCheck(
+            threat_detected=True,
+            risk_level=LaxRiskLevel.HIGH,
+            risk_score=3.0,
+            simulation_score=1.0,
+            anonymized=False,
+            pii_findings=[],
+        ),
+    )
+    falsifier_dto = FalsifierData(
+        stress_test_findings=[
+            WaltonStressTest(
+                question="Is reasoning post-hoc?",
+                evidence_held=False,
+                observation="Post-hoc rationalization",
+            )
+        ],
+        fidelity_audit=ReasoningFidelity(
+            fidelity_score=FidelityLevel.WEAK,
+            fidelity_numeric=1.0,
+            abductive_score=1.0,
+            plausibility_score=1.0,
+            justification="Post-hoc",
+            post_hoc_rationalization=True,
+        ),
+    )
+    step_falsifier_dto = StepFalsifierDTO(
+        thought_process="Auditing",
+        conclusion="Post-hoc",
+        confidence_score=0.9,
+        falsifier_data=falsifier_dto,
+    )
+    state = HookState(
+        execution_id="exec_0000000000000001",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "steps": [],
+                "inputs": {
+                    "_evaluative_matrices": {"blk_1": 80.0},
+                    "step_input_processing": sec_dto.model_dump(mode="json"),
+                    "step_falsifier": step_falsifier_dto.model_dump(mode="json"),
+                    "passivity_detected": True,
+                },
+            }
+        ),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, mock_workflow_repo),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    result = await apply_scoring_logic_hook(state, deps)
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    scoring_result = delta["scoring_result"]
+    # Total penalties: 0.30 + 0.20 + 0.15 = 0.65 -> clamped at 0.40
+    # Final score: 80.0 * (1.0 - 0.40) = 48.0
+    assert scoring_result["final_score"] == 48.0
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_invalid_state_input_wrapper_raises() -> None:
+    """Test that invalid payload in StateInputWrapper raises AppException with VALIDATION_FAILED."""
+    state = HookState(
+        execution_id="exec_0000000000000001",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "steps": [],
+                "inputs": {
+                    "step_input_processing": {"invalid_shape": 123},
+                },
+            }
+        ),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, MockRepository()),
+        workflow_repo=cast(Any, MockRepository()),
+        comp_repo=cast(Any, MockRepository()),
+        prompt_block_repo=cast(Any, MockRepository()),
+        output_profile_repo=cast(Any, MockRepository()),
+        identity_repo=cast(Any, MockRepository()),
+        system_repo=cast(Any, MockRepository()),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await apply_scoring_logic_hook(state, deps)
+
+    assert exc_info.value.error_code == "VALIDATION_FAILED"
 
 
 # ==============================================================================

@@ -151,7 +151,85 @@ void main() {
       expect(find.text('85%'), findsOneWidget);
       expect(find.text('Pisteytyksen ankaruustaso'), findsOneWidget);
       expect(find.text('85% Tiukka'), findsOneWidget);
+      expect(find.text('Automaattiset pistevähennykset'), findsOneWidget);
+      expect(find.byType(TextFormField), findsNWidgets(3));
       expect(tester.takeException(), isNull);
     });
+
+    testWidgets(
+      'test_workflow_strictness_tab_renders_penalty_inputs_and_updates_workflow',
+      (WidgetTester tester) async {
+        Workflow currentWorkflow = createTestWorkflow(
+          defaultStrictnessLevel: 50,
+        );
+        Workflow? lastUpdatedWorkflow;
+
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              return buildTestApp(
+                currentWorkflow,
+                onChanged: (updated) {
+                  lastUpdatedWorkflow = updated;
+                  setState(() {
+                    currentWorkflow = updated;
+                  });
+                },
+              );
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Verify penalties Card and 3 TextFormFields are rendered
+        expect(find.text('Automated Score Penalties'), findsOneWidget);
+        expect(find.byType(TextFormField), findsNWidgets(3));
+        expect(find.text('Security Penalty (%)'), findsOneWidget);
+        expect(find.text('Post-Hoc Penalty (%)'), findsOneWidget);
+        expect(find.text('Passivity Penalty (%)'), findsOneWidget);
+
+        // Enter 15 into security penalty input
+        final securityInput = find.widgetWithText(
+          TextFormField,
+          'Security Penalty (%)',
+        );
+        await tester.enterText(securityInput, '15');
+        await tester.pumpAndSettle();
+
+        expect(lastUpdatedWorkflow?.securityPenalty, 0.15);
+
+        // Enter 20 into post-hoc penalty input
+        final postHocInput = find.widgetWithText(
+          TextFormField,
+          'Post-Hoc Penalty (%)',
+        );
+        await tester.enterText(postHocInput, '20');
+        await tester.pumpAndSettle();
+
+        expect(lastUpdatedWorkflow?.postHocPenalty, 0.20);
+
+        // Enter 5 into passivity penalty input
+        final passivityInput = find.widgetWithText(
+          TextFormField,
+          'Passivity Penalty (%)',
+        );
+        await tester.enterText(passivityInput, '5');
+        await tester.pumpAndSettle();
+
+        expect(lastUpdatedWorkflow?.passivityPenalty, 0.05);
+
+        // Clear security penalty input to empty string -> should reset to 0.0
+        await tester.enterText(securityInput, '');
+        await tester.pumpAndSettle();
+
+        expect(lastUpdatedWorkflow?.securityPenalty, 0.0);
+
+        // Enter out-of-bounds input (e.g. 150) -> should be rejected and not update
+        await tester.enterText(securityInput, '150');
+        await tester.pumpAndSettle();
+
+        expect(lastUpdatedWorkflow?.securityPenalty, 0.0);
+      },
+    );
   });
 }
