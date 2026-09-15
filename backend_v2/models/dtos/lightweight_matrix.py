@@ -58,6 +58,7 @@ class LightweightMatrixOutput(V2CoreBase):
     evaluated_atoms: Annotated[dict[str, LaxExecutionStatus], Field(default_factory=dict)]
     extensions: Annotated[dict[LaxXaiExtensionType, Any], Field(default_factory=dict)]
     allowed_extensions: list[LaxXaiExtensionType] | None = None
+    atom_quotes: list[Any] | None = None
 
     @field_validator("normalized_score")
     @classmethod

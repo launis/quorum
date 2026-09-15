@@ -560,7 +560,7 @@ class BlueprintTransformer:
                 mcp_tools_map=mcp_tools_map,
                 local_time_str=local_time_str,
                 scoring_engine=scoring_engine_val,
-                strictness_level=strictness_level if strictness_level is not None else 50,
+                strictness_level=strictness_level,
                 cost=combined_cost,
                 tokens=combined_tokens,
             )

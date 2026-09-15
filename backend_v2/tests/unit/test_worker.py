@@ -11,7 +11,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord
+from backend_v2.models.v2_core import ExecutionRecord, ExecutionStep
 from backend_v2.settings import get_settings
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_render_profile_job_catches_service_unavailable_error,
@@ -206,7 +206,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         "workflow_id": "wf_1234567890123456",
         "status": "PENDING",
         "step_states": {},
-        "metadata": {},  # Missing target_locale
+        "target_locale": "",  # Empty target_locale triggers fail-fast
     }
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
@@ -219,6 +219,30 @@ async def test_execute_workflow_job_cancelled() -> None:
     """Verify execute_workflow_job handles asyncio.CancelledError gracefully."""
     mock_repo = AsyncMock()
     mock_repo.get_workflow.side_effect = asyncio.CancelledError()
+
+    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    assert res == {"_dlq_status": "FAILED/DLQ"}
+
+
+@pytest.mark.asyncio
+async def test_execute_workflow_job_failure_update_error() -> None:
+    """Negative test: verify execute_workflow_job logs error when failure update raises exception."""
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.side_effect = RuntimeError("Initial crash")
+    mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
+
+    ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
+    res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
+    assert res == {"_dlq_status": "FAILED/DLQ"}
+
+
+@pytest.mark.asyncio
+async def test_execute_workflow_job_cancelled_update_error() -> None:
+    """Negative test: verify execute_workflow_job logs error when cancellation update raises exception."""
+    mock_repo = AsyncMock()
+    mock_repo.get_workflow.side_effect = asyncio.CancelledError()
+    mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
@@ -289,6 +313,21 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
                 }
             },
         ),
+        TraceEvent(
+            v=1,
+            timestamp=datetime.now(UTC),
+            event_type="output",
+            step_name="step_no_usage",
+            content={
+                "_step_metadata": {
+                    "token_usage": None,
+                    "model_strategy": "fast",
+                    "physical_model": "gemini-2.5-pro",
+                    "system_fingerprint": "fp_test",
+                    "chunk_size": 1,
+                }
+            },
+        ),
     ]
 
     mock_exec_record = ExecutionRecord(
@@ -298,6 +337,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         status=ExecutionStatus.PENDING,
         target_locale="fi",
         metadata=ExecutionMetadata(),
+        steps=[ExecutionStep(id="step_other", label="Other step", status=ExecutionStatus.PASSED)],
         step_states={},
         execution_trace=mock_trace,
     )
@@ -924,7 +964,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "execution_trace": [
                     {
                         "v": 1,
-                        "timestamp": datetime.now(UTC).isoformat(),
+                        "timestamp": datetime.now(UTC),
                         "event_type": "output",
                         "step_name": "sr_matrix_step",
                         "content": {
@@ -1079,6 +1119,40 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
                 await generate_profile_synthesis_and_pdf_task(
                     "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
                 )
+
+
+@pytest.mark.asyncio
+async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_app_exception() -> None:
+    """Negative test: verify missing workflow in synthesis task raises Fail-Fast AppException."""
+    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+            mock_repo = AsyncMock()
+            mock_repo_class.return_value = mock_repo
+
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1234567890123456",
+                "workflow_id": "wf_nonexistent_1234",
+                "output_profile_id": "prof_1111222233334444",
+                "status": "RUNNING",
+                "target_locale": "fi",
+            }
+            mock_repo.get_output_profile_by_id.return_value = {
+                "id": "prof_1111222233334444",
+                "slug": "prof-1",
+                "workflow_id": "wf_nonexistent_1234",
+                "name": {"translations": {"en": "Profile 1"}},
+                "display_scale": "original",
+                "matrix_synthesis_groups": [],
+                "target_block_order": [],
+            }
+            mock_repo.get_workflow_by_id.return_value = None
+
+            with pytest.raises(AppException) as exc_info:
+                await generate_profile_synthesis_and_pdf_task(
+                    "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
+                )
+            assert exc_info.value.status_code == 400
+            assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio

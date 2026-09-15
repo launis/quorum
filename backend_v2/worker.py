@@ -211,16 +211,7 @@ async def execute_workflow_job(
             exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
 
             # Sovereign Workflow Strictness Level resolution (Tripartite Phase 1 Sovereignty)
-            strictness_level: int | None = workflow_def.default_strictness_level
-            if strictness_level is None:
-                msg = (
-                    "Strict Fail-Fast Enforced: Missing mandatory "
-                    f"strictness_level configuration for workflow '{workflow_def.id}'."
-                )
-                logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
-                )
+            strictness_level: int = workflow_def.default_strictness_level
 
             # SSOT Language Context Initialization for Background Worker
             if not exec_record.target_locale:
@@ -892,15 +883,15 @@ async def generate_profile_synthesis_and_pdf_task(
         workflow_def = Workflow.model_validate(w_dict) if w_dict else None
 
         # Sovereign Workflow Strictness Level resolution (Tripartite Phase 1 Sovereignty)
-        if not workflow_def or workflow_def.default_strictness_level is None:
-            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{execution.workflow_id}'."
+        if not workflow_def:
+            msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-        strictness_level: int = int(workflow_def.default_strictness_level)
+        strictness_level: int = workflow_def.default_strictness_level
 
         # Calculate scores dynamically for all matrices using UnifiedScoringEngine
         engine = get_scoring_engine()
@@ -954,9 +945,8 @@ async def generate_profile_synthesis_and_pdf_task(
 
                             new_payload = lw_matrix.model_dump(exclude_none=True)
 
-                            # V2 Infrastructure Mandate: Preserve accumulators that bypass strict schemas
-                            if "atom_quotes" in data:
-                                new_payload["atom_quotes"] = data["atom_quotes"]
+                            if lw_matrix.atom_quotes:
+                                new_payload["atom_quotes"] = lw_matrix.atom_quotes
 
                             # V2 Frozen Model update
                             final_inputs[i] = step_dto.model_copy(update={"payload": new_payload})
