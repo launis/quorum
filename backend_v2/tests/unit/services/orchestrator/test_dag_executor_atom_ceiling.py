@@ -6,6 +6,7 @@ from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import WorkflowExecutionError
 from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.v2_core import (
     I18nText,
     ModelProfile,
@@ -81,14 +82,18 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         id="sys_1234567890abcdef",
         type="model_registry",
         slug="models",
-        models={
-            "test_strategy": ModelProfile(
+        name="Test Stack",
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             ),
-            "synthesis": ModelProfile(
+            CognitiveTier.BALANCED: ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             ),
-            "fast": ModelProfile(
+            CognitiveTier.DEEP: ModelProfile(
+                provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
+            ),
+            CognitiveTier.REASONING: ModelProfile(
                 provider="openai", model_name="gpt-4o", tpm_limit=40000, rpm_limit=100, temperature=0.0, max_tokens=4000
             ),
         },
@@ -105,7 +110,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
         "type": "llm",
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",
-        "model_strategy": "synthesis",
+        "pre_hooks": ["synthesis_distiller_hook"],
     }
 
     with (

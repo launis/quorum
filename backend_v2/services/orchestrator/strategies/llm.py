@@ -48,6 +48,7 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
+from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
@@ -581,6 +582,7 @@ class LLMNodeStrategy(NodeStrategy):
             cognitive_tier,
             self.system_repo,
             provider=context.metadata.provider_override,
+            registry_id=context.model_registry_id,
             pipeline_name="chunk_worker",
         )
 
@@ -594,8 +596,7 @@ class LLMNodeStrategy(NodeStrategy):
             telemetry_start_time = time.time()
             context_char_length = len(user_payload)
             logger.info(
-                "Epic 27 Telemetry: Compiling map-reduce for step '%s'. "
-                "Context Bounds: %d chars, Chunk count: %d. (Attempt %d)",
+                "Map-reduce execution telemetry for step '%s'. Context Bounds: %d chars, Chunk count: %d. (Attempt %d)",
                 step.id,
                 context_char_length,
                 len(chunks_list),
@@ -622,7 +623,7 @@ class LLMNodeStrategy(NodeStrategy):
                     allow_contextual_override=matrix_block.allow_contextual_override,
                 )
 
-            is_synthesis_step = context.model_strategy == "synthesis"
+            is_synthesis_step = isinstance(self._engine, SynthesisEngine)
             dynamic_schema = None
 
             if is_synthesis_step:
@@ -923,7 +924,10 @@ class LLMNodeStrategy(NodeStrategy):
 
         meta = final_dict.setdefault("_step_metadata", {})
         meta["task_blueprint"] = blueprint_id
-        meta["model_strategy"] = strategy_name
+        meta["model_strategy"] = "synthesis" if isinstance(self._engine, SynthesisEngine) else "prompt"
+        meta["cognitive_tier"] = (
+            step_obj.cognitive_tier if isinstance(step_obj.cognitive_tier, str) else step_obj.cognitive_tier.value
+        )
         if bound_client and bound_client.model_name:
             meta["physical_model"] = bound_client.model_name
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:

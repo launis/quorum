@@ -21,7 +21,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
   - [x] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
   - [x] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
-  - [ ] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
+  - [x] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
   - [ ] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
   - [ ] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
   - [ ] Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
@@ -80,8 +80,8 @@
 | REQ-02 | Add `Workflow.model_registry_id` with regex validation and update Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`, `ExecutionCreate`) | Step 1 | [x] |
 | REQ-03 | Update `ISystemRepository` and `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and upsert by ID | Step 2 | [x] |
 | REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [x] |
-| REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [ ] |
-| REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [ ] |
+| REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [x] |
+| REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [x] |
 | REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [ ] |
 | REQ-08 | Implement Desktop Pro Tool UX in `ModelRegistryView` (1200px bounded canvas, PopScope dirty checking, in-view clone, 4-tier cards) | Step 5 | [ ] |
 | REQ-09 | Upgrade Studio Dashboard Tab 6 with real-time search, count badge indicator, and pro-tool compact card density | Step 5 | [ ] |
@@ -92,7 +92,17 @@
 # Session Handover Context
 ## Achieved
 - Executed Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A` (committed: `5141d571`).
-- Executed Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION`:
+- Executed Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION` (committed: `eb37e926`).
+- Executed Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`:
+  - `backend_v2/services/orchestrator/strategies/base.py`: Added `model_registry_id: str | None = None` to `StrategyContext`.
+  - `backend_v2/llm/client.py`: Implemented multi-registry `from_tier` and `from_strategy` resolving in O(1) from flat `registry.tier_definitions`. Eradicated legacy telemetry strings.
+  - `backend_v2/services/orchestrator/strategies/llm.py`: Passed `registry_id=context.model_registry_id` into `LLMClient.from_tier`. Replaced obsolete `model_strategy` checks with typed `isinstance(self._engine, SynthesisEngine)` and `step_obj.pre_hooks` inspection.
+  - `backend_v2/hooks/llm.py`: Modernized `configure_llm_context_hook` to resolve from `registry.tier_definitions`.
+  - `backend_v2/services/orchestrator/dag_executor.py`: Passed `model_registry_id` to `StrategyContext`, resolved effective metadata, and modernized synthesis engine resolution to hook inspection.
+  - `backend_v2/worker.py`: Updated `from_tier` invocations to forward `execution.metadata.model_registry_id`.
+  - `backend_v2/services/studio/workflow_service.py`: Bound `model_registry_id="sys_e26807f3bfa3454d"` on workflow draft creation.
+  - Unit Tests: Aligned all DAG executor, LLM strategy, MCP, preflight, and synthesis distiller test fixtures with Option A 4-tier definitions. 476/476 orchestrator tests passed 100%.
+  - Quality Gate: Passed `backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test` with 90% coverage and 0 fatal AST violations.
   - `backend_v2/database/interfaces.py`: Updated `ISystemRepository` protocol to declare `get_model_registry(registry_id: str | None = None)`, `get_all_model_registries()`, and `delete_system_config(config_id: str)`.
   - `backend_v2/database/repositories/system.py`: Implemented deterministic keyed lookup (`ResourceNotFoundError` with RFC 7807 logging), deterministic default/all queries sorting via typed Pydantic models with zero AST QGR002 violations, authoritative in-place upsert by `registry_data.id`, and `delete_system_config`.
   - `backend_v2/services/studio/system_config_service.py`: Modernized `get_all_system_configs`, keyed `get_system_config`, `save_system_config` with keyed re-fetch, Option A compliant `create_system_config_draft`, deep clone appending ` (Copy)` to `name`, and authoritative `delete_system_config`.
@@ -107,7 +117,6 @@
 - `InMemorySystemRepository` previously used a single `_model_registry` slot with obsolete `models={}`; refactoring it to a dictionary store `_model_registries` with Option A 4-tier default guarantees true stateful multi-registry roundtrip fidelity.
 
 ## Remaining
-- Execute Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`
 - Execute Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`
 - Execute Step 5: `DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY`
 - Execute Step 6: `WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE`

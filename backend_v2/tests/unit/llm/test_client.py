@@ -7,10 +7,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend_v2.exceptions import (
     AgentExecutionError,
     AppException,
+    ConfigurationError,
     LLMSchemaValidationError,
     ServiceUnavailableError,
 )
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.enums import CognitiveTier, ExecutionProfile
 
 
 class DummyConfig(BaseModel):
@@ -359,6 +361,205 @@ async def test_client_run_structured_task_cache_miss_fallback(mock_create_provid
         res, _ = await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
         assert res.step_4_final_score == 1
         assert mock_provider.generate.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_build_adapter_structured_schema_unconfigured() -> None:
+    """Verify _build_structured_schema returns basic json_object when unconfigured."""
+    client = LLMClient(config=None)
+    schema = client._build_structured_schema(DummyStrictModel, final_messages=[], validation_context=None)
+    assert schema == {"type": "json_object"}
+
+
+@pytest.mark.asyncio
+async def test_build_adapter_structured_schema_adapter_error() -> None:
+    """Verify _build_structured_schema falls back to json_object on adapter exception."""
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with patch(
+        "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter",
+        side_effect=Exception("Adapter boom"),
+    ):
+        schema = client._build_structured_schema(DummyStrictModel, final_messages=[], validation_context=None)
+        assert schema == {"type": "json_object"}
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_structured_task_compiled_prompt(mock_create_provider: MagicMock) -> None:
+    """Verify run_structured_task works when messages is a CompiledPrompt."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = '{"step_4_final_score": 4}'
+    mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15, "cost_usd": 0.0}
+    mock_response.provider_metadata = None
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.models.prompt import CompiledPrompt
+
+    cp = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="Sys")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Hello")],
+    )
+    res, _ = await client.run_structured_task(messages=cp, response_model=DummyStrictModel)
+    assert res.step_4_final_score == 4
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_compiled_prompt(mock_create_provider: MagicMock) -> None:
+    """Verify run_chat works when messages is a CompiledPrompt."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = "Chat from compiled"
+    mock_response.tool_calls = None
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.models.prompt import CompiledPrompt
+
+    cp = CompiledPrompt(
+        static_messages=[LLMMessageDTO(role="system", content="Sys")],
+        dynamic_messages=[LLMMessageDTO(role="user", content="Hello")],
+    )
+    res = await client.run_chat(messages=cp)
+    assert res == "Chat from compiled"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_from_tier_one_shot_execution_profile(
+    mock_create_provider: MagicMock, mock_repository: AsyncMock
+) -> None:
+    """Verify from_tier disables caching when ExecutionProfile.ONE_SHOT is requested."""
+    mock_create_provider.return_value = AsyncMock()
+    client = await LLMClient.from_tier(
+        tier=CognitiveTier.FAST,
+        repository=mock_repository,
+        execution_profile=ExecutionProfile.ONE_SHOT,
+    )
+    assert client.config.caching_strategy == "none"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_success(mock_create_provider: MagicMock) -> None:
+    """Verify run_chat executes successfully and returns raw string content."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = "Chat output"
+    mock_response.tool_calls = None
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    result = await client.run_chat(messages=[{"role": "user", "content": "Hello"}])
+    assert result == "Chat output"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_tool_calls(mock_create_provider: MagicMock) -> None:
+    """Verify run_chat returns tool_calls dictionary when tools are called."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = "Tool output"
+    mock_response.tool_calls = [{"name": "search", "arguments": {}}]
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    result = await client.run_chat(
+        messages=[{"role": "user", "content": "Call tool"}],
+        tools=[{"type": "function"}],
+    )
+    assert isinstance(result, dict)
+    assert "tool_calls" in result
+    assert result["content"] == "Tool output"
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_chat_general_exception(mock_create_provider: MagicMock) -> None:
+    """Verify run_chat wraps unexpected provider exceptions in AgentExecutionError."""
+    mock_provider = AsyncMock()
+    mock_provider.generate.side_effect = RuntimeError("Fatal LLM crash")
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with pytest.raises(AgentExecutionError):
+        await client.run_chat(messages=[{"role": "user", "content": "Boom"}])
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_structured_task_legacy_passthrough(mock_create_provider: MagicMock) -> None:
+    """Verify run_structured_task works with explicit model argument when unconfigured."""
+    mock_provider = AsyncMock()
+    mock_response = MagicMock()
+    mock_response.content = '{"step_4_final_score": 3}'
+    mock_response.token_usage = {
+        "prompt_tokens": 10,
+        "completion_tokens": 5,
+        "total_tokens": 15,
+        "cost_usd": 0.0,
+    }
+    mock_response.provider_metadata = None
+    mock_provider.generate.return_value = mock_response
+    mock_create_provider.return_value = mock_provider
+
+    client = LLMClient(config=None)
+    result, usage = await client.run_structured_task(
+        messages=[{"role": "user", "content": "Score"}],
+        model="gpt-4",
+        response_model=DummyStrictModel,
+    )
+    assert result.step_4_final_score == 3
+    assert usage.total_tokens == 15
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_structured_task_general_exception(mock_create_provider: MagicMock) -> None:
+    """Verify run_structured_task wraps unexpected exceptions in AgentExecutionError."""
+    mock_provider = AsyncMock()
+    mock_provider.generate.side_effect = RuntimeError("Network partition")
+    mock_create_provider.return_value = mock_provider
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with pytest.raises(AgentExecutionError):
+        await client.run_structured_task(
+            messages=[{"role": "user", "content": "Fail"}],
+            response_model=DummyStrictModel,
+        )
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+async def test_client_run_structured_task_adapter_failure(mock_create_provider: MagicMock) -> None:
+    """Verify run_structured_task raises ConfigurationError if adapter kwargs loading fails."""
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with patch(
+        "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter",
+        side_effect=Exception("Adapter loading error"),
+    ):
+        with pytest.raises(ConfigurationError, match="LLM Adapter loading failed"):
+            await client.run_structured_task(
+                messages=[{"role": "user", "content": "Fail"}],
+                response_model=DummyStrictModel,
+            )
 
 
 from backend_v2.tests.unit.llm.test_llm_client_tiers import (

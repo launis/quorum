@@ -40,7 +40,6 @@ def base_request() -> EngineExecutionRequest:
         target_locale="en",
         metadata=ExecutionMetadata(),
         expected_inputs=[],
-        model_strategy="fast",
         strictness_level=0,
         global_context_vars={},
         context_variables={},

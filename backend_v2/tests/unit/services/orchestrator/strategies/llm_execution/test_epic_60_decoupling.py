@@ -17,7 +17,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
             slug="test_step_missing_criteria",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
-            model_strategy="fast",
+            cognitive_tier="fast",
             extraction_protocol_block_id="blk_a1b2c3d4e5f60011",
             criteria_block_ids=[],  # Empty list
         )
@@ -30,7 +30,7 @@ def test_step_validation_fails_without_criteria_or_protocol() -> None:
             slug="test_step_missing_protocol",
             name=I18nText(translations={"en": "Test Step", "fi": "Testi"}),
             type="llm",
-            model_strategy="fast",
+            cognitive_tier="fast",
             extraction_protocol_block_id=None,  # Missing protocol
             criteria_block_ids=["blk_a1b2c3d4e5f60012"],
         )

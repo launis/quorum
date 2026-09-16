@@ -528,7 +528,7 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
             "slug": "specialist",
             "name": {"translations": {"en": "Specialist Analysis"}},
             "type": "llm",
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "criteria_block_ids": ["blk_222222222222222222222222"],
             "extraction_protocol_block_id": "blk_222222222222222222222222",
             "organization_id": "org_0123456789abcdef01",

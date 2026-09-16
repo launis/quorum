@@ -172,7 +172,6 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -184,7 +183,6 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-        "model_strategy": "standard",
     }
     mock_repo.get_all_prompt_blocks.return_value = [
         {
@@ -229,6 +227,7 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),

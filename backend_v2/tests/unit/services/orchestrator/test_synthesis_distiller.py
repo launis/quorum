@@ -142,7 +142,7 @@ def test_build_title_map_with_blocks_and_steps() -> None:
         id="sp_1111111111111111",
         slug="step_one",
         name=I18nText(translations={"en": "Step Blueprint Name"}),
-        model_strategy="fast",
+        cognitive_tier="fast",
         type="logic",
         hook="text_consolidation_hook",
     )

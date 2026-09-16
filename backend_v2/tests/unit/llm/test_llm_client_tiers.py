@@ -21,21 +21,22 @@ from backend_v2.models.enums import CognitiveTier, LLMProvider
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 
 
-def _get_seed_model_registry() -> dict[str, Any]:
+def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, Any]:
     """Load model_registry system config from seed_data.json."""
     with open(SEED_DATA_PATH, encoding="utf-8") as f:
         data = json.load(f)
     for cfg in data.get("system_config", []):
         if cfg.get("type") == "model_registry":
-            return cfg
-    raise RuntimeError("model_registry not found in seed_data.json")
+            if registry_id is None or cfg.get("id") == registry_id:
+                return cfg
+    raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
 
 
 @pytest.fixture
 def mock_repository() -> AsyncMock:
     """Mock repository returning the authoritative model_registry from seed_data.json."""
     repo = AsyncMock()
-    repo.get_model_registry = AsyncMock(return_value=_get_seed_model_registry())
+    repo.get_model_registry = AsyncMock(side_effect=lambda reg_id=None: _get_seed_model_registry(reg_id))
     return repo
 
 
@@ -100,6 +101,7 @@ class TestLLMClientCognitiveTiers:
             tier=tier,
             repository=mock_repository,
             provider=LLMProvider.OPENAI,
+            registry_id="sys_6f8b1c4a2e0d49f1",
         )
 
         assert client is not None
@@ -127,6 +129,34 @@ class TestLLMClientCognitiveTiers:
         )
 
         assert client.provider_name == "google"
+
+    @pytest.mark.asyncio
+    @patch("backend_v2.llm.provider.LLMFactory.create_provider")
+    async def test_resolve_with_explicit_registry_id(
+        self,
+        mock_create_provider: MagicMock,
+        mock_repository: AsyncMock,
+    ) -> None:
+        """Verify from_tier resolves exact model stack when registry_id is passed."""
+        mock_create_provider.return_value = AsyncMock()
+
+        # Query OpenAI stack by registry_id without provider parameter
+        client_openai = await LLMClient.from_tier(
+            tier=CognitiveTier.FAST,
+            repository=mock_repository,
+            registry_id="sys_6f8b1c4a2e0d49f1",
+        )
+        assert client_openai.provider_name == "openai"
+        assert "gpt-5" in client_openai.model_name.lower()
+
+        # Query Google stack by registry_id
+        client_google = await LLMClient.from_tier(
+            tier=CognitiveTier.FAST,
+            repository=mock_repository,
+            registry_id="sys_e26807f3bfa3454d",
+        )
+        assert client_google.provider_name == "google"
+        assert "flash" in client_google.model_name.lower()
 
     @pytest.mark.asyncio
     @patch("backend_v2.llm.provider.LLMFactory.create_provider")
@@ -196,9 +226,9 @@ class TestLLMClientTiersFailFast:
     ) -> None:
         """Assert missing tier in provider definition raises ConfigurationError."""
         seed_registry = _get_seed_model_registry()
-        # Create a modified registry where REASONING tier was deleted from google
+        # Create a modified registry where REASONING tier was deleted
         corrupted_registry = json.loads(json.dumps(seed_registry))
-        del corrupted_registry["tier_definitions"]["google"]["reasoning"]
+        del corrupted_registry["tier_definitions"]["reasoning"]
 
         corrupted_repo = AsyncMock()
         corrupted_repo.get_model_registry = AsyncMock(return_value=corrupted_registry)
@@ -228,7 +258,7 @@ class TestLLMClientTiersFailFast:
         """ISTQB Negative Test: missing required parameter on ModelProfile raises ConfigurationError."""
         seed_registry = _get_seed_model_registry()
         corrupted_registry = json.loads(json.dumps(seed_registry))
-        corrupted_registry["tier_definitions"]["google"]["fast"][missing_param] = None
+        corrupted_registry["tier_definitions"]["fast"][missing_param] = None
 
         corrupted_repo = AsyncMock()
         corrupted_repo.get_model_registry = AsyncMock(return_value=corrupted_registry)

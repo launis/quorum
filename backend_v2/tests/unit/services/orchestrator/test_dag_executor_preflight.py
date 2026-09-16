@@ -17,7 +17,7 @@ def mock_repo() -> MagicMock:
     repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "type": "logic",
-        "model_strategy": "logic",
+        "cognitive_tier": "fast",
         "slug": "mock_step",
         "name": {"translations": {"en": "Mock Step"}},
         "description": {"translations": {"en": "Mock"}},
@@ -116,7 +116,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
     )
 
     mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.return_value["model_strategy"] = "synthesis"
+    mock_repo.get_step_by_id.return_value["pre_hooks"] = ["synthesis_distiller_hook"]
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -178,7 +178,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     mock_repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "type": "logic",
-        "model_strategy": "synthesis",
+        "pre_hooks": ["synthesis_distiller_hook"],
         "slug": "synthesis_step",
         "name": {"translations": {"en": "Synth"}},
         "description": {"translations": {"en": "Mock"}},
@@ -240,7 +240,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
     )
 
     mock_repo.get_execution.return_value = None
-    mock_repo.get_step_by_id.return_value["model_strategy"] = "synthesis"
+    mock_repo.get_step_by_id.return_value["pre_hooks"] = ["synthesis_distiller_hook"]
 
     with (
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
@@ -307,7 +307,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
             "type": "llm",
@@ -334,6 +334,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     from backend_v2.models.domain.blackboard import DraftAtomList
 
     with (
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_tier_factory,
         patch("backend_v2.llm.client.LLMClient.from_strategy"),
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
@@ -343,6 +344,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         mock_client.run_structured_task = AsyncMock(
             return_value=(MagicMock(), {"completion_tokens": 0, "prompt_tokens": 0, "total_tokens": 0})
         )
+        mock_tier_factory.return_value = mock_client
         backend_v2.llm.client.LLMClient.from_strategy.return_value = mock_client
         mock_atomizer.execute_phase_0 = AsyncMock(
             return_value=({}, TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15))
@@ -397,7 +399,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
             "type": "llm",
@@ -452,7 +454,7 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
             "id": "stp_1234567890abcdef",
             "slug": "blp_test",
             "name": {"translations": {"en": "blp_test"}},
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
             "type": "llm",
@@ -474,7 +476,8 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
     emit_mock = AsyncMock()
 
     with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy") as mock_client_factory,
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
+        patch("backend_v2.llm.client.LLMClient.from_strategy"),
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_client = AsyncMock()

@@ -62,6 +62,7 @@ class StrategyContext(BaseModel):
     global_context_vars: dict[str, Any] = Field(default_factory=dict)
     context_variables: dict[str, Any] = Field(default_factory=dict)
     prompt_blocks: list[PromptBlock] = Field(default_factory=list)
+    model_registry_id: str | None = None
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 

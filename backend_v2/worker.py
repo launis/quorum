@@ -1058,6 +1058,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     synthesis_tier,
                     repository=repo,
                     provider=execution.metadata.provider_override if execution.metadata else None,
+                    registry_id=execution.metadata.model_registry_id if execution.metadata else None,
                 )
 
                 matrix_context = ""
@@ -1259,6 +1260,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     CognitiveTier.FAST,
                     repository=repo,
                     provider=execution.metadata.provider_override if execution.metadata else None,
+                    registry_id=execution.metadata.model_registry_id if execution.metadata else None,
                 )
                 row_sys_prompt = f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
@@ -1445,6 +1447,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         CognitiveTier.DEEP,
                         repository=repo,
                         provider=execution.metadata.provider_override if execution.metadata else None,
+                        registry_id=execution.metadata.model_registry_id if execution.metadata else None,
                     )
                     var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 

@@ -93,6 +93,7 @@ class LLMClient:
         provider: LLMProvider | None = None,
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
+        registry_id: str | None = None,
     ) -> Self:
         """Factory: Create an LLMClient strictly bound to a database-defined CognitiveTier and Provider.
 
@@ -102,6 +103,7 @@ class LLMClient:
             provider: Optional explicit provider override. If None, uses registry.default_provider.
             execution_profile: Optional intent defining if the cache should be bypassed (e.g. ONE_SHOT).
             pipeline_name: Optional explicit pipeline context to look up configuration for.
+            registry_id: Optional specific model registry stack ID. If None, uses default registry.
 
         Returns:
             A configured client instance ready for execution.
@@ -123,7 +125,7 @@ class LLMClient:
 
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
-            raw_registry = await repository.get_model_registry()
+            raw_registry = await repository.get_model_registry(registry_id)
         except Exception as e:
             raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}") from e
 
@@ -142,22 +144,24 @@ class LLMClient:
         if not registry or not registry.tier_definitions:
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
 
-        # 3. Resolve Provider and Tier
-        target_provider = provider or registry.default_provider
-        if target_provider not in registry.tier_definitions:
+        # 3. Resolve Tier directly from flat tier_definitions in O(1)
+        tier_enum = tier if isinstance(tier, CognitiveTier) else CognitiveTier(str(tier).lower())
+        if tier_enum not in registry.tier_definitions:
             raise ConfigurationError(
-                f"Provider '{target_provider}' not found in registry tier_definitions.",
+                f"CognitiveTier '{tier}' not found in registry '{registry.name}' (id={registry.id}) tier_definitions.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        provider_tiers = registry.tier_definitions[target_provider]
-        if tier not in provider_tiers:
+        target_strategy = registry.tier_definitions[tier_enum]
+
+        # Fail-Fast check on provider override mismatch if explicitly specified
+        if provider is not None and provider != target_strategy.provider:
             raise ConfigurationError(
-                f"CognitiveTier '{tier}' not found for provider '{target_provider}' in registry tier_definitions.",
+                f"Provider '{provider}' not found in registry tier_definitions for stack '{registry.name}' "
+                f"(configured for provider '{target_strategy.provider}').",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        target_strategy = provider_tiers[tier]
         target_provider_type = target_strategy.provider
         target_model_name = target_strategy.model_name
         target_rpm_limit = target_strategy.rpm_limit
@@ -165,18 +169,18 @@ class LLMClient:
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_rpm_limit is None:
             raise ConfigurationError(
-                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'tpm_limit' "
+                f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'tpm_limit' "
                 "or 'rpm_limit' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.temperature is None:
             raise ConfigurationError(
-                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'temperature' in Model Registry.",
+                f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'temperature' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.max_tokens is None:
             raise ConfigurationError(
-                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'max_tokens' in Model Registry.",
+                f"Strict Mode: Tier '{tier}' in Model Registry '{registry.name}' is missing required 'max_tokens' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
@@ -187,7 +191,7 @@ class LLMClient:
                 final_caching_strategy = "none"
                 logger.info(
                     "[LLMClient] ExecutionProfile.ONE_SHOT activated: Context Caching explicitly disabled for %s/%s.",
-                    target_provider,
+                    target_provider_type,
                     tier,
                 )
 
@@ -219,6 +223,7 @@ class LLMClient:
         repository: Any = None,
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
+        registry_id: str | None = None,
     ) -> Self:
         """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier."""
         try:
@@ -233,6 +238,7 @@ class LLMClient:
             repository=repository,
             execution_profile=execution_profile,
             pipeline_name=pipeline_name,
+            registry_id=registry_id,
         )
 
     async def run_structured_task[T: BaseModel](

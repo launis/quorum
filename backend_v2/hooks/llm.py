@@ -15,6 +15,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import get_settings
@@ -129,17 +130,25 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
         raw_registry = settings.model_registry
 
         registry = inflate(raw_registry, SystemConfigModelRegistry)
-        if not registry or not registry.models:
+        if not registry or not registry.tier_definitions:
             raise ConfigurationError("ModelRegistry is corrupt.")
 
-        # V2: Registry is a flat map of Strategy -> ModelProfile
-        target_strategy = registry.models[model_strategy] if model_strategy in registry.models else None
+        # V2: Option A Sovereign Model Stack direct mapping tier -> ModelProfile
+        try:
+            tier_enum = (
+                model_strategy
+                if isinstance(model_strategy, CognitiveTier)
+                else CognitiveTier(str(model_strategy).lower())
+            )
+        except ValueError:
+            tier_enum = None
 
-        if not target_strategy:
+        if tier_enum is None or tier_enum not in registry.tier_definitions:
             raise ConfigurationError(
                 message=f"Strategy '{model_strategy}' not found in registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
+        target_strategy = registry.tier_definitions[tier_enum]
 
         if target_strategy.tpm_limit is None or target_strategy.rpm_limit is None:
             raise ConfigurationError(

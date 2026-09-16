@@ -24,7 +24,42 @@ def mock_workflow_repo() -> MagicMock:
 @pytest.fixture
 def mock_system_repo() -> MagicMock:
     """Mock system repository."""
-    return AsyncMock()
+    repo = AsyncMock()
+    repo.get_model_registry.return_value = {
+        "id": "sys_e26807f3bfa3454d",
+        "name": "Default Stack",
+        "tier_definitions": {
+            "fast": {
+                "provider": "google",
+                "model_name": "gemini-2.5-flash",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+            "balanced": {
+                "provider": "google",
+                "model_name": "gemini-2.5-flash",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+            "deep": {
+                "provider": "google",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+            "reasoning": {
+                "provider": "google",
+                "model_name": "gemini-2.5-pro",
+                "temperature": 0.0,
+                "tpm_limit": 100000,
+                "rpm_limit": 100,
+            },
+        },
+    }
+    return repo
 
 
 @pytest.fixture
@@ -45,7 +80,7 @@ def preflight_service(
     )
 
 
-def make_valid_step_def(model_strategy: str | None = "fast") -> Step:
+def make_valid_step_def(cognitive_tier: str | None = "fast") -> Step:
     """Helper to create a valid Step object for testing."""
     return Step.model_validate(
         {
@@ -53,7 +88,7 @@ def make_valid_step_def(model_strategy: str | None = "fast") -> Step:
             "slug": "test_step",
             "name": {"translations": {"en": "Test Step"}},
             "description": {"translations": {"en": "Test Description"}},
-            "model_strategy": model_strategy,
+            "cognitive_tier": cognitive_tier or "fast",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
             "type": "llm",
@@ -90,8 +125,8 @@ async def test_rag_preflight_missing_task_blueprint_crashes(preflight_service: R
 
 
 @pytest.mark.asyncio
-async def test_rag_preflight_missing_model_strategy_crashes(preflight_service: RAGPreflightService) -> None:
-    """Tests that missing model_strategy raises CONFIGURATION_ERROR AppException."""
+async def test_rag_preflight_missing_cognitive_tier_crashes(preflight_service: RAGPreflightService) -> None:
+    """Tests that missing cognitive_tier raises CONFIGURATION_ERROR AppException."""
     step_rule = StepRule(
         id="stp_1234567890abcdef", task_blueprint="blp_1234567890abcdef", input_mappings={}, depends_on=[]
     )
@@ -100,7 +135,7 @@ async def test_rag_preflight_missing_model_strategy_crashes(preflight_service: R
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),
         description=I18nText(translations={"en": "Test Description"}),
-        model_strategy=None,
+        cognitive_tier=None,
         type="llm",
     )
     exec_record = ExecutionRecord(
@@ -122,6 +157,7 @@ async def test_rag_preflight_missing_model_strategy_crashes(preflight_service: R
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert "has no cognitive_tier" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -190,7 +226,7 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
     )
 
     with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy") as mock_client_factory,
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_client = AsyncMock()
@@ -258,7 +294,7 @@ async def test_rag_preflight_atom_ceiling_exceeded_crashes(
     )
 
     with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy") as mock_client_factory,
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
         patch("backend_v2.services.orchestrator.rag_preflight_service.get_settings") as mock_settings,
     ):
@@ -416,7 +452,7 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
     )
 
     with (
-        patch("backend_v2.llm.client.LLMClient.from_strategy") as mock_client_factory,
+        patch("backend_v2.llm.client.LLMClient.from_tier") as mock_client_factory,
         patch("backend_v2.services.orchestrator.rag_preflight_service.TwoPassAtomizer") as mock_atomizer_cls,
     ):
         mock_client = AsyncMock()

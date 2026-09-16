@@ -29,7 +29,7 @@ def mock_repos() -> dict[str, Any]:
         side_effect=lambda bp_id: {
             "id": bp_id,
             "type": "logic",
-            "model_strategy": "logic",
+            "cognitive_tier": "fast",
             "slug": f"slug_{bp_id}",
             "name": {"translations": {"en": f"Step {bp_id}"}},
             "description": {"translations": {"en": "Desc"}},

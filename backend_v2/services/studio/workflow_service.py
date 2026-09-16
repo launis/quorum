@@ -301,6 +301,7 @@ class StudioWorkflowService:
             allowed_exports=["pdf"],
             historical_context_mode=HistoricalContextMode.DISABLED,
             default_profile_id="prf_0000000000000000",
+            model_registry_id="sys_e26807f3bfa3454d",
         )
         return await self.save_workflow(initiator, new_id, draft)
 

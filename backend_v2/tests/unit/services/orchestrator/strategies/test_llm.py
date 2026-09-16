@@ -46,6 +46,42 @@ def mock_repo() -> MagicMock:
         }
     )
     repo.get_execution = AsyncMock(return_value=None)
+    repo.get_model_registry = AsyncMock(
+        return_value={
+            "id": "sys_e26807f3bfa3454d",
+            "name": "Default Stack",
+            "tier_definitions": {
+                "fast": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-flash",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "balanced": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-flash",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "deep": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-pro",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "reasoning": {
+                    "provider": "google",
+                    "model_name": "gemini-2.5-pro",
+                    "temperature": 0.0,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+            },
+        }
+    )
     return repo
 
 
@@ -166,7 +202,6 @@ async def test_execute_fails_fast_on_missing_profile_id(llm_strategy: LLMNodeStr
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-        "model_strategy": "standard",
     }
 
     # Needs to bypass pre-hooks smoothly
@@ -218,7 +253,6 @@ async def test_execute_fails_fast_on_missing_prompt_block(llm_strategy: LLMNodeS
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["missing_block_999"],
-        "model_strategy": "standard",
     }
 
     # DB returns only the protocol block
@@ -278,7 +312,6 @@ async def test_execute_success_path_structured_output(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -290,7 +323,6 @@ async def test_execute_success_path_structured_output(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -340,7 +372,7 @@ async def test_execute_success_path_structured_output(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -383,7 +415,6 @@ async def test_llm_strategy_missing_atoms_crash(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -392,7 +423,6 @@ async def test_llm_strategy_missing_atoms_crash(
         "slug": "test_matrix",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_2222222222222222",
         "criteria_block_ids": ["blk_1111111111111111"],
@@ -492,7 +522,6 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -501,7 +530,6 @@ async def test_llm_strategy_invalid_shuffled_atoms_type(
         "slug": "test_matrix",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_2222222222222222",
         "criteria_block_ids": ["blk_1111111111111111"],
@@ -583,7 +611,6 @@ async def test_execute_with_role_and_persona_and_protocol(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 1
 
@@ -596,7 +623,6 @@ async def test_execute_with_role_and_persona_and_protocol(
         "execution_persona_block_id": "blk_2222222222222222",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -687,7 +713,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -708,7 +734,7 @@ async def test_execute_with_role_and_persona_and_protocol(
     assert len(traces) == 1
     assert traces[0].event_type == "output"
     assert traces[0].content["_step_metadata"]["token_usage"]["total_tokens"] == 150
-    assert traces[0].content["_step_metadata"]["model_strategy"] == "standard"
+    assert traces[0].content["_step_metadata"]["cognitive_tier"] == "fast"
 
 
 @pytest.mark.asyncio
@@ -732,7 +758,6 @@ async def test_execute_synthesis_engine_path(
     context.workflow_id = "wf_1"
     context.global_context_vars = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "synthesis"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -744,7 +769,7 @@ async def test_execute_synthesis_engine_path(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "synthesis",
+        "pre_hooks": ["synthesis_distiller_hook"],
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -790,7 +815,7 @@ async def test_execute_synthesis_engine_path(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -833,7 +858,6 @@ async def test_execute_anomaly_retry_flow(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -845,7 +869,6 @@ async def test_execute_anomaly_retry_flow(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -916,7 +939,7 @@ async def test_execute_anomaly_retry_flow(
         patch("backend_v2.services.orchestrator.strategies.llm.get_settings", return_value=mock_settings),
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", side_effect=_post_hooks_side_effect),
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -960,7 +983,6 @@ async def test_execute_fails_fast_on_missing_role_block(llm_strategy: LLMNodeStr
         "role_block_id": "blk_1111111111111111",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
     mock_repo.get_all_prompt_blocks.return_value = []
 
@@ -1011,7 +1033,6 @@ async def test_execute_fails_fast_on_missing_persona_block(llm_strategy: LLMNode
         "execution_persona_block_id": "blk_2222222222222222",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
     mock_repo.get_all_prompt_blocks.return_value = [
         {
@@ -1072,7 +1093,6 @@ async def test_execute_fails_fast_on_missing_output_profile(
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -1148,14 +1168,12 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
 
     mock_repo.get_step_by_id.return_value = {
         "id": "stp_0123456789abcdef0123456789abcdef",
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -1187,7 +1205,7 @@ async def test_execute_fails_fast_on_no_engine_configured(mock_repo: MagicMock, 
 
     with (
         patch.object(strategy_no_engine, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("litellm.token_counter", return_value=10),
     ):
         mock_pre.return_value = (mock_hook_state, [])
@@ -1242,14 +1260,35 @@ def test_configure_llm_context_hook_success() -> None:
             "id": "reg_0123456789abcdef0123456789abcdef",
             "slug": "model_registry",
             "type": "model_registry",
-            "models": {
+            "tier_definitions": {
                 "fast": {
                     "provider": "google",
                     "model_name": "gemini",
                     "temperature": 0.7,
                     "tpm_limit": 100000,
                     "rpm_limit": 100,
-                }
+                },
+                "balanced": {
+                    "provider": "google",
+                    "model_name": "gemini",
+                    "temperature": 0.7,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "deep": {
+                    "provider": "google",
+                    "model_name": "gemini-pro",
+                    "temperature": 0.7,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
+                "reasoning": {
+                    "provider": "google",
+                    "model_name": "gemini-pro",
+                    "temperature": 0.7,
+                    "tpm_limit": 100000,
+                    "rpm_limit": 100,
+                },
             },
         }
 
@@ -1257,8 +1296,8 @@ def test_configure_llm_context_hook_success() -> None:
 
         assert result.success is True
         assert result.state_delta is not None
-        assert "llm_config" in result.state_delta
-        assert result.state_delta["llm_config"]["provider"] == "google"
+        assert "llm_config" in result.state_delta.delta
+        assert result.state_delta.delta["llm_config"]["provider"] == "google"
 
 
 def test_configure_llm_context_hook_empty_state() -> None:
@@ -1354,7 +1393,6 @@ async def test_execute_fails_fast_on_missing_target_locale(llm_strategy: LLMNode
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -1418,7 +1456,6 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
 
     mock_repo.get_step_by_id.return_value = {
@@ -1426,7 +1463,6 @@ async def test_execute_fails_fast_on_exec_record_fetch_error(
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -1500,7 +1536,6 @@ async def test_execute_matrix_chunking_flow(
     context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
     context.organization_id = None
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 1
 
@@ -1512,7 +1547,6 @@ async def test_execute_matrix_chunking_flow(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_5555555555555555"],
-        "model_strategy": "standard",
     }
 
     matrix_block_dict = {
@@ -1599,7 +1633,7 @@ async def test_execute_matrix_chunking_flow(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -1642,7 +1676,6 @@ async def test_execute_anomaly_retry_exceeded_limit(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -1654,7 +1687,6 @@ async def test_execute_anomaly_retry_exceeded_limit(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -1697,7 +1729,7 @@ async def test_execute_anomaly_retry_exceeded_limit(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", side_effect=_always_retry_post_hooks),
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -1740,7 +1772,6 @@ async def test_execute_fails_fast_on_corrupted_prompt_block_in_db(
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -1784,7 +1815,6 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
 
     mock_repo.get_step_by_id.return_value = {
@@ -1795,7 +1825,6 @@ async def test_execute_fails_fast_on_empty_shuffled_atoms_list(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_5555555555555555"],
-        "model_strategy": "standard",
     }
     mock_repo.get_all_prompt_blocks.return_value = [
         {
@@ -1877,7 +1906,6 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = []
     context.strictness_level = 0
 
@@ -1889,7 +1917,6 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -1929,7 +1956,7 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest"),
         patch("litellm.token_counter", return_value=10),
     ):
@@ -1953,10 +1980,10 @@ async def test_execute_sets_running_event_and_handles_string_inputs(
 
 
 @pytest.mark.asyncio
-async def test_execute_fails_fast_on_missing_model_strategy_in_context(
+async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
     llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
 ) -> None:
-    """Test fail-fast when context has no model_strategy defined."""
+    """Test fail-fast when step has invalid cognitive_tier defined."""
     step = MagicMock()
     step.id = "step_1"
     step.task_blueprint = "bp_1"
@@ -1971,7 +1998,6 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
     context.workflow_id = "wf_1"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = ""
     context.expected_inputs = []
 
     mock_repo.get_step_by_id.return_value = {
@@ -1979,7 +2005,7 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
         "slug": "test_step",
         "name": {"translations": {"en": "Test"}},
         "description": {"translations": {"en": "Test"}},
-        "model_strategy": "standard",
+        "cognitive_tier": "unsupported_nonexistent_tier",
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
     }
@@ -2008,10 +2034,11 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
     mock_hook_state.inputs = {}
 
     from unittest.mock import AsyncMock, patch
+    from pydantic import ValidationError
 
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
         mock_pre.return_value = (mock_hook_state, [])
-        with pytest.raises(AppException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             await llm_strategy.execute(
                 step=step,
                 projector=projector,
@@ -2021,7 +2048,7 @@ async def test_execute_fails_fast_on_missing_model_strategy_in_context(
                 semaphore=asyncio.Semaphore(2),
             )
 
-    assert "has no model_strategy defined" in exc_info.value.message
+    assert "cognitive_tier" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -2102,7 +2129,6 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     context.workflow_id = "wf_packed"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
     context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
@@ -2115,7 +2141,6 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
 
     mock_repo.get_all_prompt_blocks.return_value = prompt_blocks_raw
@@ -2140,7 +2165,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2243,7 +2268,6 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     context.workflow_id = "wf_step_scoped"
     context.global_context_vars = {}
     context.metadata = ExecutionMetadata()
-    context.model_strategy = "standard"
     context.expected_inputs = expected_inputs
     context.strictness_level = 0
     context.prompt_blocks = [PromptBlockAdapter.validate_python(b, strict=False) for b in prompt_blocks_raw]
@@ -2256,7 +2280,6 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_3333333333333333",
         "criteria_block_ids": ["blk_4444444444444444"],
-        "model_strategy": "standard",
     }
     mock_repo.get_all_prompt_blocks.return_value = prompt_blocks_raw
 
@@ -2287,7 +2310,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2324,7 +2347,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):
@@ -2357,7 +2380,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,
-        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_strategy", new_callable=AsyncMock),
+        patch("backend_v2.services.orchestrator.strategies.llm.LLMClient.from_tier", new_callable=AsyncMock),
         patch("backend_v2.services.orchestrator.strategies.llm.EngineExecutionRequest") as mock_req,
         patch("litellm.token_counter", return_value=10),
     ):

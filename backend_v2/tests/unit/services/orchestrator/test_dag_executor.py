@@ -17,7 +17,6 @@ def mock_repo() -> Any:
     repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "type": "logic",
-        "model_strategy": "logic",
         "slug": "mock_step",
         "name": {"translations": {"en": "Mock Step"}},
         "description": {"translations": {"en": "Mock"}},
@@ -334,7 +333,8 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
         "id": "bp_1234567890abcdef",
         "slug": "synthesis-slug",
         "type": "llm",
-        "model_strategy": "synthesis",
+        "cognitive_tier": "fast",
+        "pre_hooks": ["atom_flattening_hook"],
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",
         "name": {"translations": {"en": "en"}},
@@ -450,7 +450,7 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
 async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor resolves TDAEngine for matrix blocks and PromptEngine for regular blocks."""
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
-    from backend_v2.models.enums import PromptBlockCategory, StepType
+    from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
     from backend_v2.models.v2_core import I18nText, MatrixScale, Step
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
@@ -498,7 +498,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         id="stp_1111222233334444",
         slug="matrix-slug",
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_1111222233334444"],
         role_block_id="blk_5555666677778888",
         extraction_protocol_block_id="blk_5555666677778888",
@@ -514,7 +514,7 @@ async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock
         id="stp_5555666677778888",
         slug="prompt-slug",
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_5555666677778888"],
         extraction_protocol_block_id="blk_5555666677778888",
         name=I18nText(translations={"en": "Prompt Step"}),
@@ -569,7 +569,7 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
         "id": "bp_1111222233334444",
         "slug": "s",
         "type": "logic",
-        "model_strategy": "logic",
+        "cognitive_tier": "fast",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
@@ -641,7 +641,7 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
         "id": b_id,
         "slug": b_id,
         "type": "logic",
-        "model_strategy": "logic",
+        "cognitive_tier": "fast",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
@@ -714,7 +714,8 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         "id": "stp_1111222233334444",
         "slug": "synthesis",
         "type": "llm",
-        "model_strategy": "synthesis",
+        "cognitive_tier": "fast",
+        "pre_hooks": ["atom_flattening_hook"],
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
         "name": {"translations": {"en": "en"}},
@@ -841,7 +842,8 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
         "id": "stp_1111222233334444",
         "slug": "synthesis",
         "type": "llm",
-        "model_strategy": "synthesis",
+        "cognitive_tier": "fast",
+        "pre_hooks": ["atom_flattening_hook"],
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
         "name": {"translations": {"en": "en"}},
@@ -895,7 +897,8 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
         "id": "stp_1111222233334444",
         "slug": "synthesis",
         "type": "llm",
-        "model_strategy": "synthesis",
+        "cognitive_tier": "fast",
+        "pre_hooks": ["atom_flattening_hook"],
         "criteria_block_ids": ["blk_1111222233334444"],
         "extraction_protocol_block_id": "blk_1111222233334444",
         "name": {"translations": {"en": "en"}},
@@ -955,7 +958,6 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
         "id": "stp_1111222233334444",
         "slug": "logic",
         "type": "logic",
-        "model_strategy": "logic",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
@@ -1028,7 +1030,6 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         "id": "stp_1111222233334444",
         "slug": "logic",
         "type": "logic",
-        "model_strategy": "logic",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
@@ -1110,7 +1111,6 @@ async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
         "id": "stp_1111222233334444",
         "slug": "logic",
         "type": "logic",
-        "model_strategy": "logic",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
@@ -1147,7 +1147,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
     import asyncio
 
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
-    from backend_v2.models.enums import PromptBlockCategory, StepType
+    from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import StateProjector
     from backend_v2.models.v2_core import Step, StepRule
@@ -1186,7 +1186,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
         id="bp_0123456789abcdef0123456789abcdef",
         slug="full_step",
         type=StepType.LOGIC,
-        model_strategy="standard",
+        cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_0123456789abcdef0123456789abcdef"],
         role_block_id="blk_11112222333344445555666677778888",
         extraction_protocol_block_id="blk_22223333444455556666777788889999",
@@ -1249,7 +1249,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
     mock_repo.get_step_by_id.return_value = {
         "id": "bp_11112222333344445555666677778888",
         "type": "logic",
-        "model_strategy": "logic",
+        "cognitive_tier": "fast",
         "slug": "exec_analysis",
         "name": {"translations": {"en": "Executive Analysis", "fi": "Johtoryhmän analyysi"}},
         "description": {"translations": {"en": "Desc", "fi": "Kuvaus"}},
@@ -1420,7 +1420,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     mock_repo.get_step_by_id.return_value = {
         "id": "bp_2222333344445555",
         "type": "logic",
-        "model_strategy": "synthesis",
+        "pre_hooks": ["synthesis_distiller_hook"],
         "slug": "synth_step",
         "name": {"translations": {"en": "Synth Step"}},
         "description": {"translations": {"en": "Synth"}},

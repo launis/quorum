@@ -153,7 +153,7 @@ class NodeExecutor:
         ):
             return TDAEngine(self.deps.prompt_compiler)
 
-        if step_def.model_strategy == "synthesis":
+        if "atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks:
             return SynthesisEngine(LLMTaskExecutor(self.deps.prompt_compiler))
 
         return PromptEngine(LLMTaskExecutor(self.deps.prompt_compiler))
@@ -266,6 +266,12 @@ class NodeExecutor:
             else:
                 resolved_global_vars = {}
 
+            resolved_model_registry_id = (
+                metadata.model_registry_id
+                if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id
+                else None
+            )
+
             context = StrategyContext(
                 execution_id=execution_id,
                 workflow_id=workflow_id,
@@ -278,6 +284,7 @@ class NodeExecutor:
                 global_context_vars=resolved_global_vars,
                 context_variables=context_variables or {},
                 prompt_blocks=loaded_prompt_blocks,
+                model_registry_id=resolved_model_registry_id,
             )
 
             await strategy_impl.assert_quota(org_id=organization_id)
@@ -660,7 +667,9 @@ class DAGExecutor:
 
                 # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
                 step_def = step_definitions.get(step_obj.task_blueprint) if step_obj.task_blueprint else None
-                if step_def and step_def.model_strategy == "synthesis":
+                if step_def and (
+                    "atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks
+                ):
                     try:
                         lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
@@ -752,11 +761,22 @@ class DAGExecutor:
                         before_sleep=before_sleep_log(logger, logging.WARNING),
                     ):
                         with attempt:
+                            effective_metadata = (
+                                exec_record.metadata.model_copy(
+                                    update={
+                                        "model_registry_id": (
+                                            exec_record.metadata.model_registry_id or workflow.model_registry_id
+                                        )
+                                    }
+                                )
+                                if exec_record.metadata
+                                else ExecutionMetadata(model_registry_id=workflow.model_registry_id)
+                            )
                             events = await self.node_executor.execute(
                                 step=step_obj,
                                 execution_id=execution_id,
                                 workflow_id=workflow.id,
-                                metadata=exec_record.metadata or ExecutionMetadata(),
+                                metadata=effective_metadata,
                                 target_locale=exec_record.target_locale,
                                 output_profile_id=exec_record.output_profile_id,
                                 organization_id=exec_record.organization_id,
@@ -904,7 +924,8 @@ class DAGExecutor:
             preflight_target_step = None
             for step in workflow.steps:
                 if step.task_blueprint and step.task_blueprint in step_definitions:
-                    if step_definitions[step.task_blueprint].model_strategy == "synthesis":
+                    step_b = step_definitions[step.task_blueprint]
+                    if "atom_flattening_hook" in step_b.pre_hooks or "synthesis_distiller_hook" in step_b.pre_hooks:
                         has_prehydrated = True
                         preflight_target_step = step
                         break

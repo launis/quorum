@@ -28,7 +28,7 @@ def mock_repo() -> Any:
         "id": "stp_1111222233334444",
         "slug": "logic",
         "type": "logic",
-        "model_strategy": "logic",
+        "cognitive_tier": "fast",
         "hook": "mock_hook",
         "name": {"translations": {"en": "en"}},
         "description": {"translations": {"en": "en"}},
