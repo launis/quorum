@@ -57,6 +57,12 @@ The architecture strictly isolates three decoupled functional tiers:
 
 Presentation profiles (`OutputProfile`) are strictly decoupled from execution rigor. Switching presentation profiles alters layout ordering, narrative tone, and block visibility, but never alters or recalculates evaluation scores.
 
+### 2.16. Evidence Extraction Invariants, Provenance Sovereignty, & Anti-Pattern Falsification
+All evidence extraction and provenance gating across the architecture enforce three non-negotiable invariants:
+1. **Anti-Ellipsis Lexical Anchoring:** Candidate evidence quotes (`source_quote`) must strictly consist of a single, continuous, unbroken character substring directly from the source material. Splicing separate sentences with ellipses (`...` or `…`) is prohibited, preserving exact lexical matching (`str.find`) in downstream verification engines without false-negative validation failures.
+2. **Deterministic Anti-Pattern Falsification:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (such as faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, ensuring consistent, repeatable evaluation.
+3. **Endorsed Deliverable Provenance (`ExpectedInput.is_endorsed_deliverable`):** Deliverables configured with endorsed deliverable provenance designate the work as the candidate's formally submitted output. The candidate is fully entitled to incorporate AI-assisted phrasing, executive terminology, and domain jargon developed during the workflow without triggering Echo Parroting penalties, while observation-layer performative pattern scanning remains active for transparent telemetry.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

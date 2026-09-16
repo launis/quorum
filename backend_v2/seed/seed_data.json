@@ -1753,6 +1753,10 @@
                     {
                       "pattern": "claim is bounded by formal citations or mathematical proof",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "concise factual summary of an explicitly cited external study, publication, or public report (specifically reports titled 'Megatrendit 2023 - Sitra' or primary research sources) reflecting the source's findings rather than asserting personal unchallengeable dogmatism",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -2129,7 +2133,7 @@
                       "allows_contextual_excuse": false
                     },
                     {
-                      "pattern": "listing concrete operational actions, tactical measures, or practical implementations without explicitly naming and mapping an abstract governing rule or theoretical framework",
+                      "pattern": "listing generic strategic recommendations, high-level action bullets, or tactical advice without mapping the abstract conceptual framework onto concrete structural mechanisms or operational workflows",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -18097,6 +18101,7 @@
           },
           "required": false,
           "is_chat_history": false,
+          "is_endorsed_deliverable": true,
           "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
@@ -18424,7 +18429,8 @@
           },
           "required": true,
           "is_chat_history": false,
-          "scan_for_performative_patterns": false,
+          "is_endorsed_deliverable": true,
+          "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
             "paste"
@@ -18622,7 +18628,8 @@
           },
           "required": true,
           "is_chat_history": false,
-          "scan_for_performative_patterns": false,
+          "is_endorsed_deliverable": true,
+          "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
             "paste"
@@ -18646,7 +18653,7 @@
           },
           "required": false,
           "is_chat_history": false,
-          "scan_for_performative_patterns": false,
+          "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
             "paste"
@@ -18880,7 +18887,8 @@
           },
           "required": true,
           "is_chat_history": false,
-          "scan_for_performative_patterns": false,
+          "is_endorsed_deliverable": true,
+          "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
             "paste"
@@ -18904,7 +18912,7 @@
           },
           "required": false,
           "is_chat_history": false,
-          "scan_for_performative_patterns": false,
+          "scan_for_performative_patterns": true,
           "input_modes": [
             "file",
             "paste"
@@ -19122,6 +19130,7 @@
           },
           "required": true,
           "is_chat_history": false,
+          "is_endorsed_deliverable": true,
           "scan_for_performative_patterns": false,
           "input_modes": [
             "file",
@@ -19313,6 +19322,7 @@
           },
           "required": true,
           "is_chat_history": false,
+          "is_endorsed_deliverable": true,
           "scan_for_performative_patterns": false,
           "input_modes": [
             "file",

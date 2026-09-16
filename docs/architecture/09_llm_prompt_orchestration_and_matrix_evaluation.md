@@ -160,6 +160,7 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   </anti_patterns>
   ```
   If the LLM detects any anti-pattern in the candidate text segment, the candidate is disqualified from serving as supporting evidence.
+* **Anti-Pattern Falsification Sovereignty:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (such as faithful summarization of an explicitly cited external study or published research) are formally encoded as deterministic `anti_patterns` directly within the atom model. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, guaranteeing deterministic, repeatable evaluation across runs.
 
 ---
 
@@ -292,7 +293,7 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
     * *`target_speaker = TargetSpeaker.AI`:* Evaluates model sycophancy, adherence, hallucination, or tool usage. Evidence quotes must reside strictly within `<ai_draft_context>` tags; any citation found only in `<user_payload>` triggers a semantic provenance violation.
     * *Echo Parroting & Cognitive Agency Boundary:* When evaluating user competence in dialogue across model providers (such as OpenAI GPT-4 models and Google Gemini), the candidate must demonstrate authentic cognitive agency and independent reasoning. Verbatim repetitions, passive echoing, or copying of preceding AI draft suggestions, environmental task rubrics, or background slogans without operational application, synthesis, or critical challenge do not satisfy cognitive competence claims for the user.
   * **Option C: Standalone Submitted Deliverables (Track B Dual-Track Attribution):**
-    * For standalone non-dialogue deliverables, essays, or final product texts (`is_chat_history == False`), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable without conversational provenance splitting.
+    * For standalone non-dialogue deliverables, essays, or final product texts (`is_chat_history == False`), the text represents the candidate's endorsed output. When configured with endorsed deliverable provenance (`ExpectedInput.is_endorsed_deliverable = True`), adopting AI-assisted drafting, executive consultant framing, and curated domain jargon is permitted as authentic candidate-endorsed work product without triggering Echo Parroting penalties, while observation-layer performative pattern scanning remains active for transparent telemetry.
   * **Option D: Assignment Brief Context Isolation:**
     * When inputs are configured with `assignment` in `input_modes`, their content is wrapped in `<assignment_context>` tags. Evaluated claims maintain strictly binary `target_speaker` (`USER` or `AI`), and models are instructed that `<assignment_context>` defines problem constraints rather than authorial evidence. Any evidence quote extracted from `<assignment_context>` triggers an immediate `SemanticEvidenceError` (`ErrorCodes.PROVENANCE_VIOLATION`).
 * **Prompt Wrapper & Mechanics:**
@@ -313,7 +314,7 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
   - COGNITIVE AGENCY VS. ECHO PARROTING: When evaluating USER claims on conversational dialogue (<user_payload>):
     * The evidence must demonstrate the candidate's authentic cognitive agency and independent reasoning.
     * Verbatim repetitions, passive echoing, or copying of preceding AI suggestions, task rubrics, or background slogans without operational application, synthesis, or critical challenge do NOT satisfy cognitive competence claims for the USER.
-  - SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable.
+  - SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable. If marked with endorsed deliverable provenance, adopting AI-assisted drafting, executive consultant framing, and curated domain jargon is legitimate and does NOT invalidate claims or trigger Echo Parroting disqualification, provided the substantive evaluative criteria are fulfilled.
   - ASSIGNMENT BRIEFS & CONTEXT: <assignment_context> tags contain environmental task briefs, instructions, or evaluation rubrics. You MUST read this to understand assignment requirements, but you must NEVER quote from <assignment_context> as evidence for either USER or AI claims.
   - SINGLE-AUTHOR DELIVERABLES: For non-dialogue documents without dialogue tags, the entire text is author text (USER), and evidence is drawn directly from the primary document.
   </speaker_attribution_protocol>
@@ -341,7 +342,7 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 - COGNITIVE AGENCY VS. ECHO PARROTING: When evaluating USER claims on conversational dialogue (<user_payload>):
   * The evidence must demonstrate the candidate's authentic cognitive agency and independent reasoning.
   * Verbatim repetitions, passive echoing, or copying of preceding AI suggestions, task rubrics, or background slogans without operational application, synthesis, or critical challenge do NOT satisfy cognitive competence claims for the USER.
-- SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable.
+- SUBMITTED DELIVERABLES & ARTIFACTS: For standalone deliverables (non-dialogue documents or final product texts), the text represents the candidate's endorsed output, and evidence is evaluated directly from the deliverable. If marked with endorsed deliverable provenance, adopting AI-assisted drafting, executive consultant framing, and curated domain jargon is legitimate and does NOT invalidate claims or trigger Echo Parroting disqualification, provided the substantive evaluative criteria are fulfilled.
 - ASSIGNMENT BRIEFS & CONTEXT: <assignment_context> tags contain environmental task briefs, instructions, or evaluation rubrics. You MUST read this to understand assignment requirements, but you must NEVER quote from <assignment_context> as evidence for either USER or AI claims.
 - SINGLE-AUTHOR DELIVERABLES: For non-dialogue documents without dialogue tags, the entire text is author text (USER), and evidence is drawn directly from the primary document.
 </speaker_attribution_protocol>
@@ -357,6 +358,7 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 
 <evidence_extraction_mandate>
 - VERBATIM EVIDENCE EXTRACTION: Extract the exact verbatim sentence directly into the `source_quote` field. Never translate, paraphrase, or alter quotes.
+- ANTI-ELLIPSIS SUBSTRING MANDATE: Quotes must be a single, continuous, unbroken character substring extracted directly from the physical context. Splicing separate sentences with ellipses ('...' or '…') is strictly prohibited. If evidence spans separate sentences, extract the single most decisive continuous sentence.
 </evidence_extraction_mandate>
 
 [ROLE: USER (STATIC CONTEXT PREFIX)]
@@ -846,8 +848,9 @@ graph TD
 
 ### 6.2 Tiered Lexical Validation Pipeline
 The validation engine enforces a three-stage verification pipeline:
-1. **Primary Gate (Strict Normalized Lexical Scan):**
-   * The candidate quote and target source document are normalized using Unicode Normalization Form KD (NFD diacritic decomposition) while stripping non-semantic markup (e.g., HTML tags).
+1. **Primary Gate (Tiered Normalization Cascade & Anti-Ellipsis Substring Anchoring):**
+   * **Anti-Ellipsis Lexical Mandate:** Extracted candidate quotes must strictly consist of a single, continuous, unbroken character substring directly from the source material. Splicing separate sentences with ellipses (`...` or `…`) is strictly prohibited, ensuring that downstream verification engines execute exact lexical matching (`str.find`) without false-negative validation failures.
+   * The candidate quote and target source document undergo a deterministic 4-tier normalization cascade (Literal Exact, Whitespace Normalized, HTML-Tag Normalized, and Markdown-Boundary-Relaxed).
    * An exact substring search (`str.find`) is executed against the normalized source text.
    * An exact character index map tracks the position from normalized text back to physical source document offsets. If an exact match is found, the quote is accepted immediately with zero fuzzy degradation.
 2. **Entropy Gate (Strict Boundary for Short Quotes):**
@@ -858,9 +861,10 @@ The validation engine enforces a three-stage verification pipeline:
    * Short quotes (between 10 and 29 characters) utilize contiguous substring ratio matching (`partial_ratio`) to enforce unbroken phrasing.
    * Long quotes (30 characters or greater) permit token-set matching (`token_set_ratio`) to accommodate minor OCR scanning artifacts, whitespace variances, or localized morphological suffixes without compromising semantic truth.
 
-### 6.3 Blind Extraction & Null Hypothesis Guardrails
+### 6.3 Blind Extraction, Null Hypothesis Guardrails & Anti-Pattern Falsification
 Extraction models enforce invariant state consistency between assertion conclusions and evidence fields via strict schema validators:
-* **Contextual Override Guardrail:** If an evaluator flags `contextual_override == True` (overriding an algorithmic score due to qualitative context), all evidence quote fields (`exact_quote`, `exact_quotes`) are forced to `None` or an empty collection. Contextual exceptions cannot be substantiated by physical citation.
+* **Deterministic Anti-Pattern Falsification:** For existential error radars (`inverse_evidence = true`), legitimate contextual exceptions (such as faithful summarization of an explicitly cited external research report) are formally governed by deterministic `anti_patterns` within the atom definition. This eliminates meta-cognitive oscillation caused by unconstrained contextual overrides, ensuring consistent, repeatable evaluation.
+* **Contextual Override Guardrail:** If an evaluator flags `contextual_override == True` (overriding an algorithmic score due to qualitative context), all evidence quote fields (`exact_quote`, `exact_quotes`, `source_quote`) are forced to `None` or an empty collection. Contextual exceptions cannot be substantiated by physical citation.
 * **Defect / Failure Quote Nullification:** If an evaluation status resolves to `ExecutionStatus.FAILED` for positive claims or an error is not detected, `source_quote` is forcibly purged. Evidence quotes cannot persist on unsubstantiated hypotheses.
 
 ### 6.4 Deterministic Alias Anchoring & Attribution
