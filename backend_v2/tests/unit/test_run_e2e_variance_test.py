@@ -535,3 +535,111 @@ class TestWorkflowMatrixTelemetry:
         assert "Työnkulun ja Arviointimatriisien Parametrit" in captured
 
 
+class TestModelRegistryComparison:
+    """Test suite for sovereign model stack comparison and dynamic CLI resolution."""
+
+    def test_resolve_comparison_registries_auto_pairing(self) -> None:
+        """Verify resolve_comparison_registries automatically resolves workflow stack and alternative stack."""
+        from scripts.run_e2e_variance_test import resolve_comparison_registries
+
+        reg_a, reg_b = resolve_comparison_registries(Path("backend_v2/seed/seed_data.json"))
+        assert reg_a["id"] == "sys_e26807f3bfa3454d"
+        assert reg_b["id"] == "sys_6f8b1c4a2e0d49f1"
+        assert reg_a["id"] != reg_b["id"]
+
+    def test_resolve_comparison_registries_explicit_args(self) -> None:
+        """Verify resolve_comparison_registries supports explicit provider and name matches."""
+        from scripts.run_e2e_variance_test import resolve_comparison_registries
+
+        reg_a, reg_b = resolve_comparison_registries(
+            Path("backend_v2/seed/seed_data.json"),
+            compare_args=["openai", "google"],
+        )
+        assert reg_a["default_provider"] == "openai"
+        assert reg_b["default_provider"] == "google"
+
+    def test_resolve_comparison_registries_invalid_count_raises(self) -> None:
+        """Verify resolve_comparison_registries fails fast when compare_args has invalid count."""
+        import pytest
+
+        from scripts.run_e2e_variance_test import resolve_comparison_registries
+
+        with pytest.raises(ValueError, match="expects either 0 arguments"):
+            resolve_comparison_registries(
+                Path("backend_v2/seed/seed_data.json"),
+                compare_args=["only_one"],
+            )
+
+    def test_resolve_comparison_registries_same_registry_raises(self) -> None:
+        """Verify resolve_comparison_registries fails fast when both targets resolve to identical stack."""
+        import pytest
+
+        from scripts.run_e2e_variance_test import resolve_comparison_registries
+
+        with pytest.raises(ValueError, match="Cannot compare model registry"):
+            resolve_comparison_registries(
+                Path("backend_v2/seed/seed_data.json"),
+                compare_args=["google", "sys_e26807f3bfa3454d"],
+            )
+
+    def test_resolve_model_telemetry_targeted_registry(self) -> None:
+        """Verify resolve_model_telemetry targets specific stack when registry_id is provided."""
+        from scripts.run_e2e_variance_test import resolve_model_telemetry
+
+        telemetry_openai = resolve_model_telemetry(
+            Path("backend_v2/seed/seed_data.json"),
+            registry_id="openai",
+        )
+        assert "fast" in telemetry_openai
+        assert telemetry_openai["fast"]["provider"] == "openai"
+        assert "gpt-5" in telemetry_openai["fast"]["model_name"].lower()
+
+        telemetry_google = resolve_model_telemetry(
+            Path("backend_v2/seed/seed_data.json"),
+            registry_id="google",
+        )
+        assert "fast" in telemetry_google
+        assert telemetry_google["fast"]["provider"] == "google"
+        assert "gemini" in telemetry_google["fast"]["model_name"].lower()
+
+    def test_main_show_matrices_compare_registries(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Verify main() with --show-matrices and --compare-registries prints comparison preview."""
+        from scripts.run_e2e_variance_test import main
+
+        result = main([
+            "--show-matrices",
+            "--compare-registries",
+            "--db-path",
+            "backend_v2/seed/seed_data.json",
+        ])
+        assert result == []
+        captured = capsys.readouterr().out
+        assert "SOVEREIGN MODEL STACK COMPARISON PREVIEW" in captured
+        assert "Google Gemini Sovereign Stack" in captured
+        assert "OpenAI O-Series Stack" in captured
+
+    def test_main_model_registry_cli_parsing(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Verify CLI correctly parses --model-registry and --compare-registries and forwards to runner."""
+        from scripts import run_e2e_variance_test
+
+        recorded_kwargs: dict[str, Any] = {}
+
+        def mock_runner(**kwargs: Any) -> list[str]:
+            recorded_kwargs.update(kwargs)
+            return ["exe_mock1", "exe_mock2"]
+
+        monkeypatch.setattr(run_e2e_variance_test, "run_variance_test", mock_runner)
+
+        run_e2e_variance_test.main([
+            "--model-registry",
+            "sys_6f8b1c4a2e0d49f1",
+            "--compare-registries",
+            "google",
+            "openai",
+        ])
+
+        assert recorded_kwargs["model_registry"] == "sys_6f8b1c4a2e0d49f1"
+        assert recorded_kwargs["compare_registries"] == ["google", "openai"]
+
+
+

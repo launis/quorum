@@ -84,6 +84,7 @@ __all__ = [
     "print_model_telemetry",
     "print_workflow_matrix_telemetry",
     "resolve_all_workflows_matrix_telemetry",
+    "resolve_comparison_registries",
     "resolve_model_telemetry",
     "resolve_workflow_matrix_telemetry",
     "run_variance_test",
@@ -720,6 +721,7 @@ def trigger_execution(
     profile_id: str | None = None,
     target_locale: str = "fi",
     provider_override: str | None = None,
+    model_registry_override: str | None = None,
 ) -> str:
     """Trigger native execution over HTTP API and save response trace.
 
@@ -728,6 +730,8 @@ def trigger_execution(
         workflow_id: Optional workflow ID or slug to execute.
         profile_id: Optional output profile ID to apply.
         target_locale: Desired output locale (e.g., 'fi').
+        provider_override: Optional LLM provider override string.
+        model_registry_override: Optional model registry ID override.
 
     Returns:
         Generated execution ID.
@@ -792,6 +796,9 @@ def trigger_execution(
     }
     if provider_override:
         req_body["provider_override"] = provider_override
+    if model_registry_override:
+        req_body["model_registry_id"] = model_registry_override
+        print(f"Applying model_registry_id override: {model_registry_override}")
 
     resp = requests.post(
         f"{base_url}/execution/executions/",
@@ -867,14 +874,21 @@ def validate_execution_kelvollisuus(
     return True, "Execution is valid and contains sufficient observations"
 
 
-def resolve_model_telemetry(db_path: Path) -> dict[str, dict[str, Any]]:
+def resolve_model_telemetry(
+    db_path: Path,
+    registry_id: str | None = None,
+) -> dict[str, dict[str, Any]]:
     """Load model registry from active database and resolve physical and effective parameters.
+
+    Supports Option A flat tier definitions (fast, balanced, deep, reasoning) and multi-registry
+    keyed lookup by ID, slug, name, or provider.
 
     Args:
         db_path: Path to database (data/db_v2.json) or seed file.
+        registry_id: Optional model registry ID, slug, provider, or name substring.
 
     Returns:
-        Dictionary mapping strategy names to structured telemetry dictionaries.
+        Dictionary mapping strategy/tier names to structured telemetry dictionaries.
     """
     target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
     if not target_path.exists():
@@ -893,27 +907,58 @@ def resolve_model_telemetry(db_path: Path) -> dict[str, dict[str, Any]]:
     elif isinstance(sys_configs, list):
         configs_list = [v for v in sys_configs if isinstance(v, dict)]
 
-    models_dict: dict[str, Any] = {}
-    for cfg in configs_list:
-        if cfg.get("type") == "model_registry":
-            tier_defs = cfg.get("tier_definitions", {})
-            if isinstance(tier_defs, dict) and tier_defs:
-                for prov_name, tiers in tier_defs.items():
-                    if isinstance(tiers, dict):
-                        for tier_name, mcfg in tiers.items():
+    registries = [c for c in configs_list if c.get("type") == "model_registry"]
+    if not registries:
+        return {}
+
+    # Target specific registry if requested
+    selected_registry: dict[str, Any] | None = None
+    if registry_id:
+        reg_term = registry_id.strip().lower()
+        for r in registries:
+            if str(r.get("id", "")).lower() == reg_term:
+                selected_registry = r
+                break
+            if str(r.get("slug", "")).lower() == reg_term:
+                selected_registry = r
+                break
+            if reg_term in str(r.get("name", "")).lower():
+                selected_registry = r
+                break
+            if str(r.get("default_provider", "")).lower() == reg_term:
+                selected_registry = r
+                break
+
+    target_registries = [selected_registry] if selected_registry else registries
+
+    models_dict: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+    for cfg in target_registries:
+        reg_provider = str(cfg.get("default_provider", "google")).lower()
+        tier_defs = cfg.get("tier_definitions", {})
+        if isinstance(tier_defs, dict) and tier_defs:
+            for key, val in tier_defs.items():
+                if isinstance(val, dict):
+                    if "model_name" in val:
+                        tier_name = key
+                        prov_key = f"{tier_name} ({reg_provider})"
+                        models_dict[prov_key] = (val, cfg)
+                        if tier_name not in models_dict or selected_registry is not None:
+                            models_dict[tier_name] = (val, cfg)
+                    else:
+                        for t_name, mcfg in val.items():
                             if isinstance(mcfg, dict):
-                                models_dict[f"{tier_name} ({prov_name})"] = mcfg
-                                if tier_name not in models_dict:
-                                    models_dict[tier_name] = mcfg
-            models_dict.update(cfg.get("models", {}))
-            break
+                                prov_key = f"{t_name} ({key})"
+                                models_dict[prov_key] = (mcfg, cfg)
+                                if t_name not in models_dict:
+                                    models_dict[t_name] = (mcfg, cfg)
+        for m_name, m_cfg in cfg.get("models", {}).items():
+            if isinstance(m_cfg, dict):
+                models_dict[m_name] = (m_cfg, cfg)
 
     result: dict[str, dict[str, Any]] = {}
-    for strat, mcfg in models_dict.items():
-        if not isinstance(mcfg, dict):
-            continue
+    for strat, (mcfg, cfg) in models_dict.items():
         model_name = str(mcfg.get("model_name", "unknown"))
-        provider = str(mcfg.get("provider", "unknown"))
+        provider = str(mcfg.get("provider", cfg.get("default_provider", "unknown")))
         db_temp = mcfg.get("temperature")
         max_tokens = mcfg.get("max_tokens")
         thinking_budget = int(mcfg.get("thinking_budget_tokens", 0) or 0)
@@ -951,6 +996,8 @@ def resolve_model_telemetry(db_path: Path) -> dict[str, dict[str, Any]]:
 
         result[strat] = {
             "strategy": strat,
+            "registry_id": str(cfg.get("id", "")),
+            "registry_name": str(cfg.get("name", "Default Model Registry")),
             "provider": provider,
             "backend": provider_backend,
             "model_name": model_name,
@@ -967,21 +1014,34 @@ def resolve_model_telemetry(db_path: Path) -> dict[str, dict[str, Any]]:
     return result
 
 
-def print_model_telemetry(db_path: Path, active_strategies: list[str] | None = None) -> None:
+def print_model_telemetry(
+    db_path: Path,
+    active_strategies: list[str] | None = None,
+    registry_id: str | None = None,
+) -> None:
     """Print verified physical and effective model parameters loaded from the database.
 
     Args:
         db_path: Path to database or seed file.
         active_strategies: Optional targeted strategies list.
+        registry_id: Optional model registry ID or slug to target.
     """
-    telemetry = resolve_model_telemetry(db_path)
+    telemetry = resolve_model_telemetry(db_path, registry_id=registry_id)
     target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
     if not telemetry:
         print(f"[Model Telemetry] Varoitus: Mallirekisteriä ei löytynyt kohteesta {target_path}")
         return
 
+    first_item = next(iter(telemetry.values()))
+    reg_name = first_item.get("registry_name")
+    reg_id = first_item.get("registry_id")
+    reg_prov = first_item.get("provider", "").upper()
+
     print("\n" + "=" * 80)
-    print(f"[Fyysiset Malliparametrit ja Telemetria] (Lähde: {target_path})")
+    if registry_id and reg_name:
+        print(f"[Fyysiset Malliparametrit ja Telemetria] Stack: '{reg_name}' (ID: {reg_id}, Provider: {reg_prov})")
+    else:
+        print(f"[Fyysiset Malliparametrit ja Telemetria] (Lähde: {target_path})")
     print("=" * 80)
 
     ordered_keys = list(active_strategies) if active_strategies else []
@@ -1004,6 +1064,123 @@ def print_model_telemetry(db_path: Path, active_strategies: list[str] | None = N
         print(f"    - Max Tokens:           {t['max_tokens']}")
 
     print("=" * 80 + "\n")
+
+
+def resolve_comparison_registries(
+    db_path: Path,
+    workflow_id: str | None = None,
+    compare_args: list[str] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Deterministically resolve two model registries for differential benchmark comparison.
+
+    Args:
+        db_path: Path to database or seed file.
+        workflow_id: Optional target workflow ID or slug.
+        compare_args: CLI arguments passed to --compare-registries (0 or 2 items).
+
+    Returns:
+        Tuple of (Registry A, Registry B) dictionaries.
+
+    Raises:
+        ValueError: If fewer than 2 registries exist or specified targets cannot be resolved.
+    """
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    if not target_path.exists():
+        msg = f"Database or seed file not found at {target_path}"
+        raise ValueError(msg)
+
+    with target_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    sys_configs = data.get("system_config", [])
+    configs_list: list[dict[str, Any]] = []
+    if isinstance(sys_configs, dict):
+        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
+    elif isinstance(sys_configs, list):
+        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+
+    registries = [c for c in configs_list if c.get("type") == "model_registry"]
+    if len(registries) < 2:
+        msg = f"Differential comparison requires at least 2 model registries in database, found {len(registries)}."
+        raise ValueError(msg)
+
+    def match_reg(term: str) -> dict[str, Any] | None:
+        term_clean = term.strip().lower()
+        for r in registries:
+            if str(r.get("id", "")).lower() == term_clean:
+                return r
+        for r in registries:
+            if str(r.get("slug", "")).lower() == term_clean:
+                return r
+        for r in registries:
+            if str(r.get("default_provider", "")).lower() == term_clean:
+                return r
+        for r in registries:
+            if term_clean in str(r.get("name", "")).lower():
+                return r
+        return None
+
+    if compare_args is not None and len(compare_args) > 0:
+        if len(compare_args) != 2:
+            msg = (
+                f"--compare-registries expects either 0 arguments (auto-compare workflow stack "
+                f"against alternative stack) or exactly 2 arguments (e.g. --compare-registries google openai), "
+                f"got {len(compare_args)}: {compare_args}"
+            )
+            raise ValueError(msg)
+        reg_a = match_reg(compare_args[0])
+        if reg_a is None:
+            msg = (
+                f"Could not resolve Model Registry A from '{compare_args[0]}'. "
+                f"Available registries: {[r.get('id') for r in registries]}"
+            )
+            raise ValueError(msg)
+        reg_b = match_reg(compare_args[1])
+        if reg_b is None:
+            msg = (
+                f"Could not resolve Model Registry B from '{compare_args[1]}'. "
+                f"Available registries: {[r.get('id') for r in registries]}"
+            )
+            raise ValueError(msg)
+        if reg_a.get("id") == reg_b.get("id"):
+            msg = (
+                f"Cannot compare model registry '{reg_a.get('id')}' with itself. Specify two distinct model registries."
+            )
+            raise ValueError(msg)
+        return (reg_a, reg_b)
+
+    # Auto comparison: Registry A is workflow's bound registry, Registry B is the first alternate
+    wfs_raw = data.get("workflows", {})
+    wfs_list = list(wfs_raw.values()) if isinstance(wfs_raw, dict) else list(wfs_raw)
+    target_wf: dict[str, Any] | None = None
+    if workflow_id:
+        target_wf = next(
+            (
+                w
+                for w in wfs_list
+                if isinstance(w, dict) and (w.get("id") == workflow_id or w.get("slug") == workflow_id)
+            ),
+            None,
+        )
+    if not target_wf:
+        core_wfs = [w for w in wfs_list if isinstance(w, dict) and w.get("is_system_core")]
+        if len(core_wfs) == 1:
+            target_wf = core_wfs[0]
+        elif len(wfs_list) == 1 and isinstance(wfs_list[0], dict):
+            target_wf = wfs_list[0]
+
+    wf_reg_id = target_wf.get("model_registry_id") if target_wf else None
+    if wf_reg_id:
+        reg_a = next((r for r in registries if r.get("id") == wf_reg_id), registries[0])
+    else:
+        reg_a = registries[0]
+
+    reg_b = next((r for r in registries if r.get("id") != reg_a.get("id")), None)
+    if not reg_b:
+        msg = "Failed to identify an alternative model registry in database for comparison."
+        raise ValueError(msg)
+
+    return (reg_a, reg_b)
 
 
 def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> dict[str, Any] | None:
@@ -1344,6 +1521,8 @@ def run_variance_test(
     strategies: list[str] | None = None,
     providers: list[str] | None = None,
     no_noise: bool = False,
+    model_registry: str | None = None,
+    compare_registries: list[str] | None = None,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
 
@@ -1361,11 +1540,37 @@ def run_variance_test(
         strategies: Optional list of model strategies to run sequentially for cross-model differential comparison.
         providers: Optional list of LLM providers to run sequentially for cross-provider differential comparison.
         no_noise: Disable Unicode space noise injection to evaluate byte-for-byte identical inputs.
+        model_registry: Optional model registry ID, slug, or name override to apply to all runs.
+        compare_registries: Optional list (0 or 2 items) to run automated side-by-side comparison between two stacks.
 
     Returns:
         List of generated execution IDs.
     """
-    if providers is not None:
+    target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
+
+    comparison_pair: tuple[dict[str, Any], dict[str, Any]] | None = None
+    if compare_registries is not None:
+        num_runs = 2
+        comparison_pair = resolve_comparison_registries(
+            target_db_path,
+            workflow_id=workflow,
+            compare_args=compare_registries,
+        )
+        reg_a, reg_b = comparison_pair
+        print("\n" + "=" * 80)
+        print("[AUTOMATED SOVEREIGN MODEL STACK COMPARISON]")
+        print(
+            f"  • Stack A: '{reg_a.get('name', reg_a.get('id'))}' ({reg_a.get('id')}) "
+            f"[{str(reg_a.get('default_provider', '')).upper()}]"
+        )
+        print(
+            f"  • Stack B: '{reg_b.get('name', reg_b.get('id'))}' ({reg_b.get('id')}) "
+            f"[{str(reg_b.get('default_provider', '')).upper()}]"
+        )
+        print("=" * 80 + "\n")
+        print_model_telemetry(target_db_path, registry_id=str(reg_a.get("id")))
+        print_model_telemetry(target_db_path, registry_id=str(reg_b.get("id")))
+    elif providers is not None:
         if len(providers) < 1:
             msg = "At least one provider must be provided to --providers."
             raise ValueError(msg)
@@ -1383,9 +1588,13 @@ def run_variance_test(
         if not inputs_target:
             inputs_target = "backend_v2/tests/test_data/exe_c0bc_inputs.json"
 
-    target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
     print(f"Using inputs path: {inputs_target}")
-    print_model_telemetry(target_db_path, active_strategies=strategies)
+    if comparison_pair is None:
+        print_model_telemetry(
+            target_db_path,
+            active_strategies=strategies,
+            registry_id=model_registry,
+        )
     print_workflow_matrix_telemetry(target_db_path, workflow_id=workflow)
     execution_ids: list[str] = []
 
@@ -1404,6 +1613,20 @@ def run_variance_test(
         backend_env["ENVIRONMENT"] = environment
 
         active_provider: str | None = None
+        active_model_registry: str | None = model_registry
+
+        if comparison_pair is not None:
+            active_reg = comparison_pair[0] if i == 0 else comparison_pair[1]
+            active_model_registry = str(active_reg["id"])
+            stack_letter = "A" if i == 0 else "B"
+            stack_name = active_reg.get("name", active_model_registry)
+            print(
+                f"[Stack Comparison Flow] Run {i + 1}/2 executing with "
+                f"Stack {stack_letter}: '{stack_name}' ({active_model_registry})"
+            )
+        elif active_model_registry:
+            print(f"[Model Registry Override] Run {i + 1} binding registry: '{active_model_registry}'")
+
         if providers:
             active_provider = providers[i].lower()
             print(f"[Provider Routing] Run {i + 1} targeting provider: '{active_provider}'")
@@ -1461,16 +1684,19 @@ def run_variance_test(
 
         subprocess.Popen(
             cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=str(_project_root),
             env=backend_env,
-            creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
 
-        print(f"Waiting for backend to become responsive (environment: {environment})...")
+        print("Waiting for backend readiness...")
         if not check_backend():
             print("Backend failed to start!")
+            force_kill_services()
             sys.exit(1)
 
-        time.sleep(10)
+        print("Backend is ready. Checking workflows...")
 
         # Dynamic workflow and expected inputs resolution
         from backend_v2.settings import get_settings
@@ -1483,8 +1709,8 @@ def run_variance_test(
         w_res.raise_for_status()
         workflows = w_res.json()
         if not workflows:
-            msg = "No workflows found in database"
-            raise RuntimeError(msg)
+            print("No workflows found in database")
+            sys.exit(1)
 
         resolved_workflow: dict[str, Any] | None = None
         if workflow:
@@ -1568,6 +1794,7 @@ def run_variance_test(
             profile_id=final_profile_id,
             target_locale=locale,
             provider_override=active_provider,
+            model_registry_override=active_model_registry,
         )
         if exec_id:
             execution_ids.append(exec_id)
@@ -1667,6 +1894,21 @@ def main(argv: list[str] | None = None) -> list[str]:
         help="List of LLM providers to run sequentially for cross-provider differential comparison (e.g. google openai)",
     )
     parser.add_argument(
+        "--model-registry",
+        default=None,
+        help="Model registry ID, slug, or name to bind for execution (overrides workflow default)",
+    )
+    parser.add_argument(
+        "--compare-registries",
+        nargs="*",
+        default=None,
+        help=(
+            "Execute automated side-by-side differential comparison between two model registry stacks. "
+            "Pass 0 arguments to compare workflow registry against alternative DB stack, "
+            "or 2 arguments specifying stack IDs/names (e.g. --compare-registries google openai)."
+        ),
+    )
+    parser.add_argument(
         "--no-noise",
         action="store_true",
         help="Disable Unicode space noise injection to evaluate byte-for-byte identical inputs",
@@ -1680,7 +1922,31 @@ def main(argv: list[str] | None = None) -> list[str]:
     args = parser.parse_args(argv)
     if args.show_matrices:
         target_db = Path(args.db_path) if args.db_path else Path("data/db_v2.json")
-        print_model_telemetry(target_db, active_strategies=args.strategies)
+        if args.compare_registries is not None:
+            reg_a, reg_b = resolve_comparison_registries(
+                target_db,
+                workflow_id=args.workflow,
+                compare_args=args.compare_registries,
+            )
+            print("\n" + "=" * 80)
+            print("[SOVEREIGN MODEL STACK COMPARISON PREVIEW]")
+            print(
+                f"  • Stack A: '{reg_a.get('name', reg_a.get('id'))}' ({reg_a.get('id')}) "
+                f"[{str(reg_a.get('default_provider', '')).upper()}]"
+            )
+            print(
+                f"  • Stack B: '{reg_b.get('name', reg_b.get('id'))}' ({reg_b.get('id')}) "
+                f"[{str(reg_b.get('default_provider', '')).upper()}]"
+            )
+            print("=" * 80)
+            print_model_telemetry(target_db, registry_id=str(reg_a.get("id")))
+            print_model_telemetry(target_db, registry_id=str(reg_b.get("id")))
+        else:
+            print_model_telemetry(
+                target_db,
+                active_strategies=args.strategies,
+                registry_id=args.model_registry,
+            )
         print_workflow_matrix_telemetry(target_db, workflow_id=args.workflow)
         return []
 
@@ -1699,6 +1965,8 @@ def main(argv: list[str] | None = None) -> list[str]:
         strategies=args.strategies,
         providers=args.providers,
         no_noise=args.no_noise,
+        model_registry=args.model_registry,
+        compare_registries=args.compare_registries,
     )
 
 
