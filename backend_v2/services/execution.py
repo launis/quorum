@@ -91,6 +91,8 @@ from backend_v2.settings import get_settings
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
+__all__ = ["ExecutionService", "create_execution_record"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -507,7 +509,9 @@ class ExecutionService:
 
                 dt = pb_obj.type
 
-                scales = pb_obj.scales if isinstance(pb_obj, MatrixPromptBlock) else None
+                scales = None
+                if isinstance(pb_obj, MatrixPromptBlock):
+                    scales = pb_obj.scales
 
                 # Define component defaults based on Strict Block Types
                 comp_type = ComponentType.HIDDEN
@@ -539,18 +543,28 @@ class ExecutionService:
                     raise ConfigurationError(msg)
 
                 # Extract translation map for UI label
-                label_obj = pb_obj.label.model_dump(exclude_unset=True) if pb_obj.label else {}
+                label_obj = {}
+                if pb_obj.label:
+                    label_obj = pb_obj.label.model_dump(exclude_unset=True)
 
                 val_rules = {}
                 if max_val is not None:
                     val_rules["max"] = max_val
 
+                field_options = None
+                if label_obj:
+                    field_options = [{"label": label_obj}]
+
+                field_val_rules = None
+                if val_rules:
+                    field_val_rules = val_rules
+
                 # Lock the hint
                 ui_hints[pb_id] = DataDictionaryField(
                     field_id=pb_id,
                     component_type=comp_type,
-                    options=[{"label": label_obj}] if label_obj else None,
-                    validation_rules=val_rules if val_rules else None,
+                    options=field_options,
+                    validation_rules=field_val_rules,
                 )
 
         # Fail-Fast: Resolve and Validate Output Profile immediately at ingress
@@ -656,13 +670,15 @@ class ExecutionService:
             return False
 
         # Version validation: Detect seed blueprint drift
-        orig_version = (
-            record.metadata.workflow_version
-            if isinstance(record.metadata, ExecutionMetadata)
-            else record.metadata.get("workflow_version")
-            if isinstance(record.metadata, dict)  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            else None
-        )
+        orig_version: int | None = None
+        if isinstance(record.metadata, ExecutionMetadata):
+            orig_version = record.metadata.workflow_version
+        elif isinstance(record.metadata, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+            raw_v = record.metadata.get("workflow_version")
+            if isinstance(raw_v, int):
+                orig_version = raw_v
+            elif isinstance(raw_v, str) and raw_v.isdigit():
+                orig_version = int(raw_v)
         if orig_version is not None and workflow.version != orig_version:
             return False
 
@@ -894,8 +910,12 @@ class ExecutionService:
                     num_status = 1
 
                 internal_logic = atom.internal_logic_en
-                word_count = len(atom.semantic_reasoning.split()) if atom.semantic_reasoning else 0
-                quotes_str = "; ".join([q.quote for q in atom.exact_quotes]) if atom.exact_quotes else ""
+                word_count = 0
+                if atom.semantic_reasoning:
+                    word_count = len(atom.semantic_reasoning.split())
+                quotes_str = ""
+                if atom.exact_quotes:
+                    quotes_str = "; ".join([q.quote for q in atom.exact_quotes])
 
                 sources_list = []
                 if atom.exact_quotes:
@@ -921,8 +941,11 @@ class ExecutionService:
                         case ProtocolPromptBlock(protocol_instructions=text) if text:
                             claim_rule = text
 
-                internalization = internal_logic.step_1_identify_premise if internal_logic else ""
-                anti_patterns = internal_logic.step_3_evaluate_anti_patterns if internal_logic else ""
+                internalization = ""
+                anti_patterns = ""
+                if internal_logic:
+                    internalization = internal_logic.step_1_identify_premise
+                    anti_patterns = internal_logic.step_3_evaluate_anti_patterns
 
                 rows.append(
                     {
@@ -1200,18 +1223,19 @@ class ExecutionService:
         if not resolved_pid or resolved_pid == "default":
             resolved_pid = default_pid
 
-        # NEW ON-DEMAND RENDERING LOGIC (Epic 14 M4)
+        # On-demand profile synthesis rendering
         if resolved_pid not in execution.profile_syntheses:
-            # Epic 14: Use deterministic job ID to prevent infinite enqueues while UI is polling
-
-            # Incorporate updated_at to ensure regenerating (which updates DB) creates a fresh valid job lock
+            # Deterministic job ID to prevent duplicate background render queuing
             updated_ts = "0"
             if execution.updated_at:
                 updated_ts = (
                     str(execution.updated_at).replace(":", "").replace("-", "").replace(".", "").replace(" ", "_")
                 )
 
-            job_id = f"render_{execution_id}_{resolved_pid}_{accept_language or 'default'}_{updated_ts}"
+            lang_key = "default"
+            if accept_language:
+                lang_key = accept_language
+            job_id = f"render_{execution_id}_{resolved_pid}_{lang_key}_{updated_ts}"
 
             await arq_pool.enqueue_job(
                 "render_profile_job",

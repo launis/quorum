@@ -1,20 +1,57 @@
+from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, Mock
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import (
+    AppException,
+    ConfigurationError,
+    PermissionDeniedError,
+    ResourceNotFoundError,
+)
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
 from backend_v2.models.v2_core import (
+    ExecutionCreate,
     ExecutionRecord,
     ExecutionStatus,
+    ExecutionStep,
+    ExecutionStepState,
     FrozenContext,
+    HumanOverrideDTO,
+    HumanOverrideRequest,
     I18nText,
+    JobAcceptedDTO,
     OutputProfile,
+    ReportDataDTO,
+    Step,
+    StepRule,
+    Workflow,
     WorkflowInputs,
 )
+from backend_v2.models.view.sdui import (
+    MarkdownBlock,
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+)
 from backend_v2.services.execution import ExecutionService, create_execution_record
+from backend_v2.tests.unit.services.test_execution_render_bug import (
+    test_render_execution_json_default_profile_resolves,
+)
+from backend_v2.tests.unit.services.test_execution_resumability import (
+    test_check_resumability_allows_sys_render_virtual_steps,
+    test_check_resumability_allows_zero_outputs,
+    test_check_resumability_failed_only,
+    test_check_resumability_quota_exceeded,
+    test_check_resumability_structural_mismatch,
+    test_check_resumability_successful_resumption,
+    test_check_resumability_workflow_version_drift,
+    test_resume_execution_firewall_denied,
+)
 
 
 def test_create_execution_record_factory_success() -> None:
@@ -1254,3 +1291,1410 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
     assert "chat_log" in exc_info.value.details["missing_fields"]
+
+
+def test_create_execution_record_dict_metadata() -> None:
+    rec = create_execution_record(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        output_profile_id="prf_0123456789abcdef",
+        metadata={"workflow_version": 1},
+    )
+    assert rec.metadata.workflow_version == 1
+
+
+@pytest.mark.asyncio
+async def test_create_execution_metadata_and_list_pagination() -> None:
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_0123456789abcdef")
+
+    repo_mock.list_executions.return_value = []
+    res = await service.list_executions(initiator=initiator)
+    assert res == []
+
+
+@pytest.mark.asyncio
+async def test_get_and_delete_execution_not_found_and_permission_denied() -> None:
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
+
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.MEMBER, organization_id="org_tenant_a")
+    repo_mock.get_execution.return_value = None
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.delete_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+
+    alien_record = Mock(spec=ExecutionRecord)
+    alien_record.id = "exe_0123456789abcdef"
+    alien_record.organization_id = "org_tenant_b"
+    alien_record.created_by = "usr_alien000000000"
+    alien_record.is_public = False
+    alien_record.status = ExecutionStatus.PASSED
+    alien_record.model_copy.return_value = alien_record
+    repo_mock.get_execution.return_value = alien_record
+
+    with pytest.raises(PermissionDeniedError):
+        await service.get_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+
+    with pytest.raises(PermissionDeniedError):
+        await service.delete_execution(initiator=initiator, execution_id="exe_0123456789abcdef")
+
+
+@pytest.mark.asyncio
+async def test_start_execution_with_steps_and_blocks() -> None:
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, MatrixScale
+    from backend_v2.models.v2_core import (
+        ExecutionCreate,
+        Step,
+        StepRule,
+        Workflow,
+    )
+
+    repo_mock = AsyncMock()
+    prompt_block_repo = AsyncMock()
+    workflow_repo = AsyncMock()
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=workflow_repo,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True
+
+    matrix_block = MatrixPromptBlock(
+        id="blk_0123456789abcdef",
+        slug="matrix-block",
+        label=I18nText(translations={"en": "Matrix Label"}),
+        description=I18nText(translations={"en": "Matrix Description"}),
+        category_id="matrix",
+        type="int",
+        scales=[
+            MatrixScale(score=1, ai_label="Low"),
+            MatrixScale(score=5, ai_label="High"),
+        ],
+    )
+    prompt_block_repo.get_prompt_block_by_id.return_value = matrix_block.model_dump(mode="json")
+
+    step_obj = Step(
+        id="stp_0123456789abcdef",
+        slug="step-1",
+        name=I18nText(translations={"en": "Step 1"}),
+        role_block_id=None,
+        extraction_protocol_block_id="blk_0123456789abcdef",
+        criteria_block_ids=["blk_0123456789abcdef"],
+    )
+    workflow_repo.get_step_by_id.return_value = step_obj.model_dump(mode="json")
+
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="workflow-test",
+        name=I18nText(translations={"en": "Workflow"}),
+        description=I18nText(translations={"en": "Description"}),
+        status="active",
+        version=1,
+        organization_id="org_0123456789abcdef",
+        is_public=False,
+        default_profile_id="prf_0123456789abcdef",
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="stp_0123456789abcdef",
+                task_blueprint="stp_0123456789abcdef",
+            )
+        ],
+        allowed_exports=["pdf", "raw_json"],
+        historical_context_mode="DISABLED",
+    )
+    workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    service.output_profile_repo.get_output_profile_by_id.return_value = {
+        "id": "prf_0123456789abcdef",
+        "slug": "profile-test",
+        "workflow_id": "wor_0123456789abcdef",
+        "name": {"translations": {"en": "Output Profile"}},
+        "target_block_order": ["executive_summary_block"],
+    }
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="en",
+        profile_id="prf_0123456789abcdef",
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_0123456789abcdef")
+    arq_pool = AsyncMock()
+    doc_service = AsyncMock()
+    doc_service.process_ingress_payload.return_value = payload.raw_inputs
+
+    res = await service.start_execution(
+        initiator=initiator,
+        payload=payload,
+        arq_pool=arq_pool,
+        doc_service=doc_service,
+    )
+    assert res.id.startswith("exe_")
+
+
+@pytest.mark.asyncio
+async def test_get_frozen_context_bytes() -> None:
+    from unittest.mock import patch
+
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ADMIN, organization_id="org_1")
+
+    rec1 = Mock(spec=ExecutionRecord)
+    rec1.id = "exe_1"
+    rec1.organization_id = "org_1"
+    rec1.is_public = False
+    rec1.status = ExecutionStatus.PASSED
+    rec1.model_copy.return_value = rec1
+    rec1.frozen_context_storage_path = None
+    rec1.frozen_context = FrozenContext()
+    repo_mock.get_execution.return_value = rec1
+
+    b1, name1 = await service.get_frozen_context_bytes(initiator, "exe_1")
+    assert b1 is not None
+    assert name1 == "frozen_context_exe_1.json"
+
+    rec2 = Mock(spec=ExecutionRecord)
+    rec2.id = "exe_2"
+    rec2.organization_id = "org_1"
+    rec2.is_public = False
+    rec2.status = ExecutionStatus.PASSED
+    rec2.model_copy.return_value = rec2
+    rec2.frozen_context_storage_path = "storage/fc.json"
+    rec2.frozen_context = None
+    repo_mock.get_execution.return_value = rec2
+
+    with patch("backend_v2.services.execution.get_storage_driver") as mock_storage_driver:
+        mock_driver = AsyncMock()
+        mock_driver.read.return_value = FrozenContext().model_dump_json().encode("utf-8")
+        mock_storage_driver.return_value = mock_driver
+
+        b2, name2 = await service.get_frozen_context_bytes(initiator, "exe_2")
+        assert b2 is not None
+
+        mock_driver.read.side_effect = Exception("Storage failed")
+        with pytest.raises(AppException):
+            await service.get_frozen_context_bytes(initiator, "exe_2")
+
+
+@pytest.mark.asyncio
+async def test_clear_profile_synthesis() -> None:
+    from unittest.mock import patch
+    from backend_v2.exceptions import ResourceNotFoundError
+
+    repo_mock = AsyncMock()
+    workflow_repo = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=workflow_repo,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+
+    from backend_v2.models.v2_core import RenderedSynthesisCache
+
+    rec = Mock(spec=ExecutionRecord)
+    rec.id = "exe_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.organization_id = "org_1"
+    rec.is_public = False
+    rec.status = ExecutionStatus.PASSED
+    rec.model_copy.return_value = rec
+    rec.profile_syntheses = {"prof_1": RenderedSynthesisCache()}
+    rec.pdf_report_path = "reports/report.pdf"
+    repo_mock.get_execution.return_value = rec
+
+    workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wor_0123456789abcdef",
+        "slug": "workflow-slug",
+        "name": {"translations": {"en": "Workflow"}},
+        "description": {"translations": {"en": "Description"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1",
+        "allowed_exports": ["pdf", "raw_json"],
+        "historical_context_mode": "DISABLED",
+        "steps": [],
+    }
+
+    with patch("backend_v2.services.execution.get_storage_driver") as mock_storage:
+        driver = AsyncMock()
+        mock_storage.return_value = driver
+        await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
+        driver.delete.assert_called_once_with("reports/report.pdf")
+
+    workflow_repo.get_workflow_by_id.return_value = None
+    with pytest.raises(ResourceNotFoundError):
+        await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
+
+
+@pytest.mark.asyncio
+async def test_render_execution_formats() -> None:
+    from unittest.mock import patch
+
+    repo_mock = AsyncMock()
+    workflow_repo = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=workflow_repo,
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+
+    rec = Mock(spec=ExecutionRecord)
+    rec.id = "exe_1"
+    rec.organization_id = "org_1"
+    rec.is_public = False
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.status = ExecutionStatus.FAILED
+    rec.step_states = {}
+    rec.metadata = ExecutionMetadata()
+    rec.model_copy.return_value = rec
+    repo_mock.get_execution.return_value = rec
+    workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wor_0123456789abcdef",
+        "slug": "workflow-slug",
+        "name": {"translations": {"en": "Workflow"}},
+        "description": {"translations": {"en": "Description"}},
+        "status": "active",
+        "version": 1,
+        "default_profile_id": "prof_1",
+        "allowed_exports": ["pdf", "raw_json"],
+        "historical_context_mode": "DISABLED",
+        "steps": [],
+    }
+
+    with pytest.raises(AppException):
+        await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_1",
+            format_type="flat",
+            profile_id="prof_1",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+
+    rec.status = ExecutionStatus.PASSED
+    rec.step_states = {}
+    mock_dto = Mock()
+    mock_dto.inner_sdui_blocks = []
+    mock_dto.has_warning = False
+
+    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_cls:
+        mock_trans = AsyncMock()
+        mock_trans.build_report_dto.return_value = mock_dto
+        mock_transformer_cls.return_value = mock_trans
+
+        with patch("backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")):
+            data, mime, fname = await service.render_execution(
+                initiator=initiator,
+                execution_id="exe_1",
+                format_type="flat",
+                profile_id="prof_1",
+                accept_language="en",
+                arq_pool=AsyncMock(),
+                custom_preface_md="# Custom Preface",
+            )
+            assert mime == "application/json"
+            assert fname is None
+
+
+@pytest.mark.asyncio
+async def test_stream_status_sse_events() -> None:
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+
+    rec = Mock(spec=ExecutionRecord)
+    rec.id = "exe_1"
+    rec.organization_id = "org_1"
+    rec.is_public = False
+    rec.status = ExecutionStatus.PASSED
+    rec.model_copy.return_value = rec
+    rec.model_dump_json.return_value = '{"id": "exe_1", "status": "PASSED"}'
+    repo_mock.get_execution.return_value = rec
+
+    events = []
+    async for event in service.stream_status(initiator, "exe_1"):
+        events.append(event)
+
+    assert len(events) >= 1
+    assert "PASSED" in events[0]
+
+
+@pytest.mark.asyncio
+async def test_resume_execution_success() -> None:
+    from unittest.mock import patch
+
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True
+
+    rec = Mock(spec=ExecutionRecord)
+    rec.id = "exe_resume_1"
+    rec.organization_id = "org_1"
+    rec.is_public = False
+    rec.workflow_id = "wor_1"
+    rec.raw_inputs = WorkflowInputs()
+    rec.status = ExecutionStatus.RUNNING
+    rec.model_copy.return_value = rec
+    repo_mock.get_execution.return_value = rec
+
+    with patch.object(service, "check_resumability", return_value=True):
+        arq_pool = AsyncMock()
+        initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+        res = await service.resume_execution(initiator, "exe_resume_1", arq_pool)
+        assert res.id == "exe_resume_1"
+        arq_pool.enqueue_job.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_different_block_types() -> None:
+    from unittest.mock import patch
+    from backend_v2.models.domain.prompt_blocks import (
+        PersonaPromptBlock,
+        ProtocolPromptBlock,
+        SystemRulePromptBlock,
+    )
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
+    from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+    from backend_v2.models.enums import VisualIntent
+    from backend_v2.models.v2_core import (
+        ExecutionStepState,
+        ReportDataDTO,
+    )
+
+    repo_mock = AsyncMock()
+    prompt_block_repo = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=prompt_block_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
+
+    atom1 = ScorecardAtomDTO(
+        atom_id="atom_1",
+        level=1,
+        level_name="T1",
+        claim_label="Claim 1",
+        status=ExecutionStatus.PASSED,
+        extracted_facts={},
+        contextual_override=False,
+        chart_display_label="N/A",
+        visual_intent=VisualIntent.NEUTRAL,
+        semantic_reasoning="Reasoning test text",
+        exact_quotes=[
+            QuoteEvidenceDTO(quote="test quote", verified_source_ids=["src_1"], unverified_aliases=[])
+        ],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="Premise text",
+            step_2_scan_source="",
+            step_3_evaluate_anti_patterns="Anti patterns text",
+            step_4_final_conclusion="",
+        ),
+    )
+    step_state = ExecutionStepState(
+        id="stp_1",
+        label="Step 1 Label",
+        scorecard_atoms={"blk_0123456789abcdef": atom1},
+    )
+
+    rec = Mock(spec=ExecutionRecord)
+    rec.id = "exe_export_types"
+    rec.organization_id = "org_1"
+    rec.is_public = False
+    rec.status = ExecutionStatus.PASSED
+    rec.target_locale = "en"
+    rec.step_states = {"stp_1": step_state}
+    rec.model_copy.return_value = rec
+    repo_mock.get_execution.return_value = rec
+
+    rule_block = SystemRulePromptBlock(
+        id="blk_0123456789abcdef",
+        slug="rule-block",
+        label=I18nText(translations={"en": "Rule Block"}),
+        description=I18nText(translations={"en": "Rule Description"}),
+        category_id="system_rule",
+        type="instruction",
+        instruction_text="Instruction test",
+    )
+    prompt_block_repo.get_all_prompt_blocks.return_value = [
+        rule_block.model_dump(mode="json"),
+    ]
+
+    mock_report_dto = Mock(spec=ReportDataDTO)
+    mock_report_dto.overall_score = 85.0
+    mock_report_dto.executive_summary = "Summary text"
+    mock_report_dto.strengths = []
+    mock_report_dto.weaknesses = []
+    mock_report_dto.data_dictionary = {}
+    mock_report_dto.inner_sdui_blocks = []
+    mock_report_dto.matrix_scores = {}
+
+    with patch.object(service, "get_report_dto", return_value=mock_report_dto):
+        file_bytes, filename = await service.get_execution_export_bytes(initiator, "exe_export_types")
+        assert len(file_bytes) > 0
+        assert filename == "execution_export_exe_export_types.xlsx"
+
+
+@pytest.mark.asyncio
+async def test_get_workflow_ui_schema_success_and_not_found() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    # Not found
+    service.workflow_repo.get_workflow_by_id.return_value = None
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_workflow_ui_schema("wor_0123456789abcdef")
+
+    # Success
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_0123456789abcdef",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    res = await service.get_workflow_ui_schema("wor_0123456789abcdef")
+    assert "expected_inputs" in res
+    assert res["expected_inputs"] == []
+
+
+@pytest.mark.asyncio
+async def test_reject_evidence_quote_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_target"
+    rec.created_by = "usr_owner"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    # Permission denied
+    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    with pytest.raises(PermissionDeniedError):
+        await service.reject_evidence_quote(initiator_other, "exe_0123456789abcdef", "evq_1", "Wrong quote")
+
+    # Success (ROOT role)
+    initiator_root = TokenData(id="usr_root", role=UserRole.ROOT, organization_id="org_other")
+    await service.reject_evidence_quote(initiator_root, "exe_0123456789abcdef", "evq_1", "Wrong quote")
+    assert service.exec_repo.append_trace_event.called
+
+
+@pytest.mark.asyncio
+async def test_get_sdui_view_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    mock_dto = Mock(spec=ReportDataDTO)
+    mock_dto.inner_sdui_blocks = [MarkdownBlock(text="Synthetic Overview Title")]
+    with patch.object(service, "get_report_dto", return_value=mock_dto):
+        mock_view = Mock()
+        mock_view.model_copy.return_value = mock_view
+        mock_view.model_dump.return_value = {"title": "Synthetic Overview Title", "components": []}
+        with patch("backend_v2.services.execution.SduiMapperService.map_report_to_sdui", return_value=mock_view):
+            view_dict = await service.get_sdui_view(initiator, "exe_0123456789abcdef")
+            assert view_dict["title"] == "Synthetic Overview Title"
+
+
+@pytest.mark.asyncio
+async def test_render_execution_html_and_unsupported_formats() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_default",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.target_locale = "en"
+    rec.profile_syntheses = {"prf_default": {}}
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    # Unsupported format
+    with pytest.raises(AppException) as exc_info:
+        await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_0123456789abcdef",
+            format_type="docx",
+            profile_id="prf_default",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+    assert exc_info.value.status_code == 400
+    assert "Unsupported format" in exc_info.value.message
+
+    # HTML format
+    with patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
+         patch("backend_v2.services.execution.PdfReportService.generate_execution_html", return_value="<html><body>Report</body></html>"):
+        content_bytes, mime, filename = await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_0123456789abcdef",
+            format_type="html",
+            profile_id="prf_default",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+        assert mime == "text/html"
+        assert filename == "execution_exe_0123456789abcdef.html"
+        assert b"<html>" in content_bytes
+
+
+@pytest.mark.asyncio
+async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_default",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.target_locale = "en"
+    rec.profile_syntheses = {"prf_default": {}}
+    rec.pdf_report_path = "executions/exe_0123456789abcdef/report.pdf"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    storage_mock = AsyncMock()
+    storage_mock.read.return_value = b"%PDF-1.4 pregenerated"
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        pdf_bytes, mime, filename = await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_0123456789abcdef",
+            format_type="pdf",
+            profile_id="prf_default",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+        assert pdf_bytes == b"%PDF-1.4 pregenerated"
+        assert mime == "application/pdf"
+
+    # Pre-generated fetch error
+    storage_mock.read.side_effect = Exception("Storage disk read error")
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.render_execution(
+                initiator=initiator,
+                execution_id="exe_0123456789abcdef",
+                format_type="pdf",
+                profile_id="prf_default",
+                accept_language="en",
+                arq_pool=AsyncMock(),
+            )
+        assert exc_info.value.status_code == 500
+
+    # Fresh PDF generation when no pre-generated exists
+    rec.pdf_report_path = None
+    storage_mock.read.side_effect = None
+    storage_mock.save.return_value = "executions/exe_0123456789abcdef/report.pdf"
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock), \
+         patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
+         patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"):
+        pdf_bytes, mime, filename = await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_0123456789abcdef",
+            format_type="pdf",
+            profile_id="prf_default",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+        assert pdf_bytes == b"%PDF-1.4 fresh"
+        assert mime == "application/pdf"
+        assert service.exec_repo.update_execution.called
+
+    # Fresh PDF save error
+    storage_mock.save.side_effect = Exception("Storage disk save error")
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock), \
+         patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
+         patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"):
+        with pytest.raises(AppException) as exc_info:
+            await service.render_execution(
+                initiator=initiator,
+                execution_id="exe_0123456789abcdef",
+                format_type="pdf",
+                profile_id="prf_default",
+                accept_language="en",
+                arq_pool=AsyncMock(),
+            )
+        assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_ondemand",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.target_locale = "en"
+    rec.profile_syntheses = {}  # Trigger on-demand synthesis
+    rec.step_states = {}
+    rec.updated_at = None
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    arq_pool = AsyncMock()
+    res, mime, filename = await service.render_execution(
+        initiator=initiator,
+        execution_id="exe_0123456789abcdef",
+        format_type="json",
+        profile_id="prf_ondemand",
+        accept_language="en",
+        arq_pool=arq_pool,
+    )
+    assert isinstance(res, JobAcceptedDTO)
+    assert mime == "application/json"
+    assert filename is None
+    assert arq_pool.enqueue_job.called
+
+
+@pytest.mark.asyncio
+async def test_delete_execution_storage_cleanup_error_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.created_by = "usr_owner"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+    service.exec_repo.delete_execution.return_value = True
+
+    # Permission denied
+    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    with pytest.raises(PermissionDeniedError):
+        await service.delete_execution(initiator_other, "exe_0123456789abcdef")
+
+    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
+
+    # 404 is ignored
+    storage_mock = AsyncMock()
+    storage_mock.delete_directory.side_effect = AppException("Not found", status_code=404)
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        deleted = await service.delete_execution(initiator, "exe_0123456789abcdef")
+        assert deleted is True
+
+    # 500 AppException raised
+    storage_mock.delete_directory.side_effect = AppException("Storage error", status_code=500)
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.delete_execution(initiator, "exe_0123456789abcdef")
+        assert exc_info.value.status_code == 500
+
+    # Generic Exception raised
+    storage_mock.delete_directory.side_effect = Exception("Generic disk crash")
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.delete_execution(initiator, "exe_0123456789abcdef")
+        assert exc_info.value.status_code == 500
+
+    # Repo delete error
+    storage_mock.delete_directory.side_effect = None
+    service.exec_repo.delete_execution.side_effect = Exception("DB crash")
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.delete_execution(initiator, "exe_0123456789abcdef")
+        assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_clear_profile_synthesis_storage_delete_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.organization_id = "org_1"
+    rec.status = ExecutionStatus.PASSED
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.pdf_report_path = "executions/exe_0123456789abcdef/report.pdf"
+    rec.profile_syntheses = {"prf_default": {}}
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_default",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+
+    storage_mock = AsyncMock()
+
+    # 404 is ignored
+    storage_mock.delete.side_effect = AppException("Not found", status_code=404)
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+        assert service.exec_repo.update_execution.called
+
+    # 409 is re-raised
+    storage_mock.delete.side_effect = AppException("Conflict", status_code=409)
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+        assert exc_info.value.status_code == 409
+
+    # 500 is wrapped
+    storage_mock.delete.side_effect = AppException("Server Error", status_code=500)
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+        assert exc_info.value.status_code == 500
+
+    # Generic Exception is wrapped
+    storage_mock.delete.side_effect = Exception("Unexpected")
+    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+        with pytest.raises(AppException) as exc_info:
+            await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
+        assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_override_atom_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.created_by = "usr_owner"
+    rec.step_states = {}
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    # Permission denied
+    initiator_other = TokenData(id="usr_other", role=UserRole.MEMBER, organization_id="org_other")
+    req = HumanOverrideRequest(new_status=ExecutionStatus.PASSED, reason="Valid evidence found")
+    with pytest.raises(PermissionDeniedError):
+        await service.override_atom(initiator_other, "exe_0123456789abcdef", "atm_1", req)
+
+    # Atom not found in any step_states
+    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_1")
+    with pytest.raises(AppException) as exc_info:
+        await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)
+    assert exc_info.value.status_code == 404
+
+    # Success with context variables update
+    from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
+    from backend_v2.models.enums import VisualIntent
+
+    atom_obj = ScorecardAtomDTO(
+        atom_id="atm_1",
+        level=1,
+        level_name="T1",
+        claim_label="Claim 1",
+        status=ExecutionStatus.PASSED,
+        extracted_facts={},
+        contextual_override=False,
+        chart_display_label="N/A",
+        visual_intent=VisualIntent.NEUTRAL,
+        semantic_reasoning="Some reasoning",
+        exact_quotes=[],
+        internal_logic_en=ReasoningStepDTO(
+            step_1_identify_premise="Premise",
+            step_2_scan_source="",
+            step_3_evaluate_anti_patterns="Anti patterns",
+            step_4_final_conclusion="",
+        ),
+    )
+    step_state = ExecutionStep(
+        id="stp_1",
+        label="Step 1",
+        status=ExecutionStatus.PASSED,
+        scorecard_atoms={"atm_1": atom_obj},
+    )
+    rec.step_states = {"stp_1": step_state}
+    rec.context_variables = {
+        "var_1": {
+            "evaluated_atoms": {"atm_1": "FAIL"},
+            "raw_atoms": [{"tda_id": "atm_1", "human_override": None}],
+        }
+    }
+    rec.active_profile_id = "prf_1"
+    with patch("backend_v2.services.execution.recalculate", return_value=None):
+        await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)
+        assert service.exec_repo.update_execution.called
+        assert service.exec_repo.append_trace_event.called
+
+
+@pytest.mark.asyncio
+async def test_start_execution_additional_error_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT, organization_id="org_0123456789abcdef")
+
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_0123456789abcdef",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[
+            StepRule(
+                id="stp_0123456789abcdef",
+                task_blueprint="stp_0123456789abcdef",
+            )
+        ],
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="en",
+        profile_id="prf_0123456789abcdef",
+    )
+
+    # 1. Step blueprint missing
+    service.workflow_repo.get_step_by_id.return_value = None
+    with pytest.raises(ConfigurationError):
+        await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+
+    # 2. Step blueprint malformed
+    service.workflow_repo.get_step_by_id.return_value = {"invalid": "step"}
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+    assert exc_info.value.status_code == 400
+
+    # 3. Prompt block missing
+    valid_step = Step(
+        id="stp_0123456789abcdef",
+        slug="step-slug",
+        name=I18nText(translations={"en": "Step 1"}),
+        description=I18nText(translations={"en": "Step Desc"}),
+        role_block_id="blk_0123456789abcdef",
+        criteria_block_ids=["blk_0123456789abcdef"],
+        extraction_protocol_block_id="blk_0123456789abcdef",
+    )
+    service.workflow_repo.get_step_by_id.return_value = valid_step.model_dump(mode="json")
+    service.prompt_block_repo.get_prompt_block_by_id.return_value = None
+    with pytest.raises(ConfigurationError):
+        await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+
+    # 4. Prompt block malformed
+    service.prompt_block_repo.get_prompt_block_by_id.return_value = {"invalid": "block"}
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_list_executions_exception_branch() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.exec_repo.get_all_executions.side_effect = RuntimeError("DB connection timeout")
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+    with pytest.raises(AppException) as exc_info:
+        await service.list_executions(initiator=initiator)
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_get_report_dto_not_passed() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.FAILED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+    service.workflow_repo.get_workflow_by_id.return_value = None
+
+    with pytest.raises(AppException) as exc_info:
+        await service.get_report_dto(initiator, "exe_0123456789abcdef")
+    assert exc_info.value.status_code == 400
+    assert "Execution is not in COMPLETED state" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_error_branches() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.FAILED  # Not passed
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+    service.workflow_repo.get_workflow_by_id.return_value = None
+
+    with pytest.raises(AppException) as exc_info:
+        await service.get_execution_export_bytes(initiator, "exe_0123456789abcdef")
+    assert exc_info.value.status_code == 400
+    assert "Execution must be in PASSED state" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_resume_execution_quota_exceeded() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_overquota")
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.FAILED
+    rec.organization_id = "org_overquota"
+    rec.created_by = "usr_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.execution_trace = []
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    with patch.object(service, "check_resumability", return_value=True):
+        service.usage_service.check_quota.return_value = False
+        with pytest.raises(AppException) as exc_info:
+            await service.resume_execution(initiator=initiator, execution_id="exe_0123456789abcdef", arq_pool=AsyncMock())
+        assert exc_info.value.status_code == 402
+        assert "exceeded its execution quota" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_render_execution_workflow_not_found() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_missing"
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+    service.workflow_repo.get_workflow_by_id.return_value = None
+
+    with pytest.raises(AppException) as exc_info:
+        await service.render_execution(
+            initiator=initiator,
+            execution_id="exe_0123456789abcdef",
+            format_type="html",
+            profile_id="prf_default",
+            accept_language="en",
+            arq_pool=AsyncMock(),
+        )
+    assert exc_info.value.status_code == 500
+    assert "Workflow not found" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_report_fetch_error() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.target_locale = "en"
+    rec.step_states = {"stp_1": Mock(scorecard_atoms={"atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)})}
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    with patch.object(service, "get_report_dto", side_effect=RuntimeError("Report crash")):
+        with pytest.raises(AppException) as exc_info:
+            await service.get_execution_export_bytes(initiator, "exe_0123456789abcdef")
+        assert exc_info.value.status_code == 500
+        assert "Report Fetch Error" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_get_execution_export_bytes_excel_writer_error() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_root", role=UserRole.ROOT)
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.target_locale = "en"
+    rec.step_states = {"stp_1": Mock(scorecard_atoms={"atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)})}
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    with patch.object(service, "get_report_dto", return_value=None), \
+         patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk full")):
+        with pytest.raises(AppException) as exc_info:
+            await service.get_execution_export_bytes(initiator, "exe_0123456789abcdef")
+        assert exc_info.value.status_code == 500
+        assert "Failed to generate Excel export" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_check_resumability_string_version() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.FAILED
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.step_states = {"stp_1": Mock()}
+    rec.metadata = {"workflow_version": "1"}
+    rec.organization_id = "org_1"
+
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=2,
+        status="ACTIVE",
+        default_profile_id="prf_default",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[StepRule(id="stp_0123456789abcdef", task_blueprint="stp_0123456789abcdef")],
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    res = await service.check_resumability(rec)
+    assert res is False
+
+
+@pytest.mark.asyncio
+async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_0123456789abcdef", role=UserRole.ROOT)
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_ondemand",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    rec = Mock(spec=ExecutionRecord)
+    rec.status = ExecutionStatus.PASSED
+    rec.organization_id = "org_1"
+    rec.workflow_id = "wor_0123456789abcdef"
+    rec.target_locale = "en"
+    rec.profile_syntheses = {}
+    v_step_id = "sys_render_prf_ondemand"
+    rec.step_states = {v_step_id: ExecutionStep(id=v_step_id, label="Rendering PDF...", status=ExecutionStatus.RUNNING)}
+    rec.updated_at = datetime.now(timezone.utc)
+    rec.model_copy.return_value = rec
+    service.exec_repo.get_execution.return_value = rec
+
+    res, mime, filename = await service.render_execution(
+        initiator=initiator,
+        execution_id="exe_0123456789abcdef",
+        format_type="json",
+        profile_id="prf_ondemand",
+        accept_language="en",
+        arq_pool=AsyncMock(),
+    )
+    assert isinstance(res, JobAcceptedDTO)
+    assert res.message == "Rendering PDF..."
+
+
+
