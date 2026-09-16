@@ -2133,7 +2133,7 @@
                       "allows_contextual_excuse": false
                     },
                     {
-                      "pattern": "listing generic strategic recommendations, high-level action bullets, or tactical advice without mapping the abstract conceptual framework onto concrete structural mechanisms or operational workflows",
+                      "pattern": "listing generic strategic recommendations, high-level action bullets, or tactical advice without mapping an abstract governing rule or theoretical framework onto concrete structural mechanisms or operational workflows",
                       "allows_contextual_excuse": false
                     }
                   ],

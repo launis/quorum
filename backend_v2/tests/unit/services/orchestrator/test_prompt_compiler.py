@@ -522,7 +522,10 @@ def test_build_xml_context_endorsed_deliverable_provenance() -> None:
     assert '<matrix_input source_id="doc_deliv">' in xml
     deliv_section = xml.split('source_id="doc_deliv"')[1].split("</matrix_input>")[0]
     assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in deliv_section
-    assert "<user_payload>\n<![CDATA[Strategic transformation roadmap deliverable text.]]>\n</user_payload>" in deliv_section
+    assert (
+        "<user_payload>\n<![CDATA[Strategic transformation roadmap deliverable text.]]>\n</user_payload>"
+        in deliv_section
+    )
 
     # doc_std: must NOT emit <document_provenance>
     assert '<matrix_input source_id="doc_std">' in xml

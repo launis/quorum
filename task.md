@@ -31,15 +31,15 @@
 - [x] Step 3.3: Extend `ExpectedInputEditorBox` in `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart#L126-L224]` with `FilterChip` and mutual exclusivity logic
 
 ## Phase 4: Global Verification & Quality Gates
-- [ ] Step 4.1: Execute Backend Audit Loop (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
-- [ ] Step 4.2: Execute Flutter Audit Loop (`uv run python scripts/flutter_audit_loop.py client_app_v2 --build`)
-- [ ] Step 4.3: SDUI Parity Verification (`uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`)
-- [ ] Step 4.4: Mandatory Live E2E REST API Verification (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -k test_real_llm_execution`)
+- [x] Step 4.1: Execute Backend Audit Loop (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
+- [x] Step 4.2: Execute Flutter Audit Loop (`uv run python scripts/flutter_audit_loop.py client_app_v2 --build`)
+- [x] Step 4.3: SDUI Parity Verification (`uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`)
+- [x] Step 4.4: Mandatory Live E2E REST API Verification (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -k test_real_llm_pdf_execution`)
 
 ---
 
 # Session Handover Context
-- **Achieved**: Completed Tier 0 deep research, Five-Axis Adversarial Cross-Examination, 7-item technical debt sweep, AST line-boundary extraction, and Red-Team falsification. Fully synchronized Knowledge Items (`ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_structured_forensic_quotes.md`, `ki_workflow_context_governance.md` and their `metadata.json` manifests) and architecture documents (`docs/architecture/08_matrix_explanations.md`, `09_llm_prompt_orchestration_and_matrix_evaluation.md`, `01_system_context_and_invariants.md`, `03_cognitive_orchestration_engine.md`, `06_enriched_atom_graph_engine.md`, and `00_README_META_ARCHITECTURE.md`) adhering strictly to the `/tier7-describe-architecture` timeless as-built mandate.
-- **Learned**: `test_matrix_sensor_system_prompt_negative_partitions` strictly asserts absence of banned ambiguous expressions (`e.g.`, `such as`, `like `, `etc.`). All system prompt additions in `matrix_evaluation.py` must use explicit, deterministic phrasing. Mutual exclusivity for `is_endorsed_deliverable` must be enforced across three dimensions: `is_chat_history`, `assignment`, and `questionnaire`. Shifting contextual exceptions into explicit `anti_patterns` eliminates high-entropy meta-cognitive oscillation.
-- **Remaining**: Execute Phase 1 through Phase 4 via `/tier2-execute`.
-- **Resume Command**: `/tier2-execute @[c:\Users\risto\.gemini\antigravity-ide\brain\9b2d20f8-eebf-48b8-90f3-4838c7e99dc9\implementation_plan.md] @[c:\src\quorum\task.md]`
+- **Achieved**: Fully implemented and verified Endorsed Deliverable Provenance Toggle & Universal Matrix Calibration across Phase 1 (Backend Pydantic models, prompt compiler capsule emission, anti-ellipsis & substance-over-jargon directives, Tier 2 Unicode NFKC and zero-width format stripping), Phase 2 (Seed Vault ontological calibration, dry-run & atom audit, live db_v2.json re-seeding, and timeless architecture/KI synchronization), Phase 3 (Flutter Freezed models, code generation, en/fi localizations, and Studio UI FilterChip with mutual exclusivity), and Phase 4 (Backend Audit Loop with 3405 tests passing and 94.82% coverage, Flutter Audit Loop with 0 analyzer issues, SDUI Semantic Parity passing, and Live E2E real LLM execution passing).
+- **Learned**: Zero-width format characters (\u200b-\u200d\ufeff) in watermarks require regex stripping to preserve lexical anchor validation. Bloom Level 3 anti-pattern calibration requires retaining "abstract governing rule" anchor for domain neutrality test compliance. Live E2E test function name is `test_real_llm_pdf_execution`.
+- **Remaining**: Execute mandatory post-implementation Red-Team audit via `/tier8-audit-plan`.
+- **Resume Command**: `/tier8-audit-plan @[C:\Users\risto\.gemini\antigravity-ide\brain\186c222d-a46d-4e61-a7ec-3e8c7f29bc4e\implementation_plan.md] @[c:\src\quorum\task.md]`

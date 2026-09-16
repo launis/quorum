@@ -214,12 +214,14 @@ class WorkflowStrictnessTab extends StatelessWidget {
                   ),
                   AppSpacing.h16,
                   TextFormField(
-                    initialValue: (workflow.securityPenalty * 100).toStringAsFixed(
-                      workflow.securityPenalty * 100 ==
-                              (workflow.securityPenalty * 100).roundToDouble()
-                          ? 0
-                          : 1,
-                    ),
+                    initialValue: (workflow.securityPenalty * 100)
+                        .toStringAsFixed(
+                          workflow.securityPenalty * 100 ==
+                                  (workflow.securityPenalty * 100)
+                                      .roundToDouble()
+                              ? 0
+                              : 1,
+                        ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -244,12 +246,14 @@ class WorkflowStrictnessTab extends StatelessWidget {
                   ),
                   AppSpacing.h16,
                   TextFormField(
-                    initialValue: (workflow.postHocPenalty * 100).toStringAsFixed(
-                      workflow.postHocPenalty * 100 ==
-                              (workflow.postHocPenalty * 100).roundToDouble()
-                          ? 0
-                          : 1,
-                    ),
+                    initialValue: (workflow.postHocPenalty * 100)
+                        .toStringAsFixed(
+                          workflow.postHocPenalty * 100 ==
+                                  (workflow.postHocPenalty * 100)
+                                      .roundToDouble()
+                              ? 0
+                              : 1,
+                        ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
@@ -274,12 +278,14 @@ class WorkflowStrictnessTab extends StatelessWidget {
                   ),
                   AppSpacing.h16,
                   TextFormField(
-                    initialValue: (workflow.passivityPenalty * 100).toStringAsFixed(
-                      workflow.passivityPenalty * 100 ==
-                              (workflow.passivityPenalty * 100).roundToDouble()
-                          ? 0
-                          : 1,
-                    ),
+                    initialValue: (workflow.passivityPenalty * 100)
+                        .toStringAsFixed(
+                          workflow.passivityPenalty * 100 ==
+                                  (workflow.passivityPenalty * 100)
+                                      .roundToDouble()
+                              ? 0
+                              : 1,
+                        ),
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),

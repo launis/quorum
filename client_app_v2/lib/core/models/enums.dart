@@ -93,7 +93,6 @@ enum EvidenceType {
   noEvidence,
 }
 
-
 /// Aggregation constraint for TDA Assertions
 @JsonEnum()
 enum AggregationMode {
@@ -403,4 +402,3 @@ enum TargetSpeaker {
   @JsonValue('AI')
   ai,
 }
-

@@ -108,9 +108,13 @@ void main() {
       () {
         final payload = {
           'input_key': 'product_text',
-          'label': {'translations': <String, String>{'en': 'Product'}},
+          'label': {
+            'translations': <String, String>{'en': 'Product'},
+          },
           'required': true,
-          'description': {'translations': <String, String>{'en': 'Deliverable'}},
+          'description': {
+            'translations': <String, String>{'en': 'Deliverable'},
+          },
           'is_endorsed_deliverable': true,
         };
 

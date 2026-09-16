@@ -404,7 +404,7 @@ def test_process_atom_evaluation_none_source_quote_skips_matching() -> None:
 
 
 def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None:
-    """Positive: Test exact quote extraction when corpus contains Unicode En Space (\\u2002) and Zero Width Space (\\u200b)."""
+    r"""Positive: Test exact quote extraction when corpus contains Unicode En Space (\u2002) and Zero Width Space (\u200b)."""
     # Corpus contains typographical spaces and zero-width artifacts injected by watermarks or rich text
     corpus_text = "Johtajuus\u2002on\u200bselkeää\u00a0ja\ufeffvastuullista."
     # Extracted quote uses standard ASCII spaces without zero-width artifacts
@@ -438,4 +438,3 @@ def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None
     assert extracted_rev is not None
     assert len(extracted_rev) == 1
     assert extracted_rev[0] == "Strateginen suunta on määritelty"
-

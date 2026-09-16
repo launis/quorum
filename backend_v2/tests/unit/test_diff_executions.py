@@ -1291,7 +1291,7 @@ class TestRunDiff:
             assert "StrictnessAnchor" in content
 
 
-class TestVerifyQuoteInCorpus:
+class TestVerifyQuoteInCorpusUnicodeAndResilience:
     """Test suite for verify_quote_in_corpus Tiered Lexical Validation and Unicode resilience."""
 
     def test_verify_quote_literal_exact(self) -> None:
@@ -1348,4 +1348,3 @@ class TestVerifyQuoteInCorpus:
 
             # At the same time, quote verification succeeds deterministically
             assert verify_quote_in_corpus(quote, corpus_with_watermark) is True
-
