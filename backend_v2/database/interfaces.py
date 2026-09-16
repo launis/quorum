@@ -63,6 +63,25 @@ from backend_v2.models.v2_core import (
     Workflow,
 )
 
+__all__ = [
+    "IAgentRepository",
+    "IAuditRepository",
+    "IComponentRepository",
+    "IExecutionPersonaRepository",
+    "IExecutionRepository",
+    "IExtractionProtocolRepository",
+    "IIdentityRepository",
+    "IKnowledgeRepository",
+    "IMatrixRepository",
+    "IOutputProfileRepository",
+    "IPromptBlockRepository",
+    "IRoleRepository",
+    "ISystemRepository",
+    "ITaskBlueprintRepository",
+    "IUnifiedWorkflowRepository",
+    "IWorkflowRepository",
+]
+
 
 class IExecutionRepository(Protocol):
     """Protocol for Execution persistence operations."""

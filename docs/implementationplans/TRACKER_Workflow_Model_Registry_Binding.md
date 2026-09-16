@@ -32,11 +32,11 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` production backend files:
-  - [ ] @[backend_v2/models/v2_core.py]
-  - [ ] @[backend_v2/models/execution_core.py]
-  - [ ] @[backend_v2/models/dtos/studio.py]
-  - [ ] @[backend_v2/database/interfaces.py]
-  - [ ] @[backend_v2/database/repositories/system.py]
+  - [x] @[backend_v2/models/v2_core.py]
+  - [x] @[backend_v2/models/execution_core.py]
+  - [x] @[backend_v2/models/dtos/studio.py]
+  - [x] @[backend_v2/database/interfaces.py]
+  - [x] @[backend_v2/database/repositories/system.py]
   - [ ] @[backend_v2/services/studio/system_config_service.py]
   - [ ] @[backend_v2/services/execution.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/base.py]
@@ -91,31 +91,40 @@
 
 # Session Handover Context
 ## Achieved
-- **Step 1 (`5141d571`):** `SystemConfigModelRegistry` flattened with 4 canonical tiers (`fast`, `balanced`, `deep`, `reasoning`), `name: str`, `Workflow.model_registry_id`, `ExecutionCreate.model_registry_id`, and Studio DTOs.
-- **Step 2 (`eb37e926`):** `ISystemRepository` & `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and `delete_system_config`; `StudioSystemConfigService` multi-registry CRUD with deep clone appending ` (Copy)`; `start_execution` stamps `model_registry_id`.
-- **Step 3 (`c1dfb9b5`):** `StrategyContext.model_registry_id` forwarded through `DAGExecutor` to `LLMNodeStrategy` and `worker.py`; `LLMClient.from_tier` resolves in O(1) from flat `tier_definitions`; 476/476 orchestrator tests passed.
-- **Step 4 (`0b95a576`):** Eradicated physical model suffixes `[${physical.modelName}]` and vendor preview chips in `StepBuilderView`.
-- **Step 5 (`afc97c1a`):** Desktop Pro Tool UX in `ModelRegistryView` (1200px canvas, `PopScope` dirty checking, in-view clone, 4-tier cards) and `StudioDashboardView` Tab 6 (real-time search, count badge).
-- **Step 6 (`19e7190a`):** `WorkflowGeneralTab` Sovereign Model Stack selector dropdown showing name and provider badge; dual-axis localization; 142/142 studio view tests passed.
-- **Step 7 (`2862fb94`):** `seed_data.json` synchronized with Option A flat schema (`sys_e26807f3bfa3454d` Google Gemini Sovereign Stack and `sys_6f8b1c4a2e0d49f1` OpenAI O-Series Stack), all workflows bound to `sys_e26807f3bfa3454d`; passed strict seed audit and local seeding. Quality gates in `system.py` (100% cov) and `v2_core.py` (92% cov) passed.
-- **Step 8 (`075bb47f`):** Modernized `scripts/run_e2e_variance_test.py` with dynamic model registry resolution (`resolve_model_telemetry`, `print_model_telemetry`, `resolve_comparison_registries`), CLI flags `--model-registry` and `--compare-registries`, side-by-side telemetry and automated differential execution flow. 35/35 tests passed in `test_run_e2e_variance_test.py`.
+- **Step 1-8 Implementation Complete:** Option A Sovereign Model Stack Architecture physically implemented across backend, frontend, seed vault, and variance tests.
+- **Tier 8 Plan Audit Complete (`528c79e0`):** All 12 requirements verified with 0 fatal errors.
+- **Tier 2 Backend Hardening Batch 1 Complete (5/14 files):**
+  - `backend_v2/models/v2_core.py`: 100% strict Pydantic V2, 92% coverage, explicit `__all__ = [...]`, passed 174-rule audit matrix and strict AST loop.
+  - `backend_v2/models/execution_core.py`: Added explicit `__all__ = ["ExecutionCoreFields", "ExecutionMetadata"]`, 100% coverage, passed 174-rule audit matrix.
+  - `backend_v2/models/dtos/studio.py`: Modernized test fixtures from legacy `model_strategy` to `cognitive_tier="fast"`, 99% coverage, explicit `__all__ = [...]`, passed 174-rule audit matrix.
+  - `backend_v2/database/interfaces.py`: Added complete 16-protocol `__all__ = [...]` export list, 100% coverage, passed 174-rule audit matrix.
+  - `backend_v2/database/repositories/system.py`: Added explicit `__all__ = ["SystemRepositoryImpl"]`, refactored ternary fallbacks into fail-fast checks eliminating `QGR016` AST violations, 97% coverage, passed 174-rule audit matrix.
 
 ## Learned
-- Using typed Pydantic model validation on queried dictionaries prior to sorting (`models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]`) completely eliminates dictionary `.get()` calls and cleanly satisfies AST guardrail `QGR002`.
-- `InMemorySystemRepository` previously used a single `_model_registry` slot with obsolete `models={}`; refactoring it to a dictionary store `_model_registries` with Option A 4-tier default guarantees true stateful multi-registry roundtrip fidelity.
-- Eradicating physical model inspection from `StepBuilderView` completely decouples individual workflow step authoring from physical provider/model configs, allowing step definitions to remain 100% vendor-neutral and solely driven by the workflow's attached Sovereign Model Registry stack.
-- Dynamic registry resolution in `scripts/run_e2e_variance_test.py` cleanly supports both direct ID and loose name/provider matching (e.g. `openai` -> `sys_6f8b1c4a2e0d49f1`), and automatic comparison defaults to comparing the workflow's configured stack against the primary alternate stack in the database.
+- Banned ternary lazy fallbacks (`QGR016`) in repository layers must be refactored into direct fail-fast assertions (`if not res_list: raise ResourceNotFoundError(...)`) rather than `res = res_list[0] if res_list else None`.
+- Unit test fixtures in `test_studio.py` expecting legacy `model_strategy` must be modernized to `cognitive_tier` per Option A Sovereign Model Stack contracts without compromising strict Pydantic extra='forbid' validation.
+- All standalone modules and interface files must declare an explicit `__all__ = [...]` export list to satisfy Phase 9 encapsulation invariants.
 
 ## Remaining
-- **Next Primary Gate:** Run `/tier2-hardening-backend` specifying the modified backend files.
+- **Next Primary Gate:** Continue `/tier2-hardening-backend` for Batch 2 (5 files):
+  - `@[backend_v2/services/studio/system_config_service.py]`
+  - `@[backend_v2/services/execution.py]`
+  - `@[backend_v2/services/orchestrator/strategies/base.py]`
+  - `@[backend_v2/services/orchestrator/dag_executor.py]`
+  - `@[backend_v2/services/orchestrator/strategies/llm.py]`
+- **Remaining Backend Batch 3 (4 files):**
+  - `@[backend_v2/llm/client.py]`
+  - `@[backend_v2/worker.py]`
+  - `@[backend_v2/services/studio/workflow_service.py]`
+  - `@[scripts/run_e2e_variance_test.py]`
 - **Post-Implementation Hardening Gates:**
-  - Execute `/tier2-hardening-backend` on modified backend files.
   - Execute `/tier2-hardening-frontend` on modified Flutter files.
 - **As-Built Architectural Sync:**
   - Execute `/tier7-describe-architecture` to update architectural documents and sync Knowledge Items (`ki_desktop_pro_tool_studio_ux.md`, `ki_provider_agnostic_caching.md`).
 
 ### Hardening State Snapshot
-TARGETS: 74, DONE: 9, REMAINING: [@[backend_v2/database/repositories/execution.py], @[backend_v2/hooks/scoring/__init__.py], @[backend_v2/hooks/scoring/falsifier_hook.py], @[backend_v2/hooks/scoring/passivity_hook.py], @[backend_v2/hooks/scoring/matrix_hook.py], @[backend_v2/hooks/scoring/normalization_hook.py], @[backend_v2/tests/unit/hooks/test_scoring.py], @[backend_v2/hooks/validation.py], @[backend_v2/hooks/source_verification_hook.py], @[backend_v2/hooks/atom_flattening.py], @[backend_v2/hooks/input_processing.py], @[backend_v2/hooks/integrity.py], @[backend_v2/hooks/linguistics.py], @[backend_v2/hooks/llm.py], @[backend_v2/hooks/context_mapper.py], @[backend_v2/hooks/archival.py], @[backend_v2/hooks/security.py], @[backend_v2/hooks/hydration.py], @[backend_v2/hooks/dlq_guard.py], @[backend_v2/hooks/metadata.py], @[backend_v2/hooks/metrics.py], @[backend_v2/hooks/references.py], @[backend_v2/hooks/interaction_hook.py], @[backend_v2/services/orchestrator/dag_executor.py], @[backend_v2/services/orchestrator/enriched_dag_executor.py], @[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/services/orchestrator/strategies/base.py], @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py], @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py], @[backend_v2/services/orchestrator/prompt_compiler.py], @[backend_v2/services/orchestrator/prompt_compiler_adapter.py], @[backend_v2/services/orchestrator/context_router.py], @[backend_v2/services/orchestrator/dag_compiler.py], @[backend_v2/services/orchestrator/synthesis_payload_compressor.py], @[backend_v2/services/orchestrator/synthesis_distiller.py], @[backend_v2/services/orchestrator/matrix_explanation_service.py], @[backend_v2/services/orchestrator/rag_preflight_service.py], @[backend_v2/services/orchestrator/localization_compiler.py], @[backend_v2/services/orchestrator/extraction_schema_factory.py], @[backend_v2/services/orchestrator/atomizer.py], @[backend_v2/services/orchestrator/two_pass_atomizer.py], @[backend_v2/services/orchestrator/anchor_validation_service.py], @[backend_v2/services/orchestrator/matrix_reducer.py], @[backend_v2/services/orchestrator/engines/tda_engine.py], @[backend_v2/services/orchestrator/engines/synthesis_engine.py], @[backend_v2/services/orchestrator/extractive_sensor_service.py], @[backend_v2/services/orchestrator/result_projector.py], @[backend_v2/services/execution.py], @[backend_v2/services/usage_service.py], @[backend_v2/services/llm_task_executor.py], @[backend_v2/services/translation_service.py], @[backend_v2/services/source_verification_service.py], @[backend_v2/services/blueprint.py], @[backend_v2/services/studio/system_config_service.py], @[backend_v2/services/studio/workflow_service.py], @[backend_v2/services/studio/output_profile_service.py], @[backend_v2/services/studio/prompt_block_service.py], @[backend_v2/services/mcp/mcp_tool_loop.py], @[backend_v2/worker.py], @[backend_v2/services/cache/__init__.py], @[backend_v2/services/cache/typed_cache.py], @[scripts/_ast_guardrails.py], @[scripts/backend_audit_loop.py]]
+TARGETS: 14, DONE: 5, REMAINING: [@[backend_v2/services/studio/system_config_service.py], @[backend_v2/services/execution.py], @[backend_v2/services/orchestrator/strategies/base.py], @[backend_v2/services/orchestrator/dag_executor.py], @[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/llm/client.py], @[backend_v2/worker.py], @[backend_v2/services/studio/workflow_service.py], @[scripts/run_e2e_variance_test.py]]
 
 ## Resume Command
 `/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier2-hardening-backend" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/01-python-backend.md],@[.agents/rules/04_directory_reference.md]"`
+

@@ -18,6 +18,11 @@ from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LLMProv
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
+__all__ = [
+    "ExecutionCoreFields",
+    "ExecutionMetadata",
+]
+
 
 class ExecutionMetadata(V2CoreBase):
     """Strictly typed metadata for execution runtime parameters and provenance."""

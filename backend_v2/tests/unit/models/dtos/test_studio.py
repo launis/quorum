@@ -102,7 +102,7 @@ def test_core_response_dto_strictness() -> None:
             "name": {"translations": {"en": "Test Step", "fi": "Test Step"}},
             "type": "llm",
             "description": {"translations": {"en": "test", "fi": "testi"}},
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "extraction_protocol_block_id": "blk_0123456789abcdef",
             "criteria_block_ids": ["blk_0123456789abcdef"],
             "organization_id": valid_id_org,
@@ -259,7 +259,7 @@ def test_step_simulation_request_strictness() -> None:
         slug="test_step",
         name=I18nText(translations={"en": "Test Step"}),
         description=I18nText(translations={"en": "Desc"}),
-        model_strategy="fast",
+        cognitive_tier="fast",
         extraction_protocol_block_id="blk_2222222222222222",
         criteria_block_ids=["blk_1111111111111111"],
     )
