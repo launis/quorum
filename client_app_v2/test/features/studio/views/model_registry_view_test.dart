@@ -42,18 +42,20 @@ void main() {
                   id: 'syscfg_123',
                   slug: 'syscfg_123_slug',
                   type: 'model_registry',
-                  models: {
-                    'fast': LlmModelConfig(
-                      modelName: 'gpt-4o',
-                      provider: 'openai',
-                      temperature: 0.7,
-                      topP: 0.9,
-                      topK: 40,
-                      frequencyPenalty: 0.0,
-                      presencePenalty: 0.0,
-                      maxTokens: 4096,
-                      isActive: true,
-                    ),
+                  tierDefinitions: {
+                    'openai': {
+                      'fast': LlmModelConfig(
+                        modelName: 'gpt-4o',
+                        provider: 'openai',
+                        temperature: 0.7,
+                        topP: 0.9,
+                        topK: 40,
+                        frequencyPenalty: 0.0,
+                        presencePenalty: 0.0,
+                        maxTokens: 4096,
+                        isActive: true,
+                      ),
+                    },
                   },
                 ),
               ),
@@ -122,16 +124,18 @@ void main() {
                   id: 'syscfg_raw',
                   slug: 'syscfg_raw_slug',
                   type: 'model_registry',
-                  models: {
-                    'deep': LlmModelConfig(
-                      modelName: 'vertex_ai/gemini-2.5-pro',
-                      provider: 'google',
-                      additionalParams: {
-                        'platform': 'vertex_ai',
-                        'vertex_location': r'${VERTEX_LOCATION}',
-                      },
-                      isActive: true,
-                    ),
+                  tierDefinitions: {
+                    'google': {
+                      'deep': LlmModelConfig(
+                        modelName: 'vertex_ai/gemini-2.5-pro',
+                        provider: 'google',
+                        additionalParams: {
+                          'platform': 'vertex_ai',
+                          'vertex_location': r'${VERTEX_LOCATION}',
+                        },
+                        isActive: true,
+                      ),
+                    },
                   },
                 ),
               ),
@@ -183,14 +187,16 @@ void main() {
                   id: 'syscfg_gemini38',
                   slug: 'syscfg_gemini38_slug',
                   type: 'model_registry',
-                  models: {
-                    'reasoning': LlmModelConfig(
-                      modelName: 'gemini/gemini-3.8-flash',
-                      provider: 'google',
-                      thinkingBudgetTokens: 8192,
-                      additionalParams: {'platform': 'ai_studio'},
-                      isActive: true,
-                    ),
+                  tierDefinitions: {
+                    'google': {
+                      'reasoning': LlmModelConfig(
+                        modelName: 'gemini/gemini-3.8-flash',
+                        provider: 'google',
+                        thinkingBudgetTokens: 8192,
+                        additionalParams: {'platform': 'ai_studio'},
+                        isActive: true,
+                      ),
+                    },
                   },
                 ),
               ),
@@ -245,12 +251,14 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
         id: 'syscfg_123',
         slug: 'syscfg_123_slug',
         type: 'model_registry',
-        models: {
-          'fast': LlmModelConfig(
-            modelName: 'gpt-4o',
-            provider: 'openai',
-            isActive: true,
-          ),
+        tierDefinitions: {
+          'openai': {
+            'fast': LlmModelConfig(
+              modelName: 'gpt-4o',
+              provider: 'openai',
+              isActive: true,
+            ),
+          },
         },
       ),
     ];
@@ -282,7 +290,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
       id: 'cloned',
       slug: 'cloned_slug',
       type: 'model_registry',
-      models: {},
+      tierDefinitions: {},
     );
   }
 }

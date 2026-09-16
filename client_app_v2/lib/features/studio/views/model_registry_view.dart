@@ -218,20 +218,22 @@ class ModelRegistryView extends HookConsumerWidget {
     final locationsAsync = ref.watch(supportedLocationsProvider);
     final supportedLocations = locationsAsync.value ?? [];
 
-    final Map<String, Map<String, LlmModelConfig>> providerGroups = {};
-    for (final entry in payload.models.entries) {
-      final provider = entry.value.provider.isNotEmpty
-          ? entry.value.provider
-          : 'unknown';
-      providerGroups.putIfAbsent(provider, () => {})[entry.key] = entry.value;
-    }
+    final Map<String, Map<String, LlmModelConfig>> providerGroups =
+        payload.tierDefinitions;
 
     void updateModel(String modelId, LlmModelConfig newConfig) {
-      final newModels = Map<String, LlmModelConfig>.from(payload.models);
-      newModels[modelId] = newConfig;
+      final newTierDefs = payload.tierDefinitions.map(
+        (k, v) => MapEntry(k, Map<String, LlmModelConfig>.from(v)),
+      );
+      for (final tiers in newTierDefs.values) {
+        tiers.remove(modelId);
+      }
+      final targetProvider =
+          newConfig.provider.isNotEmpty ? newConfig.provider : 'unknown';
+      newTierDefs.putIfAbsent(targetProvider, () => {})[modelId] = newConfig;
       ref
           .read(modelRegistryFormProvider(id).notifier)
-          .forceRebuild(payload.copyWith(models: newModels));
+          .forceRebuild(payload.copyWith(tierDefinitions: newTierDefs));
     }
 
     return Column(
@@ -246,19 +248,22 @@ class ModelRegistryView extends HookConsumerWidget {
             ),
             FilledButton.icon(
               onPressed: () {
-                final newModels = Map<String, LlmModelConfig>.from(
-                  payload.models,
+                final newTierDefs = payload.tierDefinitions.map(
+                  (k, v) => MapEntry(k, Map<String, LlmModelConfig>.from(v)),
                 );
                 final newKey =
                     'custom_${DateTime.now().millisecondsSinceEpoch}';
-                newModels[newKey] = const LlmModelConfig(
-                  provider: 'google',
-                  modelName: 'gemini/gemini-3.8-flash',
-                  additionalParams: {'platform': 'ai_studio'},
-                );
+                newTierDefs.putIfAbsent('google', () => {})[newKey] =
+                    const LlmModelConfig(
+                      provider: 'google',
+                      modelName: 'gemini/gemini-3.8-flash',
+                      additionalParams: {'platform': 'ai_studio'},
+                    );
                 ref
                     .read(modelRegistryFormProvider(id).notifier)
-                    .forceRebuild(payload.copyWith(models: newModels));
+                    .forceRebuild(
+                      payload.copyWith(tierDefinitions: newTierDefs),
+                    );
               },
               icon: const Icon(Icons.add),
               label: Text(l10n.addStrategyButton),
@@ -266,7 +271,9 @@ class ModelRegistryView extends HookConsumerWidget {
           ],
         ),
         AppSpacing.h16,
-        if (payload.models.isEmpty) Text(l10n.noModelsDefined),
+        if (payload.tierDefinitions.isEmpty ||
+            payload.tierDefinitions.values.every((m) => m.isEmpty))
+          Text(l10n.noModelsDefined),
         ...providerGroups.entries.map((providerEntry) {
           final providerName = providerEntry.key;
           final providerModels = providerEntry.value;
@@ -371,15 +378,21 @@ class ModelRegistryView extends HookConsumerWidget {
                               color: Theme.of(ref.context).colorScheme.error,
                             ),
                             onPressed: () {
-                              final newModels =
-                                  Map<String, LlmModelConfig>.from(
-                                    payload.models,
-                                  );
-                              newModels.remove(modelId);
+                              final newTierDefs = payload.tierDefinitions.map(
+                                (k, v) => MapEntry(
+                                  k,
+                                  Map<String, LlmModelConfig>.from(v),
+                                ),
+                              );
+                              if (newTierDefs.containsKey(providerName)) {
+                                newTierDefs[providerName]!.remove(modelId);
+                              }
                               ref
                                   .read(modelRegistryFormProvider(id).notifier)
                                   .forceRebuild(
-                                    payload.copyWith(models: newModels),
+                                    payload.copyWith(
+                                      tierDefinitions: newTierDefs,
+                                    ),
                                   );
                             },
                           ),

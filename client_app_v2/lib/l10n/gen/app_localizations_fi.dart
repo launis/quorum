@@ -4635,6 +4635,23 @@ class AppLocalizationsFi extends AppLocalizations {
       'Mallistrategia (Hinta/Kognitio-ohitus)';
 
   @override
+  String get studioCognitiveTierLabel => 'Kognitiotaso (Hinta & Syvyys)';
+
+  @override
+  String get studioTierFast => 'Nopea (Ei päättelyviivettä, matala latenssi)';
+
+  @override
+  String get studioTierBalanced =>
+      'Tasapainoinen (Kevyt päättely, perussynteesi)';
+
+  @override
+  String get studioTierDeep => 'Syvä (Vahva päättely, monimutkainen analyysi)';
+
+  @override
+  String get studioTierReasoning =>
+      'Päättely (Maksimaalinen pohdinta, tieteellinen tarkkuus)';
+
+  @override
   String get studioNoModelsWarning =>
       'Varoitus: Mallirekisteristä ei löytynyt malleja.';
 

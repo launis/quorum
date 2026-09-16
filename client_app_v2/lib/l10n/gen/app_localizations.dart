@@ -8322,6 +8322,36 @@ abstract class AppLocalizations {
   /// **'Model Strategy (Cost/Cognition Override)'**
   String get studioModelStrategyLabel;
 
+  /// No description provided for @studioCognitiveTierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cognitive Tier (Cost & Depth)'**
+  String get studioCognitiveTierLabel;
+
+  /// No description provided for @studioTierFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast (Zero-Thinking, Low-Latency)'**
+  String get studioTierFast;
+
+  /// No description provided for @studioTierBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced (Light Reasoning, Standard Synthesis)'**
+  String get studioTierBalanced;
+
+  /// No description provided for @studioTierDeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep (Heavy Reasoning, Complex Analysis)'**
+  String get studioTierDeep;
+
+  /// No description provided for @studioTierReasoning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning (Maximal Thinking, Scientific Rigor)'**
+  String get studioTierReasoning;
+
   /// No description provided for @studioNoModelsWarning.
   ///
   /// In en, this message translates to:

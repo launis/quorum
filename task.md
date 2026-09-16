@@ -104,17 +104,17 @@
 - Ontologically hardened Bloom Levels 5–6 and Kahneman Levels 1–2 with explicit anti-patterns and contrastive pairs.
 - Upgraded telemetry reporting in `run_e2e_variance_test.py` and `diff_executions.py` to display real providers, token limits, and localized human names, strictly banning raw IDs and wrapper aliases in report headlines.
 - Re-seeded database into `data/db_v2.json` with 0 atom audit errors.
-- Verified 100% pass across all 143 unit tests and 21 Flutter tests.
+- Verified 100% pass across all unit tests and Flutter studio tests (`dart analyze lib/` exits 0 with 0 issues).
 - Synchronized all 4 Knowledge Items (`ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_unified_matrix_scoring_strictness.md`, `ki_tda_best_of_three_flash.md`, `ki_provider_agnostic_caching.md`) and their `metadata.json` files.
 
 ## Learned
 - In `Step`, field validation on `cognitive_tier` runs before model validation; passing `cognitive_tier=None` raises field `ValidationError` rather than model validator `ValueError`.
 - `backend_audit_loop.py` infers the target module under test from the target file path. For testing seed/json rules, running pytest directly against the target test suite verifies coverage correctly.
-- Updating Knowledge Items first allows architectural pillar documents (`docs/architecture/01_` through `06_`) to be synchronized cleanly in a fresh session via `/tier7-describe-architecture`, complying with the Dual-Axis Documentation Paradigm.
+- When evolving Freezed models in Flutter, all dependent admin views and test fixtures (`studio_dashboard_view.dart`, `model_registry_view.dart`, `model_config_test.dart`) must be updated in tandem to prevent contract fracture on `tierDefinitions`.
 
 ## Remaining
 - Perform atomic `git commit` to save the full implementation state.
-- Route post-implementation verification through `/tier8-audit-plan` or run `/tier7-describe-architecture` for pillars 01 and 03.
+- Route post-implementation verification through `/tier8-audit-plan`.
 
 ## Resume Command
 ```bash

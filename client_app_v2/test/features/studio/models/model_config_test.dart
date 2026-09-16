@@ -10,7 +10,7 @@ void main() {
           'id': 'sys_1234567890abcdef',
           'type': 'model_registry',
           'slug': null,
-          'models': <String, dynamic>{},
+          'tier_definitions': <String, dynamic>{},
         };
 
         // This will throw CheckedFromJsonException because slug is null

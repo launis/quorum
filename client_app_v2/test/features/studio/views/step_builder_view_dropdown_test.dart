@@ -255,7 +255,7 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     id: 'cloned',
     slug: 'cloned_slug',
     type: 'model_registry',
-    models: {},
+    tierDefinitions: {},
   );
 }
 

@@ -4601,6 +4601,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Model Strategy (Cost/Cognition Override)';
 
   @override
+  String get studioCognitiveTierLabel => 'Cognitive Tier (Cost & Depth)';
+
+  @override
+  String get studioTierFast => 'Fast (Zero-Thinking, Low-Latency)';
+
+  @override
+  String get studioTierBalanced =>
+      'Balanced (Light Reasoning, Standard Synthesis)';
+
+  @override
+  String get studioTierDeep => 'Deep (Heavy Reasoning, Complex Analysis)';
+
+  @override
+  String get studioTierReasoning =>
+      'Reasoning (Maximal Thinking, Scientific Rigor)';
+
+  @override
   String get studioNoModelsWarning => 'Warning: No models found in registry.';
 
   @override

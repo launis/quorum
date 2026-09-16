@@ -464,8 +464,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
 
                     final String typeLabel = switch (blueprint) {
                       NodeStrategyLogic() => 'Logic: ${blueprint.hook}',
-                      NodeStrategyLlm() =>
-                        'LLM: ${blueprint.modelStrategy ?? 'default'}',
+                      NodeStrategyLlm() => 'LLM: ${blueprint.cognitiveTier.name}',
                     };
 
                     return Card(
@@ -569,8 +568,10 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
                         'Model Registry config is missing ID.',
                       );
                     }
-                    final modelsMap = config.models;
-                    final modelCount = modelsMap.length;
+                    final modelCount = config.tierDefinitions.values.fold<int>(
+                      0,
+                      (sum, tiers) => sum + tiers.length,
+                    );
 
                     return Card(
                       child: ListTile(
