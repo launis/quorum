@@ -58,38 +58,35 @@ void main() {
   }
 
   group('WorkflowGeneralTab Model Registry Selector Tests', () {
-    testWidgets(
-      'renders Model Registry selector with stack name and provider',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1200, 2400);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets('renders Model Registry selector with stack name and provider', (
+      WidgetTester tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 2400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-        final workflow = createTestWorkflow(
-          modelRegistryId: 'sys_e26807f3bfa3454d',
-        );
+      final workflow = createTestWorkflow(
+        modelRegistryId: 'sys_e26807f3bfa3454d',
+      );
 
-        await tester.pumpWidget(
-          buildTestApp(workflow, onChanged: (_) {}),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(buildTestApp(workflow, onChanged: (_) {}));
+      await tester.pumpAndSettle();
 
-        // 1. Verify Label and Helper text
-        expect(find.text('Model Registry'), findsOneWidget);
-        expect(
-          find.text(
-            'Sovereign model stack binding physical LLM profiles to cognitive tiers',
-          ),
-          findsOneWidget,
-        );
+      // 1. Verify Label and Helper text
+      expect(find.text('Model Registry'), findsOneWidget);
+      expect(
+        find.text(
+          'Sovereign model stack binding physical LLM profiles to cognitive tiers',
+        ),
+        findsOneWidget,
+      );
 
-        // 2. Verify selected item text is rendered
-        expect(
-          find.text('Google Gemini Sovereign Stack (GOOGLE)'),
-          findsOneWidget,
-        );
-      },
-    );
+      // 2. Verify selected item text is rendered
+      expect(
+        find.text('Google Gemini Sovereign Stack (GOOGLE)'),
+        findsOneWidget,
+      );
+    });
 
     testWidgets(
       'invokes onChanged with new modelRegistryId when another stack is selected',
@@ -130,10 +127,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(updatedWorkflow, isNotNull);
-        expect(
-          updatedWorkflow!.modelRegistryId,
-          'sys_6f8b1c4a2e0d49f1',
-        );
+        expect(updatedWorkflow!.modelRegistryId, 'sys_6f8b1c4a2e0d49f1');
       },
     );
   });
@@ -170,17 +164,11 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
   @override
   Future<void> deleteConfig(String id) async {}
   @override
-  Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
-        id: 'draft',
-        slug: 'draft',
-        type: 'model_registry',
-      );
+  Future<ModelConfig> createSystemConfigDraft() async =>
+      const ModelConfig(id: 'draft', slug: 'draft', type: 'model_registry');
   @override
-  Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
-        id: 'cloned',
-        slug: 'cloned',
-        type: 'model_registry',
-      );
+  Future<ModelConfig> cloneConfig(String id) async =>
+      const ModelConfig(id: 'cloned', slug: 'cloned', type: 'model_registry');
 }
 
 class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
@@ -190,23 +178,24 @@ class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
   @override
   Future<void> refresh() async {}
   @override
-  Future<OutputProfile> saveProfile(String id, OutputProfile payload) async => payload;
+  Future<OutputProfile> saveProfile(String id, OutputProfile payload) async =>
+      payload;
   @override
   Future<void> deleteProfile(String id) async {}
   @override
   Future<OutputProfile> cloneProfile(String id) async => const OutputProfile(
-        id: 'cloned',
-        workflowId: 'wor_123',
-        slug: 'cloned',
-        name: I18nText(translations: {'en': 'Cloned'}),
-      );
+    id: 'cloned',
+    workflowId: 'wor_123',
+    slug: 'cloned',
+    name: I18nText(translations: {'en': 'Cloned'}),
+  );
   @override
   Future<OutputProfile> createOutputProfileDraft() async => const OutputProfile(
-        id: 'draft',
-        workflowId: 'wor_123',
-        slug: 'draft',
-        name: I18nText(translations: {'en': 'Draft'}),
-      );
+    id: 'draft',
+    workflowId: 'wor_123',
+    slug: 'draft',
+    name: I18nText(translations: {'en': 'Draft'}),
+  );
 }
 
 class MockMcpGatewaysController
@@ -217,12 +206,18 @@ class MockMcpGatewaysController
   @override
   Future<void> refresh() async {}
   @override
-  Future<Map<String, dynamic>> saveGateway(String id, Map<String, dynamic> data) async => data;
+  Future<Map<String, dynamic>> saveGateway(
+    String id,
+    Map<String, dynamic> data,
+  ) async => data;
   @override
   Future<void> deleteGateway(String id) async {}
   @override
-  Future<Map<String, dynamic>> cloneGateway(String id) async => const {'id': 'cloned'};
+  Future<Map<String, dynamic>> cloneGateway(String id) async => const {
+    'id': 'cloned',
+  };
   @override
-  Future<Map<String, dynamic>> createMcpGatewayDraft() async => const {'id': 'draft'};
+  Future<Map<String, dynamic>> createMcpGatewayDraft() async => const {
+    'id': 'draft',
+  };
 }
-
