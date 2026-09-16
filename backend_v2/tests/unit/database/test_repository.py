@@ -28,8 +28,15 @@ from backend_v2.models.dtos.studio import (
 )
 from backend_v2.models.dtos.system import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, TargetBlockType
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.enums import (
+    BlockDataType,
+    CognitiveTier,
+    ExecutionStatus,
+    LLMProvider,
+    PromptBlockCategory,
+    TargetBlockType,
+)
+from backend_v2.models.v2_core import ModelProfile, OutputProfile
 
 
 @pytest.mark.asyncio
@@ -211,11 +218,21 @@ async def test_all_passthrough_methods() -> None:
     await repo.delete_banned_phrase("phrase")
     await repo.count_workflows()
     await repo.get_prompt_template("1")
-    mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "model_registry", "models": {}}]
-    await repo.get_model_registry()
-    await repo.update_model_registry(
-        SystemConfigModelRegistry(id="sys_1234567890abcdef", type="model_registry", models={})
+    dummy_reg = SystemConfigModelRegistry(
+        id="sys_1234567890abcdef",
+        name="Default Model Registry",
+        type="model_registry",
+        default_provider=LLMProvider.GOOGLE,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+        },
     )
+    mock_driver.query.return_value = [dummy_reg.model_dump(mode="json")]
+    await repo.get_model_registry()
+    await repo.update_model_registry(dummy_reg)
     mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "mcp_gateways", "tools": []}]
     await repo.get_mcp_gateways()
     await repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_1234567890abcdef", type="mcp_gateways", tools=[]))

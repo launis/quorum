@@ -20,7 +20,7 @@
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
   - [x] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
-  - [ ] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
+  - [x] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
   - [ ] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
   - [ ] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
   - [ ] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
@@ -78,8 +78,8 @@
 | :--- | :--- | :--- | :--- |
 | REQ-01 | Flatten `SystemConfigModelRegistry.tier_definitions` to `dict[LaxCognitiveTier, ModelProfile]` with 4 canonical tiers and add human-readable `name` | Step 1 | [x] |
 | REQ-02 | Add `Workflow.model_registry_id` with regex validation and update Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`, `ExecutionCreate`) | Step 1 | [x] |
-| REQ-03 | Update `ISystemRepository` and `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and upsert by ID | Step 2 | [ ] |
-| REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [ ] |
+| REQ-03 | Update `ISystemRepository` and `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and upsert by ID | Step 2 | [x] |
+| REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [x] |
 | REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [ ] |
 | REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [ ] |
 | REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [ ] |
@@ -91,21 +91,22 @@
 
 # Session Handover Context
 ## Achieved
-- Executed Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A`.
-- Flattened `SystemConfigModelRegistry.tier_definitions` to `Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)]` and enforced 4 canonical tiers completeness.
-- Added `name: str = Field(default="Default Model Registry", ...)` to `SystemConfigModelRegistry`.
-- Added `Workflow.model_registry_id` bound to `sys_e26807f3bfa3454d` with Opaque ID regex.
-- Added `ExecutionCreate.model_registry_id` and `ExecutionMetadata.model_registry_id`.
-- Added `WorkflowCreateDTO.model_registry_id` and `WorkflowUpdateDTO.model_registry_id`.
-- Synchronized `backend_v2/seed/seed_data.json` with Option A flat schema for Gemini and OpenAI stacks and stamped `model_registry_id` across all 6 workflows.
-- Successfully passed `backend_audit_loop.py backend_v2/models/v2_core.py --test` (100% PASS, 92% coverage, exit code 0).
+- Executed Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A` (committed: `5141d571`).
+- Executed Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION`:
+  - `backend_v2/database/interfaces.py`: Updated `ISystemRepository` protocol to declare `get_model_registry(registry_id: str | None = None)`, `get_all_model_registries()`, and `delete_system_config(config_id: str)`.
+  - `backend_v2/database/repositories/system.py`: Implemented deterministic keyed lookup (`ResourceNotFoundError` with RFC 7807 logging), deterministic default/all queries sorting via typed Pydantic models with zero AST QGR002 violations, authoritative in-place upsert by `registry_data.id`, and `delete_system_config`.
+  - `backend_v2/services/studio/system_config_service.py`: Modernized `get_all_system_configs`, keyed `get_system_config`, `save_system_config` with keyed re-fetch, Option A compliant `create_system_config_draft`, deep clone appending ` (Copy)` to `name`, and authoritative `delete_system_config`.
+  - `backend_v2/services/execution.py`: Stamped `model_registry_id = payload.model_registry_id or workflow.model_registry_id` on `ExecutionMetadata`.
+  - `backend_v2/tests/fakes/in_memory_repositories.py`: Updated `InMemorySystemRepository` and `InMemoryUnifiedRepository` with multi-registry dictionary storage, keyed lookups, and deletion.
+  - `backend_v2/tests/unit/database/repositories/test_system_model_registry.py`: Added 7 unit tests covering all multi-registry repository test contracts.
+  - `backend_v2/tests/unit/database/repositories/test_system.py`: Added comprehensive unit tests achieving 100% test coverage on `system.py`.
+  - Quality Gate Verification: Passed `backend_audit_loop.py backend_v2/database/repositories/system.py --test` with 100% coverage and exit code 0. Passed 28/28 tests in `test_system_config_service.py` and 25/25 tests in `test_execution.py`.
 
 ## Learned
-- Pre-flight in-memory seeder dry-run validates `seed_data.json` against `SystemConfigUnion` and `Workflow`, confirming 100% two-phase seeder integrity.
-- `test_seed_architectural_guardrails.py` and `test_model_registry.py` fixtures required updating to flat `tier_definitions` to align with Option A schema.
+- Using typed Pydantic model validation on queried dictionaries prior to sorting (`models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]`) completely eliminates dictionary `.get()` calls and cleanly satisfies AST guardrail `QGR002`.
+- `InMemorySystemRepository` previously used a single `_model_registry` slot with obsolete `models={}`; refactoring it to a dictionary store `_model_registries` with Option A 4-tier default guarantees true stateful multi-registry roundtrip fidelity.
 
 ## Remaining
-- Execute Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION`
 - Execute Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`
 - Execute Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`
 - Execute Step 5: `DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY`

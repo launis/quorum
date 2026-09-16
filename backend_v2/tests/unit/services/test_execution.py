@@ -313,6 +313,7 @@ async def test_start_execution_success() -> None:
     mock_wf.default_profile_id = valid_profile.id
     mock_wf.expected_inputs = []
     mock_wf.steps = []
+    mock_wf.model_registry_id = "sys_e26807f3bfa3454d"
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
@@ -337,7 +338,73 @@ async def test_start_execution_success() -> None:
 
     assert result.workflow_id == "wf_1"
     assert result.status == ExecutionStatus.PENDING
+    assert result.metadata is not None
+    assert result.metadata.model_registry_id == "sys_e26807f3bfa3454d"
     arq_pool.enqueue_job.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_start_execution_model_registry_override() -> None:
+    """Verify that payload.model_registry_id overrides workflow.model_registry_id."""
+    repo_mock = AsyncMock()
+    executor_mock = Mock()
+    arq_pool = AsyncMock()
+
+    valid_profile = OutputProfile(
+        id="prf_0123456789abcdef0123456789abcdef",
+        slug="test-profile",
+        workflow_id="wf_1",
+        name=I18nText(translations={"en": "Test Profile"}),
+        target_block_order=[],
+    )
+    out_prof_repo_mock = AsyncMock()
+    out_prof_repo_mock.get_output_profile_by_id.return_value = valid_profile
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=out_prof_repo_mock,
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=executor_mock,
+    )
+    service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
+
+    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wf_1"
+    mock_wf.version = 1
+    mock_wf.default_profile_id = valid_profile.id
+    mock_wf.expected_inputs = []
+    mock_wf.steps = []
+    mock_wf.model_registry_id = "sys_e26807f3bfa3454d"
+    mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
+
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+
+    payload = ExecutionCreate(
+        workflow_id="wf_1",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
+        target_locale="en",
+        profile_id=valid_profile.id,
+        matrix_sampling_strategy=10,
+        model_registry_id="sys_6f8b1c4a2e0d49f1",
+    )
+
+    initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_1")
+
+    from unittest.mock import patch
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
+
+    assert result.metadata is not None
+    assert result.metadata.model_registry_id == "sys_6f8b1c4a2e0d49f1"
 
 
 @pytest.mark.asyncio

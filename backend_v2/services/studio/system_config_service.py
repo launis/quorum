@@ -10,8 +10,15 @@ from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNot
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
-from backend_v2.models.enums import EntityPrefix, GCPVertexLocation, LLMPlatformType
+from backend_v2.models.enums import (
+    CognitiveTier,
+    EntityPrefix,
+    GCPVertexLocation,
+    LLMPlatformType,
+    LLMProvider,
+)
 from backend_v2.models.v2_core import (
+    ModelProfile,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
@@ -186,12 +193,10 @@ class StudioSystemConfigService:
             initiator: The authenticated user.
 
         Returns:
-            A list containing the SystemConfigModelRegistry if accessible.
+            A list containing all SystemConfigModelRegistry documents if accessible.
         """
         if initiator.role == UserRole.ROOT:
-            data = await self.system_repo.get_model_registry()
-            if data and data.type == "model_registry":
-                return [data]
+            return await self.system_repo.get_all_model_registries()
         return []
 
     async def get_system_config(self, initiator: TokenData, id: str) -> SystemConfigModelRegistry:
@@ -215,7 +220,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can view system configs.")
-        data = await self.system_repo.get_model_registry()
+        data = await self.system_repo.get_model_registry(registry_id=id)
         if not data:
             logger.error(
                 "[StudioSystemConfigService] %s: SystemConfig %s not found (Initiator: %s).",
@@ -255,7 +260,7 @@ class StudioSystemConfigService:
             data = data.model_copy(update={"id": id})
         await self.system_repo.update_model_registry(data)
 
-        saved = await self.system_repo.get_model_registry()
+        saved = await self.system_repo.get_model_registry(registry_id=id)
         if not saved:
             logger.error(
                 "[StudioSystemConfigService] %s: SystemConfig %s not found after save (Initiator: %s).",
@@ -280,9 +285,33 @@ class StudioSystemConfigService:
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         draft = SystemConfigModelRegistry(
             id=new_id,
+            name="New Model Registry Draft",
             slug=new_id,
             type="model_registry",
-            models={},
+            default_provider=LLMProvider.GOOGLE,
+            tier_definitions={
+                CognitiveTier.FAST: ModelProfile(
+                    provider="google",
+                    model_name="gemini/gemini-2.5-flash",
+                    temperature=0.2,
+                ),
+                CognitiveTier.BALANCED: ModelProfile(
+                    provider="google",
+                    model_name="gemini/gemini-2.5-flash",
+                    temperature=0.4,
+                ),
+                CognitiveTier.DEEP: ModelProfile(
+                    provider="google",
+                    model_name="gemini/gemini-2.5-pro",
+                    temperature=0.7,
+                ),
+                CognitiveTier.REASONING: ModelProfile(
+                    provider="google",
+                    model_name="gemini/gemini-2.5-pro",
+                    temperature=1.0,
+                    thinking_budget_tokens=4096,
+                ),
+            },
         )
         return await self.save_system_config(initiator, new_id, draft)
 
@@ -307,23 +336,23 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can clone system configs.")
-        data = await self.system_repo.get_model_registry()
+        data = await self.system_repo.get_model_registry(registry_id=id)
         if not data:
             logger.error(
-                "[StudioSystemConfigService] %s: Model registry not found for cloning (Initiator: %s).",
+                "[StudioSystemConfigService] %s: Model registry %s not found for cloning (Initiator: %s).",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
+                id,
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
-        if data.slug:
-            cloned_slug = f"{data.slug}-copy"
-        else:
-            cloned_slug = None
+        cloned_name = f"{data.name} (Copy)"
+        cloned_slug = f"{data.slug}-copy" if data.slug else None
         cloned_obj = data.model_copy(
             update={
                 "id": new_id,
+                "name": cloned_name,
                 "slug": cloned_slug,
             }
         )
@@ -347,7 +376,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise PermissionDeniedError("Only ROOT can delete system configs.")
-        data = await self.system_repo.get_model_registry()
+        data = await self.system_repo.get_model_registry(registry_id=id)
         if not data:
             logger.error(
                 "[StudioSystemConfigService] %s: SystemConfig %s not found for deletion (Initiator: %s).",
@@ -356,6 +385,7 @@ class StudioSystemConfigService:
                 initiator.id,
             )
             raise ResourceNotFoundError(resource_type="system_config", resource_id=id)
+        await self.system_repo.delete_system_config(id)
 
     async def list_mcp_gateways(self, initiator: TokenData) -> list[SystemConfigMCPGateways]:
         """List mcp gateways.
@@ -477,9 +507,6 @@ class StudioSystemConfigService:
             initiator: The authenticated user.
 
         Returns:
-            A list containing the SystemConfigModelRegistry if accessible.
+            A list containing all SystemConfigModelRegistry documents if accessible.
         """
-        data = await self.system_repo.get_model_registry()
-        if data and initiator.role == UserRole.ROOT:
-            return [data]
-        return []
+        return await self.get_all_system_configs(initiator)

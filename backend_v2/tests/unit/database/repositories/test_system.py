@@ -9,6 +9,7 @@ import pytest
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.dtos.system import SystemConfigCreateDTO, SystemConfigUpdateDTO, SystemSettingsDTO
+from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.v2_core import (
     ModelProfile,
     SystemConfigMCPGateways,
@@ -20,11 +21,16 @@ from backend_v2.models.v2_core import (
 def sample_model_registry() -> SystemConfigModelRegistry:
     """Provides a sample SystemConfigModelRegistry model."""
     return SystemConfigModelRegistry(
-        id="cfg_1234567890abcdef",
+        id="sys_1234567890abcdef",
+        name="Sample Model Registry",
         slug="model_registry",
         type="model_registry",
-        models={
-            "fast": ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+        default_provider=LLMProvider.GOOGLE,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
         },
     )
 
@@ -49,7 +55,7 @@ async def test_get_model_registry_success(sample_model_registry: SystemConfigMod
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.get_model_registry()
 
-    assert res.id == "cfg_1234567890abcdef"
+    assert res.id == sample_model_registry.id
     mock_driver.query.assert_called_once()
 
 
@@ -69,30 +75,30 @@ async def test_get_model_registry_not_found_raises() -> None:
 
 @pytest.mark.asyncio
 async def test_update_model_registry_existing(sample_model_registry: SystemConfigModelRegistry) -> None:
-    """Positive: updates existing model_registry document."""
+    """Positive: updates existing model_registry document using its authoritative id."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [{"id": "cfg_models11111111", "type": "model_registry"}]
-    mock_driver.upsert.return_value = "cfg_models11111111"
+    mock_driver.upsert.return_value = sample_model_registry.id
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.update_model_registry(sample_model_registry)
 
     assert res is True
     mock_driver.upsert.assert_called_once()
+    assert mock_driver.upsert.call_args[0][2] == sample_model_registry.id
 
 
 @pytest.mark.asyncio
 async def test_update_model_registry_new(sample_model_registry: SystemConfigModelRegistry) -> None:
-    """Positive: creates new model_registry document when none exists."""
+    """Positive: creates new model_registry document using model's id."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
-    mock_driver.upsert.return_value = "model_registry"
+    mock_driver.upsert.return_value = sample_model_registry.id
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     res = await repo.update_model_registry(sample_model_registry)
 
     assert res is True
     mock_driver.upsert.assert_called_once()
+    assert mock_driver.upsert.call_args[0][2] == sample_model_registry.id
 
 
 @pytest.mark.asyncio
@@ -256,3 +262,81 @@ async def test_create_system_config(sample_model_registry: SystemConfigModelRegi
 
     assert res == "cfg_1234567890abcdef"
     mock_driver.upsert.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_get_model_registry_by_id_success(sample_model_registry: SystemConfigModelRegistry) -> None:
+    """Positive: retrieves specific model registry by ID."""
+    mock_driver = AsyncMock()
+    mock_driver.get.return_value = sample_model_registry.model_dump(mode="json")
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    res = await repo.get_model_registry(registry_id=sample_model_registry.id)
+
+    assert res.id == sample_model_registry.id
+    mock_driver.get.assert_called_once_with("system_config", sample_model_registry.id)
+
+
+@pytest.mark.asyncio
+async def test_get_model_registry_by_id_not_found_raises() -> None:
+    """Negative: raises ResourceNotFoundError when requested registry ID does not exist."""
+    mock_driver = AsyncMock()
+    mock_driver.get.return_value = None
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await repo.get_model_registry(registry_id="sys_missing_12345")
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["resource_id"] == "sys_missing_12345"
+
+
+@pytest.mark.asyncio
+async def test_get_model_registry_by_id_wrong_type_raises() -> None:
+    """Negative: raises ResourceNotFoundError when document is not a model_registry."""
+    mock_driver = AsyncMock()
+    mock_driver.get.return_value = {"id": "sys_mcp_12345", "type": "mcp_gateways"}
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await repo.get_model_registry(registry_id="sys_mcp_12345")
+
+    assert exc_info.value.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_all_model_registries(sample_model_registry: SystemConfigModelRegistry) -> None:
+    """Positive: retrieves all model registries ordered deterministically."""
+    mock_driver = AsyncMock()
+    mock_driver.query.return_value = [sample_model_registry.model_dump(mode="json")]
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    res = await repo.get_all_model_registries()
+
+    assert len(res) == 1
+    assert res[0].id == sample_model_registry.id
+
+
+@pytest.mark.asyncio
+async def test_delete_system_config() -> None:
+    """Positive: deletes system config by ID."""
+    mock_driver = AsyncMock()
+    mock_driver.delete.return_value = True
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    res = await repo.delete_system_config("sys_target_12345")
+
+    assert res is True
+    mock_driver.delete.assert_called_once_with("system_config", "sys_target_12345")
+
+
+@pytest.mark.asyncio
+async def test_get_system_config_none() -> None:
+    """Positive: returns None when document does not exist."""
+    mock_driver = AsyncMock()
+    mock_driver.get.return_value = None
+
+    repo = SystemRepositoryImpl(driver=mock_driver)
+    res = await repo.get_system_config("sys_nonexistent")
+
+    assert res is None

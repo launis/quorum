@@ -11,9 +11,10 @@ from pydantic import ValidationError
 from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
-from backend_v2.models.enums import GCPVertexLocation, LLMPlatformType
+from backend_v2.models.enums import CognitiveTier, GCPVertexLocation, LLMPlatformType, LLMProvider
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
+    ModelProfile,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
@@ -35,6 +36,25 @@ def root_token() -> TokenData:
         email="root@example.com",
         role=UserRole.ROOT,
         organization_id="org_root000000000000000000000001",
+    )
+
+
+def _make_dummy_registry(
+    reg_id: str = "sys_0123456789abcdef",
+    name: str = "Test Registry",
+) -> SystemConfigModelRegistry:
+    """Helper to build a valid Option A SystemConfigModelRegistry."""
+    return SystemConfigModelRegistry(
+        id=reg_id,
+        name=name,
+        type="model_registry",
+        default_provider=LLMProvider.GOOGLE,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+        },
     )
 
 
@@ -161,16 +181,12 @@ async def test_save_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Save model registry and verify true stateful roundtrip persistence."""
-    reg = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
+    reg = _make_dummy_registry("sys_0123456789abcdef")
     res = await service.save_system_config(root_token, "sys_0123456789abcdef", reg)
     assert res.id == "sys_0123456789abcdef"
 
     # Stateful Roundtrip Verification via repository
-    persisted = await system_repo.get_model_registry()
+    persisted = await system_repo.get_model_registry("sys_0123456789abcdef")
     assert persisted.id == "sys_0123456789abcdef"
     assert persisted.type == "model_registry"
 
@@ -180,11 +196,7 @@ async def test_save_system_config_permission_denied(
     service: StudioSystemConfigService, member_token: TokenData
 ) -> None:
     """Assert non-root user cannot save model registry."""
-    reg = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
+    reg = _make_dummy_registry("sys_0123456789abcdef")
     with pytest.raises(PermissionDeniedError):
         await service.save_system_config(member_token, "sys_0123456789abcdef", reg)
 
@@ -192,11 +204,7 @@ async def test_save_system_config_permission_denied(
 def test_save_system_config_corrupted_id_fails_fast() -> None:
     """Assert creating model registry with non-conforming ID raises ValidationError."""
     with pytest.raises(ValidationError):
-        SystemConfigModelRegistry(
-            id="not_an_opaque_id",
-            type="model_registry",
-            models={},
-        )
+        _make_dummy_registry(reg_id="not_an_opaque_id")
 
 
 @pytest.mark.asyncio
@@ -210,7 +218,7 @@ async def test_create_model_registry_draft(
     assert res.type == "model_registry"
 
     # Stateful Roundtrip:
-    persisted = await system_repo.get_model_registry()
+    persisted = await system_repo.get_model_registry(res.id)
     assert persisted.id == res.id
 
 
@@ -223,10 +231,11 @@ async def test_clone_system_config_success(
     res = await service.clone_system_config(root_token, original.id)
     assert res.id != original.id
     assert res.id.startswith("sys_")
+    assert res.name == f"{original.name} (Copy)"
     assert re.match(OPAQUE_STRIPE_ID_REGEX, res.id) is not None
 
     # Stateful Roundtrip:
-    persisted = await system_repo.get_model_registry()
+    persisted = await system_repo.get_model_registry(res.id)
     assert persisted.id == res.id
 
 
@@ -251,11 +260,7 @@ async def test_save_system_config_not_found_after_save(
     system_repo: InMemorySystemRepository,
 ) -> None:
     """Assert ResourceNotFoundError if registry not found after save."""
-    reg = SystemConfigModelRegistry(
-        id="sys_0123456789abcdef",
-        type="model_registry",
-        models={},
-    )
+    reg = _make_dummy_registry("sys_0123456789abcdef")
     original_update = system_repo.update_model_registry
 
     async def mock_update_and_clear(data: SystemConfigModelRegistry) -> bool:

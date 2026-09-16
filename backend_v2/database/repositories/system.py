@@ -26,24 +26,54 @@ logger = logging.getLogger(__name__)
 class SystemRepositoryImpl(BaseRepository):
     """Repository implementation for System config, MCP config, and Model registries."""
 
-    async def get_model_registry(self) -> SystemConfigModelRegistry:
-        """Retrieves the system model registry configuration.
+    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
+        """Retrieves a system model registry configuration.
+
+        Args:
+            registry_id: Optional specific model registry ID. If omitted, retrieves the default/first registry.
 
         Returns:
             The validated SystemConfigModelRegistry domain model.
 
         Raises:
-            ResourceNotFoundError: If the model_registry configuration document is missing.
+            ResourceNotFoundError: If the model registry configuration document is missing.
         """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
-        res = res_list[0] if res_list else None
-        if not res:
+        if registry_id:
+            res = await self.driver.get("system_config", registry_id)
+            if not res or "type" not in res or res["type"] != "model_registry":
+                logger.error(
+                    "[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: Model registry '%s' is missing.",
+                    registry_id,
+                )
+                raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
+            return SystemConfigModelRegistry.model_validate(res, strict=False)
+
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")])
+        if not res_list:
             logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing.")
             raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
-        return SystemConfigModelRegistry.model_validate(res, strict=False)
+        models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]
+        sorted_models = sorted(
+            models,
+            key=lambda m: (m.id != "sys_e26807f3bfa3454d", m.name, m.id),
+        )
+        return sorted_models[0]
+
+    async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
+        """Retrieves all model registry configurations ordered deterministically.
+
+        Returns:
+            A list of validated SystemConfigModelRegistry domain models.
+        """
+        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")])
+        models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]
+        return sorted(
+            models,
+            key=lambda m: (m.id != "sys_e26807f3bfa3454d", m.name, m.id),
+        )
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
-        """Updates the system model registry configuration.
+        """Updates or inserts a system model registry configuration using its authoritative ID.
 
         Args:
             registry_data: SystemConfigModelRegistry containing updated model registry fields.
@@ -51,13 +81,23 @@ class SystemRepositoryImpl(BaseRepository):
         Returns:
             True if updated successfully.
         """
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")], limit=1)
+        doc_id = registry_data.id or SystemConfigID.MODEL_REGISTRY.value
         payload = registry_data.model_dump(mode="json", exclude_unset=True)
-        doc_id = res_list[0]["id"] if res_list else (registry_data.id or SystemConfigID.MODEL_REGISTRY.value)
         payload["id"] = doc_id
         payload["type"] = "model_registry"
         await self.driver.upsert("system_config", payload, doc_id)
         return True
+
+    async def delete_system_config(self, config_id: str) -> bool:
+        """Deletes a system configuration document by ID.
+
+        Args:
+            config_id: Unique identifier for the system config document.
+
+        Returns:
+            True if deleted, False otherwise.
+        """
+        return await self.driver.delete("system_config", config_id)
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         """Fetch MCP gateways configuration by ID or fallback to type 'mcp_gateways'.

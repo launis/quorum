@@ -33,7 +33,8 @@ from backend_v2.database.interfaces import (
     IUnifiedWorkflowRepository,
     IWorkflowRepository,
 )
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
@@ -74,6 +75,7 @@ from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,
+    ModelProfile,
     Role,
     Step,
     SystemConfigMCPGateways,
@@ -837,20 +839,55 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     def __init__(self) -> None:
         super().__init__()
-        self._model_registry = SystemConfigModelRegistry(id="sys_1234567890abcdef1234567890abcdef", models={})
+        default_reg = SystemConfigModelRegistry(
+            id="sys_1234567890abcdef1234567890abcdef",
+            name="Default Model Registry",
+            type="model_registry",
+            default_provider=LLMProvider.GOOGLE,
+            tier_definitions={
+                CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+                CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
+                CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+                CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            },
+        )
+        self._model_registries: dict[str, SystemConfigModelRegistry] = {default_reg.id: default_reg}
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._system_settings: SystemSettingsDTO | None = None
 
-    async def get_model_registry(self) -> SystemConfigModelRegistry:
+    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
         self._check_fault("get_model_registry")
-        return SystemConfigModelRegistry.model_validate(self._model_registry.model_dump(mode="python"), strict=False)
+        if registry_id is not None:
+            if registry_id not in self._model_registries:
+                raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
+            reg = self._model_registries[registry_id]
+        else:
+            if not self._model_registries:
+                raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
+            reg = next(iter(self._model_registries.values()))
+        return SystemConfigModelRegistry.model_validate(reg.model_dump(mode="python"), strict=False)
+
+    async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
+        self._check_fault("get_all_model_registries")
+        return [
+            SystemConfigModelRegistry.model_validate(reg.model_dump(mode="python"), strict=False)
+            for reg in self._model_registries.values()
+        ]
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         self._check_fault("update_model_registry")
-        self._model_registry = SystemConfigModelRegistry.model_validate(
+        doc_id = registry_data.id
+        self._model_registries[doc_id] = SystemConfigModelRegistry.model_validate(
             registry_data.model_dump(mode="python"), strict=False
         )
         return True
+
+    async def delete_system_config(self, config_id: str) -> bool:
+        self._check_fault("delete_system_config")
+        if config_id in self._model_registries:
+            del self._model_registries[config_id]
+            return True
+        return False
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         self._check_fault("get_mcp_gateways")
@@ -1457,11 +1494,17 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         await self._knowledge.clear_knowledge_base()
 
     # 10. System
-    async def get_model_registry(self) -> SystemConfigModelRegistry:
-        return await self._system.get_model_registry()
+    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
+        return await self._system.get_model_registry(registry_id=registry_id)
+
+    async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
+        return await self._system.get_all_model_registries()
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         return await self._system.update_model_registry(registry_data)
+
+    async def delete_system_config(self, config_id: str) -> bool:
+        return await self._system.delete_system_config(config_id)
 
     async def get_mcp_gateways(self, id: str | None = None) -> SystemConfigMCPGateways:
         return await self._system.get_mcp_gateways(id)

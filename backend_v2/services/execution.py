@@ -583,6 +583,7 @@ class ExecutionService:
                 matrix_sampling_strategy=payload.matrix_sampling_strategy,
                 workflow_version=workflow.version,
                 provider_override=payload.provider_override,
+                model_registry_id=payload.model_registry_id or workflow.model_registry_id,
             ),
             created_by=initiator.id,
             organization_id=initiator.organization_id,
