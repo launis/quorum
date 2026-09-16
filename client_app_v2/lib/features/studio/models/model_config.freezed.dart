@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ModelConfig {
 
-@StrictOpaqueIdConverter() String get id; String? get slug; String get type;@JsonKey(name: 'default_provider') String get defaultProvider;@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> get tierDefinitions;
+@StrictOpaqueIdConverter() String get id; String get name; String? get slug; String get type;@JsonKey(name: 'default_provider') String get defaultProvider;@JsonKey(name: 'tier_definitions') Map<String, LlmModelConfig> get tierDefinitions;
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ModelConfigCopyWith<ModelConfig> get copyWith => _$ModelConfigCopyWithImpl<Mode
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other.tierDefinitions, tierDefinitions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other.tierDefinitions, tierDefinitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,type,defaultProvider,const DeepCollectionEquality().hash(tierDefinitions));
+int get hashCode => Object.hash(runtimeType,id,name,slug,type,defaultProvider,const DeepCollectionEquality().hash(tierDefinitions));
 
 @override
 String toString() {
-  return 'ModelConfig(id: $id, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
+  return 'ModelConfig(id: $id, name: $name, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ModelConfigCopyWith<$Res>  {
   factory $ModelConfigCopyWith(ModelConfig value, $Res Function(ModelConfig) _then) = _$ModelConfigCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> tierDefinitions
+@StrictOpaqueIdConverter() String id, String name, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, LlmModelConfig> tierDefinitions
 });
 
 
@@ -65,14 +65,15 @@ class _$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,defaultProvider: null == defaultProvider ? _self.defaultProvider : defaultProvider // ignore: cast_nullable_to_non_nullable
 as String,tierDefinitions: null == tierDefinitions ? _self.tierDefinitions : tierDefinitions // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, LlmModelConfig>>,
+as Map<String, LlmModelConfig>,
   ));
 }
 
@@ -157,10 +158,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String name,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, LlmModelConfig> tierDefinitions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
-return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
+return $default(_that.id,_that.name,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   return orElse();
 
 }
@@ -178,10 +179,10 @@ return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierD
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String name,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, LlmModelConfig> tierDefinitions)  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig():
-return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
+return $default(_that.id,_that.name,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -198,10 +199,10 @@ return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierD
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String name,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, LlmModelConfig> tierDefinitions)?  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
-return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
+return $default(_that.id,_that.name,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   return null;
 
 }
@@ -213,15 +214,16 @@ return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierD
 @JsonSerializable()
 
 class _ModelConfig implements ModelConfig {
-  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.slug, this.type = 'model_registry', @JsonKey(name: 'default_provider') this.defaultProvider = 'google', @JsonKey(name: 'tier_definitions') final  Map<String, Map<String, LlmModelConfig>> tierDefinitions = const {}}): _tierDefinitions = tierDefinitions;
+  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.name = 'Default Model Registry', this.slug, this.type = 'model_registry', @JsonKey(name: 'default_provider') this.defaultProvider = 'google', @JsonKey(name: 'tier_definitions') final  Map<String, LlmModelConfig> tierDefinitions = const {}}): _tierDefinitions = tierDefinitions;
   factory _ModelConfig.fromJson(Map<String, dynamic> json) => _$ModelConfigFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
+@override@JsonKey() final  String name;
 @override final  String? slug;
 @override@JsonKey() final  String type;
 @override@JsonKey(name: 'default_provider') final  String defaultProvider;
- final  Map<String, Map<String, LlmModelConfig>> _tierDefinitions;
-@override@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> get tierDefinitions {
+ final  Map<String, LlmModelConfig> _tierDefinitions;
+@override@JsonKey(name: 'tier_definitions') Map<String, LlmModelConfig> get tierDefinitions {
   if (_tierDefinitions is EqualUnmodifiableMapView) return _tierDefinitions;
   // ignore: implicit_dynamic_type
   return EqualUnmodifiableMapView(_tierDefinitions);
@@ -241,16 +243,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other._tierDefinitions, _tierDefinitions));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other._tierDefinitions, _tierDefinitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,type,defaultProvider,const DeepCollectionEquality().hash(_tierDefinitions));
+int get hashCode => Object.hash(runtimeType,id,name,slug,type,defaultProvider,const DeepCollectionEquality().hash(_tierDefinitions));
 
 @override
 String toString() {
-  return 'ModelConfig(id: $id, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
+  return 'ModelConfig(id: $id, name: $name, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
 }
 
 
@@ -261,7 +263,7 @@ abstract mixin class _$ModelConfigCopyWith<$Res> implements $ModelConfigCopyWith
   factory _$ModelConfigCopyWith(_ModelConfig value, $Res Function(_ModelConfig) _then) = __$ModelConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> tierDefinitions
+@StrictOpaqueIdConverter() String id, String name, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, LlmModelConfig> tierDefinitions
 });
 
 
@@ -278,14 +280,15 @@ class __$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
   return _then(_ModelConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
 as String,defaultProvider: null == defaultProvider ? _self.defaultProvider : defaultProvider // ignore: cast_nullable_to_non_nullable
 as String,tierDefinitions: null == tierDefinitions ? _self._tierDefinitions : tierDefinitions // ignore: cast_nullable_to_non_nullable
-as Map<String, Map<String, LlmModelConfig>>,
+as Map<String, LlmModelConfig>,
   ));
 }
 

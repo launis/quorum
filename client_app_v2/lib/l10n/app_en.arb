@@ -2494,6 +2494,16 @@
         "type": "int"
       }
     }
-  }
+  },
+  "modelRegistryNameLabel": "Stack Name",
+  "modelRegistryDefaultProviderLabel": "Default Provider",
+  "modelRegistryCloneBtn": "Clone Stack",
+  "modelRegistryDiscardTitle": "Discard Changes?",
+  "modelRegistryDiscardMessage": "You have unsaved changes to this model registry stack. Are you sure you want to close without saving?",
+  "modelRegistryDiscardBtn": "Discard Changes",
+  "modelRegistryKeepEditingBtn": "Continue Editing",
+  "studioWorkflowModelRegistry": "Model Registry",
+  "studioWorkflowModelRegistrySubtitle": "Sovereign model stack binding physical LLM profiles to cognitive tiers",
+  "modelRegistrySearchPlaceholder": "Search model registries by name, ID, or provider..."
 }
 

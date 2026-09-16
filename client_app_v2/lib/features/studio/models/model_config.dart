@@ -11,12 +11,15 @@ part 'model_config.g.dart';
 abstract class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     @StrictOpaqueIdConverter() required String id,
+    @Default('Default Model Registry') String name,
     String? slug,
     @Default('model_registry') String type,
-    @JsonKey(name: 'default_provider') @Default('google') String defaultProvider,
+    @JsonKey(name: 'default_provider')
+    @Default('google')
+    String defaultProvider,
     @JsonKey(name: 'tier_definitions')
     @Default({})
-    Map<String, Map<String, LlmModelConfig>> tierDefinitions,
+    Map<String, LlmModelConfig> tierDefinitions,
   }) = _ModelConfig;
 
   factory ModelConfig.fromJson(Map<String, dynamic> json) =>

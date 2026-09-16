@@ -294,12 +294,10 @@ class MockPopulatedModelRegistryController
         type: 'model_registry',
         defaultProvider: 'google',
         tierDefinitions: {
-          'google': {
-            'fast': LlmModelConfig(
-              provider: 'google',
-              modelName: 'gemini/gemini-3.8-flash',
-            ),
-          },
+          'fast': LlmModelConfig(
+            provider: 'google',
+            modelName: 'gemini/gemini-3.8-flash',
+          ),
         },
       ),
     ];

@@ -9101,6 +9101,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Scoring strictness level: {percentage} percent'**
   String strictnessSliderSemanticLabel(int percentage);
+
+  /// No description provided for @modelRegistryNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Stack Name'**
+  String get modelRegistryNameLabel;
+
+  /// No description provided for @modelRegistryDefaultProviderLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Default Provider'**
+  String get modelRegistryDefaultProviderLabel;
+
+  /// No description provided for @modelRegistryCloneBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clone Stack'**
+  String get modelRegistryCloneBtn;
+
+  /// No description provided for @modelRegistryDiscardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes?'**
+  String get modelRegistryDiscardTitle;
+
+  /// No description provided for @modelRegistryDiscardMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this model registry stack. Are you sure you want to close without saving?'**
+  String get modelRegistryDiscardMessage;
+
+  /// No description provided for @modelRegistryDiscardBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes'**
+  String get modelRegistryDiscardBtn;
+
+  /// No description provided for @modelRegistryKeepEditingBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Editing'**
+  String get modelRegistryKeepEditingBtn;
+
+  /// No description provided for @studioWorkflowModelRegistry.
+  ///
+  /// In en, this message translates to:
+  /// **'Model Registry'**
+  String get studioWorkflowModelRegistry;
+
+  /// No description provided for @studioWorkflowModelRegistrySubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sovereign model stack binding physical LLM profiles to cognitive tiers'**
+  String get studioWorkflowModelRegistrySubtitle;
+
+  /// No description provided for @modelRegistrySearchPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'Search model registries by name, ID, or provider...'**
+  String get modelRegistrySearchPlaceholder;
 }
 
 class _AppLocalizationsDelegate

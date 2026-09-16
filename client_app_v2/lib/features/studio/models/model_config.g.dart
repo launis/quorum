@@ -14,6 +14,7 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
       json,
       allowedKeys: const [
         'id',
+        'name',
         'slug',
         'type',
         'default_provider',
@@ -24,6 +25,10 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
       id: $checkedConvert(
         'id',
         (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      name: $checkedConvert(
+        'name',
+        (v) => v as String? ?? 'Default Model Registry',
       ),
       slug: $checkedConvert('slug', (v) => v as String?),
       type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
@@ -37,12 +42,7 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
             (v as Map<String, dynamic>?)?.map(
               (k, e) => MapEntry(
                 k,
-                (e as Map<String, dynamic>).map(
-                  (k, e) => MapEntry(
-                    k,
-                    LlmModelConfig.fromJson(e as Map<String, dynamic>),
-                  ),
-                ),
+                LlmModelConfig.fromJson(e as Map<String, dynamic>),
               ),
             ) ??
             const {},
@@ -59,11 +59,12 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
 Map<String, dynamic> _$ModelConfigToJson(_ModelConfig instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
+      'name': instance.name,
       'slug': instance.slug,
       'type': instance.type,
       'default_provider': instance.defaultProvider,
       'tier_definitions': instance.tierDefinitions.map(
-        (k, e) => MapEntry(k, e.map((k, e) => MapEntry(k, e.toJson()))),
+        (k, e) => MapEntry(k, e.toJson()),
       ),
     };
 

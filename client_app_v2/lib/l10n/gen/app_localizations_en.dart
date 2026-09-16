@@ -5047,4 +5047,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String strictnessSliderSemanticLabel(int percentage) {
     return 'Scoring strictness level: $percentage percent';
   }
+
+  @override
+  String get modelRegistryNameLabel => 'Stack Name';
+
+  @override
+  String get modelRegistryDefaultProviderLabel => 'Default Provider';
+
+  @override
+  String get modelRegistryCloneBtn => 'Clone Stack';
+
+  @override
+  String get modelRegistryDiscardTitle => 'Discard Changes?';
+
+  @override
+  String get modelRegistryDiscardMessage =>
+      'You have unsaved changes to this model registry stack. Are you sure you want to close without saving?';
+
+  @override
+  String get modelRegistryDiscardBtn => 'Discard Changes';
+
+  @override
+  String get modelRegistryKeepEditingBtn => 'Continue Editing';
+
+  @override
+  String get studioWorkflowModelRegistry => 'Model Registry';
+
+  @override
+  String get studioWorkflowModelRegistrySubtitle =>
+      'Sovereign model stack binding physical LLM profiles to cognitive tiers';
+
+  @override
+  String get modelRegistrySearchPlaceholder =>
+      'Search model registries by name, ID, or provider...';
 }

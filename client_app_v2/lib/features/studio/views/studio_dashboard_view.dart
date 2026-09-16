@@ -31,6 +31,9 @@ class StudioDashboardView extends ConsumerStatefulWidget {
 class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final TextEditingController _modelRegistrySearchController =
+      TextEditingController();
+  String _modelRegistrySearchQuery = '';
 
   String _getLocalizedName(dynamic entity, String currentLocale) {
     if (entity == null) return 'Unknown';
@@ -59,6 +62,7 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
   @override
   void dispose() {
     _tabController.dispose();
+    _modelRegistrySearchController.dispose();
     super.dispose();
   }
 
@@ -464,7 +468,8 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
 
                     final String typeLabel = switch (blueprint) {
                       NodeStrategyLogic() => 'Logic: ${blueprint.hook}',
-                      NodeStrategyLlm() => 'LLM: ${blueprint.cognitiveTier.name}',
+                      NodeStrategyLlm() =>
+                        'LLM: ${blueprint.cognitiveTier.name}',
                     };
 
                     return Card(
@@ -554,63 +559,169 @@ class _StudioDashboardViewState extends ConsumerState<StudioDashboardView>
           const SizedBox(height: 16),
           registryState.when(
             data: (configs) {
-              if (configs.isEmpty) return Text(l10n.studioViewsNoSystemConfigs);
-              return ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: configs.length,
-                itemBuilder: (context, index) {
-                  try {
-                    final config = configs[index];
-                    final configId = config.id;
-                    if (configId.isEmpty) {
-                      throw AppException.validation(
-                        'Model Registry config is missing ID.',
-                      );
-                    }
-                    final modelCount = config.tierDefinitions.values.fold<int>(
-                      0,
-                      (sum, tiers) => sum + tiers.length,
-                    );
+              final query = _modelRegistrySearchQuery.trim().toLowerCase();
+              final filteredConfigs = configs.where((c) {
+                if (query.isEmpty) return true;
+                return c.name.toLowerCase().contains(query) ||
+                    c.id.toLowerCase().contains(query) ||
+                    c.defaultProvider.toLowerCase().contains(query) ||
+                    (c.slug?.toLowerCase().contains(query) ?? false);
+              }).toList();
 
-                    return Card(
-                      child: ListTile(
-                        title: Text(configId),
-                        subtitle: Text(
-                          l10n.studioViewsConfiguredModels(modelCount),
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _modelRegistrySearchController,
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search),
+                            hintText: l10n.modelRegistrySearchPlaceholder,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                            suffixIcon: _modelRegistrySearchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _modelRegistrySearchController.clear();
+                                      setState(() {
+                                        _modelRegistrySearchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
+                          ),
+                          onChanged: (val) {
+                            setState(() {
+                              _modelRegistrySearchQuery = val;
+                            });
+                          },
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CloneEntityButton(
-                              onClone: () async {
-                                final id = configId;
-                                await ref
-                                    .read(
-                                      modelRegistryControllerProvider.notifier,
-                                    )
-                                    .cloneConfig(id);
+                      ),
+                      const SizedBox(width: 12),
+                      Chip(
+                        avatar: const Icon(Icons.tune, size: 16),
+                        label: Text(
+                          '${filteredConfigs.length} / ${configs.length}',
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (filteredConfigs.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24.0),
+                      child: Center(
+                        child: Text(l10n.studioViewsNoSystemConfigs),
+                      ),
+                    )
+                  else
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredConfigs.length,
+                      itemBuilder: (context, index) {
+                        try {
+                          final config = filteredConfigs[index];
+                          final configId = config.id;
+                          if (configId.isEmpty) {
+                            throw AppException.validation(
+                              'Model Registry config is missing ID.',
+                            );
+                          }
+                          final modelCount = config.tierDefinitions.length;
+
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 8.0),
+                            child: ListTile(
+                              title: Text(
+                                config.name.isNotEmpty ? config.name : configId,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Wrap(
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      label: Text(
+                                        configId,
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                    Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      avatar: const Icon(Icons.cloud, size: 14),
+                                      label: Text(
+                                        config.defaultProvider.toUpperCase(),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                    Chip(
+                                      visualDensity: VisualDensity.compact,
+                                      avatar: const Icon(
+                                        Icons.layers,
+                                        size: 14,
+                                      ),
+                                      label: Text(
+                                        l10n.studioViewsConfiguredModels(
+                                          modelCount,
+                                        ),
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CloneEntityButton(
+                                    onClone: () async {
+                                      final id = configId;
+                                      await ref
+                                          .read(
+                                            modelRegistryControllerProvider
+                                                .notifier,
+                                          )
+                                          .cloneConfig(id);
+                                    },
+                                  ),
+                                  const Icon(Icons.chevron_right),
+                                ],
+                              ),
+                              onTap: () {
+                                ModelRegistryEditRoute(
+                                  id: configId,
+                                ).go(context);
                               },
                             ),
-                            const Icon(Icons.chevron_right),
-                          ],
-                        ),
-                        onTap: () {
-                          ModelRegistryEditRoute(id: configId).go(context);
-                        },
-                      ),
-                    );
-                  } catch (e) {
-                    ref
-                        .read(loggerServiceProvider)
-                        .error(
-                          'Studio',
-                          'Error rendering config list tile: $e',
-                          e,
-                        );
-                    return ErrorView(error: e, compact: true);
-                  }
-                },
+                          );
+                        } catch (e) {
+                          ref
+                              .read(loggerServiceProvider)
+                              .error(
+                                'Studio',
+                                'Error rendering config list tile: $e',
+                                e,
+                              );
+                          return ErrorView(error: e, compact: true);
+                        }
+                      },
+                    ),
+                ],
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),

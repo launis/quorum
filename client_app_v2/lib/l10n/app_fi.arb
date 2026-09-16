@@ -1791,5 +1791,15 @@
         "type": "int"
       }
     }
-  }
+  },
+  "modelRegistryNameLabel": "Pinon nimi",
+  "modelRegistryDefaultProviderLabel": "Oletustarjoaja",
+  "modelRegistryCloneBtn": "Kloonaa pino",
+  "modelRegistryDiscardTitle": "Hylätäänkö muutokset?",
+  "modelRegistryDiscardMessage": "Sinulla on tallentamattomia muutoksia tähän mallirekisteriin. Haluatko varmasti sulkea tallentamatta?",
+  "modelRegistryDiscardBtn": "Hylkää muutokset",
+  "modelRegistryKeepEditingBtn": "Jatka muokkausta",
+  "studioWorkflowModelRegistry": "Mallirekisteri",
+  "studioWorkflowModelRegistrySubtitle": "Määrittää kognitiivisia tasoja vastaavat fyysiset LLM-mallit",
+  "modelRegistrySearchPlaceholder": "Etsi mallirekistereitä nimellä, tunnisteella tai tarjoajalla..."
 }

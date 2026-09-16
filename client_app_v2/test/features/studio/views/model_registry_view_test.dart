@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
@@ -14,11 +15,12 @@ void main() {
     {'id': 'anthropic', 'label': 'Anthropic', 'has_regions': false},
   ];
 
-  group('ModelRegistryView Widget Tests', () {
+  group('ModelRegistryView Desktop Pro Tool UX Tests', () {
     testWidgets(
-      'renders standard model with sampling controls visible and no reasoning banner',
+      'renders standard model with 1200px bounded canvas, name field, 4 canonical tier cards, and sampling controls',
       (WidgetTester tester) async {
         final mockModels = ['gpt-4o', 'gpt-3.5-turbo'];
+        final mockController = MockModelRegistryController();
 
         await tester.pumpWidget(
           ProviderScope(
@@ -42,25 +44,41 @@ void main() {
                   id: 'syscfg_123',
                   slug: 'syscfg_123_slug',
                   type: 'model_registry',
+                  name: 'Production Sovereign Stack',
+                  defaultProvider: 'openai',
                   tierDefinitions: {
-                    'openai': {
-                      'fast': LlmModelConfig(
-                        modelName: 'gpt-4o',
-                        provider: 'openai',
-                        temperature: 0.7,
-                        topP: 0.9,
-                        topK: 40,
-                        frequencyPenalty: 0.0,
-                        presencePenalty: 0.0,
-                        maxTokens: 4096,
-                        isActive: true,
-                      ),
-                    },
+                    'fast': LlmModelConfig(
+                      modelName: 'gpt-4o',
+                      provider: 'openai',
+                      temperature: 0.7,
+                      topP: 0.9,
+                      topK: 40,
+                      frequencyPenalty: 0.0,
+                      presencePenalty: 0.0,
+                      maxTokens: 4096,
+                      isActive: true,
+                    ),
+                    'balanced': LlmModelConfig(
+                      modelName: 'gpt-4o-mini',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'deep': LlmModelConfig(
+                      modelName: 'o1',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'reasoning': LlmModelConfig(
+                      modelName: 'o3-mini',
+                      provider: 'openai',
+                      thinkingBudgetTokens: 4096,
+                      isActive: true,
+                    ),
                   },
                 ),
               ),
               modelRegistryControllerProvider.overrideWith(
-                () => MockModelRegistryController(),
+                () => mockController,
               ),
             ],
             child: MaterialApp(
@@ -76,22 +94,49 @@ void main() {
         });
         await tester.pumpAndSettle();
 
-        // Verify model name appears
+        // 1. Verify 1200px Bounded Canvas Containment
+        final constrainedBoxes = tester.widgetList<ConstrainedBox>(
+          find.byType(ConstrainedBox),
+        );
+        expect(
+          constrainedBoxes.any((cb) => cb.constraints.maxWidth == 1200),
+          isTrue,
+        );
+
+        // 2. Verify Name Field with initial value
+        expect(
+          find.byKey(const ValueKey('model_registry_name_field')),
+          findsOneWidget,
+        );
+        expect(find.text('Production Sovereign Stack'), findsOneWidget);
+
+        // 3. Verify Default Provider Dropdown
+        expect(
+          find.byKey(const ValueKey('model_registry_default_provider_field')),
+          findsOneWidget,
+        );
+
+        // 4. Verify 4 Canonical Tier Cards are present
+        expect(find.byKey(const ValueKey('tier_card_fast')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('tier_card_balanced')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('tier_card_deep')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('tier_card_reasoning')),
+          findsOneWidget,
+        );
+
+        // 5. Verify Sampling controls exist for standard fast/balanced tiers
         expect(find.text('gpt-4o'), findsWidgets);
-
-        // Reasoning notice should NOT be present for standard gpt-4o
-        expect(find.byIcon(Icons.psychology), findsNothing);
-
-        // Sampling controls MUST be visible for standard models
-        expect(find.text('Temperature'), findsOneWidget);
-        expect(find.text('Top-P (Nucleus Sampling)'), findsOneWidget);
-        expect(find.text('Top-K (Candidates)'), findsOneWidget);
-        expect(find.text('Frequency Penalty'), findsOneWidget);
-        expect(find.text('Presence Penalty'), findsOneWidget);
-
-        // Non-sampling controls are visible
-        expect(find.text('Max Tokens'), findsOneWidget);
-        expect(find.text('Parsing Mode'), findsOneWidget);
+        expect(find.text('Temperature'), findsWidgets);
+        expect(find.text('Top-P (Nucleus Sampling)'), findsWidgets);
+        expect(find.text('Top-K (Candidates)'), findsWidgets);
+        expect(find.text('Frequency Penalty'), findsWidgets);
+        expect(find.text('Presence Penalty'), findsWidgets);
+        expect(find.text('Max Tokens'), findsWidgets);
+        expect(find.text('Parsing Mode'), findsWidgets);
       },
     );
 
@@ -124,18 +169,33 @@ void main() {
                   id: 'syscfg_raw',
                   slug: 'syscfg_raw_slug',
                   type: 'model_registry',
+                  defaultProvider: 'google',
                   tierDefinitions: {
-                    'google': {
-                      'deep': LlmModelConfig(
-                        modelName: 'vertex_ai/gemini-2.5-pro',
-                        provider: 'google',
-                        additionalParams: {
-                          'platform': 'vertex_ai',
-                          'vertex_location': r'${VERTEX_LOCATION}',
-                        },
-                        isActive: true,
-                      ),
-                    },
+                    'fast': LlmModelConfig(
+                      modelName: 'gpt-4o',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'balanced': LlmModelConfig(
+                      modelName: 'gpt-4o-mini',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'deep': LlmModelConfig(
+                      modelName: 'vertex_ai/gemini-2.5-pro',
+                      provider: 'google',
+                      additionalParams: {
+                        'platform': 'vertex_ai',
+                        'vertex_location': r'${VERTEX_LOCATION}',
+                      },
+                      isActive: true,
+                    ),
+                    'reasoning': LlmModelConfig(
+                      modelName: 'o3-mini',
+                      provider: 'openai',
+                      thinkingBudgetTokens: 4096,
+                      isActive: true,
+                    ),
                   },
                 ),
               ),
@@ -187,16 +247,30 @@ void main() {
                   id: 'syscfg_gemini38',
                   slug: 'syscfg_gemini38_slug',
                   type: 'model_registry',
+                  defaultProvider: 'google',
                   tierDefinitions: {
-                    'google': {
-                      'reasoning': LlmModelConfig(
-                        modelName: 'gemini/gemini-3.8-flash',
-                        provider: 'google',
-                        thinkingBudgetTokens: 8192,
-                        additionalParams: {'platform': 'ai_studio'},
-                        isActive: true,
-                      ),
-                    },
+                    'fast': LlmModelConfig(
+                      modelName: 'gpt-4o',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'balanced': LlmModelConfig(
+                      modelName: 'gpt-4o-mini',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'deep': LlmModelConfig(
+                      modelName: 'claude-3-5-sonnet',
+                      provider: 'anthropic',
+                      isActive: true,
+                    ),
+                    'reasoning': LlmModelConfig(
+                      modelName: 'gemini/gemini-3.8-flash',
+                      provider: 'google',
+                      thinkingBudgetTokens: 8192,
+                      additionalParams: {'platform': 'ai_studio'},
+                      isActive: true,
+                    ),
                   },
                 ),
               ),
@@ -217,26 +291,197 @@ void main() {
         });
         await tester.pumpAndSettle();
 
-        // 1. Verify reasoning notice icon and text are present
-        expect(find.byIcon(Icons.psychology), findsOneWidget);
+        // 1. Verify reasoning notice icon is present
+        expect(find.byIcon(Icons.psychology), findsWidgets);
 
         // 2. Verify thinking budget field is present with initial value
         expect(find.text('8192'), findsOneWidget);
         expect(find.text('Thinking Budget Tokens'), findsOneWidget);
 
-        // 3. Verify ALL sampling controls are HIDDEN for reasoning models
-        expect(find.text('Temperature'), findsNothing);
-        expect(find.text('Top-P (Nucleus Sampling)'), findsNothing);
-        expect(find.text('Top-K (Candidates)'), findsNothing);
-        expect(find.text('Frequency Penalty'), findsNothing);
-        expect(find.text('Presence Penalty'), findsNothing);
+        // 3. Verify non-sampling controls REMAIN visible
+        expect(find.text('Max Tokens'), findsWidgets);
+        expect(find.text('Parsing Mode'), findsWidgets);
 
-        // 4. Verify non-sampling controls REMAIN visible
-        expect(find.text('Max Tokens'), findsOneWidget);
-        expect(find.text('Parsing Mode'), findsOneWidget);
-
-        // 5. Verify Location dropdown is NOT rendered for AI Studio
+        // 4. Verify Location dropdown is NOT rendered for AI Studio
         expect(find.text('Location / Region'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'shows discard confirmation dialog on pop when dirty and retains editing on cancel',
+      (WidgetTester tester) async {
+        final mockController = MockModelRegistryController();
+
+        final router = GoRouter(
+          initialLocation: '/edit/syscfg_dirty',
+          routes: [
+            GoRoute(
+              path: '/home',
+              builder: (context, state) => const Scaffold(body: Text('Home')),
+            ),
+            GoRoute(
+              path: '/edit/:id',
+              builder: (context, state) =>
+                  ModelRegistryView(id: state.pathParameters['id']!),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              supportedPlatformsProvider.overrideWith(
+                (ref) async => mockPlatforms,
+              ),
+              availableModelsProvider.overrideWith((ref, _) async => []),
+              supportedLocationsProvider.overrideWith((ref) async => []),
+              modelRegistryByIdProvider('syscfg_dirty').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_dirty',
+                  slug: 'syscfg_dirty_slug',
+                  type: 'model_registry',
+                  name: 'Initial Pristine Stack',
+                  defaultProvider: 'openai',
+                  tierDefinitions: {
+                    'fast': LlmModelConfig(
+                      modelName: 'gpt-4o',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'balanced': LlmModelConfig(
+                      modelName: 'gpt-4o-mini',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'deep': LlmModelConfig(
+                      modelName: 'o1',
+                      provider: 'openai',
+                      isActive: true,
+                    ),
+                    'reasoning': LlmModelConfig(
+                      modelName: 'o3-mini',
+                      provider: 'openai',
+                      thinkingBudgetTokens: 4096,
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => mockController,
+              ),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        // 1. Mutate Name to make form dirty
+        final nameField = find.byKey(
+          const ValueKey('model_registry_name_field'),
+        );
+        expect(nameField, findsOneWidget);
+        await tester.enterText(nameField, 'Dirty Modified Stack Name');
+        await tester.pumpAndSettle();
+
+        // 2. Trigger back navigation via leading AppBar back button
+        final backBtn = find.byIcon(Icons.arrow_back);
+        expect(backBtn, findsOneWidget);
+        await tester.tap(backBtn);
+        await tester.pumpAndSettle();
+
+        // 3. Confirm Discard modal appears
+        expect(find.text('Discard Changes?'), findsOneWidget);
+        expect(find.text('Continue Editing'), findsOneWidget);
+        expect(find.text('Discard Changes'), findsOneWidget);
+
+        // 4. Click 'Continue Editing' -> modal closes, form remains
+        await tester.tap(find.text('Continue Editing'));
+        await tester.pumpAndSettle();
+        expect(find.text('Discard Changes?'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('model_registry_name_field')),
+          findsOneWidget,
+        );
+
+        // 5. Trigger back navigation again, click 'Discard Changes' -> leaves view
+        await tester.tap(backBtn);
+        await tester.pumpAndSettle();
+        expect(find.text('Discard Changes?'), findsOneWidget);
+        await tester.tap(find.text('Discard Changes'));
+        await tester.pumpAndSettle();
+        expect(find.text('Discard Changes?'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'in-view clone button triggers cloneConfig on controller',
+      (WidgetTester tester) async {
+        final mockController = MockModelRegistryController();
+
+        final router = GoRouter(
+          initialLocation: '/studio/model-registry/edit/syscfg_clone',
+          routes: [
+            GoRoute(
+              path: '/studio/model-registry/edit/:id',
+              builder: (context, state) =>
+                  ModelRegistryView(id: state.pathParameters['id']!),
+            ),
+          ],
+        );
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              supportedPlatformsProvider.overrideWith(
+                (ref) async => mockPlatforms,
+              ),
+              availableModelsProvider.overrideWith((ref, _) async => []),
+              supportedLocationsProvider.overrideWith((ref) async => []),
+              modelRegistryByIdProvider('syscfg_clone').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_clone',
+                  slug: 'syscfg_clone_slug',
+                  type: 'model_registry',
+                  name: 'Stack to Clone',
+                  defaultProvider: 'openai',
+                  tierDefinitions: {},
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => mockController,
+              ),
+            ],
+            child: MaterialApp.router(
+              routerConfig: router,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        // Find Clone button in AppBar
+        final cloneButton = find.byTooltip('Clone Stack');
+        expect(cloneButton, findsOneWidget);
+
+        await tester.tap(cloneButton);
+        await tester.pumpAndSettle();
+
+        expect(mockController.cloneCalled, isTrue);
+        expect(mockController.clonedId, 'syscfg_clone');
       },
     );
   });
@@ -244,6 +489,9 @@ void main() {
 
 class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     implements ModelRegistryController {
+  bool cloneCalled = false;
+  String? clonedId;
+
   @override
   Future<List<ModelConfig>> build() async {
     return const [
@@ -251,14 +499,13 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
         id: 'syscfg_123',
         slug: 'syscfg_123_slug',
         type: 'model_registry',
+        name: 'Production Sovereign Stack',
         tierDefinitions: {
-          'openai': {
-            'fast': LlmModelConfig(
-              modelName: 'gpt-4o',
-              provider: 'openai',
-              isActive: true,
-            ),
-          },
+          'fast': LlmModelConfig(
+            modelName: 'gpt-4o',
+            provider: 'openai',
+            isActive: true,
+          ),
         },
       ),
     ];
@@ -286,10 +533,13 @@ class MockModelRegistryController extends AsyncNotifier<List<ModelConfig>>
 
   @override
   Future<ModelConfig> cloneConfig(String id) async {
+    cloneCalled = true;
+    clonedId = id;
     return const ModelConfig(
       id: 'cloned',
       slug: 'cloned_slug',
       type: 'model_registry',
+      name: 'Stack to Clone (Copy)',
       tierDefinitions: {},
     );
   }

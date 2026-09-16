@@ -5085,4 +5085,37 @@ class AppLocalizationsFi extends AppLocalizations {
   String strictnessSliderSemanticLabel(int percentage) {
     return 'Pisteytyksen ankaruustaso: $percentage prosenttia';
   }
+
+  @override
+  String get modelRegistryNameLabel => 'Pinon nimi';
+
+  @override
+  String get modelRegistryDefaultProviderLabel => 'Oletustarjoaja';
+
+  @override
+  String get modelRegistryCloneBtn => 'Kloonaa pino';
+
+  @override
+  String get modelRegistryDiscardTitle => 'Hylätäänkö muutokset?';
+
+  @override
+  String get modelRegistryDiscardMessage =>
+      'Sinulla on tallentamattomia muutoksia tähän mallirekisteriin. Haluatko varmasti sulkea tallentamatta?';
+
+  @override
+  String get modelRegistryDiscardBtn => 'Hylkää muutokset';
+
+  @override
+  String get modelRegistryKeepEditingBtn => 'Jatka muokkausta';
+
+  @override
+  String get studioWorkflowModelRegistry => 'Mallirekisteri';
+
+  @override
+  String get studioWorkflowModelRegistrySubtitle =>
+      'Määrittää kognitiivisia tasoja vastaavat fyysiset LLM-mallit';
+
+  @override
+  String get modelRegistrySearchPlaceholder =>
+      'Etsi mallirekistereitä nimellä, tunnisteella tai tarjoajalla...';
 }

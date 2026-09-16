@@ -9,9 +9,11 @@ import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
+import 'package:client_app/router/router.dart';
 
-/// Admin Studio View for managing the Model Registry.
-/// Uses the 2026 Gold Standard Flat MVC Architecture (Dumb UI).
+/// Admin Studio View for managing the Sovereign Model Registry stack.
+/// Uses Desktop Pro Tool UX with 1200px bounded canvas, PopScope dirty checking,
+/// in-view stack cloning, and 4 canonical cognitive tier cards.
 class ModelRegistryView extends HookConsumerWidget {
   final String id;
   const ModelRegistryView({super.key, required this.id});
@@ -21,8 +23,14 @@ class ModelRegistryView extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context)!;
     final formKey = useMemoized(() => GlobalKey<FormState>());
 
+    final initialJsonRef = useRef<String?>(null);
+
     // 1. Data and loading states are read from Riverpod!
     final formState = ref.watch(modelRegistryFormProvider(id));
+
+    formState.whenData((payload) {
+      initialJsonRef.value ??= jsonEncode(payload.toJson());
+    });
 
     return switch (formState) {
       AsyncLoading() => Scaffold(
@@ -45,6 +53,7 @@ class ModelRegistryView extends HookConsumerWidget {
         formKey,
         formState,
         payload,
+        initialJsonRef.value,
       ),
     };
   }
@@ -56,13 +65,45 @@ class ModelRegistryView extends HookConsumerWidget {
     GlobalKey<FormState> formKey,
     AsyncValue<ModelConfig> formState,
     ModelConfig payload,
+    String? initialJson,
   ) {
+    final initialConfigJson = initialJson ?? jsonEncode(payload.toJson());
+
+    Future<bool> handlePop() async {
+      FocusScope.of(context).unfocus();
+      final latestPayload =
+          ref.read(modelRegistryFormProvider(id)).value ?? payload;
+      final isDirty = jsonEncode(latestPayload.toJson()) != initialConfigJson;
+      if (!isDirty) return true;
+
+      final shouldDiscard = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.modelRegistryDiscardTitle),
+          content: Text(l10n.modelRegistryDiscardMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.modelRegistryKeepEditingBtn),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(l10n.modelRegistryDiscardBtn),
+            ),
+          ],
+        ),
+      );
+      return shouldDiscard == true;
+    }
+
     Future<void> deleteRegistry() async {
       final String idToDelete = payload.id;
       if (idToDelete.isEmpty) return;
 
-      final type = payload.type;
-      final nameToDisplay = type.isNotEmpty ? type : idToDelete;
+      final nameToDisplay = payload.name.isNotEmpty ? payload.name : payload.id;
 
       final confirm = await showDialog<bool>(
         context: context,
@@ -134,52 +175,110 @@ class ModelRegistryView extends HookConsumerWidget {
       }
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.modelRegistryTitle),
-        actions: [
-          if (formState.isLoading)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.only(right: AppSpacing.s16),
-                child: SizedBox(
-                  width: AppSpacing.s16,
-                  height: AppSpacing.s16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+    Future<void> triggerBack() async {
+      final canLeave = await handlePop();
+      if (canLeave && context.mounted) {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go('/studio');
+        }
+      }
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await triggerBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            onPressed: triggerBack,
+          ),
+          title: Text(l10n.modelRegistryTitle),
+          actions: [
+            if (formState.isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(right: AppSpacing.s16),
+                  child: SizedBox(
+                    width: AppSpacing.s16,
+                    height: AppSpacing.s16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
               ),
+            IconButton(
+              icon: const Icon(Icons.copy),
+              tooltip: l10n.modelRegistryCloneBtn,
+              onPressed: formState.isLoading
+                  ? null
+                  : () async {
+                      try {
+                        final cloned = await ref
+                            .read(modelRegistryControllerProvider.notifier)
+                            .cloneConfig(id);
+                        if (!context.mounted) return;
+                        ModelRegistryEditRoute(id: cloned.id).go(context);
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Failed to clone: $e'),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.error,
+                          ),
+                        );
+                      }
+                    },
             ),
-          IconButton(
-            icon: Icon(
-              Icons.delete,
-              color: Theme.of(context).colorScheme.error,
+            IconButton(
+              icon: Icon(
+                Icons.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              onPressed: formState.isLoading ? null : deleteRegistry,
+              tooltip: l10n.deleteConfigTitle,
             ),
-            onPressed: formState.isLoading ? null : deleteRegistry,
-            tooltip: l10n.deleteConfigTitle,
-          ),
-          FilledButton.icon(
-            icon: const Icon(Icons.save),
-            label: Text(l10n.studioSaveButton),
-            onPressed: formState.isLoading ? null : saveRegistry,
-          ),
-          AppSpacing.w16,
-        ],
-      ),
-      body: Form(
-        key: formKey,
-        child: ListView(
-          padding: AppSpacing.p16,
-          children: [
-            _buildSystemAttributes(l10n, payload),
-            AppSpacing.h24,
-            _buildModelsSection(ref, l10n, payload),
+            FilledButton.icon(
+              icon: const Icon(Icons.save),
+              label: Text(l10n.studioSaveButton),
+              onPressed: formState.isLoading ? null : saveRegistry,
+            ),
+            AppSpacing.w16,
           ],
+        ),
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Form(
+              key: formKey,
+              child: ListView(
+                padding: AppSpacing.p16,
+                children: [
+                  _buildSystemAttributes(ref, l10n, payload),
+                  AppSpacing.h24,
+                  _buildTierCardsSection(context, ref, l10n, payload),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSystemAttributes(AppLocalizations l10n, ModelConfig data) {
+  Widget _buildSystemAttributes(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ModelConfig data,
+  ) {
     return Card(
       child: Padding(
         padding: AppSpacing.p16,
@@ -196,7 +295,45 @@ class ModelRegistryView extends HookConsumerWidget {
               decoration: InputDecoration(labelText: l10n.configIdLabel),
               readOnly: true, // Server-side Minting: ID is immutable
             ),
-            AppSpacing.h8,
+            AppSpacing.h12,
+            TextFormField(
+              key: const ValueKey('model_registry_name_field'),
+              initialValue: data.name,
+              decoration: InputDecoration(
+                labelText: l10n.modelRegistryNameLabel,
+                border: const OutlineInputBorder(),
+              ),
+              onChanged: (val) {
+                ref
+                    .read(modelRegistryFormProvider(id).notifier)
+                    .forceRebuild(data.copyWith(name: val.trim()));
+              },
+            ),
+            AppSpacing.h12,
+            DropdownButtonFormField<String>(
+              key: const ValueKey('model_registry_default_provider_field'),
+              initialValue: data.defaultProvider,
+              decoration: InputDecoration(
+                labelText: l10n.modelRegistryDefaultProviderLabel,
+                border: const OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: 'google',
+                  child: Text('Google Vertex / AI Studio'),
+                ),
+                DropdownMenuItem(value: 'openai', child: Text('OpenAI')),
+                DropdownMenuItem(value: 'anthropic', child: Text('Anthropic')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  ref
+                      .read(modelRegistryFormProvider(id).notifier)
+                      .forceRebuild(data.copyWith(defaultProvider: val));
+                }
+              },
+            ),
+            AppSpacing.h12,
             TextFormField(
               initialValue: data.type,
               decoration: InputDecoration(labelText: l10n.configTypeLabel),
@@ -208,29 +345,24 @@ class ModelRegistryView extends HookConsumerWidget {
     );
   }
 
-  Widget _buildModelsSection(
+  Widget _buildTierCardsSection(
+    BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
     ModelConfig payload,
   ) {
-    final platformsAsync = ref.watch(supportedPlatformsProvider);
-    final supportedPlatforms = platformsAsync.value ?? [];
-    final locationsAsync = ref.watch(supportedLocationsProvider);
-    final supportedLocations = locationsAsync.value ?? [];
+    final canonicalTiers = [
+      ('fast', l10n.studioTierFast, Icons.bolt),
+      ('balanced', l10n.studioTierBalanced, Icons.balance),
+      ('deep', l10n.studioTierDeep, Icons.psychology),
+      ('reasoning', l10n.studioTierReasoning, Icons.auto_awesome),
+    ];
 
-    final Map<String, Map<String, LlmModelConfig>> providerGroups =
-        payload.tierDefinitions;
-
-    void updateModel(String modelId, LlmModelConfig newConfig) {
-      final newTierDefs = payload.tierDefinitions.map(
-        (k, v) => MapEntry(k, Map<String, LlmModelConfig>.from(v)),
+    void updateTier(String tierKey, LlmModelConfig updated) {
+      final newTierDefs = Map<String, LlmModelConfig>.from(
+        payload.tierDefinitions,
       );
-      for (final tiers in newTierDefs.values) {
-        tiers.remove(modelId);
-      }
-      final targetProvider =
-          newConfig.provider.isNotEmpty ? newConfig.provider : 'unknown';
-      newTierDefs.putIfAbsent(targetProvider, () => {})[modelId] = newConfig;
+      newTierDefs[tierKey] = updated;
       ref
           .read(modelRegistryFormProvider(id).notifier)
           .forceRebuild(payload.copyWith(tierDefinitions: newTierDefs));
@@ -239,635 +371,397 @@ class ModelRegistryView extends HookConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l10n.providerSettings,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-            ),
-            FilledButton.icon(
-              onPressed: () {
-                final newTierDefs = payload.tierDefinitions.map(
-                  (k, v) => MapEntry(k, Map<String, LlmModelConfig>.from(v)),
-                );
-                final newKey =
-                    'custom_${DateTime.now().millisecondsSinceEpoch}';
-                newTierDefs.putIfAbsent('google', () => {})[newKey] =
-                    const LlmModelConfig(
-                      provider: 'google',
-                      modelName: 'gemini/gemini-3.8-flash',
-                      additionalParams: {'platform': 'ai_studio'},
-                    );
-                ref
-                    .read(modelRegistryFormProvider(id).notifier)
-                    .forceRebuild(
-                      payload.copyWith(tierDefinitions: newTierDefs),
-                    );
-              },
-              icon: const Icon(Icons.add),
-              label: Text(l10n.addStrategyButton),
-            ),
-          ],
+        Text(
+          l10n.providerSettings,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
         AppSpacing.h16,
-        if (payload.tierDefinitions.isEmpty ||
-            payload.tierDefinitions.values.every((m) => m.isEmpty))
-          Text(l10n.noModelsDefined),
-        ...providerGroups.entries.map((providerEntry) {
-          final providerName = providerEntry.key;
-          final providerModels = providerEntry.value;
+        ...canonicalTiers.map((tierTuple) {
+          final tierKey = tierTuple.$1;
+          final tierLabel = tierTuple.$2;
+          final tierIcon = tierTuple.$3;
+          final cfg =
+              payload.tierDefinitions[tierKey] ??
+              LlmModelConfig(
+                provider: payload.defaultProvider,
+                modelName: payload.defaultProvider == 'openai'
+                    ? 'openai/gpt-4o'
+                    : 'gemini/gemini-3.8-flash',
+                isActive: true,
+              );
+
+          final isReasoning = _isReasoningModel(cfg);
+          final currentPlatform =
+              cfg.additionalParams['platform'] as String? ??
+              (cfg.provider == 'google' ? 'vertex_ai' : cfg.provider);
+          final hasRegions = currentPlatform == 'vertex_ai';
 
           return Card(
+            key: ValueKey('tier_card_$tierKey'),
             margin: const EdgeInsets.only(bottom: AppSpacing.s16),
-            child: ExpansionTile(
-              initiallyExpanded: true,
-              title: Text('${l10n.providerLabel}: $providerName'),
-              children: providerModels.entries.map((modelEntry) {
-                final modelId = modelEntry.key;
-                final cfg = modelEntry.value;
-
-                final List<Map<String, dynamic>> effectivePlatforms =
-                    supportedPlatforms.isNotEmpty
-                    ? supportedPlatforms
-                    : <Map<String, dynamic>>[
-                        {
-                          'id': 'vertex_ai',
-                          'label': l10n.platformVertexAi,
-                          'has_regions': true,
-                        },
-                        {
-                          'id': 'ai_studio',
-                          'label': l10n.platformAiStudio,
-                          'has_regions': false,
-                        },
-                        {
-                          'id': 'openai',
-                          'label': l10n.platformOpenAi,
-                          'has_regions': false,
-                        },
-                        {
-                          'id': 'anthropic',
-                          'label': l10n.platformAnthropic,
-                          'has_regions': false,
-                        },
-                      ];
-
-                // Determine active platform
-                String currentPlatform = 'vertex_ai';
-                if (cfg.provider == 'google') {
-                  if (cfg.modelName.startsWith('gemini/') ||
-                      (cfg.additionalParams['platform'] == 'ai_studio')) {
-                    currentPlatform = 'ai_studio';
-                  } else {
-                    currentPlatform = 'vertex_ai';
-                  }
-                } else if (cfg.provider == 'ai_studio') {
-                  currentPlatform = 'ai_studio';
-                } else if (cfg.provider == 'openai') {
-                  currentPlatform = 'openai';
-                } else if (cfg.provider == 'anthropic') {
-                  currentPlatform = 'anthropic';
-                }
-
-                Map<String, dynamic>? currentPlatformMeta;
-                for (final p in effectivePlatforms) {
-                  if (p['id'] == currentPlatform) {
-                    currentPlatformMeta = p;
-                    break;
-                  }
-                }
-                final bool hasRegions = currentPlatformMeta != null
-                    ? currentPlatformMeta['has_regions'] == true
-                    : currentPlatform == 'vertex_ai';
-
-                // Determine active location
-                final String currentLocation =
-                    cfg.additionalParams['vertex_location'] as String? ??
-                    'europe-north1';
-
-                // Query models dynamically for this strategy's platform & location
-                final strategyModelsAsync = ref.watch(
-                  availableModelsProvider(
-                    platform: currentPlatform,
-                    location: hasRegions ? currentLocation : null,
-                  ),
-                );
-                final dynamicModels = strategyModelsAsync.value ?? [];
-
-                final isReasoning = _isReasoningModel(cfg);
-
-                return Padding(
-                  padding: AppSpacing.p16,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            child: Padding(
+              padding: AppSpacing.p16,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${l10n.strategyLabel}: $modelId',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
+                      Expanded(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Chip(
+                              avatar: Icon(tierIcon, size: 16),
+                              label: Text(
+                                tierKey.toUpperCase(),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                tierLabel,
+                                style: Theme.of(context).textTheme.titleMedium,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: cfg.isActive,
+                        onChanged: (val) {
+                          updateTier(tierKey, cfg.copyWith(isActive: val));
+                        },
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  DropdownButtonFormField<String>(
+                    initialValue: cfg.provider.isNotEmpty
+                        ? cfg.provider
+                        : payload.defaultProvider,
+                    decoration: InputDecoration(
+                      labelText: l10n.platformLabel,
+                      border: const OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'google',
+                        child: Text('Google Vertex / AI Studio'),
+                      ),
+                      DropdownMenuItem(value: 'openai', child: Text('OpenAI')),
+                      DropdownMenuItem(
+                        value: 'anthropic',
+                        child: Text('Anthropic'),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        updateTier(tierKey, cfg.copyWith(provider: val));
+                      }
+                    },
+                  ),
+                  AppSpacing.h12,
+                  TextFormField(
+                    key: ValueKey('${tierKey}_model_name'),
+                    initialValue: cfg.modelName,
+                    decoration: InputDecoration(
+                      labelText: l10n.modelNameLabel,
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (val) {
+                      updateTier(tierKey, cfg.copyWith(modelName: val.trim()));
+                    },
+                  ),
+                  if (hasRegions) ...[
+                    AppSpacing.h12,
+                    DropdownButtonFormField<String>(
+                      initialValue:
+                          (cfg.additionalParams['vertex_location'] as String?)
+                                  ?.isNotEmpty ==
+                              true
+                          ? cfg.additionalParams['vertex_location'] as String
+                          : 'europe-north1',
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: l10n.locationLabel,
+                        border: const OutlineInputBorder(),
+                        isDense: true,
+                      ),
+                      items: [
+                        if ((cfg.additionalParams['vertex_location'] as String?)
+                                    ?.isNotEmpty ==
+                                true &&
+                            !(ref
+                                    .watch(supportedLocationsProvider)
+                                    .value
+                                    ?.any(
+                                      (loc) =>
+                                          loc['id'] ==
+                                          cfg.additionalParams['vertex_location'],
+                                    ) ??
+                                false))
+                          DropdownMenuItem(
+                            value:
+                                cfg.additionalParams['vertex_location']
+                                    as String,
+                            child: Text(
+                              cfg.additionalParams['vertex_location'] as String,
                             ),
                           ),
-                          IconButton(
-                            icon: Icon(
-                              Icons.delete,
-                              color: Theme.of(ref.context).colorScheme.error,
-                            ),
-                            onPressed: () {
-                              final newTierDefs = payload.tierDefinitions.map(
-                                (k, v) => MapEntry(
-                                  k,
-                                  Map<String, LlmModelConfig>.from(v),
-                                ),
+                        ...(ref.watch(supportedLocationsProvider).value ?? [])
+                            .map((loc) {
+                              final locId =
+                                  loc['id'] as String? ?? 'europe-north1';
+                              final locLabel = loc['label'] as String? ?? locId;
+                              return DropdownMenuItem(
+                                value: locId,
+                                child: Text(locLabel),
                               );
-                              if (newTierDefs.containsKey(providerName)) {
-                                newTierDefs[providerName]!.remove(modelId);
-                              }
-                              ref
-                                  .read(modelRegistryFormProvider(id).notifier)
-                                  .forceRebuild(
-                                    payload.copyWith(
-                                      tierDefinitions: newTierDefs,
-                                    ),
-                                  );
-                            },
+                            }),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          final updatedParams = Map<String, dynamic>.from(
+                            cfg.additionalParams,
+                          );
+                          updatedParams['vertex_location'] = val;
+                          updateTier(
+                            tierKey,
+                            cfg.copyWith(additionalParams: updatedParams),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                  if (isReasoning) ...[
+                    AppSpacing.h12,
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.s12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.psychology,
+                            color: Theme.of(context).colorScheme.primary,
+                            size: 20,
+                          ),
+                          const SizedBox(width: AppSpacing.s8),
+                          Expanded(
+                            child: Text(
+                              l10n.reasoningModelNotice,
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                      AppSpacing.h8,
-
-                      // 1. Platform Selector Dropdown
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s12),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: currentPlatform,
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            labelText: l10n.platformLabel,
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: [
-                            if (currentPlatform.isNotEmpty &&
-                                !effectivePlatforms.any(
-                                  (p) => p['id'] == currentPlatform,
-                                ))
-                              DropdownMenuItem(
-                                value: currentPlatform,
-                                child: Text(currentPlatform),
-                              ),
-                            ...effectivePlatforms.map((p) {
-                              final pId = p['id'] as String? ?? 'vertex_ai';
-                              final pLabel = p['label'] as String? ?? pId;
-                              return DropdownMenuItem(
-                                value: pId,
-                                child: Text(pLabel),
-                              );
-                            }),
-                          ],
-                          onChanged: (val) {
-                            if (val == null) return;
-                            String newProvider = val;
-                            if (val == 'vertex_ai' || val == 'ai_studio') {
-                              newProvider = 'google';
-                            }
-                            final updatedParams = Map<String, dynamic>.from(
-                              cfg.additionalParams,
-                            );
-                            updatedParams['platform'] = val;
-
-                            Map<String, dynamic>? newPlatformMeta;
-                            for (final p in effectivePlatforms) {
-                              if (p['id'] == val) {
-                                newPlatformMeta = p;
-                                break;
-                              }
-                            }
-                            final bool newHasRegions = newPlatformMeta != null
-                                ? newPlatformMeta['has_regions'] == true
-                                : val == 'vertex_ai';
-
-                            String newLocation = currentLocation;
-                            if (newHasRegions) {
-                              if (!updatedParams.containsKey(
-                                    'vertex_location',
-                                  ) ||
-                                  (updatedParams['vertex_location'] as String?)
-                                          ?.isEmpty ==
-                                      true) {
-                                updatedParams['vertex_location'] =
-                                    'europe-north1';
-                              }
-                              newLocation =
-                                  updatedParams['vertex_location'] as String;
-                            } else {
-                              updatedParams.remove('vertex_location');
-                            }
-
-                            // Pre-resolve default model for target platform
-                            final modelsForNewPlatform =
-                                ref
-                                    .read(
-                                      availableModelsProvider(
-                                        platform: val,
-                                        location: newHasRegions
-                                            ? newLocation
-                                            : null,
-                                      ),
-                                    )
-                                    .value ??
-                                [];
-
-                            final String updatedModelName =
-                                modelsForNewPlatform.isNotEmpty
-                                ? modelsForNewPlatform.first
-                                : (val == 'vertex_ai'
-                                      ? 'vertex_ai/gemini-3.8-flash'
-                                      : (val == 'ai_studio'
-                                            ? 'gemini/gemini-3.8-flash'
-                                            : (val == 'openai'
-                                                  ? 'gpt-4o'
-                                                  : 'claude-3-7-sonnet-20250219')));
-
-                            updateModel(
-                              modelId,
-                              cfg.copyWith(
-                                provider: newProvider,
-                                modelName: updatedModelName,
-                                additionalParams: updatedParams,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-
-                      // 2. Location Dropdown (Visible only when platform has regions)
-                      if (hasRegions)
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppSpacing.s12,
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            initialValue: currentLocation,
-                            isExpanded: true,
-                            decoration: InputDecoration(
-                              labelText: l10n.locationLabel,
-                              border: const OutlineInputBorder(),
+                    ),
+                    AppSpacing.h12,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildIntField(
+                            ValueKey('${tierKey}_thinking_budget'),
+                            cfg.thinkingBudgetTokens,
+                            'Thinking Budget Tokens',
+                            l10n,
+                            (val) => updateTier(
+                              tierKey,
+                              cfg.copyWith(thinkingBudgetTokens: val),
                             ),
-                            items: [
-                              if (currentLocation.isNotEmpty &&
-                                  !supportedLocations.any(
-                                    (loc) => loc['id'] == currentLocation,
-                                  ))
-                                DropdownMenuItem(
-                                  value: currentLocation,
-                                  child: Text(currentLocation),
-                                ),
-                              ...supportedLocations.map((loc) {
-                                final locId =
-                                    loc['id'] as String? ?? 'europe-north1';
-                                final locLabel =
-                                    loc['label'] as String? ?? locId;
-                                return DropdownMenuItem(
-                                  value: locId,
-                                  child: Text(locLabel),
-                                );
-                              }),
+                            helperText: 'Reasoning tokens (e.g. 8192)',
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: DropdownButtonFormField<String?>(
+                            initialValue: cfg.reasoningEffort,
+                            decoration: const InputDecoration(
+                              labelText: 'Reasoning Effort',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: null,
+                                child: Text('Default / None'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'low',
+                                child: Text('Low'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'medium',
+                                child: Text('Medium'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'high',
+                                child: Text('High'),
+                              ),
                             ],
                             onChanged: (val) {
-                              if (val != null) {
-                                final updatedParams = Map<String, dynamic>.from(
-                                  cfg.additionalParams,
-                                );
-                                updatedParams['vertex_location'] = val;
-                                updateModel(
-                                  modelId,
-                                  cfg.copyWith(additionalParams: updatedParams),
-                                );
-                              }
+                              updateTier(
+                                tierKey,
+                                cfg.copyWith(reasoningEffort: val),
+                              );
                             },
                           ),
                         ),
-
-                      // 3. Model Name Dropdown
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.s12),
-                        child: DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          initialValue:
-                              (cfg.modelName.isNotEmpty &&
-                                  (dynamicModels.contains(cfg.modelName) ||
-                                      dynamicModels.isEmpty))
-                              ? cfg.modelName
-                              : (dynamicModels.isNotEmpty
-                                    ? dynamicModels.first
-                                    : null),
-                          decoration: InputDecoration(
-                            labelText: l10n.modelNameLabel,
-                            border: const OutlineInputBorder(),
+                      ],
+                    ),
+                  ],
+                  if (!isReasoning) ...[
+                    AppSpacing.h12,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildDoubleField(
+                            ValueKey('${tierKey}_temp'),
+                            cfg.temperature,
+                            'Temperature',
+                            l10n,
+                            (val) => updateTier(
+                              tierKey,
+                              cfg.copyWith(temperature: val),
+                            ),
                           ),
-                          items:
-                              {
-                                    if (cfg.modelName.isNotEmpty &&
-                                        !dynamicModels.contains(cfg.modelName))
-                                      cfg.modelName,
-                                    ...dynamicModels,
-                                  }
-                                  .map(
-                                    (m) => DropdownMenuItem(
-                                      value: m,
-                                      child: Text(m),
-                                    ),
-                                  )
-                                  .toList(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDoubleField(
+                            ValueKey('${tierKey}_topP'),
+                            cfg.topP,
+                            'Top-P (Nucleus Sampling)',
+                            l10n,
+                            (val) =>
+                                updateTier(tierKey, cfg.copyWith(topP: val)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    AppSpacing.h12,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildIntField(
+                            ValueKey('${tierKey}_topK'),
+                            cfg.topK,
+                            'Top-K (Candidates)',
+                            l10n,
+                            (val) =>
+                                updateTier(tierKey, cfg.copyWith(topK: val)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDoubleField(
+                            ValueKey('${tierKey}_freq_penalty'),
+                            cfg.frequencyPenalty,
+                            'Frequency Penalty',
+                            l10n,
+                            (val) => updateTier(
+                              tierKey,
+                              cfg.copyWith(frequencyPenalty: val),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildDoubleField(
+                            ValueKey('${tierKey}_pres_penalty'),
+                            cfg.presencePenalty,
+                            'Presence Penalty',
+                            l10n,
+                            (val) => updateTier(
+                              tierKey,
+                              cfg.copyWith(presencePenalty: val),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  AppSpacing.h12,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildIntField(
+                          ValueKey('${tierKey}_max_tokens'),
+                          cfg.maxTokens,
+                          'Max Tokens',
+                          l10n,
+                          (val) =>
+                              updateTier(tierKey, cfg.copyWith(maxTokens: val)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          initialValue: cfg.parsingMode,
+                          decoration: InputDecoration(
+                            labelText: l10n.parsingModeLabel,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'AUTO',
+                              child: Text('Auto'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'NONE',
+                              child: Text('None'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'STRUCTURED_JSON',
+                              child: Text('Structured JSON'),
+                            ),
+                          ],
                           onChanged: (val) {
                             if (val != null) {
-                              updateModel(
-                                modelId,
-                                cfg.copyWith(modelName: val),
+                              updateTier(
+                                tierKey,
+                                cfg.copyWith(parsingMode: val),
                               );
                             }
                           },
                         ),
                       ),
-
-                      // Reasoning model banner
-                      if (isReasoning)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: AppSpacing.s12),
-                          padding: const EdgeInsets.all(AppSpacing.s12),
-                          decoration: BoxDecoration(
-                            color: Theme.of(ref.context)
-                                .colorScheme
-                                .primaryContainer
-                                .withValues(alpha: 0.3),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Theme.of(
-                                ref.context,
-                              ).colorScheme.primary.withValues(alpha: 0.5),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.psychology,
-                                color: Theme.of(
-                                  ref.context,
-                                ).colorScheme.primary,
-                                size: 20,
-                              ),
-                              const SizedBox(width: AppSpacing.s8),
-                              Expanded(
-                                child: Text(
-                                  l10n.reasoningModelNotice,
-                                  style: Theme.of(ref.context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: Theme.of(
-                                          ref.context,
-                                        ).colorScheme.onSurface,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      _buildIntField(
-                        ValueKey(
-                          '${modelId}_thinkingBudgetTokens_${currentPlatform}_${cfg.thinkingBudgetTokens}',
-                        ),
-                        cfg.thinkingBudgetTokens,
-                        l10n.thinkingBudgetTokensLabel,
-                        l10n,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(thinkingBudgetTokens: val),
-                        ),
-                        helperText: l10n.thinkingBudgetHelper,
-                      ),
-                      if (!isReasoning) ...[
-                        _buildDoubleField(
-                          ValueKey(
-                            '${modelId}_temperature_${currentPlatform}_${cfg.temperature}',
-                          ),
-                          cfg.temperature,
-                          l10n.temperatureLabel,
-                          l10n,
-                          (val) => updateModel(
-                            modelId,
-                            cfg.copyWith(temperature: val),
-                          ),
-                        ),
-                        _buildDoubleField(
-                          ValueKey(
-                            '${modelId}_topP_${currentPlatform}_${cfg.topP}',
-                          ),
-                          cfg.topP,
-                          l10n.topPLabel,
-                          l10n,
-                          (val) =>
-                              updateModel(modelId, cfg.copyWith(topP: val)),
-                        ),
-                        _buildIntField(
-                          ValueKey(
-                            '${modelId}_topK_${currentPlatform}_${cfg.topK}',
-                          ),
-                          cfg.topK,
-                          l10n.topKLabel,
-                          l10n,
-                          (val) =>
-                              updateModel(modelId, cfg.copyWith(topK: val)),
-                        ),
-                        _buildDoubleField(
-                          ValueKey(
-                            '${modelId}_freqPenalty_${currentPlatform}_${cfg.frequencyPenalty}',
-                          ),
-                          cfg.frequencyPenalty,
-                          l10n.frequencyPenaltyLabel,
-                          l10n,
-                          (val) => updateModel(
-                            modelId,
-                            cfg.copyWith(frequencyPenalty: val),
-                          ),
-                        ),
-                        _buildDoubleField(
-                          ValueKey(
-                            '${modelId}_presPenalty_${currentPlatform}_${cfg.presencePenalty}',
-                          ),
-                          cfg.presencePenalty,
-                          l10n.presencePenaltyLabel,
-                          l10n,
-                          (val) => updateModel(
-                            modelId,
-                            cfg.copyWith(presencePenalty: val),
-                          ),
-                        ),
-                      ],
-                      _buildIntField(
-                        ValueKey(
-                          '${modelId}_maxTokens_${currentPlatform}_${cfg.maxTokens}',
-                        ),
-                        cfg.maxTokens,
-                        l10n.maxTokensLabel,
-                        l10n,
-                        (val) =>
-                            updateModel(modelId, cfg.copyWith(maxTokens: val)),
-                      ),
-                      _buildStringField(
-                        ValueKey(
-                          '${modelId}_parsingMode_${currentPlatform}_${cfg.parsingMode}',
-                        ),
-                        cfg.parsingMode,
-                        l10n.parsingModeLabel,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(parsingMode: val),
-                        ),
-                      ),
-                      _buildIntField(
-                        ValueKey(
-                          '${modelId}_tpmLimit_${currentPlatform}_${cfg.tpmLimit}',
-                        ),
-                        cfg.tpmLimit,
-                        l10n.tpmLimitLabel,
-                        l10n,
-                        (val) =>
-                            updateModel(modelId, cfg.copyWith(tpmLimit: val)),
-                      ),
-                      _buildIntField(
-                        ValueKey(
-                          '${modelId}_rpmLimit_${currentPlatform}_${cfg.rpmLimit}',
-                        ),
-                        cfg.rpmLimit,
-                        l10n.rpmLimitLabel,
-                        l10n,
-                        (val) =>
-                            updateModel(modelId, cfg.copyWith(rpmLimit: val)),
-                      ),
-
-                      _buildStringField(
-                        ValueKey(
-                          '${modelId}_cachingStrategy_${currentPlatform}_${cfg.cachingStrategy}',
-                        ),
-                        cfg.cachingStrategy,
-                        l10n.cachingStrategyLabel,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(
-                            cachingStrategy: val.trim().isEmpty ? null : val,
-                          ),
-                        ),
-                      ),
-                      _buildJsonField(
-                        ValueKey(
-                          '${modelId}_additionalParams_${currentPlatform}_${cfg.additionalParams.hashCode}',
-                        ),
-                        cfg.additionalParams,
-                        l10n.additionalParamsLabel,
-                        l10n,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(additionalParams: val),
-                        ),
-                      ),
-
-                      _buildBoolField(
-                        cfg.supportsGrounding,
-                        l10n.supportsGroundingLabel,
-                        (val) => updateModel(
-                          modelId,
-                          cfg.copyWith(supportsGrounding: val),
-                        ),
-                      ),
-                      _buildBoolField(
-                        cfg.isActive,
-                        l10n.isActiveLabel,
-                        (val) =>
-                            updateModel(modelId, cfg.copyWith(isActive: val)),
-                      ),
-                      const Divider(height: 32),
                     ],
                   ),
-                );
-              }).toList(),
+                  _buildBoolField(
+                    cfg.supportsGrounding,
+                    'Supports Grounding / Search',
+                    (val) => updateTier(
+                      tierKey,
+                      cfg.copyWith(supportsGrounding: val),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }),
       ],
-    );
-  }
-
-  Widget _buildJsonField(
-    Key? key,
-    Map<String, dynamic>? initialValue,
-    String label,
-    AppLocalizations l10n,
-    Function(Map<String, dynamic>) onSaved,
-  ) {
-    final initialText = initialValue != null && initialValue.isNotEmpty
-        ? const JsonEncoder.withIndent('  ').convert(initialValue)
-        : '{}';
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
-      child: TextFormField(
-        key: key,
-        initialValue: initialText,
-        maxLines: 4,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        validator: (val) {
-          if (val == null || val.trim().isEmpty) return null;
-          try {
-            final decoded = jsonDecode(val);
-            if (decoded is! Map<String, dynamic>) {
-              return l10n.jsonMustBeObjectError;
-            }
-          } catch (e) {
-            return l10n.invalidJsonError;
-          }
-          return null;
-        },
-        onSaved: (val) {
-          if (val != null && val.trim().isNotEmpty) {
-            try {
-              final decoded = jsonDecode(val);
-              if (decoded is Map<String, dynamic>) {
-                onSaved(decoded);
-              }
-            } catch (_) {}
-          } else {
-            onSaved({});
-          }
-        },
-      ),
-    );
-  }
-
-  Widget _buildStringField(
-    Key? key,
-    String? initialValue,
-    String label,
-    Function(String) onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s12),
-      child: TextFormField(
-        key: key,
-        initialValue: initialValue ?? '',
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-        ),
-        onChanged: onChanged,
-      ),
     );
   }
 
@@ -889,6 +783,7 @@ class ModelRegistryView extends HookConsumerWidget {
           labelText: label,
           helperText: helperText,
           border: const OutlineInputBorder(),
+          isDense: true,
         ),
         validator: (val) {
           if (val == null || val.isEmpty) return null;
@@ -922,6 +817,7 @@ class ModelRegistryView extends HookConsumerWidget {
           labelText: label,
           helperText: helperText,
           border: const OutlineInputBorder(),
+          isDense: true,
         ),
         validator: (val) {
           if (val == null || val.isEmpty) return null;
@@ -948,6 +844,7 @@ class ModelRegistryView extends HookConsumerWidget {
         title: Text(label),
         value: initialValue,
         onChanged: onChanged,
+        contentPadding: EdgeInsets.zero,
       ),
     );
   }

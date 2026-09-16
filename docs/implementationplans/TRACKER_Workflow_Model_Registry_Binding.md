@@ -23,7 +23,7 @@
   - [x] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
   - [x] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
   - [x] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
-  - [ ] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
+  - [x] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
   - [ ] Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
   - [ ] Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
   - [ ] Step 8: E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
@@ -83,8 +83,8 @@
 | REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [x] |
 | REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [x] |
 | REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [x] |
-| REQ-08 | Implement Desktop Pro Tool UX in `ModelRegistryView` (1200px bounded canvas, PopScope dirty checking, in-view clone, 4-tier cards) | Step 5 | [ ] |
-| REQ-09 | Upgrade Studio Dashboard Tab 6 with real-time search, count badge indicator, and pro-tool compact card density | Step 5 | [ ] |
+| REQ-08 | Implement Desktop Pro Tool UX in `ModelRegistryView` (1200px bounded canvas, PopScope dirty checking, in-view clone, 4-tier cards) | Step 5 | [x] |
+| REQ-09 | Upgrade Studio Dashboard Tab 6 with real-time search, count badge indicator, and pro-tool compact card density | Step 5 | [x] |
 | REQ-10 | Add Model Registry dropdown selector in `WorkflowGeneralTab` and wire localized strings in `app_en.arb` / `app_fi.arb` | Step 6 | [ ] |
 | REQ-11 | Synchronize `seed_data.json` with Option A flat schema, bind `model_registry_id` to workflows, and update unit test fixtures | Step 7 | [ ] |
 | REQ-12 | Modernize `run_e2e_variance_test.py` with dynamic DB resolution, `--model-registry`, and automated `--compare-registries` differential benchmark runs | Step 8 | [ ] |
