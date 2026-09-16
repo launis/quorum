@@ -4,6 +4,8 @@ Orchestrates AI/LLM step execution including dynamic schema compilation,
 chunked map-reduce evaluation, DLQ graceful degradation, and anomaly retry logic.
 """
 
+from __future__ import annotations
+
 import asyncio
 import inspect
 import json
@@ -87,6 +89,76 @@ class LLMNodeStrategy(NodeStrategy):
         """
         super().__init__(deps=deps)
         self._engine = engine
+
+    def _extract_step_context_metadata(
+        self,
+        hook_state: HookState,
+    ) -> tuple[dict[str, Any], list[str], dict[str, Any]]:
+        """Extract global vars, document aliases, and DAG input results from HookState.
+
+        Args:
+            hook_state: Ingress hook state holding inputs and context variables.
+
+        Returns:
+            Tuple of (gvars, doc_aliases, dag_results).
+        """
+        gvars: dict[str, Any] = {}
+        if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
+            gvars = hook_state.global_context_vars.vars
+        elif (
+            not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+            and hook_state.global_context_vars is not None
+        ):
+            gvars = dict(hook_state.global_context_vars)
+
+        blackboard: dict[str, Any] = {}
+        if "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
+            bb_val = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
+            if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
+                try:
+                    blackboard = dict(bb_val)
+                except TypeError, ValueError:
+                    pass
+
+        atoms_by_input: dict[str, Any] = {}
+        if "atoms_by_input" in blackboard:
+            atoms_val = blackboard["atoms_by_input"]
+            if not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
+                try:
+                    atoms_by_input = dict(atoms_val)
+                except TypeError, ValueError:
+                    pass
+
+        doc_aliases: list[str] = ["N/A"]
+        if atoms_by_input:
+            doc_aliases = list(atoms_by_input.keys())
+
+        raw_inputs_dict: dict[str, Any] = {}
+        dynamic_inputs_dict: dict[str, Any] = {}
+        if isinstance(hook_state.inputs, ExecutionInputsDTO):
+            raw_inputs_dict = hook_state.inputs.raw_inputs
+            dynamic_inputs_dict = hook_state.inputs.dynamic_inputs
+        elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
+            dynamic_inputs_dict = dict(hook_state.inputs)
+
+        dag_results: dict[str, Any] = {}
+        combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
+        for step_res in combined_inputs:
+            try:
+                if "results" in step_res:
+                    for ev in step_res["results"]:
+                        if not isinstance(ev, (str, int, float, bool)) and ev is not None:
+                            a_id: str | None = None
+                            if "tda_id" in ev:
+                                a_id = ev["tda_id"]
+                            elif "atom_id" in ev:
+                                a_id = ev["atom_id"]
+                            if a_id:
+                                dag_results[a_id] = ev
+            except TypeError, KeyError:
+                pass
+
+        return gvars, doc_aliases, dag_results
 
     async def execute(
         self,
@@ -240,8 +312,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         role_block = None
         if step_obj.role_block_id:
-            role_block = block_map[step_obj.role_block_id] if step_obj.role_block_id in block_map else None
-            if not role_block:
+            if step_obj.role_block_id in block_map:
+                role_block = block_map[step_obj.role_block_id]
+            else:
                 raise ConfigurationError(
                     f"Role Block '{step_obj.role_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -249,12 +322,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         protocol_block = None
         if step_obj.extraction_protocol_block_id:
-            protocol_block = (
-                block_map[step_obj.extraction_protocol_block_id]
-                if step_obj.extraction_protocol_block_id in block_map
-                else None
-            )
-            if not protocol_block:
+            if step_obj.extraction_protocol_block_id in block_map:
+                protocol_block = block_map[step_obj.extraction_protocol_block_id]
+            else:
                 raise ConfigurationError(
                     f"Extraction Protocol Block '{step_obj.extraction_protocol_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -262,12 +332,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         execution_persona_block = None
         if step_obj.execution_persona_block_id:
-            execution_persona_block = (
-                block_map[step_obj.execution_persona_block_id]
-                if step_obj.execution_persona_block_id in block_map
-                else None
-            )
-            if not execution_persona_block:
+            if step_obj.execution_persona_block_id in block_map:
+                execution_persona_block = block_map[step_obj.execution_persona_block_id]
+            else:
                 raise ConfigurationError(
                     f"Execution Persona Block '{step_obj.execution_persona_block_id}' not found.",
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -275,9 +342,8 @@ class LLMNodeStrategy(NodeStrategy):
 
         criteria_blocks_models: list[PromptBlock] = []
         for m_id in step_obj.criteria_block_ids:
-            b = block_map[m_id] if m_id in block_map else None
-            if b:
-                criteria_blocks_models.append(b)
+            if m_id in block_map:
+                criteria_blocks_models.append(block_map[m_id])
             else:
                 logger.error(
                     f"Criteria PromptBlock '{m_id}' not found.",
@@ -337,8 +403,8 @@ class LLMNodeStrategy(NodeStrategy):
                     all_bp_blocks.extend(blueprint_obj.criteria_block_ids)
 
                     for m_id in all_bp_blocks:
-                        b = block_map[m_id] if m_id in block_map else None
-                        if b:
+                        if m_id in block_map:
+                            b = block_map[m_id]
                             if b.category_id == PromptBlockCategory.MATRIX:
                                 is_matrix = True
                                 schema_map[m_id] = _SCHEMA_BLOCK_MATRIX
@@ -349,7 +415,10 @@ class LLMNodeStrategy(NodeStrategy):
                                 for ext in b.output_extensions:
                                     schema_map[ext] = _SCHEMA_BLOCK_EXTENSION
 
-                schema_map[s.id] = _SCHEMA_BLOCK_MATRIX if is_matrix else _SCHEMA_BLOCK_TEXT
+                if is_matrix:
+                    schema_map[s.id] = _SCHEMA_BLOCK_MATRIX
+                else:
+                    schema_map[s.id] = _SCHEMA_BLOCK_TEXT
 
             schema_map["_step_metadata"] = _SCHEMA_BLOCK_SYSTEM
             schema_map["_audit_signature"] = _SCHEMA_BLOCK_SYSTEM
@@ -357,7 +426,7 @@ class LLMNodeStrategy(NodeStrategy):
             schema_map["raw_inputs"] = _SCHEMA_BLOCK_TEXT
             schema_map["matrix_reducer"] = _SCHEMA_BLOCK_SYSTEM
 
-        criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id or ""))
+        criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id))
 
         llm_context_data, new_input_mappings = ContextBuilder.build(
             input_mappings=input_mappings,
@@ -398,6 +467,18 @@ class LLMNodeStrategy(NodeStrategy):
         # prompt_compiler.build_xml_context() will register source doc aliases via .register().
         alias_engine = AliasEngine()
 
+        prompt_gvars: dict[str, Any] | None = None
+        if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
+            prompt_gvars = hook_state.global_context_vars.vars
+        elif (
+            not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+            and hook_state.global_context_vars is not None
+        ):
+            try:
+                prompt_gvars = dict(hook_state.global_context_vars)
+            except TypeError, ValueError:
+                prompt_gvars = None
+
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
             role_block=role_block,
@@ -412,16 +493,7 @@ class LLMNodeStrategy(NodeStrategy):
             has_shuffled_atoms=has_shuffled_atoms,
             execution_id=context.execution_id,
             alias_engine=alias_engine,
-            global_context_vars=(
-                hook_state.global_context_vars.vars
-                if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                else (
-                    dict(hook_state.global_context_vars)
-                    if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-                    and hook_state.global_context_vars is not None
-                    else None
-                )
-            ),
+            global_context_vars=prompt_gvars,
         )
 
         user_payload = prompt_payload.user_payload
@@ -486,7 +558,9 @@ class LLMNodeStrategy(NodeStrategy):
             chunks_list = [None]
 
         # Use the generated aliases directly instead of resolving real IDs
-        source_doc_ids = alias_engine.source_document_aliases if alias_engine.source_document_aliases else ["N/A"]
+        source_doc_ids: list[str] = ["N/A"]
+        if alias_engine.source_document_aliases:
+            source_doc_ids = alias_engine.source_document_aliases
 
         # Fetch execution record to build SourceDocumentContext for validation context
         execution_record_raw = None
@@ -515,7 +589,9 @@ class LLMNodeStrategy(NodeStrategy):
                     exec_obj = execution_record_raw
                 else:
                     exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
-                manifest = exec_obj.source_identity_manifest or {}
+                manifest: dict[str, Any] = {}
+                if exec_obj.source_identity_manifest:
+                    manifest = exec_obj.source_identity_manifest
 
                 source_docs = []
                 inputs_dict = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
@@ -545,7 +621,9 @@ class LLMNodeStrategy(NodeStrategy):
 
         dynamic_schema: Any | None = None
         if frozen_ctx:
-            allowed_dynamic_keys = [e.input_key for e in context.expected_inputs] if context.expected_inputs else []
+            allowed_dynamic_keys: list[str] = []
+            if context.expected_inputs:
+                allowed_dynamic_keys = [e.input_key for e in context.expected_inputs]
             allowed_dynamic_keys.extend(input_mappings.keys())
             allowed_dynamic_keys = list(set(allowed_dynamic_keys))
 
@@ -613,7 +691,9 @@ class LLMNodeStrategy(NodeStrategy):
                 )
 
             matrix_block = next((b for b in criteria_blocks if isinstance(b, MatrixPromptBlock)), None)
-            matrix_block_id = matrix_block.id if matrix_block else None
+            matrix_block_id: str | None = None
+            if matrix_block is not None:
+                matrix_block_id = matrix_block.id
 
             matrix_context = None
             if matrix_block:
@@ -628,54 +708,10 @@ class LLMNodeStrategy(NodeStrategy):
 
             if is_synthesis_step:
                 target_locale = context.target_locale
-
-                gvars = (
-                    hook_state.global_context_vars.vars
-                    if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                    else (
-                        dict(hook_state.global_context_vars)
-                        if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-                        and hook_state.global_context_vars is not None
-                        else {}
-                    )
-                )
-                blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"] if "__GLOBAL_ATOM_BLACKBOARD__" in gvars else {}
-                atoms_by_input = (
-                    blackboard["atoms_by_input"]
-                    if not isinstance(blackboard, (str, int, float, bool, list))
-                    and blackboard is not None
-                    and "atoms_by_input" in blackboard
-                    else {}
-                )
-                doc_aliases = list(atoms_by_input.keys()) if atoms_by_input else ["N/A"]
-
-                dag_results = {}
-                raw_inputs_dict = (
-                    hook_state.inputs.raw_inputs if isinstance(hook_state.inputs, ExecutionInputsDTO) else {}
-                )
-                dynamic_inputs_dict = (
-                    hook_state.inputs.dynamic_inputs
-                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else (
-                        dict(hook_state.inputs)
-                        if not isinstance(hook_state.inputs, (str, int, float, bool, list))
-                        and hook_state.inputs is not None
-                        else {}
-                    )
-                )
-                combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
-                for step_res in combined_inputs:
-                    try:
-                        if "results" in step_res:
-                            for ev in step_res["results"]:
-                                if not isinstance(ev, (str, int, float, bool)) and ev is not None:
-                                    a_id = (
-                                        ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                                    )
-                                    if a_id:
-                                        dag_results[a_id] = ev
-                    except TypeError, KeyError:
-                        pass
+                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state)
+                expected_sdui_type = "grid"
+                if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
+                    expected_sdui_type = step.expected_sdui_type
 
                 dynamic_schema = self.compiler.build_dynamic_schema(
                     schema_name=f"Step_{step.id}_Response",
@@ -684,7 +720,7 @@ class LLMNodeStrategy(NodeStrategy):
                     target_locale=target_locale,
                     strictness_level=context.strictness_level,
                     source_document_ids=doc_aliases,
-                    expected_sdui_type=step.expected_sdui_type or "grid",
+                    expected_sdui_type=expected_sdui_type,
                     dag_results=dag_results,
                 )
 
@@ -711,53 +747,10 @@ class LLMNodeStrategy(NodeStrategy):
                 )
             elif matrix_block is None:
                 target_locale = context.target_locale
-                gvars = (
-                    hook_state.global_context_vars.vars
-                    if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                    else (
-                        dict(hook_state.global_context_vars)
-                        if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-                        and hook_state.global_context_vars is not None
-                        else {}
-                    )
-                )
-                blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"] if "__GLOBAL_ATOM_BLACKBOARD__" in gvars else {}
-                atoms_by_input = (
-                    blackboard["atoms_by_input"]
-                    if not isinstance(blackboard, (str, int, float, bool, list))
-                    and blackboard is not None
-                    and "atoms_by_input" in blackboard
-                    else {}
-                )
-                doc_aliases = list(atoms_by_input.keys()) if atoms_by_input else ["N/A"]
-
-                dag_results = {}
-                raw_inputs_dict = (
-                    hook_state.inputs.raw_inputs if isinstance(hook_state.inputs, ExecutionInputsDTO) else {}
-                )
-                dynamic_inputs_dict = (
-                    hook_state.inputs.dynamic_inputs
-                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else (
-                        dict(hook_state.inputs)
-                        if not isinstance(hook_state.inputs, (str, int, float, bool, list))
-                        and hook_state.inputs is not None
-                        else {}
-                    )
-                )
-                combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
-                for step_res in combined_inputs:
-                    try:
-                        if "results" in step_res:
-                            for ev in step_res["results"]:
-                                if not isinstance(ev, (str, int, float, bool)) and ev is not None:
-                                    a_id = (
-                                        ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                                    )
-                                    if a_id:
-                                        dag_results[a_id] = ev
-                    except TypeError, KeyError:
-                        pass
+                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state)
+                expected_sdui_type = "grid"
+                if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
+                    expected_sdui_type = step.expected_sdui_type
 
                 dynamic_schema = self.compiler.build_dynamic_schema(
                     schema_name=f"Step_{step.id}_Response",
@@ -766,7 +759,7 @@ class LLMNodeStrategy(NodeStrategy):
                     target_locale=target_locale,
                     strictness_level=context.strictness_level,
                     source_document_ids=doc_aliases,
-                    expected_sdui_type=step.expected_sdui_type or "grid",
+                    expected_sdui_type=expected_sdui_type,
                     dag_results=dag_results,
                 )
 
@@ -838,17 +831,22 @@ class LLMNodeStrategy(NodeStrategy):
             else:
                 usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
             all_prompt_contexts: list[dict[str, Any]] = []
-            post_gvars = (
-                hook_state.global_context_vars.vars
-                if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO)
-                else (
-                    dict(hook_state.global_context_vars)
-                    if not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-                    and hook_state.global_context_vars is not None
-                    else {}
-                )
-            )
+            post_gvars: dict[str, Any] = {}
+            if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
+                post_gvars = hook_state.global_context_vars.vars
+            elif (
+                not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
+                and hook_state.global_context_vars is not None
+            ):
+                post_gvars = dict(hook_state.global_context_vars)
+
             safe_context: dict[str, Any] = {**post_gvars, "steps": projector.snapshot}
+
+            post_target_locale: str | None = None
+            post_user_role: Any | None = None
+            if isinstance(hook_state.inputs, ExecutionInputsDTO):
+                post_target_locale = hook_state.inputs.target_locale
+                post_user_role = hook_state.inputs.user_role
 
             post_hook_state = hook_state.model_copy(
                 update={
@@ -856,12 +854,8 @@ class LLMNodeStrategy(NodeStrategy):
                     "inputs": ExecutionInputsDTO(
                         dynamic_inputs=final_dict,
                         raw_inputs=final_dict,
-                        target_locale=hook_state.inputs.target_locale
-                        if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                        else None,
-                        user_role=hook_state.inputs.user_role
-                        if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                        else None,
+                        target_locale=post_target_locale,
+                        user_role=post_user_role,
                     ),
                 }
             )

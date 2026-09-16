@@ -41,7 +41,7 @@
   - [x] @[backend_v2/services/execution.py]
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/worker.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]

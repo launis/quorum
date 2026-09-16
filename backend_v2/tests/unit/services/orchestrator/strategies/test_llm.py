@@ -1,6 +1,6 @@
 import asyncio
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -361,13 +361,12 @@ async def test_execute_success_path_structured_output(
     mock_hook_state.inputs = {"path": {"to": {"test": "value"}}}
     mock_hook_state.global_context_vars = {}
 
-    from unittest.mock import AsyncMock, patch
-
     from backend_v2.models.dtos.engine import EngineExecutionResult
+    from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 
-    llm_strategy._engine.execute.return_value = EngineExecutionResult(  # type: ignore
-        results=[], hydrated_references={}
-    )
+    mock_synth = MagicMock(spec=SynthesisEngine)
+    mock_synth.execute = AsyncMock(return_value=EngineExecutionResult(results=[], hydrated_references={}))
+    llm_strategy._engine = mock_synth
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
@@ -2402,3 +2401,180 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
         assert req_call is not None
         source_text_c = req_call.kwargs.get("global_source_text")
         assert source_text_c == ""
+
+
+@pytest.mark.asyncio
+async def test_execute_fails_fast_on_missing_protocol_block(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
+) -> None:
+    """Test fail-fast when configured extraction protocol block is missing in database."""
+    from backend_v2.exceptions import ConfigurationError
+
+    step = MagicMock()
+    step.id = "step_prot"
+    step.task_blueprint = "bp_prot"
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_prot"
+    context.workflow_id = "wf_prot"
+    context.global_context_vars = {}
+    context.metadata = ExecutionMetadata()
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_0123456789abcdef0123456789abcdef",
+        "slug": "test_step",
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+    }
+    mock_repo.get_all_prompt_blocks.return_value = [
+        {
+            "id": "blk_0123456789abcdef0123456789abcdef",
+            "slug": "criteria_block",
+            "category_id": "system_rule",
+            "type": "string",
+            "label": {"translations": {"en": "Label"}},
+            "description": {"translations": {"en": "Desc"}},
+            "instruction_text": "Criteria block",
+        }
+    ]
+
+    mock_hook_state = MagicMock()
+    mock_hook_state.inputs = {}
+
+    with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:
+        mock_pre.return_value = (mock_hook_state, [])
+        with pytest.raises(ConfigurationError) as exc_info:
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
+            )
+
+    assert "Extraction Protocol Block 'blk_573802341db9d68c' not found" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_execute_fails_fast_on_missing_cognitive_tier(
+    llm_strategy: LLMNodeStrategy, mock_repo: MagicMock
+) -> None:
+    """Test fail-fast when context is missing cognitive_tier."""
+    step = MagicMock()
+    step.id = "step_tier"
+    step.task_blueprint = "bp_tier"
+    step.input_mappings = {}
+    step.allowed_mcp_tools = []
+
+    projector = MagicMock()
+    projector.snapshot = []
+
+    context = MagicMock()
+    context.execution_id = "exec_tier"
+    context.workflow_id = "wf_tier"
+    context.output_profile_id = "prof_0123456789abcdef0123456789abcdef"
+    context.target_locale = "en"
+    context.expected_inputs = []
+    context.global_context_vars = {}
+    context.metadata = ExecutionMetadata()
+    context.cognitive_tier = None
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "stp_0123456789abcdef0123456789abcdef",
+        "slug": "test_step",
+        "name": {"translations": {"en": "Test"}},
+        "description": {"translations": {"en": "Test"}},
+        "role_block_id": None,
+        "extraction_protocol_block_id": "blk_573802341db9d68c",
+        "criteria_block_ids": ["blk_0123456789abcdef0123456789abcdef"],
+    }
+    mock_repo.get_all_prompt_blocks.return_value = [
+        {
+            "id": "blk_0123456789abcdef0123456789abcdef",
+            "slug": "criteria_block",
+            "category_id": "system_rule",
+            "type": "string",
+            "label": {"translations": {"en": "Label"}},
+            "description": {"translations": {"en": "Desc"}},
+            "instruction_text": "Criteria block",
+        },
+        {
+            "id": "blk_573802341db9d68c",
+            "slug": "protocol_block",
+            "category_id": "system_rule",
+            "type": "instruction",
+            "label": {"translations": {"en": "Protocol"}},
+            "description": {"translations": {"en": "Protocol"}},
+            "instruction_text": "Protocol block",
+        },
+    ]
+
+    mock_hook_state = MagicMock()
+    mock_hook_state.inputs = {}
+    mock_hook_state.global_context_vars = {}
+
+    with (
+        patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
+        patch("backend_v2.services.orchestrator.strategies.llm.ContextBuilder.build", return_value=({}, {})),
+        patch("backend_v2.services.orchestrator.strategies.llm.PromptFactory.build") as mock_pf,
+    ):
+        mock_pre.return_value = (mock_hook_state, [])
+        mock_payload = MagicMock()
+        mock_payload.user_payload = "test"
+        mock_payload.base_system_prompt = "test"
+        mock_pf.return_value = mock_payload
+
+        with pytest.raises(AppException) as exc_info:
+            await llm_strategy.execute(
+                step=step,
+                projector=projector,
+                context=context,
+                frozen_ctx=None,
+                trace=[],
+                semaphore=asyncio.Semaphore(2),
+            )
+
+    assert "has no cognitive_tier defined" in exc_info.value.message
+
+
+def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNodeStrategy) -> None:
+    """Test _extract_step_context_metadata with typed DTO and atom_id extraction."""
+    from backend_v2.core.hook_registry import HookState
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
+
+    hook_state = HookState(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "step_1": {
+                    "results": [
+                        {"atom_id": "atm_1"},
+                        {"tda_id": "atm_2"},
+                    ]
+                }
+            },
+            dynamic_inputs={},
+        ),
+        global_context_vars=GlobalContextVarsDTO(
+            vars={
+                "__GLOBAL_ATOM_BLACKBOARD__": {
+                    "atoms_by_input": {"doc_a": []}
+                }
+            }
+        ),
+    )
+    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state)
+    assert doc_aliases == ["doc_a"]
+    assert "atm_1" in dag_results
+    assert "atm_2" in dag_results
+    assert "__GLOBAL_ATOM_BLACKBOARD__" in gvars
+
