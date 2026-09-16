@@ -12,6 +12,7 @@ import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -191,7 +192,138 @@ void main() {
         expect(hasAssertError, isFalse);
       },
     );
+
+    testWidgets(
+      'renders vendor-neutral cognitive tier dropdown with zero physical model suffixes',
+      (WidgetTester tester) async {
+        final originalErrorBuilder = ErrorWidget.builder;
+
+        final mockStep = NodeStrategy.llm(
+          id: 'test_step_1',
+          slug: 'test_slug',
+          name: const I18nText(translations: {'en': 'Test Step'}),
+          cognitiveTier: CognitiveTier.fast,
+        );
+
+        final mockClient = MockStudioClient();
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
+        when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+
+        final mockLogger = MockLoggerService();
+        when(
+          () => mockLogger.error(any(), any(), any(), any()),
+        ).thenReturn(null);
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              studioClientProvider.overrideWithValue(mockClient),
+              loggerServiceProvider.overrideWithValue(mockLogger),
+              promptBlocksControllerProvider.overrideWith(() {
+                return MockPromptBlocksController([]);
+              }),
+              modelRegistryControllerProvider.overrideWith(() {
+                return MockPopulatedModelRegistryController();
+              }),
+              stepFormProvider('test_step_1').overrideWith(() {
+                return MockStepForm(mockStep);
+              }),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: StepBuilderView(stepId: mockStep.id),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // 1. Verify DropdownButtonFormField<CognitiveTier> exists
+        final tierDropdownFinder = find.byType(
+          DropdownButtonFormField<CognitiveTier>,
+        );
+        expect(tierDropdownFinder, findsOneWidget);
+
+        // 2. Open the dropdown
+        await tester.ensureVisible(tierDropdownFinder);
+        await tester.pumpAndSettle();
+        await tester.tap(tierDropdownFinder);
+        await tester.pumpAndSettle();
+
+        // 3. Verify all 4 abstract cognitive tiers are present
+        expect(
+          find.text('Fast (Zero-Thinking, Low-Latency)').last,
+          findsOneWidget,
+        );
+        expect(
+          find.text('Balanced (Light Reasoning, Standard Synthesis)').last,
+          findsOneWidget,
+        );
+        expect(
+          find.text('Deep (Heavy Reasoning, Complex Analysis)').last,
+          findsOneWidget,
+        );
+        expect(
+          find.text('Reasoning (Maximal Thinking, Scientific Rigor)').last,
+          findsOneWidget,
+        );
+
+        // 4. Verify ZERO physical model leaks or vendor chips
+        expect(find.textContaining('['), findsNothing);
+        expect(find.textContaining('gemini'), findsNothing);
+        expect(find.textContaining('gpt-'), findsNothing);
+        expect(find.byIcon(Icons.psychology), findsNothing);
+
+        ErrorWidget.builder = originalErrorBuilder;
+      },
+    );
   });
+}
+
+class MockPopulatedModelRegistryController
+    extends AsyncNotifier<List<ModelConfig>>
+    implements ModelRegistryController {
+  @override
+  FutureOr<List<ModelConfig>> build() async {
+    return [
+      const ModelConfig(
+        id: 'sys_e26807f3bfa3454d',
+        slug: 'default',
+        type: 'model_registry',
+        defaultProvider: 'google',
+        tierDefinitions: {
+          'google': {
+            'fast': LlmModelConfig(
+              provider: 'google',
+              modelName: 'gemini/gemini-3.8-flash',
+            ),
+          },
+        },
+      ),
+    ];
+  }
+
+  @override
+  Future<void> refresh() async {}
+  @override
+  Future<ModelConfig> saveConfig(String id, ModelConfig config) async => config;
+  @override
+  Future<void> deleteConfig(String id) async {}
+  @override
+  Future<ModelConfig> createSystemConfigDraft() async => const ModelConfig(
+    id: 'mock_draft',
+    slug: 'mock_draft_slug',
+    type: 'model_registry',
+  );
+  @override
+  Future<ModelConfig> cloneConfig(String id) async => const ModelConfig(
+    id: 'cloned',
+    slug: 'cloned_slug',
+    type: 'model_registry',
+    tierDefinitions: {},
+  );
 }
 
 class MockPromptBlocksController extends PromptBlocksController {

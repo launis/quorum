@@ -7,8 +7,6 @@ import 'package:client_app/features/studio/controllers/prompt_blocks_controller.
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
-import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
-import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/step_simulation_dialog.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
@@ -188,7 +186,6 @@ class StepBuilderView extends HookConsumerWidget {
       }
 
       if (payload is NodeStrategyLlm) {
-
         // Quality Gate: Specialist LLM blueprints must have at least one role/persona/criteria block
         if (!payload.isSystemCore) {
           final hasRoleOrPersona =
@@ -386,90 +383,37 @@ class StepBuilderView extends HookConsumerWidget {
                         ),
                         const SizedBox(height: 16),
                         if (payload is NodeStrategyLlm)
-                          Builder(
-                            builder: (context) {
-                              final configsAsync = ref.watch(
-                                modelRegistryControllerProvider,
+                          DropdownButtonFormField<CognitiveTier>(
+                            key: ValueKey(payload.cognitiveTier),
+                            isExpanded: true,
+                            initialValue: payload.cognitiveTier,
+                            decoration: InputDecoration(
+                              labelText: l10n.studioCognitiveTierLabel,
+                              border: const OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            items: CognitiveTier.values.map((tier) {
+                              final label = switch (tier) {
+                                CognitiveTier.fast => l10n.studioTierFast,
+                                CognitiveTier.balanced =>
+                                  l10n.studioTierBalanced,
+                                CognitiveTier.deep => l10n.studioTierDeep,
+                                CognitiveTier.reasoning =>
+                                  l10n.studioTierReasoning,
+                              };
+                              return DropdownMenuItem(
+                                value: tier,
+                                child: Text(label),
                               );
-                              if (configsAsync.isLoading) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                ref
+                                    .read(stepFormProvider(stepId).notifier)
+                                    .forceRebuild(
+                                      payload.copyWith(cognitiveTier: val),
+                                    );
                               }
-                              if (configsAsync.hasError) {
-                                return ErrorView(
-                                  error: configsAsync.error!,
-                                  compact: true,
-                                );
-                              }
-
-                              final configs = configsAsync.value ?? [];
-                              final registryConfig = configs.firstWhere(
-                                (c) => c.type == 'model_registry',
-                                orElse: () =>
-                                    const ModelConfig(id: '', slug: ''),
-                              );
-
-                              final defaultProvider = registryConfig.defaultProvider;
-                              final providerTiers = registryConfig.tierDefinitions[defaultProvider] ?? {};
-
-                              String getTierLabel(CognitiveTier tier) {
-                                return switch (tier) {
-                                  CognitiveTier.fast => l10n.studioTierFast,
-                                  CognitiveTier.balanced => l10n.studioTierBalanced,
-                                  CognitiveTier.deep => l10n.studioTierDeep,
-                                  CognitiveTier.reasoning => l10n.studioTierReasoning,
-                                };
-                              }
-
-                              final currentTier = payload.cognitiveTier;
-                              final resolvedModel = providerTiers[currentTier.name];
-
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  DropdownButtonFormField<CognitiveTier>(
-                                    key: ValueKey(currentTier),
-                                    isExpanded: true,
-                                    initialValue: currentTier,
-                                    decoration: InputDecoration(
-                                      labelText: l10n.studioCognitiveTierLabel,
-                                      border: const OutlineInputBorder(),
-                                      isDense: true,
-                                    ),
-                                    items: CognitiveTier.values.map((tier) {
-                                      final physical = providerTiers[tier.name];
-                                      final physicalSuffix = physical != null && physical.modelName.isNotEmpty
-                                          ? ' [${physical.modelName}]'
-                                          : '';
-                                      return DropdownMenuItem(
-                                        value: tier,
-                                        child: Text('${getTierLabel(tier)}$physicalSuffix'),
-                                      );
-                                    }).toList(),
-                                    onChanged: (val) {
-                                      if (val != null) {
-                                        ref
-                                            .read(stepFormProvider(stepId).notifier)
-                                            .forceRebuild(
-                                              payload.copyWith(cognitiveTier: val),
-                                            );
-                                      }
-                                    },
-                                  ),
-                                  if (resolvedModel != null) ...[
-                                    const SizedBox(height: 8),
-                                    Chip(
-                                      avatar: const Icon(Icons.psychology, size: 16),
-                                      label: Text(
-                                        '${defaultProvider.toUpperCase()}: ${resolvedModel.modelName} '
-                                        '(${resolvedModel.thinkingBudgetTokens ?? 0} reasoning tokens)',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              );
                             },
                           ),
                       ],

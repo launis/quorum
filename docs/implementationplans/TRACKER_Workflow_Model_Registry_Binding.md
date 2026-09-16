@@ -22,7 +22,7 @@
   - [x] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
   - [x] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
   - [x] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
-  - [ ] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
+  - [x] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
   - [ ] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
   - [ ] Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
   - [ ] Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
@@ -82,7 +82,7 @@
 | REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [x] |
 | REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [x] |
 | REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [x] |
-| REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [ ] |
+| REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [x] |
 | REQ-08 | Implement Desktop Pro Tool UX in `ModelRegistryView` (1200px bounded canvas, PopScope dirty checking, in-view clone, 4-tier cards) | Step 5 | [ ] |
 | REQ-09 | Upgrade Studio Dashboard Tab 6 with real-time search, count badge indicator, and pro-tool compact card density | Step 5 | [ ] |
 | REQ-10 | Add Model Registry dropdown selector in `WorkflowGeneralTab` and wire localized strings in `app_en.arb` / `app_fi.arb` | Step 6 | [ ] |
@@ -112,12 +112,17 @@
   - `backend_v2/tests/unit/database/repositories/test_system.py`: Added comprehensive unit tests achieving 100% test coverage on `system.py`.
   - Quality Gate Verification: Passed `backend_audit_loop.py backend_v2/database/repositories/system.py --test` with 100% coverage and exit code 0. Passed 28/28 tests in `test_system_config_service.py` and 25/25 tests in `test_execution.py`.
 
+- Executed Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`:
+  - `client_app_v2/lib/features/studio/views/step_builder_view.dart`: Removed physical model name suffix `[${physical.modelName}]` from `DropdownMenuItem` text, displaying pure abstract cognitive tier label and description via localized strings (`l10n.studioTierFast`, etc.). Removed hardcoded vendor preview chip (`Icons.psychology`) and unnecessary `modelRegistryControllerProvider` watch, unblocking step authoring from model registry state.
+  - `client_app_v2/test/features/studio/views/step_builder_view_dropdown_test.dart`: Added comprehensive unit test `renders vendor-neutral cognitive tier dropdown with zero physical model suffixes` verifying all 4 canonical abstract tiers exist without any physical model names or vendor preview chips.
+  - Quality Gate Verification: Passed `flutter_audit_loop.py` on both `step_builder_view.dart` and `step_builder_view_dropdown_test.dart` with 0 issues. All 3 tests pass in `step_builder_view_dropdown_test.dart`.
+
 ## Learned
 - Using typed Pydantic model validation on queried dictionaries prior to sorting (`models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]`) completely eliminates dictionary `.get()` calls and cleanly satisfies AST guardrail `QGR002`.
 - `InMemorySystemRepository` previously used a single `_model_registry` slot with obsolete `models={}`; refactoring it to a dictionary store `_model_registries` with Option A 4-tier default guarantees true stateful multi-registry roundtrip fidelity.
+- Eradicating physical model inspection from `StepBuilderView` completely decouples individual workflow step authoring from physical provider/model configs, allowing step definitions to remain 100% vendor-neutral and solely driven by the workflow's attached Sovereign Model Registry stack.
 
 ## Remaining
-- Execute Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`
 - Execute Step 5: `DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY`
 - Execute Step 6: `WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE`
 - Execute Step 7: `SEED VAULT SYNCHRONIZATION & QUALITY GATES`
