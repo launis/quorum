@@ -26,12 +26,18 @@ TARGET_ATOM_IDS: list[str] = [
     "tda_1897cd57db7c4e9b9ffc086ee544f643",
     "tda_b4e82bca48654f9ab948d4b3004abf81",
     "tda_17413227c43c462cad78be1bb4101574",
+    "tda_07ef835fd139e70fd9d9f2151dc9a5aa",
+    "tda_5198e13cde3447fe9d0737a80abe458c",
+    "tda_ab3ebf5a42f0d72eca9acceeb2e12ce1",
+    "tda_5fc55ef72665907c426e2598cddde565",
 ]
 
 TARGET_BLOCK_IDS: list[str] = [
     "blk_440a5fef9331451b",
     "blk_53f32679aa514fcb",
     "blk_ff72c2d79edb4ebf",
+    "blk_f921c7c0989b47e8",
+    "blk_109dab5b6b3f403a",
 ]
 
 
@@ -168,6 +174,55 @@ def test_target_atoms_anchoring_tightening_invariants() -> None:
         "and asserting personal decision accountability."
     )
     assert "rather than delegating the strategic synthesis to the AI" in (tda_174.extraction_rule or "")
+
+    # blk_f921c7c0989b47e8 (Bloom Level 5 & 6)
+    tda_07e = TDAAssertion.model_validate(atoms["tda_07ef835fd139e70fd9d9f2151dc9a5aa"])
+    assert tda_07e.anchor_target == "Find conceptual re-framing establishing a new problem paradigm."
+    assert any("thematic clustering" in p.pattern for p in tda_07e.anti_patterns)
+    assert tda_07e.contrastive_example is not None
+    assert "plasma-aerobraking tensor" in tda_07e.contrastive_example.acceptable
+
+    tda_519 = TDAAssertion.model_validate(atoms["tda_5198e13cde3447fe9d0737a80abe458c"])
+    assert tda_519.anchor_target == "Find evaluations anchored to formal benchmarks or regulatory standards."
+    assert any("regulatory standards" in p.pattern for p in tda_519.anti_patterns)
+    assert tda_519.contrastive_example is not None
+    assert "ASME Section VIII" in tda_519.contrastive_example.acceptable
+
+    # blk_109dab5b6b3f403a (Kahneman Level 1 & 2)
+    tda_ab3 = TDAAssertion.model_validate(atoms["tda_ab3ebf5a42f0d72eca9acceeb2e12ce1"])
+    assert tda_ab3.anchor_target == (
+        "Find qualitative associative links, intuitive metaphors, or narrative transitions connecting concepts."
+    )
+    assert any("external source document" in p.pattern for p in tda_ab3.anti_patterns)
+    assert tda_ab3.contrastive_example is not None
+    assert "electrical percolation" in tda_ab3.contrastive_example.acceptable
+
+    tda_5fc = TDAAssertion.model_validate(atoms["tda_5fc55ef72665907c426e2598cddde565"])
+    assert tda_5fc.anchor_target == (
+        "Find deliberate cognitive pauses, reflective questions, or friction markers challenging baseline assumptions."
+    )
+    assert any("post-hoc reflection" in p.pattern for p in tda_5fc.anti_patterns)
+    assert tda_5fc.contrastive_example is not None
+    assert "viscosity model" in tda_5fc.contrastive_example.acceptable
+
+
+def test_hardened_atoms_anti_patterns_explicitly_present() -> None:
+    """Verify that all 4 hardened atoms have explicit, non-empty anti-patterns and contrastive pairs."""
+    atoms = _load_seed_atoms()
+    hardened_ids = [
+        "tda_07ef835fd139e70fd9d9f2151dc9a5aa",
+        "tda_5198e13cde3447fe9d0737a80abe458c",
+        "tda_ab3ebf5a42f0d72eca9acceeb2e12ce1",
+        "tda_5fc55ef72665907c426e2598cddde565",
+    ]
+    for tda_id in hardened_ids:
+        assertion = TDAAssertion.model_validate(atoms[tda_id])
+        assert len(assertion.anti_patterns) >= 2, f"Atom {tda_id} expected at least 2 anti-patterns"
+        for ap in assertion.anti_patterns:
+            assert len(ap.pattern.strip()) >= 15, f"Atom {tda_id} anti-pattern description is too brief"
+        assert assertion.contrastive_example is not None
+        assert len(assertion.contrastive_example.acceptable) >= 20
+        assert len(assertion.contrastive_example.rejected) >= 20
 
 
 def test_negative_tda_assertion_missing_required_fields() -> None:

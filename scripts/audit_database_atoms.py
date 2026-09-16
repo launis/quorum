@@ -717,16 +717,16 @@ def audit_steps(
         step_type = str(step["type"]) if "type" in step else ""
 
         if step_type == "llm":
-            # 1. Model Strategy Check
-            model_strategy = step["model_strategy"] if "model_strategy" in step else None
-            if not model_strategy or not isinstance(model_strategy, str):
+            # 1. Cognitive Tier Check
+            cognitive_tier = step["cognitive_tier"] if "cognitive_tier" in step else None
+            if not cognitive_tier or cognitive_tier not in ("fast", "balanced", "deep", "reasoning"):
                 issues.append(
                     AuditIssue(
                         collection="steps",
                         entity_id=step_id,
-                        field_path="model_strategy",
-                        issue_type="MISSING_MODEL_STRATEGY",
-                        message=f"LLM step '{step_id}' lacks explicit model_strategy.",
+                        field_path="cognitive_tier",
+                        issue_type="MISSING_COGNITIVE_TIER",
+                        message=f"LLM step '{step_id}' lacks explicit valid cognitive_tier.",
                     )
                 )
 

@@ -3,90 +3,129 @@
     {
       "id": "sys_e26807f3bfa3454d",
       "type": "model_registry",
-      "models": {
-        "deep": {
-          "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 0.2,
-          "thinking_budget_tokens": 4096,
-          "supports_grounding": true,
-          "tpm_limit": 4000000,
-          "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "google",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
+      "default_provider": "google",
+      "tier_definitions": {
+        "google": {
+          "fast": {
+            "max_tokens": 32768,
+            "model_name": "gemini/gemini-3.8-flash",
+            "temperature": 0.1,
+            "thinking_budget_tokens": 0,
+            "supports_grounding": false,
+            "tpm_limit": 4000000,
+            "rpm_limit": 200,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "google",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {}
+          },
+          "balanced": {
+            "max_tokens": 65536,
+            "model_name": "gemini/gemini-3.8-flash",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 2048,
+            "supports_grounding": false,
+            "tpm_limit": 4000000,
+            "rpm_limit": 60,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "google",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {}
+          },
+          "deep": {
+            "max_tokens": 65536,
+            "model_name": "gemini/gemini-3.8-flash",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 4096,
+            "supports_grounding": true,
+            "tpm_limit": 4000000,
+            "rpm_limit": 60,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "google",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {}
+          },
+          "reasoning": {
+            "max_tokens": 65536,
+            "model_name": "gemini/gemini-3.8-flash",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 8192,
+            "supports_grounding": false,
+            "tpm_limit": 4000000,
+            "rpm_limit": 60,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "google",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {}
+          }
         },
-        "synthesis": {
-          "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 0.3,
-          "thinking_budget_tokens": 2048,
-          "supports_grounding": false,
-          "tpm_limit": 4000000,
-          "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "google",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
-        },
-        "fast": {
-          "max_tokens": 32768,
-          "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 0.1,
-          "thinking_budget_tokens": 0,
-          "supports_grounding": false,
-          "tpm_limit": 4000000,
-          "rpm_limit": 200,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "google",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
-        },
-        "strict": {
-          "max_tokens": 32768,
-          "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 0.0,
-          "thinking_budget_tokens": 0,
-          "supports_grounding": false,
-          "tpm_limit": 4000000,
-          "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "google",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
-        },
-        "reasoning": {
-          "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
-          "temperature": 0.2,
-          "thinking_budget_tokens": 8192,
-          "supports_grounding": false,
-          "tpm_limit": 4000000,
-          "rpm_limit": 60,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "google",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
-        },
-        "openai_strict": {
-          "max_tokens": 32768,
-          "model_name": "openai/gpt-5.1",
-          "temperature": 0.0,
-          "thinking_budget_tokens": 2048,
-          "supports_grounding": false,
-          "tpm_limit": 1000000,
-          "rpm_limit": 500,
-          "parsing_mode": "STRUCTURED_JSON",
-          "is_active": true,
-          "provider": "openai",
-          "caching_strategy": "prompt_caching",
-          "additional_params": {}
+        "openai": {
+          "fast": {
+            "max_tokens": 32768,
+            "model_name": "openai/gpt-5.1",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 0,
+            "supports_grounding": false,
+            "tpm_limit": 1000000,
+            "rpm_limit": 500,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "openai",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {}
+          },
+          "balanced": {
+            "max_tokens": 32768,
+            "model_name": "openai/gpt-5.1",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 2048,
+            "supports_grounding": false,
+            "tpm_limit": 1000000,
+            "rpm_limit": 500,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "openai",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {
+              "reasoning_effort": "low"
+            }
+          },
+          "deep": {
+            "max_tokens": 32768,
+            "model_name": "openai/gpt-5.1",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 4096,
+            "supports_grounding": false,
+            "tpm_limit": 1000000,
+            "rpm_limit": 500,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "openai",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {
+              "reasoning_effort": "medium"
+            }
+          },
+          "reasoning": {
+            "max_tokens": 32768,
+            "model_name": "openai/gpt-5.1",
+            "temperature": 1.0,
+            "thinking_budget_tokens": 8192,
+            "supports_grounding": false,
+            "tpm_limit": 1000000,
+            "rpm_limit": 500,
+            "parsing_mode": "STRUCTURED_JSON",
+            "is_active": true,
+            "provider": "openai",
+            "caching_strategy": "prompt_caching",
+            "additional_params": {
+              "reasoning_effort": "high"
+            }
+          }
         }
       }
     },
@@ -2697,15 +2736,15 @@
                   "extraction_rule": "Evaluations are systematically anchored to explicit external standards, quantitative metrics, or formalized benchmarks.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify an evaluative assessment of system performance or compliance.",
+                      "instruction": "Identify an evaluative assessment of system performance, compliance, or operational suitability.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Check for explicit referencing of defined standards, SLA thresholds, or regulatory benchmarks.",
+                      "instruction": "Check for explicit referencing of defined quantitative metrics, SLA thresholds, or formal regulatory standards.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that the assessment measures observed performance directly against these stated criteria.",
+                      "instruction": "Confirm that the assessment actively measures and audits observed performance directly against these stated quantitative criteria or operational thresholds.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -2713,11 +2752,15 @@
                     {
                       "pattern": "evaluation references vague unmeasurable standards ('sufficiently good')",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "citing, cataloging, or naming regulatory standards, statutory mandates, industry benchmarks, or policy frameworks merely as background compliance context without actively auditing performance against explicit quantitative thresholds",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "The authentication service complies with ISO/IEC 27001 Annex A.9 by enforcing multi-factor verification across all administrative endpoints.",
-                    "rejected": "Our authentication system provides robust security features that safeguard sensitive customer data."
+                    "acceptable": "Under ASME Section VIII Division 1 UG-99, the pressure vessel failed hydrostatic proof testing when permanent plastic deformation exceeded the 1.5x design pressure threshold at 450 psi.",
+                    "rejected": "Our engineering designs strictly adhere to relevant ASME Section VIII and ISO pressure vessel manufacturing standards."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -3009,15 +3052,15 @@
                   "extraction_rule": "The proposal establishes a comprehensive conceptual taxonomy or architecture that restructures fundamental assumptions of the domain.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify an overarching architectural taxonomy or conceptual framework created in the text.",
+                      "instruction": "Identify an overarching architectural taxonomy, conceptual framework, or novel paradigm created in the text.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that the framework challenges and reframes standard baseline assumptions within the domain.",
+                      "instruction": "Verify that the framework challenges standard baseline assumptions and formulates novel structural boundary constraints and operational interactions.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm the model establishes an integrated explanatory paradigm applicable across diverse operational contexts.",
+                      "instruction": "Confirm the model establishes an integrated explanatory paradigm rather than thematic clustering or summarization of source materials.",
                       "requires_contextual_override": false
                     }
                   ],
@@ -3025,11 +3068,15 @@
                     {
                       "pattern": "framework simply renames well-known existing concepts with proprietary buzzwords",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "thematic clustering, organizational regrouping, renaming, or hierarchical summarization of external source documents, baseline categories, or assignment background materials without deriving an explicit causal, operational, or formal mechanism",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Rather than treating software testing as post-facto verification, our model reconceptualizes automated tests as compile-time ontological proofs of domain invariants.",
-                    "rejected": "We expanded automated test coverage across our unit, integration, and end-to-end testing pipelines."
+                    "acceptable": "Rather than modeling orbital descent as thermal dissipation, our plasma-aerobraking tensor integrates magnetohydrodynamic drag with variable atmospheric ionization boundaries.",
+                    "rejected": "We grouped the mission phases into pre-entry, entry, and landing clusters based on the provided mission briefing documents."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -3290,11 +3337,15 @@
                     {
                       "pattern": "formal statistical derivation or mathematical proof",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "quoting, citing, transcribing, or prompting with metaphors, analogies, or narrative associations authored by an external source document or conversational partner rather than the evaluated speaker's organic reasoning",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Technology evolves like a natural force of nature, requiring organizational culture to flow organically alongside it.",
-                    "rejected": "A formal statistical derivation yielded a Pearson correlation coefficient of 0.84 between the two variables."
+                    "acceptable": "Market adoption spreads like electrical percolation through a conductive mesh, suddenly snapping into alignment once the critical node density is achieved.",
+                    "rejected": "As Sitra's foresight report notes, 'megatrends collide like tectonic plates shaping future geopolitical landscapes.'"
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -3502,11 +3553,15 @@
                     {
                       "pattern": "superficial transitional filler phrases without analytical inquiry",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "retrospective post-hoc reflection on procedural execution, missing files, or administrative difficulties rather than an active cognitive deliberative pause questioning substantive domain assumptions",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
-                    "acceptable": "Before committing to this trajectory, we must pause to critically examine whether our foundational assumptions regarding customer behavior remain valid.",
-                    "rejected": "The proposal was accepted immediately and logged into the pipeline for straightforward execution."
+                    "acceptable": "Hold on—if we assume laminar flow at this Reynolds number, why are the thermal sensors recording boundary layer separation? We must halt and re-examine the viscosity model.",
+                    "rejected": "I noticed that the previous run failed because the secondary data file was uploaded in the wrong directory, so I re-ran the script with the correct path."
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -18822,7 +18877,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_03b1d71000000003",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
-      "default_strictness_level": 50,
+      "default_strictness_level": 70,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
       "enable_eager_anonymization": false,
@@ -19042,7 +19097,7 @@
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
-      "passivity_penalty": 0.0
+      "passivity_penalty": 0.05
     },
     {
       "id": "wf_04a1d71000000004",
@@ -19510,13 +19565,13 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": true
+      "is_system_core": true,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_b5c751d1cbe24735",
@@ -19560,14 +19615,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "reasoning",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "reasoning"
     },
     {
       "id": "sp_f22db9f1dde048b7",
@@ -19603,14 +19658,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "deep"
     },
     {
       "id": "sp_bd0b3054fe664960",
@@ -19648,14 +19703,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_25664f44773a4354",
@@ -19693,18 +19748,19 @@
       ],
       "post_hooks": [
         "matrix_scoring_hook",
-        "normalize_matrix_scores"
+        "normalize_matrix_scores",
+        "enforce_passivity_penalty"
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_7f9649114d2344dc",
@@ -19740,14 +19796,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_6f40b964895c426b",
@@ -19788,14 +19844,14 @@
       "allowed_mcp_tools": [
         "mcp_tavily_search"
       ],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_ddb7cf7c8a0245d4",
@@ -19834,14 +19890,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "reasoning",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "reasoning"
     },
     {
       "id": "sp_48974af1fc584407",
@@ -19882,14 +19938,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_8daee218c6b14f02",
@@ -19927,14 +19983,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "reasoning",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "reasoning"
     },
     {
       "id": "sp_dfc365994fa944b2",
@@ -19976,14 +20032,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "reasoning",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "reasoning"
     },
     {
       "id": "sp_6a45d484ad5b497c",
@@ -20023,14 +20079,14 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_192910b5f5a34c79",
@@ -20066,11 +20122,11 @@
       ],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis"
       ],
-      "is_system_core": true
+      "is_system_core": true,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_76eedbc020274f66",
@@ -20107,14 +20163,14 @@
       "allowed_mcp_tools": [
         "mcp_tavily_search"
       ],
-      "model_strategy": "fast",
       "expected_inputs": [
         "prior_analysis",
         "product_text",
         "chat_log",
         "reflection_text"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_d245365e4a274b9e",
@@ -20199,14 +20255,14 @@
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "synthesis",
       "expected_inputs": [
         "distilled_inputs",
         "historical_context",
         "output_profile_id",
         "language"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "balanced"
     },
     {
       "id": "sp_fb1b8e908bf24c1f",
@@ -20234,12 +20290,12 @@
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "fast",
       "expected_inputs": [
         "matrices_to_explain",
         "language"
       ],
-      "is_system_core": false
+      "is_system_core": false,
+      "cognitive_tier": "fast"
     },
     {
       "id": "sp_7a8b9c0d1e2f3a4b",
@@ -20266,12 +20322,12 @@
       "post_hooks": [],
       "safety": "safe",
       "allowed_mcp_tools": [],
-      "model_strategy": "synthesis",
       "expected_inputs": [
         "results",
         "reduced_matrix"
       ],
-      "is_system_core": true
+      "is_system_core": true,
+      "cognitive_tier": "balanced"
     }
   ],
   "organizations": [

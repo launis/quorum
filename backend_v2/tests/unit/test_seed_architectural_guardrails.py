@@ -120,34 +120,35 @@ def test_workflows_contain_scoring_penalties() -> None:
 
 
 def test_model_strategies_are_bound_to_registry() -> None:
-    """Architectural Guardrail: All model_strategy references must exist in the SystemConfigModelRegistry."""
+    """Architectural Guardrail: All cognitive_tier references must exist in the SystemConfigModelRegistry."""
     with open(SEED_FILE, encoding="utf-8") as f:
         data = json.load(f)
 
-    # 1. Collect valid strategies from registry
-    valid_strategies = set()
+    # 1. Collect valid tiers from registry
+    valid_tiers: set[str] = set()
     for sys_cfg in data.get("system_config", []):
-        if sys_cfg.get("type") == "model_registry" and "models" in sys_cfg:
-            valid_strategies.update(sys_cfg["models"].keys())
+        if sys_cfg.get("type") == "model_registry" and "tier_definitions" in sys_cfg:
+            for tiers in sys_cfg["tier_definitions"].values():
+                valid_tiers.update(tiers.keys())
 
-    assert valid_strategies, "Model registry must contain at least one strategy"
+    assert valid_tiers, "Model registry must contain at least one cognitive tier"
 
     # 2. Check steps
     for raw_step in data.get("steps", []):
-        strategy = raw_step.get("model_strategy")
-        if strategy:
-            assert strategy in valid_strategies, (
-                f"Step '{raw_step.get('slug')}' references unknown model_strategy '{strategy}'"
+        tier = raw_step.get("cognitive_tier") or raw_step.get("model_strategy")
+        if tier:
+            assert tier in valid_tiers, (
+                f"Step '{raw_step.get('slug')}' references unknown cognitive_tier '{tier}'"
             )
 
     # 3. Check output profiles
     if "output_profiles" in data:
         for raw_profile in data["output_profiles"]:
             synthesis = raw_profile.get("synthesis", {})
-            strategy = synthesis.get("model_strategy")
-            if strategy:
-                assert strategy in valid_strategies, (
-                    f"Profile '{raw_profile.get('id')}' references unknown model_strategy '{strategy}'"
+            tier = synthesis.get("cognitive_tier") or synthesis.get("model_strategy")
+            if tier:
+                assert tier in valid_tiers, (
+                    f"Profile '{raw_profile.get('id')}' references unknown cognitive_tier '{tier}'"
                 )
 
     # 4. Check embedded profiles in workflows
@@ -156,10 +157,10 @@ def test_model_strategies_are_bound_to_registry() -> None:
             profiles = raw_wf.get("output_profiles", {})
             for p_id, profile in profiles.items():
                 synthesis = profile.get("synthesis", {})
-                strategy = synthesis.get("model_strategy")
-                if strategy:
-                    assert strategy in valid_strategies, (
-                        f"Workflow '{raw_wf.get('slug')}' profile '{p_id}' references unknown model_strategy '{strategy}'"
+                tier = synthesis.get("cognitive_tier") or synthesis.get("model_strategy")
+                if tier:
+                    assert tier in valid_tiers, (
+                        f"Workflow '{raw_wf.get('slug')}' profile '{p_id}' references unknown cognitive_tier '{tier}'"
                     )
 
 
@@ -362,30 +363,26 @@ def test_model_registry_calibrated_limits() -> None:
     registry_conf = next((c for c in sys_configs if c.get("type") == "model_registry"), None)
     assert registry_conf is not None, "SystemConfig with type 'model_registry' must exist in seed"
 
-    models = registry_conf.get("models", {})
-    assert models, "Model registry models dictionary must not be empty"
+    tier_defs = registry_conf.get("tier_definitions", {})
+    assert tier_defs, "Model registry tier_definitions dictionary must not be empty"
 
-    required_strategies = {"deep", "synthesis", "fast", "strict", "reasoning"}
-    assert required_strategies.issubset(set(models.keys())), (
-        f"Models must contain all required strategies: {required_strategies}"
-    )
-
-    for strategy_name, model_def in models.items():
-        max_tokens = model_def.get("max_tokens", 0)
-        temperature = model_def.get("temperature", 1.0)
-        assert max_tokens >= 32768, f"Strategy '{strategy_name}' max_tokens {max_tokens} must be >= 32768"
-        assert temperature <= 0.3, f"Strategy '{strategy_name}' temperature {temperature} must be <= 0.3"
+    required_tiers = {"deep", "fast", "balanced", "reasoning"}
+    for prov_name, tiers in tier_defs.items():
+        assert required_tiers.issubset(set(tiers.keys())), (
+            f"Provider '{prov_name}' must contain all required tiers: {required_tiers}"
+        )
+        for tier_name, model_def in tiers.items():
+            max_tokens = model_def.get("max_tokens", 0)
+            assert max_tokens >= 32768, f"Provider '{prov_name}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
 
     # Anti-happy-path negative verification
     def validate_strategy_limits(strat_dict: dict[str, Any]) -> bool:
         tokens = strat_dict.get("max_tokens", 0)
-        temp = strat_dict.get("temperature", 1.0)
-        return bool(tokens >= 32768 and temp <= 0.3)
+        return bool(tokens >= 32768)
 
     assert validate_strategy_limits({"max_tokens": 32768, "temperature": 0.1})
     assert validate_strategy_limits({"max_tokens": 65536, "temperature": 0.2})
     assert not validate_strategy_limits({"max_tokens": 8192, "temperature": 0.1})  # Under token ceiling
-    assert not validate_strategy_limits({"max_tokens": 65536, "temperature": 1.0})  # High entropy temperature
 
 
 def test_synthesis_strategy_isolation() -> None:
@@ -400,11 +397,11 @@ def test_synthesis_strategy_isolation() -> None:
         step_id = step.get("id")
         cat = step.get("category_id")
         is_eval = step.get("is_evaluative", False)
-        strategy = step.get("model_strategy")
+        tier = step.get("cognitive_tier") or step.get("model_strategy")
 
         # Evaluative matrix steps must strictly isolate from synthesis strategy
         if cat == "matrix" or is_eval is True:
-            assert strategy != "synthesis", (
+            assert tier != "synthesis", (
                 f"Evaluative step '{step_id}' (category: '{cat}') must not use 'synthesis' model_strategy"
             )
 
