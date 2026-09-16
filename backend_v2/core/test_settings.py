@@ -25,16 +25,7 @@ TEST_SETTINGS_OVERRIDES: dict[str, Any] = {
     "llm_max_schema_retries": 0,
     "llm_max_logical_retries": 0,
     "llm_max_transient_retries": 0,
-    "strategy_aliases": {
-        "strict_strategy": "fast",
-        "evaluation_strategy": "fast",
-        "test_strategy": "fast",
-        "strict": "fast",
-        "deep": "fast",
-        "sdui": "fast",
-        "reasoning": "fast",
-        "synthesis": "fast",
-    },
+
     "pacing_delay_vertex_seconds": 0,
     "pacing_delay_openai_seconds": 0,
     "pacing_delay_mock_seconds": 0,

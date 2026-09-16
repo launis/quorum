@@ -17,7 +17,28 @@ from backend_v2.api.routers.studio.model_registry import (
 )
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
-from backend_v2.models.v2_core import SystemConfigModelRegistry
+from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
+
+
+def _make_dummy_registry(reg_id: str = "sys_1234567890abcdef") -> SystemConfigModelRegistry:
+    dummy_profile = ModelProfile(
+        model_name="mock-model",
+        provider="google",
+        tpm_limit=1000,
+        rpm_limit=10,
+        temperature=1.0,
+        max_tokens=2048,
+    )
+    tier_defs = {
+        LLMProvider.GOOGLE: {
+            CognitiveTier.FAST: dummy_profile,
+            CognitiveTier.BALANCED: dummy_profile,
+            CognitiveTier.DEEP: dummy_profile,
+            CognitiveTier.REASONING: dummy_profile,
+        }
+    }
+    return SystemConfigModelRegistry(id=reg_id, tier_definitions=tier_defs)
 
 
 @pytest.fixture
@@ -80,7 +101,7 @@ async def test_get_all_model_registries(mock_current_user: TokenData, mock_studi
 @pytest.mark.asyncio
 async def test_create_model_registry(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
     """Verify create model registry draft endpoint."""
-    dummy_registry = SystemConfigModelRegistry(id="sys_1234567890abcdef", models={})
+    dummy_registry = _make_dummy_registry("sys_1234567890abcdef")
     mock_studio_service.create_system_config_draft.return_value = dummy_registry
     res = await create_model_registry(current_user=mock_current_user, studio_service=mock_studio_service)
     assert res.id == "sys_1234567890abcdef"
@@ -89,7 +110,7 @@ async def test_create_model_registry(mock_current_user: TokenData, mock_studio_s
 @pytest.mark.asyncio
 async def test_get_model_registry(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
     """Verify get single model registry endpoint."""
-    dummy_registry = SystemConfigModelRegistry(id="sys_1234567890abcdef", models={})
+    dummy_registry = _make_dummy_registry("sys_1234567890abcdef")
     mock_studio_service.get_system_config.return_value = dummy_registry
     res = await get_model_registry(
         registry_id="sys_1234567890abcdef", current_user=mock_current_user, studio_service=mock_studio_service
@@ -100,7 +121,7 @@ async def test_get_model_registry(mock_current_user: TokenData, mock_studio_serv
 @pytest.mark.asyncio
 async def test_save_model_registry(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
     """Verify update model registry endpoint."""
-    dummy_registry = SystemConfigModelRegistry(id="sys_1234567890abcdef", models={})
+    dummy_registry = _make_dummy_registry("sys_1234567890abcdef")
     mock_studio_service.save_system_config.return_value = dummy_registry
     res = await save_model_registry(
         registry_id="sys_1234567890abcdef",
@@ -125,7 +146,7 @@ async def test_delete_model_registry(mock_current_user: TokenData, mock_studio_s
 @pytest.mark.asyncio
 async def test_clone_model_registry(mock_current_user: TokenData, mock_studio_service: AsyncMock) -> None:
     """Verify clone model registry endpoint."""
-    dummy_registry = SystemConfigModelRegistry(id="sys_a1b2c3d4e5f60718", models={})
+    dummy_registry = _make_dummy_registry("sys_a1b2c3d4e5f60718")
     mock_studio_service.clone_system_config.return_value = dummy_registry
     res = await clone_model_registry(
         registry_id="sys_1234567890abcdef", current_user=mock_current_user, studio_service=mock_studio_service

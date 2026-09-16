@@ -15,6 +15,7 @@ from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
     HistoricalContextMode,
     LaxHistoricalContextMode,
     LaxStepType,
@@ -220,7 +221,9 @@ class StepCreateDTO(V2CoreBase):
     allowed_mcp_tools: Annotated[list[str], Field(default_factory=list, description="Allowed MCP tools")] = Field(
         default_factory=list
     )
-    model_strategy: Annotated[str | None, Field(default=None, description="Cognitive strategy profile override")] = None
+    cognitive_tier: Annotated[
+        CognitiveTier, Field(default=CognitiveTier.FAST, description="Cognitive tier profile")
+    ] = CognitiveTier.FAST
     expected_inputs: Annotated[list[str], Field(default_factory=list, description="List of expected input keys")] = (
         Field(default_factory=list)
     )
@@ -627,5 +630,5 @@ class StepUpdateDTO(BaseDTO):
     post_hooks: Annotated[list[str] | None, Field(default=None)] = None
     safety: Annotated[Literal["safe", "unsafe"] | None, Field(default=None)] = None
     allowed_mcp_tools: Annotated[list[str] | None, Field(default=None)] = None
-    model_strategy: Annotated[str | None, Field(default=None)] = None
+    cognitive_tier: Annotated[CognitiveTier | None, Field(default=None)] = None
     expected_inputs: Annotated[list[str] | None, Field(default=None)] = None

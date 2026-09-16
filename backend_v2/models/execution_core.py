@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LLMProvider
 
 if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -35,6 +35,10 @@ class ExecutionMetadata(V2CoreBase):
     global_context_vars: Annotated[
         dict[str, Any] | None,
         Field(default=None, description="Global context variables for hooks."),
+    ] = None
+    provider_override: Annotated[
+        LLMProvider | None,
+        Field(default=None, description="Execution-level LLM provider override."),
     ] = None
 
 

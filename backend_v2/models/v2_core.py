@@ -25,13 +25,16 @@ from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
     ComponentType,
     DisplayScale,
     ExecutionStatus,
+    LaxCognitiveTier,
     LaxComponentType,
     LaxDisplayScale,
     LaxExecutionStatus,
     LaxHistoricalContextMode,
+    LaxLLMProvider,
     LaxPresetView,
     LaxSDUIComponentType,
     LaxSourcesDisplayMode,
@@ -39,6 +42,7 @@ from backend_v2.models.enums import (
     LaxSystemLocale,
     LaxTargetBlockType,
     LaxXaiExtensionType,
+    LLMProvider,
     PresetView,
     SourcesDisplayMode,
     StepType,
@@ -63,6 +67,7 @@ __all__ = [
     "BlockDataType",
     "ChatMessageDTO",
     "ChatHistoryDTO",
+    "CognitiveTier",
     "ComponentType",
     "ContrastivePairDTO",
     "DataDictionaryField",
@@ -86,6 +91,7 @@ __all__ = [
     "HydratedAtomDTO",
     "I18nText",
     "JobAcceptedDTO",
+    "LLMProvider",
     "MCPAuditTrace",
     "MatrixClaim",
     "MatrixRow",
@@ -420,6 +426,7 @@ class ProviderExtraParamsDTO(BaseModel):
     top_p: float | None = None
     top_k: int | None = None
     max_output_tokens: int | None = None
+    reasoning_effort: str | None = None
 
 
 class ModelProfile(V2CoreBase):
@@ -462,9 +469,23 @@ class SystemConfigModelRegistry(V2CoreBase):
     id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
-    models: dict[str, ModelProfile] = Field(
-        description="Dictionary mapping generic role names to specific ModelProfiles"
+    default_provider: LaxLLMProvider = Field(default=LLMProvider.GOOGLE, description="Default LLM provider")
+    tier_definitions: Annotated[dict[LaxLLMProvider, dict[LaxCognitiveTier, ModelProfile]], Field(strict=False)] = (
+        Field(description="Strongly typed matrix mapping providers and cognitive tiers to physical profiles")
     )
+
+    @model_validator(mode="after")
+    def validate_tier_completeness(self) -> Self:
+        """Enforces that every registered provider implements all four canonical CognitiveTiers."""
+        required_tiers = set(CognitiveTier)
+        for provider, tiers in self.tier_definitions.items():
+            missing = required_tiers - set(tiers.keys())
+            if missing:
+                missing_str = ", ".join(sorted(t.value for t in missing))
+                raise ValueError(
+                    f"Provider '{provider.value}' in model_registry is missing required cognitive tiers: {missing_str}"
+                )
+        return self
 
 
 class AllowedMCPTool(V2CoreBase):
@@ -563,12 +584,9 @@ class Step(V2CoreBase):
     allowed_mcp_tools: list[str] = Field(
         default_factory=list, description="List of allowed MCP tools for this step (e.g. ['mcp_tavily_search'])."
     )
-    model_strategy: str | None = Field(
-        default=None,
-        description=(
-            "Step-level override for cognitive strategy profile (e.g., 'fast'). "
-            "Takes precedence over workflow strategy."
-        ),
+    cognitive_tier: LaxCognitiveTier = Field(
+        default=CognitiveTier.FAST,
+        description="Step-level cognitive tier profile (e.g., 'fast', 'deep', 'reasoning').",
     )
     expected_inputs: list[str] = Field(
         default_factory=list,
@@ -591,8 +609,8 @@ class Step(V2CoreBase):
             The sanitized Step matching schema expectations.
         """
         if self.type == "llm":
-            if not self.model_strategy:
-                msg = f"LLM Step '{self.id}' must declare an explicit model_strategy (Zero-Fallback Rule)."
+            if not self.cognitive_tier or self.cognitive_tier not in CognitiveTier:
+                msg = f"LLM Step '{self.id}' must declare an explicit cognitive_tier (Zero-Fallback Rule)."
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)
             if not self.criteria_block_ids:
@@ -1564,6 +1582,9 @@ class ExecutionCreate(V2CoreBase):
     ]
     raw_inputs: WorkflowInputsIngress = Field(
         default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
+    )
+    provider_override: LLMProvider | None = Field(
+        default=None, description="Optional execution-level LLM provider override."
     )
 
     @model_validator(mode="before")

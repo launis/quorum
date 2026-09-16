@@ -250,7 +250,6 @@ def test_test_settings_factory_inherits_base_with_differential_delta() -> None:
     assert test_settings.tavily_max_results == 1
     assert test_settings.tda_linker_window_size == 2
     assert test_settings.tda_linker_overlap == 0
-    assert test_settings.strategy_aliases["reasoning"] == "fast"
 
     # Verify custom overrides take precedence
     custom = get_test_settings(llm_max_retries=3, matrix_sampling_limit=5)

@@ -288,7 +288,7 @@ class Settings(BaseSettings):
     ] = None
 
     # --- LLM Configuration ---
-    strategy_aliases: Annotated[dict[str, str], Field(description="Neutral map for strategy rerouting")] = {}
+
     default_model_strategy: Annotated[
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
@@ -691,18 +691,7 @@ class Settings(BaseSettings):
             if "ensemble_min_consensus" not in self.model_fields_set:
                 self.ensemble_min_consensus = 1
 
-            # Strategy Aliasing
-            if "strategy_aliases" not in self.model_fields_set:
-                self.strategy_aliases = {
-                    "strict_strategy": "fast",
-                    "evaluation_strategy": "fast",
-                    "test_strategy": "fast",
-                    "strict": "fast",
-                    "deep": "fast",
-                    "sdui": "fast",
-                    "synthesis": "fast",
-                    "reasoning": "fast",
-                }
+
 
         return self
 

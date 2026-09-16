@@ -18,6 +18,7 @@ __all__ = [
     "AuthenticityLevel",
     "BlockDataType",
     "BloomLevel",
+    "CognitiveTier",
     "ComponentType",
     "DisplayScale",
     "EnsembleJitter",
@@ -33,6 +34,7 @@ __all__ = [
     "HistoricalContextMode",
     "InteractionStrategy",
     "LLMCachingStrategy",
+    "LLMProvider",
     "LLMProviderName",
     "LabelKey",
     "LaxAbductiveConclusion",
@@ -40,6 +42,7 @@ __all__ = [
     "LaxAuthenticityLevel",
     "LaxBlockDataType",
     "LaxBloomLevel",
+    "LaxCognitiveTier",
     "LaxComponentType",
     "LaxDisplayScale",
     "LaxEthicalSeverity",
@@ -50,6 +53,7 @@ __all__ = [
     "LaxHistoricalContextMode",
     "LaxInteractionStrategy",
     "LaxLLMCachingStrategy",
+    "LaxLLMProvider",
     "LaxLLMProviderName",
     "LaxPlausibilityLevel",
     "LaxPresetView",
@@ -131,6 +135,25 @@ class ExecutionProfile(StrEnum):
     ONE_SHOT = "one_shot"
     ITERATIVE = "iterative"
     CONVERSATIONAL = "chat"
+
+
+class CognitiveTier(StrEnum):
+    """Canonical vendor-neutral cognitive evaluation tiers."""
+
+    FAST = "fast"
+    BALANCED = "balanced"
+    DEEP = "deep"
+    REASONING = "reasoning"
+
+
+class LLMProvider(StrEnum):
+    """Supported foundational model providers."""
+
+    GOOGLE = "google"
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    AZURE_OPENAI = "azure_openai"
+    LOCAL = "local"
 
 
 class EvaluationRunCount(int, Enum):
@@ -737,6 +760,8 @@ LaxLLMProviderName = Annotated[LLMProviderName, Field(strict=False)]
 LaxXaiExtensionType = Annotated[XaiExtensionType, Field(strict=False)]
 LaxAuthenticityLevel = Annotated[AuthenticityLevel, Field(strict=False)]
 LaxBloomLevel = Annotated[BloomLevel, Field(strict=False)]
+LaxCognitiveTier = Annotated[CognitiveTier, Field(strict=False)]
+LaxLLMProvider = Annotated[LLMProvider, Field(strict=False)]
 LaxStrategicDepth = Annotated[StrategicDepth, Field(strict=False)]
 LaxStepType = Annotated[StepType, Field(strict=False)]
 LaxVerificationResult = Annotated[VerificationResult, Field(strict=False)]

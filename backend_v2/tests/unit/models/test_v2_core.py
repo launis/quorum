@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
-from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.enums import CognitiveTier, ExecutionStatus, HistoricalContextMode
 from backend_v2.models.llm import TokenUsage
 from backend_v2.models.v2_core import (
     ALLOWED_INPUT_MODES,
@@ -123,7 +123,7 @@ def test_step_model_validation_rules() -> None:
         name=I18nText(translations={"en": "LLM Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type="llm",
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
         criteria_block_ids=["blk_11111111111111111111111111111111"],
@@ -138,7 +138,7 @@ def test_step_model_validation_rules() -> None:
             name=I18nText(translations={"en": "LLM Step"}),
             description=I18nText(translations={"en": "Desc"}),
             type="llm",
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
             role_block_id="blk_11111111111111111111111111111111",
             extraction_protocol_block_id="blk_11111111111111111111111111111111",
             criteria_block_ids=[],
@@ -152,7 +152,7 @@ def test_step_model_validation_rules() -> None:
             name=I18nText(translations={"en": "LLM Step"}),
             description=I18nText(translations={"en": "Desc"}),
             type="llm",
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
             role_block_id="blk_11111111111111111111111111111111",
             criteria_block_ids=["blk_11111111111111111111111111111111"],
         )
@@ -823,12 +823,12 @@ def test_step_type_llm_and_logic_validations() -> None:
         "criteria_block_ids": ["blk_11111111111111111111111111111111"],
     }
 
-    # LLM Step without model_strategy raises ValueError
-    with pytest.raises(ValidationError, match="explicit model_strategy"):
+    # LLM Step without valid cognitive_tier raises ValidationError
+    with pytest.raises(ValidationError, match="cognitive_tier"):
         Step(
             **valid_llm_base,
             type="llm",
-            model_strategy=None,
+            cognitive_tier=None,
         )
 
     # LLM Step without criteria_block_ids raises ValueError
@@ -836,7 +836,7 @@ def test_step_type_llm_and_logic_validations() -> None:
         Step(
             **{**valid_llm_base, "criteria_block_ids": []},
             type="llm",
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
         )
 
     # LLM Step without extraction_protocol_block_id raises ValueError
@@ -844,7 +844,7 @@ def test_step_type_llm_and_logic_validations() -> None:
         Step(
             **{**valid_llm_base, "extraction_protocol_block_id": None},
             type="llm",
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
         )
 
     # Logic Step without hook raises ValueError

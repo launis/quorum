@@ -2,7 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
 from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, Step, TDAAssertion
 
 
@@ -60,7 +60,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",
         criteria_block_ids=["some_block"],
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
     )
     assert valid_blueprint.slug == "task_bp_valid"
 
@@ -74,7 +74,7 @@ def test_step_validation_fails_on_empty_execution_logic() -> None:
             extraction_protocol_block_id="blk_573802341db9d68c",
             criteria_block_ids=[],
             pre_hooks=["some_hook"],
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
         )
     assert "must define at least one criteria_block_id." in str(exc_info.value)
 
