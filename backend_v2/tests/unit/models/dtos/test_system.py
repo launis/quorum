@@ -59,11 +59,27 @@ def test_system_config_dtos_and_discriminated_union() -> None:
         SystemSettingsDTO.model_validate({"type": "system_settings", "unknown": 123})
     assert "extra_forbidden" in str(exc.value) or "Extra inputs are not permitted" in str(exc.value)
 
+    from backend_v2.models.enums import CognitiveTier
+
     # 2. AnySystemConfig discriminated union validation
+    dummy_profile = ModelProfile(
+        model_name="gemini-2.5-flash",
+        provider="google",
+        tpm_limit=1000,
+        rpm_limit=10,
+        temperature=1.0,
+        max_tokens=2048,
+    )
     model_reg = SystemConfigModelRegistry(
         id="sys_1234567890abcdef",
+        name="Test Registry",
         type="model_registry",
-        models={"fast": ModelProfile(model_name="gemini-2.5-flash", provider="vertex")},
+        tier_definitions={
+            CognitiveTier.FAST: dummy_profile,
+            CognitiveTier.BALANCED: dummy_profile,
+            CognitiveTier.DEEP: dummy_profile,
+            CognitiveTier.REASONING: dummy_profile,
+        },
     )
     validated_union = AnySystemConfigAdapter.validate_python(model_reg.model_dump(mode="python"))
     assert isinstance(validated_union, SystemConfigModelRegistry)

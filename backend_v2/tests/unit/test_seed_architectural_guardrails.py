@@ -128,8 +128,7 @@ def test_model_strategies_are_bound_to_registry() -> None:
     valid_tiers: set[str] = set()
     for sys_cfg in data.get("system_config", []):
         if sys_cfg.get("type") == "model_registry" and "tier_definitions" in sys_cfg:
-            for tiers in sys_cfg["tier_definitions"].values():
-                valid_tiers.update(tiers.keys())
+            valid_tiers.update(sys_cfg["tier_definitions"].keys())
 
     assert valid_tiers, "Model registry must contain at least one cognitive tier"
 
@@ -360,20 +359,21 @@ def test_model_registry_calibrated_limits() -> None:
         data = json.load(f)
 
     sys_configs = data.get("system_config", [])
-    registry_conf = next((c for c in sys_configs if c.get("type") == "model_registry"), None)
-    assert registry_conf is not None, "SystemConfig with type 'model_registry' must exist in seed"
-
-    tier_defs = registry_conf.get("tier_definitions", {})
-    assert tier_defs, "Model registry tier_definitions dictionary must not be empty"
+    model_registries = [c for c in sys_configs if c.get("type") == "model_registry"]
+    assert model_registries, "SystemConfig with type 'model_registry' must exist in seed"
 
     required_tiers = {"deep", "fast", "balanced", "reasoning"}
-    for prov_name, tiers in tier_defs.items():
-        assert required_tiers.issubset(set(tiers.keys())), (
-            f"Provider '{prov_name}' must contain all required tiers: {required_tiers}"
+    for registry_conf in model_registries:
+        tier_defs = registry_conf.get("tier_definitions", {})
+        assert tier_defs, f"Model registry {registry_conf.get('id')} tier_definitions must not be empty"
+        assert required_tiers.issubset(set(tier_defs.keys())), (
+            f"Model registry '{registry_conf.get('name')}' must contain all required tiers: {required_tiers}"
         )
-        for tier_name, model_def in tiers.items():
+        for tier_name, model_def in tier_defs.items():
             max_tokens = model_def.get("max_tokens", 0)
-            assert max_tokens >= 32768, f"Provider '{prov_name}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
+            assert max_tokens >= 32768, (
+                f"Registry '{registry_conf.get('name')}' tier '{tier_name}' max_tokens {max_tokens} must be >= 32768"
+            )
 
     # Anti-happy-path negative verification
     def validate_strategy_limits(strat_dict: dict[str, Any]) -> bool:

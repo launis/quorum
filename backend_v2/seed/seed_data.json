@@ -2,129 +2,134 @@
   "system_config": [
     {
       "id": "sys_e26807f3bfa3454d",
+      "name": "Google Gemini Sovereign Stack",
       "type": "model_registry",
       "default_provider": "google",
       "tier_definitions": {
-        "google": {
-          "fast": {
-            "max_tokens": 32768,
-            "model_name": "gemini/gemini-3.8-flash",
-            "temperature": 0.1,
-            "thinking_budget_tokens": 0,
-            "supports_grounding": false,
-            "tpm_limit": 4000000,
-            "rpm_limit": 200,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "google",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {}
-          },
-          "balanced": {
-            "max_tokens": 65536,
-            "model_name": "gemini/gemini-3.8-flash",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 2048,
-            "supports_grounding": false,
-            "tpm_limit": 4000000,
-            "rpm_limit": 60,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "google",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {}
-          },
-          "deep": {
-            "max_tokens": 65536,
-            "model_name": "gemini/gemini-3.8-flash",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 4096,
-            "supports_grounding": true,
-            "tpm_limit": 4000000,
-            "rpm_limit": 60,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "google",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {}
-          },
-          "reasoning": {
-            "max_tokens": 65536,
-            "model_name": "gemini/gemini-3.8-flash",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 8192,
-            "supports_grounding": false,
-            "tpm_limit": 4000000,
-            "rpm_limit": 60,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "google",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {}
+        "fast": {
+          "max_tokens": 32768,
+          "model_name": "gemini/gemini-3.8-flash",
+          "temperature": 0.1,
+          "thinking_budget_tokens": 0,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 200,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "google",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
+        },
+        "balanced": {
+          "max_tokens": 65536,
+          "model_name": "gemini/gemini-3.8-flash",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 2048,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "google",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
+        },
+        "deep": {
+          "max_tokens": 65536,
+          "model_name": "gemini/gemini-3.8-flash",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 4096,
+          "supports_grounding": true,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "google",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
+        },
+        "reasoning": {
+          "max_tokens": 65536,
+          "model_name": "gemini/gemini-3.8-flash",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 8192,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "google",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
+        }
+      }
+    },
+    {
+      "id": "sys_6f8b1c4a2e0d49f1",
+      "name": "OpenAI O-Series Stack",
+      "type": "model_registry",
+      "default_provider": "openai",
+      "tier_definitions": {
+        "fast": {
+          "max_tokens": 32768,
+          "model_name": "openai/gpt-5.1",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 0,
+          "supports_grounding": false,
+          "tpm_limit": 1000000,
+          "rpm_limit": 500,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "openai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {}
+        },
+        "balanced": {
+          "max_tokens": 32768,
+          "model_name": "openai/gpt-5.1",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 2048,
+          "supports_grounding": false,
+          "tpm_limit": 1000000,
+          "rpm_limit": 500,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "openai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "reasoning_effort": "low"
           }
         },
-        "openai": {
-          "fast": {
-            "max_tokens": 32768,
-            "model_name": "openai/gpt-5.1",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 0,
-            "supports_grounding": false,
-            "tpm_limit": 1000000,
-            "rpm_limit": 500,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "openai",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {}
-          },
-          "balanced": {
-            "max_tokens": 32768,
-            "model_name": "openai/gpt-5.1",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 2048,
-            "supports_grounding": false,
-            "tpm_limit": 1000000,
-            "rpm_limit": 500,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "openai",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {
-              "reasoning_effort": "low"
-            }
-          },
-          "deep": {
-            "max_tokens": 32768,
-            "model_name": "openai/gpt-5.1",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 4096,
-            "supports_grounding": false,
-            "tpm_limit": 1000000,
-            "rpm_limit": 500,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "openai",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {
-              "reasoning_effort": "medium"
-            }
-          },
-          "reasoning": {
-            "max_tokens": 32768,
-            "model_name": "openai/gpt-5.1",
-            "temperature": 1.0,
-            "thinking_budget_tokens": 8192,
-            "supports_grounding": false,
-            "tpm_limit": 1000000,
-            "rpm_limit": 500,
-            "parsing_mode": "STRUCTURED_JSON",
-            "is_active": true,
-            "provider": "openai",
-            "caching_strategy": "prompt_caching",
-            "additional_params": {
-              "reasoning_effort": "high"
-            }
+        "deep": {
+          "max_tokens": 32768,
+          "model_name": "openai/gpt-5.1",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 4096,
+          "supports_grounding": false,
+          "tpm_limit": 1000000,
+          "rpm_limit": 500,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "openai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "reasoning_effort": "medium"
+          }
+        },
+        "reasoning": {
+          "max_tokens": 32768,
+          "model_name": "openai/gpt-5.1",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 8192,
+          "supports_grounding": false,
+          "tpm_limit": 1000000,
+          "rpm_limit": 500,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "openai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "reasoning_effort": "high"
           }
         }
       }
@@ -18140,6 +18145,7 @@
       "is_public": true,
       "default_profile_id": "prf_5d6e7f8091a2b3c4",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 50,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
@@ -18444,6 +18450,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_01b1d71000000001",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 50,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
@@ -18618,6 +18625,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_02b1d71000000002",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 50,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
@@ -18877,6 +18885,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_03b1d71000000003",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 70,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
@@ -19120,6 +19129,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_04b1d71000000004",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 50,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,
@@ -19336,6 +19346,7 @@
       "organization_id": "SYSTEM",
       "default_profile_id": "prf_05b1d71000000005",
       "mcp_gateway_id": "sys_8172bda70c8641c5",
+      "model_registry_id": "sys_e26807f3bfa3454d",
       "default_strictness_level": 50,
       "enable_contextual_overrides": true,
       "enable_semantic_smoothing": false,

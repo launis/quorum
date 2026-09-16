@@ -40,6 +40,10 @@ class ExecutionMetadata(V2CoreBase):
         LLMProvider | None,
         Field(default=None, description="Execution-level LLM provider override."),
     ] = None
+    model_registry_id: Annotated[
+        str | None,
+        Field(default=None, description="System config ID of the attached model registry."),
+    ] = None
 
 
 class ExecutionCoreFields(V2CoreBase):

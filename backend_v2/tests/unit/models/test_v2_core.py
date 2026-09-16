@@ -926,3 +926,126 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
         error_details=ErrorDetailsDTO(error_code="TIMEOUT", message="Timeout in worker."),
     )
     assert err_res.status == ExecutionStatus.SYSTEM_ERROR
+
+
+def test_system_config_model_registry_option_a_completeness() -> None:
+    """Test Option A SystemConfigModelRegistry flat tier definitions and completeness validator."""
+    from backend_v2.models.v2_core import SystemConfigModelRegistry
+
+    dummy_profile = ModelProfile(
+        model_name="gemini-3.8-flash",
+        provider="google",
+        tpm_limit=1000,
+        rpm_limit=10,
+        temperature=1.0,
+        max_tokens=2048,
+    )
+
+    # Valid Option A 4-tier stack
+    registry = SystemConfigModelRegistry(
+        id="sys_e26807f3bfa3454d",
+        name="Google Gemini Sovereign Stack",
+        tier_definitions={
+            CognitiveTier.FAST: dummy_profile,
+            CognitiveTier.BALANCED: dummy_profile,
+            CognitiveTier.DEEP: dummy_profile,
+            CognitiveTier.REASONING: dummy_profile,
+        },
+    )
+    assert registry.name == "Google Gemini Sovereign Stack"
+    assert len(registry.tier_definitions) == 4
+    assert registry.tier_definitions[CognitiveTier.FAST].model_name == "gemini-3.8-flash"
+
+    # Missing tier raises ValidationError
+    with pytest.raises(ValidationError, match="missing required cognitive tiers"):
+        SystemConfigModelRegistry(
+            id="sys_e26807f3bfa3454d",
+            name="Incomplete Stack",
+            tier_definitions={
+                CognitiveTier.FAST: dummy_profile,
+                CognitiveTier.BALANCED: dummy_profile,
+                CognitiveTier.DEEP: dummy_profile,
+            },
+        )
+
+
+def test_workflow_model_registry_id_binding() -> None:
+    """Test Workflow model_registry_id default and regex pattern validation."""
+    from backend_v2.models.enums import HistoricalContextMode
+    from backend_v2.models.v2_core import Workflow
+
+    # Default model_registry_id is sys_e26807f3bfa3454d
+    wf = Workflow(
+        id="wor_1234567890abcdef",
+        slug="test-workflow",
+        name="Test Workflow",
+        description="Description",
+        status="active",
+        version=1,
+        default_profile_id="prf_1234567890abcdef",
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+    )
+    assert wf.model_registry_id == "sys_e26807f3bfa3454d"
+
+    # Custom valid model_registry_id
+    wf_custom = Workflow(
+        id="wor_1234567890abcdef",
+        slug="test-workflow",
+        name="Test Workflow",
+        description="Description",
+        status="active",
+        version=1,
+        default_profile_id="prf_1234567890abcdef",
+        allowed_exports=["pdf"],
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_6f8b1c4a2e0d49f1",
+    )
+    assert wf_custom.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+
+    # Invalid pattern fails validation
+    with pytest.raises(ValidationError, match="String should match pattern"):
+        Workflow(
+            id="wor_1234567890abcdef",
+            slug="test-workflow",
+            name="Test Workflow",
+            description="Description",
+            status="active",
+            version=1,
+            default_profile_id="prf_1234567890abcdef",
+            allowed_exports=["pdf"],
+            historical_context_mode=HistoricalContextMode.DISABLED,
+            model_registry_id="invalid_id_format",
+        )
+
+
+def test_execution_create_and_dtos_model_registry_id() -> None:
+    """Test ExecutionCreate and Studio Workflow DTOs support model_registry_id."""
+    from backend_v2.models.dtos.studio import WorkflowCreateDTO, WorkflowUpdateDTO
+    from backend_v2.models.v2_core import ExecutionCreate
+
+    # ExecutionCreate with optional model_registry_id
+    ec = ExecutionCreate(
+        workflow_id="wor_1234567890abcdef",
+        target_locale="fi",
+        model_registry_id="sys_6f8b1c4a2e0d49f1",
+    )
+    assert ec.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+
+    ec_default = ExecutionCreate(
+        workflow_id="wor_1234567890abcdef",
+        target_locale="fi",
+    )
+    assert ec_default.model_registry_id is None
+
+    # WorkflowCreateDTO
+    wfc = WorkflowCreateDTO(
+        slug="new-flow",
+        name="New Flow",
+        model_registry_id="sys_6f8b1c4a2e0d49f1",
+    )
+    assert wfc.model_registry_id == "sys_6f8b1c4a2e0d49f1"
+
+    # WorkflowUpdateDTO
+    wfu = WorkflowUpdateDTO(model_registry_id="sys_6f8b1c4a2e0d49f1")
+    assert wfu.model_registry_id == "sys_6f8b1c4a2e0d49f1"

@@ -467,24 +467,24 @@ class SystemConfigModelRegistry(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True, title="model_registry")
 
     id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="System config ID")
+    name: str = Field(default="Default Model Registry", description="Human-readable title")
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
     default_provider: LaxLLMProvider = Field(default=LLMProvider.GOOGLE, description="Default LLM provider")
-    tier_definitions: Annotated[dict[LaxLLMProvider, dict[LaxCognitiveTier, ModelProfile]], Field(strict=False)] = (
-        Field(description="Strongly typed matrix mapping providers and cognitive tiers to physical profiles")
+    tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)] = Field(
+        description="Direct mapping of the four canonical cognitive tiers to physical profiles"
     )
 
     @model_validator(mode="after")
     def validate_tier_completeness(self) -> Self:
-        """Enforces that every registered provider implements all four canonical CognitiveTiers."""
+        """Enforces that the model registry implements all four canonical CognitiveTiers."""
         required_tiers = set(CognitiveTier)
-        for provider, tiers in self.tier_definitions.items():
-            missing = required_tiers - set(tiers.keys())
-            if missing:
-                missing_str = ", ".join(sorted(t.value for t in missing))
-                raise ValueError(
-                    f"Provider '{provider.value}' in model_registry is missing required cognitive tiers: {missing_str}"
-                )
+        missing = required_tiers - set(self.tier_definitions.keys())
+        if missing:
+            missing_str = ", ".join(sorted(t.value for t in missing))
+            raise ValueError(
+                f"Model registry '{self.name}' (id={self.id}) is missing required cognitive tiers: {missing_str}"
+            )
         return self
 
 
@@ -1395,6 +1395,11 @@ class Workflow(V2CoreBase):
         pattern=r"^sys_[a-fA-F0-9]{16,32}$",
         description="The system_config ID of the MCP gateways configuration attached to this workflow.",
     )
+    model_registry_id: str = Field(
+        default="sys_e26807f3bfa3454d",
+        pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$",
+        description="System config ID of the attached model registry",
+    )
     default_strictness_level: Annotated[
         int,
         Field(default=50, ge=0, le=100, description="Sovereign workflow strictness level (0-100 continuous)."),
@@ -1585,6 +1590,9 @@ class ExecutionCreate(V2CoreBase):
     )
     provider_override: LLMProvider | None = Field(
         default=None, description="Optional execution-level LLM provider override."
+    )
+    model_registry_id: str | None = Field(
+        default=None, description="Optional execution-level model registry stack override"
     )
 
     @model_validator(mode="before")

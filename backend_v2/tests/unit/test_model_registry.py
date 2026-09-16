@@ -31,14 +31,12 @@ def _make_dummy_registry(reg_id: str = "sys_1234567890abcdef") -> SystemConfigMo
         max_tokens=2048,
     )
     tier_defs = {
-        LLMProvider.GOOGLE: {
-            CognitiveTier.FAST: dummy_profile,
-            CognitiveTier.BALANCED: dummy_profile,
-            CognitiveTier.DEEP: dummy_profile,
-            CognitiveTier.REASONING: dummy_profile,
-        }
+        CognitiveTier.FAST: dummy_profile,
+        CognitiveTier.BALANCED: dummy_profile,
+        CognitiveTier.DEEP: dummy_profile,
+        CognitiveTier.REASONING: dummy_profile,
     }
-    return SystemConfigModelRegistry(id=reg_id, tier_definitions=tier_defs)
+    return SystemConfigModelRegistry(id=reg_id, name="Test Registry", tier_definitions=tier_defs)
 
 
 @pytest.fixture

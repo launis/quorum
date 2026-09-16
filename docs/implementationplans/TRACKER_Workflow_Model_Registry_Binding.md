@@ -19,7 +19,7 @@
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
-  - [ ] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
+  - [x] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
   - [ ] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
   - [ ] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
   - [ ] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
@@ -76,8 +76,8 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-01 | Flatten `SystemConfigModelRegistry.tier_definitions` to `dict[LaxCognitiveTier, ModelProfile]` with 4 canonical tiers and add human-readable `name` | Step 1 | [ ] |
-| REQ-02 | Add `Workflow.model_registry_id` with regex validation and update Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`, `ExecutionCreate`) | Step 1 | [ ] |
+| REQ-01 | Flatten `SystemConfigModelRegistry.tier_definitions` to `dict[LaxCognitiveTier, ModelProfile]` with 4 canonical tiers and add human-readable `name` | Step 1 | [x] |
+| REQ-02 | Add `Workflow.model_registry_id` with regex validation and update Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`, `ExecutionCreate`) | Step 1 | [x] |
 | REQ-03 | Update `ISystemRepository` and `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and upsert by ID | Step 2 | [ ] |
 | REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [ ] |
 | REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [ ] |
@@ -91,21 +91,20 @@
 
 # Session Handover Context
 ## Achieved
-- Successfully generated standalone plan tracker `docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md` for `IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md`.
-- Extracted 8 execution steps into 1:1 Requirements Traceability Matrix.
-- Populated Post-Implementation Hardening Gates with 14 production backend files and 6 production frontend files.
-- Preserved self-hydrating `<required_context_rules>` XML block.
+- Executed Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A`.
+- Flattened `SystemConfigModelRegistry.tier_definitions` to `Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)]` and enforced 4 canonical tiers completeness.
+- Added `name: str = Field(default="Default Model Registry", ...)` to `SystemConfigModelRegistry`.
+- Added `Workflow.model_registry_id` bound to `sys_e26807f3bfa3454d` with Opaque ID regex.
+- Added `ExecutionCreate.model_registry_id` and `ExecutionMetadata.model_registry_id`.
+- Added `WorkflowCreateDTO.model_registry_id` and `WorkflowUpdateDTO.model_registry_id`.
+- Synchronized `backend_v2/seed/seed_data.json` with Option A flat schema for Gemini and OpenAI stacks and stamped `model_registry_id` across all 6 workflows.
+- Successfully passed `backend_audit_loop.py backend_v2/models/v2_core.py --test` (100% PASS, 92% coverage, exit code 0).
 
 ## Learned
-- **Baseline State Snapshot**:
-  - `SystemConfigModelRegistry.tier_definitions` currently holds nested maps `dict[LLMProvider, dict[CognitiveTier, ModelProfile]]`.
-  - `ISystemRepository.get_model_registry()` ignores `id` parameter and always returns the first document matching `Filter("type", "==", "model_registry")`.
-  - `StudioDashboardView` Tab 6 crashes on flat tier definitions due to an obsolete fold loop.
-  - `StepBuilderView` leaks physical model names and vendor preview chips.
-  - `IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md` is fully researched with complete 5-Column Directives Table and ready for execution.
+- Pre-flight in-memory seeder dry-run validates `seed_data.json` against `SystemConfigUnion` and `Workflow`, confirming 100% two-phase seeder integrity.
+- `test_seed_architectural_guardrails.py` and `test_model_registry.py` fixtures required updating to flat `tier_definitions` to align with Option A schema.
 
 ## Remaining
-- Execute Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A`
 - Execute Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION`
 - Execute Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`
 - Execute Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`
