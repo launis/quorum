@@ -52,6 +52,7 @@ from backend_v2.models.dtos.trace import (
     TraceEventMetadataEnvelope,
 )
 from backend_v2.models.enums import (
+    CognitiveTier,
     ExecutionStatus,
     PresetView,
     RoleClassification,
@@ -1006,7 +1007,7 @@ async def generate_profile_synthesis_and_pdf_task(
             for m in raw_matrices
         ]
 
-        synthesis_model_strategy = "synthesis"
+        synthesis_tier = CognitiveTier.BALANCED
 
         t_exec_summary = None
         t_matrix_sections: list[tuple[str, Any]] = []
@@ -1053,7 +1054,11 @@ async def generate_profile_synthesis_and_pdf_task(
                         active_profile_dto.id,
                     )
 
-                client = await LLMClient.from_strategy(synthesis_model_strategy, repository=repo)
+                client = await LLMClient.from_tier(
+                    synthesis_tier,
+                    repository=repo,
+                    provider=execution.metadata.provider_override if execution.metadata else None,
+                )
 
                 matrix_context = ""
                 if matrices_to_explain:
@@ -1250,7 +1255,11 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
 
             if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
-                client = await LLMClient.from_strategy("strict", repository=repo)
+                client = await LLMClient.from_tier(
+                    CognitiveTier.FAST,
+                    repository=repo,
+                    provider=execution.metadata.provider_override if execution.metadata else None,
+                )
                 row_sys_prompt = f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                 row_lang_params = build_linguistic_parameters(source_language="Unknown", target_locale=accept_language)
@@ -1432,7 +1441,11 @@ async def generate_profile_synthesis_and_pdf_task(
                         total_word_count=int(total_word_count) if total_word_count is not None else None,
                     )
 
-                    client_var = await LLMClient.from_strategy("strict", repository=repo)
+                    client_var = await LLMClient.from_tier(
+                        CognitiveTier.DEEP,
+                        repository=repo,
+                        provider=execution.metadata.provider_override if execution.metadata else None,
+                    )
                     var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
                     var_lang_params = build_linguistic_parameters(

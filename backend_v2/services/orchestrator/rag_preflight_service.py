@@ -135,10 +135,10 @@ class RAGPreflightService:
                 status_code=500,
             )
 
-        strategy_name = step_def.model_strategy
-        if not strategy_name:
+        cognitive_tier = step_def.cognitive_tier
+        if not cognitive_tier:
             raise AppException(
-                message=f"Blueprint {target_step.task_blueprint} has no model_strategy.",
+                message=f"Blueprint {target_step.task_blueprint} has no cognitive_tier.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 status_code=500,
             )
@@ -164,7 +164,12 @@ class RAGPreflightService:
             await emit_progress("Input data sparse/empty. Preflight extraction skipped.", 100)
             return GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True).model_dump(mode="json")
 
-        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
+        bound_client = await LLMClient.from_tier(
+            cognitive_tier,
+            self.system_repo,
+            provider=exec_record.metadata.provider_override if exec_record.metadata else None,
+            pipeline_name="chunk_worker",
+        )
         llm_executor = LLMTaskExecutor(self.compiler)
         atomizer = TwoPassAtomizer(llm_executor)
 

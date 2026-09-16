@@ -22,7 +22,7 @@ from backend_v2.models.domain.mcp import (
     MCPToolLoopResult,
 )
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import SourceSufficiencyThreshold
+from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
 from backend_v2.models.prompts import (
     CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
@@ -234,8 +234,8 @@ async def execute_tool_loop[T: BaseModel](
         fast_client = llm_client
         if repository is not None:
             try:
-                fast_client = await LLMClient.from_strategy(
-                    "fast", repository=repository, pipeline_name="mcp_tool_loop"
+                fast_client = await LLMClient.from_tier(
+                    CognitiveTier.FAST, repository=repository, pipeline_name="mcp_tool_loop"
                 )
             except (AppException, ValueError, RuntimeError, TypeError, OSError) as e:
                 logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)

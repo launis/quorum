@@ -359,3 +359,10 @@ async def test_client_run_structured_task_cache_miss_fallback(mock_create_provid
         res, _ = await client.run_structured_task(messages=messages, response_model=DummyStrictModel)
         assert res.step_4_final_score == 1
         assert mock_provider.generate.call_count == 2
+
+
+from backend_v2.tests.unit.llm.test_llm_client_tiers import (
+    TestLLMClientCognitiveTiers as TestLLMClientCognitiveTiers,
+    TestLLMClientTiersFailFast as TestLLMClientTiersFailFast,
+    mock_repository as mock_repository,
+)

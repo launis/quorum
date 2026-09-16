@@ -19,7 +19,7 @@ from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.enums import PIPELINE_REGISTRY, ExecutionProfile
+from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import SystemConfigModelRegistry
@@ -57,6 +57,10 @@ class LLMClient:
     def model_name(self) -> str:
         return self._config.model_name if self._config else "unknown"
 
+    @property
+    def config(self) -> LLMProviderConfig | None:
+        return self._config
+
     def _build_structured_schema(
         self,
         response_model: type[BaseModel],
@@ -82,18 +86,20 @@ class LLMClient:
         return adapter_schema
 
     @classmethod
-    async def from_strategy(
+    async def from_tier(
         cls,
-        strategy_name: str,
+        tier: CognitiveTier,
         repository: Any = None,
+        provider: LLMProvider | None = None,
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
     ) -> Self:
-        """Factory: Create an LLMClient strictly bound to a database-defined Strategy.
+        """Factory: Create an LLMClient strictly bound to a database-defined CognitiveTier and Provider.
 
         Args:
-            strategy_name: The name of the strategy (e.g. 'fast', 'SearchHook', 'cognitive-audit').
-            repository: Optional DB repository instance.
+            tier: Canonical CognitiveTier (FAST, BALANCED, DEEP, REASONING).
+            repository: Required DB repository instance.
+            provider: Optional explicit provider override. If None, uses registry.default_provider.
             execution_profile: Optional intent defining if the cache should be bypassed (e.g. ONE_SHOT).
             pipeline_name: Optional explicit pipeline context to look up configuration for.
 
@@ -101,11 +107,10 @@ class LLMClient:
             A configured client instance ready for execution.
 
         Raises:
-            ConfigurationError (ErrorCodes.CONFIGURATION_ERROR): If the Strategy does not exist or is misconfigured.
+            ConfigurationError (ErrorCodes.CONFIGURATION_ERROR): If the tier or provider is missing or misconfigured.
         """
         if not repository:
-            # Fail Fast: Enforce strict dependency injection (Zero-Fallback)
-            raise ConfigurationError("Repository dependency must be provided to LLMClient.from_strategy.")
+            raise ConfigurationError("Repository dependency must be provided to LLMClient.from_tier.")
 
         # 0. Load Execution Pipelines from static registry
         try:
@@ -113,18 +118,8 @@ class LLMClient:
                 pipeline = PIPELINE_REGISTRY[pipeline_name]
                 if execution_profile is None and pipeline.profile:
                     execution_profile = ExecutionProfile(pipeline.profile.value.lower())
-                if pipeline.default_strategy:
-                    logger.info(
-                        "[LLMClient] Routed pipeline '%s' to strategy '%s'", pipeline_name, pipeline.default_strategy
-                    )
-                    strategy_name = pipeline.default_strategy
         except (KeyError, ValueError, AttributeError) as e:
             logger.warning("[LLMClient] Execution pipelines lookup failed: %s", e)
-
-        # 0.5 Apply generic system strategy aliases (if any exist in config)
-        aliases = get_settings().strategy_aliases
-        if strategy_name in aliases:
-            strategy_name = aliases[strategy_name]
 
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
@@ -144,44 +139,44 @@ class LLMClient:
             )
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}) from e
 
-        if not registry or not registry.models:
+        if not registry or not registry.tier_definitions:
             raise ConfigurationError(f"ModelRegistry is severely corrupted or empty: {registry}")
 
-        # 3. Locate Strategy
-        target_strategy = registry.models.get(strategy_name)
+        # 3. Resolve Provider and Tier
+        target_provider = provider or registry.default_provider
+        if target_provider not in registry.tier_definitions:
+            raise ConfigurationError(
+                f"Provider '{target_provider}' not found in registry tier_definitions.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
 
-        # Resolve aliases if structured as string
-        visited = {strategy_name}
-        while isinstance(target_strategy, str):
-            if target_strategy in visited:
-                raise ConfigurationError(f"Circular alias '{target_strategy}' in model registry.")
-            if target_strategy not in registry.models:
-                raise ConfigurationError(f"Alias '{target_strategy}' not found in registry.")
-            visited.add(target_strategy)
-            target_strategy = registry.models[target_strategy]
+        provider_tiers = registry.tier_definitions[target_provider]
+        if tier not in provider_tiers:
+            raise ConfigurationError(
+                f"CognitiveTier '{tier}' not found for provider '{target_provider}' in registry tier_definitions.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
 
-        if not target_strategy:
-            raise ConfigurationError(f"Strategy '{strategy_name}' not found in registry.")
-
-        target_provider = target_strategy.provider
+        target_strategy = provider_tiers[tier]
+        target_provider_type = target_strategy.provider
         target_model_name = target_strategy.model_name
         target_rpm_limit = target_strategy.rpm_limit
 
         # 4. Construct Provider Config — Fail-Fast: All values MUST come from Model Registry
         if target_strategy.tpm_limit is None or target_rpm_limit is None:
             raise ConfigurationError(
-                f"Strict Mode: Strategy '{strategy_name}' is missing required 'tpm_limit' "
+                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'tpm_limit' "
                 "or 'rpm_limit' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.temperature is None:
             raise ConfigurationError(
-                f"Strict Mode: Strategy '{strategy_name}' is missing required 'temperature' in Model Registry.",
+                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'temperature' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
         if target_strategy.max_tokens is None:
             raise ConfigurationError(
-                f"Strict Mode: Strategy '{strategy_name}' is missing required 'max_tokens' in Model Registry.",
+                f"Strict Mode: Tier '{tier}' for provider '{target_provider}' is missing required 'max_tokens' in Model Registry.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
@@ -191,13 +186,14 @@ class LLMClient:
             if execution_profile == ExecutionProfile.ONE_SHOT:
                 final_caching_strategy = "none"
                 logger.info(
-                    "[LLMClient] ExecutionProfile.ONE_SHOT activated: Context Caching explicitly disabled for %s.",
-                    strategy_name,
+                    "[LLMClient] ExecutionProfile.ONE_SHOT activated: Context Caching explicitly disabled for %s/%s.",
+                    target_provider,
+                    tier,
                 )
 
         provider_config = LLMProviderConfig(
             id=f"prv_{uuid.uuid4().hex}",
-            provider=target_provider,
+            provider=target_provider_type,
             model_name=target_model_name,
             api_key=target_strategy.api_key,
             temperature=target_strategy.temperature,
@@ -215,6 +211,29 @@ class LLMClient:
         )
 
         return cls(config=provider_config)
+
+    @classmethod
+    async def from_strategy(
+        cls,
+        strategy_name: str,
+        repository: Any = None,
+        execution_profile: ExecutionProfile | None = None,
+        pipeline_name: str | None = None,
+    ) -> Self:
+        """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier."""
+        try:
+            tier = CognitiveTier(strategy_name.lower())
+        except ValueError as e:
+            raise ConfigurationError(
+                f"Unknown strategy or tier '{strategy_name}'. Must be a canonical CognitiveTier.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            ) from e
+        return await cls.from_tier(
+            tier=tier,
+            repository=repository,
+            execution_profile=execution_profile,
+            pipeline_name=pipeline_name,
+        )
 
     async def run_structured_task[T: BaseModel](
         self,

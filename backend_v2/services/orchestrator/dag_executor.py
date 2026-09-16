@@ -273,7 +273,7 @@ class NodeExecutor:
                 output_profile_id=output_profile_id,
                 metadata=metadata,
                 expected_inputs=expected_inputs,
-                model_strategy=step_def.model_strategy,
+                cognitive_tier=step_def.cognitive_tier,
                 strictness_level=strictness_level,
                 global_context_vars=resolved_global_vars,
                 context_variables=context_variables or {},

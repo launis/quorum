@@ -582,6 +582,7 @@ class ExecutionService:
             metadata=ExecutionMetadata(
                 matrix_sampling_strategy=payload.matrix_sampling_strategy,
                 workflow_version=workflow.version,
+                provider_override=payload.provider_override,
             ),
             created_by=initiator.id,
             organization_id=initiator.organization_id,
@@ -598,6 +599,7 @@ class ExecutionService:
             organization_id=initiator.organization_id,
             created_by=initiator.id,
             metadata=initial_record.metadata,
+            provider_override=payload.provider_override,
         )
         await self.exec_repo.create_execution(create_dto)
 

@@ -23,7 +23,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
-from backend_v2.models.enums import StrictnessAnchor
+from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
@@ -57,7 +57,7 @@ class StrategyContext(BaseModel):
     output_profile_id: str | None = None
     metadata: ExecutionMetadata
     expected_inputs: list[ExpectedInput] | None = None
-    model_strategy: str | None = None
+    cognitive_tier: CognitiveTier = CognitiveTier.FAST
     strictness_level: int = StrictnessAnchor.STANDARD.value
     global_context_vars: dict[str, Any] = Field(default_factory=dict)
     context_variables: dict[str, Any] = Field(default_factory=dict)

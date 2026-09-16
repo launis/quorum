@@ -566,18 +566,23 @@ class LLMNodeStrategy(NodeStrategy):
             )
             dynamic_schema = global_schema
 
-        strategy_name = context.model_strategy
-        if not strategy_name:
+        cognitive_tier = context.cognitive_tier
+        if not cognitive_tier:
             logger.error(
-                "Step has no model_strategy defined. Zero fallbacks allowed.",
+                "Step has no cognitive_tier defined. Zero fallbacks allowed.",
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
             )
             raise AppException(
-                message=f"Step {step.id} has no model_strategy defined (Fail-Fast: No fallbacks allowed).",
+                message=f"Step {step.id} has no cognitive_tier defined (Fail-Fast: No fallbacks allowed).",
                 status_code=500,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
-        bound_client = await LLMClient.from_strategy(strategy_name, self.system_repo, pipeline_name="chunk_worker")
+        bound_client = await LLMClient.from_tier(
+            cognitive_tier,
+            self.system_repo,
+            provider=context.metadata.provider_override,
+            pipeline_name="chunk_worker",
+        )
 
         MAX_RETRIES = get_settings().llm_max_retries
         retry_count = 0

@@ -20,7 +20,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
-from backend_v2.models.enums import EntityPrefix, HistoricalContextMode, StepType
+from backend_v2.models.enums import CognitiveTier, EntityPrefix, HistoricalContextMode, StepType
 from backend_v2.models.v2_core import (
     I18nText,
     Step,
@@ -583,7 +583,7 @@ class StudioWorkflowService:
             post_hooks=[],
             safety="safe",
             allowed_mcp_tools=[],
-            model_strategy="fast",
+            cognitive_tier=CognitiveTier.FAST,
             organization_id=target_org,
         )
         return await self.save_step(initiator, new_id, draft)
