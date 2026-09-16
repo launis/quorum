@@ -1,5 +1,7 @@
 """Base execution strategy abstractions and context wrappers for orchestration."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -31,6 +33,8 @@ from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
 from backend_v2.services.usage_service import UsageService
 
+__all__ = ["NodeStrategy", "StrategyContext", "StrategyDependencies"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -42,13 +46,16 @@ class StrategyContext(BaseModel):
     Attributes:
         execution_id: ID of the parent execution.
         workflow_id: ID of the parent workflow.
-        metadata: Execution metadata dictionary.
+        target_locale: Target locale string.
+        output_profile_id: Optional target output profile ID.
+        metadata: Execution metadata container.
         expected_inputs: Optional expected inputs definition.
-        model_strategy: Optional strategy profile.
+        cognitive_tier: Cognitive tier determining model profile resolution.
         strictness_level: Int representing strictness level.
         global_context_vars: Global context variables.
         context_variables: Local context variables.
         prompt_blocks: Hydrated prompt blocks for execution.
+        model_registry_id: Optional sovereign model registry ID binding.
     """
 
     execution_id: str
@@ -203,7 +210,11 @@ class NodeStrategy(ABC):
         is_quota_safe = await usage_service.check_quota(org_id)
         if not is_quota_safe:
             msg = f"Organization '{org_id}' ran out of quota mid-execution."
-            logger.warning("[Worker Cut-off] Circuit Breaker Tripped: %s", msg)
+            logger.error(
+                "[NodeStrategy] %s: Circuit Breaker Tripped - %s",
+                ErrorCodes.RATE_LIMIT_EXCEEDED.name,
+                msg,
+            )
             raise AppException(
                 message=msg,
                 status_code=402,
