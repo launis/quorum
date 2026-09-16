@@ -194,7 +194,7 @@ class TestLLMClientTiersFailFast:
         self,
         mock_repository: AsyncMock,
     ) -> None:
-        """ISTQB Negative Test: missing tier in provider definition raises ConfigurationError during schema validation."""
+        """Assert missing tier in provider definition raises ConfigurationError."""
         seed_registry = _get_seed_model_registry()
         # Create a modified registry where REASONING tier was deleted from google
         corrupted_registry = json.loads(json.dumps(seed_registry))
