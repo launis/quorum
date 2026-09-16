@@ -562,6 +562,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'output_profiles',
         'default_profile_id',
         'mcp_gateway_id',
+        'model_registry_id',
         'default_strictness_level',
         'security_penalty',
         'post_hoc_penalty',
@@ -612,6 +613,10 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
       mcpGatewayId: $checkedConvert(
         'mcp_gateway_id',
         (v) => v as String? ?? "sys_8172bda70c8641c5",
+      ),
+      modelRegistryId: $checkedConvert(
+        'model_registry_id',
+        (v) => v as String? ?? "sys_e26807f3bfa3454d",
       ),
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
@@ -680,6 +685,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'outputProfiles': 'output_profiles',
     'defaultProfileId': 'default_profile_id',
     'mcpGatewayId': 'mcp_gateway_id',
+    'modelRegistryId': 'model_registry_id',
     'defaultStrictnessLevel': 'default_strictness_level',
     'securityPenalty': 'security_penalty',
     'postHocPenalty': 'post_hoc_penalty',
@@ -708,6 +714,7 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   ),
   'default_profile_id': instance.defaultProfileId,
   'mcp_gateway_id': instance.mcpGatewayId,
+  'model_registry_id': instance.modelRegistryId,
   'default_strictness_level': instance.defaultStrictnessLevel,
   'security_penalty': instance.securityPenalty,
   'post_hoc_penalty': instance.postHocPenalty,

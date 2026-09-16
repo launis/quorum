@@ -92,7 +92,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    @JsonKey(name: 'cognitive_tier') @Default(CognitiveTier.fast) CognitiveTier cognitiveTier,
+    @JsonKey(name: 'cognitive_tier')
+    @Default(CognitiveTier.fast)
+    CognitiveTier cognitiveTier,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
@@ -115,7 +117,9 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    @JsonKey(name: 'cognitive_tier') @Default(CognitiveTier.fast) CognitiveTier cognitiveTier,
+    @JsonKey(name: 'cognitive_tier')
+    @Default(CognitiveTier.fast)
+    CognitiveTier cognitiveTier,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
@@ -144,6 +148,9 @@ abstract class Workflow with _$Workflow {
     @JsonKey(name: 'mcp_gateway_id')
     @Default("sys_8172bda70c8641c5")
     String? mcpGatewayId,
+    @JsonKey(name: 'model_registry_id')
+    @Default("sys_e26807f3bfa3454d")
+    String modelRegistryId,
     @JsonKey(name: 'default_strictness_level')
     @Default(50)
     int defaultStrictnessLevel,

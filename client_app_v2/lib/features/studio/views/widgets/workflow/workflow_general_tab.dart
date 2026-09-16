@@ -5,6 +5,7 @@ import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
 import '../../../controllers/output_profile_controller.dart';
 import '../../../controllers/mcp_gateways_controller.dart';
+import '../../../controllers/model_registry_controller.dart';
 
 /// **WorkflowGeneralTab**
 ///
@@ -218,12 +219,18 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                         final gateways = mcpGatewaysAsync.value ?? [];
                         final currentGatewayId = workflow.mcpGatewayId;
+                        final hasCurrentGw =
+                            currentGatewayId == null ||
+                            gateways.any((gw) => gw['id'] == currentGatewayId);
+                        final safeGatewayId = hasCurrentGw
+                            ? currentGatewayId
+                            : null;
 
                         return DropdownButtonFormField<String?>(
                           key: ValueKey(
-                            'mcp_gw_${gateways.length}_$currentGatewayId',
+                            'mcp_gw_${gateways.length}_$safeGatewayId',
                           ),
-                          initialValue: currentGatewayId,
+                          initialValue: safeGatewayId,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowMcpGateway,
                             border: const OutlineInputBorder(),
@@ -246,6 +253,61 @@ class WorkflowGeneralTab extends ConsumerWidget {
                           ],
                           onChanged: (val) {
                             onChanged(workflow.copyWith(mcpGatewayId: val));
+                          },
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    Builder(
+                      builder: (context) {
+                        final registriesAsync = ref.watch(
+                          modelRegistryControllerProvider,
+                        );
+                        final registries = registriesAsync.value ?? [];
+                        final currentRegistryId = workflow.modelRegistryId;
+
+                        final hasCurrent = registries.any(
+                          (r) => r.id == currentRegistryId,
+                        );
+
+                        return DropdownButtonFormField<String>(
+                          key: ValueKey(
+                            'model_registry_${registries.length}_$currentRegistryId',
+                          ),
+                          initialValue: hasCurrent
+                              ? currentRegistryId
+                              : (registries.isNotEmpty
+                                    ? registries.first.id
+                                    : currentRegistryId),
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: l10n.studioWorkflowModelRegistry,
+                            helperText:
+                                l10n.studioWorkflowModelRegistrySubtitle,
+                            border: const OutlineInputBorder(),
+                            isDense: true,
+                          ),
+                          items: [
+                            if (!hasCurrent && currentRegistryId.isNotEmpty)
+                              DropdownMenuItem<String>(
+                                value: currentRegistryId,
+                                child: Text(currentRegistryId),
+                              ),
+                            ...registries.map((r) {
+                              final name = r.name.isNotEmpty ? r.name : r.id;
+                              final provider = r.defaultProvider.toUpperCase();
+                              return DropdownMenuItem<String>(
+                                value: r.id,
+                                child: Text('$name ($provider)'),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              onChanged(
+                                workflow.copyWith(modelRegistryId: val),
+                              );
+                            }
                           },
                         );
                       },
