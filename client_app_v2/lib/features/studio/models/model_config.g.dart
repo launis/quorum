@@ -6,37 +6,65 @@ part of 'model_config.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) =>
-    $checkedCreate('_ModelConfig', json, ($checkedConvert) {
-      $checkKeys(json, allowedKeys: const ['id', 'slug', 'type', 'models']);
-      final val = _ModelConfig(
-        id: $checkedConvert(
-          'id',
-          (v) => const StrictOpaqueIdConverter().fromJson(v as String),
-        ),
-        slug: $checkedConvert('slug', (v) => v as String?),
-        type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
-        models: $checkedConvert(
-          'models',
-          (v) =>
-              (v as Map<String, dynamic>?)?.map(
-                (k, e) => MapEntry(
-                  k,
-                  LlmModelConfig.fromJson(e as Map<String, dynamic>),
+_ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
+  '_ModelConfig',
+  json,
+  ($checkedConvert) {
+    $checkKeys(
+      json,
+      allowedKeys: const [
+        'id',
+        'slug',
+        'type',
+        'default_provider',
+        'tier_definitions',
+      ],
+    );
+    final val = _ModelConfig(
+      id: $checkedConvert(
+        'id',
+        (v) => const StrictOpaqueIdConverter().fromJson(v as String),
+      ),
+      slug: $checkedConvert('slug', (v) => v as String?),
+      type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
+      defaultProvider: $checkedConvert(
+        'default_provider',
+        (v) => v as String? ?? 'google',
+      ),
+      tierDefinitions: $checkedConvert(
+        'tier_definitions',
+        (v) =>
+            (v as Map<String, dynamic>?)?.map(
+              (k, e) => MapEntry(
+                k,
+                (e as Map<String, dynamic>).map(
+                  (k, e) => MapEntry(
+                    k,
+                    LlmModelConfig.fromJson(e as Map<String, dynamic>),
+                  ),
                 ),
-              ) ??
-              const {},
-        ),
-      );
-      return val;
-    });
+              ),
+            ) ??
+            const {},
+      ),
+    );
+    return val;
+  },
+  fieldKeyMap: const {
+    'defaultProvider': 'default_provider',
+    'tierDefinitions': 'tier_definitions',
+  },
+);
 
 Map<String, dynamic> _$ModelConfigToJson(_ModelConfig instance) =>
     <String, dynamic>{
       'id': const StrictOpaqueIdConverter().toJson(instance.id),
       'slug': instance.slug,
       'type': instance.type,
-      'models': instance.models.map((k, e) => MapEntry(k, e.toJson())),
+      'default_provider': instance.defaultProvider,
+      'tier_definitions': instance.tierDefinitions.map(
+        (k, e) => MapEntry(k, e.map((k, e) => MapEntry(k, e.toJson()))),
+      ),
     };
 
 _LlmModelConfig _$LlmModelConfigFromJson(
@@ -65,6 +93,7 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'api_key',
         'caching_strategy',
         'thinking_budget_tokens',
+        'reasoning_effort',
         'additional_params',
       ],
     );
@@ -105,6 +134,7 @@ _LlmModelConfig _$LlmModelConfigFromJson(
         'thinking_budget_tokens',
         (v) => (v as num?)?.toInt(),
       ),
+      reasoningEffort: $checkedConvert('reasoning_effort', (v) => v as String?),
       additionalParams: $checkedConvert(
         'additional_params',
         (v) => v as Map<String, dynamic>? ?? const {},
@@ -128,6 +158,7 @@ _LlmModelConfig _$LlmModelConfigFromJson(
     'apiKey': 'api_key',
     'cachingStrategy': 'caching_strategy',
     'thinkingBudgetTokens': 'thinking_budget_tokens',
+    'reasoningEffort': 'reasoning_effort',
     'additionalParams': 'additional_params',
   },
 );
@@ -151,5 +182,6 @@ Map<String, dynamic> _$LlmModelConfigToJson(_LlmModelConfig instance) =>
       'api_key': instance.apiKey,
       'caching_strategy': instance.cachingStrategy,
       'thinking_budget_tokens': instance.thinkingBudgetTokens,
+      'reasoning_effort': instance.reasoningEffort,
       'additional_params': instance.additionalParams,
     };

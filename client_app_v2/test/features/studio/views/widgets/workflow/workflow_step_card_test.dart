@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/views/widgets/workflow/workflow_step_card.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -33,7 +34,7 @@ void main() {
               'fi': 'Johtamisen asiantuntija',
             },
           ),
-          modelStrategy: 'fast',
+          cognitiveTier: CognitiveTier.fast,
           isSystemCore: false,
         ),
         const NodeStrategy.llm(
@@ -45,7 +46,7 @@ void main() {
               'fi': 'Strategia-analyytikko',
             },
           ),
-          modelStrategy: 'fast',
+          cognitiveTier: CognitiveTier.fast,
           isSystemCore: false,
         ),
         const NodeStrategy.logic(

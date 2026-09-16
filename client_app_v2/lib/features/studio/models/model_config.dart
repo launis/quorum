@@ -13,7 +13,10 @@ abstract class ModelConfig with _$ModelConfig {
     @StrictOpaqueIdConverter() required String id,
     String? slug,
     @Default('model_registry') String type,
-    @Default({}) Map<String, LlmModelConfig> models,
+    @JsonKey(name: 'default_provider') @Default('google') String defaultProvider,
+    @JsonKey(name: 'tier_definitions')
+    @Default({})
+    Map<String, Map<String, LlmModelConfig>> tierDefinitions,
   }) = _ModelConfig;
 
   factory ModelConfig.fromJson(Map<String, dynamic> json) =>
@@ -41,6 +44,7 @@ abstract class LlmModelConfig with _$LlmModelConfig {
     @JsonKey(name: 'api_key') String? apiKey,
     @JsonKey(name: 'caching_strategy') String? cachingStrategy,
     @JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,
+    @JsonKey(name: 'reasoning_effort') String? reasoningEffort,
     @JsonKey(name: 'additional_params')
     @Default({})
     Map<String, dynamic> additionalParams,

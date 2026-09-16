@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ModelConfig {
 
-@StrictOpaqueIdConverter() String get id; String? get slug; String get type; Map<String, LlmModelConfig> get models;
+@StrictOpaqueIdConverter() String get id; String? get slug; String get type;@JsonKey(name: 'default_provider') String get defaultProvider;@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> get tierDefinitions;
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ModelConfigCopyWith<ModelConfig> get copyWith => _$ModelConfigCopyWithImpl<Mode
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other.models, models));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other.tierDefinitions, tierDefinitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,type,const DeepCollectionEquality().hash(models));
+int get hashCode => Object.hash(runtimeType,id,slug,type,defaultProvider,const DeepCollectionEquality().hash(tierDefinitions));
 
 @override
 String toString() {
-  return 'ModelConfig(id: $id, slug: $slug, type: $type, models: $models)';
+  return 'ModelConfig(id: $id, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ModelConfigCopyWith<$Res>  {
   factory $ModelConfigCopyWith(ModelConfig value, $Res Function(ModelConfig) _then) = _$ModelConfigCopyWithImpl;
 @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String? slug, String type, Map<String, LlmModelConfig> models
+@StrictOpaqueIdConverter() String id, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> tierDefinitions
 });
 
 
@@ -65,13 +65,14 @@ class _$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? models = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String,models: null == models ? _self.models : models // ignore: cast_nullable_to_non_nullable
-as Map<String, LlmModelConfig>,
+as String,defaultProvider: null == defaultProvider ? _self.defaultProvider : defaultProvider // ignore: cast_nullable_to_non_nullable
+as String,tierDefinitions: null == tierDefinitions ? _self.tierDefinitions : tierDefinitions // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, LlmModelConfig>>,
   ));
 }
 
@@ -156,10 +157,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
-return $default(_that.id,_that.slug,_that.type,_that.models);case _:
+return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   return orElse();
 
 }
@@ -177,10 +178,10 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig():
-return $default(_that.id,_that.slug,_that.type,_that.models);case _:
+return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -197,10 +198,10 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type,  Map<String, LlmModelConfig> models)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@StrictOpaqueIdConverter()  String id,  String? slug,  String type, @JsonKey(name: 'default_provider')  String defaultProvider, @JsonKey(name: 'tier_definitions')  Map<String, Map<String, LlmModelConfig>> tierDefinitions)?  $default,) {final _that = this;
 switch (_that) {
 case _ModelConfig() when $default != null:
-return $default(_that.id,_that.slug,_that.type,_that.models);case _:
+return $default(_that.id,_that.slug,_that.type,_that.defaultProvider,_that.tierDefinitions);case _:
   return null;
 
 }
@@ -212,17 +213,18 @@ return $default(_that.id,_that.slug,_that.type,_that.models);case _:
 @JsonSerializable()
 
 class _ModelConfig implements ModelConfig {
-  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.slug, this.type = 'model_registry', final  Map<String, LlmModelConfig> models = const {}}): _models = models;
+  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.slug, this.type = 'model_registry', @JsonKey(name: 'default_provider') this.defaultProvider = 'google', @JsonKey(name: 'tier_definitions') final  Map<String, Map<String, LlmModelConfig>> tierDefinitions = const {}}): _tierDefinitions = tierDefinitions;
   factory _ModelConfig.fromJson(Map<String, dynamic> json) => _$ModelConfigFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;
 @override final  String? slug;
 @override@JsonKey() final  String type;
- final  Map<String, LlmModelConfig> _models;
-@override@JsonKey() Map<String, LlmModelConfig> get models {
-  if (_models is EqualUnmodifiableMapView) return _models;
+@override@JsonKey(name: 'default_provider') final  String defaultProvider;
+ final  Map<String, Map<String, LlmModelConfig>> _tierDefinitions;
+@override@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> get tierDefinitions {
+  if (_tierDefinitions is EqualUnmodifiableMapView) return _tierDefinitions;
   // ignore: implicit_dynamic_type
-  return EqualUnmodifiableMapView(_models);
+  return EqualUnmodifiableMapView(_tierDefinitions);
 }
 
 
@@ -239,16 +241,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&const DeepCollectionEquality().equals(other._models, _models));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other._tierDefinitions, _tierDefinitions));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,slug,type,const DeepCollectionEquality().hash(_models));
+int get hashCode => Object.hash(runtimeType,id,slug,type,defaultProvider,const DeepCollectionEquality().hash(_tierDefinitions));
 
 @override
 String toString() {
-  return 'ModelConfig(id: $id, slug: $slug, type: $type, models: $models)';
+  return 'ModelConfig(id: $id, slug: $slug, type: $type, defaultProvider: $defaultProvider, tierDefinitions: $tierDefinitions)';
 }
 
 
@@ -259,7 +261,7 @@ abstract mixin class _$ModelConfigCopyWith<$Res> implements $ModelConfigCopyWith
   factory _$ModelConfigCopyWith(_ModelConfig value, $Res Function(_ModelConfig) _then) = __$ModelConfigCopyWithImpl;
 @override @useResult
 $Res call({
-@StrictOpaqueIdConverter() String id, String? slug, String type, Map<String, LlmModelConfig> models
+@StrictOpaqueIdConverter() String id, String? slug, String type,@JsonKey(name: 'default_provider') String defaultProvider,@JsonKey(name: 'tier_definitions') Map<String, Map<String, LlmModelConfig>> tierDefinitions
 });
 
 
@@ -276,13 +278,14 @@ class __$ModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of ModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? models = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? slug = freezed,Object? type = null,Object? defaultProvider = null,Object? tierDefinitions = null,}) {
   return _then(_ModelConfig(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,slug: freezed == slug ? _self.slug : slug // ignore: cast_nullable_to_non_nullable
 as String?,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
-as String,models: null == models ? _self._models : models // ignore: cast_nullable_to_non_nullable
-as Map<String, LlmModelConfig>,
+as String,defaultProvider: null == defaultProvider ? _self.defaultProvider : defaultProvider // ignore: cast_nullable_to_non_nullable
+as String,tierDefinitions: null == tierDefinitions ? _self._tierDefinitions : tierDefinitions // ignore: cast_nullable_to_non_nullable
+as Map<String, Map<String, LlmModelConfig>>,
   ));
 }
 
@@ -293,7 +296,7 @@ as Map<String, LlmModelConfig>,
 /// @nodoc
 mixin _$LlmModelConfig {
 
- String get provider;@JsonKey(name: 'model_name') String get modelName; double get temperature;@JsonKey(name: 'max_tokens') int? get maxTokens;@JsonKey(name: 'parsing_mode') String? get parsingMode;@JsonKey(name: 'top_p') double? get topP;@JsonKey(name: 'top_k') int? get topK;@JsonKey(name: 'frequency_penalty') double? get frequencyPenalty;@JsonKey(name: 'presence_penalty') double? get presencePenalty;@JsonKey(name: 'tpm_limit') int? get tpmLimit;@JsonKey(name: 'rpm_limit') int? get rpmLimit;@JsonKey(name: 'supports_grounding') bool get supportsGrounding;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'allowed_tools') List<String> get allowedTools;@JsonKey(name: 'api_key') String? get apiKey;@JsonKey(name: 'caching_strategy') String? get cachingStrategy;@JsonKey(name: 'thinking_budget_tokens') int? get thinkingBudgetTokens;@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams;
+ String get provider;@JsonKey(name: 'model_name') String get modelName; double get temperature;@JsonKey(name: 'max_tokens') int? get maxTokens;@JsonKey(name: 'parsing_mode') String? get parsingMode;@JsonKey(name: 'top_p') double? get topP;@JsonKey(name: 'top_k') int? get topK;@JsonKey(name: 'frequency_penalty') double? get frequencyPenalty;@JsonKey(name: 'presence_penalty') double? get presencePenalty;@JsonKey(name: 'tpm_limit') int? get tpmLimit;@JsonKey(name: 'rpm_limit') int? get rpmLimit;@JsonKey(name: 'supports_grounding') bool get supportsGrounding;@JsonKey(name: 'is_active') bool get isActive;@JsonKey(name: 'allowed_tools') List<String> get allowedTools;@JsonKey(name: 'api_key') String? get apiKey;@JsonKey(name: 'caching_strategy') String? get cachingStrategy;@JsonKey(name: 'thinking_budget_tokens') int? get thinkingBudgetTokens;@JsonKey(name: 'reasoning_effort') String? get reasoningEffort;@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams;
 /// Create a copy of LlmModelConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -306,16 +309,16 @@ $LlmModelConfigCopyWith<LlmModelConfig> get copyWith => _$LlmModelConfigCopyWith
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.allowedTools, allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&const DeepCollectionEquality().equals(other.additionalParams, additionalParams));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.allowedTools, allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&(identical(other.reasoningEffort, reasoningEffort) || other.reasoningEffort == reasoningEffort)&&const DeepCollectionEquality().equals(other.additionalParams, additionalParams));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,const DeepCollectionEquality().hash(additionalParams));
+int get hashCode => Object.hashAll([runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,reasoningEffort,const DeepCollectionEquality().hash(additionalParams)]);
 
 @override
 String toString() {
-  return 'LlmModelConfig(provider: $provider, modelName: $modelName, temperature: $temperature, maxTokens: $maxTokens, parsingMode: $parsingMode, topP: $topP, topK: $topK, frequencyPenalty: $frequencyPenalty, presencePenalty: $presencePenalty, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, supportsGrounding: $supportsGrounding, isActive: $isActive, allowedTools: $allowedTools, apiKey: $apiKey, cachingStrategy: $cachingStrategy, thinkingBudgetTokens: $thinkingBudgetTokens, additionalParams: $additionalParams)';
+  return 'LlmModelConfig(provider: $provider, modelName: $modelName, temperature: $temperature, maxTokens: $maxTokens, parsingMode: $parsingMode, topP: $topP, topK: $topK, frequencyPenalty: $frequencyPenalty, presencePenalty: $presencePenalty, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, supportsGrounding: $supportsGrounding, isActive: $isActive, allowedTools: $allowedTools, apiKey: $apiKey, cachingStrategy: $cachingStrategy, thinkingBudgetTokens: $thinkingBudgetTokens, reasoningEffort: $reasoningEffort, additionalParams: $additionalParams)';
 }
 
 
@@ -326,7 +329,7 @@ abstract mixin class $LlmModelConfigCopyWith<$Res>  {
   factory $LlmModelConfigCopyWith(LlmModelConfig value, $Res Function(LlmModelConfig) _then) = _$LlmModelConfigCopyWithImpl;
 @useResult
 $Res call({
- String provider,@JsonKey(name: 'model_name') String modelName, double temperature,@JsonKey(name: 'max_tokens') int? maxTokens,@JsonKey(name: 'parsing_mode') String? parsingMode,@JsonKey(name: 'top_p') double? topP,@JsonKey(name: 'top_k') int? topK,@JsonKey(name: 'frequency_penalty') double? frequencyPenalty,@JsonKey(name: 'presence_penalty') double? presencePenalty,@JsonKey(name: 'tpm_limit') int? tpmLimit,@JsonKey(name: 'rpm_limit') int? rpmLimit,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'allowed_tools') List<String> allowedTools,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'caching_strategy') String? cachingStrategy,@JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
+ String provider,@JsonKey(name: 'model_name') String modelName, double temperature,@JsonKey(name: 'max_tokens') int? maxTokens,@JsonKey(name: 'parsing_mode') String? parsingMode,@JsonKey(name: 'top_p') double? topP,@JsonKey(name: 'top_k') int? topK,@JsonKey(name: 'frequency_penalty') double? frequencyPenalty,@JsonKey(name: 'presence_penalty') double? presencePenalty,@JsonKey(name: 'tpm_limit') int? tpmLimit,@JsonKey(name: 'rpm_limit') int? rpmLimit,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'allowed_tools') List<String> allowedTools,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'caching_strategy') String? cachingStrategy,@JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,@JsonKey(name: 'reasoning_effort') String? reasoningEffort,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
 });
 
 
@@ -343,7 +346,7 @@ class _$LlmModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of LlmModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? provider = null,Object? modelName = null,Object? temperature = null,Object? maxTokens = freezed,Object? parsingMode = freezed,Object? topP = freezed,Object? topK = freezed,Object? frequencyPenalty = freezed,Object? presencePenalty = freezed,Object? tpmLimit = freezed,Object? rpmLimit = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? allowedTools = null,Object? apiKey = freezed,Object? cachingStrategy = freezed,Object? thinkingBudgetTokens = freezed,Object? additionalParams = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? provider = null,Object? modelName = null,Object? temperature = null,Object? maxTokens = freezed,Object? parsingMode = freezed,Object? topP = freezed,Object? topK = freezed,Object? frequencyPenalty = freezed,Object? presencePenalty = freezed,Object? tpmLimit = freezed,Object? rpmLimit = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? allowedTools = null,Object? apiKey = freezed,Object? cachingStrategy = freezed,Object? thinkingBudgetTokens = freezed,Object? reasoningEffort = freezed,Object? additionalParams = null,}) {
   return _then(_self.copyWith(
 provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
@@ -362,7 +365,8 @@ as bool,allowedTools: null == allowedTools ? _self.allowedTools : allowedTools /
 as List<String>,apiKey: freezed == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String?,cachingStrategy: freezed == cachingStrategy ? _self.cachingStrategy : cachingStrategy // ignore: cast_nullable_to_non_nullable
 as String?,thinkingBudgetTokens: freezed == thinkingBudgetTokens ? _self.thinkingBudgetTokens : thinkingBudgetTokens // ignore: cast_nullable_to_non_nullable
-as int?,additionalParams: null == additionalParams ? _self.additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
+as int?,reasoningEffort: freezed == reasoningEffort ? _self.reasoningEffort : reasoningEffort // ignore: cast_nullable_to_non_nullable
+as String?,additionalParams: null == additionalParams ? _self.additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }
@@ -448,10 +452,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'reasoning_effort')  String? reasoningEffort, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _LlmModelConfig() when $default != null:
-return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.additionalParams);case _:
+return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.reasoningEffort,_that.additionalParams);case _:
   return orElse();
 
 }
@@ -469,10 +473,10 @@ return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'reasoning_effort')  String? reasoningEffort, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)  $default,) {final _that = this;
 switch (_that) {
 case _LlmModelConfig():
-return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.additionalParams);case _:
+return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.reasoningEffort,_that.additionalParams);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -489,10 +493,10 @@ return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String provider, @JsonKey(name: 'model_name')  String modelName,  double temperature, @JsonKey(name: 'max_tokens')  int? maxTokens, @JsonKey(name: 'parsing_mode')  String? parsingMode, @JsonKey(name: 'top_p')  double? topP, @JsonKey(name: 'top_k')  int? topK, @JsonKey(name: 'frequency_penalty')  double? frequencyPenalty, @JsonKey(name: 'presence_penalty')  double? presencePenalty, @JsonKey(name: 'tpm_limit')  int? tpmLimit, @JsonKey(name: 'rpm_limit')  int? rpmLimit, @JsonKey(name: 'supports_grounding')  bool supportsGrounding, @JsonKey(name: 'is_active')  bool isActive, @JsonKey(name: 'allowed_tools')  List<String> allowedTools, @JsonKey(name: 'api_key')  String? apiKey, @JsonKey(name: 'caching_strategy')  String? cachingStrategy, @JsonKey(name: 'thinking_budget_tokens')  int? thinkingBudgetTokens, @JsonKey(name: 'reasoning_effort')  String? reasoningEffort, @JsonKey(name: 'additional_params')  Map<String, dynamic> additionalParams)?  $default,) {final _that = this;
 switch (_that) {
 case _LlmModelConfig() when $default != null:
-return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.additionalParams);case _:
+return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens,_that.parsingMode,_that.topP,_that.topK,_that.frequencyPenalty,_that.presencePenalty,_that.tpmLimit,_that.rpmLimit,_that.supportsGrounding,_that.isActive,_that.allowedTools,_that.apiKey,_that.cachingStrategy,_that.thinkingBudgetTokens,_that.reasoningEffort,_that.additionalParams);case _:
   return null;
 
 }
@@ -504,7 +508,7 @@ return $default(_that.provider,_that.modelName,_that.temperature,_that.maxTokens
 @JsonSerializable()
 
 class _LlmModelConfig implements LlmModelConfig {
-  const _LlmModelConfig({this.provider = 'unknown', @JsonKey(name: 'model_name') this.modelName = '', this.temperature = 0.0, @JsonKey(name: 'max_tokens') this.maxTokens, @JsonKey(name: 'parsing_mode') this.parsingMode, @JsonKey(name: 'top_p') this.topP, @JsonKey(name: 'top_k') this.topK, @JsonKey(name: 'frequency_penalty') this.frequencyPenalty, @JsonKey(name: 'presence_penalty') this.presencePenalty, @JsonKey(name: 'tpm_limit') this.tpmLimit, @JsonKey(name: 'rpm_limit') this.rpmLimit, @JsonKey(name: 'supports_grounding') this.supportsGrounding = false, @JsonKey(name: 'is_active') this.isActive = false, @JsonKey(name: 'allowed_tools') final  List<String> allowedTools = const [], @JsonKey(name: 'api_key') this.apiKey, @JsonKey(name: 'caching_strategy') this.cachingStrategy, @JsonKey(name: 'thinking_budget_tokens') this.thinkingBudgetTokens, @JsonKey(name: 'additional_params') final  Map<String, dynamic> additionalParams = const {}}): _allowedTools = allowedTools,_additionalParams = additionalParams;
+  const _LlmModelConfig({this.provider = 'unknown', @JsonKey(name: 'model_name') this.modelName = '', this.temperature = 0.0, @JsonKey(name: 'max_tokens') this.maxTokens, @JsonKey(name: 'parsing_mode') this.parsingMode, @JsonKey(name: 'top_p') this.topP, @JsonKey(name: 'top_k') this.topK, @JsonKey(name: 'frequency_penalty') this.frequencyPenalty, @JsonKey(name: 'presence_penalty') this.presencePenalty, @JsonKey(name: 'tpm_limit') this.tpmLimit, @JsonKey(name: 'rpm_limit') this.rpmLimit, @JsonKey(name: 'supports_grounding') this.supportsGrounding = false, @JsonKey(name: 'is_active') this.isActive = false, @JsonKey(name: 'allowed_tools') final  List<String> allowedTools = const [], @JsonKey(name: 'api_key') this.apiKey, @JsonKey(name: 'caching_strategy') this.cachingStrategy, @JsonKey(name: 'thinking_budget_tokens') this.thinkingBudgetTokens, @JsonKey(name: 'reasoning_effort') this.reasoningEffort, @JsonKey(name: 'additional_params') final  Map<String, dynamic> additionalParams = const {}}): _allowedTools = allowedTools,_additionalParams = additionalParams;
   factory _LlmModelConfig.fromJson(Map<String, dynamic> json) => _$LlmModelConfigFromJson(json);
 
 @override@JsonKey() final  String provider;
@@ -530,6 +534,7 @@ class _LlmModelConfig implements LlmModelConfig {
 @override@JsonKey(name: 'api_key') final  String? apiKey;
 @override@JsonKey(name: 'caching_strategy') final  String? cachingStrategy;
 @override@JsonKey(name: 'thinking_budget_tokens') final  int? thinkingBudgetTokens;
+@override@JsonKey(name: 'reasoning_effort') final  String? reasoningEffort;
  final  Map<String, dynamic> _additionalParams;
 @override@JsonKey(name: 'additional_params') Map<String, dynamic> get additionalParams {
   if (_additionalParams is EqualUnmodifiableMapView) return _additionalParams;
@@ -551,16 +556,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._allowedTools, _allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&const DeepCollectionEquality().equals(other._additionalParams, _additionalParams));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._allowedTools, _allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&(identical(other.reasoningEffort, reasoningEffort) || other.reasoningEffort == reasoningEffort)&&const DeepCollectionEquality().equals(other._additionalParams, _additionalParams));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(_allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,const DeepCollectionEquality().hash(_additionalParams));
+int get hashCode => Object.hashAll([runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(_allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,reasoningEffort,const DeepCollectionEquality().hash(_additionalParams)]);
 
 @override
 String toString() {
-  return 'LlmModelConfig(provider: $provider, modelName: $modelName, temperature: $temperature, maxTokens: $maxTokens, parsingMode: $parsingMode, topP: $topP, topK: $topK, frequencyPenalty: $frequencyPenalty, presencePenalty: $presencePenalty, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, supportsGrounding: $supportsGrounding, isActive: $isActive, allowedTools: $allowedTools, apiKey: $apiKey, cachingStrategy: $cachingStrategy, thinkingBudgetTokens: $thinkingBudgetTokens, additionalParams: $additionalParams)';
+  return 'LlmModelConfig(provider: $provider, modelName: $modelName, temperature: $temperature, maxTokens: $maxTokens, parsingMode: $parsingMode, topP: $topP, topK: $topK, frequencyPenalty: $frequencyPenalty, presencePenalty: $presencePenalty, tpmLimit: $tpmLimit, rpmLimit: $rpmLimit, supportsGrounding: $supportsGrounding, isActive: $isActive, allowedTools: $allowedTools, apiKey: $apiKey, cachingStrategy: $cachingStrategy, thinkingBudgetTokens: $thinkingBudgetTokens, reasoningEffort: $reasoningEffort, additionalParams: $additionalParams)';
 }
 
 
@@ -571,7 +576,7 @@ abstract mixin class _$LlmModelConfigCopyWith<$Res> implements $LlmModelConfigCo
   factory _$LlmModelConfigCopyWith(_LlmModelConfig value, $Res Function(_LlmModelConfig) _then) = __$LlmModelConfigCopyWithImpl;
 @override @useResult
 $Res call({
- String provider,@JsonKey(name: 'model_name') String modelName, double temperature,@JsonKey(name: 'max_tokens') int? maxTokens,@JsonKey(name: 'parsing_mode') String? parsingMode,@JsonKey(name: 'top_p') double? topP,@JsonKey(name: 'top_k') int? topK,@JsonKey(name: 'frequency_penalty') double? frequencyPenalty,@JsonKey(name: 'presence_penalty') double? presencePenalty,@JsonKey(name: 'tpm_limit') int? tpmLimit,@JsonKey(name: 'rpm_limit') int? rpmLimit,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'allowed_tools') List<String> allowedTools,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'caching_strategy') String? cachingStrategy,@JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
+ String provider,@JsonKey(name: 'model_name') String modelName, double temperature,@JsonKey(name: 'max_tokens') int? maxTokens,@JsonKey(name: 'parsing_mode') String? parsingMode,@JsonKey(name: 'top_p') double? topP,@JsonKey(name: 'top_k') int? topK,@JsonKey(name: 'frequency_penalty') double? frequencyPenalty,@JsonKey(name: 'presence_penalty') double? presencePenalty,@JsonKey(name: 'tpm_limit') int? tpmLimit,@JsonKey(name: 'rpm_limit') int? rpmLimit,@JsonKey(name: 'supports_grounding') bool supportsGrounding,@JsonKey(name: 'is_active') bool isActive,@JsonKey(name: 'allowed_tools') List<String> allowedTools,@JsonKey(name: 'api_key') String? apiKey,@JsonKey(name: 'caching_strategy') String? cachingStrategy,@JsonKey(name: 'thinking_budget_tokens') int? thinkingBudgetTokens,@JsonKey(name: 'reasoning_effort') String? reasoningEffort,@JsonKey(name: 'additional_params') Map<String, dynamic> additionalParams
 });
 
 
@@ -588,7 +593,7 @@ class __$LlmModelConfigCopyWithImpl<$Res>
 
 /// Create a copy of LlmModelConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? provider = null,Object? modelName = null,Object? temperature = null,Object? maxTokens = freezed,Object? parsingMode = freezed,Object? topP = freezed,Object? topK = freezed,Object? frequencyPenalty = freezed,Object? presencePenalty = freezed,Object? tpmLimit = freezed,Object? rpmLimit = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? allowedTools = null,Object? apiKey = freezed,Object? cachingStrategy = freezed,Object? thinkingBudgetTokens = freezed,Object? additionalParams = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? provider = null,Object? modelName = null,Object? temperature = null,Object? maxTokens = freezed,Object? parsingMode = freezed,Object? topP = freezed,Object? topK = freezed,Object? frequencyPenalty = freezed,Object? presencePenalty = freezed,Object? tpmLimit = freezed,Object? rpmLimit = freezed,Object? supportsGrounding = null,Object? isActive = null,Object? allowedTools = null,Object? apiKey = freezed,Object? cachingStrategy = freezed,Object? thinkingBudgetTokens = freezed,Object? reasoningEffort = freezed,Object? additionalParams = null,}) {
   return _then(_LlmModelConfig(
 provider: null == provider ? _self.provider : provider // ignore: cast_nullable_to_non_nullable
 as String,modelName: null == modelName ? _self.modelName : modelName // ignore: cast_nullable_to_non_nullable
@@ -607,7 +612,8 @@ as bool,allowedTools: null == allowedTools ? _self._allowedTools : allowedTools 
 as List<String>,apiKey: freezed == apiKey ? _self.apiKey : apiKey // ignore: cast_nullable_to_non_nullable
 as String?,cachingStrategy: freezed == cachingStrategy ? _self.cachingStrategy : cachingStrategy // ignore: cast_nullable_to_non_nullable
 as String?,thinkingBudgetTokens: freezed == thinkingBudgetTokens ? _self.thinkingBudgetTokens : thinkingBudgetTokens // ignore: cast_nullable_to_non_nullable
-as int?,additionalParams: null == additionalParams ? _self._additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
+as int?,reasoningEffort: freezed == reasoningEffort ? _self.reasoningEffort : reasoningEffort // ignore: cast_nullable_to_non_nullable
+as String?,additionalParams: null == additionalParams ? _self._additionalParams : additionalParams // ignore: cast_nullable_to_non_nullable
 as Map<String, dynamic>,
   ));
 }

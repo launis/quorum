@@ -1,6 +1,7 @@
 import 'dart:isolate';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 
@@ -15,7 +16,7 @@ void main() {
           'translations': {'en': 'Test'},
         },
         'type': 'llm',
-        'model_strategy': 'fast',
+        'cognitive_tier': 'fast',
         'expected_inputs': ['doc_id', 'prompt_text'],
       };
 
@@ -44,7 +45,7 @@ void main() {
             'translations': {'en': 'Test'},
           },
           'type': 'llm',
-          'model_strategy': 'fast',
+          'cognitive_tier': 'fast',
           'expected_inputs': {'data': 'wrong_type'}, // Expected List<String>
         };
 
@@ -174,7 +175,7 @@ void main() {
             'translations': {'en': 'Test'},
           },
           'type': 'llm',
-          'model_strategy': 'fast',
+          'cognitive_tier': 'fast',
         };
 
         final parsed = NodeStrategy.fromJson(json);
@@ -199,7 +200,7 @@ void main() {
             'translations': {'en': 'Test'},
           },
           'type': 'llm',
-          'model_strategy': 'fast',
+          'cognitive_tier': 'fast',
           'is_system_core': true,
         };
 
@@ -251,7 +252,7 @@ void main() {
             'translations': {'en': 'Test'},
           },
           'type': 'llm',
-          'model_strategy': 'fast',
+          'cognitive_tier': 'fast',
           'is_system_core': false,
           'unknown_forbidden_key': 'should_crash',
         };
@@ -289,7 +290,7 @@ void main() {
           id: 'st_0123456789abcdef',
           slug: 'test_step',
           name: I18nText(translations: {'en': 'Test Step'}),
-          modelStrategy: 'fast',
+          cognitiveTier: CognitiveTier.fast,
         );
 
         final json = node.toJson();

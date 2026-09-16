@@ -402,3 +402,31 @@ enum TargetSpeaker {
   @JsonValue('AI')
   ai,
 }
+
+/// Canonical vendor-neutral cognitive evaluation tiers.
+@JsonEnum()
+enum CognitiveTier {
+  @JsonValue('fast')
+  fast,
+  @JsonValue('balanced')
+  balanced,
+  @JsonValue('deep')
+  deep,
+  @JsonValue('reasoning')
+  reasoning,
+}
+
+/// Supported LLM provider platforms.
+@JsonEnum()
+enum LLMProvider {
+  @JsonValue('google')
+  google,
+  @JsonValue('openai')
+  openai,
+  @JsonValue('anthropic')
+  anthropic,
+  @JsonValue('azure_openai')
+  azureOpenai,
+  @JsonValue('local')
+  local,
+}

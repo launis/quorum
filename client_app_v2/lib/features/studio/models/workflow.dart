@@ -92,7 +92,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    String? modelStrategy,
+    @JsonKey(name: 'cognitive_tier') @Default(CognitiveTier.fast) CognitiveTier cognitiveTier,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,
@@ -115,7 +115,7 @@ sealed class NodeStrategy with _$NodeStrategy {
     @Default('safe') String safety,
     @Default([]) List<String> allowedMcpTools,
     @Default([]) List<String> expectedInputs,
-    String? modelStrategy,
+    @JsonKey(name: 'cognitive_tier') @Default(CognitiveTier.fast) CognitiveTier cognitiveTier,
     String? organizationId,
     // Phase 1, Step 3: System core protection governance field
     @Default(false) @JsonKey(name: 'is_system_core') bool isSystemCore,

@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'execution_step.freezed.dart';
 part 'execution_step.g.dart';
@@ -16,7 +17,7 @@ abstract class ExecutionStep with _$ExecutionStep {
     required String status,
     @JsonKey(name: 'last_error') String? lastError,
     @JsonKey(name: 'message_code') String? messageCode,
-    @JsonKey(name: 'model_strategy') String? modelStrategy,
+    @JsonKey(name: 'cognitive_tier') CognitiveTier? cognitiveTier,
     @JsonKey(name: 'physical_model') String? physicalModel,
     @JsonKey(name: 'system_fingerprint') String? systemFingerprint,
     @JsonKey(name: 'prompt_tokens') @Default(0) int promptTokens,

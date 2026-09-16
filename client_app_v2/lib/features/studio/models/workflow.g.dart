@@ -244,7 +244,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         'safety',
         'allowed_mcp_tools',
         'expected_inputs',
-        'model_strategy',
+        'cognitive_tier',
         'organization_id',
         'is_system_core',
         'type',
@@ -312,7 +312,12 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
+      cognitiveTier: $checkedConvert(
+        'cognitive_tier',
+        (v) =>
+            $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
+            CognitiveTier.fast,
+      ),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
       isSystemCore: $checkedConvert(
         'is_system_core',
@@ -331,7 +336,7 @@ NodeStrategyLlm _$NodeStrategyLlmFromJson(
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
     'expectedInputs': 'expected_inputs',
-    'modelStrategy': 'model_strategy',
+    'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
     r'$type': 'type',
@@ -363,7 +368,7 @@ Map<String, dynamic> _$NodeStrategyLlmToJson(NodeStrategyLlm instance) =>
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
       'expected_inputs': instance.expectedInputs,
-      'model_strategy': instance.modelStrategy,
+      'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
       'type': instance.$type,
@@ -373,6 +378,13 @@ Value? _$JsonConverterFromJson<Json, Value>(
   Object? json,
   Value? Function(Json json) fromJson,
 ) => json == null ? null : fromJson(json as Json);
+
+const _$CognitiveTierEnumMap = {
+  CognitiveTier.fast: 'fast',
+  CognitiveTier.balanced: 'balanced',
+  CognitiveTier.deep: 'deep',
+  CognitiveTier.reasoning: 'reasoning',
+};
 
 Json? _$JsonConverterToJson<Json, Value>(
   Value? value,
@@ -402,7 +414,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         'safety',
         'allowed_mcp_tools',
         'expected_inputs',
-        'model_strategy',
+        'cognitive_tier',
         'organization_id',
         'is_system_core',
         'type',
@@ -470,7 +482,12 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
         (v) =>
             (v as List<dynamic>?)?.map((e) => e as String).toList() ?? const [],
       ),
-      modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
+      cognitiveTier: $checkedConvert(
+        'cognitive_tier',
+        (v) =>
+            $enumDecodeNullable(_$CognitiveTierEnumMap, v) ??
+            CognitiveTier.fast,
+      ),
       organizationId: $checkedConvert('organization_id', (v) => v as String?),
       isSystemCore: $checkedConvert(
         'is_system_core',
@@ -489,7 +506,7 @@ NodeStrategyLogic _$NodeStrategyLogicFromJson(
     'postHooks': 'post_hooks',
     'allowedMcpTools': 'allowed_mcp_tools',
     'expectedInputs': 'expected_inputs',
-    'modelStrategy': 'model_strategy',
+    'cognitiveTier': 'cognitive_tier',
     'organizationId': 'organization_id',
     'isSystemCore': 'is_system_core',
     r'$type': 'type',
@@ -521,7 +538,7 @@ Map<String, dynamic> _$NodeStrategyLogicToJson(NodeStrategyLogic instance) =>
       'safety': instance.safety,
       'allowed_mcp_tools': instance.allowedMcpTools,
       'expected_inputs': instance.expectedInputs,
-      'model_strategy': instance.modelStrategy,
+      'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier]!,
       'organization_id': instance.organizationId,
       'is_system_core': instance.isSystemCore,
       'type': instance.$type,
