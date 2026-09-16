@@ -102,7 +102,7 @@
 
     <module path="scripts/">
         <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
-        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py</key_domains>
+        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
@@ -129,6 +129,11 @@
         <responsibility>CONSOLIDATED ARCHITECTURE MANIFESTOS</responsibility>
         <key_domains>00_README_META_ARCHITECTURE.md, capability-driven pillar and domain architecture documents (01_ through 09_)</key_domains>
     </module>
+
+    <module path="docs/epic/ and docs/implementationplans/">
+        <responsibility>EPIC SPECIFICATIONS, IMPLEMENTATION PLANS & STANDALONE TRACKERS</responsibility>
+        <key_domains>EPIC_*.md, implementation_plan.md, TRACKER_*.md (Double-Entry Bookkeeping SSOT)</key_domains>
+    </module>
     
     <module path=".agents/rules/">
         <responsibility>GLOBAL IDE RULES & ARCHITECTURAL INVARIANTS</responsibility>
@@ -137,7 +142,7 @@
 
     <module path=".agents/workflows/">
         <responsibility>AGENTIC EXECUTION PLAYBOOKS & QUARANTINE PROTOCOLS</responsibility>
-        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands</key_domains>
+        <key_domains>Tier 0 (Planning) to Tier 8 (Auditing) slash commands, tier1-tracker-generator.md, tier1-plan-tracker-generator.md</key_domains>
     </module>
 
     <module path="<appDataDir>\knowledge\">
