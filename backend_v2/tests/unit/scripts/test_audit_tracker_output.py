@@ -16,21 +16,33 @@ import pytest
 from scripts.audit_tracker_output import (
     GuardrailSeverity,
     TrackerAuditFinding,
+    TrackerMode,
     check_mandatory_sections,
     check_phase_format,
     check_required_context_rules,
     check_session_handover,
+    check_step_format,
     check_traceability_mapping,
+    check_traceability_mapping_plan,
     main,
 )
 
 
-def _run_tracker_audit(tracker_path: Path, plan_dir: Path | None = None) -> subprocess.CompletedProcess[str]:
+def _run_tracker_audit(
+    tracker_path: Path,
+    plan_dir: Path | None = None,
+    plan_file: Path | None = None,
+    mode: str | None = None,
+) -> subprocess.CompletedProcess[str]:
     """Helper to run audit_tracker_output.py via subprocess."""
     script_path = Path("scripts/audit_tracker_output.py").resolve()
     cmd = [sys.executable, str(script_path), "--tracker", str(tracker_path)]
     if plan_dir:
         cmd.extend(["--plan-dir", str(plan_dir)])
+    if plan_file:
+        cmd.extend(["--plan-file", str(plan_file)])
+    if mode:
+        cmd.extend(["--mode", str(mode)])
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
@@ -444,6 +456,275 @@ def test_tracker_audit_main_in_process(tmp_path: Path, monkeypatch: pytest.Monke
     with pytest.raises(SystemExit) as exc_broken:
         main()
     assert exc_broken.value.code == 1
+
+
+def test_plan_mode_mandatory_sections_valid() -> None:
+    """Verify check_mandatory_sections succeeds for Plan Mode with all required headers."""
+    content = (
+        "## Step Execution Status\n"
+        "### Post-Implementation Gates\n"
+        "### Final Plan Audit\n"
+        "## Instructions for the Execution Agent\n"
+        "## Requirements Traceability Matrix\n"
+        "# Session Handover Context\n"
+    )
+    findings = check_mandatory_sections(content, mode=TrackerMode.PLAN)
+    assert findings == []
+
+
+def test_plan_mode_mandatory_sections_missing_step_or_audit() -> None:
+    """Verify TRK001 findings when Step Execution Status or Final Plan Audit is missing."""
+    content = (
+        "### Post-Implementation Gates\n"
+        "## Instructions for the Execution Agent\n"
+        "## Requirements Traceability Matrix\n"
+        "# Session Handover Context\n"
+    )
+    findings = check_mandatory_sections(content, mode=TrackerMode.PLAN)
+    assert len(findings) == 2
+    rule_codes = {f.rule_code for f in findings}
+    assert rule_codes == {"TRK001"}
+    sections = {f.section for f in findings}
+    assert "## Step Execution Status" in sections
+    assert "### Final Plan Audit" in sections
+
+
+def test_plan_mode_step_format_valid() -> None:
+    """Verify check_step_format passes for compliant Plan tracker step execution block."""
+    content = (
+        "## Step Execution Status\n\n"
+        "**Plan:** @[docs/implementationplans/plan.md]\n\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute @[plan.md] @[tracker.md]`\n"
+        "  - [ ] Step 1: Initialize baseline\n"
+        "  - [ ] Step 2: Implement core logic\n"
+        "- [ ] **[NOK] Audit:** `/tier8-audit-plan @[plan.md] @[tracker.md]`\n"
+    )
+    findings = check_step_format(content)
+    assert findings == []
+
+
+def test_plan_mode_step_format_missing_components() -> None:
+    """Verify TRK002 findings for missing components in Step Execution Status."""
+    assert len(check_step_format("No step execution status")) == 1
+    assert check_step_format("No step execution status")[0].rule_code == "TRK002"
+
+    no_plan = (
+        "## Step Execution Status\n\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "  - [ ] Step 1\n"
+        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
+    )
+    findings_no_plan = check_step_format(no_plan)
+    assert any("Missing `**Plan:** @[...]` reference" in f.message for f in findings_no_plan)
+
+    no_exec = (
+        "## Step Execution Status\n\n"
+        "**Plan:** @[plan.md]\n"
+        "  - [ ] Step 1\n"
+        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
+    )
+    findings_no_exec = check_step_format(no_exec)
+    assert any("Missing mandatory `Execution:` step line" in f.message for f in findings_no_exec)
+
+    no_audit = (
+        "## Step Execution Status\n\n"
+        "**Plan:** @[plan.md]\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "  - [ ] Step 1\n"
+    )
+    findings_no_audit = check_step_format(no_audit)
+    assert any("Missing mandatory `Audit:` step line" in f.message for f in findings_no_audit)
+
+    no_steps = (
+        "## Step Execution Status\n\n"
+        "**Plan:** @[plan.md]\n"
+        "- [ ] **[NOK] Execution:** `/tier2-execute`\n"
+        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
+    )
+    findings_no_steps = check_step_format(no_steps)
+    assert any("Missing indented `- [ ] Step`" in f.message for f in findings_no_steps)
+
+
+def test_plan_mode_traceability_mapping_forward_and_reverse(tmp_path: Path) -> None:
+    """Verify bidirectional mapping between single plan file steps and tracker matrix."""
+    plan_file = tmp_path / "test_plan.md"
+    plan_file.write_text(
+        '<execution_protocol>\n'
+        '  <step id="1" name="Base">\n'
+        '  <step id="2.1" name="Sub">\n'
+        '  <step id="3" name="Extra">\n'
+        '</execution_protocol>\n',
+        encoding="utf-8",
+    )
+
+    errs, warns = check_traceability_mapping_plan("tracker content", tmp_path / "non_existent.md")
+    assert errs == []
+    assert len(warns) == 1
+    assert warns[0].rule_code == "TRK006"
+
+    errs, warns = check_traceability_mapping_plan("No matrix here", plan_file)
+    assert len(errs) == 1
+    assert errs[0].rule_code == "TRK005"
+    assert "Cannot find Requirements Traceability Matrix content" in errs[0].message
+
+    tracker_with_missing_step = (
+        "## Requirements Traceability Matrix\n"
+        "| REQ-1 | Step 1 |\n"
+        "| REQ-2 | Step 2.1 |\n\n"
+        "# Session Handover Context\n"
+    )
+    errs, warns = check_traceability_mapping_plan(tracker_with_missing_step, plan_file)
+    assert len(errs) == 1
+    assert errs[0].rule_code == "TRK005"
+    assert "Untracked Plan Step: Step 3" in errs[0].message
+    assert len(warns) == 0
+
+    tracker_with_orphan = (
+        "## Requirements Traceability Matrix\n"
+        "| REQ-1 | Step 1 |\n"
+        "| REQ-2 | Step 2.1 |\n"
+        "| REQ-3 | Step 3 |\n"
+        "| REQ-4 | Step 99 |\n\n"
+        "# Session Handover Context\n"
+    )
+    errs, warns = check_traceability_mapping_plan(tracker_with_orphan, plan_file)
+    assert len(errs) == 0
+    assert len(warns) == 1
+    assert warns[0].rule_code == "TRK006"
+    assert "Orphan Matrix Step: Matrix references Step 99" in warns[0].message
+
+    tracker_perfect = (
+        "## Requirements Traceability Matrix\n"
+        "| REQ-1 | Step 1 |\n"
+        "| REQ-2 | Step 2.1 |\n"
+        "| REQ-3 | Step 3 |\n\n"
+        "# Session Handover Context\n"
+    )
+    errs, warns = check_traceability_mapping_plan(tracker_perfect, plan_file)
+    assert errs == []
+    assert warns == []
+
+
+def test_plan_mode_mutually_exclusive_cli_flags(tmp_path: Path) -> None:
+    """Verify argparse rejects passing both --plan-dir and --plan-file with exit code 2."""
+    tracker = tmp_path / "tracker.md"
+    tracker.write_text("# Tracker", encoding="utf-8")
+    script_path = Path("scripts/audit_tracker_output.py").resolve()
+    cmd = [
+        sys.executable,
+        str(script_path),
+        "--tracker",
+        str(tracker),
+        "--plan-dir",
+        str(tmp_path),
+        "--plan-file",
+        str(tmp_path / "plan.md"),
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    assert res.returncode == 2
+    assert "not allowed with argument" in res.stderr
+
+
+def test_plan_mode_cli_execution_valid_and_failing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify in-process and subprocess CLI execution for Plan Mode."""
+    plan_file = tmp_path / "test_plan.md"
+    plan_file.write_text('<execution_protocol><step id="1"></step></execution_protocol>', encoding="utf-8")
+
+    valid_plan_tracker = tmp_path / "valid_plan_tracker.md"
+    valid_plan_tracker.write_text(
+        "# Tracker: Plan Test\n\n"
+        "<required_context_rules>\n@[.agents/rules/00-antigravity-core.md]\n</required_context_rules>\n\n"
+        "## Step Execution Status\n\n"
+        "**Plan:** @[test_plan.md]\n\n"
+        "- [x] **[OK] Execution:** `/tier2-execute`\n"
+        "  - [x] Step 1: Done\n"
+        "- [x] **[OK] Audit:** `/tier8-audit-plan`\n\n"
+        "### Post-Implementation Gates\n- [x] All clear\n\n"
+        "### Final Plan Audit\n- [x] Plan verified\n\n"
+        "## Instructions for the Execution Agent\n- Run tests\n\n"
+        "## Requirements Traceability Matrix\n"
+        "| REQ-1 | Step 1 |\n\n"
+        "# Session Handover Context\n"
+        "## Achieved\n- Done\n\n"
+        "## Learned\n- None\n\n"
+        "## Remaining\n- None\n\n"
+        "## Status\nComplete\n",
+        encoding="utf-8",
+    )
+
+    # 1. In-process execution with --plan-file
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_tracker_output.py", "--tracker", str(valid_plan_tracker), "--plan-file", str(plan_file)],
+    )
+    with pytest.raises(SystemExit) as exc_valid:
+        main()
+    assert exc_valid.value.code == 0
+
+    # 2. In-process execution with explicit --mode plan
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit_tracker_output.py",
+            "--tracker",
+            str(valid_plan_tracker),
+            "--mode",
+            "plan",
+            "--plan-file",
+            str(plan_file),
+        ],
+    )
+    with pytest.raises(SystemExit) as exc_explicit:
+        main()
+    assert exc_explicit.value.code == 0
+
+    # 3. In-process auto-detection of Plan Mode without --mode or --plan-file
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_tracker_output.py", "--tracker", str(valid_plan_tracker)],
+    )
+    with pytest.raises(SystemExit) as exc_autodetect:
+        main()
+    assert exc_autodetect.value.code == 0
+
+    # 4. Failing plan tracker (untracked step 2 in plan)
+    failing_plan = tmp_path / "failing_plan.md"
+    failing_plan.write_text(
+        '<execution_protocol><step id="1"></step><step id="2"></step></execution_protocol>',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["audit_tracker_output.py", "--tracker", str(valid_plan_tracker), "--plan-file", str(failing_plan)],
+    )
+    with pytest.raises(SystemExit) as exc_failing:
+        main()
+    assert exc_failing.value.code == 1
+
+    # 5. Non-existent plan file (warns and exits 0 since tracker is valid)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "audit_tracker_output.py",
+            "--tracker",
+            str(valid_plan_tracker),
+            "--plan-file",
+            str(tmp_path / "missing_plan.md"),
+        ],
+    )
+    with pytest.raises(SystemExit) as exc_missing_plan:
+        main()
+    assert exc_missing_plan.value.code == 0
+
+    # 6. Subprocess execution via _run_tracker_audit
+    sub_res = _run_tracker_audit(valid_plan_tracker, plan_file=plan_file)
+    assert sub_res.returncode == 0
+    assert "AUDIT PASSED" in sub_res.stdout
 
 
 def test_tracker_audit_zero_reflection_compliance() -> None:
