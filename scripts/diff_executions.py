@@ -240,6 +240,10 @@ class PhysicalModelBindingDTO(BaseModel):
     temperature: float
     max_tokens: int
     thinking_budget: int = 0
+    provider: str = ""
+    tpm_limit: int | None = None
+    rpm_limit: int | None = None
+    reasoning_effort: str | None = None
 
 
 class UserDocumentationVolumeDTO(BaseModel):
@@ -1234,46 +1238,59 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
     """
     bindings: list[PhysicalModelBindingDTO] = []
     sys_configs = seed.get("system_config", [])
-    if isinstance(sys_configs, list):
-        for cfg in sys_configs:
-            if isinstance(cfg, dict) and cfg.get("type") == "model_registry":
-                models = cfg.get("models", {})
-                for strat_name in ["fast", "reasoning", "synthesis", "deep", "strict"]:
-                    if strat_name in models and isinstance(models[strat_name], dict):
-                        model_cfg = models[strat_name]
+    configs_list: list[dict[str, Any]] = []
+    if isinstance(sys_configs, dict):
+        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
+    elif isinstance(sys_configs, list):
+        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+
+    for cfg in configs_list:
+        if cfg.get("type") == "model_registry":
+            tier_defs = cfg.get("tier_definitions")
+            if isinstance(tier_defs, dict):
+                ordered_tiers = ["fast", "balanced", "deep", "reasoning"]
+                for provider_name, tiers in tier_defs.items():
+                    if isinstance(tiers, dict):
+                        for tier_name in ordered_tiers:
+                            if tier_name in tiers and isinstance(tiers[tier_name], dict):
+                                model_cfg = tiers[tier_name]
+                                add_params = model_cfg.get("additional_params", {})
+                                reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                                bindings.append(
+                                    PhysicalModelBindingDTO(
+                                        strategy_name=f"{tier_name} ({provider_name})",
+                                        physical_model=model_cfg.get("model_name", "unknown"),
+                                        temperature=float(model_cfg.get("temperature", 0.0)),
+                                        max_tokens=int(model_cfg.get("max_tokens", 32768)),
+                                        thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
+                                        provider=str(provider_name),
+                                        tpm_limit=int(model_cfg["tpm_limit"]) if model_cfg.get("tpm_limit") is not None else None,
+                                        rpm_limit=int(model_cfg["rpm_limit"]) if model_cfg.get("rpm_limit") is not None else None,
+                                        reasoning_effort=reasoning_effort,
+                                    )
+                                )
+            models = cfg.get("models", {})
+            if isinstance(models, dict):
+                ordered_keys = ["fast", "reasoning", "synthesis", "deep", "strict"]
+                all_keys = [k for k in ordered_keys if k in models] + [k for k in models if k not in ordered_keys]
+                for strat_name in all_keys:
+                    model_cfg = models[strat_name]
+                    if isinstance(model_cfg, dict):
+                        add_params = model_cfg.get("additional_params", {})
+                        reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
                         bindings.append(
                             PhysicalModelBindingDTO(
                                 strategy_name=strat_name,
                                 physical_model=model_cfg.get("model_name", "unknown"),
                                 temperature=float(model_cfg.get("temperature", 0.0)),
                                 max_tokens=int(model_cfg.get("max_tokens", 32768)),
-                                thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0)),
+                                thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
+                                provider=str(model_cfg.get("provider", "google")),
+                                tpm_limit=int(model_cfg["tpm_limit"]) if model_cfg.get("tpm_limit") is not None else None,
+                                rpm_limit=int(model_cfg["rpm_limit"]) if model_cfg.get("rpm_limit") is not None else None,
+                                reasoning_effort=reasoning_effort,
                             )
                         )
-    if not bindings:
-        bindings = [
-            PhysicalModelBindingDTO(
-                strategy_name="fast",
-                physical_model="google/gemini-2.5-flash",
-                temperature=0.1,
-                max_tokens=32768,
-                thinking_budget=0,
-            ),
-            PhysicalModelBindingDTO(
-                strategy_name="reasoning",
-                physical_model="google/gemini-2.5-pro",
-                temperature=0.2,
-                max_tokens=65536,
-                thinking_budget=8192,
-            ),
-            PhysicalModelBindingDTO(
-                strategy_name="synthesis",
-                physical_model="anthropic/claude-3-5-sonnet",
-                temperature=0.3,
-                max_tokens=65536,
-                thinking_budget=2048,
-            ),
-        ]
     return bindings
 
 
@@ -2179,7 +2196,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         if wf_prov:
             ovr_switch_str = "SALLITTU (ENABLED)" if wf_prov.enable_contextual_overrides else "ESTETTY (DISABLED)"
             f.write("- **Työnkulun Provenienssi ja Hallintokytkimet (Workflow Provenance & Invariants):**\n")
-            f.write(f"  - **Työnkulku:** `{wf_prov.workflow_id}` ({wf_prov.name_fi} / {wf_prov.name_en})\n")
+            f.write(f"  - **Työnkulku:** {wf_prov.name_fi} ({wf_prov.name_en}) [`{wf_prov.workflow_id}`]\n")
             f.write(
                 f"  - **Versio:** v{wf_prov.version} | **Aktiivisia askeleita:** {wf_prov.total_active_steps} kpl | "
                 f"**Koko atomipopulaatio:** {wf_prov.total_workflow_atoms} atomia\n"
@@ -2196,11 +2213,44 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         if model_bindings:
             f.write("- **Fyysiset Mallisidokset (Physical Model Bindings):**\n")
             for mb in model_bindings:
-                think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
-                f.write(
-                    f"  - **{mb.strategy_name}:** `{mb.physical_model}` "
-                    f"(T={mb.temperature}, MaxTok={mb.max_tokens}{think_str})\n"
+                provider_title = (
+                    "Google Vertex AI"
+                    if mb.provider == "google"
+                    else ("OpenAI" if mb.provider == "openai" else (mb.provider or "Google").capitalize())
                 )
+                limits_str = ""
+                if mb.tpm_limit or mb.rpm_limit:
+                    limits_str = f", Limits=[TPM: {mb.tpm_limit or 'N/A'}, RPM: {mb.rpm_limit or 'N/A'}]"
+                model_lower = mb.physical_model.lower()
+                is_gemini_v3 = ("gemini-3" in model_lower) or ("gemini-2.5" in model_lower)
+                is_openai_reasoning = any(p in model_lower for p in ("o1", "o3", "o4", "o5", "gpt-5"))
+
+                if is_gemini_v3:
+                    provider_backend = "AI Studio" if "gemini/" in model_lower else "Vertex AI"
+                    f.write(
+                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title} / {provider_backend}) "
+                        f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois; {provider_backend}], "
+                        f"MaxTok={mb.max_tokens}, Thinking Budget={mb.thinking_budget} tok{limits_str})\n"
+                    )
+                elif is_openai_reasoning:
+                    effort = mb.reasoning_effort or (
+                        "low"
+                        if mb.thinking_budget <= 2048
+                        else "medium"
+                        if mb.thinking_budget <= 4096
+                        else "high"
+                    )
+                    f.write(
+                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
+                        f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois], "
+                        f"MaxTok={mb.max_tokens}, Thinking={mb.thinking_budget} tok -> Reasoning Effort='{effort}'{limits_str})\n"
+                    )
+                else:
+                    think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
+                    f.write(
+                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
+                        f"(T={mb.temperature}, MaxTok={mb.max_tokens}{think_str}{limits_str})\n"
+                    )
         f.write("\n")
 
         f.write("## Ajojen Lähdetiedostot ja Syötteet\n")
@@ -2783,9 +2833,11 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             entropy = atom_entropies[atom]
             consistency = atom_consistencies[atom]
             states = atom_states[atom]
-            det = atom_details.get(atom, {})
-
-            f.write(f"### Atom-ID: `{atom}` (Entropia: {entropy:.3f}, Konsistenssi: {consistency * 100:.1f}%)\n")
+            bname = det.get("block_name", "-") if det else "-"
+            sname = det.get("scale_name", "-") if det else "-"
+            header_title = f"{bname} – {sname}" if bname != "-" else f"Atom-ID: `{atom}`"
+            f.write(f"### {header_title} (Entropia: {entropy:.3f}, Konsistenssi: {consistency * 100:.1f}%)\n")
+            f.write(f"- **Atom-ID:** `{atom}`\n")
             if det:
                 bname = det.get("block_name", "-")
                 bid = det.get("block_id", "-")

@@ -377,3 +377,161 @@ class TestVarianceRunnerStrategies:
         assert aliases["strict"] == "openai_strict"
         assert aliases["reasoning"] == "openai_strict"
         assert aliases["evaluation_strategy"] == "openai_strict"
+
+
+class TestModelTelemetry:
+    """Test suite for model telemetry resolution and hyperparameter printing."""
+
+    def test_resolve_model_telemetry_from_seed(self) -> None:
+        """Verify model telemetry extraction correctly identifies Gemini and OpenAI parameters."""
+        from scripts.run_e2e_variance_test import resolve_model_telemetry
+
+        telemetry = resolve_model_telemetry(Path("backend_v2/seed/seed_data.json"))
+        assert "fast" in telemetry
+        assert "fast (google)" in telemetry
+        assert "fast (openai)" in telemetry
+        assert "deep" in telemetry
+        assert "deep (openai)" in telemetry
+
+        fast_gemini = telemetry["fast (google)"]
+        assert fast_gemini["provider"] == "google"
+        assert "gemini" in fast_gemini["model_name"].lower()
+        assert fast_gemini["is_gemini_v3"] is True
+        assert "1.0" in fast_gemini["effective_temperature"]
+        assert "0 tok" in fast_gemini["thinking_budget"]
+
+        openai_deep = telemetry["deep (openai)"]
+        assert openai_deep["provider"] == "openai"
+        assert "gpt-5" in openai_deep["model_name"].lower()
+        assert openai_deep["is_openai_reasoning"] is True
+        assert "1.0" in openai_deep["effective_temperature"]
+        assert "'medium'" in openai_deep["reasoning_effort"]
+        assert "4096 tok" in openai_deep["thinking_budget"]
+
+    def test_print_model_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Verify print_model_telemetry formats output without error."""
+        from scripts.run_e2e_variance_test import print_model_telemetry
+
+        print_model_telemetry(Path("backend_v2/seed/seed_data.json"), active_strategies=["fast", "deep"])
+        captured = capsys.readouterr().out
+        assert "Fyysiset Malliparametrit ja Telemetria" in captured
+        assert "gemini" in captured.lower()
+        assert "gpt-5" in captured.lower()
+        assert "1.0" in captured
+
+
+class TestWorkflowMatrixTelemetry:
+    """Test suite for workflow strictness, penalty, and matrix telemetry resolution."""
+
+    def test_resolve_workflow_matrix_telemetry_from_seed(self) -> None:
+        """Verify matrix telemetry extraction resolves correct steps, scales, and atom counts."""
+        from scripts.run_e2e_variance_test import resolve_workflow_matrix_telemetry
+
+        telemetry = resolve_workflow_matrix_telemetry(
+            Path("backend_v2/seed/seed_data.json"),
+            workflow_id="wf_03a1d71000000003",
+        )
+        assert telemetry is not None
+        assert telemetry["workflow_id"] == "wf_03a1d71000000003"
+        assert telemetry["strictness_level"] == 70
+        assert abs(telemetry["strictness_exponent"] - 1.5071) < 0.001
+        assert telemetry["enable_contextual_overrides"] is True
+        assert telemetry["security_penalty"] == 0.0
+        assert telemetry["post_hoc_penalty"] == 0.0
+        assert telemetry["passivity_penalty"] == 0.05
+
+        assert telemetry["total_matrices"] == 4
+        assert telemetry["total_scales"] == 17
+        assert telemetry["total_atoms"] == 85
+        assert telemetry["total_high_entropy_atoms"] == 85
+
+        steps = {s["step_rule_id"]: s for s in telemetry["steps"]}
+        assert len(steps) == 7
+
+        # Step 2: Archivist (Bloom)
+        archivist = steps["sr_03c1d71000000002"]
+        assert archivist["cognitive_tier"] == "deep"
+        assert archivist["model_strategy"] == "deep"
+        assert len(archivist["matrices"]) == 1
+        bloom = archivist["matrices"][0]
+        assert bloom["block_id"] == "blk_f921c7c0989b47e8"
+        assert bloom["computed_min"] == 1
+        assert bloom["computed_max"] == 6
+        assert len(bloom["scales"]) == 6
+        assert bloom["total_atoms"] == 30
+        assert bloom["high_entropy_atoms"] == 30
+
+        # Step 3: Analyst (Kahneman)
+        analyst = steps["sr_03c1d71000000003"]
+        assert analyst["model_strategy"] == "reasoning"
+        assert len(analyst["matrices"]) == 1
+        kahneman = analyst["matrices"][0]
+        assert kahneman["block_id"] == "blk_109dab5b6b3f403a"
+        assert len(kahneman["scales"]) == 3
+        assert kahneman["total_atoms"] == 15
+
+        # Step 6: Scoring Engine (Logic hook)
+        scoring = steps["sr_03c1d71000000006"]
+        assert scoring["type"] == "logic"
+        assert len(scoring["matrices"]) == 0
+
+    def test_resolve_all_workflows_matrix_telemetry(self) -> None:
+        """Verify all workflows in seed data are parsed dynamically with matrix stats."""
+        from scripts.run_e2e_variance_test import (
+            resolve_all_workflows_matrix_telemetry,
+            resolve_workflow_matrix_telemetry,
+        )
+
+        all_wfs = resolve_all_workflows_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
+        assert len(all_wfs) == 6
+        wf_ids = {w["workflow_id"] for w in all_wfs}
+        assert "wf_03a1d71000000003" in wf_ids
+        assert "wf_01a1d71000000001" in wf_ids
+
+        # Untargeted resolution on multi-workflow DB returns None (no domain guessing)
+        assert resolve_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json")) is None
+        # Non-existent workflow returns None
+        assert resolve_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json"), workflow_id="nonexistent") is None
+
+    def test_resolve_workflow_matrix_telemetry_targeted_id(self) -> None:
+        """Verify targeted workflow resolution parses specific workflow parameters by ID and slug."""
+        from scripts.run_e2e_variance_test import resolve_workflow_matrix_telemetry
+
+        telemetry_by_id = resolve_workflow_matrix_telemetry(
+            Path("backend_v2/seed/seed_data.json"),
+            workflow_id="wf_05a1d71000000005",
+        )
+        assert telemetry_by_id is not None
+        assert telemetry_by_id["workflow_id"] == "wf_05a1d71000000005"
+        assert telemetry_by_id["security_penalty"] == 0.15
+
+        telemetry_by_slug = resolve_workflow_matrix_telemetry(
+            Path("backend_v2/seed/seed_data.json"),
+            workflow_id="syvallinen_ongelmanratkaisu_kognitio",
+        )
+        assert telemetry_by_slug is not None
+        assert telemetry_by_slug["workflow_id"] == "wf_03a1d71000000003"
+
+    def test_print_workflow_matrix_telemetry_smoke(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Verify print_workflow_matrix_telemetry outputs formatted telemetry cleanly."""
+        from scripts.run_e2e_variance_test import print_workflow_matrix_telemetry
+
+        print_workflow_matrix_telemetry(Path("backend_v2/seed/seed_data.json"))
+        captured = capsys.readouterr().out
+        assert "Työnkulun ja Arviointimatriisien Parametrit" in captured
+        assert "Sovereign Strictness:     50%" in captured
+        assert "Bloomin Taksonomia" in captured
+        assert "Kahnemanin Kaksoisprosessiteoria" in captured
+        assert "Deterministinen UnifiedScoringEngine" in captured
+
+    def test_main_show_matrices_flag(self, capsys: pytest.CaptureFixture[str]) -> None:
+        """Verify main() with --show-matrices prints parameters and exits without executing."""
+        from scripts.run_e2e_variance_test import main
+
+        result = main(["--show-matrices", "--db-path", "backend_v2/seed/seed_data.json"])
+        assert result == []
+        captured = capsys.readouterr().out
+        assert "Fyysiset Malliparametrit ja Telemetria" in captured
+        assert "Työnkulun ja Arviointimatriisien Parametrit" in captured
+
+

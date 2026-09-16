@@ -68,6 +68,7 @@ import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput
+from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
 from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 
 __all__ = [
@@ -80,6 +81,11 @@ __all__ = [
     "load_inputs_from_path",
     "main",
     "make_noise_injector",
+    "print_model_telemetry",
+    "print_workflow_matrix_telemetry",
+    "resolve_all_workflows_matrix_telemetry",
+    "resolve_model_telemetry",
+    "resolve_workflow_matrix_telemetry",
     "run_variance_test",
     "trigger_execution",
     "validate_execution_kelvollisuus",
@@ -713,6 +719,7 @@ def trigger_execution(
     workflow_id: str | None = None,
     profile_id: str | None = None,
     target_locale: str = "fi",
+    provider_override: str | None = None,
 ) -> str:
     """Trigger native execution over HTTP API and save response trace.
 
@@ -777,15 +784,19 @@ def trigger_execution(
         f"Sending POST to {base_url}/execution/executions/ using workflow {final_workflow_id} "
         f"and profile {final_profile_id} (locale: {target_locale})"
     )
+    req_body: dict[str, Any] = {
+        "workflow_id": final_workflow_id,
+        "profile_id": final_profile_id,
+        "raw_inputs": {"dynamic_inputs": raw_inputs},
+        "target_locale": target_locale,
+    }
+    if provider_override:
+        req_body["provider_override"] = provider_override
+
     resp = requests.post(
         f"{base_url}/execution/executions/",
         headers=headers,
-        json={
-            "workflow_id": final_workflow_id,
-            "profile_id": final_profile_id,
-            "raw_inputs": {"dynamic_inputs": raw_inputs},
-            "target_locale": target_locale,
-        },
+        json=req_body,
         timeout=300,
     )
     if not resp.ok:
@@ -856,6 +867,469 @@ def validate_execution_kelvollisuus(
     return True, "Execution is valid and contains sufficient observations"
 
 
+def resolve_model_telemetry(db_path: Path) -> dict[str, dict[str, Any]]:
+    """Load model registry from active database and resolve physical and effective parameters.
+
+    Args:
+        db_path: Path to database (data/db_v2.json) or seed file.
+
+    Returns:
+        Dictionary mapping strategy names to structured telemetry dictionaries.
+    """
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    if not target_path.exists():
+        return {}
+
+    try:
+        with target_path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except UnicodeDecodeError, OSError:
+        return {}
+
+    sys_configs = data.get("system_config", [])
+    configs_list: list[dict[str, Any]] = []
+    if isinstance(sys_configs, dict):
+        configs_list = [v for v in sys_configs.values() if isinstance(v, dict)]
+    elif isinstance(sys_configs, list):
+        configs_list = [v for v in sys_configs if isinstance(v, dict)]
+
+    models_dict: dict[str, Any] = {}
+    for cfg in configs_list:
+        if cfg.get("type") == "model_registry":
+            tier_defs = cfg.get("tier_definitions", {})
+            if isinstance(tier_defs, dict) and tier_defs:
+                for prov_name, tiers in tier_defs.items():
+                    if isinstance(tiers, dict):
+                        for tier_name, mcfg in tiers.items():
+                            if isinstance(mcfg, dict):
+                                models_dict[f"{tier_name} ({prov_name})"] = mcfg
+                                if tier_name not in models_dict:
+                                    models_dict[tier_name] = mcfg
+            models_dict.update(cfg.get("models", {}))
+            break
+
+    result: dict[str, dict[str, Any]] = {}
+    for strat, mcfg in models_dict.items():
+        if not isinstance(mcfg, dict):
+            continue
+        model_name = str(mcfg.get("model_name", "unknown"))
+        provider = str(mcfg.get("provider", "unknown"))
+        db_temp = mcfg.get("temperature")
+        max_tokens = mcfg.get("max_tokens")
+        thinking_budget = int(mcfg.get("thinking_budget_tokens", 0) or 0)
+        tpm_limit = mcfg.get("tpm_limit")
+        rpm_limit = mcfg.get("rpm_limit")
+        add_params = mcfg.get("additional_params", {})
+        explicit_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+
+        is_gemini_v3 = ("gemini-3" in model_name.lower()) or ("gemini-2.5" in model_name.lower())
+        is_openai_reasoning = any(p in model_name.lower() for p in ("o1", "o3", "o4", "o5", "gpt-5"))
+
+        if is_gemini_v3:
+            provider_backend = "Google AI Studio" if "gemini/" in model_name.lower() else "Google Vertex AI"
+            eff_temp = "1.0 (kiinteä oletus; Gemini-adapteri suodattaa sampling-parametrit)"
+            think_str = f"{thinking_budget} tok" if thinking_budget > 0 else "0 tok (ei ajattelua)"
+            effort_str = f"N/A ({provider_backend} käyttää thinkingBudget-tokeneita)"
+        elif is_openai_reasoning:
+            provider_backend = "OpenAI"
+            eff_temp = "1.0 (kiinteä oletus; openai_adapter suodattaa sampling-parametrit)"
+            if explicit_effort:
+                effort = explicit_effort
+            elif thinking_budget <= 2048:
+                effort = "low"
+            elif thinking_budget <= 4096:
+                effort = "medium"
+            else:
+                effort = "high"
+            think_str = f"{thinking_budget} tok"
+            effort_str = f"'{effort}' (muunnettu thinking_budget_tokens {thinking_budget} perusteella)"
+        else:
+            provider_backend = provider
+            eff_temp = str(db_temp)
+            think_str = f"{thinking_budget} tok" if thinking_budget > 0 else "N/A"
+            effort_str = "N/A"
+
+        result[strat] = {
+            "strategy": strat,
+            "provider": provider,
+            "backend": provider_backend,
+            "model_name": model_name,
+            "db_temperature": db_temp,
+            "effective_temperature": eff_temp,
+            "thinking_budget": think_str,
+            "reasoning_effort": effort_str,
+            "max_tokens": max_tokens,
+            "tpm_limit": tpm_limit,
+            "rpm_limit": rpm_limit,
+            "is_gemini_v3": is_gemini_v3,
+            "is_openai_reasoning": is_openai_reasoning,
+        }
+    return result
+
+
+def print_model_telemetry(db_path: Path, active_strategies: list[str] | None = None) -> None:
+    """Print verified physical and effective model parameters loaded from the database.
+
+    Args:
+        db_path: Path to database or seed file.
+        active_strategies: Optional targeted strategies list.
+    """
+    telemetry = resolve_model_telemetry(db_path)
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    if not telemetry:
+        print(f"[Model Telemetry] Varoitus: Mallirekisteriä ei löytynyt kohteesta {target_path}")
+        return
+
+    print("\n" + "=" * 80)
+    print(f"[Fyysiset Malliparametrit ja Telemetria] (Lähde: {target_path})")
+    print("=" * 80)
+
+    ordered_keys = list(active_strategies) if active_strategies else []
+    for k in sorted(telemetry.keys()):
+        if k not in ordered_keys:
+            ordered_keys.append(k)
+
+    for strat in ordered_keys:
+        t = telemetry.get(strat)
+        if not t:
+            continue
+        marker = " [AKTIIVINEN TESTIKOHDE]" if active_strategies and strat in active_strategies else ""
+        print(f"  • Strategia '{strat}' ({t['provider'].upper()} / {t['backend']}){marker}:")
+        print(f"    - Fyysinen malli:       {t['model_name']}")
+        print(f"    - DB-lämpötila:         {t['db_temperature']}")
+        print(f"    - Todellinen lämpötila: {t['effective_temperature']}")
+        print(f"    - Ajattelubudjetti:     {t['thinking_budget']}")
+        if t["is_openai_reasoning"]:
+            print(f"    - Reasoning Effort:     {t['reasoning_effort']}")
+        print(f"    - Max Tokens:           {t['max_tokens']}")
+
+    print("=" * 80 + "\n")
+
+
+def resolve_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> dict[str, Any] | None:
+    """Resolve single workflow and attached matrix parameters loaded directly from the database.
+
+    Args:
+        db_path: Path to database file or seed data.
+        workflow_id: Optional workflow ID or slug to resolve.
+
+    Returns:
+        Structured dictionary of workflow strictness, penalties, and attached step matrices,
+        or None if no matching workflow is found.
+    """
+    all_wfs = resolve_all_workflows_matrix_telemetry(db_path)
+    if not all_wfs:
+        return None
+    if workflow_id:
+        return next((w for w in all_wfs if w["workflow_id"] == workflow_id or w["workflow_slug"] == workflow_id), None)
+    # Dynamically find unique core workflow, or sole workflow in database
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    with target_path.open("r", encoding="utf-8") as f:
+        raw_db = json.load(f)
+    wfs_raw = raw_db.get("workflows", {})
+    wfs_list = list(wfs_raw.values()) if isinstance(wfs_raw, dict) else list(wfs_raw)
+    core_ids = [str(w.get("id")) for w in wfs_list if isinstance(w, dict) and w.get("is_system_core")]
+    if len(core_ids) == 1:
+        return next((w for w in all_wfs if w["workflow_id"] == core_ids[0]), None)
+    if len(all_wfs) == 1:
+        return all_wfs[0]
+    return None
+
+
+def resolve_all_workflows_matrix_telemetry(db_path: Path) -> list[dict[str, Any]]:
+    """Resolve all workflows and attached matrix parameters loaded directly from the database.
+
+    Args:
+        db_path: Path to database file or seed data.
+
+    Returns:
+        List of structured workflow telemetry dictionaries across all workflows in the database.
+    """
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    if not target_path.exists():
+        return []
+
+    with target_path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    def _to_id_map(raw: Any) -> dict[str, dict[str, Any]]:
+        m: dict[str, dict[str, Any]] = {}
+        if isinstance(raw, dict):
+            for v in raw.values():
+                if isinstance(v, dict) and "id" in v:
+                    m[str(v["id"])] = v
+        elif isinstance(raw, list):
+            for v in raw:
+                if isinstance(v, dict) and "id" in v:
+                    m[str(v["id"])] = v
+        return m
+
+    workflows_map = _to_id_map(data.get("workflows"))
+    steps_map = _to_id_map(data.get("steps"))
+    blocks_map = _to_id_map(data.get("prompt_blocks"))
+
+    if not workflows_map:
+        return []
+
+    def _resolve_text(val: Any) -> str:
+        if isinstance(val, dict):
+            trans = val.get("translations", {})
+            return trans.get("fi") or trans.get("en") or next(iter(trans.values()), "")
+        return str(val or "")
+
+    results: list[dict[str, Any]] = []
+
+    for target_wf in workflows_map.values():
+        wf_id = str(target_wf.get("id"))
+        wf_slug = str(target_wf.get("slug", ""))
+        wf_name = _resolve_text(target_wf.get("name"))
+        strictness_level = int(target_wf.get("default_strictness_level", 50))
+        strictness_exponent = calculate_strictness_exponent(strictness_level)
+
+        enable_contextual_overrides = bool(target_wf.get("enable_contextual_overrides", False))
+        security_penalty = float(target_wf.get("security_penalty", 0.0))
+        post_hoc_penalty = float(target_wf.get("post_hoc_penalty", 0.0))
+        passivity_penalty = float(target_wf.get("passivity_penalty", 0.0))
+        default_profile_id = target_wf.get("default_profile_id")
+
+        steps_telemetry: list[dict[str, Any]] = []
+        total_matrices = 0
+        total_scales = 0
+        total_claims = 0
+        total_atoms = 0
+        total_high_entropy = 0
+
+        for srule in target_wf.get("steps", []):
+            srule_id = str(srule.get("id"))
+            bp_id = str(srule.get("task_blueprint", ""))
+            sdef = steps_map.get(bp_id, {})
+            sname = _resolve_text(sdef.get("name"))
+            stype = str(sdef.get("type", "llm"))
+            strat = sdef.get("cognitive_tier") or sdef.get("model_strategy")
+            crit_ids = sdef.get("criteria_block_ids", [])
+
+            step_matrices: list[dict[str, Any]] = []
+            for cid in crit_ids:
+                blk = blocks_map.get(cid)
+                if not blk or blk.get("category_id") != "matrix":
+                    continue
+                total_matrices += 1
+                m_label = _resolve_text(blk.get("label") or blk.get("name"))
+                scales_raw = blk.get("scales", [])
+                total_scales += len(scales_raw)
+
+                m_scales: list[dict[str, Any]] = []
+                m_atoms = 0
+                m_high_entropy = 0
+                m_claims = 0
+
+                for sc in scales_raw:
+                    sc_score = sc.get("score")
+                    sc_name = _resolve_text(sc.get("name"))
+                    sc_ai_label = str(sc.get("ai_label", ""))
+                    claims = sc.get("claims", [])
+                    m_claims += len(claims)
+                    total_claims += len(claims)
+
+                    sc_atoms = 0
+                    sc_high_entropy = 0
+                    for cl in claims:
+                        tda_list = cl.get("tda_assertions", [])
+                        sc_atoms += len(tda_list)
+                        sc_high_entropy += sum(1 for a in tda_list if a.get("high_entropy"))
+
+                    m_atoms += sc_atoms
+                    m_high_entropy += sc_high_entropy
+                    total_atoms += sc_atoms
+                    total_high_entropy += sc_high_entropy
+
+                    m_scales.append(
+                        {
+                            "score": sc_score,
+                            "name": sc_name,
+                            "ai_label": sc_ai_label,
+                            "claim_count": len(claims),
+                            "atom_count": sc_atoms,
+                            "high_entropy_count": sc_high_entropy,
+                        }
+                    )
+
+                step_matrices.append(
+                    {
+                        "block_id": cid,
+                        "label": m_label,
+                        "category": "matrix",
+                        "computed_min": blk.get("computed_min", min((s["score"] for s in m_scales), default=1)),
+                        "computed_max": blk.get(
+                            "computed_max", max((s["score"] for s in m_scales), default=len(m_scales))
+                        ),
+                        "allow_contextual_override": bool(blk.get("allow_contextual_override", False)),
+                        "target_input_key": blk.get("target_input_key"),
+                        "total_claims": m_claims,
+                        "total_atoms": m_atoms,
+                        "high_entropy_atoms": m_high_entropy,
+                        "scales": m_scales,
+                    }
+                )
+
+            steps_telemetry.append(
+                {
+                    "step_rule_id": srule_id,
+                    "blueprint_id": bp_id,
+                    "name": sname,
+                    "type": stype,
+                    "cognitive_tier": strat,
+                    "model_strategy": strat,
+                    "is_synthesis_source": bool(srule.get("is_synthesis_source", True)),
+                    "matrices": step_matrices,
+                }
+            )
+
+        results.append(
+            {
+                "source_path": str(target_path),
+                "workflow_id": wf_id,
+                "workflow_name": wf_name,
+                "workflow_slug": wf_slug,
+                "strictness_level": strictness_level,
+                "strictness_exponent": strictness_exponent,
+                "enable_contextual_overrides": enable_contextual_overrides,
+                "security_penalty": security_penalty,
+                "post_hoc_penalty": post_hoc_penalty,
+                "passivity_penalty": passivity_penalty,
+                "default_profile_id": default_profile_id,
+                "total_matrices": total_matrices,
+                "total_scales": total_scales,
+                "total_claims": total_claims,
+                "total_atoms": total_atoms,
+                "total_high_entropy_atoms": total_high_entropy,
+                "steps": steps_telemetry,
+            }
+        )
+
+    return results
+
+
+def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = None) -> None:
+    """Print verified workflow strictness, penalties, and attached step matrix parameters.
+
+    Args:
+        db_path: Path to database or seed file.
+        workflow_id: Optional targeted workflow ID or slug. If None, prints all workflows from the database.
+    """
+    target_path = db_path if db_path.exists() else Path("backend_v2/seed/seed_data.json")
+    if workflow_id:
+        single = resolve_workflow_matrix_telemetry(db_path, workflow_id=workflow_id)
+        telemetries = [single] if single else []
+    else:
+        telemetries = resolve_all_workflows_matrix_telemetry(db_path)
+
+    if not telemetries:
+        print(f"[Matrix Telemetry] Varoitus: Työnkulun matriisitietoja ei löytynyt kohteesta {target_path}")
+        return
+
+    for t_idx, telemetry in enumerate(telemetries, 1):
+        he_total = telemetry["total_high_entropy_atoms"]
+        tot_total = telemetry["total_atoms"]
+        sp_total = tot_total - he_total
+        total_calls = he_total * 3 + sp_total * 1
+        he_total_pct = (he_total / tot_total * 100.0) if tot_total > 0 else 0.0
+
+        header_prefix = (
+            f"[Työnkulun ja Arviointimatriisien Parametrit] ({t_idx}/{len(telemetries)})"
+            if len(telemetries) > 1
+            else "[Työnkulun ja Arviointimatriisien Parametrit]"
+        )
+        print("\n" + "=" * 80)
+        print(f"{header_prefix} (Lähde: {telemetry['source_path']})")
+        print("=" * 80)
+        print(f"  Työnkulku:                 {telemetry['workflow_name']}")
+        print(f"    - Tunniste:              {telemetry['workflow_id']}")
+        print(
+            f"  • Sovereign Strictness:     {telemetry['strictness_level']}% -> "
+            f"Teho-eksponentti: {telemetry['strictness_exponent']:.4f} (UnifiedScoringEngine)"
+        )
+        print(
+            f"  • Kontekstuaaliset ohitukset: "
+            f"{'SALLITTU (True)' if telemetry['enable_contextual_overrides'] else 'ESTETTY (False)'}"
+        )
+        print("  • Sakkokertoimet:")
+        print(f"    - Passiivisuussakko:      {telemetry['passivity_penalty']:.2f}")
+        print(f"    - Jälkikäteissakko:       {telemetry['post_hoc_penalty']:.2f}")
+        print(f"    - Tietoturvasakko:        {telemetry['security_penalty']:.2f}")
+        print(
+            f"  • Matriisien kokonaisvolyymi: {telemetry['total_matrices']} matriisia | "
+            f"{telemetry['total_scales']} tasoa | {tot_total} atomia"
+        )
+        print(
+            f"  • Rinnakkaisäänestys (E2E):   {he_total} / {tot_total} atomia ({he_total_pct:.1f}%) "
+            f"käyttää Best-of-3 -konsensusta (high_entropy: true)"
+        )
+        print(
+            f"    -> Työnkulun LLM-kutsut:    {he_total} × 3 + {sp_total} × 1 = "
+            f"{total_calls} rinnakkaista arviointikutsua (asyncio.TaskGroup)"
+        )
+        print("-" * 80)
+
+        for idx, s in enumerate(telemetry["steps"], 1):
+            tier = s.get("cognitive_tier") or s.get("model_strategy")
+            strat_display = f"Taso: {tier.upper()}" if tier else "Ei LLM-kutsua (Logiikkakoukku)"
+            if s["type"] == "logic":
+                strat_display = "Deterministinen UnifiedScoringEngine"
+            matrices_count = len(s["matrices"])
+            print(f"  [{idx}] Askel: {s['name']}")
+            print(f"      - Tunnisteet:            sääntö={s['step_rule_id']} / pohja={s['blueprint_id']}")
+            print(f"      - Tyyppi ja taso:        {s['type']} | {strat_display}")
+            print(f"      - Matriiseja sidottu:    {matrices_count} kpl")
+
+            for m in s["matrices"]:
+                he_atoms = m["high_entropy_atoms"]
+                tot_atoms = m["total_atoms"]
+                sp_atoms = tot_atoms - he_atoms
+                llm_calls = he_atoms * 3 + sp_atoms * 1
+                he_pct = (he_atoms / tot_atoms * 100.0) if tot_atoms > 0 else 0.0
+                voting_status = (
+                    f"KAIKKI ATOMIT ({he_atoms}/{tot_atoms} kpl, 100.0%) Best-of-3"
+                    if he_atoms == tot_atoms and tot_atoms > 0
+                    else f"OSITTAINEN ({he_atoms}/{tot_atoms} kpl, {he_pct:.1f}%) Best-of-3"
+                    if he_atoms > 0
+                    else "EI KÄYTÖSSÄ (Single Pass, 100% atomeista)"
+                )
+                print(f"      -> MATRIISI '{m['block_id']}': \"{m['label']}\"")
+                print(
+                    f"         * Asteikko (min..max):    {m['computed_min']} .. {m['computed_max']} "
+                    f"({len(m['scales'])} tasoa)"
+                )
+                print(f"         * Atomit ja väitteet:     {tot_atoms} atomia ({m['total_claims']} väitettä)")
+                print(f"         * Rinnakkaisäänestys:     {voting_status}")
+                print(
+                    f"           -> LLM-arviointikutsut: {he_atoms} × 3 + {sp_atoms} × 1 = "
+                    f"{llm_calls} rinnakkaiskutsua (2/3 enemmistökonsensus)"
+                )
+                print(f"         * Contextual override:    {'Kyllä' if m['allow_contextual_override'] else 'Ei'}")
+                print("         * Asteikkotasokohtainen entropia- ja äänestyserittely:")
+                for sc in m["scales"]:
+                    ai_lbl = f" ({sc['ai_label']})" if sc["ai_label"] else ""
+                    sc_he = sc["high_entropy_count"]
+                    sc_tot = sc["atom_count"]
+                    sc_sp = sc_tot - sc_he
+                    sc_calls = sc_he * 3 + sc_sp * 1
+                    voting_tag = (
+                        f"Best-of-3 (3x LLM, {sc_calls} kutsua)"
+                        if sc_he == sc_tot and sc_tot > 0
+                        else f"Seka: {sc_he} Best-of-3 + {sc_sp} single ({sc_calls} kutsua)"
+                        if sc_he > 0
+                        else f"Single Pass (1x LLM, {sc_calls} kutsua)"
+                    )
+                    print(
+                        f"           - Taso {sc['score']}: {sc['name']}{ai_lbl} | "
+                        f"{sc['claim_count']} väitettä, {sc_tot} atomia | "
+                        f"Äänestys: {voting_tag}"
+                    )
+
+        print("=" * 80 + "\n")
+
+
 def run_variance_test(
     inputs_target: str | None = None,
     num_runs: int = 2,
@@ -868,6 +1342,7 @@ def run_variance_test(
     profile: str | None = None,
     locale: str = "fi",
     strategies: list[str] | None = None,
+    providers: list[str] | None = None,
     no_noise: bool = False,
 ) -> list[str]:
     """Execute automated end-to-end variance test suite across multiple runs.
@@ -884,12 +1359,18 @@ def run_variance_test(
         profile: Optional output profile ID to apply.
         locale: Target locale for output generation (default: fi).
         strategies: Optional list of model strategies to run sequentially for cross-model differential comparison.
+        providers: Optional list of LLM providers to run sequentially for cross-provider differential comparison.
         no_noise: Disable Unicode space noise injection to evaluate byte-for-byte identical inputs.
 
     Returns:
         List of generated execution IDs.
     """
-    if strategies is not None:
+    if providers is not None:
+        if len(providers) < 1:
+            msg = "At least one provider must be provided to --providers."
+            raise ValueError(msg)
+        num_runs = len(providers)
+    elif strategies is not None:
         if len(strategies) < 1:
             msg = "At least one strategy must be provided to --strategies."
             raise ValueError(msg)
@@ -904,6 +1385,8 @@ def run_variance_test(
 
     target_db_path = Path(db_path) if db_path else Path("data/db_v2.json")
     print(f"Using inputs path: {inputs_target}")
+    print_model_telemetry(target_db_path, active_strategies=strategies)
+    print_workflow_matrix_telemetry(target_db_path, workflow_id=workflow)
     execution_ids: list[str] = []
 
     for i in range(num_runs):
@@ -920,9 +1403,34 @@ def run_variance_test(
         backend_env = os.environ.copy()
         backend_env["ENVIRONMENT"] = environment
 
-        if strategies:
+        active_provider: str | None = None
+        if providers:
+            active_provider = providers[i].lower()
+            print(f"[Provider Routing] Run {i + 1} targeting provider: '{active_provider}'")
+            telemetry = resolve_model_telemetry(target_db_path)
+            matching_t = {k: v for k, v in telemetry.items() if v.get("provider", "").lower() == active_provider}
+            if matching_t:
+                print(f"   -> Aktiivisen tarjoajan ('{active_provider}') kognitiiviset tasot:")
+                for tk, tv in matching_t.items():
+                    print(
+                        f"      • {tk}: `{tv['model_name']}` ({tv['backend']}) | "
+                        f"Ajattelu={tv['thinking_budget']} | MaxTok={tv['max_tokens']}"
+                    )
+        elif strategies:
             active_strategy = strategies[i]
             print(f"[Strategy Routing] Run {i + 1} targeting strategy: '{active_strategy}'")
+            telemetry = resolve_model_telemetry(target_db_path)
+            active_t = telemetry.get(active_strategy)
+            if active_t:
+                effort_detail = (
+                    f", Reasoning Effort={active_t['reasoning_effort']}" if active_t["is_openai_reasoning"] else ""
+                )
+                print(
+                    f"   -> Fyysinen malli: `{active_t['model_name']}` ({active_t['provider'].upper()}) | "
+                    f"Todellinen T={active_t['effective_temperature']} | "
+                    f"Ajattelu={active_t['thinking_budget']}{effort_detail} | "
+                    f"MaxTok={active_t['max_tokens']}"
+                )
             aliases = {
                 s: active_strategy
                 for s in [
@@ -1002,6 +1510,16 @@ def run_variance_test(
                 raise RuntimeError(msg)
 
         final_workflow_id = str(resolved_workflow["id"])
+        wf_strictness = int(resolved_workflow.get("default_strictness_level", 50))
+        wf_exponent = calculate_strictness_exponent(wf_strictness)
+        print(
+            f"[Matrix Governance] Workflow '{final_workflow_id}' | "
+            f"Strictness={wf_strictness}% (Power Exponent: {wf_exponent:.4f}) | "
+            f"Overrides={resolved_workflow.get('enable_contextual_overrides')} | "
+            f"Penalties (passivity={float(resolved_workflow.get('passivity_penalty', 0.0)):.2f}, "
+            f"post_hoc={float(resolved_workflow.get('post_hoc_penalty', 0.0)):.2f}, "
+            f"security={float(resolved_workflow.get('security_penalty', 0.0)):.2f})"
+        )
 
         final_profile_id = profile
         if not final_profile_id:
@@ -1049,6 +1567,7 @@ def run_variance_test(
             workflow_id=final_workflow_id,
             profile_id=final_profile_id,
             target_locale=locale,
+            provider_override=active_provider,
         )
         if exec_id:
             execution_ids.append(exec_id)
@@ -1142,12 +1661,29 @@ def main(argv: list[str] | None = None) -> list[str]:
         help="List of model strategies to run sequentially for cross-model differential comparison (e.g. strict openai_strict)",
     )
     parser.add_argument(
+        "--providers",
+        nargs="+",
+        default=None,
+        help="List of LLM providers to run sequentially for cross-provider differential comparison (e.g. google openai)",
+    )
+    parser.add_argument(
         "--no-noise",
         action="store_true",
         help="Disable Unicode space noise injection to evaluate byte-for-byte identical inputs",
     )
+    parser.add_argument(
+        "--show-matrices",
+        action="store_true",
+        help="Print verified workflow and matrix parameters and exit without executing runs",
+    )
 
     args = parser.parse_args(argv)
+    if args.show_matrices:
+        target_db = Path(args.db_path) if args.db_path else Path("data/db_v2.json")
+        print_model_telemetry(target_db, active_strategies=args.strategies)
+        print_workflow_matrix_telemetry(target_db, workflow_id=args.workflow)
+        return []
+
     inputs_path = args.inputs_opt or args.inputs_target
     return run_variance_test(
         inputs_target=inputs_path,
@@ -1161,6 +1697,7 @@ def main(argv: list[str] | None = None) -> list[str]:
         profile=args.profile,
         locale=args.locale,
         strategies=args.strategies,
+        providers=args.providers,
         no_noise=args.no_noise,
     )
 
