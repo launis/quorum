@@ -19,14 +19,14 @@
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
 - [x] **[OK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
-  - [x] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
-  - [x] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
-  - [x] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
-  - [x] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
-  - [x] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
-  - [x] Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
-  - [x] Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
-  - [x] Step 8: E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
+  - [x] (5141d571) Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
+  - [x] (eb37e926) Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
+  - [x] (c1dfb9b5) Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
+  - [x] (0b95a576) Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
+  - [x] (afc97c1a) Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
+  - [x] (19e7190a) Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
+  - [x] (2862fb94) Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
+  - [x] (075bb47f) Step 8: E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
 
 ### Post-Implementation Gates
@@ -91,42 +91,31 @@
 
 # Session Handover Context
 ## Achieved
-- Executed Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A` (committed: `5141d571`).
-- Executed Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION` (committed: `eb37e926`).
-- Executed Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`:
-  - `backend_v2/services/orchestrator/strategies/base.py`: Added `model_registry_id: str | None = None` to `StrategyContext`.
-  - `backend_v2/llm/client.py`: Implemented multi-registry `from_tier` and `from_strategy` resolving in O(1) from flat `registry.tier_definitions`. Eradicated legacy telemetry strings.
-  - `backend_v2/services/orchestrator/strategies/llm.py`: Passed `registry_id=context.model_registry_id` into `LLMClient.from_tier`. Replaced obsolete `model_strategy` checks with typed `isinstance(self._engine, SynthesisEngine)` and `step_obj.pre_hooks` inspection.
-  - `backend_v2/hooks/llm.py`: Modernized `configure_llm_context_hook` to resolve from `registry.tier_definitions`.
-  - `backend_v2/services/orchestrator/dag_executor.py`: Passed `model_registry_id` to `StrategyContext`, resolved effective metadata, and modernized synthesis engine resolution to hook inspection.
-  - `backend_v2/worker.py`: Updated `from_tier` invocations to forward `execution.metadata.model_registry_id`.
-  - `backend_v2/services/studio/workflow_service.py`: Bound `model_registry_id="sys_e26807f3bfa3454d"` on workflow draft creation.
-  - Unit Tests: Aligned all DAG executor, LLM strategy, MCP, preflight, and synthesis distiller test fixtures with Option A 4-tier definitions. 476/476 orchestrator tests passed 100%.
-  - Quality Gate: Passed `backend_audit_loop.py backend_v2/services/orchestrator/dag_executor.py --test` with 90% coverage and 0 fatal AST violations.
-  - `backend_v2/database/interfaces.py`: Updated `ISystemRepository` protocol to declare `get_model_registry(registry_id: str | None = None)`, `get_all_model_registries()`, and `delete_system_config(config_id: str)`.
-  - `backend_v2/database/repositories/system.py`: Implemented deterministic keyed lookup (`ResourceNotFoundError` with RFC 7807 logging), deterministic default/all queries sorting via typed Pydantic models with zero AST QGR002 violations, authoritative in-place upsert by `registry_data.id`, and `delete_system_config`.
-  - `backend_v2/services/studio/system_config_service.py`: Modernized `get_all_system_configs`, keyed `get_system_config`, `save_system_config` with keyed re-fetch, Option A compliant `create_system_config_draft`, deep clone appending ` (Copy)` to `name`, and authoritative `delete_system_config`.
-  - `backend_v2/services/execution.py`: Stamped `model_registry_id = payload.model_registry_id or workflow.model_registry_id` on `ExecutionMetadata`.
-  - `backend_v2/tests/fakes/in_memory_repositories.py`: Updated `InMemorySystemRepository` and `InMemoryUnifiedRepository` with multi-registry dictionary storage, keyed lookups, and deletion.
-  - `backend_v2/tests/unit/database/repositories/test_system_model_registry.py`: Added 7 unit tests covering all multi-registry repository test contracts.
-  - `backend_v2/tests/unit/database/repositories/test_system.py`: Added comprehensive unit tests achieving 100% test coverage on `system.py`.
-  - Quality Gate Verification: Passed `backend_audit_loop.py backend_v2/database/repositories/system.py --test` with 100% coverage and exit code 0. Passed 28/28 tests in `test_system_config_service.py` and 25/25 tests in `test_execution.py`.
-
-- Executed Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`:
-  - `client_app_v2/lib/features/studio/views/step_builder_view.dart`: Removed physical model name suffix `[${physical.modelName}]` from `DropdownMenuItem` text, displaying pure abstract cognitive tier label and description via localized strings (`l10n.studioTierFast`, etc.). Removed hardcoded vendor preview chip (`Icons.psychology`) and unnecessary `modelRegistryControllerProvider` watch, unblocking step authoring from model registry state.
-  - `client_app_v2/test/features/studio/views/step_builder_view_dropdown_test.dart`: Added comprehensive unit test `renders vendor-neutral cognitive tier dropdown with zero physical model suffixes` verifying all 4 canonical abstract tiers exist without any physical model names or vendor preview chips.
-  - Quality Gate Verification: Passed `flutter_audit_loop.py` on both `step_builder_view.dart` and `step_builder_view_dropdown_test.dart` with 0 issues. All 3 tests pass in `step_builder_view_dropdown_test.dart`.
+- **Step 1 (`5141d571`):** `SystemConfigModelRegistry` flattened with 4 canonical tiers (`fast`, `balanced`, `deep`, `reasoning`), `name: str`, `Workflow.model_registry_id`, `ExecutionCreate.model_registry_id`, and Studio DTOs.
+- **Step 2 (`eb37e926`):** `ISystemRepository` & `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and `delete_system_config`; `StudioSystemConfigService` multi-registry CRUD with deep clone appending ` (Copy)`; `start_execution` stamps `model_registry_id`.
+- **Step 3 (`c1dfb9b5`):** `StrategyContext.model_registry_id` forwarded through `DAGExecutor` to `LLMNodeStrategy` and `worker.py`; `LLMClient.from_tier` resolves in O(1) from flat `tier_definitions`; 476/476 orchestrator tests passed.
+- **Step 4 (`0b95a576`):** Eradicated physical model suffixes `[${physical.modelName}]` and vendor preview chips in `StepBuilderView`.
+- **Step 5 (`afc97c1a`):** Desktop Pro Tool UX in `ModelRegistryView` (1200px canvas, `PopScope` dirty checking, in-view clone, 4-tier cards) and `StudioDashboardView` Tab 6 (real-time search, count badge).
+- **Step 6 (`19e7190a`):** `WorkflowGeneralTab` Sovereign Model Stack selector dropdown showing name and provider badge; dual-axis localization; 142/142 studio view tests passed.
+- **Step 7 (`2862fb94`):** `seed_data.json` synchronized with Option A flat schema (`sys_e26807f3bfa3454d` Google Gemini Sovereign Stack and `sys_6f8b1c4a2e0d49f1` OpenAI O-Series Stack), all workflows bound to `sys_e26807f3bfa3454d`; passed strict seed audit and local seeding. Quality gates in `system.py` (100% cov) and `v2_core.py` (92% cov) passed.
+- **Step 8 (`075bb47f`):** Modernized `scripts/run_e2e_variance_test.py` with dynamic model registry resolution (`resolve_model_telemetry`, `print_model_telemetry`, `resolve_comparison_registries`), CLI flags `--model-registry` and `--compare-registries`, side-by-side telemetry and automated differential execution flow. 35/35 tests passed in `test_run_e2e_variance_test.py`.
 
 ## Learned
 - Using typed Pydantic model validation on queried dictionaries prior to sorting (`models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]`) completely eliminates dictionary `.get()` calls and cleanly satisfies AST guardrail `QGR002`.
 - `InMemorySystemRepository` previously used a single `_model_registry` slot with obsolete `models={}`; refactoring it to a dictionary store `_model_registries` with Option A 4-tier default guarantees true stateful multi-registry roundtrip fidelity.
 - Eradicating physical model inspection from `StepBuilderView` completely decouples individual workflow step authoring from physical provider/model configs, allowing step definitions to remain 100% vendor-neutral and solely driven by the workflow's attached Sovereign Model Registry stack.
+- Dynamic registry resolution in `scripts/run_e2e_variance_test.py` cleanly supports both direct ID and loose name/provider matching (e.g. `openai` -> `sys_6f8b1c4a2e0d49f1`), and automatic comparison defaults to comparing the workflow's configured stack against the primary alternate stack in the database.
 
 ## Remaining
-- Execute Step 5: `DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY`
-- Execute Step 6: `WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE`
-- Execute Step 7: `SEED VAULT SYNCHRONIZATION & QUALITY GATES`
-- Execute Step 8: `E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON`
+- **Next Primary Gate:** Run `/tier8-audit-plan` to verify all 12 requirements (REQ-01 through REQ-12) against Quorum 2026 invariants with 0 fatal errors.
+- **Post-Implementation Hardening Gates:**
+  - Execute `/tier2-hardening-backend` on modified backend files.
+  - Execute `/tier2-hardening-frontend` on modified Flutter files.
+- **As-Built Architectural Sync:**
+  - Execute `/tier7-describe-architecture` to update architectural documents and sync Knowledge Items (`ki_desktop_pro_tool_studio_ux.md`, `ki_provider_agnostic_caching.md`).
+
+### Hardening State Snapshot
+TARGETS: 74, DONE: 9, REMAINING: [@[backend_v2/database/repositories/execution.py], @[backend_v2/hooks/scoring/__init__.py], @[backend_v2/hooks/scoring/falsifier_hook.py], @[backend_v2/hooks/scoring/passivity_hook.py], @[backend_v2/hooks/scoring/matrix_hook.py], @[backend_v2/hooks/scoring/normalization_hook.py], @[backend_v2/tests/unit/hooks/test_scoring.py], @[backend_v2/hooks/validation.py], @[backend_v2/hooks/source_verification_hook.py], @[backend_v2/hooks/atom_flattening.py], @[backend_v2/hooks/input_processing.py], @[backend_v2/hooks/integrity.py], @[backend_v2/hooks/linguistics.py], @[backend_v2/hooks/llm.py], @[backend_v2/hooks/context_mapper.py], @[backend_v2/hooks/archival.py], @[backend_v2/hooks/security.py], @[backend_v2/hooks/hydration.py], @[backend_v2/hooks/dlq_guard.py], @[backend_v2/hooks/metadata.py], @[backend_v2/hooks/metrics.py], @[backend_v2/hooks/references.py], @[backend_v2/hooks/interaction_hook.py], @[backend_v2/services/orchestrator/dag_executor.py], @[backend_v2/services/orchestrator/enriched_dag_executor.py], @[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/services/orchestrator/strategies/base.py], @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py], @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py], @[backend_v2/services/orchestrator/prompt_compiler.py], @[backend_v2/services/orchestrator/prompt_compiler_adapter.py], @[backend_v2/services/orchestrator/context_router.py], @[backend_v2/services/orchestrator/dag_compiler.py], @[backend_v2/services/orchestrator/synthesis_payload_compressor.py], @[backend_v2/services/orchestrator/synthesis_distiller.py], @[backend_v2/services/orchestrator/matrix_explanation_service.py], @[backend_v2/services/orchestrator/rag_preflight_service.py], @[backend_v2/services/orchestrator/localization_compiler.py], @[backend_v2/services/orchestrator/extraction_schema_factory.py], @[backend_v2/services/orchestrator/atomizer.py], @[backend_v2/services/orchestrator/two_pass_atomizer.py], @[backend_v2/services/orchestrator/anchor_validation_service.py], @[backend_v2/services/orchestrator/matrix_reducer.py], @[backend_v2/services/orchestrator/engines/tda_engine.py], @[backend_v2/services/orchestrator/engines/synthesis_engine.py], @[backend_v2/services/orchestrator/extractive_sensor_service.py], @[backend_v2/services/orchestrator/result_projector.py], @[backend_v2/services/execution.py], @[backend_v2/services/usage_service.py], @[backend_v2/services/llm_task_executor.py], @[backend_v2/services/translation_service.py], @[backend_v2/services/source_verification_service.py], @[backend_v2/services/blueprint.py], @[backend_v2/services/studio/system_config_service.py], @[backend_v2/services/studio/workflow_service.py], @[backend_v2/services/studio/output_profile_service.py], @[backend_v2/services/studio/prompt_block_service.py], @[backend_v2/services/mcp/mcp_tool_loop.py], @[backend_v2/worker.py], @[backend_v2/services/cache/__init__.py], @[backend_v2/services/cache/typed_cache.py], @[scripts/_ast_guardrails.py], @[scripts/backend_audit_loop.py]]
 
 ## Resume Command
-`/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
+`/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier8-audit-plan" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/01-python-backend.md],@[.agents/rules/02_flutter_desktop.md],@[.agents/rules/05_llm_architecture.md]"`
