@@ -1,5 +1,4 @@
 # Tracker: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding & Pro Tool UX
-
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
 
 <required_context_rules>
@@ -18,24 +17,21 @@
 </required_context_rules>
 
 ## Step Execution Status
-
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
-
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
-  - [ ] Step 1: Backend Domain Schema Flattening for Option A
-  - [ ] Step 2: Database Repository & Service Multi-Registry Resolution
-  - [ ] Step 3: Orchestrator & LLM Dispatch Integration
-  - [ ] Step 4: Vendor Leak Eradication in Step Builder
-  - [ ] Step 5: Desktop Pro Tool UX Upgrade for Model Registry
-  - [ ] Step 6: Workflow General Tab Model Registry Linkage
-  - [ ] Step 7: Seed Vault Synchronization & Quality Gates
-  - [ ] Step 8: E2E Variance Test Harness Dynamic Telemetry & Automated Comparison
+  - [ ] Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
+  - [ ] Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
+  - [ ] Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
+  - [ ] Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
+  - [ ] Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
+  - [ ] Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
+  - [ ] Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
+  - [ ] Step 8: E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
 
 ### Post-Implementation Gates
-
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` on target backend production files.
+- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` production backend files:
   - [ ] @[backend_v2/models/v2_core.py]
   - [ ] @[backend_v2/models/execution_core.py]
   - [ ] @[backend_v2/models/dtos/studio.py]
@@ -50,7 +46,7 @@
   - [ ] @[backend_v2/worker.py]
   - [ ] @[backend_v2/services/studio/workflow_service.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` on target Flutter production files.
+- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` production Flutter files:
   - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
@@ -61,60 +57,62 @@
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
 ### Documentation & Knowledge Item Update
-
-- [ ] **[NOK] As-Built Architectural Sync**: Run `/tier7-describe-architecture` to automatically synchronize relevant architecture documentation in `docs/architecture/` and update `ki_provider_agnostic_caching.md`.
+- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to anchor physical implementation in `docs/architecture/` (scoped to relevant documents), update relevant Knowledge Items, and synchronize `.agents/rules/04_directory_reference.md`.
 
 ### Final Plan Audit
-
-- [ ] **[NOK] System 2 Red-Team Audit**: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]` to verify 100% compliance with zero regressions.
+- [ ] **[NOK]** System 2 Red-Team Audit: Run `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ## Instructions for the Execution Agent
-
-- **Atomic Commits:** After any successful run of the universal quality gate, create an atomic git commit with English Conventional Commits syntax (`<type>(<scope>): <summary>`).
-- **Seeding Invariant:** When modifying schemas in `backend_v2/models/v2_core.py` and `backend_v2/seed/seed_data.json`, verify with `uv run python scripts/audit_database_atoms.py --strict` before resetting or persisting.
-- **Continuous Mode:** In Continuous Full-Auto Mode (invoked via `/tier2-execute --full-auto`), proceed autonomously across steps as long as quality gates pass 100%. Trigger session handover cleanly if context limits are approached (>8 turns, 3 commits, >5 complex files).
-- **Mandatory Audit Loop:** Run `uv run python scripts/backend_audit_loop.py <target> --test` for Python files and `uv run python scripts/flutter_audit_loop.py <target> --build` for Dart files.
+- **Atomic Commit Mandate**: After each successful quality gate verification, commit changes atomically with strict Conventional Commits syntax (`<type>(<scope>): <summary>`). List all staged files explicitly.
+- **Seeding Environment**: If database re-seeding is required, execute `uv run python backend_v2/seed/run_seed.py local`.
+- **Quality Gates**:
+  - For Python changes: `uv run python scripts/backend_audit_loop.py <target_path> --test`
+  - For Flutter changes: `uv run python scripts/flutter_audit_loop.py client_app_v2/<target_path> --build`
+- **Execution Mode**: Supports Step-by-Step (default pause per step) and Continuous Full-Auto Mode (invoked via `/tier2-execute --full-auto`).
+- **Context Budget Watchdog**: In Continuous Mode, proactively trigger `/tier5-session-handover` when the context budget limit is reached: >8 turns, 3 atomic commits, or >5 modified complex files.
+- **Workflow Loop**: `/tier2-execute @[plan] @[tracker]` -> `/tier8-audit-plan @[plan] @[tracker]` -> Post-Implementation Hardening Gates (`/tier2-hardening-backend`, `/tier2-hardening-frontend`) -> `/tier7-describe-architecture`.
 
 ## Requirements Traceability Matrix
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-1 | Flatten `SystemConfigModelRegistry.tier_definitions` to direct 4-tier mapping and add `name: str` | Step 1 | `[ ] PENDING` |
-| REQ-2 | Add `model_registry_id` to `Workflow` and Studio DTOs | Step 1 | `[ ] PENDING` |
-| REQ-3 | Update `ISystemRepository` and `SystemRepositoryImpl` with deterministic `get_model_registry(id)` and `get_all_model_registries()` | Step 2 | `[ ] PENDING` |
-| REQ-4 | Update `StudioSystemConfigService` for multi-registry CRUD and clone with name copy suffix | Step 2 | `[ ] PENDING` |
-| REQ-5 | Stamp `model_registry_id` onto `ExecutionRecord` in `ExecutionService.start_execution` | Step 2 | `[ ] PENDING` |
-| REQ-6 | Forward `model_registry_id` through `StrategyContext` and `worker.py` into `LLMClient.from_tier` | Step 3 | `[ ] PENDING` |
-| REQ-7 | Eradicate vendor name leakage and hardcoded vendor preview chips from `StepBuilderView` | Step 4 | `[ ] PENDING` |
-| REQ-8 | Upgrade `ModelRegistryView` to Desktop Pro Tool UX (1200px canvas, PopScope dirty check, 4 tier cards, clone button) | Step 5 | `[ ] PENDING` |
-| REQ-9 | Modernize Studio Dashboard Tab 6 with real-time search, count badge, and virtualized list | Step 5 | `[ ] PENDING` |
-| REQ-10 | Add model registry dropdown selector to `WorkflowGeneralTab` in Quorum Studio | Step 6 | `[ ] PENDING` |
-| REQ-11 | Migrate `seed_data.json` to Option A flat schema with Gemini and OpenAI sovereign stacks | Step 7 | `[ ] PENDING` |
-| REQ-12 | Execute seed database atom audit and backend/flutter quality gates | Step 7 | `[ ] PENDING` |
-| REQ-13 | Dynamic model telemetry resolution in `scripts/run_e2e_variance_test.py` from active database | Step 8 | `[ ] PENDING` |
-| REQ-14 | Implement `--model-registry` override and automated `--compare-registries` differential runs | Step 8 | `[ ] PENDING` |
+| REQ-01 | Flatten `SystemConfigModelRegistry.tier_definitions` to `dict[LaxCognitiveTier, ModelProfile]` with 4 canonical tiers and add human-readable `name` | Step 1 | [ ] |
+| REQ-02 | Add `Workflow.model_registry_id` with regex validation and update Studio DTOs (`WorkflowCreateDTO`, `WorkflowUpdateDTO`, `ExecutionCreate`) | Step 1 | [ ] |
+| REQ-03 | Update `ISystemRepository` and `SystemRepositoryImpl` with keyed lookup `get_model_registry(registry_id)`, `get_all_model_registries()`, and upsert by ID | Step 2 | [ ] |
+| REQ-04 | Modernize `StudioSystemConfigService` to support multi-registry CRUD, keyed fetch, and deep clone with `name = f"{data.name} (Copy)"` | Step 2 | [ ] |
+| REQ-05 | Forward `model_registry_id` through `StrategyContext` and `DAGExecutor` to `LLMNodeStrategy` and stamp on `ExecutionRecord` | Step 2, Step 3 | [ ] |
+| REQ-06 | Update `LLMClient.from_tier` to resolve profiles in O(1) from flat `tier_definitions` for specified `registry_id` and eradicate legacy telemetry strings | Step 3 | [ ] |
+| REQ-07 | Eradicate physical model suffixes `[${physical.modelName}]` and vendor chips in `StepBuilderView` to enforce vendor-neutral tier selection | Step 4 | [ ] |
+| REQ-08 | Implement Desktop Pro Tool UX in `ModelRegistryView` (1200px bounded canvas, PopScope dirty checking, in-view clone, 4-tier cards) | Step 5 | [ ] |
+| REQ-09 | Upgrade Studio Dashboard Tab 6 with real-time search, count badge indicator, and pro-tool compact card density | Step 5 | [ ] |
+| REQ-10 | Add Model Registry dropdown selector in `WorkflowGeneralTab` and wire localized strings in `app_en.arb` / `app_fi.arb` | Step 6 | [ ] |
+| REQ-11 | Synchronize `seed_data.json` with Option A flat schema, bind `model_registry_id` to workflows, and update unit test fixtures | Step 7 | [ ] |
+| REQ-12 | Modernize `run_e2e_variance_test.py` with dynamic DB resolution, `--model-registry`, and automated `--compare-registries` differential benchmark runs | Step 8 | [ ] |
 
 # Session Handover Context
-
 ## Achieved
-- Created implementation plan `docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md` for Option A Sovereign Model Stack Architecture.
-- Completed Tier 0 research and deconstruction into 5-column architectural directives table.
-- Generated canonical Standalone Plan Tracker with 1:1 requirements traceability and file-level hardening checklists.
+- Successfully generated standalone plan tracker `docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md` for `IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md`.
+- Extracted 8 execution steps into 1:1 Requirements Traceability Matrix.
+- Populated Post-Implementation Hardening Gates with 14 production backend files and 6 production frontend files.
+- Preserved self-hydrating `<required_context_rules>` XML block.
 
 ## Learned
-- Current `SystemConfigModelRegistry` uses nested multi-provider map (`tier_definitions[provider][tier]`) which complicates step resolution and causes Tab 6 runtime crashes.
-- Flattening to Option A direct 4-tier mapping (`tier_definitions[tier] = ModelProfile`) establishes clean 1 Document = 1 Sovereign Stack semantics.
-- Standalone Plan Tracker Generator established durable double-entry bookkeeping for non-Epic plans in `docs/implementationplans/`.
+- **Baseline State Snapshot**:
+  - `SystemConfigModelRegistry.tier_definitions` currently holds nested maps `dict[LLMProvider, dict[CognitiveTier, ModelProfile]]`.
+  - `ISystemRepository.get_model_registry()` ignores `id` parameter and always returns the first document matching `Filter("type", "==", "model_registry")`.
+  - `StudioDashboardView` Tab 6 crashes on flat tier definitions due to an obsolete fold loop.
+  - `StepBuilderView` leaks physical model names and vendor preview chips.
+  - `IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md` is fully researched with complete 5-Column Directives Table and ready for execution.
 
 ## Remaining
-- Execute Step 1: Backend Domain Schema Flattening for Option A.
-- Execute Step 2: Database Repository & Service Multi-Registry Resolution.
-- Execute Step 3: Orchestrator & LLM Dispatch Integration.
-- Execute Step 4: Vendor Leak Eradication in Step Builder.
-- Execute Step 5: Desktop Pro Tool UX Upgrade for Model Registry.
-- Execute Step 6: Workflow General Tab Model Registry Linkage.
-- Execute Step 7: Seed Vault Synchronization & Quality Gates.
-- Execute Step 8: E2E Variance Test Harness Dynamic Telemetry & Automated Comparison.
+- Execute Step 1: `BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A`
+- Execute Step 2: `DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION`
+- Execute Step 3: `ORCHESTRATOR & LLM DISPATCH INTEGRATION`
+- Execute Step 4: `VENDOR LEAK ERADICATION IN STEP BUILDER`
+- Execute Step 5: `DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY`
+- Execute Step 6: `WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE`
+- Execute Step 7: `SEED VAULT SYNCHRONIZATION & QUALITY GATES`
+- Execute Step 8: `E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON`
 
 ## Resume Command
 `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
