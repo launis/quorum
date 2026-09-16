@@ -24,6 +24,8 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.services.studio.auth_validator import enforce_modification_rights
 
+__all__ = ["StudioSystemConfigService"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -79,14 +81,14 @@ class StudioSystemConfigService:
             platform=platform_val,
         )
 
-        flat_list: list[str] = []
+        flat_set: set[str] = set()
         for models in result.values():
             if isinstance(models, list):
-                flat_list.extend(models)
+                flat_set.update(models)
             elif isinstance(models, str):
-                flat_list.append(models)
+                flat_set.add(models)
 
-        return sorted(list(set(flat_list)))
+        return sorted(flat_set)
 
     def get_supported_locations(self, initiator: TokenData) -> list[GCPLocationDTO]:
         """Get all supported GCP Vertex AI locations and regions.
@@ -152,7 +154,7 @@ class StudioSystemConfigService:
             List of supported LLM platforms.
 
         Raises:
-            PermissionDeniedError: If user is not authorized.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If user is not authorized.
         """
         if initiator.role not in [UserRole.ROOT, UserRole.ADMIN]:
             logger.error(
@@ -348,7 +350,9 @@ class StudioSystemConfigService:
 
         new_id = generate_opaque_id(EntityPrefix.SYSTEM_CONFIG)
         cloned_name = f"{data.name} (Copy)"
-        cloned_slug = f"{data.slug}-copy" if data.slug else None
+        cloned_slug: str | None = None
+        if data.slug:
+            cloned_slug = f"{data.slug}-copy"
         cloned_obj = data.model_copy(
             update={
                 "id": new_id,
@@ -366,8 +370,8 @@ class StudioSystemConfigService:
             id: The system config identifier.
 
         Raises:
-            PermissionDeniedError: If non-ROOT user attempts deletion.
-            ResourceNotFoundError: If the system config is missing.
+            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If non-ROOT user attempts deletion.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the system config is missing.
         """
         if initiator.role != UserRole.ROOT:
             logger.error(

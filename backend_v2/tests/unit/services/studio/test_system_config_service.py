@@ -439,3 +439,39 @@ async def test_clone_mcp_gateways_permission_denied(
     """Assert non-ROOT user raises PermissionDeniedError on clone."""
     with pytest.raises(PermissionDeniedError):
         await service.clone_mcp_gateways(member_token, "sys_8172bda70c8641c5")
+
+
+@pytest.mark.asyncio
+async def test_clone_system_config_permission_denied(
+    service: StudioSystemConfigService, member_token: TokenData
+) -> None:
+    """Assert non-ROOT user raises PermissionDeniedError on cloning system config."""
+    with pytest.raises(PermissionDeniedError):
+        await service.clone_system_config(member_token, "sys_0123456789abcdef")
+
+
+@pytest.mark.asyncio
+async def test_save_system_config_id_mismatch_updates_id(
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+) -> None:
+    """Assert saving with mismatched ID updates ID to target ID parameter."""
+    reg = _make_dummy_registry("sys_0123456789abcdef")
+    target_id = "sys_fedcba9876543210"
+    res = await service.save_system_config(root_token, target_id, reg)
+    assert res.id == target_id
+
+
+@pytest.mark.asyncio
+async def test_save_mcp_gateways_id_mismatch_updates_id(
+    service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
+) -> None:
+    """Assert saving MCP gateways with mismatched ID updates to target ID parameter."""
+    gw = SystemConfigMCPGateways(
+        id="sys_8172bda70c8641c5",
+        type="mcp_gateways",
+        tools=[],
+    )
+    target_id = "sys_1122334455667788"
+    res = await service.save_mcp_gateways(root_token, target_id, gw)
+    assert res.id == target_id
+
