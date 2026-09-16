@@ -134,6 +134,8 @@
         <tier id="0_epic" path="/tier0-research-epic">Deep System 2 analysis of Epic documents.</tier>
         <tier id="0_research" path="/tier0-research-plan">System 2 analysis of implementation plans.</tier>
         <tier id="1" path="/tier1-planner">Epic Planner for generating `implementation_plan.md`.</tier>
+        <tier id="1_tracker" path="/tier1-tracker-generator">Generates or synchronizes a standardized multi-phase Epic tracker.</tier>
+        <tier id="1_plan_tracker" path="/tier1-plan-tracker-generator">Generates or synchronizes a standardized tracker for a single implementation plan.</tier>
         <tier id="2" path="/tier2-execute">Systematic step-by-step implementation of an approved plan.</tier>
         <tier id="2_backend" path="/tier2-hardening-backend">Step-by-step auditing loop for Python architecture.</tier>
         <tier id="2_frontend" path="/tier2-hardening-frontend">Step-by-step auditing loop for Flutter architecture.</tier>
