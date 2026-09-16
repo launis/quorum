@@ -3604,6 +3604,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scan for AI Jargon (Authenticity)';
 
   @override
+  String get workflowInputEndorsedDeliverable => 'Endorsed Final Deliverable';
+
+  @override
   String get xaiAuthenticityEvaluationTitle => 'AI Jargon (Authenticity)';
 
   @override

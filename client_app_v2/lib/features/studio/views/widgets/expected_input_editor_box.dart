@@ -3,6 +3,7 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 
 class ExpectedInputEditorBox extends StatefulWidget {
   final ExpectedInput inputDef;
@@ -95,7 +96,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -122,9 +123,9 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Wrap(
-              spacing: 16,
+              spacing: AppSpacing.s16,
               children: [
                 FilterChip(
                   label: Text(l10n.workflowInputRequired),
@@ -138,7 +139,32 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   selected: def.isChatHistory,
                   onSelected: (val) {
                     var newModes = List<String>.from(modes);
+                    bool wasEndorsed = def.isEndorsedDeliverable;
                     if (val) {
+                      newModes.remove('questionnaire');
+                      newModes.remove('assignment');
+                      wasEndorsed = false;
+                      if (newModes.isEmpty) {
+                        newModes.add('file');
+                      }
+                    }
+                    _update(
+                      def.copyWith(
+                        isChatHistory: val,
+                        isEndorsedDeliverable: wasEndorsed,
+                        inputModes: newModes,
+                      ),
+                    );
+                  },
+                ),
+                FilterChip(
+                  label: Text(l10n.workflowInputEndorsedDeliverable),
+                  selected: def.isEndorsedDeliverable,
+                  onSelected: (val) {
+                    var newModes = List<String>.from(modes);
+                    bool wasChat = def.isChatHistory;
+                    if (val) {
+                      wasChat = false;
                       newModes.remove('questionnaire');
                       newModes.remove('assignment');
                       if (newModes.isEmpty) {
@@ -146,7 +172,11 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                       }
                     }
                     _update(
-                      def.copyWith(isChatHistory: val, inputModes: newModes),
+                      def.copyWith(
+                        isEndorsedDeliverable: val,
+                        isChatHistory: wasChat,
+                        inputModes: newModes,
+                      ),
                     );
                   },
                 ),
@@ -159,7 +189,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Text(
               l10n.workflowInputModesLabel,
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -182,15 +212,18 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                   onSelected: (selected) {
                     var newModes = List<String>.from(modes);
                     bool wasChatHistory = def.isChatHistory;
+                    bool wasEndorsed = def.isEndorsedDeliverable;
 
                     if (selected) {
                       if (mode == 'questionnaire') {
                         newModes.clear();
                         newModes.add(mode);
                         wasChatHistory = false;
+                        wasEndorsed = false;
                       } else if (mode == 'assignment') {
                         newModes.remove('questionnaire');
                         wasChatHistory = false;
+                        wasEndorsed = false;
                         if (!newModes.contains('assignment')) {
                           newModes.add('assignment');
                         }
@@ -212,6 +245,7 @@ class _ExpectedInputEditorBoxState extends State<ExpectedInputEditorBox> {
                       def.copyWith(
                         inputModes: newModes,
                         isChatHistory: wasChatHistory,
+                        isEndorsedDeliverable: wasEndorsed,
                         questionnaireDefinition:
                             newModes.contains('questionnaire')
                             ? def.questionnaireDefinition

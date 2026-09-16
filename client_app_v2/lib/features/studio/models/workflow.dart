@@ -35,6 +35,9 @@ abstract class ExpectedInput with _$ExpectedInput {
     required I18nText label,
     required bool required,
     @Default(false) bool isChatHistory,
+    @Default(false)
+    @JsonKey(name: 'is_endorsed_deliverable')
+    bool isEndorsedDeliverable,
     @Default([]) List<String> inputModes,
     required I18nText description,
     @Default(false) bool scanForPerformativePatterns,

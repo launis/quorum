@@ -102,6 +102,24 @@ void main() {
         expect(() => ExpectedInput.fromJson(payload), returnsNormally);
       },
     );
+
+    test(
+      'ExpectedInput successfully parses is_endorsed_deliverable from backend payload',
+      () {
+        final payload = {
+          'input_key': 'product_text',
+          'label': {'translations': <String, String>{'en': 'Product'}},
+          'required': true,
+          'description': {'translations': <String, String>{'en': 'Deliverable'}},
+          'is_endorsed_deliverable': true,
+        };
+
+        final parsed = ExpectedInput.fromJson(payload);
+        expect(parsed.isEndorsedDeliverable, isTrue);
+        expect(parsed.isChatHistory, isFalse);
+        expect(parsed.toJson()['is_endorsed_deliverable'], isTrue);
+      },
+    );
   });
 
   // Phase 1, Step 4: Governance field deserialization tests

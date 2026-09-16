@@ -26,9 +26,9 @@
 - [x] Step 2.3: Architecture Documentation & Knowledge Item Sync (`08_matrix_explanations.md#L61-L82` and `#L614-L618`, `09_llm_prompt_orchestration_and_matrix_evaluation.md`, `01_system_context_and_invariants.md`, `03_cognitive_orchestration_engine.md`, `06_enriched_atom_graph_engine.md`, `00_README_META_ARCHITECTURE.md`, and KIs `ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_structured_forensic_quotes.md`, and `ki_workflow_context_governance.md` synchronized under `/tier7-describe-architecture` timeless as-built mandate)
 
 ## Phase 3: Frontend Studio UI & Localization Parity
-- [ ] Step 3.1: Update Flutter Freezed Workflow Model in `@[client_app_v2/lib/features/studio/models/workflow.dart#L28-L47]` and run build runner
-- [ ] Step 3.2: Add Localization Strings in `@[client_app_v2/lib/l10n/app_en.arb#L1850-L1860]` and `@[client_app_v2/lib/l10n/app_fi.arb#L1180-L1190]`
-- [ ] Step 3.3: Extend `ExpectedInputEditorBox` in `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart#L126-L224]` with `FilterChip` and mutual exclusivity logic
+- [x] Step 3.1: Update Flutter Freezed Workflow Model in `@[client_app_v2/lib/features/studio/models/workflow.dart#L28-L47]` and run build runner
+- [x] Step 3.2: Add Localization Strings in `@[client_app_v2/lib/l10n/app_en.arb#L1850-L1860]` and `@[client_app_v2/lib/l10n/app_fi.arb#L1180-L1190]`
+- [x] Step 3.3: Extend `ExpectedInputEditorBox` in `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart#L126-L224]` with `FilterChip` and mutual exclusivity logic
 
 ## Phase 4: Global Verification & Quality Gates
 - [ ] Step 4.1: Execute Backend Audit Loop (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)

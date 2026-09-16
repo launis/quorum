@@ -1850,6 +1850,7 @@
   "systemAuditTrailLabel": "System Audit Trail",
   "systemAuditTrailDescription": "Enables MCPAuditTrace fact-checking report injection at the end of the document.",
   "workflowInputScanPerformative": "Scan for AI Jargon (Authenticity)",
+  "workflowInputEndorsedDeliverable": "Endorsed Final Deliverable",
   "xaiAuthenticityEvaluationTitle": "AI Jargon (Authenticity)",
   "penaltySecurity": "Security Threat Detected (-{percentage}%)",
   "@penaltySecurity": {

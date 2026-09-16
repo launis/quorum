@@ -234,7 +234,9 @@ void main() {
       await tester.pumpAndSettle();
 
       // Tap isChatHistory chip
-      await tester.tap(find.widgetWithText(FilterChip, 'Is Chat History (LLM Parse)'));
+      await tester.tap(
+        find.widgetWithText(FilterChip, 'Is Chat History (LLM Parse)'),
+      );
       await tester.pumpAndSettle();
 
       expect(currentDef.isChatHistory, isTrue);
@@ -242,5 +244,69 @@ void main() {
       expect(currentDef.inputModes.contains('file'), isTrue);
     },
   );
-}
 
+  testWidgets(
+    'ExpectedInputEditorBox enabling isEndorsedDeliverable removes assignment and clears isChatHistory',
+    (WidgetTester tester) async {
+      ExpectedInput currentDef = ExpectedInput(
+        inputKey: 'test_deliverable',
+        label: const I18nText(translations: {'en': 'Deliverable'}),
+        required: true,
+        isChatHistory: true,
+        isEndorsedDeliverable: false,
+        inputModes: const ['file', 'assignment'],
+        description: const I18nText(translations: {'en': 'Test Description'}),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                return SingleChildScrollView(
+                  child: ExpectedInputEditorBox(
+                    inputDef: currentDef,
+                    onDelete: () {},
+                    onChanged: (updated) {
+                      setState(() {
+                        currentDef = updated;
+                      });
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap isEndorsedDeliverable chip ('Endorsed Final Deliverable')
+      await tester.tap(
+        find.widgetWithText(FilterChip, 'Endorsed Final Deliverable'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentDef.isEndorsedDeliverable, isTrue);
+      expect(currentDef.isChatHistory, isFalse);
+      expect(currentDef.inputModes.contains('assignment'), isFalse);
+      expect(currentDef.inputModes.contains('file'), isTrue);
+
+      // Now tap isChatHistory chip and verify isEndorsedDeliverable is cleared
+      await tester.tap(
+        find.widgetWithText(FilterChip, 'Is Chat History (LLM Parse)'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(currentDef.isChatHistory, isTrue);
+      expect(currentDef.isEndorsedDeliverable, isFalse);
+    },
+  );
+}

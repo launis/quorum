@@ -3632,6 +3632,10 @@ class AppLocalizationsFi extends AppLocalizations {
   String get workflowInputScanPerformative => 'Skannaa AI-jargonia (Aitous)';
 
   @override
+  String get workflowInputEndorsedDeliverable =>
+      'Vahvistettu lopputuote (yhteisluonnostelu sallittu)';
+
+  @override
   String get xaiAuthenticityEvaluationTitle => 'Lähdedatan aitous (AI-jargon)';
 
   @override

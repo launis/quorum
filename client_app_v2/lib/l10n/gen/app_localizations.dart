@@ -6588,6 +6588,12 @@ abstract class AppLocalizations {
   /// **'Scan for AI Jargon (Authenticity)'**
   String get workflowInputScanPerformative;
 
+  /// No description provided for @workflowInputEndorsedDeliverable.
+  ///
+  /// In en, this message translates to:
+  /// **'Endorsed Final Deliverable'**
+  String get workflowInputEndorsedDeliverable;
+
   /// No description provided for @xaiAuthenticityEvaluationTitle.
   ///
   /// In en, this message translates to:

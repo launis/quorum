@@ -39,6 +39,7 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
             'label',
             'required',
             'is_chat_history',
+            'is_endorsed_deliverable',
             'input_modes',
             'description',
             'scan_for_performative_patterns',
@@ -55,6 +56,10 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
           required: $checkedConvert('required', (v) => v as bool),
           isChatHistory: $checkedConvert(
             'is_chat_history',
+            (v) => v as bool? ?? false,
+          ),
+          isEndorsedDeliverable: $checkedConvert(
+            'is_endorsed_deliverable',
             (v) => v as bool? ?? false,
           ),
           inputModes: $checkedConvert(
@@ -89,6 +94,7 @@ _ExpectedInput _$ExpectedInputFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'inputKey': 'input_key',
         'isChatHistory': 'is_chat_history',
+        'isEndorsedDeliverable': 'is_endorsed_deliverable',
         'inputModes': 'input_modes',
         'scanForPerformativePatterns': 'scan_for_performative_patterns',
         'aiDescription': 'ai_description',
@@ -102,6 +108,7 @@ Map<String, dynamic> _$ExpectedInputToJson(_ExpectedInput instance) =>
       'label': instance.label.toJson(),
       'required': instance.required,
       'is_chat_history': instance.isChatHistory,
+      'is_endorsed_deliverable': instance.isEndorsedDeliverable,
       'input_modes': instance.inputModes,
       'description': instance.description.toJson(),
       'scan_for_performative_patterns': instance.scanForPerformativePatterns,
