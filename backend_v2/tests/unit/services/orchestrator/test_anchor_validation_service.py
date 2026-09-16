@@ -401,3 +401,41 @@ def test_process_atom_evaluation_none_source_quote_skips_matching() -> None:
     assert result.source_quote is None
     assert result.evaluation_reasoning is not None
     assert "doc_1" in result.evaluation_reasoning
+
+
+def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None:
+    """Positive: Test exact quote extraction when corpus contains Unicode En Space (\\u2002) and Zero Width Space (\\u200b)."""
+    # Corpus contains typographical spaces and zero-width artifacts injected by watermarks or rich text
+    corpus_text = "Johtajuus\u2002on\u200bselkeää\u00a0ja\ufeffvastuullista."
+    # Extracted quote uses standard ASCII spaces without zero-width artifacts
+    exact_quotes = ["Johtajuus on selkeää ja vastuullista"]
+
+    # 1. Test validate_evidence extracts the physical quote from the corpus
+    extracted = AnchorValidationService.validate_evidence(
+        pdf_text=corpus_text,
+        exact_quotes=exact_quotes,
+        strictness_level=100,
+    )
+    assert extracted is not None
+    assert len(extracted) == 1
+    # Verify the extracted string is grounded in the physical text
+    assert "Johtajuus" in extracted[0]
+    assert "vastuullista" in extracted[0]
+
+    # 2. Test strict_match directly with both typographical spaces and zero-width chars
+    assert AnchorValidationService.strict_match(corpus_text, exact_quotes) is True
+
+    # 3. Test reverse: corpus has clean text, extracted quote has typographical space or zero-width char
+    clean_corpus = "Strateginen suunta on määritelty kirkkaasti tuleville vuosille."
+    dirty_quote = ["Strateginen\u2002suunta\u200bon määritelty"]
+    assert AnchorValidationService.strict_match(clean_corpus, dirty_quote) is True
+
+    extracted_rev = AnchorValidationService.validate_evidence(
+        pdf_text=clean_corpus,
+        exact_quotes=dirty_quote,
+        strictness_level=100,
+    )
+    assert extracted_rev is not None
+    assert len(extracted_rev) == 1
+    assert extracted_rev[0] == "Strateginen suunta on määritelty"
+

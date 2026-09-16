@@ -599,6 +599,71 @@ def test_expected_input_assignment_validations() -> None:
     assert ALLOWED_INPUT_MODES == frozenset({"file", "paste", "text", "questionnaire", "assignment"})
 
 
+def test_expected_input_endorsed_deliverable_validations() -> None:
+    """Verifies ExpectedInput is_endorsed_deliverable positive and negative constraints."""
+    # Positive: valid endorsed deliverable
+    inp = ExpectedInput(
+        input_key="final_report",
+        label=I18nText(translations={"en": "Final Report"}),
+        description=I18nText(translations={"en": "Candidate final deliverable"}),
+        required=True,
+        input_modes=["file"],
+        is_endorsed_deliverable=True,
+    )
+    assert inp.is_endorsed_deliverable is True
+    assert inp.is_chat_history is False
+    assert inp.is_assignment is False
+
+    # Negative 1: is_endorsed_deliverable cannot be simultaneously marked as is_chat_history
+    with pytest.raises(
+        ValueError,
+        match="cannot be simultaneously marked as both is_chat_history and is_endorsed_deliverable",
+    ):
+        ExpectedInput(
+            input_key="bad_deliverable_chat",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["text"],
+            is_chat_history=True,
+            is_endorsed_deliverable=True,
+        )
+
+    # Negative 2: is_endorsed_deliverable cannot be assignment mode
+    with pytest.raises(
+        ValueError,
+        match="cannot be simultaneously marked as both an assignment and is_endorsed_deliverable",
+    ):
+        ExpectedInput(
+            input_key="bad_deliverable_assignment",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["assignment"],
+            is_endorsed_deliverable=True,
+        )
+
+    # Negative 3: is_endorsed_deliverable cannot be questionnaire mode
+    valid_q_item = QuestionnaireItem(
+        question_id="q1",
+        question=I18nText(translations={"en": "Q1"}),
+        type="text",
+    )
+    with pytest.raises(
+        ValueError,
+        match="cannot be simultaneously marked as both a questionnaire and is_endorsed_deliverable",
+    ):
+        ExpectedInput(
+            input_key="bad_deliverable_questionnaire",
+            label=I18nText(translations={"en": "Label"}),
+            description=I18nText(translations={"en": "Desc"}),
+            required=True,
+            input_modes=["questionnaire"],
+            questionnaire_definition=[valid_q_item],
+            is_endorsed_deliverable=True,
+        )
+
+
 def test_output_profile_synthesis_properties_and_custom_scale_validation() -> None:
     """Verifies OutputProfile synthesis properties and custom scale validations."""
     from backend_v2.models.enums import DisplayScale

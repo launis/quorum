@@ -53,9 +53,9 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "is_true" in prompt
     assert "BANNED SPECULATIVE OVERRIDES:" in prompt
     assert "QUALIFYING CRITERIA:" in prompt
-    assert "NULL HYPOTHESIS BURDEN:" in prompt
-    assert "COGNITIVE AGENCY VS. ECHO PARROTING:" in prompt
-    assert "SUBMITTED DELIVERABLES & ARTIFACTS:" in prompt
+    assert "ANTI-ELLIPSIS MANDATE:" in prompt
+    assert "COGNITIVE AGENCY VS. ECHO PARROTING" in prompt
+    assert "ENDORSED DELIVERABLES & CO-DRAFTING:" in prompt
     assert "Verbatim repetitions, passive echoing, or copying" in prompt
 
 
@@ -89,6 +89,7 @@ def test_matrix_sensor_system_prompt_negative_partitions() -> None:
         "ai_draft_context",
         "assignment_context",
         "target_speaker",
+        "document_provenance",
     }
     structural_open_tags = [t for t in re.findall(r"<([a-z_]+)>", prompt) if t not in ignored_instruction_tags]
     structural_close_tags = [t for t in re.findall(r"</([a-z_]+)>", prompt) if t not in ignored_instruction_tags]

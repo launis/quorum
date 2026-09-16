@@ -49,13 +49,19 @@ class AnchorValidationService:
             if i in html_tag_indices:
                 continue
 
+            # Skip zero-width format characters so they don't affect normalization index map
+            if char in "\u200b\u200c\u200d\ufeff":
+                continue
+
             # Fallback for unicode replacement characters to maximize fuzzy matches
             # since most broken characters in this context are 'ä' -> 'a'
             if char == "\ufffd":
                 char = "a"
 
-            # NFD normalization splits diacritics from base characters
-            nfd_chars = unicodedata.normalize("NFD", char)
+            # NFKC normalizes typographic spaces (\u2002, \u00a0) to standard ASCII whitespace
+            # and NFD normalization splits diacritics from base characters
+            nfkc_char = unicodedata.normalize("NFKC", char)
+            nfd_chars = unicodedata.normalize("NFD", nfkc_char)
 
             # Filter out the combining characters (category 'Mn') to drop accents
             base_chars = "".join(c for c in nfd_chars if unicodedata.category(c) != "Mn")
@@ -83,12 +89,14 @@ class AnchorValidationService:
         if not exact_quotes or not pdf_text:
             return False
 
-        norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(pdf_text)
+        clean_pdf = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", pdf_text))
+        norm_pdf, _ = AnchorValidationService.normalize_text_with_mapping(clean_pdf)
 
         for quote in exact_quotes:
             if not quote:
                 return False
-            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(quote)
+            clean_quote = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", quote))
+            norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(clean_quote)
             if not norm_quote or norm_quote not in norm_pdf:
                 return False
 
@@ -131,6 +139,12 @@ class AnchorValidationService:
         """
         start_norm_idx = norm_text.find(norm_quote)
         if start_norm_idx != -1:
+            return True
+
+        # Tier 2 Unicode NFKC & Zero-Width normalization check
+        clean_quote = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", quote))
+        clean_norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(clean_quote)
+        if clean_norm_quote and norm_text.find(clean_norm_quote) != -1:
             return True
 
         if len(quote) < 10:

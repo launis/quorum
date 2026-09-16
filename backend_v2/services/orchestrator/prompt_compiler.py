@@ -43,6 +43,7 @@ class _InputMetaDTO(BaseModel):
         ai_desc: Cognitive instruction for LLM.
         is_chat_history: Whether the input represents multi-turn dialogue.
         input_modes: Allowed input modes for this input.
+        is_endorsed_deliverable: Whether the input represents an endorsed candidate deliverable.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
@@ -52,6 +53,7 @@ class _InputMetaDTO(BaseModel):
     ai_desc: str | None = None
     is_chat_history: bool
     input_modes: list[str] = Field(default_factory=list)
+    is_endorsed_deliverable: bool = False
 
     @property
     def is_assignment(self) -> bool:
@@ -233,6 +235,7 @@ class PromptCompiler:
                     ai_desc=ei.ai_description,
                     is_chat_history=ei.is_chat_history,
                     input_modes=ei.input_modes,
+                    is_endorsed_deliverable=ei.is_endorsed_deliverable,
                 )
 
         for logical_name, source_path in input_mappings.items():
@@ -273,6 +276,8 @@ class PromptCompiler:
                         desc_text += f"    <document_name>{meta.label}</document_name>\n"
                     if meta.ai_desc:
                         desc_text += f"    <ai_context_mandate>{meta.ai_desc}</ai_context_mandate>\n"
+                    if meta.is_endorsed_deliverable:
+                        desc_text += "    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>\n"
                     desc_text += "  </document_metadata>\n"
 
                     if meta.is_assignment:

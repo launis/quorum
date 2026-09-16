@@ -27,6 +27,7 @@ import os
 import re
 import subprocess
 import sys
+import unicodedata
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -928,13 +929,15 @@ def verify_quote_in_corpus(
     if corpus.find(eq_clean) != -1:
         return True
 
-    # 2. Tier 2: Whitespace-normalized match
-    norm_eq = " ".join(eq_clean.split())
+    # 2. Tier 2: Whitespace-normalized match (Unicode NFKC & Zero-Width stripped)
+    eq_nfkc = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", eq_clean))
+    norm_eq = " ".join(eq_nfkc.split())
     if not norm_eq:
         return False
 
     if norm_corpus is None:
-        norm_corpus = " ".join(corpus.split())
+        corpus_nfkc = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", corpus))
+        norm_corpus = " ".join(corpus_nfkc.split())
 
     if norm_corpus.find(norm_eq) != -1:
         return True
@@ -1708,7 +1711,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             f"  - **VerificationResult**: {_format_enum(enums.VerificationResult)}\n"
             f"  - **EvaluationRunCount**: {_format_enum(enums.EvaluationRunCount)}\n"
             f"  - **EvaluationCategory**: {_format_enum(enums.EvaluationCategory)}\n"
-            f"  - **ScoringStrategy**: {_format_enum(enums.ScoringStrategy)}\n"
+            f"  - **StrictnessAnchor**: {_format_enum(enums.StrictnessAnchor)}\n"
             f"  - **LLMProviderName**: {_format_enum(enums.LLMProviderName)}\n"
             f"  - **LLMCachingStrategy**: {_format_enum(enums.LLMCachingStrategy)}"
         )
@@ -1968,9 +1971,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     except OSError:
                         pass
             corpus = "\n".join(corpus_parts)
-            norm_corpus = " ".join(corpus.split())
-            html_norm_corpus = " ".join(_HTML_TAG_PATTERN.sub(" ", corpus).split())
-            md_norm_corpus = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus)).split())
+            corpus_nfkc = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", corpus))
+            norm_corpus = " ".join(corpus_nfkc.split())
+            html_norm_corpus = " ".join(_HTML_TAG_PATTERN.sub(" ", corpus_nfkc).split())
+            md_norm_corpus = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus_nfkc)).split())
         run_corpuses.append(corpus)
         run_norm_corpuses.append(norm_corpus)
         run_html_norm_corpuses.append(html_norm_corpus)

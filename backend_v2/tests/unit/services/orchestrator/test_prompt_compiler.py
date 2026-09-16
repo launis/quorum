@@ -465,6 +465,71 @@ def test_build_xml_context_assignment_mode() -> None:
     assert "<assignment_context>" not in doc_section
 
 
+def test_build_xml_context_endorsed_deliverable_provenance() -> None:
+    """Verify that ExpectedInput with is_endorsed_deliverable=True emits
+    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance> in metadata.
+    """
+    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.services.orchestrator.prompt_compiler import _InputMetaDTO
+
+    # Verify _InputMetaDTO contract
+    meta_dto = _InputMetaDTO(
+        label="Final Deliverable",
+        desc="Candidate product text",
+        is_chat_history=False,
+        input_modes=["file"],
+        is_endorsed_deliverable=True,
+    )
+    assert meta_dto.is_endorsed_deliverable is True
+
+    compiler = PromptCompiler()
+    state = {
+        "inputs": {
+            "deliverable": "Strategic transformation roadmap deliverable text.",
+            "standard_doc": "Supporting document.",
+        },
+    }
+
+    expected_inputs = [
+        ExpectedInput(
+            input_key="deliverable",
+            label=I18nText(translations={"en": "Final Deliverable"}),
+            description=I18nText(translations={"en": "Candidate deliverable"}),
+            is_chat_history=False,
+            input_modes=["file"],
+            required=True,
+            is_endorsed_deliverable=True,
+        ),
+        ExpectedInput(
+            input_key="standard_doc",
+            label=I18nText(translations={"en": "Standard Doc"}),
+            description=I18nText(translations={"en": "Standard"}),
+            is_chat_history=False,
+            input_modes=["file"],
+            required=False,
+            is_endorsed_deliverable=False,
+        ),
+    ]
+
+    input_mappings = {
+        "doc_deliv": "$inputs.deliverable",
+        "doc_std": "$inputs.standard_doc",
+    }
+
+    xml = compiler.build_xml_context(input_mappings, state, "en", expected_inputs=expected_inputs)
+
+    # doc_deliv: must emit <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance> inside <document_metadata>
+    assert '<matrix_input source_id="doc_deliv">' in xml
+    deliv_section = xml.split('source_id="doc_deliv"')[1].split("</matrix_input>")[0]
+    assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in deliv_section
+    assert "<user_payload>\n<![CDATA[Strategic transformation roadmap deliverable text.]]>\n</user_payload>" in deliv_section
+
+    # doc_std: must NOT emit <document_provenance>
+    assert '<matrix_input source_id="doc_std">' in xml
+    std_section = xml.split('source_id="doc_std"')[1].split("</matrix_input>")[0]
+    assert "<document_provenance>" not in std_section
+
+
 def test_input_meta_dto_is_assignment_predicate() -> None:
     """Verify is_assignment predicate behavior on _InputMetaDTO and ExpectedInput."""
     from backend_v2.models.v2_core import ExpectedInput, I18nText

@@ -1,8 +1,10 @@
-# Task Checklist: Lexical Grounding Normalization & Dual-Track Speaker Attribution (Echo Parroting Guardrail)
+# Task Checklist: Endorsed Deliverable Provenance Toggle & Universal Matrix Calibration
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
   <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
@@ -11,57 +13,33 @@
   <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
 </required_context_rules>
 
-- [x] Step 1: Technical Debt Cleanup & Baseline Test Suite Verification
-  - [x] In `backend_v2/tests/unit/test_diff_executions.py#L885-L898`, change `MacroBlockScoreDTO(..., unexpected_field="disallowed")` to `MacroBlockScoreDTO.model_validate({...})` to preserve runtime `ValidationError` verification under `extra='forbid'` while satisfying MyPy strict typing (`[call-arg]`)
-  - [x] Run baseline unit tests to guarantee clean starting state (`test_diff_executions.py -k TestVerifyQuoteInCorpus` and `test_matrix_evaluation.py`)
-- [x] Step 2: Enhance `verify_quote_in_corpus` with Dual-Substitution Normalization
-  - [x] In `scripts/diff_executions.py#L20-L32`, add `import re` in alphabetical order between `os` and `subprocess`
-  - [x] In `scripts/diff_executions.py#L886-L925`, define module-level compiled regexes: `_HTML_TAG_PATTERN` and `_MARKDOWN_DECORATOR_PATTERN`
-  - [x] In `scripts/diff_executions.py#L888-L924`, upgrade `verify_quote_in_corpus` to 4 tiers: literal exact, whitespace-normalized, HTML-tag-normalized, and Markdown-decorator-relaxed
-  - [x] In `scripts/diff_executions.py#L1915-L1985`, pre-compute `html_norm_corpus` and `md_norm_corpus` in outer loop for O(1) matching
-- [x] Step 3: Expand `test_diff_executions.py` Unit Test Suite
-  - [x] Positive: `<br>`, `<br/>`, `<br />` table cell variants (`ja<br>**omaan**` vs `ja\n**omaan**`)
-  - [x] Positive: Markdown bold/italic decorators adjacent to punctuation (`*huomio*.`, `**huomio**,`, `(*huomio*)`)
-  - [x] Positive: Generic types in text (`List<String>`, `Dict<str, Any>`) shielded
-  - [x] Positive: Mathematical inequalities (`x < y and y > z`, `x <y and y> z`) shielded
-  - [x] Positive: Snake_case identifiers (`user_id_column`, `_user_id_column_`) shielded
-  - [x] Negative & boundary: character typos ("Näitä" vs "Nämä"), unanchored text, HTML-only/whitespace-only/empty inputs
-  - [x] Run `uv run pytest backend_v2/tests/unit/test_diff_executions.py -k TestVerifyQuoteInCorpus`
-- [x] Step 4: Update Layer 1 Speaker Attribution Protocol in Matrix Evaluation
-  - [x] In `backend_v2/models/prompts/execution/matrix_evaluation.py#L99-L112`, expand `<speaker_attribution_protocol>` with Cognitive Agency vs. Echo Parroting and Submitted Deliverables & Artifacts
-  - [x] Preserve `+ CONTEXTUAL_OVERRIDE_DIRECTIVE + "\n"` concatenation
-- [x] Step 5: Update Prompt Unit Tests & Assertion Gates
-  - [x] In `backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py`, add `"speaker_attribution_protocol"` to `tags` list in `test_matrix_sensor_system_prompt_structure()`
-  - [x] Add assertions in `test_matrix_sensor_system_prompt_directives()` for Cognitive Agency, Echo Parroting, and Submitted Deliverables
-  - [x] Verify `test_matrix_sensor_system_prompt_negative_partitions()` passes with 100% tag matching and zero banned ambiguous phrases
-- [x] Step 6: Synchronize Knowledge Item (`ki_structured_forensic_quotes.md`)
-  - [x] Expand `speaker_stream_provenance_gating` rule block with Point 4 (Echo Parroting & Cognitive Agency Boundary) and Point 5 (Dual-Track Attribution Standard)
-- [x] Step 7: Global Audit & E2E Re-Evaluation Gate
-  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py --test`
-  - [x] Run `uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/test_diff_executions.py --test`
-  - [x] Run `uv run python scripts/diff_executions.py data/files/executions/exe_26f38060c9bd4ef3 data/files/executions/exe_1aaabc9556704edc -o scratch/diff_report_post_fix.md`
-- [x] Step 8: Tier 8 Red-Team Post-Implementation Audit & Compliance Sign-Off
-  - [x] Five-Axis System 2 As-Built deconstruction (Scope Inquisitor, Duct-Tape Prosecutor, Type Constitutionalist, Complexity Slayer, Incorruptible Judge)
-  - [x] 5-Column Architectural Verification Table across all 7 implementation steps
-  - [x] Localized test suites (`test_matrix_evaluation.py` & `test_diff_executions.py`): PASS (100% exit code 0)
-  - [x] SDUI semantic parity (`test_sdui_semantic_parity.py`): PASS (1/1 in 45.86s)
-  - [x] Global backend audit loop (`backend_audit_loop.py backend_v2 --test`): PASS (3,369 passed, 94.77% coverage)
-  - [x] Audit report artifact generated: `red_team_audit_lexical_grounding_speaker_attribution.md` (100% PASSED)
+## Phase 1: Pre-Implementation Cleanups & Backend Model Enhancement
+- [x] Step 1.1: Extend `ExpectedInput` Model with `is_endorsed_deliverable` in `@[backend_v2/models/v2_core.py#L681-L770]` and add mutual exclusivity validation against `is_chat_history`, `assignment`, and `questionnaire`
+- [x] Step 1.2: Update Prompt Compiler Metadata & Capsule Emission in `@[backend_v2/services/orchestrator/prompt_compiler.py#L37-L64]` and `@[backend_v2/services/orchestrator/prompt_compiler.py#L193-L295]`
+- [x] Step 1.3: Inject Anti-Ellipsis and Endorsed Deliverable Directives in System Prompt in `@[backend_v2/models/prompts/execution/matrix_evaluation.py#L12-L127]` (mandating substance over stylistic jargon on deliverables; zero banned ambiguities)
+- [x] Step 1.4: Implement Tier 2 Unicode NFKC & Zero-Width Space Normalization in `@[backend_v2/services/orchestrator/anchor_validation_service.py#L60-L135]` and `@[scripts/diff_executions.py#L930-L962]` (normalizing Unicode spaces `\u2002`, `\u00a0` and zero-width format chars `\u200b-\u200d\ufeff` so that quote verification passes robustly under both `--no-noise` and default watermark noise-injection modes)
+- [x] Step 1.5: Backend Unit Test Suite Expansion in `@[backend_v2/tests/unit/models/prompts/test_matrix_evaluation.py#L34-L60]`, `@[backend_v2/tests/unit/models/test_v2_core.py#L537-L600]`, and `@[backend_v2/tests/unit/services/test_anchor_validation_service.py]`
+
+## Phase 2: Seed Vault Ontological Calibration & Re-Seeding
+- [ ] Step 2.1: Backup and Update `@[backend_v2/seed/seed_data.json]` (Set `"is_endorsed_deliverable": true` on all `product_text` inputs, enable candidate jargon scanning across workflows `wf_01`-`wf_03`, refine Bloom 3 anti-patterns in `tda_6a779cd5e9714994b83168dd0fef0ef7` lines 2100-2144, and calibrate Bloom 1 dogmatism anti-pattern in `tda_216cc3fd45284deb8d51ea4cf2b2fd93` lines 1726-1766)
+- [ ] Step 2.2: Pre-Flight In-Memory Validation & Seed Vault Synchronization (`run_seed.py local --dry-run` and `audit_database_atoms.py --strict` passing 100% before live seeding)
+- [x] Step 2.3: Architecture Documentation & Knowledge Item Sync (`08_matrix_explanations.md#L61-L82` and `#L614-L618`, `09_llm_prompt_orchestration_and_matrix_evaluation.md`, `01_system_context_and_invariants.md`, `03_cognitive_orchestration_engine.md`, `06_enriched_atom_graph_engine.md`, `00_README_META_ARCHITECTURE.md`, and KIs `ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_structured_forensic_quotes.md`, and `ki_workflow_context_governance.md` synchronized under `/tier7-describe-architecture` timeless as-built mandate)
+
+## Phase 3: Frontend Studio UI & Localization Parity
+- [ ] Step 3.1: Update Flutter Freezed Workflow Model in `@[client_app_v2/lib/features/studio/models/workflow.dart#L28-L47]` and run build runner
+- [ ] Step 3.2: Add Localization Strings in `@[client_app_v2/lib/l10n/app_en.arb#L1850-L1860]` and `@[client_app_v2/lib/l10n/app_fi.arb#L1180-L1190]`
+- [ ] Step 3.3: Extend `ExpectedInputEditorBox` in `@[client_app_v2/lib/features/studio/views/widgets/expected_input_editor_box.dart#L126-L224]` with `FilterChip` and mutual exclusivity logic
+
+## Phase 4: Global Verification & Quality Gates
+- [ ] Step 4.1: Execute Backend Audit Loop (`uv run python scripts/backend_audit_loop.py backend_v2 --test`)
+- [ ] Step 4.2: Execute Flutter Audit Loop (`uv run python scripts/flutter_audit_loop.py client_app_v2 --build`)
+- [ ] Step 4.3: SDUI Parity Verification (`uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py`)
+- [ ] Step 4.4: Mandatory Live E2E REST API Verification (`$env:RUN_LIVE_E2E="true"; uv run pytest backend_v2/tests/integration/test_integration_real_llm.py -k test_real_llm_execution`)
+
+---
 
 # Session Handover Context
-## Achieved
-- Step 1: Resolved pre-existing MyPy strict typing issue in `backend_v2/tests/unit/test_diff_executions.py#L887` (`model_validate`).
-- Steps 2-3: Implemented 4-tier lexical verification with dual-substitution normalization in `scripts/diff_executions.py` and added 10 ISTQB test partitions.
-- Steps 4-5: Added Cognitive Agency vs Echo Parroting boundary and Dual-Track Attribution directives to Layer 1 prompt in `backend_v2/models/prompts/execution/matrix_evaluation.py` with 100% prompt unit test coverage.
-- Step 6: Synchronized `ki_structured_forensic_quotes.md` with echo parroting boundary and dual-track attribution standards.
-- Step 7: Completed global audit loops (100% pass, 0 lint/mypy/AST errors) and verified E2E differential report on Sitra run (`exe_26f38060c9bd4ef3` vs `exe_1aaabc9556704edc`), increasing verified quote rate from 62.5% to 87.5% and isolating genuine character typo.
-- Step 8: Tier 8 Red-Team Post-Implementation Audit verified 100% PASS with zero architectural debt, confirming mathematical anchors across all implementation steps (`red_team_audit_lexical_grounding_speaker_attribution.md`).
-
-## Learned
-- Boundary defense is vital when stripping HTML tags; explicit known-tag regex prevents accidental destruction of generic type signatures and mathematical inequalities.
-- Markdown decorator stripping must substitute empty string rather than space to preserve punctuation adhesion.
-- Conversational cognitive competence requires distinguishing independent human thought from passive AI prompt echoing, whereas standalone deliverables represent candidate-endorsed text evaluated directly.
-
-## Remaining
-- None. All implementation steps (1-7) and Tier 8 Red-Team Post-Implementation Audit (Step 8) are 100% COMPLETE and PASSED. Task is ready for archival / closure.
-
+- **Achieved**: Completed Tier 0 deep research, Five-Axis Adversarial Cross-Examination, 7-item technical debt sweep, AST line-boundary extraction, and Red-Team falsification. Fully synchronized Knowledge Items (`ki_prompt_orchestration_and_matrix_evaluation.md`, `ki_structured_forensic_quotes.md`, `ki_workflow_context_governance.md` and their `metadata.json` manifests) and architecture documents (`docs/architecture/08_matrix_explanations.md`, `09_llm_prompt_orchestration_and_matrix_evaluation.md`, `01_system_context_and_invariants.md`, `03_cognitive_orchestration_engine.md`, `06_enriched_atom_graph_engine.md`, and `00_README_META_ARCHITECTURE.md`) adhering strictly to the `/tier7-describe-architecture` timeless as-built mandate.
+- **Learned**: `test_matrix_sensor_system_prompt_negative_partitions` strictly asserts absence of banned ambiguous expressions (`e.g.`, `such as`, `like `, `etc.`). All system prompt additions in `matrix_evaluation.py` must use explicit, deterministic phrasing. Mutual exclusivity for `is_endorsed_deliverable` must be enforced across three dimensions: `is_chat_history`, `assignment`, and `questionnaire`. Shifting contextual exceptions into explicit `anti_patterns` eliminates high-entropy meta-cognitive oscillation.
+- **Remaining**: Execute Phase 1 through Phase 4 via `/tier2-execute`.
+- **Resume Command**: `/tier2-execute @[c:\Users\risto\.gemini\antigravity-ide\brain\9b2d20f8-eebf-48b8-90f3-4838c7e99dc9\implementation_plan.md] @[c:\src\quorum\task.md]`

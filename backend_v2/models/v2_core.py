@@ -692,6 +692,10 @@ class ExpectedInput(V2CoreBase):
     scan_for_performative_patterns: bool = Field(
         default=False, description="Whether to scan this input for performative AI jargon."
     )
+    is_endorsed_deliverable: bool = Field(
+        default=False,
+        description="Whether this input represents an endorsed candidate deliverable (specifically final product texts and deliverables) where adopting AI co-drafted formulations is valid and not penalized as Echo Parroting.",
+    )
     input_modes: list[str] = Field(
         default_factory=list, description="Allowed modes: 'file', 'paste', 'text', 'questionnaire', 'assignment'."
     )
@@ -762,6 +766,29 @@ class ExpectedInput(V2CoreBase):
                 msg = (
                     f"ExpectedInput '{self.input_key}' cannot have questionnaire_definition "
                     "when 'questionnaire' mode is not active."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+
+        if self.is_endorsed_deliverable:
+            if self.is_chat_history:
+                msg = (
+                    f"ExpectedInput '{self.input_key}' cannot be simultaneously marked as both "
+                    "is_chat_history and is_endorsed_deliverable."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+            if self.is_assignment:
+                msg = (
+                    f"ExpectedInput '{self.input_key}' cannot be simultaneously marked as both "
+                    "an assignment and is_endorsed_deliverable."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+            if "questionnaire" in self.input_modes:
+                msg = (
+                    f"ExpectedInput '{self.input_key}' cannot be simultaneously marked as both "
+                    "a questionnaire and is_endorsed_deliverable."
                 )
                 logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
                 raise ValueError(msg)

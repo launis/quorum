@@ -1270,7 +1270,11 @@ class TestRunDiff:
             out_report = tmp_path / "report.md"
             res = run_diff([str(run1), str(run2)], output_file=out_report)
             assert Path(res).exists()
-            assert "Aktiiviset Säännöt ja Asetukset (Frozen Context)" in Path(res).read_text(encoding="utf-8")
+            report_text = Path(res).read_text(encoding="utf-8")
+            assert "Aktiiviset Säännöt ja Asetukset (Frozen Context)" in report_text
+            assert "Virhe Enumien luvussa" not in report_text
+            assert "StrictnessAnchor" in report_text
+            assert "ExecutionStatus" in report_text
 
     def test_run_diff_default_executions(self) -> None:
         """Positive: Test running diff with default latest executions when available or graceful handling."""
@@ -1282,3 +1286,66 @@ class TestRunDiff:
             out_file = tmp_path / "default_diff.md"
             res = run_diff([str(exe1), str(exe2)], output_file=out_file)
             assert Path(res).exists()
+            content = Path(res).read_text(encoding="utf-8")
+            assert "Virhe Enumien luvussa" not in content
+            assert "StrictnessAnchor" in content
+
+
+class TestVerifyQuoteInCorpus:
+    """Test suite for verify_quote_in_corpus Tiered Lexical Validation and Unicode resilience."""
+
+    def test_verify_quote_literal_exact(self) -> None:
+        """Positive: Tier 1 exact literal match."""
+        corpus = "Tämä on selkeää ja vastuullista johtajuutta."
+        quote = "selkeää ja vastuullista"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_verify_quote_unicode_en_space_and_zero_width(self) -> None:
+        """Positive: Tier 2 Unicode NFKC normalization and zero-width format character stripping."""
+        # Corpus contains En Space (\u2002) and Zero Width Space (\u200b) from watermark or rich text
+        corpus = "Johtajuus\u2002on selke\u200bää\u00a0ja\ufeff vastuullista."
+        # Clean quote with standard ASCII spaces
+        quote = "Johtajuus on selkeää ja vastuullista"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+        # Reverse: quote has zero-width artifact, corpus is plain
+        clean_corpus = "Johtajuus on selkeää ja vastuullista."
+        dirty_quote = "Johtajuus on selke\u200bää"
+        assert verify_quote_in_corpus(dirty_quote, clean_corpus) is True
+
+    def test_verify_quote_html_tags_normalized(self) -> None:
+        """Positive: Tier 3 known HTML formatting tags substituted with space."""
+        corpus = "Tulos oli <b>erinomainen</b> ja ylitti tavoitteet."
+        quote = "Tulos oli erinomainen ja ylitti"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_verify_quote_markdown_boundary_relaxed(self) -> None:
+        """Positive: Tier 4 markdown delimiters stripped with empty string."""
+        corpus = "Tämä on **tärkeä** havainto raportissa."
+        quote = "Tämä on tärkeä havainto"
+        assert verify_quote_in_corpus(quote, corpus) is True
+
+    def test_verify_quote_empty_and_html_only_negative(self) -> None:
+        """Negative: Empty quotes or HTML-only tags rejected Fail-Fast."""
+        assert verify_quote_in_corpus("", "Some corpus") is False
+        assert verify_quote_in_corpus("   ", "Some corpus") is False
+        assert verify_quote_in_corpus("<b></b><br/>", "Some corpus") is False
+        assert verify_quote_in_corpus("valid quote", "") is False
+
+    def test_verify_quote_preserves_watermark_registry_detection(self) -> None:
+        """Positive: Watermark detection in InputFileInspectionDTO remains active while verification succeeds."""
+        corpus_with_watermark = "Teksti\u2002sisäl\u200btää vesileiman."
+        quote = "Teksti sisältää vesileiman"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f = Path(tmpdir) / "watermark_input.md"
+            f.write_text(corpus_with_watermark, encoding="utf-8")
+
+            inspection = _inspect_input_file(f)
+            # Watermark telemetry MUST detect non-standard spaces
+            assert inspection.noise != "Standard ASCII"
+            assert "U+2002" in inspection.noise or "En Space" in inspection.noise
+
+            # At the same time, quote verification succeeds deterministically
+            assert verify_quote_in_corpus(quote, corpus_with_watermark) is True
+
