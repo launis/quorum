@@ -5,6 +5,7 @@ import pytest
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.auth import User, UserRole
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow, WorkflowInputs
@@ -60,7 +61,17 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     mock_repo.get_execution.return_value = None
-    mock_repo.get_user = AsyncMock(return_value={"language": "fi"})
+    mock_repo.get_user = AsyncMock(
+        return_value=User(
+            id="usr_test1234",
+            email="test@example.com",
+            role=UserRole.ADMIN,
+            is_active=True,
+            language="fi",
+            theme_mode="system",
+            created_at="2026-01-01T00:00:00Z",
+        )
+    )
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
@@ -69,7 +80,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
         record = await executor.execute_workflow(
             execution_id="exe_1231231231231231",
             workflow=workflow,
-            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_test123"),
+            raw_inputs=WorkflowInputs(dynamic_inputs={"chat_log": "test"}, language="en", user_id="usr_test1234"),
         )
 
     # Assert language is passed in global_context_vars
@@ -78,7 +89,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     assert args[0] == "input_processing"
     assert args[1].global_context_vars.vars["language"] == "fi"
 
-    # Epic 47 Phase 2: Workflow remains RUNNING for async render worker
+    # Workflow remains RUNNING for async render worker
     assert record.status == ExecutionStatus.RUNNING
 
 

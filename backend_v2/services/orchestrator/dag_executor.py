@@ -4,6 +4,8 @@ Strictly follows Event Sourcing, Fail-Fast principles (RFC 7807) and O(1) Concur
 God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 """
 
+from __future__ import annotations
+
 import asyncio
 import dataclasses
 import logging
@@ -11,7 +13,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
@@ -34,6 +36,7 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
+from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import StepType, StrictnessAnchor
@@ -138,7 +141,15 @@ class NodeExecutor:
         self.deps = deps
 
     def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine:
-        """Resolve ExecutionEngine orthogonally from model_strategy based on step prompt blocks."""
+        """Resolve ExecutionEngine orthogonally from model_strategy based on step prompt blocks.
+
+        Args:
+            step_def: Step domain blueprint model.
+            prompt_blocks: Pre-loaded list of prompt blocks.
+
+        Returns:
+            Instantiated ExecutionEngine strategy instance.
+        """
         from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
         from backend_v2.models.enums import PromptBlockCategory
         from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -246,31 +257,33 @@ class NodeExecutor:
 
             loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(criteria_ids, strict=True)
 
-            engine = (
-                self._resolve_execution_engine(step_def, loaded_prompt_blocks)
-                if step_def.type == StepType.LLM
-                else None
-            )
+            engine: ExecutionEngine | None = None
+            if step_def.type == StepType.LLM:
+                engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks)
 
-            effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool) if arq_pool else self.deps
+            effective_deps = self.deps
+            if arq_pool is not None:
+                effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool)
+
             strategy_impl = NodeStrategyFactory.create_strategy(
                 step_type=step_def.type,
                 deps=effective_deps,
                 engine=engine,
             )
 
+            resolved_global_vars: dict[str, Any] = {}
             if global_context_vars is not None:
                 resolved_global_vars = global_context_vars
             elif isinstance(metadata, ExecutionMetadata) and metadata.global_context_vars is not None:
                 resolved_global_vars = metadata.global_context_vars
-            else:
-                resolved_global_vars = {}
 
-            resolved_model_registry_id = (
-                metadata.model_registry_id
-                if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id
-                else None
-            )
+            resolved_model_registry_id: str | None = None
+            if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
+                resolved_model_registry_id = metadata.model_registry_id
+
+            resolved_context_vars: dict[str, Any] = {}
+            if context_variables is not None:
+                resolved_context_vars = context_variables
 
             context = StrategyContext(
                 execution_id=execution_id,
@@ -282,7 +295,7 @@ class NodeExecutor:
                 cognitive_tier=step_def.cognitive_tier,
                 strictness_level=strictness_level,
                 global_context_vars=resolved_global_vars,
-                context_variables=context_variables or {},
+                context_variables=resolved_context_vars,
                 prompt_blocks=loaded_prompt_blocks,
                 model_registry_id=resolved_model_registry_id,
             )
@@ -420,25 +433,27 @@ class DAGExecutor:
             strictness_level = workflow.default_strictness_level
 
         raw_rec = await self.exec_repo.get_execution(execution_id)
-        existing_record: ExecutionRecord | None = (
-            raw_rec
-            if isinstance(raw_rec, ExecutionRecord)
-            else (ExecutionRecord.model_validate(raw_rec, strict=False) if raw_rec is not None else None)
-        )
+        existing_record: ExecutionRecord | None = None
+        if isinstance(raw_rec, ExecutionRecord):
+            existing_record = raw_rec
+        elif raw_rec is not None:
+            existing_record = ExecutionRecord.model_validate(raw_rec, strict=False)
 
-        target_loc = (
-            existing_record.target_locale
-            if existing_record and existing_record.target_locale
-            else (raw_inputs.language if raw_inputs and raw_inputs.language else "en")
-        )
+        target_loc = "en"
+        if existing_record is not None and existing_record.target_locale:
+            target_loc = existing_record.target_locale
+        elif raw_inputs is not None and raw_inputs.language:
+            target_loc = raw_inputs.language
 
         steps: list[ExecutionStep] = []
         step_states: dict[str, ExecutionStep] = {}
         for step in workflow.steps:
-            step_def = step_definitions.get(step.task_blueprint) if step.task_blueprint else None
-            if step_def and isinstance(step_def.name, I18nText):
+            step_def = None
+            if step.task_blueprint is not None and step.task_blueprint in step_definitions:
+                step_def = step_definitions[step.task_blueprint]
+            if step_def is not None and isinstance(step_def.name, I18nText):
                 step_label = step_def.name.resolve(target_loc)
-            elif step_def and isinstance(step_def.name, str) and step_def.name.strip():
+            elif step_def is not None and isinstance(step_def.name, str) and step_def.name.strip():
                 step_label = step_def.name
             else:
                 step_label = step.id
@@ -493,21 +508,14 @@ class DAGExecutor:
             set_language(exec_record.target_locale)
 
         global_vars: dict[str, Any] = {}
-        user_id = exec_record.created_by or (exec_record.raw_inputs.user_id if exec_record.raw_inputs else None)
-        if user_id:
+        user_id = exec_record.created_by
+        if user_id is None and exec_record.raw_inputs is not None:
+            user_id = exec_record.raw_inputs.user_id
+        if user_id is not None:
             user_data = await self.identity_repo.get_user(user_id)
-            if user_data:
-                user_lang = (
-                    user_data.language
-                    if isinstance(user_data, BaseModel)
-                    else (
-                        user_data.get("language")
-                        if not isinstance(user_data, (str, int, float, bool, list)) and user_data is not None
-                        else None
-                    )
-                )
-                if user_lang:
-                    global_vars["language"] = user_lang
+            if user_data is not None and isinstance(user_data, User):
+                if user_data.language:
+                    global_vars["language"] = str(user_data.language)
 
         if "language" not in global_vars and exec_record.raw_inputs.language:
             global_vars["language"] = exec_record.raw_inputs.language
@@ -546,17 +554,12 @@ class DAGExecutor:
                     ),
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
-                if processed_result.success and processed_result.state_delta:
-                    delta_content = (
-                        processed_result.state_delta.delta
-                        if isinstance(processed_result.state_delta, HookDeltaDTO)
-                        else (
-                            dict(processed_result.state_delta)
-                            if not isinstance(processed_result.state_delta, (str, int, float, bool, list))
-                            and processed_result.state_delta is not None
-                            else {}
-                        )
-                    )
+                if processed_result.success and processed_result.state_delta is not None:
+                    delta_content: dict[str, Any] = {}
+                    if isinstance(processed_result.state_delta, HookDeltaDTO):
+                        delta_content = processed_result.state_delta.delta
+                    elif not isinstance(processed_result.state_delta, (str, int, float, bool, list)):
+                        delta_content = dict(processed_result.state_delta)
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
@@ -665,8 +668,10 @@ class DAGExecutor:
                         )
                         return
 
-                # --- Epic 93 Phase 3: Pre-Synthesis Matrix Reducer Lifecycle Event ---
-                step_def = step_definitions.get(step_obj.task_blueprint) if step_obj.task_blueprint else None
+                # --- Pre-Synthesis Matrix Reducer Lifecycle Event ---
+                step_def = None
+                if step_obj.task_blueprint is not None and step_obj.task_blueprint in step_definitions:
+                    step_def = step_definitions[step_obj.task_blueprint]
                 if step_def and (
                     "atom_flattening_hook" in step_def.pre_hooks or "synthesis_distiller_hook" in step_def.pre_hooks
                 ):
@@ -727,7 +732,9 @@ class DAGExecutor:
                         prog = completed
                         label = f"Processing... {prog}%"
                     else:
-                        prog = int((completed / total) * 100) if total > 0 else 0
+                        prog = 0
+                        if total > 0:
+                            prog = int((completed / total) * 100)
                         label = f"Evaluating batch {completed}/{total}..."
 
                     async with _update_lock:
@@ -739,13 +746,17 @@ class DAGExecutor:
                     try:
                         await _safe_commit()
                         logger.info("Progress updated for step %s: %s", step_id, label)
-                    except Exception as commit_err:
+                    except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
                         logger.warning(
                             "[DAGExecutor] %s: Non-terminal intermediate progress commit skipped for step %s: %s",
                             ErrorCodes.PROGRESS_UPDATE_FAILED.name,
                             step_id,
                             commit_err,
                         )
+
+                node_step_def: Step | None = None
+                if step_obj.task_blueprint is not None and step_obj.task_blueprint in step_definitions:
+                    node_step_def = step_definitions[step_obj.task_blueprint]
 
                 try:
                     settings = get_settings()
@@ -761,22 +772,11 @@ class DAGExecutor:
                         before_sleep=before_sleep_log(logger, logging.WARNING),
                     ):
                         with attempt:
-                            effective_metadata = (
-                                exec_record.metadata.model_copy(
-                                    update={
-                                        "model_registry_id": (
-                                            exec_record.metadata.model_registry_id or workflow.model_registry_id
-                                        )
-                                    }
-                                )
-                                if exec_record.metadata
-                                else ExecutionMetadata(model_registry_id=workflow.model_registry_id)
-                            )
                             events = await self.node_executor.execute(
                                 step=step_obj,
                                 execution_id=execution_id,
                                 workflow_id=workflow.id,
-                                metadata=effective_metadata,
+                                metadata=exec_record.metadata or ExecutionMetadata(),
                                 target_locale=exec_record.target_locale,
                                 output_profile_id=exec_record.output_profile_id,
                                 organization_id=exec_record.organization_id,
@@ -789,9 +789,7 @@ class DAGExecutor:
                                 running_event=running_event,
                                 context_variables=exec_record.context_variables,
                                 progress_callback=progress_callback,
-                                step_def=step_definitions.get(step_obj.task_blueprint)
-                                if step_obj.task_blueprint
-                                else None,
+                                step_def=node_step_def,
                                 global_context_vars=global_vars,
                             )
                 finally:
@@ -919,7 +917,7 @@ class DAGExecutor:
                 step_events[step_id].set()
 
         try:
-            # Epic 101 Phase 1B: RAG Pre-Flight Pipeline Injection
+            # RAG Pre-Flight Pipeline Injection
             has_prehydrated = False
             preflight_target_step = None
             for step in workflow.steps:
@@ -954,7 +952,7 @@ class DAGExecutor:
                         projector.apply_delta(evt)
                     try:
                         await _safe_commit()
-                    except Exception as commit_err:
+                    except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
                         logger.warning(
                             "[DAGExecutor] %s: Non-terminal preflight progress commit skipped for step %s: %s",
                             ErrorCodes.PROGRESS_UPDATE_FAILED.name,

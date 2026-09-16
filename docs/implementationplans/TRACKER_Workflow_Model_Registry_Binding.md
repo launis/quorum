@@ -40,7 +40,7 @@
   - [x] @[backend_v2/services/studio/system_config_service.py]
   - [x] @[backend_v2/services/execution.py]
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/llm/client.py]
   - [ ] @[backend_v2/worker.py]
@@ -102,24 +102,24 @@
   - `backend_v2/models/dtos/studio.py`: Modernized test fixtures from legacy `model_strategy` to `cognitive_tier="fast"`, 99% coverage, explicit `__all__ = [...]`, passed 174-rule audit matrix.
   - `backend_v2/database/interfaces.py`: Added complete 16-protocol `__all__ = [...]` export list, 100% coverage, passed 174-rule audit matrix.
   - `backend_v2/database/repositories/system.py`: Added explicit `__all__ = ["SystemRepositoryImpl"]`, refactored ternary fallbacks into fail-fast checks eliminating `QGR016` AST violations, 97% coverage, passed 174-rule audit matrix.
-- **Tier 2 Backend Hardening Batch 2 Progress (3/5 files complete, 8/14 total):**
+- **Tier 2 Backend Hardening Batch 2 Progress (4/5 files complete, 9/14 total):**
   - `backend_v2/services/studio/system_config_service.py` (`eced272f`): Refactored ternary lazy defaults, explicit `__all__`, 96% coverage, 174-rule audit matrix passed.
   - `backend_v2/services/execution.py` (`aad81fed`): Refactored 10 ternary lazy fallbacks, explicit `__all__ = ["ExecutionService", "create_execution_record"]`, expanded unit tests to 63 cases reaching 90% statement coverage, 174-rule audit matrix passed.
   - `backend_v2/services/orchestrator/strategies/base.py` (`414c6d03`): Added `from __future__ import annotations`, explicit `__all__ = ["NodeStrategy", "StrategyContext", "StrategyDependencies"]`, RFC 7807 `logger.error` dual-reporting in `assert_quota`, updated docstrings to Option A contracts, passed 174-rule audit matrix and 96% test coverage.
+  - `backend_v2/services/orchestrator/dag_executor.py`: Added `from __future__ import annotations`, eradicated 14 AST guardrail violations (`QGR016` ternary fallbacks, `QGR003` broad exception handlers), added `from backend_v2.models.auth import User` for typed user resolution, updated test fixture with valid User domain model, passed all 174 rules in audit matrix and achieved 90% test coverage.
 - **DAG Orchestrator Ecosystem Blast-Radius Analysis & User Permission Granted:**
-  - Scanned `backend_v2/services/orchestrator/dag_executor.py`, identified 14 AST violations (`QGR016` ternary fallbacks in `_build_strategy_context` and bootstrap, `QGR003` broad exceptions).
+  - Scanned `backend_v2/services/orchestrator/dag_executor.py`, eradicated 14 AST violations.
   - Explicit user permission secured: "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem".
 - **Documentation & Knowledge Item Update Refinement:**
   - Refined tracker lines 59–64 with explicit sub-items for `ki_provider_agnostic_caching.md`, `ki_desktop_pro_tool_studio_ux.md`, and `04_directory_reference.md`.
 
 ## Learned
 - In `backend_v2/services/orchestrator/strategies/base.py`, `assert_quota` was using `logger.warning` instead of RFC 7807 `logger.error` before raising `AppException(status_code=402, ErrorCodes.RATE_LIMIT_EXCEEDED)`.
-- In `backend_v2/services/orchestrator/dag_executor.py`, `_build_strategy_context` and bootstrap logic contain 14 ternary lazy fallbacks (`QGR016`) and broad `except Exception:` handlers (`QGR003`) that must be converted to explicit if/else branches and typed exception handling.
-- `tmp/hardening_state.json` tracks progress across 14 targets: 8 completed (`v2_core.py`, `execution_core.py`, `studio.py`, `interfaces.py`, `system.py`, `system_config_service.py`, `execution.py`, `base.py`), 6 remaining.
+- In `backend_v2/services/orchestrator/dag_executor.py`, 14 AST violations (`QGR016` ternary lazy fallbacks, `QGR003` broad exceptions) were refactored to explicit branching and typed exception handling. In `test_dag_executor.py`, mock `get_user` was modernized from a naked dictionary to a validated `User` domain model.
+- `tmp/hardening_state.json` tracks progress across 14 targets: 9 completed, 5 remaining.
 
 ## Remaining
-- **Next Primary Gate:** Continue `/tier2-hardening-backend` for remaining Batch 2 files:
-  - `@[backend_v2/services/orchestrator/dag_executor.py]` (Permission already granted: "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem")
+- **Next Primary Gate:** Continue `/tier2-hardening-backend` for remaining Batch 2 file:
   - `@[backend_v2/services/orchestrator/strategies/llm.py]`
 - **Remaining Backend Batch 3 (4 files):**
   - `@[backend_v2/llm/client.py]`
@@ -132,7 +132,7 @@
   - Execute `/tier7-describe-architecture` to update architectural documents and sync Knowledge Items (`ki_desktop_pro_tool_studio_ux.md`, `ki_provider_agnostic_caching.md`).
 
 ### Hardening State Snapshot
-TARGETS: 14, DONE: 8, REMAINING: [@[backend_v2/services/orchestrator/dag_executor.py], @[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/llm/client.py], @[backend_v2/worker.py], @[backend_v2/services/studio/workflow_service.py], @[scripts/run_e2e_variance_test.py]]
+TARGETS: 14, DONE: 9, REMAINING: [@[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/llm/client.py], @[backend_v2/worker.py], @[backend_v2/services/studio/workflow_service.py], @[scripts/run_e2e_variance_test.py]]
 
 ## Resume Command
 `/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier2-hardening-backend" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/01-python-backend.md],@[.agents/rules/04_directory_reference.md]"`
