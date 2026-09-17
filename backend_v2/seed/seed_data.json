@@ -19705,7 +19705,7 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "reasoning"
+      "cognitive_tier": "deep"
     },
     {
       "id": "sp_f22db9f1dde048b7",
@@ -19980,7 +19980,7 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "reasoning"
+      "cognitive_tier": "deep"
     },
     {
       "id": "sp_48974af1fc584407",
@@ -20073,7 +20073,7 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "reasoning"
+      "cognitive_tier": "deep"
     },
     {
       "id": "sp_dfc365994fa944b2",
@@ -20122,7 +20122,7 @@
         "reflection_text"
       ],
       "is_system_core": false,
-      "cognitive_tier": "reasoning"
+      "cognitive_tier": "deep"
     },
     {
       "id": "sp_6a45d484ad5b497c",
