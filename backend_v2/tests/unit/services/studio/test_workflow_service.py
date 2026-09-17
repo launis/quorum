@@ -17,6 +17,7 @@ from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, genera
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, ProtocolPromptBlock
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
     EntityPrefix,
     HistoricalContextMode,
     PromptBlockCategory,
@@ -93,7 +94,7 @@ def _valid_step(
         type=StepType.LLM,
         organization_id=org_id,
         safety="safe",
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_0123456789abcdef"],
         extraction_protocol_block_id="blk_0123456789abcdef",
         is_system_core=is_system_core,
@@ -815,19 +816,19 @@ async def test_in_memory_save_step_roundtrip(admin_token: TokenData) -> None:
 
     updated_step = initial_step.model_copy(
         update={
-            "model_strategy": "pro_fast_2026",
+            "cognitive_tier": CognitiveTier.FAST,
             "name": I18nText(translations={"en": "Updated Step", "fi": "Päivitetty askel"}),
         }
     )
 
     saved = await service.save_step(admin_token, initial_step.id, updated_step)
     assert saved.id == initial_step.id
-    assert saved.model_strategy == "pro_fast_2026"
+    assert saved.cognitive_tier == CognitiveTier.FAST
 
     fetched = await wf_repo.get_step_by_id(initial_step.id)
     assert fetched is not None
     assert fetched.id == initial_step.id
-    assert fetched.model_strategy == "pro_fast_2026"
+    assert fetched.cognitive_tier == CognitiveTier.FAST
 
 
 async def test_save_workflow_unauthorized_token_raises_permission_denied(

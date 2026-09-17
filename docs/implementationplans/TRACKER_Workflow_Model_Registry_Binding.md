@@ -44,7 +44,7 @@
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/worker.py]
-  - [ ] @[backend_v2/services/studio/workflow_service.py]
+  - [x] @[backend_v2/services/studio/workflow_service.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` production Flutter files:
   - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
