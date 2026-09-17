@@ -13,7 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.dag_models import CausalEdge
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.v2_core import (
     I18nText,
@@ -99,7 +99,7 @@ def mock_step() -> Step:
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef0123456789abcdef", "blk_1123456789abcdef0123456789abcdef"],
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
     )
 
 

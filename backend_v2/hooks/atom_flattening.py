@@ -129,11 +129,19 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                     for claim in scale.claims:
                         for tda in claim.tda_assertions:
                             aid = str(tda.tda_id)
+                            rule_val = ""
+                            if tda.extraction_rule is not None:
+                                rule_val = tda.extraction_rule.strip()
+
+                            target_val = ""
+                            if tda.anchor_target is not None:
+                                target_val = tda.anchor_target.strip()
+
                             atom_entry = FlattenedAtom(
                                 atom_id=aid,
                                 question=tda.concept_description.strip(),
-                                extraction_rule=tda.extraction_rule.strip() if tda.extraction_rule else "",
-                                anchor_target=tda.anchor_target.strip() if tda.anchor_target else "",
+                                extraction_rule=rule_val,
+                                anchor_target=target_val,
                                 is_inverse=bool(tda.inverse_evidence),
                                 depends_on=tda.depends_on,
                                 contrastive_example=tda.contrastive_example,
@@ -145,10 +153,10 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
                             scale_atoms.append(atom_entry)
                             all_matrix_atoms[aid] = atom_entry
 
-                    # Apply constraint securely using deterministic execution ID locking
+                    # Apply constraint securely using deterministic workflow ID locking
                     if sampling_limit_val > 0 and len(scale_atoms) > sampling_limit_val:
                         # Append the specific scale score to the random seed to avoid identical slicing across scales!
-                        secure_seed = f"{state.execution_id}_{block.id}_scale_{scale.score}"
+                        secure_seed: str = f"{state.workflow_id}_{block.id}_scale_{scale.score}"
                         rng = random.Random(secure_seed)
                         selected_atoms = rng.sample(scale_atoms, sampling_limit_val)
                         logger.debug(
