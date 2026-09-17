@@ -3,6 +3,8 @@
 Modernized for GraphEngine and TaskRegistry (V2.9).
 """
 
+from __future__ import annotations
+
 import asyncio
 import contextlib
 import logging
@@ -166,7 +168,10 @@ async def execute_workflow_job(
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
     # This groups all subsequent logs (Agent, LLM, DB) under this execution_id.
-    with logfire.span("execute_workflow_job", tags={"execution_id": execution_id or "unknown"}):
+    span_execution_id = "unknown"
+    if execution_id:
+        span_execution_id = execution_id
+    with logfire.span("execute_workflow_job", tags={"execution_id": span_execution_id}):
         # Inject Organization ID into inputs (Blackboard State) if provided
         # This ensures that valid WorkflowState objects created from this dict will have organization_id populated.  # noqa: E501
         if organization_id and "organization_id" not in inputs:
@@ -259,9 +264,9 @@ async def execute_workflow_job(
                     except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
                         logger.warning("[Worker] Failed to hydrate offloaded trace for telemetry: %s", err)
 
-                models_used: dict[str, int] = (
-                    updated_exec_record.models_used.copy() if updated_exec_record.models_used else {}
-                )
+                models_used: dict[str, int] = {}
+                if updated_exec_record.models_used:
+                    models_used = updated_exec_record.models_used.copy()
                 step_telemetry: dict[str, dict[str, Any]] = {}
                 total_cost_usd = 0.0
                 total_prompt_tokens = 0
@@ -305,7 +310,9 @@ async def execute_workflow_job(
                         cac_tokens = 0
                         reas_tokens = 0
 
-                    curr_model_tokens = models_used[model_strategy] if model_strategy in models_used else 0
+                    curr_model_tokens = 0
+                    if model_strategy in models_used:
+                        curr_model_tokens = models_used[model_strategy]
                     models_used[model_strategy] = curr_model_tokens + t_tokens
 
                     step_id = event.step_name
@@ -420,8 +427,7 @@ async def execute_workflow_job(
 
                 duration_ms = int((datetime.now(UTC) - start_time).total_seconds() * 1000)
 
-                # TRIGGER ASYNC RENDER JOB (Epic 14 M4)
-                redis = ctx.get("redis")
+                # TRIGGER ASYNC RENDER JOB
                 if redis:
                     # Enqueue job to generate Synthesis cache and Static PDF
                     profile_id = updated_exec_record.output_profile_id
@@ -485,14 +491,17 @@ async def execute_workflow_job(
                         ),
                     )
 
+            final_duration = 0
+            if exec_id:
+                final_duration = duration_ms
             return {
                 "status": "COMPLETED",
                 "execution_id": exec_id,
                 "workflow_id": workflow_id,
-                "duration_ms": duration_ms if exec_id else 0,
+                "duration_ms": final_duration,
             }
 
-        except Exception as e:  # noqa: QGR003 [REASON: Background worker top-level DLQ catch-all]
+        except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
                 logger.error(
@@ -513,7 +522,7 @@ async def execute_workflow_job(
                             completed_at=datetime.now(UTC),
                         ),
                     )
-                except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
+                except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
                     logger.error(
                         "[Worker] %s",
@@ -534,7 +543,7 @@ async def execute_workflow_job(
                             completed_at=datetime.now(UTC),
                         ),
                     )
-                except Exception as update_err:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
+                except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
                     logger.error(
                         "[Worker] %s",
@@ -565,7 +574,7 @@ async def generate_pdf_job(
     except asyncio.CancelledError:
         logger.warning(f"[Worker] generate_pdf_job cancelled for {execution_id}")
         return {"_dlq_status": "FAILED/DLQ"}
-    except Exception as e:  # noqa: QGR003 [REASON: Background job top-level DLQ handler]
+    except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
         logger.error(f"[Worker] generate_pdf_job failed for {execution_id}: {e}", exc_info=True)
         return {"_dlq_status": "FAILED/DLQ"}
 
@@ -707,7 +716,7 @@ async def generate_pdf_task(
                     step_states=fail_step_states,
                 ),
             )
-        except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
+        except OSError, ValidationError, ValueError, KeyError:
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,
@@ -736,7 +745,7 @@ async def render_profile_job(
     except asyncio.CancelledError:
         logger.warning(f"[Worker] render_profile_job cancelled for {execution_id}")
         return {"_dlq_status": "FAILED/DLQ"}
-    except Exception as e:  # noqa: QGR003 [REASON: Background job top-level DLQ handler]
+    except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
         logger.error(f"[Worker] render_profile_job failed for {execution_id}: {e}", exc_info=True)
         return {"_dlq_status": "FAILED/DLQ"}
 
@@ -781,7 +790,9 @@ async def generate_profile_synthesis_and_pdf_task(
         execution = ExecutionRecord.model_validate(execution_data, strict=False)
         v_step_id = f"sys_render_{profile_id}"
 
-        syntheses = execution.profile_syntheses if execution.profile_syntheses is not None else {}
+        syntheses: dict[str, Any] = {}
+        if execution.profile_syntheses is not None:
+            syntheses = execution.profile_syntheses
         has_synthesis = profile_id in syntheses
         if has_synthesis:
             logger.info(f"[Task] Synthesis already exists for profile {profile_id}. Proceeding to PDF generation.")  # noqa: E501
@@ -793,9 +804,9 @@ async def generate_profile_synthesis_and_pdf_task(
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-                old_state = (
-                    exec_record_local.step_states[v_step_id] if v_step_id in exec_record_local.step_states else None
-                )
+                old_state = None
+                if v_step_id in exec_record_local.step_states:
+                    old_state = exec_record_local.step_states[v_step_id]
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
@@ -840,7 +851,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     if t_content.get("event_type") == "starvation":
                         starvation_detected = True
                         break
-                except Exception:
+                except ValidationError, ValueError, TypeError, KeyError:
                     continue
 
         if starvation_detected:
@@ -860,8 +871,12 @@ async def generate_profile_synthesis_and_pdf_task(
                 data_starvation=starvation_dto,
             )
 
-            current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
-            starvation_pid: str = profile_id if profile_id is not None else "default"
+            current_syntheses: dict[str, Any] = {}
+            if execution.profile_syntheses is not None:
+                current_syntheses = dict(execution.profile_syntheses)
+            starvation_pid: str = "default"
+            if profile_id is not None:
+                starvation_pid = profile_id
             current_syntheses[starvation_pid] = cache
 
             await repo.update_execution(
@@ -877,14 +892,15 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         # Fetch output profile to resolve dynamic strictness & strategy
-        p_dict = await repo.get_output_profile_by_id(profile_id) if profile_id else None
-        active_profile_dto = OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
+        p_dict = None
+        if profile_id:
+            p_dict = await repo.get_output_profile_by_id(profile_id)
+        active_profile_dto: OutputProfile | None = None
+        if p_dict:
+            active_profile_dto = OutputProfile.model_validate(p_dict, strict=False)
 
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
-        workflow_def = Workflow.model_validate(w_dict) if w_dict else None
-
-        # Sovereign Workflow Strictness Level resolution (Tripartite Phase 1 Sovereignty)
-        if not workflow_def:
+        if not w_dict:
             msg = f"Strict Fail-Fast Enforced: Missing mandatory workflow '{execution.workflow_id}'."
             logger.error("[Worker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
@@ -892,6 +908,7 @@ async def generate_profile_synthesis_and_pdf_task(
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
+        workflow_def = Workflow.model_validate(w_dict)
         strictness_level: int = workflow_def.default_strictness_level
 
         # Calculate scores dynamically for all matrices using UnifiedScoringEngine
@@ -959,7 +976,7 @@ async def generate_profile_synthesis_and_pdf_task(
                                     if pb_id in trace_evt.content:
                                         trace_evt.content[pb_id] = new_payload
                                         break
-                except Exception as e:  # noqa: QGR003 [REASON: Resilient best-effort dynamic matrix calculation]
+                except (ValidationError, ValueError, TypeError, KeyError, AttributeError) as e:
                     logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
@@ -1001,7 +1018,9 @@ async def generate_profile_synthesis_and_pdf_task(
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
         distilled_inputs = distilled_data["distilled_inputs"]
-        raw_matrices = distilled_data["matrices_to_explain"] if "matrices_to_explain" in distilled_data else []
+        raw_matrices = []
+        if "matrices_to_explain" in distilled_data:
+            raw_matrices = distilled_data["matrices_to_explain"]
         matrices_to_explain: list[MatrixExplanationContextDTO] = [
             m if isinstance(m, MatrixExplanationContextDTO) else MatrixExplanationContextDTO.model_validate(m)
             for m in raw_matrices
@@ -1054,11 +1073,17 @@ async def generate_profile_synthesis_and_pdf_task(
                         active_profile_dto.id,
                     )
 
+                synthesis_provider = None
+                synthesis_reg_id = None
+                if execution.metadata:
+                    synthesis_provider = execution.metadata.provider_override
+                    synthesis_reg_id = execution.metadata.model_registry_id
+
                 client = await LLMClient.from_tier(
                     synthesis_tier,
                     repository=repo,
-                    provider=execution.metadata.provider_override if execution.metadata else None,
-                    registry_id=execution.metadata.model_registry_id if execution.metadata else None,
+                    provider=synthesis_provider,
+                    registry_id=synthesis_reg_id,
                 )
 
                 matrix_context = ""
@@ -1121,8 +1146,12 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 # 2. Dedicated Matrix Synthesis Groups tasks
                 if active_profile_dto and active_profile_dto.requires_group_synthesis:
-                    language = distilled_data["language"] if "language" in distilled_data else "en"
-                    title_map = distilled_data["title_map"] if "title_map" in distilled_data else {}
+                    language = "en"
+                    if "language" in distilled_data:
+                        language = distilled_data["language"]
+                    title_map: dict[str, str] = {}
+                    if "title_map" in distilled_data:
+                        title_map = distilled_data["title_map"]
 
                     for grp in active_profile_dto.matrix_synthesis_groups:
                         grp_id = grp.id
@@ -1156,7 +1185,9 @@ async def generate_profile_synthesis_and_pdf_task(
                             for tb in grp.target_blocks:
                                 if tb.lower() in title_map:
                                     target_titles.append(title_map[tb.lower()])
-                        target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
+                        target_str = ""
+                        if target_titles:
+                            target_str = f' targets="{", ".join(target_titles)}"'
 
                         grp_dynamic_parts = list(base_dynamic_parts)
                         if active_profile_dto and active_profile_dto.matrix_graph_length_constraint:
@@ -1209,7 +1240,9 @@ async def generate_profile_synthesis_and_pdf_task(
                     if active_profile_dto.visible_block_extensions:
                         wf_exts.extend(active_profile_dto.visible_block_extensions)
                     wf_exts = list(dict.fromkeys(wf_exts))
-                    req_exts = ", ".join([str(e) for e in wf_exts]) if wf_exts else "none"
+                    req_exts = "none"
+                    if wf_exts:
+                        req_exts = ", ".join(str(e) for e in wf_exts)
 
                     if (
                         not active_profile_dto.xai_synthesis_directive
@@ -1256,11 +1289,17 @@ async def generate_profile_synthesis_and_pdf_task(
                         )
 
             if matrices_to_explain and (active_profile_dto is None or active_profile_dto.requires_row_explanations):
+                row_provider_override = None
+                row_reg_id = None
+                if execution.metadata:
+                    row_provider_override = execution.metadata.provider_override
+                    row_reg_id = execution.metadata.model_registry_id
+
                 client = await LLMClient.from_tier(
                     CognitiveTier.FAST,
                     repository=repo,
-                    provider=execution.metadata.provider_override if execution.metadata else None,
-                    registry_id=execution.metadata.model_registry_id if execution.metadata else None,
+                    provider=row_provider_override,
+                    registry_id=row_reg_id,
                 )
                 row_sys_prompt = f"{ROW_EXPLANATION_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
@@ -1428,11 +1467,13 @@ async def generate_profile_synthesis_and_pdf_task(
                         total_word_count=total_word_count,
                     )
 
-                    jargon_density = (
-                        round((performative_phrases_count / max(1, total_word_count)) * 100.0, 2)
-                        if total_word_count is not None and total_word_count > 0
-                        else 0.0
-                    )
+                    jargon_density = 0.0
+                    if total_word_count is not None and total_word_count > 0:
+                        jargon_density = round((performative_phrases_count / max(1, total_word_count)) * 100.0, 2)
+
+                    total_word_count_int = None
+                    if total_word_count is not None:
+                        total_word_count_int = int(total_word_count)
 
                     ext_metrics = ExtensionMetricsDTO(
                         authenticity_score=float(authenticity_score),
@@ -1440,14 +1481,20 @@ async def generate_profile_synthesis_and_pdf_task(
                         variance_score=float(variance_res.variance_score),
                         alignment_verdict=str(variance_res.alignment_verdict),
                         jargon_density=float(jargon_density),
-                        total_word_count=int(total_word_count) if total_word_count is not None else None,
+                        total_word_count=total_word_count_int,
                     )
+
+                    var_provider_override = None
+                    var_reg_id = None
+                    if execution.metadata:
+                        var_provider_override = execution.metadata.provider_override
+                        var_reg_id = execution.metadata.model_registry_id
 
                     client_var = await LLMClient.from_tier(
                         CognitiveTier.DEEP,
                         repository=repo,
-                        provider=execution.metadata.provider_override if execution.metadata else None,
-                        registry_id=execution.metadata.model_registry_id if execution.metadata else None,
+                        provider=var_provider_override,
+                        registry_id=var_reg_id,
                     )
                     var_sys_prompt = f"{VARIANCE_SYSTEM_PROMPT}\n\n{STATIC_LINGUISTIC_PROTOCOL}"
 
@@ -1584,11 +1631,9 @@ async def generate_profile_synthesis_and_pdf_task(
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
 
-        _raw_row_explanations = (
-            {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
-            if row_expl_res and row_expl_res.explanations
-            else {}
-        )
+        _raw_row_explanations: dict[str, str] = {}
+        if row_expl_res and row_expl_res.explanations:
+            _raw_row_explanations = {item.matrix_id: item.row_explanation for item in row_expl_res.explanations}
 
         cache_row_explanations = {}
         if matrices_to_explain:
@@ -1619,8 +1664,11 @@ async def generate_profile_synthesis_and_pdf_task(
 
                 cache_row_explanations[real_id] = expl
 
-        user_role_val: str | None = exec_dto.user_role if exec_dto else None
-        user_role_just: str | None = exec_dto.user_role_justification if exec_dto else None
+        user_role_val: str | None = None
+        user_role_just: str | None = None
+        if exec_dto:
+            user_role_val = exec_dto.user_role
+            user_role_just = exec_dto.user_role_justification
 
         if active_profile_dto and active_profile_dto.user_role_target_block:
             role_target_block_id = active_profile_dto.user_role_target_block
@@ -1661,11 +1709,15 @@ async def generate_profile_synthesis_and_pdf_task(
                     f"Derived deterministically from evaluated matrix '{role_target_block_id}' score {role_raw_score}."
                 )
 
+        cited_sources: list[str] = []
+        if exec_dto and exec_dto.cited_sources:
+            cited_sources = list(exec_dto.cited_sources)
+
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
             variance_explanation=variance_expl,
-            cited_sources=exec_dto.cited_sources if exec_dto else [],
+            cited_sources=cited_sources,
             xai_highlights=xai_highlights_list,
             user_role=user_role_val,
             user_role_justification=user_role_just,
@@ -1673,8 +1725,12 @@ async def generate_profile_synthesis_and_pdf_task(
         )
 
         # Add new synthesis to record
-        current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
-        pid: str = profile_id if profile_id is not None else "default"
+        current_syntheses = {}
+        if execution.profile_syntheses is not None:
+            current_syntheses = dict(execution.profile_syntheses)
+        pid: str = "default"
+        if profile_id is not None:
+            pid = profile_id
         current_syntheses[pid] = cache
 
         prev_tokens = execution.cumulative_synthesis_tokens
@@ -1822,7 +1878,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     step_states=fail_step_states,
                 ),
             )
-        except Exception:  # noqa: QGR003 [REASON: Best-effort failure status DB update]
+        except OSError, ValidationError, ValueError, KeyError:
             logger.error(
                 "[Task] Failed to update execution failure status",
                 exc_info=True,

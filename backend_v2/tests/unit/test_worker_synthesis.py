@@ -40,6 +40,31 @@ def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345
     return None
 
 
+def _get_base_model_registry_dict() -> dict[str, Any]:
+    profile = {
+        "provider": "mock_llm_99",
+        "model_name": "gemini-2.5-pro",
+        "temperature": 0.0,
+        "max_tokens": 1024,
+        "is_active": True,
+        "tpm_limit": 100000,
+        "rpm_limit": 1000,
+    }
+    return {
+        "id": "cfg_1111111111111111",
+        "name": "Default Test Registry",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "default_provider": "google",
+        "tier_definitions": {
+            "fast": profile,
+            "balanced": profile,
+            "deep": profile,
+            "reasoning": profile,
+        },
+    }
+
+
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
@@ -87,7 +112,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
         if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "model_strategy": "synthesis", "type": "logic"}
+            return {"id": "sp_1234567812345678", "cognitive_tier": "fast", "type": "logic"}
         return None
 
     mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
@@ -96,45 +121,12 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
             "id": "sp_1234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
-            "model_strategy": "synthesis",
+            "cognitive_tier": "fast",
             "type": "logic",
             "hook": "text_consolidation_hook",
         }
     ]
-    mock_repo.get_model_registry.return_value = {
-        "id": "cfg_1111111111111111",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "strict": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-        },
-    }
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
     mock_repo.get_all_prompt_blocks.return_value = [
         {
@@ -239,40 +231,7 @@ def _setup_mock_repo_for_metrics(
         "steps": [],
     }
     mock_repo.get_all_steps.return_value = []
-    mock_repo.get_model_registry.return_value = {
-        "id": "cfg_1111111111111111",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "strict": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-        },
-    }
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
     mock_repo.get_all_prompt_blocks.return_value = []
 
     async def _mock_get_prompt_block(block_id: str) -> dict[str, Any]:
@@ -595,9 +554,9 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
 )
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_matrix_layout_directives(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
     view_type: str,
@@ -679,7 +638,7 @@ async def test_worker_synthesis_matrix_layout_directives(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     if not should_execute_group:
         await generate_profile_synthesis_and_pdf_task(
@@ -710,9 +669,9 @@ async def test_worker_synthesis_matrix_layout_directives(
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_disabled_layout_omits_section_instruction(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
@@ -758,7 +717,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_disabled
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
@@ -776,9 +735,9 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_executive_summary_instruction_and_cache(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
@@ -826,7 +785,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_exec
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
@@ -852,9 +811,9 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_multi_section_aggregation(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
@@ -921,7 +880,7 @@ async def test_worker_synthesis_multi_section_aggregation(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_multi
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
@@ -939,9 +898,9 @@ async def test_worker_synthesis_multi_section_aggregation(
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_empty_sections_not_set_in_cache(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
@@ -996,7 +955,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_empty
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None
@@ -1011,9 +970,9 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 @pytest.mark.asyncio
 @patch("backend_v2.worker.UnifiedWorkflowRepository")
 @patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_strategy")
+@patch("backend_v2.worker.LLMClient.from_tier")
 async def test_worker_synthesis_custom_directives_resolution(
-    mock_from_strategy: AsyncMock,
+    mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
@@ -1090,7 +1049,7 @@ async def test_worker_synthesis_custom_directives_resolution(
         return (None, usage)
 
     mock_client.run_structured_task.side_effect = _mock_run_structured_task_custom
-    mock_from_strategy.return_value = mock_client
+    mock_from_tier.return_value = mock_client
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exec_1234567812345678", accept_language="fi", profile_id="prof_1111111111111111", redis=None

@@ -58,6 +58,31 @@ __all__ = [
 ]
 
 
+def _get_base_model_registry_dict() -> dict[str, Any]:
+    profile = {
+        "provider": "mock_llm_99",
+        "model_name": "gemini-2.5-pro",
+        "temperature": 0.0,
+        "max_tokens": 1024,
+        "is_active": True,
+        "tpm_limit": 100000,
+        "rpm_limit": 1000,
+    }
+    return {
+        "id": "cfg_1111111111111111",
+        "name": "Default Test Registry",
+        "type": "model_registry",
+        "slug": "model_registry",
+        "default_provider": "google",
+        "tier_definitions": {
+            "fast": profile,
+            "balanced": profile,
+            "deep": profile,
+            "reasoning": profile,
+        },
+    }
+
+
 @pytest.mark.asyncio
 async def test_health_check() -> None:
     """Verify health check task returns OK."""
@@ -604,31 +629,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "default_profile_id": "prof_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
-            mock_repo.get_model_registry.return_value = {
-                "id": "cfg_1111111111111111",
-                "type": "model_registry",
-                "slug": "model_registry",
-                "models": {
-                    "synthesis": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "fast": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                },
-            }
+            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = HookResult(
@@ -796,41 +797,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                     "category_id": "system_rule",
                 }
             ]
-
-            mock_repo.get_model_registry.return_value = {
-                "id": "cfg_1111111111111111",
-                "type": "model_registry",
-                "slug": "model_registry",
-                "models": {
-                    "synthesis": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "strict": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "fast": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                },
-            }
+            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
             mock_repo.get_workflow_by_id.return_value = {
                 "id": "wf_1234567890123456",
                 "name": "Test WF",
@@ -1061,31 +1028,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "category_id": "system_rule",
             }
 
-            mock_repo.get_model_registry.return_value = {
-                "id": "cfg_1111111111111111",
-                "type": "model_registry",
-                "slug": "model_registry",
-                "models": {
-                    "synthesis": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                    "fast": {
-                        "provider": "mock_llm_99",
-                        "model_name": "gemini-2.5-pro",
-                        "temperature": 0.0,
-                        "max_tokens": 1024,
-                        "is_active": True,
-                        "tpm_limit": 100000,
-                        "rpm_limit": 1000,
-                    },
-                },
-            }
+            mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
             with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = HookResult(
@@ -1402,31 +1345,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "default_profile_id": "prof_1111222233334444",
         "default_strictness_level": 50,
     }
-    mock_repo.get_model_registry.return_value = {
-        "id": "cfg_1111111111111111",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-        },
-    }
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1546,31 +1465,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "default_profile_id": "prof_1111222233334444",
         "default_strictness_level": 50,
     }
-    mock_repo.get_model_registry.return_value = {
-        "id": "cfg_1111111111111111",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-        },
-    }
+    mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1615,41 +1510,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     assert call_payload.cost_estimate >= 1.0
 
 
-def _get_base_model_registry_dict() -> dict[str, Any]:
-    return {
-        "id": "cfg_1111111111111111",
-        "type": "model_registry",
-        "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "strict": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-        },
-    }
 
 
 def _get_base_workflow_dict() -> dict[str, Any]:
