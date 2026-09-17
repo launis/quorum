@@ -443,7 +443,10 @@ class Settings(BaseSettings):
         Field(
             default=0,
             ge=0,
-            description="Maximum thinking token budget applied in development environment. 0 enforces zero-budget / lowest reasoning effort.",
+            description=(
+                "Maximum thinking token budget applied in development environment. "
+                "0 enforces zero-budget / lowest reasoning effort."
+            ),
         ),
     ] = 0
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None

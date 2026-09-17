@@ -1063,12 +1063,20 @@ class TestDiffReportDTOs:
             prompt_provenance=prov,
             atom_definitions={"atm_1": atom_def},
             all_evaluations={"atm_1": [eval_snap]},
+            environment="production",
+            dev_max_thinking_budget=0,
+            ensemble_parallelism=3,
+            matrix_sampling_strategy="full",
         )
         json_data = snapshot.model_dump_json()
         reconstituted = DiffReportSnapshotDTO.model_validate_json(json_data)
         assert reconstituted.execution_ids == ["exe_1", "exe_2"]
         assert reconstituted.atom_definitions["atm_1"].concept_description == atom_def.concept_description
         assert reconstituted.all_evaluations["atm_1"][0].quote_verified is True
+        assert reconstituted.environment == "production"
+        assert reconstituted.dev_max_thinking_budget == 0
+        assert reconstituted.ensemble_parallelism == 3
+        assert reconstituted.matrix_sampling_strategy == "full"
 
 
 class TestRunDiff:
@@ -1204,14 +1212,40 @@ class TestRunDiff:
         with pytest.raises(SystemExit):
             run_diff(["non_existent_run_1"])
 
-    def test_run_diff_zero_common_atoms_raises(self) -> None:
-        """Negative: Exit with code 1 if executions share zero common atom keys."""
+    def test_run_diff_zero_common_atoms(self) -> None:
+        """Negative/Boundary: run_diff survives with 0 common atoms, producing valid JSON and MD reports."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
-            exe1 = _create_synthetic_run(tmp_path, "exe_1", [{"atom_id": "atom_A", "status": "PASSED"}])
-            exe2 = _create_synthetic_run(tmp_path, "exe_2", [{"atom_id": "atom_B", "status": "PASSED"}])
-            with pytest.raises(SystemExit):
-                run_diff([str(exe1), str(exe2)])
+            evals_run1 = [
+                {
+                    "atom_id": "tda_alpha",
+                    "status": "PASSED",
+                    "exact_quote": "A",
+                    "evaluation_reasoning": "A",
+                }
+            ]
+            evals_run2 = [
+                {
+                    "atom_id": "tda_beta",
+                    "status": "FAILED",
+                    "exact_quote": "",
+                    "evaluation_reasoning": "B",
+                }
+            ]
+            exe1 = _create_synthetic_run(tmp_path, "exe_synth_1", evals_run1)
+            exe2 = _create_synthetic_run(tmp_path, "exe_synth_2", evals_run2)
+            out_file = tmp_path / "diff_report_zero.md"
+            res_path = run_diff([str(exe1), str(exe2)], output_file=out_file)
+            assert Path(res_path).exists()
+            content = Path(res_path).read_text(encoding="utf-8")
+            assert "Yhteisiä arvioituja atomeja ei löytynyt" in content or "Zero common atoms" in content
+            json_file = Path(res_path).with_suffix(".json")
+            assert json_file.exists()
+            snap = DiffReportSnapshotDTO.model_validate_json(json_file.read_text(encoding="utf-8"))
+            assert snap.total_common_atoms == 0
+            assert snap.global_consistency == 0.0
+            assert snap.variance_rate == 0.0
+            assert snap.cohen_kappa is None
 
     def test_run_diff_missing_path_logged(self) -> None:
         """Boundary: Non-existent path in execution_ids logs warning and continues if 2 valid runs exist."""

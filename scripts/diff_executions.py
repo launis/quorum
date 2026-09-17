@@ -40,6 +40,7 @@ if _workspace_root not in sys.path:
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.models.v2_core import ContrastivePairDTO
+from backend_v2.settings import get_settings
 
 __all__ = [
     "AtomEvaluationSnapshotDTO",
@@ -369,6 +370,10 @@ class DiffReportSnapshotDTO(BaseModel):
     prompt_provenance: PromptProvenanceDTO
     atom_definitions: dict[str, TdaAtomDefinitionDTO]
     all_evaluations: dict[str, list[AtomEvaluationSnapshotDTO]]
+    environment: str = "development"
+    dev_max_thinking_budget: int = 0
+    ensemble_parallelism: int = 1
+    matrix_sampling_strategy: str = "full"
 
 
 def _extract_level_breakdown_counts(raw_levels: Any) -> dict[str, int]:
@@ -1541,8 +1546,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         common_atoms = common_atoms.intersection(set(evals.keys()))
 
     if not common_atoms:
-        print("Error: Loaded executions share zero common atom keys.")
-        sys.exit(1)
+        print(
+            "[WARNING] Zero common atoms found across compared executions (likely due to dev sampling). "
+            "Generating macro telemetry and diagnostic report without atom-level kappa metrics."
+        )
 
     seed_path = Path("backend_v2/seed/seed_data.json")
     seed: dict[str, Any] = {}
@@ -1728,12 +1735,17 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         all_atom_states.append(states)
 
     categories_list = sorted(list(unique_categories))
-    global_kappa = calculate_fleiss_kappa(all_atom_states, categories_list)
-    global_consistency = sum(atom_consistencies.values()) / len(common_atoms) if common_atoms else 1.0
-    global_entropy = sum(atom_entropies.values()) / len(common_atoms) if common_atoms else 0.0
+    if common_atoms:
+        global_kappa = calculate_fleiss_kappa(all_atom_states, categories_list)
+        global_consistency = sum(atom_consistencies.values()) / len(common_atoms)
+        global_entropy = sum(atom_entropies.values()) / len(common_atoms)
+    else:
+        global_kappa = 0.0
+        global_consistency = 0.0
+        global_entropy = 0.0
 
     cohen_kappa_dto: KappaMetricsDTO | None = None
-    if len(evals_list) == 2:
+    if len(evals_list) == 2 and common_atoms:
         try:
             cohen_kappa_dto = calculate_cohens_kappa(all_atom_states, categories_list)
         except (ValueError, ZeroDivisionError) as e:
@@ -1823,8 +1835,6 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         )
 
         try:
-            from backend_v2.settings import get_settings
-
             cfg = get_settings()
             sys_enums += (
                 f"\n  - **SystemConcurrency (Settings)**:\n"
@@ -2238,6 +2248,15 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     with report_path.open("w", encoding="utf-8") as f:
         f.write("# Mittauksen Luotettavuus ja Vakausraportti (Reliability & Consistency)\n\n")
 
+        if not common_atoms:
+            f.write(
+                "> [!WARNING]\n"
+                "> **Yhteisiä arvioituja atomeja ei löytynyt "
+                "(Zero common atoms found across compared executions, likely due to dev sampling).**\n"
+                "> Makrotason telemetria, kustannusarviot ja diagnostiikkaraportti generoitu "
+                "ilman atomitason kappa-metriikoita.\n\n"
+            )
+
         f.write("## Ympäristö ja Konteksti (Execution State)\n")
         if overall_health_passed:
             f.write(
@@ -2335,7 +2354,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     f.write(
                         f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
                         f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois], "
-                        f"MaxTok={mb.max_tokens}, Thinking={mb.thinking_budget} tok -> Reasoning Effort='{effort}'{limits_str})\n"
+                        f"MaxTok={mb.max_tokens}, Thinking={mb.thinking_budget} tok "
+                        f"-> Reasoning Effort='{effort}'{limits_str})\n"
                     )
                 else:
                     think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
@@ -2917,7 +2937,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         else:
             f.write("## Suoritustila (Single Run Inspection)\n")
             f.write(
-                "- **Tila:** Yksittäinen suoritus. Differentiaalianalyysi ja tilasiirtymät vaativat vähintään 2 ajoa.\n\n"
+                "- **Tila:** Yksittäinen suoritus. "
+                "Differentiaalianalyysi ja tilasiirtymät vaativat vähintään 2 ajoa.\n\n"
             )
 
         f.write("## Epävakaimmat Testitapaukset / Kysytyt Säännöt (Järjestetty Entropian mukaan)\n")
@@ -2928,6 +2949,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         )
 
         for atom in mismatching_atoms:
+            det = atom_details.get(atom, {})
             entropy = atom_entropies[atom]
             consistency = atom_consistencies[atom]
             states = atom_states[atom]
@@ -3032,7 +3054,28 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("\n")
 
     # Structured JSON snapshot sidecar
-    variance_rate = (len(mismatching_atoms) / len(common_atoms)) if common_atoms else 0.0
+    if common_atoms:
+        variance_rate = len(mismatching_atoms) / len(common_atoms)
+    else:
+        variance_rate = 0.0
+
+    runtime_env = "development"
+    runtime_dev_budget = 0
+    try:
+        _cur_cfg = get_settings()
+        runtime_env = _cur_cfg.environment
+        runtime_dev_budget = _cur_cfg.dev_max_thinking_budget
+    except AttributeError, KeyError, ValueError, RuntimeError:
+        runtime_env = "development"
+        runtime_dev_budget = 0
+
+    if runtime_env == "development":
+        runtime_parallelism = 1
+        runtime_matrix_sampling = "dev_sampled"
+    else:
+        runtime_parallelism = 3
+        runtime_matrix_sampling = "full"
+
     snapshot_dto = DiffReportSnapshotDTO(
         execution_ids=loaded_runs,
         timestamp=datetime.datetime.now(datetime.timezone.utc).isoformat(),
@@ -3053,6 +3096,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         prompt_provenance=prompt_provenance,
         atom_definitions=atom_definitions,
         all_evaluations=all_evaluations,
+        environment=runtime_env,
+        dev_max_thinking_budget=runtime_dev_budget,
+        ensemble_parallelism=runtime_parallelism,
+        matrix_sampling_strategy=runtime_matrix_sampling,
     )
     json_path = report_path.with_suffix(".json")
     json_path.write_text(snapshot_dto.model_dump_json(indent=2), encoding="utf-8")
