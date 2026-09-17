@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import logging
 import uuid
@@ -29,6 +31,8 @@ from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["LLMClient"]
+
 
 class LLMClient:
     """LLM Client wrapper adapting LLMFactory for structured outputs.
@@ -51,11 +55,15 @@ class LLMClient:
 
     @property
     def provider_name(self) -> str:
-        return self._config.provider if self._config else "unknown"
+        if self._config is not None:
+            return str(self._config.provider)
+        return "unknown"
 
     @property
     def model_name(self) -> str:
-        return self._config.model_name if self._config else "unknown"
+        if self._config is not None:
+            return str(self._config.model_name)
+        return "unknown"
 
     @property
     def config(self) -> LLMProviderConfig | None:
@@ -353,16 +361,19 @@ class LLMClient:
             # V3 Cache Fix: Observability telemetry for caching diagnostics
             if "cached_content" in extra_kwargs:
                 num_msgs = len(final_messages)
+                dynamic_chars = 0
+                for m in final_messages:
+                    if isinstance(m, LLMMessageDTO):
+                        dynamic_chars += len(m.content)
+                    elif not isinstance(m, (str, int, float, bool, list)) and m is not None:
+                        if "content" in m:
+                            dynamic_chars += len(str(m["content"]))
+
                 logger.info(
                     "[LLMClient] Context Cache ACTIVE: %s | Dynamic payload: %d messages, ~%d chars",
                     extra_kwargs["cached_content"],
                     num_msgs,
-                    sum(
-                        len(m.content)
-                        if isinstance(m, LLMMessageDTO)
-                        else (len(str(m["content"])) if isinstance(m, dict) and "content" in m else 0)  # noqa: QGR012 [REASON: Dictionary inspection in debug logging telemetry]
-                        for m in final_messages
-                    ),
+                    dynamic_chars,
                 )
 
                 if num_msgs == 0:
@@ -427,7 +438,11 @@ class LLMClient:
                             extra_kwargs["extra_body"].pop("cachedContent", None)
                             extra_kwargs["extra_body"].pop("cached_content", None)
 
-                        fallback_messages = compiled_prompt.to_flat_messages() if compiled_prompt else final_messages
+                        fallback_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+                        if compiled_prompt is not None:
+                            fallback_messages = compiled_prompt.to_flat_messages()
+                        else:
+                            fallback_messages = final_messages
 
                         response = await provider.generate(
                             messages=fallback_messages,
@@ -447,13 +462,13 @@ class LLMClient:
                         raise gen_err
 
                 # Extract usage securely into TokenUsage
-                usage_obj = response.token_usage if response else None
-                if usage_obj is None:
+                if response is None or response.token_usage is None:
                     logger.error(
                         "Strict FinOps Mode: LLM Provider failed to return token_usage.",
                         extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name},
                     )
                     raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL.value)
+                usage_obj = response.token_usage
 
                 token_usage = None
                 try:
@@ -472,9 +487,9 @@ class LLMClient:
                 # 4. Parse Result
                 raw_content = response.content
 
-                finish_reason = (
-                    response.provider_metadata.finish_reason if response and response.provider_metadata else ""
-                )
+                finish_reason = ""
+                if response is not None and response.provider_metadata is not None:
+                    finish_reason = str(response.provider_metadata.finish_reason)
 
                 if finish_reason and str(finish_reason).lower() in ("safety", "content_filtered", "recitation"):
                     raise AgentExecutionError(
@@ -531,7 +546,9 @@ class LLMClient:
                     is_eof = "EOF while parsing" in error_str
                     error_msg = schema_err.json() if isinstance(schema_err, pydantic.ValidationError) else error_str
 
-                failed_content = response.content if response else "EMPTY_CONTENT"
+                failed_content = "EMPTY_CONTENT"
+                if response is not None and response.content is not None:
+                    failed_content = response.content
 
                 raise LLMSchemaValidationError(
                     raw_llm_payload=failed_content,
@@ -553,7 +570,9 @@ class LLMClient:
                 exc_info=True,
             )
             err_response = response
-            err_content = err_response.content if err_response else None
+            err_content = None
+            if err_response is not None:
+                err_content = err_response.content
             if err_content:
                 logger.error(
                     "Raw content causing structural error.",
@@ -658,7 +677,7 @@ class LLMClient:
             config=self._config,
         )
 
-        # Force parallel tool calls to dramatically speed up MCP tool execution (Epic 85 Phase 2)
+        # Force parallel tool calls to dramatically speed up MCP tool execution
         if tools:
             extra_kwargs["parallel_tool_calls"] = True
 
@@ -688,7 +707,11 @@ class LLMClient:
                         extra_kwargs["extra_body"].pop("cachedContent", None)
                         extra_kwargs["extra_body"].pop("cached_content", None)
 
-                    fallback_messages = compiled_prompt.to_flat_messages() if compiled_prompt else final_messages
+                    fallback_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+                    if compiled_prompt is not None:
+                        fallback_messages = compiled_prompt.to_flat_messages()
+                    else:
+                        fallback_messages = final_messages
 
                     response = await provider.generate(
                         messages=fallback_messages,

@@ -567,3 +567,62 @@ from backend_v2.tests.unit.llm.test_llm_client_tiers import (
     TestLLMClientTiersFailFast as TestLLMClientTiersFailFast,
     mock_repository as mock_repository,
 )
+
+
+def test_client_properties_unconfigured() -> None:
+    """Verify unconfigured client defaults to 'unknown' and None config."""
+    client = LLMClient()
+    assert client.provider_name == "unknown"
+    assert client.model_name == "unknown"
+    assert client.config is None
+
+
+@pytest.mark.asyncio
+async def test_from_tier_query_failure_raises_configuration_error() -> None:
+    """Verify repository query error bubbles up as ConfigurationError."""
+    mock_repo = MagicMock()
+    mock_repo.get_model_registry = AsyncMock(side_effect=ConnectionError("Database offline"))
+    with pytest.raises(ConfigurationError, match="missing or query failed"):
+        await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
+
+
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+@pytest.mark.asyncio
+async def test_finops_invalid_token_usage_payload(mock_create_provider: MagicMock) -> None:
+    """Verify FinOps raises AgentExecutionError when token_usage structure fails Pydantic validation."""
+    mock_provider = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+    mock_response = MagicMock()
+    mock_response.token_usage = "not_a_valid_usage_structure"
+    mock_provider.generate.return_value = mock_response
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with pytest.raises(AgentExecutionError):
+        await client.run_structured_task(
+            messages=[{"role": "user", "content": "Hi"}],
+            response_model=DummyStrictModel,
+        )
+
+
+@patch("backend_v2.llm.provider.LLMFactory.create_provider")
+@pytest.mark.asyncio
+async def test_safety_filter_triggered(mock_create_provider: MagicMock) -> None:
+    """Verify finish_reason safety triggers AgentExecutionError."""
+    mock_provider = AsyncMock()
+    mock_create_provider.return_value = mock_provider
+    mock_response = MagicMock()
+    mock_response.token_usage = {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
+    mock_response.content = "Filtered output"
+    mock_response.provider_metadata = MagicMock()
+    mock_response.provider_metadata.finish_reason = "safety"
+    mock_provider.generate.return_value = mock_response
+
+    c = DummyConfig()
+    client = LLMClient(config=c.model_dump())
+    with pytest.raises(AgentExecutionError, match="Safety Filter Triggered"):
+        await client.run_structured_task(
+            messages=[{"role": "user", "content": "Hi"}],
+            response_model=DummyStrictModel,
+        )
+
