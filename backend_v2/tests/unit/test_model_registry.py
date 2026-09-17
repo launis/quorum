@@ -17,7 +17,7 @@ from backend_v2.api.routers.studio.model_registry import (
 )
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
-from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 

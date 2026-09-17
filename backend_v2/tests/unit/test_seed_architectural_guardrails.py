@@ -136,9 +136,7 @@ def test_model_strategies_are_bound_to_registry() -> None:
     for raw_step in data.get("steps", []):
         tier = raw_step.get("cognitive_tier") or raw_step.get("model_strategy")
         if tier:
-            assert tier in valid_tiers, (
-                f"Step '{raw_step.get('slug')}' references unknown cognitive_tier '{tier}'"
-            )
+            assert tier in valid_tiers, f"Step '{raw_step.get('slug')}' references unknown cognitive_tier '{tier}'"
 
     # 3. Check output profiles
     if "output_profiles" in data:

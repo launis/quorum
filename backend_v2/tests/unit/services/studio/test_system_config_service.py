@@ -12,7 +12,7 @@ from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
 from backend_v2.models.dtos.studio import GCPLocationDTO
-from backend_v2.models.enums import CognitiveTier, GCPVertexLocation, LLMPlatformType, LLMProvider
+from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
     ModelProfile,

@@ -2033,6 +2033,7 @@ async def test_execute_fails_fast_on_invalid_cognitive_tier_in_step_def(
     mock_hook_state.inputs = {}
 
     from unittest.mock import AsyncMock, patch
+
     from pydantic import ValidationError
 
     with patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre:

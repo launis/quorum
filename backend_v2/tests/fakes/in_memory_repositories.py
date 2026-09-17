@@ -34,7 +34,6 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.auth import (
     Organization,
     OrganizationCreate,
@@ -72,6 +71,7 @@ from backend_v2.models.dtos.system import (
     SystemSettingsDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
+from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionRecord,

@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.enums import CognitiveTier, LLMProvider

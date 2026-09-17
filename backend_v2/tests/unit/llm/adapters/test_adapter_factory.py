@@ -96,4 +96,3 @@ def test_factory_import_error_handling(
 
         assert exc_info.value.status_code == 500
         assert exc_info.value.error_code == str(ErrorCodes.CAPABILITY_NOT_SUPPORTED)
-

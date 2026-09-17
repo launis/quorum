@@ -27,7 +27,6 @@ from backend_v2.llm.adapters.vertex_adapter import (
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
-from backend_v2.models.enums import GCPVertexLocation
 from backend_v2.models.v2_core import ModelProfile
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
@@ -193,8 +192,10 @@ class TestModelRegistryDiscoveryPositivePartitions:
             ]
         }
 
-        with patch("google.auth.default", return_value=(mock_creds, "mock-project")), \
-             patch("requests.get", return_value=mock_resp) as mock_get:
+        with (
+            patch("google.auth.default", return_value=(mock_creds, "mock-project")),
+            patch("requests.get", return_value=mock_resp) as mock_get,
+        ):
             locations = handler.fetch_vertex_locations(mock_settings)
             assert len(locations) == 2
             assert locations[0].id == "europe-north1"
