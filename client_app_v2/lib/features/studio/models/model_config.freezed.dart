@@ -26,14 +26,7 @@ $ModelConfigCopyWith<ModelConfig> get copyWith => _$ModelConfigCopyWithImpl<Mode
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other.tierDefinitions, tierDefinitions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,name,slug,type,defaultProvider,const DeepCollectionEquality().hash(tierDefinitions));
 
 @override
 String toString() {
@@ -241,14 +234,7 @@ Map<String, dynamic> toJson() {
   return _$ModelConfigToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ModelConfig&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.slug, slug) || other.slug == slug)&&(identical(other.type, type) || other.type == type)&&(identical(other.defaultProvider, defaultProvider) || other.defaultProvider == defaultProvider)&&const DeepCollectionEquality().equals(other._tierDefinitions, _tierDefinitions));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,id,name,slug,type,defaultProvider,const DeepCollectionEquality().hash(_tierDefinitions));
 
 @override
 String toString() {
@@ -310,14 +296,7 @@ $LlmModelConfigCopyWith<LlmModelConfig> get copyWith => _$LlmModelConfigCopyWith
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other.allowedTools, allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&(identical(other.reasoningEffort, reasoningEffort) || other.reasoningEffort == reasoningEffort)&&const DeepCollectionEquality().equals(other.additionalParams, additionalParams));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,reasoningEffort,const DeepCollectionEquality().hash(additionalParams)]);
 
 @override
 String toString() {
@@ -557,14 +536,7 @@ Map<String, dynamic> toJson() {
   return _$LlmModelConfigToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _LlmModelConfig&&(identical(other.provider, provider) || other.provider == provider)&&(identical(other.modelName, modelName) || other.modelName == modelName)&&(identical(other.temperature, temperature) || other.temperature == temperature)&&(identical(other.maxTokens, maxTokens) || other.maxTokens == maxTokens)&&(identical(other.parsingMode, parsingMode) || other.parsingMode == parsingMode)&&(identical(other.topP, topP) || other.topP == topP)&&(identical(other.topK, topK) || other.topK == topK)&&(identical(other.frequencyPenalty, frequencyPenalty) || other.frequencyPenalty == frequencyPenalty)&&(identical(other.presencePenalty, presencePenalty) || other.presencePenalty == presencePenalty)&&(identical(other.tpmLimit, tpmLimit) || other.tpmLimit == tpmLimit)&&(identical(other.rpmLimit, rpmLimit) || other.rpmLimit == rpmLimit)&&(identical(other.supportsGrounding, supportsGrounding) || other.supportsGrounding == supportsGrounding)&&(identical(other.isActive, isActive) || other.isActive == isActive)&&const DeepCollectionEquality().equals(other._allowedTools, _allowedTools)&&(identical(other.apiKey, apiKey) || other.apiKey == apiKey)&&(identical(other.cachingStrategy, cachingStrategy) || other.cachingStrategy == cachingStrategy)&&(identical(other.thinkingBudgetTokens, thinkingBudgetTokens) || other.thinkingBudgetTokens == thinkingBudgetTokens)&&(identical(other.reasoningEffort, reasoningEffort) || other.reasoningEffort == reasoningEffort)&&const DeepCollectionEquality().equals(other._additionalParams, _additionalParams));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hashAll([runtimeType,provider,modelName,temperature,maxTokens,parsingMode,topP,topK,frequencyPenalty,presencePenalty,tpmLimit,rpmLimit,supportsGrounding,isActive,const DeepCollectionEquality().hash(_allowedTools),apiKey,cachingStrategy,thinkingBudgetTokens,reasoningEffort,const DeepCollectionEquality().hash(_additionalParams)]);
 
 @override
 String toString() {

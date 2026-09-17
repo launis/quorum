@@ -7,7 +7,7 @@ part 'model_config.g.dart';
 
 /// Freezed domain model for Model Registry configurations.
 /// Enforces Fail-Fast typing and strictly matches Pydantic V2 schema.
-@freezed
+@Freezed(equal: false)
 abstract class ModelConfig with _$ModelConfig {
   const factory ModelConfig({
     @StrictOpaqueIdConverter() required String id,
@@ -27,7 +27,7 @@ abstract class ModelConfig with _$ModelConfig {
 }
 
 /// Strongly-typed Sub-Model for individual LLM Configurations.
-@freezed
+@Freezed(equal: false)
 abstract class LlmModelConfig with _$LlmModelConfig {
   const factory LlmModelConfig({
     @Default('unknown') String provider,
