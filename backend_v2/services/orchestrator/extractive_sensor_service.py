@@ -533,6 +533,84 @@ class ExtractiveSensorService:
                             extensions=extensions,
                         )
 
+                    missing_aliases = requested_aliases - returned_aliases
+                    if missing_aliases:
+                        missing_nodes = [
+                            node
+                            for node in nodes
+                            if node.atom.tda_id in tda_id_to_alias
+                            and tda_id_to_alias[node.atom.tda_id] in missing_aliases
+                        ]
+                        if missing_nodes:
+                            recovery_prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+                                context_text=context_text,
+                                nodes=missing_nodes,
+                                tda_id_to_alias=tda_id_to_alias,
+                                matrix_context=matrix_context,
+                                atom_status_map=atom_status_map,
+                                target_locale=target_locale,
+                            )
+                            try:
+                                recovery_result, recovery_usage = await executor.execute_structured_task(
+                                    client=client,
+                                    messages=recovery_prompt,
+                                    response_model=BatchEvaluationResponse,
+                                    validation_context={
+                                        "sub_task": f"extractive_sensor_recovery_call_{call_idx}",
+                                        "execution_id": execution_id,
+                                        "step_id": step_id,
+                                    },
+                                )
+                                usage = usage + recovery_usage
+                                for eval_result in recovery_result.results:
+                                    alias = eval_result.alias
+                                    if alias not in missing_aliases:
+                                        continue
+                                    call_tda_id = alias_engine.resolve_alias(alias)
+                                    extensions = {}
+                                    if eval_result.coaching:
+                                        extensions["coaching"] = eval_result.coaching
+                                    if eval_result.contextual_override is not None:
+                                        extensions["contextual_override"] = str(eval_result.contextual_override)
+                                    if eval_result.falsification:
+                                        extensions["falsification"] = eval_result.falsification
+                                    if eval_result.remediation_steps:
+                                        extensions["remediation_steps"] = "\n".join(
+                                            f"- {step}" for step in eval_result.remediation_steps
+                                        )
+
+                                    if call_tda_id in is_inverse_map:
+                                        is_inverse = is_inverse_map[call_tda_id]
+                                    else:
+                                        is_inverse = False
+
+                                    if is_inverse:
+                                        status = (
+                                            ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
+                                        )
+                                    else:
+                                        status = (
+                                            ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+                                        )
+
+                                    call_results[call_tda_id] = AtomEvaluationResultDTO(
+                                        status=status,
+                                        reasoning=eval_result.reasoning,
+                                        source_quote=eval_result.source_quote,
+                                        extensions=extensions,
+                                    )
+                            except (
+                                AgentExecutionError,
+                                AppException,
+                                ValidationError,
+                                TimeoutError,
+                                RuntimeError,
+                            ) as rec_err:
+                                logger.warning(
+                                    "Transient error or failure in targeted recovery call for missing aliases: %s",
+                                    rec_err,
+                                )
+
                     return call_results, usage
                 except Exception as e:
                     if isinstance(e, (AgentExecutionError, ValidationError)) or _is_transient_llm_error(e):

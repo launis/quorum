@@ -886,3 +886,151 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
         assert val_ctx.get("execution_id") == "exe_test1234567890"
         assert val_ctx.get("step_id") == "stp_step1234567890"
         assert "extractive_sensor_bo3_call_" in val_ctx.get("sub_task", "")
+
+
+@pytest.mark.asyncio
+async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> None:
+    """Positive: When primary structured response omits an alias, a targeted recovery query recovers it."""
+    node1 = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason 1",
+            resolved_claim="claim 1",
+            source_quote="quote 1",
+            source_id="src_1",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+    node2 = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_22222222222222222222222222222222",
+            reasoning="reason 2",
+            resolved_claim="claim 2",
+            source_quote="quote 2",
+            source_id="src_2",
+            source_sequence_index=1,
+        ),
+        depends_on=[],
+    )
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        source_quote: str | None = None
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    primary_response = MockResponse(
+        results=[
+            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quote="quote 1"),
+        ]
+    )
+    recovery_response = MockResponse(
+        results=[
+            MockResult(alias="a1", reasoning="Recovered in targeted retry", is_true=True, source_quote="quote 2"),
+        ]
+    )
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+    executor.execute_structured_task.side_effect = [
+        (primary_response, TokenUsage(prompt_tokens=100, completion_tokens=20, total_tokens=120)),
+        (recovery_response, TokenUsage(prompt_tokens=40, completion_tokens=15, total_tokens=55)),
+    ]
+
+    results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+        nodes=[node1, node2],
+        executor=executor,
+        client=client,
+        context_text="Primary context text with quote 1 and quote 2",
+        target_locale="fi",
+        execution_id="exe_recovery_test",
+        step_id="stp_recovery_step",
+    )
+
+    assert "tda_11111111111111111111111111111111" in results
+    assert "tda_22222222222222222222222222222222" in results
+    assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
+    assert results["tda_22222222222222222222222222222222"].status == ExecutionStatus.PASSED
+    assert results["tda_22222222222222222222222222222222"].reasoning == "Recovered in targeted retry"
+    assert usage.total_tokens == 175
+    assert executor.execute_structured_task.call_count == 2
+    recovery_kwargs = executor.execute_structured_task.call_args_list[1].kwargs
+    assert "extractive_sensor_recovery_call_0" in recovery_kwargs["validation_context"]["sub_task"]
+
+
+@pytest.mark.asyncio
+async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_initial_atoms() -> None:
+    """Negative / Fault Tolerance: When recovery query raises an error, primary parsed atoms are preserved."""
+    node1 = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason 1",
+            resolved_claim="claim 1",
+            source_quote="quote 1",
+            source_id="src_1",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+    node2 = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_22222222222222222222222222222222",
+            reasoning="reason 2",
+            resolved_claim="claim 2",
+            source_quote="quote 2",
+            source_id="src_2",
+            source_sequence_index=1,
+        ),
+        depends_on=[],
+    )
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        source_quote: str | None = None
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    primary_response = MockResponse(
+        results=[
+            MockResult(alias="a0", reasoning="Found in primary", is_true=True, source_quote="quote 1"),
+        ]
+    )
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+    executor.execute_structured_task.side_effect = [
+        (primary_response, TokenUsage(prompt_tokens=100, completion_tokens=20, total_tokens=120)),
+        AgentExecutionError(
+            detail=ErrorCodes.AGENT_EXECUTION_CRITICAL.value,
+        ),
+    ]
+
+    results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+        nodes=[node1, node2],
+        executor=executor,
+        client=client,
+        context_text="Primary context text with quote 1",
+        target_locale="fi",
+        execution_id="exe_recovery_fail_test",
+        step_id="stp_recovery_step",
+    )
+
+    assert "tda_11111111111111111111111111111111" in results
+    assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
+    assert usage.total_tokens == 120
+    assert executor.execute_structured_task.call_count == 2
