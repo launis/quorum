@@ -19,14 +19,14 @@
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]
 - [x] **[OK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
-  - [x] (5141d571) Step 1: BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
-  - [x] (eb37e926) Step 2: DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
-  - [x] (c1dfb9b5) Step 3: ORCHESTRATOR & LLM DISPATCH INTEGRATION
-  - [x] (0b95a576) Step 4: VENDOR LEAK ERADICATION IN STEP BUILDER
-  - [x] (afc97c1a) Step 5: DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
-  - [x] (19e7190a) Step 6: WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
-  - [x] (2862fb94) Step 7: SEED VAULT SYNCHRONIZATION & QUALITY GATES
-  - [x] (075bb47f) Step 8: E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
+  - [x] Step 1 (5141d571): BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A
+  - [x] Step 2 (eb37e926): DATABASE REPOSITORY & SERVICE MULTI-REGISTRY RESOLUTION
+  - [x] Step 3 (c1dfb9b5): ORCHESTRATOR & LLM DISPATCH INTEGRATION
+  - [x] Step 4 (0b95a576): VENDOR LEAK ERADICATION IN STEP BUILDER
+  - [x] Step 5 (afc97c1a): DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY
+  - [x] Step 6 (19e7190a): WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE
+  - [x] Step 7 (2862fb94): SEED VAULT SYNCHRONIZATION & QUALITY GATES
+  - [x] Step 8 (075bb47f): E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY & AUTOMATED COMPARISON
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
 
 ### Post-Implementation Gates
@@ -46,13 +46,13 @@
   - [x] @[backend_v2/worker.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
   - [x] @[scripts/run_e2e_variance_test.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` production Flutter files:
-  - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
-  - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` production Flutter files:
+  - [x] @[client_app_v2/lib/features/studio/models/model_config.dart]
+  - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/step_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/model_registry_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -112,29 +112,29 @@
   - `backend_v2/services/studio/workflow_service.py` (`e9a14a03`): Added `from __future__ import annotations`, modernized test fixtures from `model_strategy` to `cognitive_tier=CognitiveTier.FAST`, passed 174-rule audit matrix with 42 tests and 98% statement coverage.
   - `scripts/run_e2e_variance_test.py`: Populated and verified 174-rule audit matrix, passed `backend_audit_loop.py` quality gates, 35 passed unit tests.
 - **Golden Master & Test Restoration Audit Complete:** Verified 0 `@pytest.mark.skip` or commented-out tests in modified domains.
+- **Tier 2 Frontend Hardening Complete (6/6 files, 100% [OK]):**
+  - `client_app_v2/lib/features/studio/models/model_config.dart` (`cd675f1c`): Enforced `@Freezed(equal: false)` on `ModelConfig` and `LlmModelConfig` to satisfy `o1_lists`. Expanded unit test suite with 4 negative boundary tests (missing required ID, unrecognized keys in `ModelConfig`, unrecognized keys in `LlmModelConfig`, malformed numeric types). Verified 102-rule matrix.
+  - `client_app_v2/lib/features/studio/models/workflow.dart`: Verified `@Freezed(equal: false)` and `@JsonSerializable(disallowUnrecognizedKeys: true)` across all entities (`QuestionnaireItem`, `ExpectedInput`, `StepRule`, `NodeStrategy`, `Workflow`). Verified `safeIsolateRun` background parsing. 14/14 unit tests passed. Verified 102-rule matrix.
+  - `client_app_v2/lib/features/studio/views/step_builder_view.dart`: Verified eradication of physical model suffixes `[${physical.modelName}]` and vendor chips (REQ-07). Verified `isExpanded: true` on dropdowns, design token usage, and error handling. 3/3 widget tests passed. Verified 102-rule matrix.
+  - `client_app_v2/lib/features/studio/views/model_registry_view.dart`: Verified Desktop Pro Tool UX (1200px bounded canvas, PopScope serialization-based dirty checking with discard confirmation dialog, in-view clone button, read-only server ID, 4 canonical tier cards). 5/5 widget tests passed. Verified 102-rule matrix.
+  - `client_app_v2/lib/features/studio/views/studio_dashboard_view.dart` (`df646b37`): Verified Tab 6 Option A integration (`config.tierDefinitions.length`), real-time search query filtering, count indicator chip, and pro-tool cards. Created comprehensive widget test covering rendering, search query filtering, and empty search placeholder. 3/3 widget tests passed. Verified 102-rule matrix.
+  - `client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart` (`15e91aa6`): Enforced `isExpanded: true` on all dropdowns, integrated `AppSpacing` tokens, preserved unmapped registry IDs in `initialValue`, expanded widget tests to 6 cases including negative boundary tests and overflow checks. Verified 102-rule matrix.
 
 ## Learned
-- In `backend_v2/services/studio/workflow_service.py`, Pydantic V2 `Step` model enforces `model_config = ConfigDict(strict=True, extra="forbid")`. Legacy unit test fixtures in `test_workflow_service.py` were still instantiating `Step` with `model_strategy="fast"`, which was modernized to native `cognitive_tier=CognitiveTier.FAST`.
-- `scripts/run_e2e_variance_test.py` contains developer testing harness tooling; it adheres to all architectural constraints without fatal AST violations and verified against the 174-rule Neuro-Symbolic Audit Matrix.
+- In `client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart`, `DropdownButtonFormField` widgets must explicitly set `isExpanded: true` to prevent horizontal RenderFlex overflow when displaying lengthy output profile or registry names.
+- When `workflow.modelRegistryId` contains an unmapped ID, `initialValue` must preserve `currentRegistryId` rather than falling back to `registries.first.id`, ensuring custom or external stacks are safely displayed without silent mutation.
 
 ## Remaining
-- **Next Primary Gate:** Tier 2 Hardening (Frontend) on modified Flutter files:
-  - `@[client_app_v2/lib/features/studio/models/model_config.dart]`
-  - `@[client_app_v2/lib/features/studio/models/workflow.dart]`
-  - `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]`
-  - `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]`
-  - `@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]`
-  - `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
+- **Next Primary Gate:** Pre-Delete Audit: Verify no orphaned symbols or dependencies remain across backend or frontend.
 - **Subsequent Post-Implementation Gates:**
-  - Pre-Delete Audit
-  - Semantic Coverage & Zero-Loss Audit
-  - As-Built Architectural Sync (`/tier7-describe-architecture` for `ki_provider_agnostic_caching.md`, `ki_desktop_pro_tool_studio_ux.md`, and `04_directory_reference.md`)
-  - Final Plan Audit (`/tier8-audit-plan`)
+  - Semantic Coverage & Zero-Loss Audit: Mathematically verify line coverage >90% for modified business logic.
+  - As-Built Architectural Sync: Run `/tier7-describe-architecture` to anchor physical implementation in `docs/architecture/` (scoped to `ki_provider_agnostic_caching.md`, `ki_desktop_pro_tool_studio_ux.md`, and `04_directory_reference.md`).
+  - Final Plan Audit: Run `/tier8-audit-plan` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase with 0 fatal errors.
 
 ### Hardening State Snapshot
-TARGETS: 14, DONE: 14, REMAINING: []
+TARGETS: 6, DONE: 6, REMAINING: []
 
 ## Resume Command
-`/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier2-hardening-frontend" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/02_flutter_desktop.md],@[.agents/rules/04_directory_reference.md]"`
+`/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/04_directory_reference.md]"`
 
 
