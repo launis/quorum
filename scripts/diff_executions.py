@@ -1249,26 +1249,61 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
             tier_defs = cfg.get("tier_definitions")
             if isinstance(tier_defs, dict):
                 ordered_tiers = ["fast", "balanced", "deep", "reasoning"]
-                for provider_name, tiers in tier_defs.items():
-                    if isinstance(tiers, dict):
-                        for tier_name in ordered_tiers:
-                            if tier_name in tiers and isinstance(tiers[tier_name], dict):
-                                model_cfg = tiers[tier_name]
-                                add_params = model_cfg.get("additional_params", {})
-                                reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                is_direct = any(t in tier_defs for t in ordered_tiers)
+                if is_direct:
+                    for tier_name in ordered_tiers:
+                        if tier_name in tier_defs and isinstance(tier_defs[tier_name], dict):
+                            model_cfg = tier_defs[tier_name]
+                            add_params = model_cfg.get("additional_params", {})
+                            reasoning_effort = (
+                                add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                            )
+                            provider_val = str(model_cfg.get("provider") or cfg.get("default_provider") or "google")
+                            if not any(b.strategy_name == tier_name for b in bindings):
                                 bindings.append(
                                     PhysicalModelBindingDTO(
-                                        strategy_name=f"{tier_name} ({provider_name})",
+                                        strategy_name=tier_name,
                                         physical_model=model_cfg.get("model_name", "unknown"),
                                         temperature=float(model_cfg.get("temperature", 0.0)),
                                         max_tokens=int(model_cfg.get("max_tokens", 32768)),
                                         thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
-                                        provider=str(provider_name),
-                                        tpm_limit=int(model_cfg["tpm_limit"]) if model_cfg.get("tpm_limit") is not None else None,
-                                        rpm_limit=int(model_cfg["rpm_limit"]) if model_cfg.get("rpm_limit") is not None else None,
+                                        provider=provider_val,
+                                        tpm_limit=int(model_cfg["tpm_limit"])
+                                        if model_cfg.get("tpm_limit") is not None
+                                        else None,
+                                        rpm_limit=int(model_cfg["rpm_limit"])
+                                        if model_cfg.get("rpm_limit") is not None
+                                        else None,
                                         reasoning_effort=reasoning_effort,
                                     )
                                 )
+                else:
+                    for provider_name, tiers in tier_defs.items():
+                        if isinstance(tiers, dict):
+                            for tier_name in ordered_tiers:
+                                if tier_name in tiers and isinstance(tiers[tier_name], dict):
+                                    model_cfg = tiers[tier_name]
+                                    add_params = model_cfg.get("additional_params", {})
+                                    reasoning_effort = (
+                                        add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                                    )
+                                    bindings.append(
+                                        PhysicalModelBindingDTO(
+                                            strategy_name=f"{tier_name} ({provider_name})",
+                                            physical_model=model_cfg.get("model_name", "unknown"),
+                                            temperature=float(model_cfg.get("temperature", 0.0)),
+                                            max_tokens=int(model_cfg.get("max_tokens", 32768)),
+                                            thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
+                                            provider=str(provider_name),
+                                            tpm_limit=int(model_cfg["tpm_limit"])
+                                            if model_cfg.get("tpm_limit") is not None
+                                            else None,
+                                            rpm_limit=int(model_cfg["rpm_limit"])
+                                            if model_cfg.get("rpm_limit") is not None
+                                            else None,
+                                            reasoning_effort=reasoning_effort,
+                                        )
+                                    )
             models = cfg.get("models", {})
             if isinstance(models, dict):
                 ordered_keys = ["fast", "reasoning", "synthesis", "deep", "strict"]
@@ -1286,11 +1321,63 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
                                 max_tokens=int(model_cfg.get("max_tokens", 32768)),
                                 thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
                                 provider=str(model_cfg.get("provider", "google")),
-                                tpm_limit=int(model_cfg["tpm_limit"]) if model_cfg.get("tpm_limit") is not None else None,
-                                rpm_limit=int(model_cfg["rpm_limit"]) if model_cfg.get("rpm_limit") is not None else None,
+                                tpm_limit=int(model_cfg["tpm_limit"])
+                                if model_cfg.get("tpm_limit") is not None
+                                else None,
+                                rpm_limit=int(model_cfg["rpm_limit"])
+                                if model_cfg.get("rpm_limit") is not None
+                                else None,
                                 reasoning_effort=reasoning_effort,
                             )
                         )
+
+    # Ensure synthesis strategy is mapped if missing
+    strat_names = {b.strategy_name for b in bindings}
+    if "synthesis" not in strat_names:
+        synth_source = next((b for b in bindings if b.strategy_name in ("deep", "balanced", "reasoning")), None)
+        if synth_source:
+            bindings.append(
+                PhysicalModelBindingDTO(
+                    strategy_name="synthesis",
+                    physical_model=synth_source.physical_model,
+                    temperature=0.3,
+                    max_tokens=synth_source.max_tokens,
+                    thinking_budget=2048,
+                    provider=synth_source.provider,
+                    tpm_limit=synth_source.tpm_limit,
+                    rpm_limit=synth_source.rpm_limit,
+                    reasoning_effort=synth_source.reasoning_effort,
+                )
+            )
+
+    if not bindings:
+        bindings = [
+            PhysicalModelBindingDTO(
+                strategy_name="fast",
+                physical_model="gemini/gemini-2.5-flash",
+                temperature=0.1,
+                max_tokens=32768,
+                thinking_budget=0,
+                provider="google",
+            ),
+            PhysicalModelBindingDTO(
+                strategy_name="reasoning",
+                physical_model="gemini/gemini-2.5-flash",
+                temperature=0.2,
+                max_tokens=65536,
+                thinking_budget=8192,
+                provider="google",
+            ),
+            PhysicalModelBindingDTO(
+                strategy_name="synthesis",
+                physical_model="gemini/gemini-2.5-flash",
+                temperature=0.3,
+                max_tokens=65536,
+                thinking_budget=2048,
+                provider="google",
+            ),
+        ]
+
     return bindings
 
 
@@ -1441,8 +1528,8 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 if len(loaded_runs) >= 3:
                     break
 
-    if len(evals_list) < 2:
-        print("Error: At least two executions are required for differential comparison.")
+    if len(evals_list) < 1:
+        print("Error: At least one execution is required for analysis.")
         sys.exit(1)
 
     print(f"Loaded {len(evals_list)} executions for comparison:")
@@ -1657,19 +1744,20 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
 
     summary_2way = {"PASSED->FAILED": 0, "FAILED->PASSED": 0, "Other": 0}
     evals_1 = evals_list[0]
-    evals_2 = evals_list[1]
+    evals_2 = evals_list[1] if len(evals_list) > 1 else {}
     passed_states = ["true", "passed", "1"]
     failed_states = ["false", "failed", "0"]
 
-    for atom in common_atoms:
-        s1, s2 = get_state(evals_1[atom]), get_state(evals_2[atom])
-        if s1 != s2:
-            if s1 in passed_states and s2 in failed_states:
-                summary_2way["PASSED->FAILED"] += 1
-            elif s1 in failed_states and s2 in passed_states:
-                summary_2way["FAILED->PASSED"] += 1
-            else:
-                summary_2way["Other"] += 1
+    if len(evals_list) >= 2:
+        for atom in common_atoms:
+            s1, s2 = get_state(evals_1[atom]), get_state(evals_2[atom])
+            if s1 != s2:
+                if s1 in passed_states and s2 in failed_states:
+                    summary_2way["PASSED->FAILED"] += 1
+                elif s1 in failed_states and s2 in passed_states:
+                    summary_2way["FAILED->PASSED"] += 1
+                else:
+                    summary_2way["Other"] += 1
 
     contextual_override_mismatches = 0
     for atom in mismatching_atoms:
@@ -1688,9 +1776,10 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         DisagreementRootCause.CONTEXTUAL_OVERRIDE: 0,
         DisagreementRootCause.TECHNICAL_ERROR: 0,
     }
-    for atom in mismatching_atoms:
-        cause = classify_disagreement(evals_1.get(atom, {}), evals_2.get(atom, {}))
-        root_cause_counts[cause] += 1
+    if len(evals_list) >= 2:
+        for atom in mismatching_atoms:
+            cause = classify_disagreement(evals_1.get(atom, {}), evals_2.get(atom, {}))
+            root_cause_counts[cause] += 1
 
     root_cause_breakdown = RootCauseBreakdownDTO(
         retrieval_gap_count=root_cause_counts[DisagreementRootCause.RETRIEVAL_GAP],
@@ -1932,8 +2021,12 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         b_total = len(b_atoms)
         if b_total == 0:
             continue
-        r1_pass = sum(1 for a in b_atoms if get_state(evals_1[a]) in passed_states) / b_total
-        r2_pass = sum(1 for a in b_atoms if get_state(evals_2[a]) in passed_states) / b_total
+        r1_pass = sum(1 for a in b_atoms if a in evals_1 and get_state(evals_1[a]) in passed_states) / b_total
+        r2_pass = (
+            (sum(1 for a in b_atoms if a in evals_2 and get_state(evals_2[a]) in passed_states) / b_total)
+            if evals_2
+            else r1_pass
+        )
         r1_norm = run1_scores.get(bid)
         r2_norm = run2_scores.get(bid)
         d_norm = (r2_norm - r1_norm) if (r1_norm is not None and r2_norm is not None) else None
@@ -1944,6 +2037,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         r2_raw = d2.get("raw_score")
         d_raw = (r2_raw - r1_raw) if (r1_raw is not None and r2_raw is not None) else None
         b_min, b_max = block_extrema.get(bid, (1.0, 5.0))
+        delta_p = (r2_pass - r1_pass) if evals_2 else 0.0
 
         macro_block_scores.append(
             MacroBlockScoreDTO(
@@ -1954,7 +2048,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 delta_normalized_score=d_norm,
                 run1_pass_rate=r1_pass,
                 run2_pass_rate=r2_pass,
-                delta_pass_rate=r2_pass - r1_pass,
+                delta_pass_rate=delta_p,
                 run1_raw_score=r1_raw,
                 run2_raw_score=r2_raw,
                 delta_raw_score=d_raw,
@@ -1991,7 +2085,9 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             corpus_nfkc = unicodedata.normalize("NFKC", re.sub(r"[\u200b-\u200d\ufeff]", "", corpus))
             norm_corpus = " ".join(corpus_nfkc.split())
             html_norm_corpus = " ".join(_HTML_TAG_PATTERN.sub(" ", corpus_nfkc).split())
-            md_norm_corpus = " ".join(_MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus_nfkc)).split())
+            md_norm_corpus = " ".join(
+                _MARKDOWN_DECORATOR_PATTERN.sub("", _HTML_TAG_PATTERN.sub(" ", corpus_nfkc)).split()
+            )
         run_corpuses.append(corpus)
         run_norm_corpuses.append(norm_corpus)
         run_html_norm_corpuses.append(html_norm_corpus)
@@ -2234,11 +2330,7 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                     )
                 elif is_openai_reasoning:
                     effort = mb.reasoning_effort or (
-                        "low"
-                        if mb.thinking_budget <= 2048
-                        else "medium"
-                        if mb.thinking_budget <= 4096
-                        else "high"
+                        "low" if mb.thinking_budget <= 2048 else "medium" if mb.thinking_budget <= 4096 else "high"
                     )
                     f.write(
                         f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
@@ -2809,18 +2901,24 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         f.write("\n")
 
         # Shift States
-        f.write("## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)\n")
-        f.write(
-            f"- **Erimielisyyttä näiden välillä:** "
-            f"{len([a for a in common_atoms if get_state(evals_1[a]) != get_state(evals_2[a])])} kpl\n"
-        )
-        f.write(
-            f"- **Contextual Override -lähtöiset erimielisyydet koko setissä:** "
-            f"{contextual_override_mismatches} / {len(mismatching_atoms)}\n"
-        )
-        f.write(f"- **PASSED -> FAILED:** {summary_2way['PASSED->FAILED']}\n")
-        f.write(f"- **FAILED -> PASSED:** {summary_2way['FAILED->PASSED']}\n")
-        f.write(f"- **Muut siirtymät:** {summary_2way['Other']}\n\n")
+        if len(loaded_runs) >= 2:
+            f.write("## Kahden viimeisimmän ajon siirtymätilat (Run 1 -> Run 2)\n")
+            f.write(
+                f"- **Erimielisyyttä näiden välillä:** "
+                f"{len([a for a in common_atoms if get_state(evals_1[a]) != get_state(evals_2[a])])} kpl\n"
+            )
+            f.write(
+                f"- **Contextual Override -lähtöiset erimielisyydet koko setissä:** "
+                f"{contextual_override_mismatches} / {len(mismatching_atoms)}\n"
+            )
+            f.write(f"- **PASSED -> FAILED:** {summary_2way['PASSED->FAILED']}\n")
+            f.write(f"- **FAILED -> PASSED:** {summary_2way['FAILED->PASSED']}\n")
+            f.write(f"- **Muut siirtymät:** {summary_2way['Other']}\n\n")
+        else:
+            f.write("## Suoritustila (Single Run Inspection)\n")
+            f.write(
+                "- **Tila:** Yksittäinen suoritus. Differentiaalianalyysi ja tilasiirtymät vaativat vähintään 2 ajoa.\n\n"
+            )
 
         f.write("## Epävakaimmat Testitapaukset / Kysytyt Säännöt (Järjestetty Entropian mukaan)\n")
         f.write(

@@ -1854,17 +1854,18 @@ def run_variance_test(
     print("\n=== FINAL CLEANUP ===")
     force_kill_services()
 
-    if len(execution_ids) < 2:
-        print("\n=== SINGLE RUN EXECUTION COMPLETE ===")
-        print(f"  • Execution ID: {execution_ids[0] if execution_ids else 'N/A'}")
-        print(f"  • Status: PASSED (Verified kelvollisuus & sufficiency)")
-        print("  • Notice: Differential analysis skipped because only 1 run was requested (--num-runs 1).")
-        print(f"  • To inspect results: view execution in Quorum Studio UI or run:")
-        if execution_ids:
-            print(f"    uv run python -c \"import json; d=json.load(open('data/files/executions/{execution_ids[0]}/execution_trace.json', encoding='utf-8')); print('Events:', len(d.get('events', [])))\"")
-        return execution_ids
+    if not execution_ids:
+        print("\n[WARNING] No execution IDs recorded.")
+        return []
 
-    print("\n=== RUNNING DIFF EXECUTIONS ===")
+    if len(execution_ids) == 1:
+        print("\n=== SINGLE RUN EXECUTION COMPLETE - GENERATING SCRATCH REPORT ===")
+        print(f"  • Execution ID: {execution_ids[0]}")
+        print("  • Status: PASSED (Verified kelvollisuus & sufficiency)")
+        print("  • Generating detailed single-run execution report in scratch/...")
+    else:
+        print("\n=== RUNNING DIFF EXECUTIONS ===")
+
     diff_script = Path("scripts/diff_executions.py").resolve()
     diff_cmd = ["uv", "run", "python", str(diff_script)] + execution_ids
     res = subprocess.run(

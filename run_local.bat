@@ -132,7 +132,7 @@ start "CQ Backend V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONME
 start "CQ Worker V2 [LOCAL - %ENVIRONMENT%]" cmd /k "set ENVIRONMENT=%ENVIRONMENT%&& chcp 65001 > nul && set PYTHONUTF8=1&& set PYTHONIOENCODING=utf-8&& set STORAGE_BACKEND=LOCAL&& set USE_VERTEX_LLM=true&& set GOOGLE_APPLICATION_CREDENTIALS=%CD%\service-account.json&& set USE_FIREBASE_AUTH=false&& set DISABLE_VERTEX_CACHE=%DISABLE_VERTEX_CACHE%&& uv run python -m backend_v2.run_worker"
 
 if not "%NO_CLIENT%"=="true" (
-    echo [3/3] Launching Client (Flutter)...
+    echo [3/3] Launching Client [Flutter]...
     if "%USE_JSON_LOGGING%"=="" set USE_JSON_LOGGING=false
     start "CQ Client [LOCAL - %ENVIRONMENT%]" cmd /k "cd client_app_v2 && echo [Flutter] Resolving packages silently... && flutter pub get >nul 2>&1 && flutter run -d windows --no-pub --dart-define=USE_JSON_LOGGING=%USE_JSON_LOGGING%"
 ) else (
