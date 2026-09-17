@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
@@ -32,7 +33,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
 
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: AppSpacing.p16,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -51,7 +52,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                AppSpacing.w16,
                 Expanded(
                   child: TextField(
                     controller: slugController,
@@ -66,11 +67,11 @@ class WorkflowGeneralTab extends ConsumerWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Card(
               elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: AppSpacing.p16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -81,7 +82,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     I18nTextField(
                       label: l10n.studioWorkflowNameLabel,
                       initialData: workflow.name,
@@ -89,7 +90,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         onChanged(workflow.copyWith(name: val));
                       },
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     TextField(
                       controller: TextEditingController(
                         text: descTranslations['en'] ?? '',
@@ -113,7 +114,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     TextField(
                       controller: TextEditingController(
                         text: descTranslations['fi'] ?? '',
@@ -141,11 +142,11 @@ class WorkflowGeneralTab extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Card(
               elevation: 2,
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: AppSpacing.p16,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -156,7 +157,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     Builder(
                       builder: (context) {
                         final globalProfilesAsync = ref.watch(
@@ -183,6 +184,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         return DropdownButtonFormField<String>(
                           key: ValueKey(profileIds.join(':')),
                           initialValue: safeDefault == '' ? null : safeDefault,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowDefaultProfile,
                             border: const OutlineInputBorder(),
@@ -211,7 +213,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     Builder(
                       builder: (context) {
                         final mcpGatewaysAsync = ref.watch(
@@ -231,6 +233,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                             'mcp_gw_${gateways.length}_$safeGatewayId',
                           ),
                           initialValue: safeGatewayId,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowMcpGateway,
                             border: const OutlineInputBorder(),
@@ -257,7 +260,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     Builder(
                       builder: (context) {
                         final registriesAsync = ref.watch(
@@ -274,11 +277,11 @@ class WorkflowGeneralTab extends ConsumerWidget {
                           key: ValueKey(
                             'model_registry_${registries.length}_$currentRegistryId',
                           ),
-                          initialValue: hasCurrent
+                          initialValue: currentRegistryId.isNotEmpty
                               ? currentRegistryId
                               : (registries.isNotEmpty
                                     ? registries.first.id
-                                    : currentRegistryId),
+                                    : null),
                           isExpanded: true,
                           decoration: InputDecoration(
                             labelText: l10n.studioWorkflowModelRegistry,
@@ -312,7 +315,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     SwitchListTile(
                       title: Text(l10n.enableContextualOverridesLabel),
                       subtitle: Text(l10n.enableContextualOverridesDescription),
@@ -324,7 +327,7 @@ class WorkflowGeneralTab extends ConsumerWidget {
                       },
                       contentPadding: EdgeInsets.zero,
                     ),
-                    const SizedBox(height: 16),
+                    AppSpacing.h16,
                     SwitchListTile(
                       title: Text(l10n.systemAuditTrailLabel),
                       subtitle: Text(l10n.systemAuditTrailDescription),
