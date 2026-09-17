@@ -148,7 +148,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         if is_reasoning_model:
             # Map thinking budget tokens to reasoning effort
-            if thinking_budget is not None and thinking_budget > 0:
+            if settings is not None and settings.environment == "development":
+                call_kwargs["reasoning_effort"] = "low"
+            elif thinking_budget is not None and thinking_budget > 0:
                 if thinking_budget <= 2048:
                     call_kwargs["reasoning_effort"] = "low"
                 elif thinking_budget <= 4096:

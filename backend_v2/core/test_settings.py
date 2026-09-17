@@ -18,6 +18,7 @@ __all__ = [
 
 TEST_SETTINGS_OVERRIDES: dict[str, Any] = {
     "environment": "development",
+    "dev_max_thinking_budget": 0,
     "matrix_sampling_limit": 1,
     "ensemble_parallelism": 1,
     "ensemble_min_consensus": 1,

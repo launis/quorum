@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from pydantic import BaseModel, Field
 
@@ -233,6 +235,32 @@ def test_anthropic_adapter_prepare_kwargs_thinking_and_temperature() -> None:
 
     assert result["temperature"] == 1.0
     assert result["thinking"] == {"type": "enabled", "budget_tokens": 4096}
+
+
+def test_anthropic_adapter_dev_environment_clamping() -> None:
+    """Verify AnthropicCacheAdapter omits thinking configuration in development environment."""
+    from backend_v2.settings import Settings
+
+    adapter = AnthropicCacheAdapter()
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+
+    config = ModelProfile(
+        provider="anthropic",
+        model_name="claude-3-7-sonnet-20250219",
+        temperature=0.3,
+        thinking_budget_tokens=4096,
+    )
+
+    # In development: thinking is omitted
+    call_kwargs_dev: dict[str, Any] = {"model": "claude-3-7-sonnet-20250219"}
+    res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=config, settings=dev_settings)
+    assert "thinking" not in res_dev
+
+    # In production: thinking enabled with 4096 tokens
+    call_kwargs_prod: dict[str, Any] = {"model": "claude-3-7-sonnet-20250219"}
+    res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=config, settings=prod_settings)
+    assert res_prod["thinking"] == {"type": "enabled", "budget_tokens": 4096}
 
 
 def test_anthropic_adapter_prepare_structured_output() -> None:

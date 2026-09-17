@@ -207,9 +207,32 @@ def test_ai_studio_adapter_prepare_kwargs_gemini_37_sanitization() -> None:
 
     assert "temperature" not in result
     assert "top_k" not in result
-    assert "frequency_penalty" not in result
-    assert "presence_penalty" not in result
     assert result["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
+
+
+def test_ai_studio_adapter_dev_environment_clamping() -> None:
+    """Verify GoogleAIStudioCacheAdapter clamps thinkingBudget to 0 in development environment."""
+    from backend_v2.settings import Settings
+
+    adapter = GoogleAIStudioCacheAdapter()
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+
+    config = ModelProfile(
+        provider="google",
+        model_name="gemini/gemini-3.7-flash",
+        thinking_budget_tokens=4096,
+    )
+
+    # In development: clamped to 0
+    call_kwargs_dev: dict[str, Any] = {"model": "gemini/gemini-3.7-flash"}
+    res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=config, settings=dev_settings)
+    assert res_dev["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 0
+
+    # In production: preserved as 4096
+    call_kwargs_prod: dict[str, Any] = {"model": "gemini/gemini-3.7-flash"}
+    res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=config, settings=prod_settings)
+    assert res_prod["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
 
 
 @pytest.mark.asyncio

@@ -383,6 +383,31 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
     assert result_profile["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
 
 
+def test_vertex_adapter_dev_environment_clamping() -> None:
+    """Verify VertexCacheAdapter clamps thinkingBudget to 0 in development environment."""
+    from backend_v2.settings import Settings
+
+    adapter = VertexCacheAdapter()
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+
+    profile_config = ModelProfile(
+        provider="google",
+        model_name="vertex_ai/gemini-3.7-flash",
+        thinking_budget_tokens=4096,
+    )
+
+    # In development: clamped to 0
+    call_kwargs_dev: dict[str, Any] = {"model": "vertex_ai/gemini-3.7-flash"}
+    res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=profile_config, settings=dev_settings)
+    assert res_dev["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 0
+
+    # In production: preserved as 4096
+    call_kwargs_prod: dict[str, Any] = {"model": "vertex_ai/gemini-3.7-flash"}
+    res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=profile_config, settings=prod_settings)
+    assert res_prod["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 4096
+
+
 def test_vertex_adapter_prepare_kwargs_cached_content_with_tools_bypasses() -> None:
     """Verify prepare_kwargs bypasses caching if tools are present in call_kwargs."""
     adapter = VertexCacheAdapter()

@@ -438,6 +438,14 @@ class Settings(BaseSettings):
         Literal["development", "production"],
         Field(description="Runtime environment: 'development' (all fast) or 'production' (all thorough/accurate)"),
     ] = "production"
+    dev_max_thinking_budget: Annotated[
+        int,
+        Field(
+            default=0,
+            ge=0,
+            description="Maximum thinking token budget applied in development environment. 0 enforces zero-budget / lowest reasoning effort.",
+        ),
+    ] = 0
     storage_bucket_name: Annotated[str | None, Field(description="Firebase Storage Bucket Name")] = None
 
     api_url: Annotated[str | None, Field(description="Public API Base URL")] = "http://localhost:8000"
@@ -701,6 +709,8 @@ class Settings(BaseSettings):
                 self.ensemble_parallelism = 1
             if "ensemble_min_consensus" not in self.model_fields_set:
                 self.ensemble_min_consensus = 1
+            if "dev_max_thinking_budget" not in self.model_fields_set:
+                self.dev_max_thinking_budget = 0
 
         return self
 

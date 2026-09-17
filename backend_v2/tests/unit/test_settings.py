@@ -106,7 +106,7 @@ def test_settings_properties_and_computed_fields() -> None:
     assert settings.schema_max_source_aliases == min(
         settings.schema_max_quotes_target, settings.schema_max_chunk_records
     )
-    assert "google" in settings.enabled_providers
+    assert "ai_studio" in settings.enabled_providers
     assert "openai" in settings.enabled_providers
     assert "anthropic" in settings.enabled_providers
     assert "mock" in settings.enabled_providers
@@ -291,3 +291,23 @@ def test_settings_binary_environment_validation() -> None:
 
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, environment="qa")
+
+
+def test_dev_max_thinking_budget_invariants() -> None:
+    """ISTQB BVA & Equivalence Partitioning for dev_max_thinking_budget setting."""
+    # 1. Default in dev mode is 0
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    assert dev_settings.dev_max_thinking_budget == 0
+
+    # 2. Test settings parity
+    from backend_v2.core.test_settings import get_test_settings
+
+    assert get_test_settings().dev_max_thinking_budget == 0
+
+    # 3. Explicit positive integer allowed
+    custom_settings = Settings(use_mock_llm=True, environment="development", dev_max_thinking_budget=1024)
+    assert custom_settings.dev_max_thinking_budget == 1024
+
+    # 4. Negative BVA test: < 0 raises ValidationError
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, dev_max_thinking_budget=-1)

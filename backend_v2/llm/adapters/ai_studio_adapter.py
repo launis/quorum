@@ -376,6 +376,13 @@ class GoogleAIStudioCacheAdapter(BaseLLMAdapter):
         if isinstance(config, ModelProfile) and config.thinking_budget_tokens is not None:
             thinking_budget = int(config.thinking_budget_tokens)
 
+        if settings is not None and settings.environment == "development":
+            thinking_budget = (
+                min(thinking_budget, settings.dev_max_thinking_budget)
+                if thinking_budget is not None
+                else settings.dev_max_thinking_budget
+            )
+
         if thinking_budget is not None:
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
                 call_kwargs["extra_body"] = {}

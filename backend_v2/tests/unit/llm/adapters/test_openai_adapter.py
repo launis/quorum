@@ -102,6 +102,32 @@ def test_openai_adapter_prepare_kwargs_reasoning_and_param_stripping() -> None:
     assert "presence_penalty" not in result
 
 
+def test_openai_adapter_dev_environment_clamping() -> None:
+    """Verify OpenAI adapter clamps reasoning_effort to 'low' in development environment."""
+    from backend_v2.settings import Settings
+
+    adapter = OpenAICacheAdapter()
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="o3-mini",
+        temperature=0.7,
+        thinking_budget_tokens=8192,
+    )
+
+    # In development: clamped to "low" regardless of 8192 tokens
+    call_kwargs_dev: dict[str, Any] = {"model": "o3-mini"}
+    res_dev = adapter.prepare_kwargs(call_kwargs_dev, config=config, settings=dev_settings)
+    assert res_dev["reasoning_effort"] == "low"
+
+    # In production: preserved as "high" for 8192 tokens
+    call_kwargs_prod: dict[str, Any] = {"model": "o3-mini"}
+    res_prod = adapter.prepare_kwargs(call_kwargs_prod, config=config, settings=prod_settings)
+    assert res_prod["reasoning_effort"] == "high"
+
+
 def test_openai_adapter_prepare_structured_output() -> None:
     """Verify prepare_structured_output converts Pydantic model into strict json_schema dictionary."""
     adapter = OpenAICacheAdapter()
