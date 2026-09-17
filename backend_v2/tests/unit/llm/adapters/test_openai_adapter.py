@@ -353,3 +353,82 @@ def test_openai_adapter_strips_unsupported_constraints_from_union_branches() -> 
     opt_b_props = defs["OptionBBlock"]["properties"]
     assert "minimum" not in opt_b_props["count"]
     assert "maximum" not in opt_b_props["count"]
+
+
+def test_gpt_5_4_mini_zero_thinking_budget() -> None:
+    """Verify openai/gpt-5.4-mini with thinking_budget=0 suppresses reasoning_effort and preserves temperature."""
+    from backend_v2.settings import Settings
+
+    adapter = OpenAICacheAdapter()
+    dev_settings = Settings(use_mock_llm=True, environment="development")
+
+    config = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-5.4-mini",
+        temperature=0.0,
+        thinking_budget_tokens=0,
+    )
+    call_kwargs: dict[str, Any] = {
+        "model": "openai/gpt-5.4-mini",
+        "temperature": 0.0,
+    }
+
+    result = adapter.prepare_kwargs(call_kwargs, config=config, settings=dev_settings)
+
+    # In development with thinking_budget=0: reasoning_effort is suppressed and temperature preserved
+    assert "reasoning_effort" not in result
+    assert result.get("temperature") == 0.0
+
+
+def test_gpt_5_4_reasoning_effort_mappings() -> None:
+    """Verify openai/gpt-5.4 maps thinking budgets to low/medium/high and strips temperature."""
+    from backend_v2.settings import Settings
+
+    adapter = OpenAICacheAdapter()
+    prod_settings = Settings(use_mock_llm=True, environment="production")
+
+    # 1. Low: 2048 tokens
+    config_low = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-5.4",
+        temperature=1.0,
+        thinking_budget_tokens=2048,
+    )
+    res_low = adapter.prepare_kwargs(
+        {"model": "openai/gpt-5.4", "temperature": 1.0},
+        config=config_low,
+        settings=prod_settings,
+    )
+    assert res_low["reasoning_effort"] == "low"
+    assert "temperature" not in res_low
+
+    # 2. Medium: 4096 tokens
+    config_med = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-5.4",
+        temperature=1.0,
+        thinking_budget_tokens=4096,
+    )
+    res_med = adapter.prepare_kwargs(
+        {"model": "openai/gpt-5.4", "temperature": 1.0},
+        config=config_med,
+        settings=prod_settings,
+    )
+    assert res_med["reasoning_effort"] == "medium"
+    assert "temperature" not in res_med
+
+    # 3. High: 8192 tokens
+    config_high = ModelProfile(
+        provider="openai",
+        model_name="openai/gpt-5.4",
+        temperature=1.0,
+        thinking_budget_tokens=8192,
+    )
+    res_high = adapter.prepare_kwargs(
+        {"model": "openai/gpt-5.4", "temperature": 1.0},
+        config=config_high,
+        settings=prod_settings,
+    )
+    assert res_high["reasoning_effort"] == "high"
+    assert "temperature" not in res_high
+

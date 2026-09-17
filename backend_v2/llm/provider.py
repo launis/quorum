@@ -873,12 +873,14 @@ class LiteLLMProvider(LLMProvider):
                 raise ServiceUnavailableError("Failed to get a response from the model provider.")
 
             actual_model = getattr(response, "model", self.model_name)
-            if (
-                isinstance(actual_model, str)
-                and actual_model
-                and self.model_name not in actual_model
-                and actual_model not in self.model_name
-            ):
+            clean_req = (
+                self.model_name.removeprefix("openai/").removeprefix("vertex_ai/").removeprefix("gemini/").lower()
+            )
+            clean_act = (
+                str(actual_model).removeprefix("openai/").removeprefix("vertex_ai/").removeprefix("gemini/").lower()
+            )
+            is_same_family = clean_req in clean_act or clean_act in clean_req
+            if isinstance(actual_model, str) and actual_model and not is_same_family:
                 logger.info(
                     "[LiteLLMProvider] LLM Fallback utilized: Primary model '%s' failed, "
                     "successfully routed to fallback model '%s'.",

@@ -344,3 +344,58 @@ async def test_mock_provider_defaults_to_none_mock_identity() -> None:
         mock_service_instance.generate_content.assert_called_once()
         call_kwargs = mock_service_instance.generate_content.call_args[1]
         assert call_kwargs["agent_identity"] is None
+
+
+@pytest.mark.asyncio
+async def test_fallback_snapshot_normalization(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that date-pinned snapshots from the same family do NOT trigger fallback logging, while real fallbacks do."""
+    import logging
+
+    import litellm
+
+    from backend_v2.llm.provider import LiteLLMProvider
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(litellm, "completion_cost", lambda *args, **kwargs: 0.002)
+    monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
+
+    provider = LiteLLMProvider(
+        model_name="openai/gpt-5.4",
+        api_key="secret",
+        settings=settings,
+        limits={"tpm": 100, "rpm": 10},
+    )
+
+    class MockChoice:
+        message = MagicMock(content="ok", tool_calls=[])
+        finish_reason = "stop"
+
+    class MockUsage:
+        prompt_tokens = 10
+        completion_tokens = 5
+        total_tokens = 15
+        prompt_tokens_details = None
+        completion_tokens_details = None
+
+    class MockResponse:
+        choices = [MockChoice()]
+        usage = MockUsage()
+        model = "gpt-5.4-2026-03-05"
+
+    provider.router.acompletion = AsyncMock(return_value=MockResponse())
+
+    with caplog.at_level(logging.INFO):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    # Date-pinned snapshot from same family: NO fallback log
+    assert "LLM Fallback utilized" not in caplog.text
+
+    # Now simulate actual fallback to completely different model family
+    caplog.clear()
+    MockResponse.model = "gpt-3.5-turbo"
+    with caplog.at_level(logging.INFO):
+        await provider.generate("hello", temperature=0.0, max_tokens=10)
+
+    assert "LLM Fallback utilized" in caplog.text
+

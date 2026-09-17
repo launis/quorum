@@ -148,7 +148,10 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
         if is_reasoning_model:
             # Map thinking budget tokens to reasoning effort
-            if settings is not None and settings.environment == "development":
+            if thinking_budget is not None and thinking_budget == 0:
+                # Explicit zero thinking budget: allow temperature, suppress reasoning_effort
+                call_kwargs.pop("reasoning_effort", None)
+            elif settings is not None and settings.environment == "development":
                 call_kwargs["reasoning_effort"] = "low"
             elif thinking_budget is not None and thinking_budget > 0:
                 if thinking_budget <= 2048:
@@ -159,8 +162,9 @@ class OpenAICacheAdapter(BaseLLMAdapter):
                     call_kwargs["reasoning_effort"] = "high"
 
             # Strip sampling parameters that OpenAI reasoning models reject (400 Bad Request)
-            for param in ("temperature", "top_p", "frequency_penalty", "presence_penalty"):
-                call_kwargs.pop(param, None)
+            if "reasoning_effort" in call_kwargs:
+                for param in ("temperature", "top_p", "frequency_penalty", "presence_penalty"):
+                    call_kwargs.pop(param, None)
 
         return call_kwargs
 
