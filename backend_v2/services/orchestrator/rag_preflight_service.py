@@ -164,10 +164,17 @@ class RAGPreflightService:
             await emit_progress("Input data sparse/empty. Preflight extraction skipped.", 100)
             return GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True).model_dump(mode="json")
 
+        provider = None
+        registry_id = None
+        if exec_record.metadata is not None:
+            provider = exec_record.metadata.provider_override
+            registry_id = exec_record.metadata.model_registry_id
+
         bound_client = await LLMClient.from_tier(
             cognitive_tier,
             self.system_repo,
-            provider=exec_record.metadata.provider_override if exec_record.metadata else None,
+            provider=provider,
+            registry_id=registry_id,
             pipeline_name="chunk_worker",
         )
         llm_executor = LLMTaskExecutor(self.compiler)

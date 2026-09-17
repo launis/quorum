@@ -149,8 +149,7 @@ abstract class Workflow with _$Workflow {
     @Default("sys_8172bda70c8641c5")
     String? mcpGatewayId,
     @JsonKey(name: 'model_registry_id')
-    @Default("sys_e26807f3bfa3454d")
-    String modelRegistryId,
+    required String modelRegistryId,
     @JsonKey(name: 'default_strictness_level')
     @Default(50)
     int defaultStrictnessLevel,

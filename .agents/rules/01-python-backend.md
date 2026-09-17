@@ -60,6 +60,10 @@
         <mandate>NEVER log raw HTTP payloads, user prompts (PII), API keys, or JWT tokens into logs or `AppException` messages. ALWAYS log only mathematical/logical reasons and Opaque System IDs (e.g., `req_abc123`). Read external API keys exclusively via `pydantic-settings` from environment variables, never hardcoded.</mandate>
     </rule_block>
 
+    <rule_block id="credential_hardcoding_ban">
+        <mandate>NEVER hardcode API keys, bearer tokens, service account keys, secrets, or provider credentials (such as Google Vertex AI, Google AI Studio, OpenAI, Anthropic) directly in source code (.py), configuration dictionaries, test mocks, seed files, or git commits. ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandate>
+    </rule_block>
+
     <rule_block id="de_generator_mandate_no_xml">
         <mandate>NEVER use XML tags (`<system_directive>`, `<role>`, `<objective>`) inside `seed_data.json` prompt fields (`ai_description`, `system_prompt`). ALWAYS write pure business logic using Markdown headings (`ROLE:`, `OBJECTIVE:`); `prompt_factory.py` automatically injects required XML wrappers.</mandate>
     </rule_block>

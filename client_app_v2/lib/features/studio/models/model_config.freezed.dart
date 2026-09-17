@@ -207,7 +207,7 @@ return $default(_that.id,_that.name,_that.slug,_that.type,_that.defaultProvider,
 @JsonSerializable()
 
 class _ModelConfig implements ModelConfig {
-  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.name = 'Default Model Registry', this.slug, this.type = 'model_registry', @JsonKey(name: 'default_provider') this.defaultProvider = 'google', @JsonKey(name: 'tier_definitions') final  Map<String, LlmModelConfig> tierDefinitions = const {}}): _tierDefinitions = tierDefinitions;
+  const _ModelConfig({@StrictOpaqueIdConverter() required this.id, this.name = 'Default Model Registry', this.slug, this.type = 'model_registry', @JsonKey(name: 'default_provider') this.defaultProvider = 'ai_studio', @JsonKey(name: 'tier_definitions') final  Map<String, LlmModelConfig> tierDefinitions = const {}}): _tierDefinitions = tierDefinitions;
   factory _ModelConfig.fromJson(Map<String, dynamic> json) => _$ModelConfigFromJson(json);
 
 @override@StrictOpaqueIdConverter() final  String id;

@@ -2,13 +2,13 @@
   "system_config": [
     {
       "id": "sys_e26807f3bfa3454d",
-      "name": "Google Gemini Sovereign Stack",
+      "name": "Google AI Studio Stack",
       "type": "model_registry",
-      "default_provider": "google",
+      "default_provider": "ai_studio",
       "tier_definitions": {
         "fast": {
           "max_tokens": 32768,
-          "model_name": "gemini/gemini-3.8-flash",
+          "model_name": "gemini/gemini-2.5-flash",
           "temperature": 0.1,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
@@ -16,13 +16,13 @@
           "rpm_limit": 200,
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
-          "provider": "google",
+          "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
           "additional_params": {}
         },
         "balanced": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
+          "model_name": "gemini/gemini-2.5-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 2048,
           "supports_grounding": false,
@@ -30,13 +30,13 @@
           "rpm_limit": 60,
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
-          "provider": "google",
+          "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
           "additional_params": {}
         },
         "deep": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
+          "model_name": "gemini/gemini-2.5-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 4096,
           "supports_grounding": true,
@@ -44,13 +44,13 @@
           "rpm_limit": 60,
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
-          "provider": "google",
+          "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
           "additional_params": {}
         },
         "reasoning": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-3.8-flash",
+          "model_name": "gemini/gemini-2.5-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 8192,
           "supports_grounding": false,
@@ -58,9 +58,81 @@
           "rpm_limit": 60,
           "parsing_mode": "STRUCTURED_JSON",
           "is_active": true,
-          "provider": "google",
+          "provider": "ai_studio",
           "caching_strategy": "prompt_caching",
           "additional_params": {}
+        }
+      }
+    },
+    {
+      "id": "sys_b1c2d3e4f5a60718",
+      "name": "Google Cloud Vertex AI Sovereign Stack",
+      "type": "model_registry",
+      "default_provider": "vertex_ai",
+      "tier_definitions": {
+        "fast": {
+          "max_tokens": 32768,
+          "model_name": "vertex_ai/gemini-2.5-flash",
+          "temperature": 0.1,
+          "thinking_budget_tokens": 0,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 200,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "vertex_ai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "europe-north1"
+          }
+        },
+        "balanced": {
+          "max_tokens": 65536,
+          "model_name": "vertex_ai/gemini-2.5-flash",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 2048,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "vertex_ai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "europe-north1"
+          }
+        },
+        "deep": {
+          "max_tokens": 65536,
+          "model_name": "vertex_ai/gemini-2.5-pro",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 4096,
+          "supports_grounding": true,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "vertex_ai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "europe-north1"
+          }
+        },
+        "reasoning": {
+          "max_tokens": 65536,
+          "model_name": "vertex_ai/gemini-2.5-pro",
+          "temperature": 1.0,
+          "thinking_budget_tokens": 8192,
+          "supports_grounding": false,
+          "tpm_limit": 4000000,
+          "rpm_limit": 60,
+          "parsing_mode": "STRUCTURED_JSON",
+          "is_active": true,
+          "provider": "vertex_ai",
+          "caching_strategy": "prompt_caching",
+          "additional_params": {
+            "vertex_location": "europe-north1"
+          }
         }
       }
     },

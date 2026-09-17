@@ -23,6 +23,7 @@ from backend_v2.llm.provider import (
     _AdaptiveWaitWithRetryAfter,
     _extract_retry_after_seconds,
 )
+from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
@@ -93,24 +94,33 @@ async def test_provider_respects_upstream_retry_after_delay(monkeypatch: pytest.
 async def test_client_strategy_scoping_in_provider_pacing(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verify that LLMClient passes the deterministic strategy name to apply_provider_pacing."""
     repo = InMemorySystemRepository()
+
+    def _make_profile() -> ModelProfile:
+        return ModelProfile(
+            model_name="openai/gpt-5.1",
+            temperature=0.0,
+            max_tokens=4096,
+            tpm_limit=1000000,
+            rpm_limit=500,
+            provider="openai",
+            caching_strategy="none",
+        )
+
     registry_config = SystemConfigModelRegistry(
-        id="sys_1234567890abcdef1234567890abcdef",
+        id="sys_1234567890abcdef",
+        name="Test Registry",
         type="model_registry",
-        models={
-            "openai_strict": ModelProfile(
-                model_name="openai/gpt-5.1",
-                temperature=0.0,
-                max_tokens=4096,
-                tpm_limit=1000000,
-                rpm_limit=500,
-                provider="openai",
-                caching_strategy="none",
-            )
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            CognitiveTier.FAST: _make_profile(),
+            CognitiveTier.BALANCED: _make_profile(),
+            CognitiveTier.DEEP: _make_profile(),
+            CognitiveTier.REASONING: _make_profile(),
         },
     )
     await repo.update_model_registry(registry_config)
 
-    client = await LLMClient.from_strategy("openai_strict", repository=repo)
+    client = await LLMClient.from_strategy("fast", repository=repo, registry_id=registry_config.id)
 
     captured_pacing_kwargs: dict[str, Any] = {}
 

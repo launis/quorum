@@ -15,7 +15,7 @@ abstract class ModelConfig with _$ModelConfig {
     String? slug,
     @Default('model_registry') String type,
     @JsonKey(name: 'default_provider')
-    @Default('google')
+    @Default('ai_studio')
     String defaultProvider,
     @JsonKey(name: 'tier_definitions')
     @Default({})

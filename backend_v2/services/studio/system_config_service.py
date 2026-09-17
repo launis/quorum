@@ -290,25 +290,25 @@ class StudioSystemConfigService:
             name="New Model Registry Draft",
             slug=new_id,
             type="model_registry",
-            default_provider=LLMProvider.GOOGLE,
+            default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
                 CognitiveTier.FAST: ModelProfile(
-                    provider="google",
+                    provider="ai_studio",
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.2,
                 ),
                 CognitiveTier.BALANCED: ModelProfile(
-                    provider="google",
+                    provider="ai_studio",
                     model_name="gemini/gemini-2.5-flash",
                     temperature=0.4,
                 ),
                 CognitiveTier.DEEP: ModelProfile(
-                    provider="google",
+                    provider="ai_studio",
                     model_name="gemini/gemini-2.5-pro",
                     temperature=0.7,
                 ),
                 CognitiveTier.REASONING: ModelProfile(
-                    provider="google",
+                    provider="ai_studio",
                     model_name="gemini/gemini-2.5-pro",
                     temperature=1.0,
                     thinking_budget_tokens=4096,

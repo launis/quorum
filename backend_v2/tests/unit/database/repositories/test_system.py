@@ -25,12 +25,12 @@ def sample_model_registry() -> SystemConfigModelRegistry:
         name="Sample Model Registry",
         slug="model_registry",
         type="model_registry",
-        default_provider=LLMProvider.GOOGLE,
+        default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={
-            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
         },
     )
 
@@ -50,27 +50,27 @@ def sample_mcp_gateways() -> SystemConfigMCPGateways:
 async def test_get_model_registry_success(sample_model_registry: SystemConfigModelRegistry) -> None:
     """Positive: retrieves model_registry document."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [sample_model_registry.model_dump(mode="json")]
+    mock_driver.get.return_value = sample_model_registry.model_dump(mode="json")
 
     repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.get_model_registry()
+    res = await repo.get_model_registry(sample_model_registry.id)
 
     assert res.id == sample_model_registry.id
-    mock_driver.query.assert_called_once()
+    mock_driver.get.assert_called_once_with("system_config", sample_model_registry.id)
 
 
 @pytest.mark.asyncio
 async def test_get_model_registry_not_found_raises() -> None:
     """Negative: raises ResourceNotFoundError if model_registry document is missing."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = []
+    mock_driver.get.return_value = None
 
     repo = SystemRepositoryImpl(driver=mock_driver)
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await repo.get_model_registry()
+        await repo.get_model_registry("sys_nonexistent")
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details["resource_id"] == "model_registry"
+    assert exc_info.value.details["resource_id"] == "sys_nonexistent"
 
 
 @pytest.mark.asyncio

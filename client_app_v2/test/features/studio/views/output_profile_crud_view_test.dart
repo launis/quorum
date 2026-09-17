@@ -357,6 +357,7 @@ void main() {
         description: const I18nText(
           translations: {'en': 'Test Flow Description'},
         ),
+        modelRegistryId: 'sys_b1c2d3e4f5a60718',
         steps: [],
       );
       final profile = createValidProfile(
@@ -514,6 +515,7 @@ void main() {
           description: const I18nText(
             translations: {'en': 'Test Flow Description'},
           ),
+          modelRegistryId: 'sys_b1c2d3e4f5a60718',
           steps: [],
         );
         final profile = createValidProfile(
@@ -567,6 +569,7 @@ void main() {
           description: const I18nText(
             translations: {'en': 'Test Flow Description'},
           ),
+          modelRegistryId: 'sys_b1c2d3e4f5a60718',
           steps: [],
         );
         final profile = createValidProfile(

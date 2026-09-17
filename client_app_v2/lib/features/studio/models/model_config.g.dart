@@ -34,7 +34,7 @@ _ModelConfig _$ModelConfigFromJson(Map<String, dynamic> json) => $checkedCreate(
       type: $checkedConvert('type', (v) => v as String? ?? 'model_registry'),
       defaultProvider: $checkedConvert(
         'default_provider',
-        (v) => v as String? ?? 'google',
+        (v) => v as String? ?? 'ai_studio',
       ),
       tierDefinitions: $checkedConvert(
         'tier_definitions',

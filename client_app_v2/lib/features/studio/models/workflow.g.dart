@@ -614,10 +614,7 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'mcp_gateway_id',
         (v) => v as String? ?? "sys_8172bda70c8641c5",
       ),
-      modelRegistryId: $checkedConvert(
-        'model_registry_id',
-        (v) => v as String? ?? "sys_e26807f3bfa3454d",
-      ),
+      modelRegistryId: $checkedConvert('model_registry_id', (v) => v as String),
       defaultStrictnessLevel: $checkedConvert(
         'default_strictness_level',
         (v) => (v as num?)?.toInt() ?? 50,

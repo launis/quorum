@@ -54,9 +54,9 @@
     </rule_block>
 
     <rule_block id="ban_heuristic_identifier_matching">
-        <banned_pattern>Identifying, filtering, resolving, or targeting workflow steps, prompt blocks, matrices, or execution artifacts in background workers or services using hardcoded identifier tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`, `_NAMES`), or substring searches (`marker in step.name.lower()`).</banned_pattern>
-        <mandatory_pattern>ALL entity targeting for execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Background workers must operate as strictly deterministic executors with zero domain guessing.</mandatory_pattern>
-        <catastrophic_reason>Heuristic substring matching and hardcoded identifier markers break silently whenever workflows are modernized or renamed, causing downstream synthesis and PDF generation to crash with missing metrics.</catastrophic_reason>
+        <banned_pattern>Identifying, filtering, resolving, or targeting workflow steps, prompt blocks, matrices, execution artifacts, LLM providers, or credentials in background workers, factories, or services using hardcoded identifier tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`, `_NAMES`), substring searches (`marker in step.name.lower()`), or string prefix checks (`model_name.startswith("vertex_ai/")`, `"gemini" in model_name`).</banned_pattern>
+        <mandatory_pattern>ALL entity targeting, provider resolution, credential binding, execution, reporting, synthesis, or metric evaluation MUST be explicitly resolved via typed DTO contracts, explicit Enum relations (`provider_type: LLMProvider`), and dynamic Studio UI configuration (e.g., `OutputProfile.variance_target_block`). Background workers and provider factories must operate as strictly deterministic executors with zero domain guessing or string prefix parsing.</mandatory_pattern>
+        <catastrophic_reason>Heuristic substring matching, startswith prefix checks, and hardcoded identifier markers break silently whenever workflows or model naming conventions are modernized or renamed, causing downstream synthesis, routing, and PDF generation to crash with missing metrics or misrouted credentials.</catastrophic_reason>
     </rule_block>
     <rule_block id="zero_backward_compatibility_planning_ban">
         <banned_pattern>Proposing, planning, or implementing "backwards compatibility", "legacy fallbacks", "defensive fallbacks", "safe defaults", or "all-inclusive fallbacks" (such as "if unmapped, fall back to passing all documents", or "if key missing, keep old behavior").</banned_pattern>
@@ -74,6 +74,12 @@
         <banned_pattern>Autonomously adding new fields, optional attributes (`field: T | None = None`), or fallback keys to existing Pydantic DTOs or domain models as a drive-by fix to silence advisory AST warnings (`⚠️ WARN`), linter notices, or typecheckers during unrelated tasks.</banned_pattern>
         <mandatory_pattern>DTO schemas are permanent SSOT contracts that directly dictate serialization payloads across boundaries. NEVER add fields to Pydantic models as a drive-by fix. If an advisory AST warning appears outside your explicit task target boundary, record it as technical debt in audit findings. If a schema mutation is legitimately required by an approved plan, you MUST enforce Full-Duplex Serialization Parity: synchronously audit and test all downstream hydration models (`model_validate`) and enforce `exclude_none=True` on trace event serializations.</mandatory_pattern>
         <catastrophic_reason>Adding uncoordinated fields to writer DTOs causes unannounced serialization changes (e.g. dumping null keys) that violently crash downstream reader DTOs enforcing Pydantic extra='forbid' validation.</catastrophic_reason>
+    </rule_block>
+
+    <rule_block id="credential_hardcoding_ban">
+        <banned_pattern>Hardcoding API keys, bearer tokens, service account keys, secrets, or provider credentials (such as Google Vertex AI, Google AI Studio, OpenAI, Anthropic) directly in source code (.py, .dart), configuration dictionaries, test mocks, seed files, or git commits.</banned_pattern>
+        <mandatory_pattern>ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandatory_pattern>
+        <catastrophic_reason>Hardcoding credentials in source code creates severe security vulnerabilities, leaks private keys into version control, breaks multi-tenant and multi-environment isolation, and violates enterprise compliance and security audits.</catastrophic_reason>
     </rule_block>
 </catastrophic_system_bans>
 

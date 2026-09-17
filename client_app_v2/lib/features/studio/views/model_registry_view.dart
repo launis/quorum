@@ -317,22 +317,47 @@ class ModelRegistryView extends HookConsumerWidget {
                 labelText: l10n.modelRegistryDefaultProviderLabel,
                 border: const OutlineInputBorder(),
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
-                  value: 'google',
-                  child: Text('Google Vertex / AI Studio'),
+                  value: 'vertex_ai',
+                  child: Text(l10n.platformVertexAi),
                 ),
-                DropdownMenuItem(value: 'openai', child: Text('OpenAI')),
-                DropdownMenuItem(value: 'anthropic', child: Text('Anthropic')),
+                DropdownMenuItem(
+                  value: 'ai_studio',
+                  child: Text(l10n.platformAiStudio),
+                ),
+                DropdownMenuItem(
+                  value: 'openai',
+                  child: Text(l10n.platformOpenAi),
+                ),
+                DropdownMenuItem(
+                  value: 'anthropic',
+                  child: Text(l10n.platformAnthropic),
+                ),
               ],
               onChanged: (val) {
                 if (val != null) {
+                  final updatedTiers = <String, LlmModelConfig>{};
+                  for (final entry in data.tierDefinitions.entries) {
+                    updatedTiers[entry.key] = entry.value.copyWith(
+                      provider: val,
+                    );
+                  }
                   ref
                       .read(modelRegistryFormProvider(id).notifier)
-                      .forceRebuild(data.copyWith(defaultProvider: val));
+                      .forceRebuild(
+                        data.copyWith(
+                          defaultProvider: val,
+                          tierDefinitions: updatedTiers,
+                        ),
+                      );
                 }
               },
             ),
+            if (data.defaultProvider == 'vertex_ai') ...[
+              AppSpacing.h12,
+              _buildLocationDropdown(ref, l10n, data),
+            ],
             AppSpacing.h12,
             TextFormField(
               initialValue: data.type,
@@ -342,6 +367,63 @@ class ModelRegistryView extends HookConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationDropdown(
+    WidgetRef ref,
+    AppLocalizations l10n,
+    ModelConfig data,
+  ) {
+    final firstTier = data.tierDefinitions.values.firstOrNull;
+    final currentLocation =
+        (firstTier?.additionalParams['vertex_location'] as String?)
+                ?.isNotEmpty ==
+            true
+        ? firstTier!.additionalParams['vertex_location'] as String
+        : 'europe-north1';
+
+    final supportedLocationsAsync = ref.watch(supportedLocationsProvider);
+    final locations = supportedLocationsAsync.value ?? [];
+
+    return DropdownButtonFormField<String>(
+      key: const ValueKey('model_registry_location_field'),
+      initialValue: currentLocation,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: l10n.locationLabel,
+        border: const OutlineInputBorder(),
+      ),
+      items: [
+        if (currentLocation.isNotEmpty &&
+            !locations.any((loc) => loc['id'] == currentLocation))
+          DropdownMenuItem(
+            value: currentLocation,
+            child: Text(currentLocation),
+          ),
+        ...locations.map((loc) {
+          final locId = loc['id'] as String? ?? 'europe-north1';
+          final locLabel = loc['label'] as String? ?? locId;
+          return DropdownMenuItem(value: locId, child: Text(locLabel));
+        }),
+      ],
+      onChanged: (val) {
+        if (val != null) {
+          final updatedTiers = <String, LlmModelConfig>{};
+          for (final entry in data.tierDefinitions.entries) {
+            final newParams = Map<String, dynamic>.from(
+              entry.value.additionalParams,
+            );
+            newParams['vertex_location'] = val;
+            updatedTiers[entry.key] = entry.value.copyWith(
+              additionalParams: newParams,
+            );
+          }
+          ref
+              .read(modelRegistryFormProvider(id).notifier)
+              .forceRebuild(data.copyWith(tierDefinitions: updatedTiers));
+        }
+      },
     );
   }
 
@@ -384,17 +466,32 @@ class ModelRegistryView extends HookConsumerWidget {
               payload.tierDefinitions[tierKey] ??
               LlmModelConfig(
                 provider: payload.defaultProvider,
-                modelName: payload.defaultProvider == 'openai'
-                    ? 'openai/gpt-4o'
-                    : 'gemini/gemini-3.8-flash',
+                modelName: '',
                 isActive: true,
               );
 
           final isReasoning = _isReasoningModel(cfg);
-          final currentPlatform =
-              cfg.additionalParams['platform'] as String? ??
-              (cfg.provider == 'google' ? 'vertex_ai' : cfg.provider);
-          final hasRegions = currentPlatform == 'vertex_ai';
+          final hasRegions = payload.defaultProvider == 'vertex_ai';
+          final activeLocation = hasRegions
+              ? ((cfg.additionalParams['vertex_location'] as String?)
+                            ?.isNotEmpty ==
+                        true
+                    ? cfg.additionalParams['vertex_location'] as String
+                    : 'europe-north1')
+              : null;
+
+          final modelsAsync = ref.watch(
+            availableModelsProvider(
+              platform: payload.defaultProvider,
+              location: activeLocation,
+            ),
+          );
+          final dynamicModels = modelsAsync.value ?? [];
+          final currentModel = cfg.modelName;
+          final modelItems = <String>{
+            if (currentModel.isNotEmpty) currentModel,
+            ...dynamicModels,
+          }.toList();
 
           return Card(
             key: ValueKey('tier_card_$tierKey'),
@@ -441,104 +538,40 @@ class ModelRegistryView extends HookConsumerWidget {
                   ),
                   const Divider(height: 24),
                   DropdownButtonFormField<String>(
-                    initialValue: cfg.provider.isNotEmpty
-                        ? cfg.provider
-                        : payload.defaultProvider,
-                    decoration: InputDecoration(
-                      labelText: l10n.platformLabel,
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'google',
-                        child: Text('Google Vertex / AI Studio'),
-                      ),
-                      DropdownMenuItem(value: 'openai', child: Text('OpenAI')),
-                      DropdownMenuItem(
-                        value: 'anthropic',
-                        child: Text('Anthropic'),
-                      ),
-                    ],
-                    onChanged: (val) {
-                      if (val != null) {
-                        updateTier(tierKey, cfg.copyWith(provider: val));
-                      }
-                    },
-                  ),
-                  AppSpacing.h12,
-                  TextFormField(
                     key: ValueKey('${tierKey}_model_name'),
-                    initialValue: cfg.modelName,
+                    initialValue: currentModel.isNotEmpty
+                        ? currentModel
+                        : modelItems.firstOrNull,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: l10n.modelNameLabel,
                       border: const OutlineInputBorder(),
                       isDense: true,
+                      suffixIcon: modelsAsync.isLoading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
+                    items: modelItems.map((model) {
+                      return DropdownMenuItem<String>(
+                        value: model,
+                        child: Text(model, overflow: TextOverflow.ellipsis),
+                      );
+                    }).toList(),
                     onChanged: (val) {
-                      updateTier(tierKey, cfg.copyWith(modelName: val.trim()));
+                      if (val != null) {
+                        updateTier(tierKey, cfg.copyWith(modelName: val));
+                      }
                     },
                   ),
-                  if (hasRegions) ...[
-                    AppSpacing.h12,
-                    DropdownButtonFormField<String>(
-                      initialValue:
-                          (cfg.additionalParams['vertex_location'] as String?)
-                                  ?.isNotEmpty ==
-                              true
-                          ? cfg.additionalParams['vertex_location'] as String
-                          : 'europe-north1',
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: l10n.locationLabel,
-                        border: const OutlineInputBorder(),
-                        isDense: true,
-                      ),
-                      items: [
-                        if ((cfg.additionalParams['vertex_location'] as String?)
-                                    ?.isNotEmpty ==
-                                true &&
-                            !(ref
-                                    .watch(supportedLocationsProvider)
-                                    .value
-                                    ?.any(
-                                      (loc) =>
-                                          loc['id'] ==
-                                          cfg.additionalParams['vertex_location'],
-                                    ) ??
-                                false))
-                          DropdownMenuItem(
-                            value:
-                                cfg.additionalParams['vertex_location']
-                                    as String,
-                            child: Text(
-                              cfg.additionalParams['vertex_location'] as String,
-                            ),
-                          ),
-                        ...(ref.watch(supportedLocationsProvider).value ?? [])
-                            .map((loc) {
-                              final locId =
-                                  loc['id'] as String? ?? 'europe-north1';
-                              final locLabel = loc['label'] as String? ?? locId;
-                              return DropdownMenuItem(
-                                value: locId,
-                                child: Text(locLabel),
-                              );
-                            }),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) {
-                          final updatedParams = Map<String, dynamic>.from(
-                            cfg.additionalParams,
-                          );
-                          updatedParams['vertex_location'] = val;
-                          updateTier(
-                            tierKey,
-                            cfg.copyWith(additionalParams: updatedParams),
-                          );
-                        }
-                      },
-                    ),
-                  ],
                   if (isReasoning) ...[
                     AppSpacing.h12,
                     Container(

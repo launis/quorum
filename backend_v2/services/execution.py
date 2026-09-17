@@ -614,7 +614,6 @@ class ExecutionService:
             organization_id=initiator.organization_id,
             created_by=initiator.id,
             metadata=initial_record.metadata,
-            provider_override=payload.provider_override,
         )
         await self.exec_repo.create_execution(create_dto)
 

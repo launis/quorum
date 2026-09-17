@@ -43,7 +43,11 @@ trigger: always_on
     </rule_block>
 
     <rule_block id="ban_heuristic_identifier_matching">
-        <mandate>NEVER identify, filter, or target workflow steps, prompt blocks, or matrix models in background workers or LLM pipeline services using hardcoded string tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`), or substring matching (`marker in step.name.lower()`). ALL step and block targeting for LLM extraction, synthesis, or metric evaluation MUST be explicitly resolved through typed DTO contracts and dynamic Studio UI parameters.</mandate>
+        <mandate>NEVER identify, filter, or target workflow steps, prompt blocks, matrix models, LLM providers, or credentials in background workers, factories, or LLM pipeline services using hardcoded string tuples, name markers, keyword lists (`_MARKERS`, `_KEYWORDS`), substring matching (`marker in step.name.lower()`), or prefix checks (`model_name.startswith("vertex_ai/")`, `"gemini" in model_name`). ALL step and block targeting, provider resolution, and credential binding MUST be explicitly resolved through typed DTO contracts (`config.provider`), explicit Enum relations (`LLMProvider`), and dynamic Studio UI parameters.</mandate>
+    </rule_block>
+
+    <rule_block id="credential_hardcoding_ban">
+        <mandate>NEVER hardcode API keys, bearer tokens, service account keys, secrets, or provider credentials (such as Google Vertex AI, Google AI Studio, OpenAI, Anthropic) directly in source code (.py), configuration dictionaries, test mocks, seed files, or git commits. ALL credentials and secret tokens MUST be resolved exclusively through environment injection: locally in development via `.env` (loaded strictly through typed Pydantic `Settings`) or dedicated local credential files (`service-account.json` via `GOOGLE_APPLICATION_CREDENTIALS`), and in cloud/production environments via Cloud Secret Managers (GCP Secret Manager, Vault, or container environment variables). Hardcoding credentials anywhere in the codebase is STRICTLY PROHIBITED.</mandate>
     </rule_block>
 </catastrophic_system_bans>
 

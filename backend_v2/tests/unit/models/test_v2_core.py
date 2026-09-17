@@ -192,6 +192,7 @@ def test_workflow_model_validation_rules() -> None:
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
         allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_e26807f3bfa3454d",
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
@@ -228,6 +229,7 @@ def test_workflow_model_validation_rules() -> None:
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             allowed_exports=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
+            model_registry_id="sys_e26807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -250,6 +252,7 @@ def test_workflow_model_validation_rules() -> None:
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
             allowed_exports=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
+            model_registry_id="sys_e26807f3bfa3454d",
             expected_inputs=[],
             steps=[
                 StepRule(
@@ -970,23 +973,23 @@ def test_system_config_model_registry_option_a_completeness() -> None:
 
 
 def test_workflow_model_registry_id_binding() -> None:
-    """Test Workflow model_registry_id default and regex pattern validation."""
+    """Test Workflow model_registry_id requirement and regex pattern validation."""
     from backend_v2.models.enums import HistoricalContextMode
     from backend_v2.models.v2_core import Workflow
 
-    # Default model_registry_id is sys_e26807f3bfa3454d
-    wf = Workflow(
-        id="wor_1234567890abcdef",
-        slug="test-workflow",
-        name="Test Workflow",
-        description="Description",
-        status="active",
-        version=1,
-        default_profile_id="prf_1234567890abcdef",
-        allowed_exports=["pdf"],
-        historical_context_mode=HistoricalContextMode.DISABLED,
-    )
-    assert wf.model_registry_id == "sys_e26807f3bfa3454d"
+    # Missing model_registry_id fails validation (required field)
+    with pytest.raises(ValidationError, match="Field required"):
+        Workflow(
+            id="wor_1234567890abcdef",
+            slug="test-workflow",
+            name="Test Workflow",
+            description="Description",
+            status="active",
+            version=1,
+            default_profile_id="prf_1234567890abcdef",
+            allowed_exports=["pdf"],
+            historical_context_mode=HistoricalContextMode.DISABLED,
+        )
 
     # Custom valid model_registry_id
     wf_custom = Workflow(

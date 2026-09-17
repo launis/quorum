@@ -138,9 +138,7 @@ class WorkflowCreateDTO(V2CoreBase):
     mcp_gateway_id: Annotated[str | None, Field(default="sys_8172bda70c8641c5", description="MCP gateway ID")] = (
         "sys_8172bda70c8641c5"
     )
-    model_registry_id: Annotated[
-        str | None, Field(default="sys_e26807f3bfa3454d", description="Model registry system config ID")
-    ] = "sys_e26807f3bfa3454d"
+    model_registry_id: Annotated[str | None, Field(default=None, description="Model registry system config ID")] = None
     default_strictness_level: Annotated[int, Field(default=50, ge=0, le=100, description="Strictness level")] = 50
     security_penalty: Annotated[
         float, Field(default=0.0, ge=0.0, le=1.0, description="Security threat penalty ratio")

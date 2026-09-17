@@ -169,7 +169,7 @@ void main() {
                   id: 'syscfg_raw',
                   slug: 'syscfg_raw_slug',
                   type: 'model_registry',
-                  defaultProvider: 'google',
+                  defaultProvider: 'vertex_ai',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
                       modelName: 'gpt-4o',
@@ -183,7 +183,7 @@ void main() {
                     ),
                     'deep': LlmModelConfig(
                       modelName: 'vertex_ai/gemini-2.5-pro',
-                      provider: 'google',
+                      provider: 'vertex_ai',
                       additionalParams: {
                         'platform': 'vertex_ai',
                         'vertex_location': r'${VERTEX_LOCATION}',
@@ -247,7 +247,7 @@ void main() {
                   id: 'syscfg_gemini38',
                   slug: 'syscfg_gemini38_slug',
                   type: 'model_registry',
-                  defaultProvider: 'google',
+                  defaultProvider: 'ai_studio',
                   tierDefinitions: {
                     'fast': LlmModelConfig(
                       modelName: 'gpt-4o',
@@ -266,7 +266,7 @@ void main() {
                     ),
                     'reasoning': LlmModelConfig(
                       modelName: 'gemini/gemini-3.8-flash',
-                      provider: 'google',
+                      provider: 'ai_studio',
                       thinkingBudgetTokens: 8192,
                       additionalParams: {'platform': 'ai_studio'},
                       isActive: true,
@@ -422,21 +422,76 @@ void main() {
       },
     );
 
-    testWidgets(
-      'in-view clone button triggers cloneConfig on controller',
-      (WidgetTester tester) async {
-        final mockController = MockModelRegistryController();
+    testWidgets('in-view clone button triggers cloneConfig on controller', (
+      WidgetTester tester,
+    ) async {
+      final mockController = MockModelRegistryController();
 
-        final router = GoRouter(
-          initialLocation: '/studio/model-registry/edit/syscfg_clone',
-          routes: [
-            GoRoute(
-              path: '/studio/model-registry/edit/:id',
-              builder: (context, state) =>
-                  ModelRegistryView(id: state.pathParameters['id']!),
+      final router = GoRouter(
+        initialLocation: '/studio/model-registry/edit/syscfg_clone',
+        routes: [
+          GoRoute(
+            path: '/studio/model-registry/edit/:id',
+            builder: (context, state) =>
+                ModelRegistryView(id: state.pathParameters['id']!),
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            supportedPlatformsProvider.overrideWith(
+              (ref) async => mockPlatforms,
             ),
+            availableModelsProvider.overrideWith((ref, _) async => []),
+            supportedLocationsProvider.overrideWith((ref) async => []),
+            modelRegistryByIdProvider('syscfg_clone').overrideWith(
+              (ref) async => const ModelConfig(
+                id: 'syscfg_clone',
+                slug: 'syscfg_clone_slug',
+                type: 'model_registry',
+                name: 'Stack to Clone',
+                defaultProvider: 'openai',
+                tierDefinitions: {},
+              ),
+            ),
+            modelRegistryControllerProvider.overrideWith(() => mockController),
           ],
-        );
+          child: MaterialApp.router(
+            routerConfig: router,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+          ),
+        ),
+      );
+
+      await tester.runAsync(() async {
+        await Future.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+
+      // Find Clone button in AppBar
+      final cloneButton = find.byTooltip('Clone Stack');
+      expect(cloneButton, findsOneWidget);
+
+      await tester.tap(cloneButton);
+      await tester.pumpAndSettle();
+
+      expect(mockController.cloneCalled, isTrue);
+      expect(mockController.clonedId, 'syscfg_clone');
+    });
+
+    testWidgets(
+      'dynamically populates model items from availableModelsProvider in tier dropdown and updates selection',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1200, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final mockModels = ['gemini-2.5-flash', 'gemini-2.5-pro'];
+        final mockController = MockModelRegistryController();
 
         await tester.pumpWidget(
           ProviderScope(
@@ -444,26 +499,40 @@ void main() {
               supportedPlatformsProvider.overrideWith(
                 (ref) async => mockPlatforms,
               ),
-              availableModelsProvider.overrideWith((ref, _) async => []),
-              supportedLocationsProvider.overrideWith((ref) async => []),
-              modelRegistryByIdProvider('syscfg_clone').overrideWith(
+              availableModelsProvider.overrideWith(
+                (ref, _) async => mockModels,
+              ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => [
+                  {
+                    'id': 'europe-north1',
+                    'label': 'Hamina, Finland (europe-north1)',
+                  },
+                ],
+              ),
+              modelRegistryByIdProvider('syscfg_dynamic').overrideWith(
                 (ref) async => const ModelConfig(
-                  id: 'syscfg_clone',
-                  slug: 'syscfg_clone_slug',
+                  id: 'syscfg_dynamic',
+                  slug: 'syscfg_dynamic_slug',
                   type: 'model_registry',
-                  name: 'Stack to Clone',
-                  defaultProvider: 'openai',
-                  tierDefinitions: {},
+                  defaultProvider: 'vertex_ai',
+                  tierDefinitions: {
+                    'fast': LlmModelConfig(
+                      modelName: 'gemini-2.5-flash',
+                      provider: 'vertex_ai',
+                      isActive: true,
+                    ),
+                  },
                 ),
               ),
               modelRegistryControllerProvider.overrideWith(
                 () => mockController,
               ),
             ],
-            child: MaterialApp.router(
-              routerConfig: router,
+            child: MaterialApp(
               localizationsDelegates: AppLocalizations.localizationsDelegates,
               supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: 'syscfg_dynamic'),
             ),
           ),
         );
@@ -473,15 +542,173 @@ void main() {
         });
         await tester.pumpAndSettle();
 
-        // Find Clone button in AppBar
-        final cloneButton = find.byTooltip('Clone Stack');
-        expect(cloneButton, findsOneWidget);
+        // 1. Verify fast model dropdown is present and has current value
+        final fastDropdown = find.byKey(const ValueKey('fast_model_name'));
+        expect(fastDropdown, findsOneWidget);
+        await tester.ensureVisible(fastDropdown);
+        await tester.pumpAndSettle();
+        expect(find.text('gemini-2.5-flash'), findsWidgets);
 
-        await tester.tap(cloneButton);
+        // 2. Open dropdown and select 'gemini-2.5-pro'
+        await tester.tap(fastDropdown);
         await tester.pumpAndSettle();
 
-        expect(mockController.cloneCalled, isTrue);
-        expect(mockController.clonedId, 'syscfg_clone');
+        final optionPro = find.text('gemini-2.5-pro').last;
+        await tester.tap(optionPro);
+        await tester.pumpAndSettle();
+
+        expect(find.text('gemini-2.5-pro'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'renders location dropdown conditionally when switching defaultProvider to vertex_ai',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1200, 1000);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+
+        final mockController = MockModelRegistryController();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              supportedPlatformsProvider.overrideWith(
+                (ref) async => mockPlatforms,
+              ),
+              availableModelsProvider.overrideWith(
+                (ref, _) async => ['gemini-2.5-flash'],
+              ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => [
+                  {
+                    'id': 'europe-north1',
+                    'label': 'Hamina, Finland (europe-north1)',
+                  },
+                ],
+              ),
+              modelRegistryByIdProvider('syscfg_switch').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_switch',
+                  slug: 'syscfg_switch_slug',
+                  type: 'model_registry',
+                  defaultProvider: 'ai_studio',
+                  tierDefinitions: {
+                    'fast': LlmModelConfig(
+                      modelName: 'gemini-2.5-flash',
+                      provider: 'ai_studio',
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => mockController,
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: 'syscfg_switch'),
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        // Initially ai_studio -> Location dropdown NOT rendered
+        expect(
+          find.byKey(const ValueKey('model_registry_location_field')),
+          findsNothing,
+        );
+
+        // Tap defaultProvider dropdown
+        final providerDropdown = find.byKey(
+          const ValueKey('model_registry_default_provider_field'),
+        );
+        expect(providerDropdown, findsOneWidget);
+        await tester.tap(providerDropdown);
+        await tester.pumpAndSettle();
+
+        // Select 'Google Vertex AI (Enterprise)'
+        final vertexOption = find.text('Google Vertex AI (Enterprise)').last;
+        await tester.tap(vertexOption);
+        await tester.pumpAndSettle();
+
+        // Location dropdown should now be rendered
+        expect(
+          find.byKey(const ValueKey('model_registry_location_field')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'negative boundary: gracefully handles availableModelsProvider error state without crashing',
+      (WidgetTester tester) async {
+        final mockController = MockModelRegistryController();
+
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              supportedPlatformsProvider.overrideWith(
+                (ref) async => mockPlatforms,
+              ),
+              availableModelsProvider.overrideWith(
+                (ref, _) => Future<List<String>>.error(
+                  Exception('Network timeout discovering models'),
+                ),
+              ),
+              supportedLocationsProvider.overrideWith(
+                (ref) async => [
+                  {
+                    'id': 'europe-north1',
+                    'label': 'Hamina, Finland (europe-north1)',
+                  },
+                ],
+              ),
+              modelRegistryByIdProvider('syscfg_err').overrideWith(
+                (ref) async => const ModelConfig(
+                  id: 'syscfg_err',
+                  slug: 'syscfg_err_slug',
+                  type: 'model_registry',
+                  defaultProvider: 'vertex_ai',
+                  tierDefinitions: {
+                    'fast': LlmModelConfig(
+                      modelName: 'custom-model-v1',
+                      provider: 'vertex_ai',
+                      isActive: true,
+                    ),
+                  },
+                ),
+              ),
+              modelRegistryControllerProvider.overrideWith(
+                () => mockController,
+              ),
+            ],
+            child: MaterialApp(
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const ModelRegistryView(id: 'syscfg_err'),
+            ),
+          ),
+        );
+
+        await tester.runAsync(() async {
+          await Future.delayed(const Duration(milliseconds: 100));
+        });
+        await tester.pumpAndSettle();
+
+        // The view still renders without throwing
+        expect(
+          find.byKey(const ValueKey('model_registry_name_field')),
+          findsOneWidget,
+        );
+        expect(find.text('custom-model-v1'), findsWidgets);
       },
     );
   });

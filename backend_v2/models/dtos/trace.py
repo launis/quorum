@@ -10,7 +10,7 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
-from backend_v2.models.enums import LaxExecutionStatus, LLMProvider
+from backend_v2.models.enums import LaxExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 
 if TYPE_CHECKING:
@@ -55,10 +55,6 @@ class ExecutionCreateDTO(BaseDTO):
     organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
     created_by: Annotated[str | None, Field(default=None, description="Creator user ID")] = None
     metadata: Annotated[ExecutionMetadata | None, Field(default=None, description="Typed metadata SSOT")] = None
-    provider_override: Annotated[
-        LLMProvider | None,
-        Field(default=None, description="Optional execution-level LLM provider override"),
-    ] = None
 
 
 class ExecutionUpdateDTO(BaseDTO):

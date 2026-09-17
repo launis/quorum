@@ -28,38 +28,30 @@ __all__ = ["SystemRepositoryImpl"]
 class SystemRepositoryImpl(BaseRepository):
     """Repository implementation for System config, MCP config, and Model registries."""
 
-    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
-        """Retrieves a system model registry configuration.
+    async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
+        """Retrieves a system model registry configuration by its explicit ID.
 
         Args:
-            registry_id: Optional specific model registry ID. If omitted, retrieves the default/first registry.
+            registry_id: Authoritative model registry ID.
 
         Returns:
             The validated SystemConfigModelRegistry domain model.
 
         Raises:
-            ResourceNotFoundError: If the model registry configuration document is missing.
+            ResourceNotFoundError: If the model registry configuration document is missing or invalid.
         """
-        if registry_id:
-            res = await self.driver.get("system_config", registry_id)
-            if not res or "type" not in res or res["type"] != "model_registry":
-                logger.error(
-                    "[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: Model registry '%s' is missing.",
-                    registry_id,
-                )
-                raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
-            return SystemConfigModelRegistry.model_validate(res, strict=False)
+        if not registry_id:
+            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: registry_id is required.")
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="")
 
-        res_list = await self.driver.query("system_config", [Filter("type", "==", "model_registry")])
-        if not res_list:
-            logger.error("[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: 'model_registry' document is missing.")
-            raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
-        models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]
-        sorted_models = sorted(
-            models,
-            key=lambda m: (m.id != "sys_e26807f3bfa3454d", m.name, m.id),
-        )
-        return sorted_models[0]
+        res = await self.driver.get("system_config", registry_id)
+        if not res or "type" not in res or res["type"] != "model_registry":
+            logger.error(
+                "[SystemRepository] SYSTEM_CONFIG_NOT_FOUND: Model registry '%s' is missing.",
+                registry_id,
+            )
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
+        return SystemConfigModelRegistry.model_validate(res, strict=False)
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
         """Retrieves all model registry configurations ordered deterministically.
@@ -71,7 +63,7 @@ class SystemRepositoryImpl(BaseRepository):
         models = [SystemConfigModelRegistry.model_validate(r, strict=False) for r in res_list]
         return sorted(
             models,
-            key=lambda m: (m.id != "sys_e26807f3bfa3454d", m.name, m.id),
+            key=lambda m: (m.name, m.id),
         )
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
@@ -83,7 +75,7 @@ class SystemRepositoryImpl(BaseRepository):
         Returns:
             True if updated successfully.
         """
-        doc_id = registry_data.id or SystemConfigID.MODEL_REGISTRY.value
+        doc_id = registry_data.id
         payload = registry_data.model_dump(mode="json", exclude_unset=True)
         payload["id"] = doc_id
         payload["type"] = "model_registry"

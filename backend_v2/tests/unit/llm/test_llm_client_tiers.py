@@ -37,6 +37,7 @@ def mock_repository() -> AsyncMock:
     """Mock repository returning the authoritative model_registry from seed_data.json."""
     repo = AsyncMock()
     repo.get_model_registry = AsyncMock(side_effect=lambda reg_id=None: _get_seed_model_registry(reg_id))
+    repo.get_all_model_registries = AsyncMock(side_effect=lambda: [_get_seed_model_registry()])
     return repo
 
 
@@ -54,27 +55,48 @@ class TestLLMClientCognitiveTiers:
         ],
     )
     @patch("backend_v2.llm.provider.LLMFactory.create_provider")
-    async def test_resolve_google_tiers(
+    async def test_resolve_ai_studio_tiers(
         self,
         mock_create_provider: MagicMock,
         mock_repository: AsyncMock,
         tier: CognitiveTier,
         expected_temp: float,
     ) -> None:
-        """Verify all 4 cognitive tiers resolve correctly for default Google provider."""
+        """Verify all 4 cognitive tiers resolve correctly for default AI Studio provider."""
         mock_create_provider.return_value = AsyncMock()
 
         client = await LLMClient.from_tier(
             tier=tier,
             repository=mock_repository,
-            provider=LLMProvider.GOOGLE,
+            provider=LLMProvider.AI_STUDIO,
         )
 
         assert client is not None
-        assert client.provider_name == "google"
+        assert client.provider_name == "ai_studio"
         assert "flash" in client.model_name.lower()
         assert client.config is not None
         assert client.config.temperature == expected_temp
+
+    @pytest.mark.asyncio
+    @patch("backend_v2.llm.provider.LLMFactory.create_provider")
+    async def test_resolve_vertex_tiers(
+        self,
+        mock_create_provider: MagicMock,
+        mock_repository: AsyncMock,
+    ) -> None:
+        """Verify cognitive tier resolves correctly for sovereign Vertex AI provider."""
+        mock_create_provider.return_value = AsyncMock()
+
+        client = await LLMClient.from_tier(
+            tier=CognitiveTier.FAST,
+            repository=mock_repository,
+            provider=LLMProvider.VERTEX_AI,
+            registry_id="sys_b1c2d3e4f5a60718",
+        )
+
+        assert client is not None
+        assert client.provider_name == "vertex_ai"
+        assert "gemini" in client.model_name.lower()
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -119,7 +141,7 @@ class TestLLMClientCognitiveTiers:
         mock_create_provider: MagicMock,
         mock_repository: AsyncMock,
     ) -> None:
-        """Verify LLMClient.from_tier defaults to registry.default_provider (google)."""
+        """Verify LLMClient.from_tier defaults to registry.default_provider (ai_studio)."""
         mock_create_provider.return_value = AsyncMock()
 
         client = await LLMClient.from_tier(
@@ -128,7 +150,7 @@ class TestLLMClientCognitiveTiers:
             provider=None,
         )
 
-        assert client.provider_name == "google"
+        assert client.provider_name == "ai_studio"
 
     @pytest.mark.asyncio
     @patch("backend_v2.llm.provider.LLMFactory.create_provider")
@@ -149,13 +171,13 @@ class TestLLMClientCognitiveTiers:
         assert client_openai.provider_name == "openai"
         assert "gpt-5" in client_openai.model_name.lower()
 
-        # Query Google stack by registry_id
+        # Query Google AI Studio stack by registry_id
         client_google = await LLMClient.from_tier(
             tier=CognitiveTier.FAST,
             repository=mock_repository,
             registry_id="sys_e26807f3bfa3454d",
         )
-        assert client_google.provider_name == "google"
+        assert client_google.provider_name == "ai_studio"
         assert "flash" in client_google.model_name.lower()
 
     @pytest.mark.asyncio
@@ -173,7 +195,7 @@ class TestLLMClientCognitiveTiers:
             repository=mock_repository,
         )
 
-        assert client.provider_name == "google"
+        assert client.provider_name == "ai_studio"
 
     @pytest.mark.asyncio
     async def test_from_strategy_invalid_tier_raises_configuration_error(
@@ -215,6 +237,7 @@ class TestLLMClientTiersFailFast:
         """ISTQB Negative Test: repository returning invalid registry triggers ConfigurationError."""
         bad_repo = AsyncMock()
         bad_repo.get_model_registry = AsyncMock(return_value={"type": "model_registry"})
+        bad_repo.get_all_model_registries = AsyncMock(return_value=[{"type": "model_registry"}])
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(tier=CognitiveTier.FAST, repository=bad_repo)
@@ -232,12 +255,13 @@ class TestLLMClientTiersFailFast:
 
         corrupted_repo = AsyncMock()
         corrupted_repo.get_model_registry = AsyncMock(return_value=corrupted_registry)
+        corrupted_repo.get_all_model_registries = AsyncMock(return_value=[corrupted_registry])
 
         with pytest.raises(ConfigurationError, match="Failed to parse strict SystemConfigModelRegistry"):
             await LLMClient.from_tier(
                 tier=CognitiveTier.REASONING,
                 repository=corrupted_repo,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.AI_STUDIO,
             )
 
     @pytest.mark.asyncio
@@ -262,10 +286,11 @@ class TestLLMClientTiersFailFast:
 
         corrupted_repo = AsyncMock()
         corrupted_repo.get_model_registry = AsyncMock(return_value=corrupted_registry)
+        corrupted_repo.get_all_model_registries = AsyncMock(return_value=[corrupted_registry])
 
         with pytest.raises(ConfigurationError, match=expected_match):
             await LLMClient.from_tier(
                 tier=CognitiveTier.FAST,
                 repository=corrupted_repo,
-                provider=LLMProvider.GOOGLE,
+                provider=LLMProvider.AI_STUDIO,
             )

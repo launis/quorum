@@ -14,6 +14,7 @@ from fastapi import status
 
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.enums import LLMProvider
 from backend_v2.models.v2_core import ChatHistoryDTO
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.chat_parser import ChatParserService
@@ -52,6 +53,8 @@ class MultiChannelIngressService:
         system_repo: ISystemRepository,
         key: str = "chat_log",
         filename: str | None = None,
+        registry_id: str | None = None,
+        provider: LLMProvider | None = None,
     ) -> ChatHistoryDTO:
         """Dispatch and parse raw conversational input into ChatHistoryDTO.
 
@@ -60,6 +63,8 @@ class MultiChannelIngressService:
             system_repo: System repository for LLM model garden resolution.
             key: Input key identifier (e.g. 'chat_log').
             filename: Optional source filename to assist in routing or logging.
+            registry_id: Optional authoritative model registry ID.
+            provider: Optional explicit provider override.
 
         Returns:
             ChatHistoryDTO containing validated dialogue turns.
@@ -140,7 +145,12 @@ class MultiChannelIngressService:
         # 5. LLM Anchor-Based Slicing Fallback
         logger.info("[MultiChannelIngress] Delegating to LLM Anchor Slicing for %s", key)
         try:
-            return await self._parser.parse_pasted_chat(cleaned_text, system_repo=system_repo)
+            return await self._parser.parse_pasted_chat(
+                cleaned_text,
+                system_repo=system_repo,
+                registry_id=registry_id,
+                provider=provider,
+            )
         except AppException:
             raise
         except Exception as e:

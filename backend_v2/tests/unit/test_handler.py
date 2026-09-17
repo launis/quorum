@@ -4,6 +4,8 @@ import pytest
 
 from backend_v2.exceptions import AppException, ServiceUnavailableError
 from backend_v2.llm.handler import LLMHandler
+from backend_v2.models.enums import CognitiveTier, LLMProvider
+from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 
 @pytest.fixture
@@ -16,36 +18,46 @@ def handler(mock_repo: AsyncMock) -> LLMHandler:
     return LLMHandler(mock_repo)
 
 
+def _make_sample_registry(is_active: bool = True) -> SystemConfigModelRegistry:
+    return SystemConfigModelRegistry(
+        id="sys_0123456789abcdef0123456789abcdef",
+        slug="global_model_registry",
+        name="Global Model Registry",
+        type="model_registry",
+        default_provider=LLMProvider.OPENAI,
+        tier_definitions={
+            CognitiveTier.FAST: ModelProfile(
+                provider="openai",
+                model_name="gpt-4o",
+                temperature=0.5,
+                max_tokens=1000,
+                tpm_limit=10000,
+                rpm_limit=1000,
+                supports_grounding=False,
+                is_active=is_active,
+                additional_params={},
+            ),
+            CognitiveTier.BALANCED: ModelProfile(provider="openai", model_name="gpt-4o"),
+            CognitiveTier.DEEP: ModelProfile(provider="openai", model_name="gpt-4o"),
+            CognitiveTier.REASONING: ModelProfile(provider="openai", model_name="gpt-4o"),
+        },
+    )
+
+
 @pytest.mark.asyncio
 async def test_get_active_model_registry_success(handler: LLMHandler, mock_repo: AsyncMock) -> None:
+    sample_reg = _make_sample_registry()
     mock_repo.get_system_config.return_value = {
-        "id": "sc_0123456789abcdef0123456789abcdef",
-        "slug": "global_model_registry",
-        "type": "model_registry",
-        "config": {
-            "id": "sc_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "type": "model_registry",
-            "models": {
-                "fast": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": True,
-                    "additional_params": {},
-                }
-            },
-        },
+        "id": sample_reg.id,
+        "slug": sample_reg.slug,
+        "type": sample_reg.type,
+        "config": sample_reg.model_dump(mode="json"),
     }
 
     registry = await handler.get_active_model_registry()
-    assert "models" in registry
-    assert "fast" in registry["models"]
-    assert registry["models"]["fast"]["provider"] == "openai"
+    assert "tier_definitions" in registry
+    assert "fast" in registry["tier_definitions"]
+    assert registry["tier_definitions"]["fast"]["provider"] == "openai"
 
 
 @pytest.mark.asyncio
@@ -65,28 +77,12 @@ async def test_create_provider_for_strategy_success(
     mock_settings.vertex_location = "us-central1"
     mock_get_settings.return_value = mock_settings
 
+    sample_reg = _make_sample_registry()
     mock_repo.get_system_config.return_value = {
-        "id": "sc_0123456789abcdef0123456789abcdef",
-        "slug": "global_model_registry",
-        "type": "model_registry",
-        "config": {
-            "id": "sc_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "type": "model_registry",
-            "models": {
-                "fast": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": True,
-                    "additional_params": {},
-                }
-            },
-        },
+        "id": sample_reg.id,
+        "slug": sample_reg.slug,
+        "type": sample_reg.type,
+        "config": sample_reg.model_dump(mode="json"),
     }
 
     mock_provider_instance = MagicMock()
@@ -106,7 +102,8 @@ def test_fetch_all_available_models_mock(mock_get_settings: MagicMock, handler: 
     mock_get_settings.return_value = mock_settings
 
     models = handler.fetch_all_available_models(["mock"])
-    assert "google" in models
+    assert "vertex_ai" in models
+    assert "ai_studio" in models
     assert "openai" in models
 
 
@@ -119,28 +116,12 @@ async def test_create_provider_disabled_model(
     mock_settings.vertex_location = "us-central1"
     mock_get_settings.return_value = mock_settings
 
+    sample_reg = _make_sample_registry(is_active=False)
     mock_repo.get_system_config.return_value = {
-        "id": "sc_0123456789abcdef0123456789abcdef",
-        "slug": "global_model_registry",
-        "type": "model_registry",
-        "config": {
-            "id": "sc_0123456789abcdef0123456789abcdef",
-            "slug": "global_model_registry",
-            "type": "model_registry",
-            "models": {
-                "fast": {
-                    "provider": "openai",
-                    "model_name": "gpt-4o",
-                    "temperature": 0.5,
-                    "max_tokens": 1000,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                    "supports_grounding": False,
-                    "is_active": False,  # disabled
-                    "additional_params": {},
-                }
-            },
-        },
+        "id": sample_reg.id,
+        "slug": sample_reg.slug,
+        "type": sample_reg.type,
+        "config": sample_reg.model_dump(mode="json"),
     }
 
     with pytest.raises(ServiceUnavailableError):

@@ -440,6 +440,7 @@ async def get_studio_workflow_service(
     workflow_repo: WorkflowRepoDep,
     output_profile_repo: OutputProfileRepoDep,
     prompt_block_repo: PromptBlockRepoDep,
+    system_repo: SystemRepoDep,
 ) -> StudioWorkflowService:
     """Instantiate the studio workflow service.
 
@@ -447,6 +448,7 @@ async def get_studio_workflow_service(
         workflow_repo: Workflow repository.
         output_profile_repo: Output profile repository.
         prompt_block_repo: Prompt block repository.
+        system_repo: System repository.
 
     Returns:
         Studio workflow service instance.
@@ -455,6 +457,7 @@ async def get_studio_workflow_service(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
 
 

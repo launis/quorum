@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 from backend_v2.database.interfaces import (
     IOutputProfileRepository,
     IPromptBlockRepository,
+    ISystemRepository,
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
@@ -49,6 +50,7 @@ class StudioWorkflowService:
         workflow_repo: IWorkflowRepository,
         output_profile_repo: IOutputProfileRepository,
         prompt_block_repo: IPromptBlockRepository,
+        system_repo: ISystemRepository,
     ):
         """Initialize the service.
 
@@ -56,10 +58,12 @@ class StudioWorkflowService:
             workflow_repo: Workflow repository instance.
             output_profile_repo: Output profile repository instance.
             prompt_block_repo: Prompt block repository instance.
+            system_repo: System repository instance.
         """
         self.workflow_repo = workflow_repo
         self.output_profile_repo = output_profile_repo
         self.prompt_block_repo = prompt_block_repo
+        self.system_repo = system_repo
 
     async def _stitch_profiles_to_workflows(self, workflows: list[Workflow]) -> list[WorkflowResponseDTO]:
         """Stitch profiles to workflows.
@@ -286,8 +290,20 @@ class StudioWorkflowService:
 
         Returns:
             The created workflow draft.
+
+        Raises:
+            ResourceNotFoundError: If no active model registries exist in database.
         """
         new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
+        active_registries = await self.system_repo.get_all_model_registries()
+        if not active_registries:
+            logger.error(
+                "[WorkflowService] %s: No active model registry found in database.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+            )
+            raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
+        chosen_registry_id = active_registries[0].id
+
         draft = Workflow(
             id=new_id,
             slug=new_id,
@@ -303,7 +319,7 @@ class StudioWorkflowService:
             allowed_exports=["pdf"],
             historical_context_mode=HistoricalContextMode.DISABLED,
             default_profile_id="prf_0000000000000000",
-            model_registry_id="sys_e26807f3bfa3454d",
+            model_registry_id=chosen_registry_id,
         )
         return await self.save_workflow(initiator, new_id, draft)
 

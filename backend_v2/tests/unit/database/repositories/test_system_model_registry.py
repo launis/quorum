@@ -13,7 +13,9 @@ from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 
-def _build_test_registry(registry_id: str, name: str, provider: LLMProvider = LLMProvider.GOOGLE) -> SystemConfigModelRegistry:
+def _build_test_registry(
+    registry_id: str, name: str, provider: LLMProvider = LLMProvider.AI_STUDIO
+) -> SystemConfigModelRegistry:
     """Helper to build a valid Option A SystemConfigModelRegistry."""
     return SystemConfigModelRegistry(
         id=registry_id,
@@ -36,7 +38,7 @@ def _build_test_registry(registry_id: str, name: str, provider: LLMProvider = LL
 @pytest.fixture
 def gemini_stack() -> SystemConfigModelRegistry:
     """Fixture for Gemini stack registry."""
-    return _build_test_registry("sys_e26807f3bfa3454d", "Google Gemini Sovereign Stack", LLMProvider.GOOGLE)
+    return _build_test_registry("sys_e26807f3bfa3454d", "Google AI Studio Stack", LLMProvider.AI_STUDIO)
 
 
 @pytest.fixture
@@ -55,8 +57,8 @@ async def test_get_model_registry_by_id_success(gemini_stack: SystemConfigModelR
     res = await repo.get_model_registry(registry_id=gemini_stack.id)
 
     assert res.id == gemini_stack.id
-    assert res.name == "Google Gemini Sovereign Stack"
-    assert res.default_provider == LLMProvider.GOOGLE
+    assert res.name == "Google AI Studio Stack"
+    assert res.default_provider == LLMProvider.AI_STUDIO
     mock_driver.get.assert_called_once_with("system_config", gemini_stack.id)
 
 
@@ -94,21 +96,13 @@ async def test_get_model_registry_by_id_wrong_type_raises() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_model_registry_default_returns_primary(
-    gemini_stack: SystemConfigModelRegistry, openai_stack: SystemConfigModelRegistry
-) -> None:
-    """Positive: when registry_id is None, deterministically returns primary registry."""
+async def test_get_model_registry_empty_id_raises_resource_not_found() -> None:
+    """Negative: passing empty registry_id triggers fail-fast ResourceNotFoundError."""
     mock_driver = AsyncMock()
-    mock_driver.query.return_value = [
-        openai_stack.model_dump(mode="json"),
-        gemini_stack.model_dump(mode="json"),
-    ]
-
     repo = SystemRepositoryImpl(driver=mock_driver)
-    res = await repo.get_model_registry(registry_id=None)
 
-    assert res.id == gemini_stack.id
-    mock_driver.query.assert_called_once_with("system_config", [Filter("type", "==", "model_registry")])
+    with pytest.raises(ResourceNotFoundError):
+        await repo.get_model_registry(registry_id="")
 
 
 @pytest.mark.asyncio

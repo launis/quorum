@@ -427,6 +427,7 @@ class ProviderExtraParamsDTO(BaseModel):
     top_k: int | None = None
     max_output_tokens: int | None = None
     reasoning_effort: str | None = None
+    vertex_location: str | None = None
 
 
 class ModelProfile(V2CoreBase):
@@ -470,7 +471,7 @@ class SystemConfigModelRegistry(V2CoreBase):
     name: str = Field(default="Default Model Registry", description="Human-readable title")
     type: Literal["model_registry"] = Field(default="model_registry", description="Type of config")
     slug: str | None = Field(default=None, description="System Config identifier slug")
-    default_provider: LaxLLMProvider = Field(default=LLMProvider.GOOGLE, description="Default LLM provider")
+    default_provider: LaxLLMProvider = Field(default=LLMProvider.AI_STUDIO, description="Default LLM provider")
     tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)] = Field(
         description="Direct mapping of the four canonical cognitive tiers to physical profiles"
     )
@@ -1396,7 +1397,6 @@ class Workflow(V2CoreBase):
         description="The system_config ID of the MCP gateways configuration attached to this workflow.",
     )
     model_registry_id: str = Field(
-        default="sys_e26807f3bfa3454d",
         pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$",
         description="System config ID of the attached model registry",
     )

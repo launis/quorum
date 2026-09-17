@@ -843,28 +843,23 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
             id="sys_1234567890abcdef1234567890abcdef",
             name="Default Model Registry",
             type="model_registry",
-            default_provider=LLMProvider.GOOGLE,
+            default_provider=LLMProvider.AI_STUDIO,
             tier_definitions={
-                CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-                CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-                CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-                CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+                CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+                CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+                CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+                CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
             },
         )
         self._model_registries: dict[str, SystemConfigModelRegistry] = {default_reg.id: default_reg}
         self._mcp_gateways = SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[])
         self._system_settings: SystemSettingsDTO | None = None
 
-    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
+    async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         self._check_fault("get_model_registry")
-        if registry_id is not None:
-            if registry_id not in self._model_registries:
-                raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)
-            reg = self._model_registries[registry_id]
-        else:
-            if not self._model_registries:
-                raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
-            reg = next(iter(self._model_registries.values()))
+        if not registry_id or registry_id not in self._model_registries:
+            raise ResourceNotFoundError(resource_type="system_config", resource_id=registry_id or "")
+        reg = self._model_registries[registry_id]
         return SystemConfigModelRegistry.model_validate(reg.model_dump(mode="python"), strict=False)
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:

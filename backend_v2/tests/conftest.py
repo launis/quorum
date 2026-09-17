@@ -184,12 +184,14 @@ def studio_workflow_service(
     fake_workflow_repo: InMemoryWorkflowRepository,
     fake_output_profile_repo: InMemoryOutputProfileRepository,
     fake_prompt_block_repo: InMemoryPromptBlockRepository,
+    fake_system_repo: InMemorySystemRepository,
 ) -> StudioWorkflowService:
     """Provides a StudioWorkflowService instance wired to typed in-memory repository fakes."""
     return StudioWorkflowService(
         workflow_repo=fake_workflow_repo,
         output_profile_repo=fake_output_profile_repo,
         prompt_block_repo=fake_prompt_block_repo,
+        system_repo=fake_system_repo,
     )
 
 

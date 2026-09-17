@@ -582,6 +582,7 @@ async def test_from_tier_query_failure_raises_configuration_error() -> None:
     """Verify repository query error bubbles up as ConfigurationError."""
     mock_repo = MagicMock()
     mock_repo.get_model_registry = AsyncMock(side_effect=ConnectionError("Database offline"))
+    mock_repo.get_all_model_registries = AsyncMock(side_effect=ConnectionError("Database offline"))
     with pytest.raises(ConfigurationError, match="missing or query failed"):
         await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
 

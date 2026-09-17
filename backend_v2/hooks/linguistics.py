@@ -23,7 +23,6 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsResultDTO,
     PerformativePatternDTO,
 )
-from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.execution.dynamic_linguistics import (
     DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT,
@@ -113,11 +112,22 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     if settings.enable_dynamic_performative_extraction and text_to_scan.strip():
         try:
-            llm_client = await LLMClient.from_tier(
-                CognitiveTier.FAST,
-                repository=deps.system_repo,
-                pipeline_name="linguistics_hook",
-            )
+            registry_id = state.metadata.model_registry_id
+            provider = state.metadata.provider_override
+            if registry_id is not None or provider is not None:
+                llm_client = await LLMClient.from_strategy(
+                    "fast",
+                    repository=deps.system_repo,
+                    pipeline_name="linguistics_hook",
+                    registry_id=registry_id,
+                    provider=provider,
+                )
+            else:
+                llm_client = await LLMClient.from_strategy(
+                    "fast",
+                    repository=deps.system_repo,
+                    pipeline_name="linguistics_hook",
+                )
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
             encapsulated_text = TemplateProcessor.encapsulate_payload(text_to_scan)
             user_content = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(

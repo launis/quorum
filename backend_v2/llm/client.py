@@ -14,6 +14,7 @@ from backend_v2.exceptions import (
     ConfigurationError,
     ErrorCodes,
     LLMSchemaValidationError,
+    ResourceNotFoundError,
     ServiceUnavailableError,
 )
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
@@ -133,7 +134,13 @@ class LLMClient:
 
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
-            raw_registry = await repository.get_model_registry(registry_id)
+            if registry_id:
+                raw_registry = await repository.get_model_registry(registry_id)
+            else:
+                all_registries = await repository.get_all_model_registries()
+                if not all_registries:
+                    raise ResourceNotFoundError(resource_type="system_config", resource_id="model_registry")
+                raw_registry = all_registries[0]
         except Exception as e:
             raise ConfigurationError(f"System config 'model_registry' missing or query failed: {e}") from e
 
@@ -232,6 +239,7 @@ class LLMClient:
         execution_profile: ExecutionProfile | None = None,
         pipeline_name: str | None = None,
         registry_id: str | None = None,
+        provider: LLMProvider | None = None,
     ) -> Self:
         """Compatibility bridge: parses strategy_name as CognitiveTier and delegates to from_tier."""
         try:
@@ -247,6 +255,7 @@ class LLMClient:
             execution_profile=execution_profile,
             pipeline_name=pipeline_name,
             registry_id=registry_id,
+            provider=provider,
         )
 
     async def run_structured_task[T: BaseModel](

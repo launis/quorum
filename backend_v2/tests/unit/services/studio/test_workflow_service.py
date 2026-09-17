@@ -29,6 +29,7 @@ from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
+    InMemorySystemRepository,
     InMemoryWorkflowRepository,
 )
 
@@ -51,13 +52,24 @@ def mock_prompt_block_repo() -> AsyncMock:
 
 
 @pytest.fixture
+def mock_system_repo() -> AsyncMock:
+    repo = AsyncMock()
+    repo.get_all_model_registries = AsyncMock(return_value=[])
+    return repo
+
+
+@pytest.fixture
 def workflow_service(
-    mock_workflow_repo: AsyncMock, mock_output_profile_repo: AsyncMock, mock_prompt_block_repo: AsyncMock
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+    mock_prompt_block_repo: AsyncMock,
+    mock_system_repo: AsyncMock,
 ) -> StudioWorkflowService:
     return StudioWorkflowService(
         workflow_repo=mock_workflow_repo,
         output_profile_repo=mock_output_profile_repo,
         prompt_block_repo=mock_prompt_block_repo,
+        system_repo=mock_system_repo,
     )
 
 
@@ -106,6 +118,7 @@ def _valid_workflow(
     slug: str = "wf_slug",
     org_id: str = "org_123",
     status: str = "active",
+    model_registry_id: str = "sys_e26807f3bfa3454d",
 ) -> Workflow:
     return Workflow(
         id=wf_id,
@@ -120,6 +133,7 @@ def _valid_workflow(
         default_profile_id="prf_0123456789abcdef",
         allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id=model_registry_id,
     )
 
 
@@ -284,13 +298,17 @@ async def test_create_workflow_draft_root(root_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     res = await service.create_workflow_draft(root_token)
     assert res.status == "draft"
+    first_reg = (await sys_repo.get_all_model_registries())[0]
+    assert res.model_registry_id == first_reg.id
     assert res.organization_id == SystemOrganizations.ROOT_SYSTEM
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
@@ -309,13 +327,17 @@ async def test_create_workflow_draft_admin(admin_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     res = await service.create_workflow_draft(admin_token)
     assert res.status == "draft"
+    first_reg = (await sys_repo.get_all_model_registries())[0]
+    assert res.model_registry_id == first_reg.id
     assert res.organization_id == "org_123"
     assert bool(re.match(OPAQUE_STRIPE_ID_REGEX, res.id))
     assert res.id.startswith(f"{EntityPrefix.WORKFLOW}_")
@@ -343,10 +365,12 @@ async def test_clone_workflow_success(admin_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     orig_wf = _valid_workflow(wf_id=generate_opaque_id(EntityPrefix.WORKFLOW), org_id="org_123")
     orig_profile = OutputProfile(
@@ -511,10 +535,12 @@ async def test_create_step_draft_success(admin_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     proto_block = ProtocolPromptBlock(
         id="blk_0123456789abcdef",
@@ -553,10 +579,12 @@ async def test_clone_step_success(admin_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     step_data = _valid_step(generate_opaque_id(EntityPrefix.STEP), org_id="org_123")
     await wf_repo.save_step(step_data)
@@ -640,10 +668,12 @@ async def test_clone_workflow_with_steps_and_profiles(admin_token: TokenData) ->
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
     step_rule_1 = StepRule(
         id=generate_opaque_id(EntityPrefix.STEP_REFERENCE),
@@ -772,10 +802,12 @@ async def test_in_memory_save_workflow_roundtrip(admin_token: TokenData) -> None
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
 
     initial_wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
@@ -805,10 +837,12 @@ async def test_in_memory_save_step_roundtrip(admin_token: TokenData) -> None:
     wf_repo = InMemoryWorkflowRepository()
     op_repo = InMemoryOutputProfileRepository()
     pb_repo = InMemoryPromptBlockRepository()
+    sys_repo = InMemorySystemRepository()
     service = StudioWorkflowService(
         workflow_repo=wf_repo,
         output_profile_repo=op_repo,
         prompt_block_repo=pb_repo,
+        system_repo=sys_repo,
     )
 
     initial_step = _valid_step("sp_aabbccddeeff0011", org_id="org_123")

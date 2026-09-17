@@ -12,6 +12,7 @@ void main() {
       slug: 'test-workflow',
       name: const I18nText(translations: {'en': 'Test Workflow'}),
       description: const I18nText(translations: {'en': 'Test Description'}),
+      modelRegistryId: 'sys_b1c2d3e4f5a60718',
       defaultStrictnessLevel: defaultStrictnessLevel,
     );
   }

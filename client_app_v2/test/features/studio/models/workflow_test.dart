@@ -272,6 +272,7 @@ void main() {
         slug: 'test_wf',
         name: I18nText(translations: {'en': 'Test Workflow'}),
         description: I18nText(translations: {'en': 'Test Description'}),
+        modelRegistryId: 'sys_b1c2d3e4f5a60718',
       );
 
       final json = workflow.toJson();

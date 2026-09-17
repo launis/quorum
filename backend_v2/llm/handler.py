@@ -31,6 +31,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_HTTP_TIMEOUT = 10
+MAX_DISCOVERY_CONCURRENCY = 20
+
 
 class LLMHandler:
     """Handles higher-level LLM operations including model discovery via APIs.
@@ -70,13 +73,14 @@ class LLMHandler:
             repo (Any): The IWorkflowRepository instance (injected via dependencies.py).
         """
         self.repo = repo
-        self._cached_google_models: list[str] = []
         self._cached_openai_models: list[str] = []
 
     def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if settings.use_mock_llm or "mock" in providers:
-            if "google" in providers or "vertex_ai" in providers or "ai_studio" in providers or "mock" in providers:
-                models["google"] = ["mock-model-a", "mock-model-b"]
+            if "vertex_ai" in providers or "mock" in providers:
+                models["vertex_ai"] = ["vertex_ai/mock-model-a", "vertex_ai/mock-model-b"]
+            if "ai_studio" in providers or "mock" in providers:
+                models["ai_studio"] = ["gemini/mock-gemini-a"]
             if "openai" in providers or "mock" in providers:
                 models["openai"] = ["mock-gpt-a"]
             if "anthropic" in providers or "mock" in providers:
@@ -177,12 +181,12 @@ class LLMHandler:
                         headers = {"Authorization": f"Bearer {credentials.token}"}
 
                         url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
-                        resp = requests.get(url, headers=headers, timeout=5)
+                        resp = requests.get(url, headers=headers, timeout=DEFAULT_HTTP_TIMEOUT)
                         if resp.status_code == 200:
                             return f"vertex_ai/{clean_id}"
 
                         url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
-                        resp_project = requests.get(url_project, headers=headers, timeout=5)
+                        resp_project = requests.get(url_project, headers=headers, timeout=DEFAULT_HTTP_TIMEOUT)
                         if resp_project.status_code == 200:
                             return f"vertex_ai/{clean_id}"
 
@@ -195,7 +199,7 @@ class LLMHandler:
             )
             final_list: list[str] = []
 
-            with ThreadPoolExecutor(max_workers=20) as executor:
+            with ThreadPoolExecutor(max_workers=MAX_DISCOVERY_CONCURRENCY) as executor:
                 future_to_model = {executor.submit(check_model, m): m for m in candidates}
                 for future in as_completed(future_to_model):
                     result = future.result()
@@ -241,11 +245,6 @@ class LLMHandler:
         """
         api_key = settings.google_api_key
         if not api_key:
-            import os
-
-            api_key = os.environ.get("GEMINI_API_KEY")
-
-        if not api_key:
             raise ConfigurationError(
                 message="GOOGLE_API_KEY / GEMINI_API_KEY not found in environment or settings for AI Studio discovery.",
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
@@ -264,12 +263,10 @@ class LLMHandler:
                     discovered.append(f"gemini/{clean_name}")
 
             if not discovered:
-                # Fallback to standard known Gemini models in LiteLLM catalog
-                import litellm
-
-                for lm in litellm.model_list:
-                    if isinstance(lm, str) and lm.startswith("gemini/") and "gemini" in lm.lower():
-                        discovered.append(lm)
+                raise ServiceUnavailableError(
+                    message="Google AI Studio returned 0 available models for the configured API key.",
+                    details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value},
+                )
 
             return sorted(list(set(discovered)))
 
@@ -287,15 +284,6 @@ class LLMHandler:
                 message=f"Google AI Studio Model Discovery Failed: {e}",
                 details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
             ) from e
-
-    def _fetch_google_models(
-        self, providers: list[str], target_location: str, settings: Any, models: dict[str, list[str] | str]
-    ) -> None:
-        if "google" in providers or "vertex_ai" in providers:
-            final_list = self._fetch_vertex_models(target_location, settings)
-            models["google"] = final_list
-            models["vertex_ai"] = final_list
-            self._cached_google_models = final_list
 
     def _fetch_openai_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         """Discovers and validates models available via OpenAI API key.
@@ -315,11 +303,6 @@ class LLMHandler:
                     models["openai"] = self._cached_openai_models
                 else:
                     api_key = settings.openai_api_key
-                    if not api_key:
-                        import os
-
-                        api_key = os.environ.get("OPENAI_API_KEY")
-
                     if api_key:
                         openai_client = openai.OpenAI(api_key=api_key)
                         discovered: list[str] = []
@@ -422,10 +405,6 @@ class LLMHandler:
 
         # Resolve Target Location from Settings or argument
         target_location = location if location else settings.vertex_location
-        if not target_location:
-            raise ValueError(
-                "CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Model Discovery."
-            )
 
         # Handle Mock Mode
         if settings.use_mock_llm or (providers and "mock" in providers):
@@ -439,15 +418,18 @@ class LLMHandler:
         norm_platform = platform.lower() if platform else LLMPlatformType.ALL.value
 
         if norm_platform == LLMPlatformType.VERTEX_AI.value:
+            if not target_location:
+                raise ValueError(
+                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
+                    "Cannot proceed with Vertex AI Model Discovery."
+                )
             vertex_models = self._fetch_vertex_models(target_location, settings)
             models[LLMPlatformType.VERTEX_AI.value] = vertex_models
-            models[LLMProviderName.GOOGLE.value] = vertex_models
             return models
 
         if norm_platform == LLMPlatformType.AI_STUDIO.value:
             ai_studio_models = self._fetch_ai_studio_models(settings)
             models[LLMPlatformType.AI_STUDIO.value] = ai_studio_models
-            models[LLMProviderName.GOOGLE.value] = ai_studio_models
             return models
 
         if norm_platform == LLMPlatformType.OPENAI.value:
@@ -465,8 +447,18 @@ class LLMHandler:
 
         active_providers = [p.lower() for p in active_providers]
 
-        if LLMProviderName.GOOGLE.value in active_providers or LLMProviderName.VERTEX_AI.value in active_providers:
-            self._fetch_google_models(active_providers, target_location, settings, models)
+        if LLMPlatformType.VERTEX_AI.value in active_providers or "vertex" in active_providers:
+            if not target_location:
+                raise ValueError(
+                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
+                    "Cannot proceed with Vertex AI Model Discovery."
+                )
+            vertex_models = self._fetch_vertex_models(target_location, settings)
+            models[LLMPlatformType.VERTEX_AI.value] = vertex_models
+
+        if LLMPlatformType.AI_STUDIO.value in active_providers or "ai_studio" in active_providers:
+            ai_studio_models = self._fetch_ai_studio_models(settings)
+            models[LLMPlatformType.AI_STUDIO.value] = ai_studio_models
 
         if LLMProviderName.OPENAI.value in active_providers:
             self._fetch_openai_models(active_providers, settings, models)
@@ -521,7 +513,11 @@ class LLMHandler:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
         """
         registry = await self.get_active_model_registry()
-        models = registry["models"] if "models" in registry else {}
+        models = (
+            registry["tier_definitions"]
+            if "tier_definitions" in registry
+            else (registry["models"] if "models" in registry else {})
+        )
         config = models[mode] if mode in models else None
 
         if config:
@@ -541,7 +537,11 @@ class LLMHandler:
             AppException: If configuration is invalid, missing, or model is not available.
         """
         registry = await self.get_active_model_registry()
-        models = registry["models"] if "models" in registry else {}
+        models = (
+            registry["tier_definitions"]
+            if "tier_definitions" in registry
+            else (registry["models"] if "models" in registry else {})
+        )
 
         if mode not in models:
             raise ConfigurationError(
@@ -570,27 +570,35 @@ class LLMHandler:
             else settings.vertex_location
         )
 
-        # STRICT VALIDATION: Ensure the configured model name actually exists in the target region.
+        # STRICT VALIDATION: Ensure the configured model name actually exists in the target region/platform.
         # This prevents "blind" 404s from the provider.
-        if provider in (LLMProviderName.GOOGLE.value, LLMProviderName.VERTEX_AI.value) and mode != "mock":
+        if provider in (LLMProviderName.VERTEX_AI.value, LLMProviderName.AI_STUDIO.value) and mode != "mock":
+            target_platform = (
+                LLMPlatformType.VERTEX_AI.value
+                if provider == LLMProviderName.VERTEX_AI.value
+                else LLMPlatformType.AI_STUDIO.value
+            )
             available_models_map = await asyncio.to_thread(
                 self.fetch_all_available_models,
                 providers=[provider],
-                location=target_location,
-                platform=LLMPlatformType.VERTEX_AI.value
-                if model_name.startswith("vertex_ai/")
-                else (LLMPlatformType.AI_STUDIO.value if model_name.startswith("gemini/") else None),
+                location=target_location if target_platform == LLMPlatformType.VERTEX_AI.value else None,
+                platform=target_platform,
             )
 
-            valid_models = available_models_map[provider] if provider in available_models_map else []
+            valid_models = available_models_map[target_platform] if target_platform in available_models_map else []
             if not isinstance(valid_models, list):
                 valid_models = [valid_models] if valid_models else []
 
             if model_name not in valid_models:
                 if "mock" not in model_name.lower():
+                    location_detail = (
+                        f" in target region ('{target_location}')"
+                        if target_platform == LLMPlatformType.VERTEX_AI.value
+                        else ""
+                    )
                     error_msg = (
                         f"STRICT VALIDATION ERROR: Model '{model_name}' configured for strategy '{mode}' "
-                        f"is NOT available in the target region ('{target_location}'). "
+                        f"is NOT available for platform '{target_platform}'{location_detail}. "
                         f"Available models: {valid_models[:5]}..."
                     )
                     logger.error("[LLMHandler] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, error_msg)

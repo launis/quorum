@@ -23,6 +23,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
+from backend_v2.models.enums import LLMProvider
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput, Workflow
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.ingress import MultiChannelIngressService
@@ -130,9 +131,11 @@ async def _process_chat_history(
     resolved_text: str,
     key: str,
     system_repo: ISystemRepository,
-    enable_semantic_smoothing: bool,
-    enable_eager_anonymization: bool,
-    language: str,
+    enable_semantic_smoothing: bool = False,
+    enable_eager_anonymization: bool = False,
+    language: str = "en",
+    registry_id: str | None = None,
+    provider: LLMProvider | None = None,
 ) -> ProcessedChatDTO:
     """Parses raw unstructured chat logs into ProcessedChatDTO via ChatNormalizerService.
 
@@ -143,6 +146,8 @@ async def _process_chat_history(
         enable_semantic_smoothing: Whether to run SpaCy smoothing on human user turns.
         enable_eager_anonymization: Whether to run Presidio masking on human user turns.
         language: The language of the text.
+        registry_id: Optional authoritative model registry ID.
+        provider: Optional explicit provider override.
 
     Returns:
         ProcessedChatDTO: An immutable DTO containing 'combined', 'user_only', and 'ai_only'.
@@ -152,6 +157,8 @@ async def _process_chat_history(
         raw_input=resolved_text,
         system_repo=system_repo,
         key=key,
+        registry_id=registry_id,
+        provider=provider,
     )
 
     # Scoped NLP execution strictly on human user turns (user_only) after role segregation
@@ -331,6 +338,11 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
         # 3. V2 ChatParser LLM Hook (if designated as chat history)
         is_chat = expected_input.is_chat_history
         if is_chat and resolved_text:
+            registry_id = (
+                state.metadata.model_registry_id
+                if state.metadata and state.metadata.model_registry_id
+                else workflow.model_registry_id
+            )
             chat_result = await _process_chat_history(
                 resolved_text=resolved_text,
                 key=key,
@@ -338,6 +350,8 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 enable_semantic_smoothing=workflow.enable_semantic_smoothing,
                 enable_eager_anonymization=workflow.enable_eager_anonymization,
                 language=language,
+                registry_id=registry_id,
+                provider=state.metadata.provider_override,
             )
             # Phase 3, Step 3.1: Consume ProcessedChatDTO via static dot notation
             resolved_text = chat_result.combined

@@ -58,7 +58,10 @@ def _create_sample_prompt_block(block_id: str = "blk_1234567890abcdef") -> Perso
     )
 
 
-def _create_sample_workflow(workflow_id: str = "wf_1234567890abcdef") -> Workflow:
+def _create_sample_workflow(
+    workflow_id: str = "wf_1234567890abcdef",
+    model_registry_id: str = "sys_e26807f3bfa3454d",
+) -> Workflow:
     """Helper to create a valid minimal Workflow domain model."""
     return Workflow(
         id=workflow_id,
@@ -72,6 +75,7 @@ def _create_sample_workflow(workflow_id: str = "wf_1234567890abcdef") -> Workflo
         allowed_exports=["pdf", "docx"],
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
+        model_registry_id=model_registry_id,
     )
 
 
@@ -84,7 +88,6 @@ def _create_sample_step(step_id: str = "stp_1234567890abcdef") -> Step:
         description=I18nText(translations={"en": "Step Description", "fi": "Askeleen kuvaus"}),
         type=StepType.LOGIC,
         hook="sample_hook",
-        model_strategy="standard_strategy",
     )
 
 
@@ -116,11 +119,13 @@ async def test_save_workflow_updates_inplace_and_preserves_preflight(tmp_path: P
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
@@ -187,11 +192,13 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
 
     root_token = TokenData(id="usr_root", role=UserRole.ROOT)
@@ -201,10 +208,10 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
     # Seed initial step
     await driver.upsert("steps", initial_step.model_dump(mode="json"), target_id)
 
-    # Update step with new model strategy
+    # Update step with new hook and name
     updated_data = initial_step.model_copy(
         update={
-            "model_strategy": "pro_fast_2026",
+            "hook": "updated_hook",
             "name": I18nText(translations={"en": "Updated Step", "fi": "Päivitetty askel"}),
         }
     )
@@ -213,12 +220,14 @@ async def test_save_step_updates_inplace_and_preserves_preflight(tmp_path: Path)
 
     # 1. Assert returned step has updated value
     assert res.id == target_id
-    assert res.model_strategy == "pro_fast_2026"
+    assert res.hook == "updated_hook"
+    assert res.name.translations["en"] == "Updated Step"
 
     # 2. Assert persisted record in repo has the updated value
     persisted = await workflow_repo.get_step_by_id(target_id)
     assert persisted is not None
-    assert persisted.model_strategy == "pro_fast_2026"
+    assert persisted.hook == "updated_hook"
+    assert persisted.name.translations["en"] == "Updated Step"
 
     # 3. Assert no orphan records in TinyDB
     with TinyDB(db_path, encoding="utf-8") as raw_db:
@@ -238,11 +247,13 @@ async def test_save_output_profile_updates_inplace_and_preserves_preflight(tmp_p
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
     output_profile_service = StudioOutputProfileService(
         output_profile_repo=output_profile_repo,
@@ -295,11 +306,13 @@ async def test_create_output_profile_draft_binds_to_valid_workflow(tmp_path: Pat
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
     output_profile_service = StudioOutputProfileService(
         output_profile_repo=output_profile_repo,
@@ -326,11 +339,13 @@ async def test_save_output_profile_invalid_target_component_fails_fast(tmp_path:
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
     output_profile_service = StudioOutputProfileService(
         output_profile_repo=output_profile_repo,
@@ -372,11 +387,13 @@ async def test_save_output_profile_nonexistent_workflow_raises_resource_not_foun
     workflow_repo = WorkflowRepositoryImpl(driver=driver)
     output_profile_repo = OutputProfileRepositoryImpl(driver=driver)
     prompt_block_repo = PromptBlockRepositoryImpl(driver=driver)
+    system_repo = SystemRepositoryImpl(driver=driver)
 
     workflow_service = StudioWorkflowService(
         workflow_repo=workflow_repo,
         output_profile_repo=output_profile_repo,
         prompt_block_repo=prompt_block_repo,
+        system_repo=system_repo,
     )
     output_profile_service = StudioOutputProfileService(
         output_profile_repo=output_profile_repo,

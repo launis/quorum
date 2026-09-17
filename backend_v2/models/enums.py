@@ -149,7 +149,8 @@ class CognitiveTier(StrEnum):
 class LLMProvider(StrEnum):
     """Supported foundational model providers."""
 
-    GOOGLE = "google"
+    VERTEX_AI = "vertex_ai"
+    AI_STUDIO = "ai_studio"
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     AZURE_OPENAI = "azure_openai"
@@ -199,7 +200,6 @@ class EntityPrefix(StrEnum):
 class SystemConfigID(StrEnum):
     """Hardcoded Opaque Stripe IDs for global System Configurations."""
 
-    MODEL_REGISTRY = "sys_e26807f3bfa3454d"
     MCP_GATEWAYS = "sys_8172bda70c8641c5"
 
 
@@ -478,7 +478,6 @@ class LLMProviderName(StrEnum):
     """Supported LLM provider names."""
 
     VERTEX_AI = "vertex_ai"
-    GOOGLE = "google"
     AI_STUDIO = "ai_studio"
     ANTHROPIC = "anthropic"
     OPENAI = "openai"
@@ -495,6 +494,12 @@ class GCPVertexLocation(StrEnum):
     EUROPE_WEST3 = "europe-west3"  # Frankfurt, Germany
     US_CENTRAL1 = "us-central1"  # Council Bluffs, Iowa
     US_EAST4 = "us-east4"  # Ashburn, Virginia
+
+
+class GCPVertexDiscoveryRegion(StrEnum):
+    """Authoritative Google Cloud Vertex AI central hub for Model Garden discovery."""
+
+    US_CENTRAL1 = "us-central1"  # Council Bluffs, Iowa (Google AI Model Garden primary launch region)
 
 
 class LLMPlatformType(StrEnum):

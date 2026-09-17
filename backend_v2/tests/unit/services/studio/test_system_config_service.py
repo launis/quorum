@@ -48,12 +48,12 @@ def _make_dummy_registry(
         id=reg_id,
         name=name,
         type="model_registry",
-        default_provider=LLMProvider.GOOGLE,
+        default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={
-            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
         },
     )
 
@@ -150,7 +150,7 @@ async def test_get_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Return hydrated SystemConfigModelRegistry from repository."""
-    current = await system_repo.get_model_registry()
+    current = (await system_repo.get_all_model_registries())[0]
     res = await service.get_system_config(root_token, current.id)
     assert res.id == current.id
     assert res.type == "model_registry"
@@ -227,7 +227,7 @@ async def test_clone_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Clone existing model registry and verify stateful roundtrip."""
-    original = await system_repo.get_model_registry()
+    original = (await system_repo.get_all_model_registries())[0]
     res = await service.clone_system_config(root_token, original.id)
     assert res.id != original.id
     assert res.id.startswith("sys_")
@@ -278,7 +278,7 @@ async def test_delete_system_config_success(
     service: StudioSystemConfigService, root_token: TokenData, system_repo: InMemorySystemRepository
 ) -> None:
     """Assert ROOT user deletes system config successfully."""
-    reg = await system_repo.get_model_registry()
+    reg = (await system_repo.get_all_model_registries())[0]
     await service.delete_system_config(root_token, reg.id)
 
 
@@ -314,7 +314,7 @@ async def test_list_system_configs(
     """List configs for ROOT and assert empty list for non-ROOT."""
     configs = await service.list_system_configs(root_token)
     assert len(configs) == 1
-    current = await system_repo.get_model_registry()
+    current = (await system_repo.get_all_model_registries())[0]
     assert configs[0].id == current.id
 
     configs_member = await service.list_system_configs(member_token)

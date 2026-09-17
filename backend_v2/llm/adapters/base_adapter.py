@@ -92,8 +92,10 @@ async def apply_provider_pacing(
     else:
         settings = get_settings()
         match provider_name:
-            case LLMProviderName.VERTEX_AI.value | LLMProviderName.GOOGLE.value:
+            case LLMProviderName.VERTEX_AI.value:
                 delay = settings.pacing_delay_vertex_seconds
+            case LLMProviderName.AI_STUDIO.value:
+                delay = settings.pacing_delay_ai_studio_seconds
             case LLMProviderName.OPENAI.value:
                 delay = settings.pacing_delay_openai_seconds
             case LLMProviderName.MOCK.value:

@@ -12,7 +12,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
     ExecutionCreate,
     ExecutionRecord,
@@ -20,7 +20,6 @@ from backend_v2.models.v2_core import (
     ExecutionStep,
     ExecutionStepState,
     FrozenContext,
-    HumanOverrideDTO,
     HumanOverrideRequest,
     I18nText,
     JobAcceptedDTO,
@@ -33,25 +32,8 @@ from backend_v2.models.v2_core import (
 )
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
-    SduiMatrixTableBlock,
-    SduiMetrics1DBlock,
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
 )
 from backend_v2.services.execution import ExecutionService, create_execution_record
-from backend_v2.tests.unit.services.test_execution_render_bug import (
-    test_render_execution_json_default_profile_resolves,
-)
-from backend_v2.tests.unit.services.test_execution_resumability import (
-    test_check_resumability_allows_sys_render_virtual_steps,
-    test_check_resumability_allows_zero_outputs,
-    test_check_resumability_failed_only,
-    test_check_resumability_quota_exceeded,
-    test_check_resumability_structural_mismatch,
-    test_check_resumability_successful_resumption,
-    test_check_resumability_workflow_version_drift,
-    test_resume_execution_firewall_denied,
-)
 
 
 def test_create_execution_record_factory_success() -> None:
@@ -666,7 +648,6 @@ async def test_override_atom_success() -> None:
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import (
-        ExecutionStepState,
         HumanOverrideRequest,
         ScorecardAtomDTO,
     )
@@ -777,7 +758,7 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.execution_trace = []
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
+    from backend_v2.models.v2_core import ScorecardAtomDTO
 
     mock_record.step_states = {
         "step_1": ExecutionStepState(
@@ -851,7 +832,6 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     mock_record.execution_trace_storage_path = None
 
     # Simulate a trace event with a list of dicts in exact_quotes
-    from backend_v2.models.state import TraceEvent
 
     mock_record.execution_trace = [
         TraceEvent(
@@ -1429,6 +1409,7 @@ async def test_start_execution_with_steps_and_blocks() -> None:
         organization_id="org_0123456789abcdef",
         is_public=False,
         default_profile_id="prf_0123456789abcdef",
+        model_registry_id="sys_e26807f3bfa3454d",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -1526,6 +1507,7 @@ async def test_get_frozen_context_bytes() -> None:
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis() -> None:
     from unittest.mock import patch
+
     from backend_v2.exceptions import ResourceNotFoundError
 
     repo_mock = AsyncMock()
@@ -1564,6 +1546,7 @@ async def test_clear_profile_synthesis() -> None:
         "status": "active",
         "version": 1,
         "default_profile_id": "prof_1",
+        "model_registry_id": "sys_e26807f3bfa3454d",
         "allowed_exports": ["pdf", "raw_json"],
         "historical_context_mode": "DISABLED",
         "steps": [],
@@ -1617,6 +1600,7 @@ async def test_render_execution_formats() -> None:
         "status": "active",
         "version": 1,
         "default_profile_id": "prof_1",
+        "model_registry_id": "sys_e26807f3bfa3454d",
         "allowed_exports": ["pdf", "raw_json"],
         "historical_context_mode": "DISABLED",
         "steps": [],
@@ -1643,7 +1627,9 @@ async def test_render_execution_formats() -> None:
         mock_trans.build_report_dto.return_value = mock_dto
         mock_transformer_cls.return_value = mock_trans
 
-        with patch("backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")):
+        with patch(
+            "backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
+        ):
             data, mime, fname = await service.render_execution(
                 initiator=initiator,
                 execution_id="exe_1",
@@ -1729,9 +1715,8 @@ async def test_resume_execution_success() -> None:
 @pytest.mark.asyncio
 async def test_get_execution_export_bytes_different_block_types() -> None:
     from unittest.mock import patch
+
     from backend_v2.models.domain.prompt_blocks import (
-        PersonaPromptBlock,
-        ProtocolPromptBlock,
         SystemRulePromptBlock,
     )
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
@@ -1739,7 +1724,6 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
     from backend_v2.models.v2_core import (
-        ExecutionStepState,
         ReportDataDTO,
     )
 
@@ -1769,9 +1753,7 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
         chart_display_label="N/A",
         visual_intent=VisualIntent.NEUTRAL,
         semantic_reasoning="Reasoning test text",
-        exact_quotes=[
-            QuoteEvidenceDTO(quote="test quote", verified_source_ids=["src_1"], unverified_aliases=[])
-        ],
+        exact_quotes=[QuoteEvidenceDTO(quote="test quote", verified_source_ids=["src_1"], unverified_aliases=[])],
         internal_logic_en=ReasoningStepDTO(
             step_1_identify_premise="Premise text",
             step_2_scan_source="",
@@ -1848,6 +1830,7 @@ async def test_get_workflow_ui_schema_success_and_not_found() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_0123456789abcdef",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -1936,6 +1919,7 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_default",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -1966,8 +1950,15 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
     assert "Unsupported format" in exc_info.value.message
 
     # HTML format
-    with patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
-         patch("backend_v2.services.execution.PdfReportService.generate_execution_html", return_value="<html><body>Report</body></html>"):
+    with (
+        patch(
+            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+        ),
+        patch(
+            "backend_v2.services.execution.PdfReportService.generate_execution_html",
+            return_value="<html><body>Report</body></html>",
+        ),
+    ):
         content_bytes, mime, filename = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
@@ -2001,6 +1992,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_default",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -2050,9 +2042,13 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
     rec.pdf_report_path = None
     storage_mock.read.side_effect = None
     storage_mock.save.return_value = "executions/exe_0123456789abcdef/report.pdf"
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock), \
-         patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
-         patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"):
+    with (
+        patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock),
+        patch(
+            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+        ),
+        patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+    ):
         pdf_bytes, mime, filename = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
@@ -2067,9 +2063,13 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
 
     # Fresh PDF save error
     storage_mock.save.side_effect = Exception("Storage disk save error")
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock), \
-         patch("backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)), \
-         patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"):
+    with (
+        patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock),
+        patch(
+            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+        ),
+        patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+    ):
         with pytest.raises(AppException) as exc_info:
             await service.render_execution(
                 initiator=initiator,
@@ -2102,6 +2102,7 @@ async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_ondemand",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -2220,6 +2221,7 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_default",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -2357,6 +2359,7 @@ async def test_start_execution_additional_error_branches() -> None:
         version=1,
         status="ACTIVE",
         default_profile_id="prf_0123456789abcdef",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[
@@ -2511,7 +2514,9 @@ async def test_resume_execution_quota_exceeded() -> None:
     with patch.object(service, "check_resumability", return_value=True):
         service.usage_service.check_quota.return_value = False
         with pytest.raises(AppException) as exc_info:
-            await service.resume_execution(initiator=initiator, execution_id="exe_0123456789abcdef", arq_pool=AsyncMock())
+            await service.resume_execution(
+                initiator=initiator, execution_id="exe_0123456789abcdef", arq_pool=AsyncMock()
+            )
         assert exc_info.value.status_code == 402
         assert "exceeded its execution quota" in exc_info.value.message
 
@@ -2568,7 +2573,13 @@ async def test_get_execution_export_bytes_report_fetch_error() -> None:
     rec = Mock(spec=ExecutionRecord)
     rec.status = ExecutionStatus.PASSED
     rec.target_locale = "en"
-    rec.step_states = {"stp_1": Mock(scorecard_atoms={"atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)})}
+    rec.step_states = {
+        "stp_1": Mock(
+            scorecard_atoms={
+                "atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)
+            }
+        )
+    }
     rec.model_copy.return_value = rec
     service.exec_repo.get_execution.return_value = rec
 
@@ -2596,12 +2607,20 @@ async def test_get_execution_export_bytes_excel_writer_error() -> None:
     rec = Mock(spec=ExecutionRecord)
     rec.status = ExecutionStatus.PASSED
     rec.target_locale = "en"
-    rec.step_states = {"stp_1": Mock(scorecard_atoms={"atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)})}
+    rec.step_states = {
+        "stp_1": Mock(
+            scorecard_atoms={
+                "atm_1": Mock(status="PASS", exact_quotes=[], semantic_reasoning="", internal_logic_en=None)
+            }
+        )
+    }
     rec.model_copy.return_value = rec
     service.exec_repo.get_execution.return_value = rec
 
-    with patch.object(service, "get_report_dto", return_value=None), \
-         patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk full")):
+    with (
+        patch.object(service, "get_report_dto", return_value=None),
+        patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk full")),
+    ):
         with pytest.raises(AppException) as exc_info:
             await service.get_execution_export_bytes(initiator, "exe_0123456789abcdef")
         assert exc_info.value.status_code == 500
@@ -2634,6 +2653,7 @@ async def test_check_resumability_string_version() -> None:
         version=2,
         status="ACTIVE",
         default_profile_id="prf_default",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[StepRule(id="stp_0123456789abcdef", task_blueprint="stp_0123456789abcdef")],
@@ -2666,6 +2686,7 @@ async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() 
         version=1,
         status="ACTIVE",
         default_profile_id="prf_ondemand",
+        model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         allowed_exports=["pdf"],
@@ -2696,5 +2717,46 @@ async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() 
     assert isinstance(res, JobAcceptedDTO)
     assert res.message == "Rendering PDF..."
 
+
+@pytest.mark.asyncio
+async def test_start_execution_circuit_breaker_quota_exceeded() -> None:
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    initiator = TokenData(id="usr_owner", role=UserRole.MEMBER, organization_id="org_quota_tripped")
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_default",
+        model_registry_id="sys_e26807f3bfa3454d",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        organization_id="org_quota_tripped",
+        allowed_exports=["pdf"],
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    service.usage_service.check_quota.return_value = False
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="fi",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator, payload, AsyncMock())
+    assert exc_info.value.status_code == 402
+    assert "has exceeded its execution quota" in exc_info.value.message
 
 

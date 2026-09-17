@@ -222,16 +222,16 @@ async def test_all_passthrough_methods() -> None:
         id="sys_1234567890abcdef",
         name="Default Model Registry",
         type="model_registry",
-        default_provider=LLMProvider.GOOGLE,
+        default_provider=LLMProvider.AI_STUDIO,
         tier_definitions={
-            CognitiveTier.FAST: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.BALANCED: ModelProfile(provider="google", model_name="gemini-2.5-flash"),
-            CognitiveTier.DEEP: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
-            CognitiveTier.REASONING: ModelProfile(provider="google", model_name="gemini-2.5-pro"),
+            CognitiveTier.FAST: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.BALANCED: ModelProfile(provider="ai_studio", model_name="gemini-2.5-flash"),
+            CognitiveTier.DEEP: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
+            CognitiveTier.REASONING: ModelProfile(provider="ai_studio", model_name="gemini-2.5-pro"),
         },
     )
-    mock_driver.query.return_value = [dummy_reg.model_dump(mode="json")]
-    await repo.get_model_registry()
+    mock_driver.get.return_value = dummy_reg.model_dump(mode="json")
+    await repo.get_model_registry("sys_1234567890abcdef")
     await repo.update_model_registry(dummy_reg)
     mock_driver.query.return_value = [{"id": "sys_1234567890abcdef", "type": "mcp_gateways", "tools": []}]
     await repo.get_mcp_gateways()

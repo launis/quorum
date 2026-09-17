@@ -129,6 +129,7 @@ async def test_process_inputs_missing_language() -> None:
     mock_workflow_repo.get_workflow_by_id = AsyncMock(
         return_value={
             "id": "wor_1234567890123456",
+            "model_registry_id": "sys_b1c2d3e4f5a60718",
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "slug": "test_workflow",
@@ -156,6 +157,7 @@ class MockInputProcessingRepo:
             return None
         return {
             "id": "wor_1234567890abcdef12",
+            "model_registry_id": "sys_b1c2d3e4f5a60718",
             "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "slug": "test-wf",
@@ -308,6 +310,7 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
             return {
                 "id": "wor_1234567890abcdef12",
+                "model_registry_id": "sys_b1c2d3e4f5a60718",
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "chat-wf",
@@ -373,6 +376,7 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
             return {
                 "id": "wor_1234567890abcdef12",
+                "model_registry_id": "sys_b1c2d3e4f5a60718",
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "smooth-wf",
@@ -483,6 +487,7 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
         async def get_workflow_by_id(self, workflow_id: str) -> dict[str, Any] | None:
             return {
                 "id": "wor_1234567890abcdef12",
+                "model_registry_id": "sys_b1c2d3e4f5a60718",
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "desc-wf",

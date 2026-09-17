@@ -36,6 +36,7 @@ from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
 from backend_v2.llm.mock import MockLLMService
 from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.enums import LLMProviderName
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig, LLMResponse, ProviderMetadataDTO
 from backend_v2.services.usage_service import UsageService
 from backend_v2.settings import get_settings
@@ -1552,46 +1553,50 @@ class LLMFactory:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        if provider_type == "anthropic" and not model_name.startswith("anthropic/"):
-            model_name = f"anthropic/{model_name}"
-
         resolved_api_key = api_key
-        if not resolved_api_key:
-            if provider_type == "litellm":
-                if "gemini" in model_name:
-                    resolved_api_key = settings.google_api_key
-                elif "gpt" in model_name or "o1" in model_name:
-                    resolved_api_key = settings.openai_api_key
-                elif "claude" in model_name or "anthropic" in model_name:
-                    resolved_api_key = settings.anthropic_api_key
-
-        # Determine fallback if still empty and logic required
-        if not resolved_api_key:
-            match provider_type.lower():
-                case "gemini" | "vertex_ai":
-                    resolved_api_key = settings.google_api_key
-                case "openai":
-                    resolved_api_key = settings.openai_api_key
-                    if not resolved_api_key:
-                        resolved_api_key = os.getenv("OPENAI_API_KEY")
-                case "anthropic":
-                    resolved_api_key = settings.anthropic_api_key
-                    if not resolved_api_key:
-                        resolved_api_key = os.getenv("ANTHROPIC_API_KEY")
-
-        if (
-            provider_type.lower() == "openai"
-            or (config and config.provider == "openai")
-            or "openai/" in model_name.lower()
-        ) and not resolved_api_key:
-            logger.error(
-                "Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
-                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
-            )
-            raise ConfigurationError(
-                message="Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
-            )
+        match provider_type.lower():
+            case LLMProviderName.VERTEX_AI.value | "vertex_ai":
+                # Vertex AI authenticates via GCP Application Default Credentials backed by service-account.json
+                resolved_api_key = None
+            case LLMProviderName.AI_STUDIO.value | "ai_studio":
+                resolved_api_key = resolved_api_key or settings.google_api_key
+                if not resolved_api_key:
+                    logger.error(
+                        "Fail-Fast: GEMINI_API_KEY / GOOGLE_API_KEY is not configured in settings or environment.",
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
+                    )
+                    raise ConfigurationError(
+                        message=(
+                            "Fail-Fast: GEMINI_API_KEY / GOOGLE_API_KEY is not configured in settings or environment."
+                        ),
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+            case LLMProviderName.OPENAI.value | "openai":
+                resolved_api_key = resolved_api_key or settings.openai_api_key
+                if not resolved_api_key:
+                    logger.error(
+                        "Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
+                    )
+                    raise ConfigurationError(
+                        message="Fail-Fast: OPENAI_API_KEY is not configured in settings or environment.",
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+            case LLMProviderName.ANTHROPIC.value | "anthropic":
+                resolved_api_key = resolved_api_key or settings.anthropic_api_key
+                if not resolved_api_key:
+                    logger.error(
+                        "Fail-Fast: ANTHROPIC_API_KEY is not configured in settings or environment.",
+                        extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "model_name": model_name},
+                    )
+                    raise ConfigurationError(
+                        message="Fail-Fast: ANTHROPIC_API_KEY is not configured in settings or environment.",
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                    )
+            case "litellm":
+                pass
+            case _:
+                pass
 
         return LiteLLMProvider(
             model_name=model_name,

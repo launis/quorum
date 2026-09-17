@@ -20,7 +20,6 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
-from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
@@ -182,9 +181,22 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         set_language(target_locale)
 
     try:
-        llm_client = await LLMClient.from_tier(
-            CognitiveTier.FAST, repository=deps.system_repo, pipeline_name="source_verification"
-        )
+        registry_id = state.metadata.model_registry_id
+        provider = state.metadata.provider_override
+        if registry_id is not None or provider is not None:
+            llm_client = await LLMClient.from_strategy(
+                "fast",
+                repository=deps.system_repo,
+                pipeline_name="source_verification",
+                registry_id=registry_id,
+                provider=provider,
+            )
+        else:
+            llm_client = await LLMClient.from_strategy(
+                "fast",
+                repository=deps.system_repo,
+                pipeline_name="source_verification",
+            )
         task_executor = LLMTaskExecutor(PromptCompiler())
         service = SourceVerificationService(llm_task_executor=task_executor, llm_client=llm_client)
 

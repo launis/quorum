@@ -209,6 +209,9 @@ class Settings(BaseSettings):
         ),
     ] = 300
     pacing_delay_vertex_seconds: Annotated[int, Field(description="Forced delay between Vertex AI requests")] = 4
+    pacing_delay_ai_studio_seconds: Annotated[
+        int, Field(description="Forced delay between Google AI Studio requests")
+    ] = 0
     pacing_delay_openai_seconds: Annotated[int, Field(description="Forced delay between OpenAI requests")] = 1
     pacing_delay_mock_seconds: Annotated[int, Field(description="Forced delay between Mock responses")] = 0
     redis_connection_timeout_seconds: Annotated[int, Field(description="Timeout for Redis connection in seconds")] = 10
@@ -273,7 +276,13 @@ class Settings(BaseSettings):
     ] = False
 
     # --- API Keys & External Limits ---
-    google_api_key: Annotated[str | None, Field(description="Google AI Provider API Key")] = None
+    google_api_key: Annotated[
+        str | None,
+        Field(
+            validation_alias=AliasChoices("google_api_key", "gemini_api_key"),
+            description="Google AI Provider API Key",
+        ),
+    ] = None
     openai_api_key: Annotated[str | None, Field(description="OpenAI API Key (Optional)")] = None
     anthropic_api_key: Annotated[str | None, Field(description="Anthropic API Key (Optional)")] = None
     tavily_api_key: Annotated[str | None, Field(description="Tavily AI Search API Key")] = None
@@ -283,9 +292,9 @@ class Settings(BaseSettings):
     tavily_max_results: Annotated[int, Field(description="Max search results to fetch")] = 5
     tavily_content_char_limit: Annotated[int, Field(description="Max content characters from search")] = 8000
     vertex_location: Annotated[str | None, Field(description="Google Cloud Region (e.g. europe-north1)")] = None
-    discovery_location: Annotated[
-        str | None, Field(description="Source Region for Model Discovery (e.g. us-west1)")
-    ] = None
+    discovery_location: Annotated[str, Field(description="Source Region for Model Discovery (e.g. us-central1)")] = (
+        "us-central1"
+    )
 
     # --- LLM Configuration ---
 
@@ -673,6 +682,8 @@ class Settings(BaseSettings):
             # Zero Pacing Delays (Strictly typed as int)
             if "pacing_delay_vertex_seconds" not in self.model_fields_set:
                 self.pacing_delay_vertex_seconds = 0
+            if "pacing_delay_ai_studio_seconds" not in self.model_fields_set:
+                self.pacing_delay_ai_studio_seconds = 0
             if "pacing_delay_openai_seconds" not in self.model_fields_set:
                 self.pacing_delay_openai_seconds = 0
             if "pacing_delay_mock_seconds" not in self.model_fields_set:
@@ -690,8 +701,6 @@ class Settings(BaseSettings):
                 self.ensemble_parallelism = 1
             if "ensemble_min_consensus" not in self.model_fields_set:
                 self.ensemble_min_consensus = 1
-
-
 
         return self
 
@@ -724,10 +733,15 @@ class Settings(BaseSettings):
             Identified and verified cloud/mock options list.
         """
         providers = []
-        if self.google_api_key or (
-            not self.use_mock_llm and (os.getenv("VERTEX_PROJECT_ID") or os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+        if not self.use_mock_llm and (
+            os.getenv("VERTEX_PROJECT_ID")
+            or os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            or os.path.exists("service-account.json")
         ):
-            providers.append("google")
+            providers.append("vertex_ai")
+
+        if self.google_api_key:
+            providers.append("ai_studio")
 
         if self.openai_api_key:
             providers.append("openai")

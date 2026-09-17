@@ -17,7 +17,7 @@ from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
 from backend_v2.models.dtos.ingress import ChatTurnAnchorsResponseDTO
-from backend_v2.models.enums import CognitiveTier
+from backend_v2.models.enums import LLMProvider
 from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -118,12 +118,19 @@ class ChatParserService:
         raise ValueError(msg)
 
     @staticmethod
-    async def parse_pasted_chat(raw_paste: str, system_repo: ISystemRepository) -> ChatHistoryDTO:
+    async def parse_pasted_chat(
+        raw_paste: str,
+        system_repo: ISystemRepository,
+        registry_id: str | None = None,
+        provider: LLMProvider | None = None,
+    ) -> ChatHistoryDTO:
         """Parse raw pasted chat logs into strict JSON using LLM.
 
         Args:
             raw_paste: Raw unstructured text pasted from a chat UI.
             system_repo: ISystemRepository instance.
+            registry_id: Optional authoritative model registry ID.
+            provider: Optional explicit provider override.
 
         Returns:
             ChatHistoryDTO: Strictly typed chat history object.
@@ -149,10 +156,20 @@ class ChatParserService:
 
         # Initialize LLM Client via Strategy Pattern
         try:
-            # Strategy must exist in the system model_registry
-            llm_client = await LLMClient.from_tier(
-                CognitiveTier.FAST, repository=system_repo, pipeline_name="chat_parser"
-            )
+            if registry_id is not None or provider is not None:
+                llm_client = await LLMClient.from_strategy(
+                    "fast",
+                    repository=system_repo,
+                    pipeline_name="chat_parser",
+                    registry_id=registry_id,
+                    provider=provider,
+                )
+            else:
+                llm_client = await LLMClient.from_strategy(
+                    "fast",
+                    repository=system_repo,
+                    pipeline_name="chat_parser",
+                )
 
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
         except ConfigurationError as e:

@@ -36,7 +36,7 @@ def test_factory_resolves_implemented_adapters() -> None:
     """Verify that implemented adapters successfully return an instance of BaseLLMAdapter."""
     providers = [
         LLMProviderName.VERTEX_AI,
-        LLMProviderName.GOOGLE,
+        LLMProviderName.AI_STUDIO,
         LLMProviderName.ANTHROPIC,
         LLMProviderName.OPENAI,
         LLMProviderName.DEEPSEEK,
@@ -47,38 +47,31 @@ def test_factory_resolves_implemented_adapters() -> None:
         assert isinstance(adapter, BaseLLMAdapter)
 
 
-def test_factory_resolves_google_provider_with_vertex_model() -> None:
-    """Verify that provider 'google' or 'vertex_ai' with model 'vertex_ai/gemini-2.5-flash' returns VertexCacheAdapter.
-
-    When model_name or context indicates a Vertex AI deployment (such as 'vertex_ai/gemini-2.5-flash' in seed_data.json),
-    routing provider 'google' must resolve to VertexCacheAdapter rather than GoogleAIStudioCacheAdapter.
-    """
+def test_factory_resolves_decoupled_google_providers() -> None:
+    """Verify that VERTEX_AI returns VertexCacheAdapter and AI_STUDIO returns GoogleAIStudioCacheAdapter."""
     from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
     from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
 
-    # When model_name is a vertex_ai model, should return VertexCacheAdapter
-    vertex_adapter = LLMCacheAdapterFactory.get_adapter(LLMProviderName.GOOGLE, model_name="vertex_ai/gemini-2.5-flash")
-    assert isinstance(vertex_adapter, VertexCacheAdapter)
-
-    # When model_name is a direct gemini/ai_studio model, should return GoogleAIStudioCacheAdapter
-    studio_adapter = LLMCacheAdapterFactory.get_adapter(LLMProviderName.GOOGLE, model_name="gemini/gemini-2.5-flash")
-    assert isinstance(studio_adapter, GoogleAIStudioCacheAdapter)
-
-    # When explicit AI_STUDIO provider is passed, should return GoogleAIStudioCacheAdapter
+    # Explicit AI_STUDIO provider
     studio_explicit = LLMCacheAdapterFactory.get_adapter(LLMProviderName.AI_STUDIO)
     assert isinstance(studio_explicit, GoogleAIStudioCacheAdapter)
 
-    # When explicit VERTEX_AI provider is passed, should return VertexCacheAdapter
+    # Explicit VERTEX_AI provider
     vertex_explicit = LLMCacheAdapterFactory.get_adapter(LLMProviderName.VERTEX_AI)
     assert isinstance(vertex_explicit, VertexCacheAdapter)
 
     # String representations
-    assert isinstance(LLMCacheAdapterFactory.get_adapter("google", model_name="vertex_ai/model"), VertexCacheAdapter)
-    assert isinstance(
-        LLMCacheAdapterFactory.get_adapter("google", model_name="gemini-flash"), GoogleAIStudioCacheAdapter
-    )
     assert isinstance(LLMCacheAdapterFactory.get_adapter("ai_studio"), GoogleAIStudioCacheAdapter)
     assert isinstance(LLMCacheAdapterFactory.get_adapter("vertex_ai"), VertexCacheAdapter)
+
+
+def test_factory_purged_google_pseudo_provider_raises_app_exception() -> None:
+    """Verify that the eradicated 'google' pseudo-provider raises 400 Bad Request."""
+    with pytest.raises(AppException) as exc_info:
+        LLMCacheAdapterFactory.get_adapter("google")
+
+    assert exc_info.value.status_code == status.HTTP_400_BAD_REQUEST
+    assert exc_info.value.error_code == str(ErrorCodes.VALIDATION_FAILED)
 
 
 @pytest.mark.parametrize(
@@ -86,7 +79,6 @@ def test_factory_resolves_google_provider_with_vertex_model() -> None:
     [
         (LLMProviderName.AI_STUDIO, "backend_v2.llm.adapters.ai_studio_adapter"),
         (LLMProviderName.VERTEX_AI, "backend_v2.llm.adapters.vertex_adapter"),
-        (LLMProviderName.GOOGLE, "backend_v2.llm.adapters.ai_studio_adapter"),
         (LLMProviderName.ANTHROPIC, "backend_v2.llm.adapters.anthropic_adapter"),
         (LLMProviderName.OPENAI, "backend_v2.llm.adapters.openai_adapter"),
         (LLMProviderName.DEEPSEEK, "backend_v2.llm.adapters.deepseek_adapter"),
@@ -105,14 +97,3 @@ def test_factory_import_error_handling(
         assert exc_info.value.status_code == 500
         assert exc_info.value.error_code == str(ErrorCodes.CAPABILITY_NOT_SUPPORTED)
 
-
-def test_factory_google_vertex_import_error_handling() -> None:
-    """Verify that an ImportError when loading VertexCacheAdapter under Google provider raises AppException."""
-    from unittest.mock import patch
-
-    with patch.dict("sys.modules", {"backend_v2.llm.adapters.vertex_adapter": None}):
-        with pytest.raises(AppException) as exc_info:
-            LLMCacheAdapterFactory.get_adapter(LLMProviderName.GOOGLE, model_name="vertex_ai/gemini-2.5-flash")
-
-        assert exc_info.value.status_code == 500
-        assert exc_info.value.error_code == str(ErrorCodes.CAPABILITY_NOT_SUPPORTED)
