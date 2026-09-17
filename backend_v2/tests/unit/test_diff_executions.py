@@ -15,6 +15,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.exceptions import AppException, ResourceNotFoundError
 from backend_v2.models.v2_core import ContrastivePairDTO
 from scripts.diff_executions import (
     UNICODE_SPACE_REGISTRY,
@@ -460,7 +461,8 @@ class TestPhysicalModelBindings:
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
-        bindings = resolve_physical_model_bindings(seed)
+        # 1. Google AI Studio / Vertex stack
+        bindings = resolve_physical_model_bindings(seed, registry_id="sys_e26807f3bfa3454d")
         assert len(bindings) >= 3
         strategies = {b.strategy_name: b for b in bindings}
         assert "fast" in strategies
@@ -471,12 +473,24 @@ class TestPhysicalModelBindings:
         assert isinstance(fast_binding, PhysicalModelBindingDTO)
         assert "gemini" in fast_binding.physical_model.lower() or "flash" in fast_binding.physical_model.lower()
 
-    def test_resolve_physical_model_bindings_fallback_defaults(self) -> None:
-        """Negative: Empty seed data falls back to default Gemini and Claude bindings."""
-        fallback_bindings = resolve_physical_model_bindings({})
-        assert len(fallback_bindings) == 3
-        names = [b.strategy_name for b in fallback_bindings]
-        assert names == ["fast", "reasoning", "synthesis"]
+        # 2. OpenAI stack
+        openai_bindings = resolve_physical_model_bindings(seed, registry_id="sys_6f8b1c4a2e0d49f1")
+        assert len(openai_bindings) >= 3
+        openai_strategies = {b.strategy_name: b for b in openai_bindings}
+        assert "fast" in openai_strategies
+        assert "reasoning" in openai_strategies
+
+    def test_resolve_physical_model_bindings_missing_registry_fails_fast(self) -> None:
+        """Negative: Unknown registry or empty seed data fails fast with ResourceNotFoundError."""
+        with pytest.raises(ResourceNotFoundError):
+            resolve_physical_model_bindings({}, registry_id="sys_unknown")
+
+        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
+        with seed_path.open("r", encoding="utf-8") as f:
+            seed = json.load(f)
+
+        with pytest.raises(ResourceNotFoundError):
+            resolve_physical_model_bindings(seed, registry_id="sys_nonexistent")
 
 
 class TestInputOntologyAndUserVolume:
@@ -904,11 +918,13 @@ def _create_synthetic_run(
     ]
     (run_dir / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
     frozen_data = {
+        "model_registry_id": "sys_e26807f3bfa3454d",
+        "models_used": {"gemini-3.8-flash": 1500},
         "ui_hints_snapshot": {
             "blk_440a5fef9331451b": {
                 "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
             }
-        }
+        },
     }
     (run_dir / "frozen_context.json").write_text(json.dumps(frozen_data), encoding="utf-8")
     telem = [
@@ -1014,15 +1030,17 @@ class TestDiffReportDTOs:
         prov = PromptProvenanceDTO(
             directives_hash="a" * 64,
             directives_char_count=12450,
-            physical_models=[
-                PhysicalModelBindingDTO(
-                    strategy_name="fast",
-                    physical_model="google/gemini-2.5-flash",
-                    temperature=0.1,
-                    max_tokens=32768,
-                    thinking_budget=0,
-                )
-            ],
+            physical_models_by_run={
+                "run_1": [
+                    PhysicalModelBindingDTO(
+                        strategy_name="fast",
+                        physical_model="google/gemini-2.5-flash",
+                        temperature=0.1,
+                        max_tokens=32768,
+                        thinking_budget=0,
+                    )
+                ]
+            },
             workflow_provenance=None,
         )
         atom_def = TdaAtomDefinitionDTO(
@@ -1077,6 +1095,22 @@ class TestDiffReportDTOs:
         assert reconstituted.dev_max_thinking_budget == 0
         assert reconstituted.ensemble_parallelism == 3
         assert reconstituted.matrix_sampling_strategy == "full"
+        assert "run_1" in reconstituted.prompt_provenance.physical_models_by_run
+        assert (
+            reconstituted.prompt_provenance.physical_models_by_run["run_1"][0].physical_model
+            == "google/gemini-2.5-flash"
+        )
+
+    def test_prompt_provenance_dto_omitted_by_run_fails_fast(self) -> None:
+        """Negative: Omitting physical_models_by_run or passing legacy physical_models triggers ValidationError."""
+        with pytest.raises(ValidationError):
+            PromptProvenanceDTO.model_validate(
+                {
+                    "directives_hash": "a" * 64,
+                    "directives_char_count": 1000,
+                    "physical_models": [],
+                }
+            )
 
 
 class TestRunDiff:
@@ -1284,11 +1318,13 @@ class TestRunDiff:
             }
         ]
         frozen_data = {
+            "model_registry_id": "sys_e26807f3bfa3454d",
+            "models_used": {"gemini-3.8-flash": 1500},
             "ui_hints_snapshot": {
                 "blk_440a5fef9331451b": {
                     "options": [{"label": {"translations": {"fi": "Visio ja suunta", "en": "Vision"}}}]
                 }
-            }
+            },
         }
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)
@@ -1300,6 +1336,7 @@ class TestRunDiff:
             (run1 / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
             (run2 / "execution_trace.json").write_text(json.dumps(trace), encoding="utf-8")
             (run1 / "frozen_context.json").write_text(json.dumps(frozen_data), encoding="utf-8")
+            (run2 / "frozen_context.json").write_text(json.dumps(frozen_data), encoding="utf-8")
 
             out_report = tmp_path / "report.md"
             res = run_diff([str(run1), str(run2)], output_file=out_report)
@@ -1323,6 +1360,111 @@ class TestRunDiff:
             content = Path(res).read_text(encoding="utf-8")
             assert "Virhe Enumien luvussa" not in content
             assert "StrictnessAnchor" in content
+
+    def test_run_diff_cross_registry_comparison(self) -> None:
+        """Positive: Test running diff across different model registries (Google vs OpenAI)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_google", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_openai", evals)
+
+            # Update exe2's frozen context to specify OpenAI model registry
+            openai_frozen = {
+                "model_registry_id": "sys_6f8b1c4a2e0d49f1",
+                "models_used": {"openai/gpt-5.4-mini": 1200, "openai/gpt-5.4": 3500},
+                "ui_hints_snapshot": {
+                    "blk_440a5fef9331451b": {
+                        "options": [{"label": {"translations": {"fi": "Visio", "en": "Vision"}}}]
+                    }
+                },
+            }
+            (exe2 / "frozen_context.json").write_text(json.dumps(openai_frozen), encoding="utf-8")
+
+            out_file = tmp_path / "cross_registry_diff.md"
+            res = run_diff([str(exe1), str(exe2)], output_file=out_file)
+            assert Path(res).exists()
+            content = Path(res).read_text(encoding="utf-8")
+            assert "OpenAI" in content
+            assert "Google" in content or "AI Studio" in content
+
+    def test_run_diff_missing_model_registry_id_fails_fast(self) -> None:
+        """Negative: Missing model_registry_id in execution metadata and frozen context raises AppException(422)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_reg_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_reg_2", evals)
+
+            # Wipe model_registry_id from exe1
+            bad_frozen = {"models_used": {"gemini-3.8-flash": 1000}}
+            (exe1 / "frozen_context.json").write_text(json.dumps(bad_frozen), encoding="utf-8")
+
+            with pytest.raises(AppException) as exc_info:
+                run_diff([str(exe1), str(exe2)], output_file=tmp_path / "fail.md")
+            assert exc_info.value.status_code == 422
+            assert "missing mandatory model_registry_id" in exc_info.value.message
+
+    def test_run_diff_missing_models_used_fails_fast(self) -> None:
+        """Negative: Missing models_used telemetry in execution metadata and frozen context raises AppException(422)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_mod_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_mod_2", evals)
+
+            # Wipe models_used from exe2
+            bad_frozen = {"model_registry_id": "sys_e26807f3bfa3454d"}
+            (exe2 / "frozen_context.json").write_text(json.dumps(bad_frozen), encoding="utf-8")
+
+            with pytest.raises(AppException) as exc_info:
+                run_diff([str(exe1), str(exe2)], output_file=tmp_path / "fail.md")
+            assert exc_info.value.status_code == 422
+            assert "missing mandatory models_used" in exc_info.value.message
+
+    def test_run_diff_matrix_sampling_strategy_variations(self) -> None:
+        """Positive: Test matrix sampling strategy metadata rendering for 0 (production) and >0 (dev)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_samp_prod", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_samp_dev", evals)
+
+            f1 = {
+                "model_registry_id": "sys_e26807f3bfa3454d",
+                "models_used": {"gemini-3.8-flash": 1500},
+                "matrix_sampling_strategy": 0,
+            }
+            f2 = {
+                "model_registry_id": "sys_e26807f3bfa3454d",
+                "models_used": {"gemini-3.8-flash": 1500},
+                "matrix_sampling_strategy": 10,
+            }
+            (exe1 / "frozen_context.json").write_text(json.dumps(f1), encoding="utf-8")
+            (exe2 / "frozen_context.json").write_text(json.dumps(f2), encoding="utf-8")
+
+            out_file = tmp_path / "sampling_diff.md"
+            res = run_diff([str(exe1), str(exe2)], output_file=out_file)
+            assert Path(res).exists()
+            content = Path(res).read_text(encoding="utf-8")
+            assert "Tuotanto" in content
+            assert "Kehitystilan otanta" in content
+
+    def test_run_diff_fallback_trace_steps_when_telemetry_absent(self) -> None:
+        """Positive: Test trace step count fallback when llm_telemetry.jsonl is deleted."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            evals = [{"atom_id": "atom_01", "status": "PASSED"}]
+            exe1 = _create_synthetic_run(tmp_path, "exe_notel_1", evals)
+            exe2 = _create_synthetic_run(tmp_path, "exe_notel_2", evals)
+
+            (exe1 / "llm_telemetry.jsonl").unlink()
+            (exe2 / "llm_telemetry.jsonl").unlink()
+
+            out_file = tmp_path / "notel_diff.md"
+            res = run_diff([str(exe1), str(exe2)], output_file=out_file)
+            assert Path(res).exists()
+
 
 
 class TestVerifyQuoteInCorpusUnicodeAndResilience:

@@ -39,6 +39,7 @@ if _workspace_root not in sys.path:
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.v2_core import ContrastivePairDTO
 from backend_v2.settings import get_settings
 
@@ -342,7 +343,7 @@ class PromptProvenanceDTO(BaseModel):
 
     directives_hash: str
     directives_char_count: int
-    physical_models: list[PhysicalModelBindingDTO] = Field(default_factory=list)
+    physical_models_by_run: dict[str, list[PhysicalModelBindingDTO]]
     workflow_provenance: WorkflowProvenanceDTO | None = None
 
 
@@ -1232,16 +1233,26 @@ def extract_workflow_provenance(seed: dict[str, Any], workflow_id: str | None) -
     )
 
 
-def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelBindingDTO]:
-    """Resolve physical model bindings and execution hyperparameters from system config.
+def resolve_physical_model_bindings(seed: dict[str, Any], registry_id: str) -> list[PhysicalModelBindingDTO]:
+    """Resolve physical model bindings and execution hyperparameters from system config for a specific registry.
 
     Args:
         seed: Complete seed data dictionary containing system_config.
+        registry_id: Mandatory identifier of the target ModelRegistry (e.g. 'sys_e26807f3bfa3454d').
 
     Returns:
         List of PhysicalModelBindingDTOs for active strategies (e.g. fast, reasoning, synthesis).
+
+    Raises:
+        ResourceNotFoundError: If the model registry or its tier bindings cannot be found in seed.
     """
-    bindings: list[PhysicalModelBindingDTO] = []
+    if not registry_id or not registry_id.strip():
+        raise ResourceNotFoundError(
+            resource_type="ModelRegistry",
+            resource_id="",
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+        )
+
     sys_configs = seed.get("system_config", [])
     configs_list: list[dict[str, Any]] = []
     if isinstance(sys_configs, dict):
@@ -1249,83 +1260,41 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
     elif isinstance(sys_configs, list):
         configs_list = [v for v in sys_configs if isinstance(v, dict)]
 
-    for cfg in configs_list:
-        if cfg.get("type") == "model_registry":
-            tier_defs = cfg.get("tier_definitions")
-            if isinstance(tier_defs, dict):
-                ordered_tiers = ["fast", "balanced", "deep", "reasoning"]
-                is_direct = any(t in tier_defs for t in ordered_tiers)
-                if is_direct:
-                    for tier_name in ordered_tiers:
-                        if tier_name in tier_defs and isinstance(tier_defs[tier_name], dict):
-                            model_cfg = tier_defs[tier_name]
-                            add_params = model_cfg.get("additional_params", {})
-                            reasoning_effort = (
-                                add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
-                            )
-                            provider_val = str(model_cfg.get("provider") or cfg.get("default_provider") or "google")
-                            if not any(b.strategy_name == tier_name for b in bindings):
-                                bindings.append(
-                                    PhysicalModelBindingDTO(
-                                        strategy_name=tier_name,
-                                        physical_model=model_cfg.get("model_name", "unknown"),
-                                        temperature=float(model_cfg.get("temperature", 0.0)),
-                                        max_tokens=int(model_cfg.get("max_tokens", 32768)),
-                                        thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
-                                        provider=provider_val,
-                                        tpm_limit=int(model_cfg["tpm_limit"])
-                                        if model_cfg.get("tpm_limit") is not None
-                                        else None,
-                                        rpm_limit=int(model_cfg["rpm_limit"])
-                                        if model_cfg.get("rpm_limit") is not None
-                                        else None,
-                                        reasoning_effort=reasoning_effort,
-                                    )
-                                )
-                else:
-                    for provider_name, tiers in tier_defs.items():
-                        if isinstance(tiers, dict):
-                            for tier_name in ordered_tiers:
-                                if tier_name in tiers and isinstance(tiers[tier_name], dict):
-                                    model_cfg = tiers[tier_name]
-                                    add_params = model_cfg.get("additional_params", {})
-                                    reasoning_effort = (
-                                        add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
-                                    )
-                                    bindings.append(
-                                        PhysicalModelBindingDTO(
-                                            strategy_name=f"{tier_name} ({provider_name})",
-                                            physical_model=model_cfg.get("model_name", "unknown"),
-                                            temperature=float(model_cfg.get("temperature", 0.0)),
-                                            max_tokens=int(model_cfg.get("max_tokens", 32768)),
-                                            thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
-                                            provider=str(provider_name),
-                                            tpm_limit=int(model_cfg["tpm_limit"])
-                                            if model_cfg.get("tpm_limit") is not None
-                                            else None,
-                                            rpm_limit=int(model_cfg["rpm_limit"])
-                                            if model_cfg.get("rpm_limit") is not None
-                                            else None,
-                                            reasoning_effort=reasoning_effort,
-                                        )
-                                    )
-            models = cfg.get("models", {})
-            if isinstance(models, dict):
-                ordered_keys = ["fast", "reasoning", "synthesis", "deep", "strict"]
-                all_keys = [k for k in ordered_keys if k in models] + [k for k in models if k not in ordered_keys]
-                for strat_name in all_keys:
-                    model_cfg = models[strat_name]
-                    if isinstance(model_cfg, dict):
-                        add_params = model_cfg.get("additional_params", {})
-                        reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+    target_cfg = next(
+        (cfg for cfg in configs_list if cfg.get("id") == registry_id and cfg.get("type") == "model_registry"),
+        None,
+    )
+
+    if not target_cfg:
+        raise ResourceNotFoundError(
+            resource_type="ModelRegistry",
+            resource_id=registry_id,
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+        )
+
+    bindings: list[PhysicalModelBindingDTO] = []
+    tier_defs = target_cfg.get("tier_definitions")
+    default_provider = str(target_cfg.get("default_provider", "google"))
+
+    if isinstance(tier_defs, dict):
+        ordered_tiers = ["fast", "balanced", "deep", "reasoning"]
+        is_direct = any(t in tier_defs for t in ordered_tiers)
+        if is_direct:
+            for tier_name in ordered_tiers:
+                if tier_name in tier_defs and isinstance(tier_defs[tier_name], dict):
+                    model_cfg = tier_defs[tier_name]
+                    add_params = model_cfg.get("additional_params", {})
+                    reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                    provider_val = str(model_cfg["provider"]) if "provider" in model_cfg else default_provider
+                    if not any(b.strategy_name == tier_name for b in bindings):
                         bindings.append(
                             PhysicalModelBindingDTO(
-                                strategy_name=strat_name,
-                                physical_model=model_cfg.get("model_name", "unknown"),
+                                strategy_name=tier_name,
+                                physical_model=str(model_cfg.get("model_name", "unknown")),
                                 temperature=float(model_cfg.get("temperature", 0.0)),
                                 max_tokens=int(model_cfg.get("max_tokens", 32768)),
                                 thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
-                                provider=str(model_cfg.get("provider", "google")),
+                                provider=provider_val,
                                 tpm_limit=int(model_cfg["tpm_limit"])
                                 if model_cfg.get("tpm_limit") is not None
                                 else None,
@@ -1335,8 +1304,58 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
                                 reasoning_effort=reasoning_effort,
                             )
                         )
+        else:
+            for provider_name, tiers in tier_defs.items():
+                if isinstance(tiers, dict):
+                    for tier_name in ordered_tiers:
+                        if tier_name in tiers and isinstance(tiers[tier_name], dict):
+                            model_cfg = tiers[tier_name]
+                            add_params = model_cfg.get("additional_params", {})
+                            reasoning_effort = (
+                                add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                            )
+                            bindings.append(
+                                PhysicalModelBindingDTO(
+                                    strategy_name=f"{tier_name} ({provider_name})",
+                                    physical_model=str(model_cfg.get("model_name", "unknown")),
+                                    temperature=float(model_cfg.get("temperature", 0.0)),
+                                    max_tokens=int(model_cfg.get("max_tokens", 32768)),
+                                    thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
+                                    provider=str(provider_name),
+                                    tpm_limit=int(model_cfg["tpm_limit"])
+                                    if model_cfg.get("tpm_limit") is not None
+                                    else None,
+                                    rpm_limit=int(model_cfg["rpm_limit"])
+                                    if model_cfg.get("rpm_limit") is not None
+                                    else None,
+                                    reasoning_effort=reasoning_effort,
+                                )
+                            )
 
-    # Ensure synthesis strategy is mapped if missing
+    models = target_cfg.get("models", {})
+    if isinstance(models, dict):
+        ordered_keys = ["fast", "reasoning", "synthesis", "deep", "strict"]
+        all_keys = [k for k in ordered_keys if k in models] + [k for k in models if k not in ordered_keys]
+        for strat_name in all_keys:
+            model_cfg = models[strat_name]
+            if isinstance(model_cfg, dict):
+                add_params = model_cfg.get("additional_params", {})
+                reasoning_effort = add_params.get("reasoning_effort") if isinstance(add_params, dict) else None
+                provider_val = str(model_cfg["provider"]) if "provider" in model_cfg else default_provider
+                bindings.append(
+                    PhysicalModelBindingDTO(
+                        strategy_name=strat_name,
+                        physical_model=str(model_cfg.get("model_name", "unknown")),
+                        temperature=float(model_cfg.get("temperature", 0.0)),
+                        max_tokens=int(model_cfg.get("max_tokens", 32768)),
+                        thinking_budget=int(model_cfg.get("thinking_budget_tokens", 0) or 0),
+                        provider=provider_val,
+                        tpm_limit=int(model_cfg["tpm_limit"]) if model_cfg.get("tpm_limit") is not None else None,
+                        rpm_limit=int(model_cfg["rpm_limit"]) if model_cfg.get("rpm_limit") is not None else None,
+                        reasoning_effort=reasoning_effort,
+                    )
+                )
+
     strat_names = {b.strategy_name for b in bindings}
     if "synthesis" not in strat_names:
         synth_source = next((b for b in bindings if b.strategy_name in ("deep", "balanced", "reasoning")), None)
@@ -1356,32 +1375,11 @@ def resolve_physical_model_bindings(seed: dict[str, Any]) -> list[PhysicalModelB
             )
 
     if not bindings:
-        bindings = [
-            PhysicalModelBindingDTO(
-                strategy_name="fast",
-                physical_model="gemini/gemini-2.5-flash",
-                temperature=0.1,
-                max_tokens=32768,
-                thinking_budget=0,
-                provider="google",
-            ),
-            PhysicalModelBindingDTO(
-                strategy_name="reasoning",
-                physical_model="gemini/gemini-2.5-flash",
-                temperature=0.2,
-                max_tokens=65536,
-                thinking_budget=8192,
-                provider="google",
-            ),
-            PhysicalModelBindingDTO(
-                strategy_name="synthesis",
-                physical_model="gemini/gemini-2.5-flash",
-                temperature=0.3,
-                max_tokens=65536,
-                thinking_budget=2048,
-                provider="google",
-            ),
-        ]
+        raise ResourceNotFoundError(
+            resource_type="ModelTierDefinitions",
+            resource_id=registry_id,
+            details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+        )
 
     return bindings
 
@@ -2297,14 +2295,37 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
         # Prompt Provenance Snapshot
         first_wf_id = first_run_record.get("workflow_id") or first_run_record.get("metadata", {}).get("workflow_id")
         wf_prov = extract_workflow_provenance(seed, first_wf_id)
-        model_bindings = resolve_physical_model_bindings(seed)
+        physical_models_by_run: dict[str, list[PhysicalModelBindingDTO]] = {}
+        for idx, run_name in enumerate(loaded_runs):
+            run_rec: dict[str, Any] = next((v for v in db_executions.values() if v.get("id") == run_name), {})
+            reg_id = run_rec.get("model_registry_id") or run_rec.get("metadata", {}).get("model_registry_id")
+            if not reg_id and idx < len(loaded_paths):
+                run_frozen_path = loaded_paths[idx].parent / "frozen_context.json"
+                if run_frozen_path.exists():
+                    try:
+                        with run_frozen_path.open("r", encoding="utf-8") as rf_f:
+                            rf_data = json.load(rf_f)
+                            if isinstance(rf_data, dict):
+                                reg_id = rf_data.get("model_registry_id")
+                    except json.JSONDecodeError, OSError:
+                        pass
+            if not reg_id and frozen_data and isinstance(frozen_data, dict):
+                reg_id = frozen_data.get("model_registry_id")
+            if not reg_id:
+                raise AppException(
+                    message=f"Execution '{run_name}' is missing mandatory model_registry_id metadata.",
+                    status_code=422,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": run_name},
+                )
+            physical_models_by_run[run_name] = resolve_physical_model_bindings(seed, registry_id=str(reg_id))
+
         blocks_json = json.dumps(seed.get("prompt_blocks", []), sort_keys=True, ensure_ascii=False)
         directives_hash = hashlib.sha256(blocks_json.encode("utf-8")).hexdigest()
         directives_char_count = len(blocks_json)
         prompt_provenance = PromptProvenanceDTO(
             directives_hash=directives_hash,
             directives_char_count=directives_char_count,
-            physical_models=model_bindings,
+            physical_models_by_run=physical_models_by_run,
             workflow_provenance=wf_prov,
         )
 
@@ -2325,44 +2346,84 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
                 f"({directives_char_count:,} merkkiä)\n"
             )
 
-        if model_bindings:
+        if physical_models_by_run:
             f.write("- **Fyysiset Mallisidokset (Physical Model Bindings):**\n")
-            for mb in model_bindings:
-                provider_title = (
-                    "Google Vertex AI"
-                    if mb.provider == "google"
-                    else ("OpenAI" if mb.provider == "openai" else (mb.provider or "Google").capitalize())
-                )
-                limits_str = ""
-                if mb.tpm_limit or mb.rpm_limit:
-                    limits_str = f", Limits=[TPM: {mb.tpm_limit or 'N/A'}, RPM: {mb.rpm_limit or 'N/A'}]"
-                model_lower = mb.physical_model.lower()
-                is_gemini_v3 = ("gemini-3" in model_lower) or ("gemini-2.5" in model_lower)
-                is_openai_reasoning = any(p in model_lower for p in ("o1", "o3", "o4", "o5", "gpt-5"))
+            for idx, run_name in enumerate(loaded_runs):
+                run_rec = next((v for v in db_executions.values() if v.get("id") == run_name), {})
+                reg_id = run_rec.get("model_registry_id") or run_rec.get("metadata", {}).get("model_registry_id")
+                if not reg_id and idx < len(loaded_paths):
+                    run_frozen_path = loaded_paths[idx].parent / "frozen_context.json"
+                    if run_frozen_path.exists():
+                        try:
+                            with run_frozen_path.open("r", encoding="utf-8") as rf_f:
+                                rf_data = json.load(rf_f)
+                                if isinstance(rf_data, dict):
+                                    reg_id = rf_data.get("model_registry_id")
+                        except json.JSONDecodeError, OSError:
+                            pass
+                if not reg_id and frozen_data and isinstance(frozen_data, dict):
+                    reg_id = frozen_data.get("model_registry_id")
 
-                if is_gemini_v3:
-                    provider_backend = "AI Studio" if "gemini/" in model_lower else "Vertex AI"
-                    f.write(
-                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title} / {provider_backend}) "
-                        f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois; {provider_backend}], "
-                        f"MaxTok={mb.max_tokens}, Thinking Budget={mb.thinking_budget} tok{limits_str})\n"
+                reg_name = str(reg_id)
+                sys_configs = seed.get("system_config", [])
+                configs_list = sys_configs.values() if isinstance(sys_configs, dict) else sys_configs
+                for cfg in configs_list:
+                    if isinstance(cfg, dict) and cfg.get("id") == str(reg_id):
+                        reg_name = cfg.get("name_fi") or cfg.get("name") or str(reg_id)
+                        break
+
+                f.write(f"  - **R{idx + 1} (`{run_name}` - {reg_name} [`{reg_id}`]):**\n")
+                run_bindings = physical_models_by_run.get(run_name, [])
+                for mb in run_bindings:
+                    provider_title = (
+                        "Google Vertex AI"
+                        if mb.provider == "google"
+                        else (
+                            "Google AI Studio"
+                            if mb.provider == "ai_studio"
+                            else ("OpenAI" if mb.provider == "openai" else (mb.provider or "Google").capitalize())
+                        )
                     )
-                elif is_openai_reasoning:
-                    effort = mb.reasoning_effort or (
-                        "low" if mb.thinking_budget <= 2048 else "medium" if mb.thinking_budget <= 4096 else "high"
-                    )
-                    f.write(
-                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
-                        f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois], "
-                        f"MaxTok={mb.max_tokens}, Thinking={mb.thinking_budget} tok "
-                        f"-> Reasoning Effort='{effort}'{limits_str})\n"
-                    )
-                else:
-                    think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
-                    f.write(
-                        f"  - **{mb.strategy_name}:** `{mb.physical_model}` ({provider_title}) "
-                        f"(T={mb.temperature}, MaxTok={mb.max_tokens}{think_str}{limits_str})\n"
-                    )
+                    limits_str = ""
+                    if mb.tpm_limit or mb.rpm_limit:
+                        limits_str = f", Limits=[TPM: {mb.tpm_limit or 'N/A'}, RPM: {mb.rpm_limit or 'N/A'}]"
+                    model_lower = mb.physical_model.lower()
+                    is_gemini_v3 = ("gemini-3" in model_lower) or ("gemini-2.5" in model_lower)
+                    is_openai_reasoning = any(p in model_lower for p in ("o1", "o3", "o4", "o5", "gpt-5"))
+
+                    if is_gemini_v3:
+                        provider_backend = "AI Studio" if "gemini/" in model_lower else "Vertex AI"
+                        f.write(
+                            f"    - {mb.strategy_name}: `{mb.physical_model}` ({provider_title} / {provider_backend}) "
+                            f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois; {provider_backend}], "
+                            f"MaxTok={mb.max_tokens}, Thinking Budget={mb.thinking_budget} tok{limits_str})\n"
+                        )
+                    elif is_openai_reasoning:
+                        if mb.thinking_budget == 0:
+                            f.write(
+                                f"    - {mb.strategy_name}: `{mb.physical_model}` ({provider_title}) "
+                                f"(T={mb.temperature}, MaxTok={mb.max_tokens}{limits_str})\n"
+                            )
+                        else:
+                            effort = mb.reasoning_effort or (
+                                "low"
+                                if mb.thinking_budget <= 2048
+                                else "medium"
+                                if mb.thinking_budget <= 4096
+                                else "high"
+                            )
+                            f.write(
+                                f"    - {mb.strategy_name}: `{mb.physical_model}` ({provider_title}) "
+                                f"(Todellinen T=1.0 [DB={mb.temperature} suodatettu pois], "
+                                f"MaxTok={mb.max_tokens}, Thinking={mb.thinking_budget} tok "
+                                f"-> Reasoning Effort='{effort}'{limits_str})\n"
+                            )
+                    else:
+                        think_str = f", Thinking={mb.thinking_budget} tok" if mb.thinking_budget > 0 else ""
+                        f.write(
+                            f"    - {mb.strategy_name}: `{mb.physical_model}` ({provider_title}) "
+                            f"(T={mb.temperature}, MaxTok={mb.max_tokens}{think_str}{limits_str})\n"
+                        )
         f.write("\n")
 
         f.write("## Ajojen Lähdetiedostot ja Syötteet\n")
@@ -2475,10 +2536,23 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             )
 
             db_models = run_record.get("models_used") or exec_summary.get("models_used", {})
-            if db_models:
-                models_formatted = ", ".join(f"{m} ({tok:,} tok)" for m, tok in db_models.items() if tok > 0)
-            else:
-                models_formatted = "gemini/gemini-3.7-flash"
+            if not db_models and idx < len(loaded_paths):
+                run_frozen_path = loaded_paths[idx].parent / "frozen_context.json"
+                if run_frozen_path.exists():
+                    try:
+                        with run_frozen_path.open("r", encoding="utf-8") as rf_f:
+                            rf_data = json.load(rf_f)
+                            if isinstance(rf_data, dict):
+                                db_models = rf_data.get("models_used", {})
+                    except json.JSONDecodeError, OSError:
+                        pass
+            if not db_models:
+                raise AppException(
+                    message=f"Execution '{run_name}' is missing mandatory models_used telemetry.",
+                    status_code=422,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "execution_id": run_name},
+                )
+            models_formatted = ", ".join(f"{m} ({tok:,} tok)" for m, tok in db_models.items() if tok > 0)
 
             sys_snap = exec_summary.get("system_concurrency_snapshot", {})
             c_size = sys_snap.get("LLM_MAX_CHUNK_SIZE")
@@ -2488,6 +2562,16 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
             wf_prov_run = extract_workflow_provenance(seed, run_record.get("workflow_id") or meta.get("workflow_id"))
             tot_wf_atoms = wf_prov_run.total_workflow_atoms if wf_prov_run else len(common_atoms)
             sampling_val = meta.get("matrix_sampling_strategy") if isinstance(meta, dict) else None
+            if sampling_val is None and idx < len(loaded_paths):
+                run_frozen_path = loaded_paths[idx].parent / "frozen_context.json"
+                if run_frozen_path.exists():
+                    try:
+                        with run_frozen_path.open("r", encoding="utf-8") as rf_f:
+                            rf_data = json.load(rf_f)
+                            if isinstance(rf_data, dict) and "matrix_sampling_strategy" in rf_data:
+                                sampling_val = rf_data.get("matrix_sampling_strategy")
+                    except json.JSONDecodeError, OSError:
+                        pass
             if sampling_val == 0:
                 sampling_display = f"0 (Kaikki {tot_wf_atoms} atomia, Tuotanto)"
             elif sampling_val is not None and sampling_val > 0:
