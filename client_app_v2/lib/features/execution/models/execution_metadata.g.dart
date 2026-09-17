@@ -17,6 +17,8 @@ _ExecutionMetadata _$ExecutionMetadataFromJson(Map<String, dynamic> json) =>
             'matrix_sampling_strategy',
             'workflow_version',
             'global_context_vars',
+            'provider_override',
+            'model_registry_id',
           ],
         );
         final val = _ExecutionMetadata(
@@ -32,6 +34,14 @@ _ExecutionMetadata _$ExecutionMetadataFromJson(Map<String, dynamic> json) =>
             'global_context_vars',
             (v) => v as Map<String, dynamic>?,
           ),
+          providerOverride: $checkedConvert(
+            'provider_override',
+            (v) => $enumDecodeNullable(_$LLMProviderEnumMap, v),
+          ),
+          modelRegistryId: $checkedConvert(
+            'model_registry_id',
+            (v) => v as String?,
+          ),
         );
         return val;
       },
@@ -39,6 +49,8 @@ _ExecutionMetadata _$ExecutionMetadataFromJson(Map<String, dynamic> json) =>
         'matrixSamplingStrategy': 'matrix_sampling_strategy',
         'workflowVersion': 'workflow_version',
         'globalContextVars': 'global_context_vars',
+        'providerOverride': 'provider_override',
+        'modelRegistryId': 'model_registry_id',
       },
     );
 
@@ -47,4 +59,15 @@ Map<String, dynamic> _$ExecutionMetadataToJson(_ExecutionMetadata instance) =>
       'matrix_sampling_strategy': instance.matrixSamplingStrategy,
       'workflow_version': instance.workflowVersion,
       'global_context_vars': instance.globalContextVars,
+      'provider_override': _$LLMProviderEnumMap[instance.providerOverride],
+      'model_registry_id': instance.modelRegistryId,
     };
+
+const _$LLMProviderEnumMap = {
+  LLMProvider.vertexAi: 'vertex_ai',
+  LLMProvider.aiStudio: 'ai_studio',
+  LLMProvider.openai: 'openai',
+  LLMProvider.anthropic: 'anthropic',
+  LLMProvider.azureOpenai: 'azure_openai',
+  LLMProvider.local: 'local',
+};

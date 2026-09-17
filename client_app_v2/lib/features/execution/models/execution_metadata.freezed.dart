@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ExecutionMetadata {
 
-@JsonKey(name: 'matrix_sampling_strategy') int? get matrixSamplingStrategy;@JsonKey(name: 'workflow_version') int get workflowVersion;@JsonKey(name: 'global_context_vars') Map<String, dynamic>? get globalContextVars;
+@JsonKey(name: 'matrix_sampling_strategy') int? get matrixSamplingStrategy;@JsonKey(name: 'workflow_version') int get workflowVersion;@JsonKey(name: 'global_context_vars') Map<String, dynamic>? get globalContextVars;@JsonKey(name: 'provider_override') LLMProvider? get providerOverride;@JsonKey(name: 'model_registry_id') String? get modelRegistryId;
 /// Create a copy of ExecutionMetadata
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $ExecutionMetadataCopyWith<ExecutionMetadata> get copyWith => _$ExecutionMetadat
 
 @override
 String toString() {
-  return 'ExecutionMetadata(matrixSamplingStrategy: $matrixSamplingStrategy, workflowVersion: $workflowVersion, globalContextVars: $globalContextVars)';
+  return 'ExecutionMetadata(matrixSamplingStrategy: $matrixSamplingStrategy, workflowVersion: $workflowVersion, globalContextVars: $globalContextVars, providerOverride: $providerOverride, modelRegistryId: $modelRegistryId)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $ExecutionMetadataCopyWith<$Res>  {
   factory $ExecutionMetadataCopyWith(ExecutionMetadata value, $Res Function(ExecutionMetadata) _then) = _$ExecutionMetadataCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'global_context_vars') Map<String, dynamic>? globalContextVars
+@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'global_context_vars') Map<String, dynamic>? globalContextVars,@JsonKey(name: 'provider_override') LLMProvider? providerOverride,@JsonKey(name: 'model_registry_id') String? modelRegistryId
 });
 
 
@@ -58,12 +58,14 @@ class _$ExecutionMetadataCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionMetadata
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? matrixSamplingStrategy = freezed,Object? workflowVersion = null,Object? globalContextVars = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? matrixSamplingStrategy = freezed,Object? workflowVersion = null,Object? globalContextVars = freezed,Object? providerOverride = freezed,Object? modelRegistryId = freezed,}) {
   return _then(_self.copyWith(
 matrixSamplingStrategy: freezed == matrixSamplingStrategy ? _self.matrixSamplingStrategy : matrixSamplingStrategy // ignore: cast_nullable_to_non_nullable
 as int?,workflowVersion: null == workflowVersion ? _self.workflowVersion : workflowVersion // ignore: cast_nullable_to_non_nullable
 as int,globalContextVars: freezed == globalContextVars ? _self.globalContextVars : globalContextVars // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,providerOverride: freezed == providerOverride ? _self.providerOverride : providerOverride // ignore: cast_nullable_to_non_nullable
+as LLMProvider?,modelRegistryId: freezed == modelRegistryId ? _self.modelRegistryId : modelRegistryId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -148,10 +150,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars, @JsonKey(name: 'provider_override')  LLMProvider? providerOverride, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionMetadata() when $default != null:
-return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars);case _:
+return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars,_that.providerOverride,_that.modelRegistryId);case _:
   return orElse();
 
 }
@@ -169,10 +171,10 @@ return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalC
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars, @JsonKey(name: 'provider_override')  LLMProvider? providerOverride, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionMetadata():
-return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars);case _:
+return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars,_that.providerOverride,_that.modelRegistryId);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -189,10 +191,10 @@ return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalC
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'matrix_sampling_strategy')  int? matrixSamplingStrategy, @JsonKey(name: 'workflow_version')  int workflowVersion, @JsonKey(name: 'global_context_vars')  Map<String, dynamic>? globalContextVars, @JsonKey(name: 'provider_override')  LLMProvider? providerOverride, @JsonKey(name: 'model_registry_id')  String? modelRegistryId)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionMetadata() when $default != null:
-return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars);case _:
+return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalContextVars,_that.providerOverride,_that.modelRegistryId);case _:
   return null;
 
 }
@@ -204,7 +206,7 @@ return $default(_that.matrixSamplingStrategy,_that.workflowVersion,_that.globalC
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExecutionMetadata extends ExecutionMetadata {
-  const _ExecutionMetadata({@JsonKey(name: 'matrix_sampling_strategy') this.matrixSamplingStrategy, @JsonKey(name: 'workflow_version') this.workflowVersion = 1, @JsonKey(name: 'global_context_vars') final  Map<String, dynamic>? globalContextVars}): _globalContextVars = globalContextVars,super._();
+  const _ExecutionMetadata({@JsonKey(name: 'matrix_sampling_strategy') this.matrixSamplingStrategy, @JsonKey(name: 'workflow_version') this.workflowVersion = 1, @JsonKey(name: 'global_context_vars') final  Map<String, dynamic>? globalContextVars, @JsonKey(name: 'provider_override') this.providerOverride, @JsonKey(name: 'model_registry_id') this.modelRegistryId}): _globalContextVars = globalContextVars,super._();
   factory _ExecutionMetadata.fromJson(Map<String, dynamic> json) => _$ExecutionMetadataFromJson(json);
 
 @override@JsonKey(name: 'matrix_sampling_strategy') final  int? matrixSamplingStrategy;
@@ -218,6 +220,8 @@ class _ExecutionMetadata extends ExecutionMetadata {
   return EqualUnmodifiableMapView(value);
 }
 
+@override@JsonKey(name: 'provider_override') final  LLMProvider? providerOverride;
+@override@JsonKey(name: 'model_registry_id') final  String? modelRegistryId;
 
 /// Create a copy of ExecutionMetadata
 /// with the given fields replaced by the non-null parameter values.
@@ -234,7 +238,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionMetadata(matrixSamplingStrategy: $matrixSamplingStrategy, workflowVersion: $workflowVersion, globalContextVars: $globalContextVars)';
+  return 'ExecutionMetadata(matrixSamplingStrategy: $matrixSamplingStrategy, workflowVersion: $workflowVersion, globalContextVars: $globalContextVars, providerOverride: $providerOverride, modelRegistryId: $modelRegistryId)';
 }
 
 
@@ -245,7 +249,7 @@ abstract mixin class _$ExecutionMetadataCopyWith<$Res> implements $ExecutionMeta
   factory _$ExecutionMetadataCopyWith(_ExecutionMetadata value, $Res Function(_ExecutionMetadata) _then) = __$ExecutionMetadataCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'global_context_vars') Map<String, dynamic>? globalContextVars
+@JsonKey(name: 'matrix_sampling_strategy') int? matrixSamplingStrategy,@JsonKey(name: 'workflow_version') int workflowVersion,@JsonKey(name: 'global_context_vars') Map<String, dynamic>? globalContextVars,@JsonKey(name: 'provider_override') LLMProvider? providerOverride,@JsonKey(name: 'model_registry_id') String? modelRegistryId
 });
 
 
@@ -262,12 +266,14 @@ class __$ExecutionMetadataCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionMetadata
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? matrixSamplingStrategy = freezed,Object? workflowVersion = null,Object? globalContextVars = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? matrixSamplingStrategy = freezed,Object? workflowVersion = null,Object? globalContextVars = freezed,Object? providerOverride = freezed,Object? modelRegistryId = freezed,}) {
   return _then(_ExecutionMetadata(
 matrixSamplingStrategy: freezed == matrixSamplingStrategy ? _self.matrixSamplingStrategy : matrixSamplingStrategy // ignore: cast_nullable_to_non_nullable
 as int?,workflowVersion: null == workflowVersion ? _self.workflowVersion : workflowVersion // ignore: cast_nullable_to_non_nullable
 as int,globalContextVars: freezed == globalContextVars ? _self._globalContextVars : globalContextVars // ignore: cast_nullable_to_non_nullable
-as Map<String, dynamic>?,
+as Map<String, dynamic>?,providerOverride: freezed == providerOverride ? _self.providerOverride : providerOverride // ignore: cast_nullable_to_non_nullable
+as LLMProvider?,modelRegistryId: freezed == modelRegistryId ? _self.modelRegistryId : modelRegistryId // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

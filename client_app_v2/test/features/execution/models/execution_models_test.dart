@@ -1,7 +1,9 @@
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_inputs.dart';
 import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
 
@@ -26,6 +28,64 @@ void main() {
       expect(meta.matrixSamplingStrategy, isNull);
       expect(meta.workflowVersion, 1);
       expect(meta.globalContextVars, isNull);
+      expect(meta.providerOverride, isNull);
+      expect(meta.modelRegistryId, isNull);
+    });
+
+    test(
+        'instantiates from backend execution metadata containing provider_override and model_registry_id',
+        () {
+      final json = {
+        'matrix_sampling_strategy': 1,
+        'workflow_version': 1,
+        'provider_override': 'vertex_ai',
+        'model_registry_id': 'sys_b1c2d3e4f5a60718',
+      };
+      final meta = ExecutionMetadata.fromJson(json);
+      expect(meta, isNotNull);
+      expect(meta.providerOverride, LLMProvider.vertexAi);
+      expect(meta.modelRegistryId, 'sys_b1c2d3e4f5a60718');
+    });
+
+    test('supports ai_studio provider_override and null fields', () {
+      final json = {
+        'matrix_sampling_strategy': 1,
+        'workflow_version': 1,
+        'provider_override': 'ai_studio',
+        'model_registry_id': 'sys_b1c2d3e4f5a60719',
+      };
+      final meta = ExecutionMetadata.fromJson(json);
+      expect(meta.providerOverride, LLMProvider.aiStudio);
+      expect(meta.modelRegistryId, 'sys_b1c2d3e4f5a60719');
+
+      final nullJson = {
+        'matrix_sampling_strategy': 1,
+        'workflow_version': 1,
+        'provider_override': null,
+        'model_registry_id': null,
+      };
+      final nullMeta = ExecutionMetadata.fromJson(nullJson);
+      expect(nullMeta.providerOverride, isNull);
+      expect(nullMeta.modelRegistryId, isNull);
+    });
+  });
+
+  group('ExecutionStep Freezed Parity', () {
+    test('instantiates from valid json with model_strategy', () {
+      final json = {
+        'id': 'stp_1234567890abcdef',
+        'label': 'Analysis Step',
+        'status': 'passed',
+        'model_strategy': 'fast',
+        'physical_model': 'vertex_ai/gemini-2.5-flash',
+      };
+
+      final step = ExecutionStep.fromJson(json);
+      expect(step.id, 'stp_1234567890abcdef');
+      expect(step.label, 'Analysis Step');
+      expect(step.status, 'passed');
+      expect(step.modelStrategy, 'fast');
+      expect(step.physicalModel, 'vertex_ai/gemini-2.5-flash');
     });
   });
 

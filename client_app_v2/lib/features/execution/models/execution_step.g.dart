@@ -19,7 +19,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
             'status',
             'last_error',
             'message_code',
-            'cognitive_tier',
+            'model_strategy',
             'physical_model',
             'system_fingerprint',
             'prompt_tokens',
@@ -38,10 +38,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
           status: $checkedConvert('status', (v) => v as String),
           lastError: $checkedConvert('last_error', (v) => v as String?),
           messageCode: $checkedConvert('message_code', (v) => v as String?),
-          cognitiveTier: $checkedConvert(
-            'cognitive_tier',
-            (v) => $enumDecodeNullable(_$CognitiveTierEnumMap, v),
-          ),
+          modelStrategy: $checkedConvert('model_strategy', (v) => v as String?),
           physicalModel: $checkedConvert('physical_model', (v) => v as String?),
           systemFingerprint: $checkedConvert(
             'system_fingerprint',
@@ -85,7 +82,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
       fieldKeyMap: const {
         'lastError': 'last_error',
         'messageCode': 'message_code',
-        'cognitiveTier': 'cognitive_tier',
+        'modelStrategy': 'model_strategy',
         'physicalModel': 'physical_model',
         'systemFingerprint': 'system_fingerprint',
         'promptTokens': 'prompt_tokens',
@@ -106,7 +103,7 @@ Map<String, dynamic> _$ExecutionStepToJson(_ExecutionStep instance) =>
       'status': instance.status,
       'last_error': instance.lastError,
       'message_code': instance.messageCode,
-      'cognitive_tier': _$CognitiveTierEnumMap[instance.cognitiveTier],
+      'model_strategy': instance.modelStrategy,
       'physical_model': instance.physicalModel,
       'system_fingerprint': instance.systemFingerprint,
       'prompt_tokens': instance.promptTokens,
@@ -118,10 +115,3 @@ Map<String, dynamic> _$ExecutionStepToJson(_ExecutionStep instance) =>
       'chunk_count': instance.chunkCount,
       'scorecard_atoms': instance.scorecardAtoms,
     };
-
-const _$CognitiveTierEnumMap = {
-  CognitiveTier.fast: 'fast',
-  CognitiveTier.balanced: 'balanced',
-  CognitiveTier.deep: 'deep',
-  CognitiveTier.reasoning: 'reasoning',
-};

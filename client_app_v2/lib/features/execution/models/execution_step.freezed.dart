@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ExecutionStep {
 
- String get id; String get label; String get status;@JsonKey(name: 'last_error') String? get lastError;@JsonKey(name: 'message_code') String? get messageCode;@JsonKey(name: 'cognitive_tier') CognitiveTier? get cognitiveTier;@JsonKey(name: 'physical_model') String? get physicalModel;@JsonKey(name: 'system_fingerprint') String? get systemFingerprint;@JsonKey(name: 'prompt_tokens') int get promptTokens;@JsonKey(name: 'completion_tokens') int get completionTokens;@JsonKey(name: 'cached_tokens') int get cachedTokens;@JsonKey(name: 'reasoning_tokens') int get reasoningTokens;@JsonKey(name: 'cost_usd') double get costUsd;@JsonKey(name: 'duration_ms') int get durationMs;@JsonKey(name: 'chunk_count') int get chunkCount;@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> get scorecardAtoms;
+ String get id; String get label; String get status;@JsonKey(name: 'last_error') String? get lastError;@JsonKey(name: 'message_code') String? get messageCode;@JsonKey(name: 'model_strategy') String? get modelStrategy;@JsonKey(name: 'physical_model') String? get physicalModel;@JsonKey(name: 'system_fingerprint') String? get systemFingerprint;@JsonKey(name: 'prompt_tokens') int get promptTokens;@JsonKey(name: 'completion_tokens') int get completionTokens;@JsonKey(name: 'cached_tokens') int get cachedTokens;@JsonKey(name: 'reasoning_tokens') int get reasoningTokens;@JsonKey(name: 'cost_usd') double get costUsd;@JsonKey(name: 'duration_ms') int get durationMs;@JsonKey(name: 'chunk_count') int get chunkCount;@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> get scorecardAtoms;
 /// Create a copy of ExecutionStep
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -30,7 +30,7 @@ $ExecutionStepCopyWith<ExecutionStep> get copyWith => _$ExecutionStepCopyWithImp
 
 @override
 String toString() {
-  return 'ExecutionStep(id: $id, label: $label, status: $status, lastError: $lastError, messageCode: $messageCode, cognitiveTier: $cognitiveTier, physicalModel: $physicalModel, systemFingerprint: $systemFingerprint, promptTokens: $promptTokens, completionTokens: $completionTokens, cachedTokens: $cachedTokens, reasoningTokens: $reasoningTokens, costUsd: $costUsd, durationMs: $durationMs, chunkCount: $chunkCount, scorecardAtoms: $scorecardAtoms)';
+  return 'ExecutionStep(id: $id, label: $label, status: $status, lastError: $lastError, messageCode: $messageCode, modelStrategy: $modelStrategy, physicalModel: $physicalModel, systemFingerprint: $systemFingerprint, promptTokens: $promptTokens, completionTokens: $completionTokens, cachedTokens: $cachedTokens, reasoningTokens: $reasoningTokens, costUsd: $costUsd, durationMs: $durationMs, chunkCount: $chunkCount, scorecardAtoms: $scorecardAtoms)';
 }
 
 
@@ -41,7 +41,7 @@ abstract mixin class $ExecutionStepCopyWith<$Res>  {
   factory $ExecutionStepCopyWith(ExecutionStep value, $Res Function(ExecutionStep) _then) = _$ExecutionStepCopyWithImpl;
 @useResult
 $Res call({
- String id, String label, String status,@JsonKey(name: 'last_error') String? lastError,@JsonKey(name: 'message_code') String? messageCode,@JsonKey(name: 'cognitive_tier') CognitiveTier? cognitiveTier,@JsonKey(name: 'physical_model') String? physicalModel,@JsonKey(name: 'system_fingerprint') String? systemFingerprint,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'cost_usd') double costUsd,@JsonKey(name: 'duration_ms') int durationMs,@JsonKey(name: 'chunk_count') int chunkCount,@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> scorecardAtoms
+ String id, String label, String status,@JsonKey(name: 'last_error') String? lastError,@JsonKey(name: 'message_code') String? messageCode,@JsonKey(name: 'model_strategy') String? modelStrategy,@JsonKey(name: 'physical_model') String? physicalModel,@JsonKey(name: 'system_fingerprint') String? systemFingerprint,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'cost_usd') double costUsd,@JsonKey(name: 'duration_ms') int durationMs,@JsonKey(name: 'chunk_count') int chunkCount,@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> scorecardAtoms
 });
 
 
@@ -58,15 +58,15 @@ class _$ExecutionStepCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionStep
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = null,Object? status = null,Object? lastError = freezed,Object? messageCode = freezed,Object? cognitiveTier = freezed,Object? physicalModel = freezed,Object? systemFingerprint = freezed,Object? promptTokens = null,Object? completionTokens = null,Object? cachedTokens = null,Object? reasoningTokens = null,Object? costUsd = null,Object? durationMs = null,Object? chunkCount = null,Object? scorecardAtoms = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = null,Object? status = null,Object? lastError = freezed,Object? messageCode = freezed,Object? modelStrategy = freezed,Object? physicalModel = freezed,Object? systemFingerprint = freezed,Object? promptTokens = null,Object? completionTokens = null,Object? cachedTokens = null,Object? reasoningTokens = null,Object? costUsd = null,Object? durationMs = null,Object? chunkCount = null,Object? scorecardAtoms = null,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,lastError: freezed == lastError ? _self.lastError : lastError // ignore: cast_nullable_to_non_nullable
 as String?,messageCode: freezed == messageCode ? _self.messageCode : messageCode // ignore: cast_nullable_to_non_nullable
-as String?,cognitiveTier: freezed == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
-as CognitiveTier?,physicalModel: freezed == physicalModel ? _self.physicalModel : physicalModel // ignore: cast_nullable_to_non_nullable
+as String?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,physicalModel: freezed == physicalModel ? _self.physicalModel : physicalModel // ignore: cast_nullable_to_non_nullable
 as String?,systemFingerprint: freezed == systemFingerprint ? _self.systemFingerprint : systemFingerprint // ignore: cast_nullable_to_non_nullable
 as String?,promptTokens: null == promptTokens ? _self.promptTokens : promptTokens // ignore: cast_nullable_to_non_nullable
 as int,completionTokens: null == completionTokens ? _self.completionTokens : completionTokens // ignore: cast_nullable_to_non_nullable
@@ -161,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'cognitive_tier')  CognitiveTier? cognitiveTier, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ExecutionStep() when $default != null:
-return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.cognitiveTier,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
+return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.modelStrategy,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
   return orElse();
 
 }
@@ -182,10 +182,10 @@ return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageC
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'cognitive_tier')  CognitiveTier? cognitiveTier, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionStep():
-return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.cognitiveTier,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
+return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.modelStrategy,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -202,10 +202,10 @@ return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageC
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'cognitive_tier')  CognitiveTier? cognitiveTier, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String label,  String status, @JsonKey(name: 'last_error')  String? lastError, @JsonKey(name: 'message_code')  String? messageCode, @JsonKey(name: 'model_strategy')  String? modelStrategy, @JsonKey(name: 'physical_model')  String? physicalModel, @JsonKey(name: 'system_fingerprint')  String? systemFingerprint, @JsonKey(name: 'prompt_tokens')  int promptTokens, @JsonKey(name: 'completion_tokens')  int completionTokens, @JsonKey(name: 'cached_tokens')  int cachedTokens, @JsonKey(name: 'reasoning_tokens')  int reasoningTokens, @JsonKey(name: 'cost_usd')  double costUsd, @JsonKey(name: 'duration_ms')  int durationMs, @JsonKey(name: 'chunk_count')  int chunkCount, @JsonKey(name: 'scorecard_atoms')  Map<String, dynamic> scorecardAtoms)?  $default,) {final _that = this;
 switch (_that) {
 case _ExecutionStep() when $default != null:
-return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.cognitiveTier,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
+return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageCode,_that.modelStrategy,_that.physicalModel,_that.systemFingerprint,_that.promptTokens,_that.completionTokens,_that.cachedTokens,_that.reasoningTokens,_that.costUsd,_that.durationMs,_that.chunkCount,_that.scorecardAtoms);case _:
   return null;
 
 }
@@ -217,7 +217,7 @@ return $default(_that.id,_that.label,_that.status,_that.lastError,_that.messageC
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
 class _ExecutionStep extends ExecutionStep {
-  const _ExecutionStep({required this.id, required this.label, required this.status, @JsonKey(name: 'last_error') this.lastError, @JsonKey(name: 'message_code') this.messageCode, @JsonKey(name: 'cognitive_tier') this.cognitiveTier, @JsonKey(name: 'physical_model') this.physicalModel, @JsonKey(name: 'system_fingerprint') this.systemFingerprint, @JsonKey(name: 'prompt_tokens') this.promptTokens = 0, @JsonKey(name: 'completion_tokens') this.completionTokens = 0, @JsonKey(name: 'cached_tokens') this.cachedTokens = 0, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens = 0, @JsonKey(name: 'cost_usd') this.costUsd = 0.0, @JsonKey(name: 'duration_ms') this.durationMs = 0, @JsonKey(name: 'chunk_count') this.chunkCount = 1, @JsonKey(name: 'scorecard_atoms') final  Map<String, dynamic> scorecardAtoms = const {}}): _scorecardAtoms = scorecardAtoms,super._();
+  const _ExecutionStep({required this.id, required this.label, required this.status, @JsonKey(name: 'last_error') this.lastError, @JsonKey(name: 'message_code') this.messageCode, @JsonKey(name: 'model_strategy') this.modelStrategy, @JsonKey(name: 'physical_model') this.physicalModel, @JsonKey(name: 'system_fingerprint') this.systemFingerprint, @JsonKey(name: 'prompt_tokens') this.promptTokens = 0, @JsonKey(name: 'completion_tokens') this.completionTokens = 0, @JsonKey(name: 'cached_tokens') this.cachedTokens = 0, @JsonKey(name: 'reasoning_tokens') this.reasoningTokens = 0, @JsonKey(name: 'cost_usd') this.costUsd = 0.0, @JsonKey(name: 'duration_ms') this.durationMs = 0, @JsonKey(name: 'chunk_count') this.chunkCount = 1, @JsonKey(name: 'scorecard_atoms') final  Map<String, dynamic> scorecardAtoms = const {}}): _scorecardAtoms = scorecardAtoms,super._();
   factory _ExecutionStep.fromJson(Map<String, dynamic> json) => _$ExecutionStepFromJson(json);
 
 @override final  String id;
@@ -225,7 +225,7 @@ class _ExecutionStep extends ExecutionStep {
 @override final  String status;
 @override@JsonKey(name: 'last_error') final  String? lastError;
 @override@JsonKey(name: 'message_code') final  String? messageCode;
-@override@JsonKey(name: 'cognitive_tier') final  CognitiveTier? cognitiveTier;
+@override@JsonKey(name: 'model_strategy') final  String? modelStrategy;
 @override@JsonKey(name: 'physical_model') final  String? physicalModel;
 @override@JsonKey(name: 'system_fingerprint') final  String? systemFingerprint;
 @override@JsonKey(name: 'prompt_tokens') final  int promptTokens;
@@ -258,7 +258,7 @@ Map<String, dynamic> toJson() {
 
 @override
 String toString() {
-  return 'ExecutionStep(id: $id, label: $label, status: $status, lastError: $lastError, messageCode: $messageCode, cognitiveTier: $cognitiveTier, physicalModel: $physicalModel, systemFingerprint: $systemFingerprint, promptTokens: $promptTokens, completionTokens: $completionTokens, cachedTokens: $cachedTokens, reasoningTokens: $reasoningTokens, costUsd: $costUsd, durationMs: $durationMs, chunkCount: $chunkCount, scorecardAtoms: $scorecardAtoms)';
+  return 'ExecutionStep(id: $id, label: $label, status: $status, lastError: $lastError, messageCode: $messageCode, modelStrategy: $modelStrategy, physicalModel: $physicalModel, systemFingerprint: $systemFingerprint, promptTokens: $promptTokens, completionTokens: $completionTokens, cachedTokens: $cachedTokens, reasoningTokens: $reasoningTokens, costUsd: $costUsd, durationMs: $durationMs, chunkCount: $chunkCount, scorecardAtoms: $scorecardAtoms)';
 }
 
 
@@ -269,7 +269,7 @@ abstract mixin class _$ExecutionStepCopyWith<$Res> implements $ExecutionStepCopy
   factory _$ExecutionStepCopyWith(_ExecutionStep value, $Res Function(_ExecutionStep) _then) = __$ExecutionStepCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String label, String status,@JsonKey(name: 'last_error') String? lastError,@JsonKey(name: 'message_code') String? messageCode,@JsonKey(name: 'cognitive_tier') CognitiveTier? cognitiveTier,@JsonKey(name: 'physical_model') String? physicalModel,@JsonKey(name: 'system_fingerprint') String? systemFingerprint,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'cost_usd') double costUsd,@JsonKey(name: 'duration_ms') int durationMs,@JsonKey(name: 'chunk_count') int chunkCount,@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> scorecardAtoms
+ String id, String label, String status,@JsonKey(name: 'last_error') String? lastError,@JsonKey(name: 'message_code') String? messageCode,@JsonKey(name: 'model_strategy') String? modelStrategy,@JsonKey(name: 'physical_model') String? physicalModel,@JsonKey(name: 'system_fingerprint') String? systemFingerprint,@JsonKey(name: 'prompt_tokens') int promptTokens,@JsonKey(name: 'completion_tokens') int completionTokens,@JsonKey(name: 'cached_tokens') int cachedTokens,@JsonKey(name: 'reasoning_tokens') int reasoningTokens,@JsonKey(name: 'cost_usd') double costUsd,@JsonKey(name: 'duration_ms') int durationMs,@JsonKey(name: 'chunk_count') int chunkCount,@JsonKey(name: 'scorecard_atoms') Map<String, dynamic> scorecardAtoms
 });
 
 
@@ -286,15 +286,15 @@ class __$ExecutionStepCopyWithImpl<$Res>
 
 /// Create a copy of ExecutionStep
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = null,Object? status = null,Object? lastError = freezed,Object? messageCode = freezed,Object? cognitiveTier = freezed,Object? physicalModel = freezed,Object? systemFingerprint = freezed,Object? promptTokens = null,Object? completionTokens = null,Object? cachedTokens = null,Object? reasoningTokens = null,Object? costUsd = null,Object? durationMs = null,Object? chunkCount = null,Object? scorecardAtoms = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = null,Object? status = null,Object? lastError = freezed,Object? messageCode = freezed,Object? modelStrategy = freezed,Object? physicalModel = freezed,Object? systemFingerprint = freezed,Object? promptTokens = null,Object? completionTokens = null,Object? cachedTokens = null,Object? reasoningTokens = null,Object? costUsd = null,Object? durationMs = null,Object? chunkCount = null,Object? scorecardAtoms = null,}) {
   return _then(_ExecutionStep(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
 as String,status: null == status ? _self.status : status // ignore: cast_nullable_to_non_nullable
 as String,lastError: freezed == lastError ? _self.lastError : lastError // ignore: cast_nullable_to_non_nullable
 as String?,messageCode: freezed == messageCode ? _self.messageCode : messageCode // ignore: cast_nullable_to_non_nullable
-as String?,cognitiveTier: freezed == cognitiveTier ? _self.cognitiveTier : cognitiveTier // ignore: cast_nullable_to_non_nullable
-as CognitiveTier?,physicalModel: freezed == physicalModel ? _self.physicalModel : physicalModel // ignore: cast_nullable_to_non_nullable
+as String?,modelStrategy: freezed == modelStrategy ? _self.modelStrategy : modelStrategy // ignore: cast_nullable_to_non_nullable
+as String?,physicalModel: freezed == physicalModel ? _self.physicalModel : physicalModel // ignore: cast_nullable_to_non_nullable
 as String?,systemFingerprint: freezed == systemFingerprint ? _self.systemFingerprint : systemFingerprint // ignore: cast_nullable_to_non_nullable
 as String?,promptTokens: null == promptTokens ? _self.promptTokens : promptTokens // ignore: cast_nullable_to_non_nullable
 as int,completionTokens: null == completionTokens ? _self.completionTokens : completionTokens // ignore: cast_nullable_to_non_nullable

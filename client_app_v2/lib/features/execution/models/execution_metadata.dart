@@ -1,5 +1,6 @@
 // ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:client_app/core/models/enums.dart';
 
 part 'execution_metadata.freezed.dart';
 part 'execution_metadata.g.dart';
@@ -15,6 +16,8 @@ abstract class ExecutionMetadata with _$ExecutionMetadata {
     @JsonKey(name: 'workflow_version') @Default(1) int workflowVersion,
     @JsonKey(name: 'global_context_vars')
     Map<String, dynamic>? globalContextVars,
+    @JsonKey(name: 'provider_override') LLMProvider? providerOverride,
+    @JsonKey(name: 'model_registry_id') String? modelRegistryId,
   }) = _ExecutionMetadata;
 
   /// Instantiates a strictly typed [ExecutionMetadata] from raw JSON.

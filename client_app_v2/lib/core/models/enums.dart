@@ -419,8 +419,10 @@ enum CognitiveTier {
 /// Supported LLM provider platforms.
 @JsonEnum()
 enum LLMProvider {
-  @JsonValue('google')
-  google,
+  @JsonValue('vertex_ai')
+  vertexAi,
+  @JsonValue('ai_studio')
+  aiStudio,
   @JsonValue('openai')
   openai,
   @JsonValue('anthropic')
