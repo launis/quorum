@@ -1603,6 +1603,36 @@ def run_variance_test(
             registry_id=model_registry,
         )
     print_workflow_matrix_telemetry(target_db_path, workflow_id=workflow)
+
+    # Console Telemetry Banner (Milestone 3 SSOT)
+    mode_label = "DEVELOPMENT (--dev)" if dev else "PRODUCTION (--prod / default)"
+    thinking_label = (
+        "0 tok (Gemini 0 tok / OpenAI 'low') [Pikaprofiili aktiivinen]"
+        if dev
+        else "Täysi päättely (DEEP 4096 tok / REASONING 8192 tok)"
+    )
+    ensemble_label = (
+        "1 (Single-pass / Best-of-1, EI Best-of-3 -konsensusta)"
+        if dev
+        else "3 (Täysi rinnakkainen Best-of-3 -konsensus)"
+    )
+    sampling_label = (
+        "1 atomi per vaatimustaso (Dev-pikakarsinta)" if dev else "Täysi matriisi (Kaikki atomit arvioidaan)"
+    )
+    cache_label = "Ohitettu (--no-cache)" if no_cache else "Aktiivinen (Prefix-Matching Context Caching)"
+
+    print("================================================================================")
+    print("[AKTIIVINEN YMPÄRISTÖ JA AJOASETUKSET]")
+    print("================================================================================")
+    print(f"  • Suoritusmoodi:             {mode_label}")
+    print(f"  • Ajattelubudjetti (Dev):    {thinking_label}")
+    print(f"  • Ensemble-rinnakkaisuus:    {ensemble_label}")
+    print(f"  • Matriisin otantaraja:      {sampling_label}")
+    print(f"  • Kontekstivälimuisti:       {cache_label}")
+    print(f"  • Syötehakemisto:            {inputs_target}")
+    print(f"  • Työnkulku:                 {workflow}")
+    print("================================================================================")
+
     execution_ids: list[str] = []
 
     for i in range(num_runs):
