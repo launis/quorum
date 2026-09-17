@@ -14,10 +14,11 @@ from typing import Any
 from arq.connections import RedisSettings, create_pool
 from pydantic import BaseModel
 
+from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
-from backend_v2.models.enums import GCPVertexLocation, PromptCacheStatus
+from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.models.v2_core import ModelProfile
@@ -122,9 +123,16 @@ class VertexCacheAdapter(BaseLLMAdapter):
             return compiled_prompt.to_flat_messages(), {}
 
         settings = get_settings()
-        location = os.getenv("VERTEX_LOCATION") or os.getenv("VERTEXAI_LOCATION")
+        location = os.getenv("VERTEX_LOCATION")
         if not location:
-            location = settings.vertex_location or GCPVertexLocation.EUROPE_NORTH1.value
+            location = os.getenv("VERTEXAI_LOCATION")
+        if not location and settings.vertex_location:
+            location = settings.vertex_location
+        if not location:
+            raise ConfigurationError(
+                message="Vertex AI requires a configured location in the active Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
         static_hash = hashlib.sha256(
             json.dumps(
                 [m.model_dump(mode="json", exclude_none=True) for m in compiled_prompt.static_messages],
@@ -423,6 +431,8 @@ class VertexCacheAdapter(BaseLLMAdapter):
         config_location = None
         if isinstance(config, LLMProviderConfig) and config.vertex_location:
             config_location = config.vertex_location
+        elif isinstance(config, ModelProfile) and config.additional_params.vertex_location:
+            config_location = config.additional_params.vertex_location
 
         # 1.5 Reasoning & Thinking Parameter Extraction / Sanitization
         model_name = str(
@@ -460,11 +470,22 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         settings_location = settings.vertex_location if settings is not None else None
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
-        active_location = call_kwargs.get("vertex_location") or config_location
+        active_location = call_kwargs.get("vertex_location")
+        if not active_location and config_location:
+            active_location = config_location
+        if not active_location and settings_location:
+            active_location = settings_location
+        if not active_location and env_location:
+            active_location = env_location
+        if not active_location and "cached_content" in call_kwargs and isinstance(call_kwargs["cached_content"], str):
+            loc_match = re.search(r"/locations/([^/]+)/", call_kwargs["cached_content"])
+            if loc_match:
+                active_location = loc_match.group(1)
         if not active_location:
-            active_location = settings_location or env_location
-        if not active_location:
-            active_location = GCPVertexLocation.EUROPE_NORTH1.value
+            raise ConfigurationError(
+                message="Vertex AI requires a configured location in the active Model Registry.",
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+            )
         os.environ["VERTEX_LOCATION"] = active_location
 
         os.environ["VERTEXAI_LOCATION"] = active_location

@@ -48,12 +48,14 @@ def get_available_models(
 def get_supported_locations(
     current_user: CurrentUserDep,
     studio_service: StudioSystemConfigServiceDep,
+    llm_handler: LLMHandlerDep,
 ) -> list[GCPLocationDTO]:
     """Retrieve all supported GCP Vertex AI locations and regions.
 
     Args:
         current_user: The authenticated user making the request.
         studio_service: The studio service dependency.
+        llm_handler: The LLM handler dependency for dynamic discovery.
 
     Returns:
         A list of supported GCP locations.
@@ -61,7 +63,7 @@ def get_supported_locations(
     Raises:
         AppException: If user is unauthorized or listing fails.
     """
-    return studio_service.get_supported_locations(current_user)
+    return studio_service.get_supported_locations(current_user, llm_handler)
 
 
 @router.get("/platforms", response_model=list[LLMPlatformDTO])

@@ -486,7 +486,7 @@ class LLMProviderName(StrEnum):
 
 
 class GCPVertexLocation(StrEnum):
-    """Supported GCP Vertex AI deployment locations and regions."""
+    """[DEPRECATED] Static GCP Vertex AI locations. Dynamic discovery replaces this enum."""
 
     EUROPE_NORTH1 = "europe-north1"  # Hamina, Finland
     EUROPE_WEST1 = "europe-west1"  # St. Ghislain, Belgium

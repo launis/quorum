@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
@@ -13,7 +13,6 @@ from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     EntityPrefix,
-    GCPVertexLocation,
     LLMPlatformType,
     LLMProvider,
 )
@@ -23,6 +22,10 @@ from backend_v2.models.v2_core import (
     SystemConfigModelRegistry,
 )
 from backend_v2.services.studio.auth_validator import enforce_modification_rights
+from backend_v2.settings import get_settings
+
+if TYPE_CHECKING:
+    from backend_v2.llm.handler import LLMHandler
 
 __all__ = ["StudioSystemConfigService"]
 
@@ -90,11 +93,16 @@ class StudioSystemConfigService:
 
         return sorted(flat_set)
 
-    def get_supported_locations(self, initiator: TokenData) -> list[GCPLocationDTO]:
-        """Get all supported GCP Vertex AI locations and regions.
+    def get_supported_locations(
+        self,
+        initiator: TokenData,
+        llm_handler: LLMHandler,
+    ) -> list[GCPLocationDTO]:
+        """Get all supported GCP Vertex AI locations and regions dynamically.
 
         Args:
             initiator: The authenticated user initiating the request.
+            llm_handler: The LLM handler for dynamic provider discovery.
 
         Returns:
             List of supported GCP locations.
@@ -111,38 +119,8 @@ class StudioSystemConfigService:
             )
             raise PermissionDeniedError("Only ROOT or ADMIN can access supported locations.")
 
-        return [
-            GCPLocationDTO(
-                id=GCPVertexLocation.EUROPE_NORTH1.value,
-                label="Hamina, Finland (europe-north1)",
-                description="Google Cloud Nordic flagship datacenter with 100% carbon-free energy.",
-            ),
-            GCPLocationDTO(
-                id=GCPVertexLocation.EUROPE_WEST1.value,
-                label="St. Ghislain, Belgium (europe-west1)",
-                description="Primary Western European Google Cloud region with broad Gemini availability.",
-            ),
-            GCPLocationDTO(
-                id=GCPVertexLocation.EUROPE_WEST4.value,
-                label="Eemshaven, Netherlands (europe-west4)",
-                description="Netherlands enterprise datacenter hub.",
-            ),
-            GCPLocationDTO(
-                id=GCPVertexLocation.EUROPE_WEST3.value,
-                label="Frankfurt, Germany (europe-west3)",
-                description="Central European financial and enterprise cloud hub.",
-            ),
-            GCPLocationDTO(
-                id=GCPVertexLocation.US_CENTRAL1.value,
-                label="Council Bluffs, Iowa (us-central1)",
-                description="Primary Google Cloud AI and Model Garden launch region.",
-            ),
-            GCPLocationDTO(
-                id=GCPVertexLocation.US_EAST4.value,
-                label="Ashburn, Virginia (us-east4)",
-                description="US East enterprise corridor with extensive compute capacity.",
-            ),
-        ]
+        settings = get_settings()
+        return llm_handler.fetch_vertex_locations(settings)
 
     def get_supported_platforms(self, initiator: TokenData) -> list[LLMPlatformDTO]:
         """Get all supported LLM platform providers.

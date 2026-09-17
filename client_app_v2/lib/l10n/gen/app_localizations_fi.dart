@@ -1075,6 +1075,17 @@ class AppLocalizationsFi extends AppLocalizations {
   String get modelRegistryTitle => 'Mallirekisteri';
 
   @override
+  String get refreshLocationsTooltip => 'Päivitä GCP Vertex AI -alueet';
+
+  @override
+  String get refreshModelsTooltip =>
+      'Päivitä löydetyt mallit palveluntarjoajalta';
+
+  @override
+  String get discoveryErrorTooltip =>
+      'Mallien tai alueiden haku palveluntarjoajalta epäonnistui. Napsauta yrittääksesi uudelleen.';
+
+  @override
   String get providerSettings => 'Palveluntarjoajan asetukset';
 
   @override

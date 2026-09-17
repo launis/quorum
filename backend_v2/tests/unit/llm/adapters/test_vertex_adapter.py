@@ -65,6 +65,8 @@ def mock_redis_client(monkeypatch: pytest.MonkeyPatch) -> Any:
         f"{__name__}.get_redis_client",
         mock_get_redis_client,
     )
+    monkeypatch.setenv("VERTEX_LOCATION", "europe-north1")
+    monkeypatch.setenv("VERTEXAI_LOCATION", "europe-north1")
     return fake_client
 
 
@@ -376,7 +378,7 @@ def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:
         model_name="vertex_ai/gemini-3.7-flash",
         thinking_budget_tokens=1024,
     )
-    call_kwargs_profile: dict[str, Any] = {}
+    call_kwargs_profile: dict[str, Any] = {"vertex_location": "europe-west1"}
     result_profile = adapter.prepare_kwargs(call_kwargs_profile, config=profile_config)
     assert result_profile["extra_body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 1024
 

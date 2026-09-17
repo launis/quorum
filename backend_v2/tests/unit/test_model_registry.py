@@ -69,7 +69,12 @@ def test_get_supported_locations(mock_current_user: TokenData, mock_studio_servi
         description="Finland datacenter",
     )
     mock_studio_service.get_supported_locations = MagicMock(return_value=[mock_loc])
-    res = get_supported_locations(current_user=mock_current_user, studio_service=mock_studio_service)
+    mock_handler = MagicMock()
+    res = get_supported_locations(
+        current_user=mock_current_user,
+        studio_service=mock_studio_service,
+        llm_handler=mock_handler,
+    )
     assert len(res) == 1
     assert res[0].id == "europe-north1"
 

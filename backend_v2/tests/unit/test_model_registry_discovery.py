@@ -131,9 +131,22 @@ class TestModelRegistryDiscoveryPositivePartitions:
                 assert s_res["ai_studio"] == ["gemini/gemini-2.5-flash"]
 
     def test_system_config_service_supported_locations(self) -> None:
-        """Verifies that get_supported_locations returns the full list of GCP regions using stateful repo."""
+        """Verifies that get_supported_locations delegates dynamically to LLMHandler."""
         repo = InMemorySystemRepository()
         service = StudioSystemConfigService(system_repo=repo)
+        mock_handler = MagicMock()
+        mock_handler.fetch_vertex_locations.return_value = [
+            GCPLocationDTO(
+                id="europe-north1",
+                label="Hamina, Finland (europe-north1)",
+                description="Google Cloud Vertex AI region: Hamina, Finland",
+            ),
+            GCPLocationDTO(
+                id="europe-west1",
+                label="St. Ghislain, Belgium (europe-west1)",
+                description="Google Cloud Vertex AI region: St. Ghislain, Belgium",
+            ),
+        ]
         initiator = TokenData(
             id="usr_root000000000000000000000001",
             email="root@example.com",
@@ -141,15 +154,58 @@ class TestModelRegistryDiscoveryPositivePartitions:
             organization_id="org_root000000000000000000000001",
         )
 
-        locations = service.get_supported_locations(initiator)
-        assert len(locations) == 6
+        locations = service.get_supported_locations(initiator, mock_handler)
+        assert len(locations) == 2
         loc_ids = [loc.id for loc in locations]
-        assert GCPVertexLocation.EUROPE_NORTH1.value in loc_ids
-        assert GCPVertexLocation.EUROPE_WEST1.value in loc_ids
-        assert GCPVertexLocation.EUROPE_WEST4.value in loc_ids
-        assert GCPVertexLocation.EUROPE_WEST3.value in loc_ids
-        assert GCPVertexLocation.US_CENTRAL1.value in loc_ids
-        assert GCPVertexLocation.US_EAST4.value in loc_ids
+        assert "europe-north1" in loc_ids
+        assert "europe-west1" in loc_ids
+
+    def test_fetch_vertex_locations_mock_mode(self) -> None:
+        """Verifies that fetch_vertex_locations returns mock locations in mock mode without GCP credentials."""
+        repo = InMemorySystemRepository()
+        handler = LLMHandler(repo=repo)
+        mock_settings = MagicMock()
+        mock_settings.use_mock_llm = True
+
+        locations = handler.fetch_vertex_locations(mock_settings)
+        assert len(locations) >= 6
+        loc_ids = [loc.id for loc in locations]
+        assert "europe-north1" in loc_ids
+        assert "us-central1" in loc_ids
+
+    def test_fetch_vertex_locations_live_and_caching(self) -> None:
+        """Verifies that fetch_vertex_locations queries GCP locations API and caches in memory."""
+        repo = InMemorySystemRepository()
+        handler = LLMHandler(repo=repo)
+        mock_settings = MagicMock()
+        mock_settings.use_mock_llm = False
+        mock_settings.llm_default_timeout_seconds = 5
+
+        mock_creds = MagicMock()
+        mock_creds.token = "mock-token"
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "locations": [
+                {"locationId": "europe-north1", "displayName": "Hamina"},
+                {"locationId": "us-central1", "displayName": "Iowa"},
+            ]
+        }
+
+        with patch("google.auth.default", return_value=(mock_creds, "mock-project")), \
+             patch("requests.get", return_value=mock_resp) as mock_get:
+            locations = handler.fetch_vertex_locations(mock_settings)
+            assert len(locations) == 2
+            assert locations[0].id == "europe-north1"
+            assert locations[0].label == "Hamina (europe-north1)"
+            assert locations[1].id == "us-central1"
+            assert mock_get.call_count == 1
+
+            # Second call must return from in-memory cache with zero requests.get calls
+            cached = handler.fetch_vertex_locations(mock_settings)
+            assert cached is locations
+            assert mock_get.call_count == 1
 
     def test_system_config_service_supported_platforms(self) -> None:
         """Verifies that get_supported_platforms returns the 4 registered platforms conforming to LLMPlatformDTO."""
@@ -207,6 +263,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
         )
         call_kwargs: dict[str, Any] = {
             "model": "vertex_ai/gemini-3.8-flash",
+            "vertex_location": "europe-north1",
             "temperature": 0.7,
             "top_p": 0.95,
             "top_k": 40,
@@ -263,6 +320,7 @@ class TestModelRegistryDiscoveryPositivePartitions:
         )
         call_kwargs: dict[str, Any] = {
             "model": "vertex_ai/gemini-2.5-pro",
+            "vertex_location": "europe-north1",
             "temperature": 0.7,
             "top_p": 0.95,
         }
@@ -271,6 +329,15 @@ class TestModelRegistryDiscoveryPositivePartitions:
 
         assert result["temperature"] == 0.7
         assert result["top_p"] == 0.95
+
+    def test_vertex_adapter_prepare_kwargs_fails_fast_when_location_missing(self) -> None:
+        """Negative Boundary: prepare_kwargs raises ConfigurationError when no vertex_location is configured."""
+        adapter = VertexAdapter()
+        call_kwargs: dict[str, Any] = {"model": "vertex_ai/gemini-2.5-pro"}
+        with pytest.raises(ConfigurationError) as exc_info:
+            adapter.prepare_kwargs(call_kwargs)
+
+        assert exc_info.value.error_code == ErrorCodes.CONFIGURATION_ERROR
 
 
 class TestModelRegistryDiscoveryNegativeBoundaries:
@@ -307,6 +374,7 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
         """Negative Boundary 2: Non-admin/non-root user triggers PermissionDeniedError on locations endpoint."""
         repo = InMemorySystemRepository()
         service = StudioSystemConfigService(system_repo=repo)
+        mock_handler = MagicMock()
         initiator = TokenData(
             id="usr_regular00000000000000000001",
             email="user@example.com",
@@ -315,7 +383,7 @@ class TestModelRegistryDiscoveryNegativeBoundaries:
         )
 
         with pytest.raises(AppException) as exc_info:
-            service.get_supported_locations(initiator)
+            service.get_supported_locations(initiator, mock_handler)
 
         assert exc_info.value.error_code == ErrorCodes.PERMISSION_DENIED
 

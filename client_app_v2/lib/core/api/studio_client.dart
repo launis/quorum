@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/utils/safe_isolate.dart';
+import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
 
 part 'studio_client.g.dart';
@@ -204,9 +206,14 @@ class StudioClient {
   }
 
   /// Retrieves all supported GCP Vertex AI locations.
-  Future<List<Map<String, dynamic>>> getSupportedLocations() async {
+  Future<List<GcpLocation>> getSupportedLocations() async {
     final response = await _dio.get('studio/model-registry/locations');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return safeIsolateRun(() {
+      return rawList
+          .map((item) => GcpLocation.fromJson(item as Map<String, dynamic>))
+          .toList(growable: false);
+    });
   }
 
   /// Retrieves all supported LLM platforms.

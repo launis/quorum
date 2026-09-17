@@ -1071,6 +1071,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get modelRegistryTitle => 'Model Registry';
 
   @override
+  String get refreshLocationsTooltip => 'Refresh GCP Vertex AI locations';
+
+  @override
+  String get refreshModelsTooltip => 'Refresh discovered models from provider';
+
+  @override
+  String get discoveryErrorTooltip =>
+      'Failed to discover models or locations from provider API. Click retry.';
+
+  @override
   String get providerSettings => 'Provider Settings';
 
   @override

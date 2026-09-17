@@ -4,10 +4,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/features/studio/views/model_registry_view.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
+  const List<GcpLocation> mockLocations = [
+    GcpLocation(
+      id: 'europe-north1',
+      label: 'Hamina, Finland (europe-north1)',
+      description: 'Google Cloud Vertex AI region: Hamina, Finland',
+    ),
+    GcpLocation(
+      id: 'europe-west1',
+      label: 'St. Ghislain, Belgium (europe-west1)',
+      description: 'Google Cloud Vertex AI region: St. Ghislain, Belgium',
+    ),
+  ];
+
   final List<Map<String, dynamic>> mockPlatforms = <Map<String, dynamic>>[
     {'id': 'vertex_ai', 'label': 'Google Vertex AI', 'has_regions': true},
     {'id': 'ai_studio', 'label': 'Google AI Studio', 'has_regions': false},
@@ -32,12 +46,7 @@ void main() {
                 (ref, _) async => mockModels,
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_123').overrideWith(
                 (ref) async => const ModelConfig(
@@ -153,16 +162,7 @@ void main() {
                 (ref, _) async => ['vertex_ai/gemini-2.5-pro'],
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                  {
-                    'id': 'europe-west1',
-                    'label': 'St. Ghislain, Belgium (europe-west1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_raw').overrideWith(
                 (ref) async => const ModelConfig(
@@ -235,12 +235,7 @@ void main() {
                 (ref, _) async => ['gemini/gemini-3.8-flash'],
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_gemini38').overrideWith(
                 (ref) async => const ModelConfig(
@@ -503,12 +498,7 @@ void main() {
                 (ref, _) async => mockModels,
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_dynamic').overrideWith(
                 (ref) async => const ModelConfig(
@@ -581,12 +571,7 @@ void main() {
                 (ref, _) async => ['gemini-2.5-flash'],
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_switch').overrideWith(
                 (ref) async => const ModelConfig(
@@ -664,12 +649,7 @@ void main() {
                 ),
               ),
               supportedLocationsProvider.overrideWith(
-                (ref) async => [
-                  {
-                    'id': 'europe-north1',
-                    'label': 'Hamina, Finland (europe-north1)',
-                  },
-                ],
+                (ref) async => mockLocations,
               ),
               modelRegistryByIdProvider('syscfg_err').overrideWith(
                 (ref) async => const ModelConfig(

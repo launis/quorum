@@ -2060,6 +2060,24 @@ abstract class AppLocalizations {
   /// **'Model Registry'**
   String get modelRegistryTitle;
 
+  /// No description provided for @refreshLocationsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh GCP Vertex AI locations'**
+  String get refreshLocationsTooltip;
+
+  /// No description provided for @refreshModelsTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh discovered models from provider'**
+  String get refreshModelsTooltip;
+
+  /// No description provided for @discoveryErrorTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to discover models or locations from provider API. Click retry.'**
+  String get discoveryErrorTooltip;
+
   /// No description provided for @providerSettings.
   ///
   /// In en, this message translates to:

@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
@@ -393,18 +394,47 @@ class ModelRegistryView extends HookConsumerWidget {
       decoration: InputDecoration(
         labelText: l10n.locationLabel,
         border: const OutlineInputBorder(),
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (supportedLocationsAsync.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            if (supportedLocationsAsync.hasError)
+              Tooltip(
+                message: l10n.discoveryErrorTooltip,
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: Colors.amber,
+                    size: 20,
+                  ),
+                ),
+              ),
+            IconButton(
+              icon: const Icon(Icons.refresh, size: 20),
+              tooltip: l10n.refreshLocationsTooltip,
+              onPressed: () => ref.invalidate(supportedLocationsProvider),
+            ),
+          ],
+        ),
       ),
       items: [
         if (currentLocation.isNotEmpty &&
-            !locations.any((loc) => loc['id'] == currentLocation))
+            !locations.any((GcpLocation loc) => loc.id == currentLocation))
           DropdownMenuItem(
             value: currentLocation,
             child: Text(currentLocation),
           ),
-        ...locations.map((loc) {
-          final locId = loc['id'] as String? ?? 'europe-north1';
-          final locLabel = loc['label'] as String? ?? locId;
-          return DropdownMenuItem(value: locId, child: Text(locLabel));
+        ...locations.map((GcpLocation loc) {
+          return DropdownMenuItem(value: loc.id, child: Text(loc.label));
         }),
       ],
       onChanged: (val) {
@@ -470,8 +500,11 @@ class ModelRegistryView extends HookConsumerWidget {
                 isActive: true,
               );
 
+          final effectiveProvider = cfg.provider.isNotEmpty
+              ? cfg.provider
+              : payload.defaultProvider;
           final isReasoning = _isReasoningModel(cfg);
-          final hasRegions = payload.defaultProvider == 'vertex_ai';
+          final hasRegions = effectiveProvider == 'vertex_ai';
           final activeLocation = hasRegions
               ? ((cfg.additionalParams['vertex_location'] as String?)
                             ?.isNotEmpty ==
@@ -482,7 +515,7 @@ class ModelRegistryView extends HookConsumerWidget {
 
           final modelsAsync = ref.watch(
             availableModelsProvider(
-              platform: payload.defaultProvider,
+              platform: effectiveProvider,
               location: activeLocation,
             ),
           );
@@ -547,18 +580,44 @@ class ModelRegistryView extends HookConsumerWidget {
                       labelText: l10n.modelNameLabel,
                       border: const OutlineInputBorder(),
                       isDense: true,
-                      suffixIcon: modelsAsync.isLoading
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: Padding(
-                                padding: EdgeInsets.all(12),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (modelsAsync.isLoading)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8.0),
+                              child: SizedBox(
+                                width: 16,
+                                height: 16,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
                                 ),
                               ),
-                            )
-                          : null,
+                            ),
+                          if (modelsAsync.hasError)
+                            Tooltip(
+                              message: l10n.discoveryErrorTooltip,
+                              child: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                child: Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.amber,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, size: 18),
+                            tooltip: l10n.refreshModelsTooltip,
+                            onPressed: () => ref.invalidate(
+                              availableModelsProvider(
+                                platform: effectiveProvider,
+                                location: activeLocation,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     items: modelItems.map((model) {
                       return DropdownMenuItem<String>(

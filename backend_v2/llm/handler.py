@@ -7,6 +7,7 @@ from typing import Any
 
 import openai
 import requests
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import (
     AppException,
@@ -16,10 +17,24 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.llm.provider import LLMFactory
+from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import LLMPlatformType, LLMProviderName
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.v2_core import SystemConfigModelRegistry
-from backend_v2.settings import get_settings
+from backend_v2.settings import Settings, get_settings
+
+
+class _VertexLocationItem(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    locationId: str
+    displayName: str | None = None
+
+
+class _VertexLocationsResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    locations: list[_VertexLocationItem] = Field(default_factory=list)
+    nextPageToken: str | None = None
+
 
 try:
     import google.auth
@@ -74,6 +89,8 @@ class LLMHandler:
         """
         self.repo = repo
         self._cached_openai_models: list[str] = []
+        self._cached_vertex_locations: list[GCPLocationDTO] = []
+        self._cached_ai_studio_models: list[str] = []
 
     def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
         if settings.use_mock_llm or "mock" in providers:
@@ -93,7 +110,7 @@ class LLMHandler:
             if len(providers) == 1 and "mock" in providers:
                 return
 
-    def _fetch_vertex_models(self, target_location: str, settings: Any) -> list[str]:
+    def _fetch_vertex_models(self, target_location: str, settings: Settings) -> list[str]:
         """Discovers and validates models available in Google Cloud Vertex AI in target_location.
 
         Args:
@@ -181,12 +198,13 @@ class LLMHandler:
                         headers = {"Authorization": f"Bearer {credentials.token}"}
 
                         url = f"https://{target_location}-aiplatform.googleapis.com/v1/publishers/{publisher}/models/{clean_id}"
-                        resp = requests.get(url, headers=headers, timeout=DEFAULT_HTTP_TIMEOUT)
+                        timeout_sec = settings.llm_default_timeout_seconds
+                        resp = requests.get(url, headers=headers, timeout=timeout_sec)
                         if resp.status_code == 200:
                             return f"vertex_ai/{clean_id}"
 
                         url_project = f"https://{target_location}-aiplatform.googleapis.com/v1/projects/{project}/locations/{target_location}/publishers/{publisher}/models/{clean_id}"
-                        resp_project = requests.get(url_project, headers=headers, timeout=DEFAULT_HTTP_TIMEOUT)
+                        resp_project = requests.get(url_project, headers=headers, timeout=timeout_sec)
                         if resp_project.status_code == 200:
                             return f"vertex_ai/{clean_id}"
 
@@ -230,6 +248,140 @@ class LLMHandler:
                 details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value, "original_error": str(e)},
             ) from e
 
+    def fetch_vertex_locations(self, settings: Any) -> list[GCPLocationDTO]:
+        """Fetch all available Google Cloud Vertex AI locations dynamically via ADC.
+
+        Caches results in memory for zero-latency subsequent access.
+        In mock mode (settings.use_mock_llm=True), returns deterministic mock locations.
+
+        Args:
+            settings: Central application settings containing mock mode or timeout configurations.
+
+        Returns:
+            Sorted list of GCPLocationDTO objects representing supported regions.
+
+        Raises:
+            ConfigurationError: If Google Cloud authentication fails or project cannot be resolved.
+            ServiceUnavailableError: If querying Google Cloud resource API fails.
+        """
+        if self._cached_vertex_locations:
+            return self._cached_vertex_locations
+
+        if settings.use_mock_llm:
+            mock_locations = [
+                GCPLocationDTO(
+                    id="europe-north1",
+                    label="Hamina, Finland (europe-north1)",
+                    description="Google Cloud Vertex AI region: Hamina, Finland",
+                ),
+                GCPLocationDTO(
+                    id="europe-west1",
+                    label="St. Ghislain, Belgium (europe-west1)",
+                    description="Google Cloud Vertex AI region: St. Ghislain, Belgium",
+                ),
+                GCPLocationDTO(
+                    id="europe-west3",
+                    label="Frankfurt, Germany (europe-west3)",
+                    description="Google Cloud Vertex AI region: Frankfurt, Germany",
+                ),
+                GCPLocationDTO(
+                    id="europe-west4",
+                    label="Eemshaven, Netherlands (europe-west4)",
+                    description="Google Cloud Vertex AI region: Eemshaven, Netherlands",
+                ),
+                GCPLocationDTO(
+                    id="us-central1",
+                    label="Council Bluffs, Iowa (us-central1)",
+                    description="Google Cloud Vertex AI region: Council Bluffs, Iowa",
+                ),
+                GCPLocationDTO(
+                    id="us-east4",
+                    label="Ashburn, Virginia (us-east4)",
+                    description="Google Cloud Vertex AI region: Ashburn, Virginia",
+                ),
+            ]
+            self._cached_vertex_locations = mock_locations
+            return mock_locations
+
+        if not GOOGLE_DEPS_AVAILABLE:
+            raise ConfigurationError(
+                message="Google Authentication libraries (google-auth) are not installed.",
+                details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
+            )
+
+        try:
+            try:
+                credentials, project = google.auth.default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+            except Exception as auth_err:
+                raise ConfigurationError(
+                    message="Google Authentication failed during Vertex AI location discovery.",
+                    details={"error_code": ErrorCodes.AUTHENTICATION_FAILED.value, "original_error": str(auth_err)},
+                ) from auth_err
+
+            if not project:
+                raise ConfigurationError(
+                    message="Google Cloud project could not be resolved from ADC.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                )
+
+            auth_request = google.auth.transport.requests.Request()
+            credentials.refresh(auth_request)  # type: ignore[no-untyped-call]
+            headers = {"Authorization": f"Bearer {credentials.token}"}
+
+            url = f"https://aiplatform.googleapis.com/v1/projects/{project}/locations"
+            timeout_sec = settings.llm_default_timeout_seconds
+
+            discovered_locations: list[GCPLocationDTO] = []
+            next_page_token: str | None = None
+            while True:
+                params = {"pageToken": next_page_token} if next_page_token else {}
+                resp = requests.get(url, headers=headers, params=params, timeout=timeout_sec)
+                if resp.status_code != 200:
+                    raise ServiceUnavailableError(
+                        message=f"Google Cloud Vertex AI locations query failed with HTTP {resp.status_code}: {resp.text}",
+                        details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "status_code": resp.status_code},
+                    )
+
+                parsed_response = _VertexLocationsResponse.model_validate(resp.json())
+                for loc in parsed_response.locations:
+                    if not loc.locationId:
+                        continue
+                    display_name = loc.displayName or loc.locationId
+                    discovered_locations.append(
+                        GCPLocationDTO(
+                            id=loc.locationId,
+                            label=f"{display_name} ({loc.locationId})",
+                            description=f"Google Cloud Vertex AI region: {display_name}",
+                        )
+                    )
+                next_page_token = parsed_response.nextPageToken
+                if not next_page_token:
+                    break
+
+            discovered_locations.sort(key=lambda loc: loc.id)
+            if not discovered_locations:
+                logger.warning(
+                    "[LLMHandler] Vertex AI locations discovery returned 0 locations for project %s.", project
+                )
+
+            self._cached_vertex_locations = discovered_locations
+            return discovered_locations
+
+        except Exception as e:
+            if isinstance(e, AppException):
+                raise e
+
+            logger.error(
+                "[LLMHandler] %s: Error fetching Vertex AI locations: %s",
+                ErrorCodes.SERVICE_UNAVAILABLE.name,
+                e,
+                exc_info=True,
+            )
+            raise ServiceUnavailableError(
+                message=f"Vertex AI Location Discovery Failed: {e}",
+                details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "original_error": str(e)},
+            ) from e
+
     def _fetch_ai_studio_models(self, settings: Any) -> list[str]:
         """Discovers and validates models available via direct Google AI Studio API key.
 
@@ -243,6 +395,9 @@ class LLMHandler:
             ConfigurationError: If Google AI Studio API key is missing.
             ServiceUnavailableError: If communication with Google AI Studio fails.
         """
+        if self._cached_ai_studio_models:
+            return self._cached_ai_studio_models
+
         api_key = settings.google_api_key
         if not api_key:
             raise ConfigurationError(
@@ -268,7 +423,9 @@ class LLMHandler:
                     details={"error_code": ErrorCodes.MODEL_LIST_FAILED.value},
                 )
 
-            return sorted(list(set(discovered)))
+            discovered_sorted = sorted(list(set(discovered)))
+            self._cached_ai_studio_models = discovered_sorted
+            return discovered_sorted
 
         except Exception as e:
             if isinstance(e, AppException):
@@ -419,9 +576,9 @@ class LLMHandler:
 
         if norm_platform == LLMPlatformType.VERTEX_AI.value:
             if not target_location:
-                raise ValueError(
-                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
-                    "Cannot proceed with Vertex AI Model Discovery."
+                raise ConfigurationError(
+                    message="CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             vertex_models = self._fetch_vertex_models(target_location, settings)
             models[LLMPlatformType.VERTEX_AI.value] = vertex_models
@@ -449,9 +606,9 @@ class LLMHandler:
 
         if LLMPlatformType.VERTEX_AI.value in active_providers or "vertex" in active_providers:
             if not target_location:
-                raise ValueError(
-                    "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
-                    "Cannot proceed with Vertex AI Model Discovery."
+                raise ConfigurationError(
+                    message="CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             vertex_models = self._fetch_vertex_models(target_location, settings)
             models[LLMPlatformType.VERTEX_AI.value] = vertex_models

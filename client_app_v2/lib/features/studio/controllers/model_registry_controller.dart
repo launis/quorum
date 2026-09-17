@@ -4,6 +4,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
+import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -194,13 +195,15 @@ Future<List<String>> availableModels(
   String? platform,
   String? location,
 }) async {
+  ref.cacheFor(AppDurations.cacheTimeout);
   final client = ref.watch(studioClientProvider);
   return client.getAvailableModels(platform: platform, location: location);
 }
 
 /// Fetches supported GCP Vertex AI locations.
 @riverpod
-Future<List<Map<String, dynamic>>> supportedLocations(Ref ref) async {
+Future<List<GcpLocation>> supportedLocations(Ref ref) async {
+  ref.cacheFor(AppDurations.cacheTimeout);
   final client = ref.watch(studioClientProvider);
   return client.getSupportedLocations();
 }

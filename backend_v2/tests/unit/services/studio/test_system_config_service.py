@@ -11,6 +11,7 @@ from pydantic import ValidationError
 from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
+from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import CognitiveTier, GCPVertexLocation, LLMPlatformType, LLMProvider
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
@@ -113,15 +114,25 @@ def test_get_available_models_permission_denied(service: StudioSystemConfigServi
 
 def test_get_supported_locations_success(service: StudioSystemConfigService, admin_token: TokenData) -> None:
     """Return list of supported GCP locations."""
-    locations = service.get_supported_locations(admin_token)
-    assert len(locations) == len(GCPVertexLocation)
-    assert locations[0].id == GCPVertexLocation.EUROPE_NORTH1.value
+    mock_handler = MagicMock()
+    mock_handler.fetch_vertex_locations.return_value = [
+        GCPLocationDTO(
+            id="europe-north1",
+            label="Hamina, Finland (europe-north1)",
+            description="Google Cloud Vertex AI region: Hamina, Finland",
+        )
+    ]
+    locations = service.get_supported_locations(admin_token, mock_handler)
+    assert len(locations) > 0
+    assert locations[0].id == "europe-north1"
+    assert locations[0].label == "Hamina, Finland (europe-north1)"
 
 
 def test_get_supported_locations_permission_denied(service: StudioSystemConfigService, member_token: TokenData) -> None:
     """Assert non-root/admin raises PermissionDeniedError."""
+    mock_handler = MagicMock()
     with pytest.raises(PermissionDeniedError):
-        service.get_supported_locations(member_token)
+        service.get_supported_locations(member_token, mock_handler)
 
 
 def test_get_supported_platforms_success(service: StudioSystemConfigService, admin_token: TokenData) -> None:

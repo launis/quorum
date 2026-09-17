@@ -8,7 +8,7 @@
       "tier_definitions": {
         "fast": {
           "max_tokens": 32768,
-          "model_name": "gemini/gemini-2.5-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 0.1,
           "thinking_budget_tokens": 0,
           "supports_grounding": false,
@@ -22,7 +22,7 @@
         },
         "balanced": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-2.5-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 2048,
           "supports_grounding": false,
@@ -36,7 +36,7 @@
         },
         "deep": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-2.5-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 4096,
           "supports_grounding": true,
@@ -50,7 +50,7 @@
         },
         "reasoning": {
           "max_tokens": 65536,
-          "model_name": "gemini/gemini-2.5-flash",
+          "model_name": "gemini/gemini-3.8-flash",
           "temperature": 1.0,
           "thinking_budget_tokens": 8192,
           "supports_grounding": false,

@@ -213,7 +213,7 @@ final class AvailableModelsProvider
   }
 }
 
-String _$availableModelsHash() => r'1c7d3a1fe06a00cfa6d87c59dfcf5ec2d82aad99';
+String _$availableModelsHash() => r'4312b8a929faf744e2b78256e870686a783d4f67';
 
 /// Fetches the list of available models from the backend filtered by platform and location.
 
@@ -254,13 +254,13 @@ final supportedLocationsProvider = SupportedLocationsProvider._();
 final class SupportedLocationsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          AsyncValue<List<GcpLocation>>,
+          List<GcpLocation>,
+          FutureOr<List<GcpLocation>>
         >
     with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
+        $FutureModifier<List<GcpLocation>>,
+        $FutureProvider<List<GcpLocation>> {
   /// Fetches supported GCP Vertex AI locations.
   SupportedLocationsProvider._()
     : super(
@@ -278,18 +278,18 @@ final class SupportedLocationsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $FutureProviderElement<List<GcpLocation>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  FutureOr<List<GcpLocation>> create(Ref ref) {
     return supportedLocations(ref);
   }
 }
 
 String _$supportedLocationsHash() =>
-    r'75c69997bf538d1b4d8813bb1ef83c5d407d953f';
+    r'7b2a74890a87670010ec816417fb6d5f6c158c00';
 
 /// Fetches supported LLM platforms.
 
