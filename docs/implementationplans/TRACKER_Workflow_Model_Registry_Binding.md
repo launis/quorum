@@ -30,8 +30,8 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md] @[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` production backend files:
+- [x] **[OK] Golden Master & Test Restoration Audit**: Verified 0 @pytest.mark.skip or commented-out tests in modified domains.
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified `@-referenced` production backend files:
   - [x] @[backend_v2/models/v2_core.py]
   - [x] @[backend_v2/models/execution_core.py]
   - [x] @[backend_v2/models/dtos/studio.py]
@@ -45,7 +45,7 @@
   - [x] @[backend_v2/llm/client.py]
   - [x] @[backend_v2/worker.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
-  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [x] @[scripts/run_e2e_variance_test.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified `@-referenced` production Flutter files:
   - [ ] @[client_app_v2/lib/features/studio/models/model_config.dart]
   - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
@@ -96,45 +96,45 @@
 ## Achieved
 - **Step 1-8 Implementation Complete:** Option A Sovereign Model Stack Architecture physically implemented across backend, frontend, seed vault, and variance tests.
 - **Tier 8 Plan Audit Complete (`528c79e0`):** All 12 requirements verified with 0 fatal errors.
-- **Tier 2 Backend Hardening Batch 1 Complete (5/14 files):**
+- **Tier 2 Backend Hardening Complete (14/14 files, 100% [OK]):**
   - `backend_v2/models/v2_core.py`: 100% strict Pydantic V2, 92% coverage, explicit `__all__ = [...]`, passed 174-rule audit matrix and strict AST loop.
   - `backend_v2/models/execution_core.py`: Added explicit `__all__ = ["ExecutionCoreFields", "ExecutionMetadata"]`, 100% coverage, passed 174-rule audit matrix.
   - `backend_v2/models/dtos/studio.py`: Modernized test fixtures from legacy `model_strategy` to `cognitive_tier="fast"`, 99% coverage, explicit `__all__ = [...]`, passed 174-rule audit matrix.
   - `backend_v2/database/interfaces.py`: Added complete 16-protocol `__all__ = [...]` export list, 100% coverage, passed 174-rule audit matrix.
   - `backend_v2/database/repositories/system.py`: Added explicit `__all__ = ["SystemRepositoryImpl"]`, refactored ternary fallbacks into fail-fast checks eliminating `QGR016` AST violations, 97% coverage, passed 174-rule audit matrix.
-- **Tier 2 Backend Hardening Batch 2 Progress (4/5 files complete, 9/14 total):**
   - `backend_v2/services/studio/system_config_service.py` (`eced272f`): Refactored ternary lazy defaults, explicit `__all__`, 96% coverage, 174-rule audit matrix passed.
   - `backend_v2/services/execution.py` (`aad81fed`): Refactored 10 ternary lazy fallbacks, explicit `__all__ = ["ExecutionService", "create_execution_record"]`, expanded unit tests to 63 cases reaching 90% statement coverage, 174-rule audit matrix passed.
   - `backend_v2/services/orchestrator/strategies/base.py` (`414c6d03`): Added `from __future__ import annotations`, explicit `__all__ = ["NodeStrategy", "StrategyContext", "StrategyDependencies"]`, RFC 7807 `logger.error` dual-reporting in `assert_quota`, updated docstrings to Option A contracts, passed 174-rule audit matrix and 96% test coverage.
   - `backend_v2/services/orchestrator/dag_executor.py`: Added `from __future__ import annotations`, eradicated 14 AST guardrail violations (`QGR016` ternary fallbacks, `QGR003` broad exception handlers), added `from backend_v2.models.auth import User` for typed user resolution, updated test fixture with valid User domain model, passed all 174 rules in audit matrix and achieved 90% test coverage.
-- **DAG Orchestrator Ecosystem Blast-Radius Analysis & User Permission Granted:**
-  - Scanned `backend_v2/services/orchestrator/dag_executor.py`, eradicated 14 AST violations.
-  - Explicit user permission secured: "PERMISSION GRANTED to mutate DAG Orchestrator ecosystem".
-- **Documentation & Knowledge Item Update Refinement:**
-  - Refined tracker lines 59–64 with explicit sub-items for `ki_provider_agnostic_caching.md`, `ki_desktop_pro_tool_studio_ux.md`, and `04_directory_reference.md`.
+  - `backend_v2/services/orchestrator/strategies/llm.py`: Added `from __future__ import annotations`, explicit `__all__ = ["LLMNodeStrategy"]`, Option A tier resolution via `LLMClient.from_tier`, passed 174-rule audit matrix and 98% test coverage.
+  - `backend_v2/llm/client.py` (`22de8c5e`): Populated and verified 174-rule audit matrix with substantive evidence, passed quality gate 100% cleanly (`backend_audit_loop.py --test --ast-strict`).
+  - `backend_v2/worker.py` (`5e6b3fe7`): Added `from __future__ import annotations`, eradicated 22 `QGR016` ternary fallbacks and 9 `QGR003` broad exceptions, modernized test fixtures to flat `tier_definitions`, passed 174-rule audit matrix and 90% test coverage with 61 tests.
+  - `backend_v2/services/studio/workflow_service.py` (`e9a14a03`): Added `from __future__ import annotations`, modernized test fixtures from `model_strategy` to `cognitive_tier=CognitiveTier.FAST`, passed 174-rule audit matrix with 42 tests and 98% statement coverage.
+  - `scripts/run_e2e_variance_test.py`: Populated and verified 174-rule audit matrix, passed `backend_audit_loop.py` quality gates, 35 passed unit tests.
+- **Golden Master & Test Restoration Audit Complete:** Verified 0 `@pytest.mark.skip` or commented-out tests in modified domains.
 
 ## Learned
-- In `backend_v2/services/orchestrator/strategies/base.py`, `assert_quota` was using `logger.warning` instead of RFC 7807 `logger.error` before raising `AppException(status_code=402, ErrorCodes.RATE_LIMIT_EXCEEDED)`.
-- In `backend_v2/services/orchestrator/dag_executor.py`, 14 AST violations (`QGR016` ternary lazy fallbacks, `QGR003` broad exceptions) were refactored to explicit branching and typed exception handling. In `test_dag_executor.py`, mock `get_user` was modernized from a naked dictionary to a validated `User` domain model.
-- `tmp/hardening_state.json` tracks progress across 14 targets: 9 completed, 5 remaining.
+- In `backend_v2/services/studio/workflow_service.py`, Pydantic V2 `Step` model enforces `model_config = ConfigDict(strict=True, extra="forbid")`. Legacy unit test fixtures in `test_workflow_service.py` were still instantiating `Step` with `model_strategy="fast"`, which was modernized to native `cognitive_tier=CognitiveTier.FAST`.
+- `scripts/run_e2e_variance_test.py` contains developer testing harness tooling; it adheres to all architectural constraints without fatal AST violations and verified against the 174-rule Neuro-Symbolic Audit Matrix.
 
 ## Remaining
-- **Next Primary Gate:** Continue `/tier2-hardening-backend` for remaining Batch 2 file:
-  - `@[backend_v2/services/orchestrator/strategies/llm.py]`
-- **Remaining Backend Batch 3 (4 files):**
-  - `@[backend_v2/llm/client.py]`
-  - `@[backend_v2/worker.py]`
-  - `@[backend_v2/services/studio/workflow_service.py]`
-  - `@[scripts/run_e2e_variance_test.py]`
-- **Post-Implementation Hardening Gates:**
-  - Execute `/tier2-hardening-frontend` on modified Flutter files.
-- **As-Built Architectural Sync:**
-  - Execute `/tier7-describe-architecture` to update architectural documents and sync Knowledge Items (`ki_desktop_pro_tool_studio_ux.md`, `ki_provider_agnostic_caching.md`).
+- **Next Primary Gate:** Tier 2 Hardening (Frontend) on modified Flutter files:
+  - `@[client_app_v2/lib/features/studio/models/model_config.dart]`
+  - `@[client_app_v2/lib/features/studio/models/workflow.dart]`
+  - `@[client_app_v2/lib/features/studio/views/step_builder_view.dart]`
+  - `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]`
+  - `@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart]`
+  - `@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart]`
+- **Subsequent Post-Implementation Gates:**
+  - Pre-Delete Audit
+  - Semantic Coverage & Zero-Loss Audit
+  - As-Built Architectural Sync (`/tier7-describe-architecture` for `ki_provider_agnostic_caching.md`, `ki_desktop_pro_tool_studio_ux.md`, and `04_directory_reference.md`)
+  - Final Plan Audit (`/tier8-audit-plan`)
 
 ### Hardening State Snapshot
-TARGETS: 14, DONE: 9, REMAINING: [@[backend_v2/services/orchestrator/strategies/llm.py], @[backend_v2/llm/client.py], @[backend_v2/worker.py], @[backend_v2/services/studio/workflow_service.py], @[scripts/run_e2e_variance_test.py]]
+TARGETS: 14, DONE: 14, REMAINING: []
 
 ## Resume Command
-`/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier2-hardening-backend" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/01-python-backend.md],@[.agents/rules/04_directory_reference.md]"`
+`/tier5-resume --target="@[docs/implementationplans/TRACKER_Workflow_Model_Registry_Binding.md]" --plan="@[docs/implementationplans/IMPLEMENTATION_PLAN_Workflow_Model_Registry_Binding.md]" --workflow="/tier2-hardening-frontend" --rules="@[.agents/rules/00-antigravity-core.md],@[.agents/rules/02_flutter_desktop.md],@[.agents/rules/04_directory_reference.md]"`
 
 
