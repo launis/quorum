@@ -523,6 +523,9 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         anchor_target="",
         is_inverse=True,
         depends_on=(),
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
     )
     matrix_context = MatrixEvaluationContext(
         matrix_assertions=[flattened],
@@ -589,6 +592,9 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch_inverse_evi
         anchor_target="",
         is_inverse=True,
         depends_on=(),
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
     )
     matrix_context = MatrixEvaluationContext(
         matrix_assertions=[flattened],

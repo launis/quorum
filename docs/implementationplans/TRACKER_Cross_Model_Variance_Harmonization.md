@@ -20,8 +20,8 @@
   - [x] Step 1: Pre-Implementation Cleanups (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`)
   - [x] Step 2: Static System Prompt Hardening (`matrix_evaluation.py`)
   - [x] Step 3: Test Harness & Ingress Invariance (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`)
-  - [ ] Step 4: Seed Data Hardening (`seed_data.json` - 19 high-entropy atoms)
-  - [ ] Step 5: Automated Test Suite & Audit Gates
+  - [x] Step 4: Seed Data Hardening (`seed_data.json` - 19 high-entropy atoms)
+  - [x] Step 5: Automated Test Suite & Audit Gates
   - [ ] Step 6: Knowledge Base Synchronization & KI Documentation Updates
   - [ ] Step 7: As-Built Architectural Pillar Synchronization via `/tier7-describe-architecture`
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization.md] @[docs/implementationplans/TRACKER_Cross_Model_Variance_Harmonization.md]`
@@ -84,13 +84,13 @@
 | REQ-09 | Enforce camelCase word-boundary regex spacing and space collapsing for table cells in `pdf_chat_extractor.py` | Step 3 | [x] |
 | REQ-10 | Hoist `expected_inputs` resolution and `load_inputs_from_path` outside the execution loop in `run_e2e_variance_test.py` under `--no-noise` | Step 3 | [x] |
 | REQ-11 | Add Pre-Flight Ingress Hash Assertion in `run_e2e_variance_test.py` verifying byte-identical SHA-256 hashes across comparison runs | Step 3 | [x] |
-| REQ-12 | Harden Group A structural atoms (Toulmin, Goodhart, XAI: 6 atoms) in `seed_data.json` with anti-patterns and acceptance criteria | Step 4 | [ ] |
-| REQ-13 | Harden Group B Kahneman Dual-Process atoms (3 atoms) in `seed_data.json` to disqualify task briefings and scenario parameters | Step 4 | [ ] |
-| REQ-14 | Harden Group C Bloom Taxonomy, Falsification & Clarity atoms (7 atoms) in `seed_data.json` against prompt commands and headcounts | Step 4 | [ ] |
-| REQ-15 | Harden Group D high-entropy triage atoms (3 atoms: Goodhart proxy, Avoimuus, Causal mechanisms) in `seed_data.json` | Step 4 | [ ] |
-| REQ-16 | Expand unit test suite in `test_matrix_evaluation.py` and add negative partition tests in `test_global_mandates.py` | Step 5 | [ ] |
-| REQ-17 | Expand ISTQB negative partition and boundary tests in `test_anchor_validation_service.py` and `test_extractive_sensor_service.py` | Step 5 | [ ] |
-| REQ-18 | Execute quality gate loops (`backend_audit_loop.py`), `run_seed.py local --dry-run`, and `audit_database_atoms.py --strict` | Step 5 | [ ] |
+| REQ-12 | Harden Group A structural atoms (Toulmin, Goodhart, XAI: 6 atoms) in `seed_data.json` with anti-patterns and acceptance criteria | Step 4 | [x] |
+| REQ-13 | Harden Group B Kahneman Dual-Process atoms (3 atoms) in `seed_data.json` to disqualify task briefings and scenario parameters | Step 4 | [x] |
+| REQ-14 | Harden Group C Bloom Taxonomy, Falsification & Clarity atoms (7 atoms) in `seed_data.json` against prompt commands and headcounts | Step 4 | [x] |
+| REQ-15 | Harden Group D high-entropy triage atoms (3 atoms: Goodhart proxy, Avoimuus, Causal mechanisms) in `seed_data.json` | Step 4 | [x] |
+| REQ-16 | Expand unit test suite in `test_matrix_evaluation.py` and add negative partition tests in `test_global_mandates.py` | Step 5 | [x] |
+| REQ-17 | Expand ISTQB negative partition and boundary tests in `test_anchor_validation_service.py` and `test_extractive_sensor_service.py` | Step 5 | [x] |
+| REQ-18 | Execute quality gate loops (`backend_audit_loop.py`), `run_seed.py local --dry-run`, and `audit_database_atoms.py --strict` | Step 5 | [x] |
 | REQ-19 | Update 5 Knowledge Items (`prompt_orchestration`, `seed_vault`, `ai_testing`, `scoring_strictness`, `forensic_quotes`) | Step 6 | [ ] |
 | REQ-20 | Synchronize architectural pillars (`09`, `02`, `01`) via `/tier7-describe-architecture` and update `.agents/rules/04_directory_reference.md` | Step 7 | [ ] |
 

@@ -276,6 +276,38 @@ def test_anchor_validation_quote_normalized_to_empty_string_fails() -> None:
         AnchorValidationService.validate_evidence(pdf_text, ["???"])
 
 
+def test_anchor_validation_is_lexically_valid_negative_partitions() -> None:
+    """ISTQB Negative Partitions: Assert empty, whitespace, and punctuation-only quotes fail lexical validation."""
+    source_text = "Standard valid document text for lexical validation testing."
+    norm_source, _ = AnchorValidationService.normalize_text_with_mapping(source_text)
+
+    # Empty normalized quotes must fail immediately without entering find("") == 0
+    for invalid_quote in ["", "   ", ".", "-", "...", " ? ! "]:
+        norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(invalid_quote)
+        assert (
+            AnchorValidationService._is_lexically_valid(
+                quote=invalid_quote,
+                norm_quote=norm_quote,
+                norm_text=norm_source,
+                strictness_level=70,
+            )
+            is False
+        )
+
+    # Valid quote must match Tier 1 literal find without regression
+    valid_quote = "Standard valid document"
+    norm_valid, _ = AnchorValidationService.normalize_text_with_mapping(valid_quote)
+    assert (
+        AnchorValidationService._is_lexically_valid(
+            quote=valid_quote,
+            norm_quote=norm_valid,
+            norm_text=norm_source,
+            strictness_level=70,
+        )
+        is True
+    )
+
+
 def test_anchor_validation_provenance_empty_allowed_stream_fails() -> None:
     # Only <ai_draft_context> present, but claim targets USER
     pdf_text = "<ai_draft_context>Model output here.</ai_draft_context>"
