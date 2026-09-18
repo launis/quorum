@@ -1012,17 +1012,25 @@
                   "extraction_rule": "The inferential rule is articulated, but its theoretical grounding, empirical validation, or academic backing is omitted.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify an explicit warrant linking data to claim.",
+                      "instruction": "Precondition: Verify that an explicit inferential rule or warrant linking data to claim is physically present in the text.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that no foundational theory, benchmark law, or academic source is cited as backing.",
+                      "instruction": "Disqualification check: Verify whether external backing (academic literature, empirical benchmark datasets, or established industry standards) is cited to substantiate that warrant.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that if no inferential warrant exists at all, this atom evaluates to FAILED, preventing false positive passes when both warrant and backing are absent.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
                       "pattern": "an empirical source is cited",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "argument entirely lacks an inferential warrant, rendering backing evaluation inapplicable",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -1058,17 +1066,25 @@
                   "extraction_rule": "The author defines explicit boundary constraints outlining where the reasoning is intended to hold valid.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify clear statements restricting the operational environment or domain of the claim.",
+                      "instruction": "Identify explicit operational parameters, domain conditions, or environmental constraints restricting the substantive validity of the argument.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that the scope excludes unsupported universal generalizations.",
+                      "instruction": "Verify that the conditions define when, where, and under what operational thresholds the technical mechanism or proposition remains valid.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that the scope excludes unsupported universal generalizations as well as superficial document headers or recipient labels.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
                       "pattern": "sweeping unconditional generalization claiming universal validity",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "document metadata, recipient designations, distribution headers, or title blocks that specify target readers without defining operational or environmental boundary conditions for the argument",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -1162,17 +1178,17 @@
                   "extraction_rule": "The bridging principle connecting premise to conclusion is formally stated using deductive, inductive, or causal logic.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify the data premise and conclusive claim within the argument.",
+                      "instruction": "Identify both the empirical data point (Data) and conclusive assertion (Claim) within the argument.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that an explicit warrant explains the functional mechanism translating data into conclusion.",
+                      "instruction": "Verify that the text explicitly articulates the general bridge principle, natural law, theoretical rule, or structural rationale explaining why and by what mechanism the premise necessitates the conclusion.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "it just says 'because' without stating the general rule",
+                      "pattern": "simple causal assertions or sequential conjunctions stating cause-and-effect relationships without articulating the general bridge principle, invariant rule, or structural rationale justifying the transition",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -1466,6 +1482,10 @@
                     {
                       "pattern": "it is just a pros/cons list",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "instructing an external assistant or model to act as devil's advocate or provide adversarial feedback rather than the author directly documenting their own empirical self-falsification tests or counter-hypothesis evaluations",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -1592,17 +1612,21 @@
                   "extraction_rule": "A complex multi-variable system is analyzed through naive univariate causality without controlling for confounding factors.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Locate arguments asserting linear cause-and-effect relationships in multi-tiered systems.",
+                      "instruction": "Locate an argument modeling a multi-variable, adaptive, or complex system.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify whether confounding variables, feedback loops, and non-linear saturation points are accounted for.",
+                      "instruction": "Verify that the author explicitly asserts a strictly proportional, univariate cause-and-effect relationship without accounting for diminishing returns, friction, or feedback mechanisms.",
+                      "requires_contextual_override": false
+                    },
+                    {
+                      "instruction": "Confirm that systemic complexity is reduced to naive deterministic proportionality without acknowledging confounding factors.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "confounding variables and non-linear dynamics are acknowledged",
+                      "pattern": "text explicitly notes systemic complexity, feedback loops, compounding risks, saturation thresholds, or countervailing forces",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -1719,6 +1743,10 @@
                     {
                       "pattern": "sentence explains causal mechanisms or functional interactions",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "operational scenario parameters, baseline organizational headcounts, or problem briefing figures supplied as inputs for an assigned task rather than unelaborated academic definitions or theoretical nomenclature",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -1768,6 +1796,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "items in list are connected by functional or causal relationships",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "organizational staffing breakdowns, stakeholder role distributions, or task parameter listings provided as operational context rather than unintegrated catalogs of academic terminology, dates, or historical figures",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -2513,6 +2545,10 @@
                     {
                       "pattern": "unrelated features or wishlist items listed without structural relationship",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "instructing an external assistant or model to analyze multiple perspectives or scoping an assignment rather than the author directly decomposing the system into distinct operational constituent components",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -2612,6 +2648,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "generic statement of difficulty without isolating the specific conflicting components",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "operational scenario constraints, stakeholder difficulties, or task scoping considerations stated in prompt briefings rather than analytical deconstruction of internal architectural contradictions or systemic trade-offs",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -3348,21 +3388,25 @@
                   "extraction_rule": "Locate and extract substantive evidence demonstrating that the evaluated text puts forward an initial intuitive stance, immediate subjective assessment, or declarative claim. Descriptive neutrality or absence of any claim does NOT satisfy this requirement; an explicit proposition must be present.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify a declarative proposition or evaluative statement expressing an immediate judgment or stance.",
+                      "instruction": "Identify an authentic declarative proposition or evaluative statement expressing an immediate judgment, reaction, or stance authored by the target speaker.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify the proposition is expressed directly without intermediate mathematical or formal logical derivation.",
+                      "instruction": "Verify the proposition is expressed directly without intermediate formal analytical derivation.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm the presence of an explicit substantive claim rather than passive cataloging of neutral data.",
+                      "instruction": "Confirm that operational scenario parameters, problem briefing figures, or instructions given to an external agent are excluded from serving as an evaluative stance.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
                       "pattern": "passive cataloging of neutral data without evaluative stance",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "operational problem background parameters, stakeholder constraints, or task instructions provided as input context rather than the author's own declarative evaluative proposition or subjective stance",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -3734,6 +3778,10 @@
                     {
                       "pattern": "universal unconditioned claims claiming applicability across all scenarios without exception",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "task assignment scoping statements, user prompt problem parameters, or organizational context restrictions given as instructions rather than the author defining operational boundary conditions for their own argument",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -3895,6 +3943,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "problem is addressed as an undifferentiated monolithic whole",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "high-level strategic goal aspirations, task wishlists, or prompt assignment objectives stated without operational decomposition into isolated, testable constituent sub-mechanisms",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -4997,6 +5049,10 @@
                     {
                       "pattern": "accepting proxy measurements as direct, incorruptible representations of fundamental success",
                       "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "advocating outcome-based management or shifting from presence tracking to goal metrics without analyzing the corruptibility, divergence, or gamification risks of proxy indicators",
+                      "allows_contextual_excuse": false
                     }
                   ],
                   "contrastive_example": {
@@ -5031,11 +5087,11 @@
                   "extraction_rule": "Locate and extract substantive evidence demonstrating that the author provides a concrete linguistic model, few-shot exemplar, or structurally detailed template to enforce analytical rigor.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify structural frameworks, multi-part schemas, or concrete exemplars supplied by the author.",
+                      "instruction": "Identify an explicit structural template, cognitive schema, or few-shot exemplar provided by the author.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Verify that the provided model specifies expected analytical depth, evidentiary standards, or argument mechanics.",
+                      "instruction": "Verify that the provided schema dictates methodological steps, logical categories, or evidentiary criteria for reasoning rather than superficial formatting or conversational roleplay requests.",
                       "requires_contextual_override": false
                     },
                     {
@@ -5046,6 +5102,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "issuing vague, generic stylistic prompts without providing structural templates or few-shot examples",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "superficial formatting requests, conversational roleplay instructions, document length constraints, or basic output delivery instructions that do not supply an analytical reasoning methodology, conceptual schema, or few-shot cognitive exemplar",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -7548,7 +7608,12 @@
                       "requires_contextual_override": false
                     }
                   ],
-                  "anti_patterns": [],
+                  "anti_patterns": [
+                    {
+                      "pattern": "operational work schedules, core hour policies, or conditional rules stated as workplace guidelines rather than an explanatory structural mechanism detailing how an operational variable transforms system state",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
                   "contrastive_example": {
                     "acceptable": "Refactoring database indexes reduced lock contention on the write buffer, decreasing median transaction commit latency by forty milliseconds.",
                     "rejected": "Optimizing the database layer helped improve general response times across the application."
@@ -8515,7 +8580,12 @@
                       "requires_contextual_override": false
                     }
                   ],
-                  "anti_patterns": [],
+                  "anti_patterns": [
+                    {
+                      "pattern": "procedural task dispatch instructions or formatting scoping commands rather than substantive analytical propositions or strategic policy proposals",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
                   "contrastive_example": {
                     "acceptable": "We propose replacing the legacy synchronous event bus with an asynchronous event streaming fabric to ensure horizontal scale.",
                     "rejected": "Various miscellaneous technical considerations exist across software architectures without any specific recommendation."
@@ -11102,19 +11172,24 @@
                   "extraction_rule": "Detect where recommendations are formulated as universal prescriptions without defining the boundary conditions, environmental assumptions, or constraints under which the synthesized advice remains reliable.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Identify prescriptive recommendations or operational guidance delivered in the synthesis.",
+                      "instruction": "Identify normative recommendations, strategic proposals, or operational guidance delivered in the evaluated text.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Check whether the recommendation defines the environmental conditions, constraints, or boundary assumptions under which it applies.",
+                      "instruction": "Verify whether the author asserts the recommendation unconditionally across all contexts without specifying environmental prerequisites, operational thresholds, or boundary conditions under which the advice ceases to be viable.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm whether the guidance is presented as an unconstrained universal rule without operational boundaries.",
+                      "instruction": "Confirm that the guidance is presented as an unconstrained universal imperative lacking boundary qualifications.",
                       "requires_contextual_override": false
                     }
                   ],
-                  "anti_patterns": [],
+                  "anti_patterns": [
+                    {
+                      "pattern": "recommendation explicitly specifies operational prerequisites, environmental constraints, risk factors, or viability thresholds",
+                      "allows_contextual_excuse": false
+                    }
+                  ],
                   "contrastive_example": {
                     "acceptable": "This advisory holds provided customer acquisition cost remains under 45€€ and interest rates do not exceed 4%. (Explicitly bounds operational validity).",
                     "rejected": "This organizational model will guarantee success across all operating units regardless of market conditions. (Unbounded universal prescription without constraints)."
@@ -15018,21 +15093,25 @@
                   "extraction_rule": "Locate and extract at least one explicit declarative conclusion, recommendation, or analytical stance.",
                   "acceptance_criteria": [
                     {
-                      "instruction": "Locate explanatory sections accounting for system behavior, failures, or strategic choices.",
+                      "instruction": "Identify an explicit declarative proposition asserting an analytical stance, substantive finding, or policy recommendation.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Check whether the explanation appeals to external factors or uncontrollable variables.",
+                      "instruction": "Verify that the proposition conveys substantive domain content rather than procedural document delivery or length constraints.",
                       "requires_contextual_override": false
                     },
                     {
-                      "instruction": "Confirm that internal logical steps and decision criteria are omitted in favor of externalized excuses.",
+                      "instruction": "Confirm that the stance provides an identifiable position subject to verification.",
                       "requires_contextual_override": false
                     }
                   ],
                   "anti_patterns": [
                     {
                       "pattern": "fragmented or unintelligible sentence fragments lacking a declarative claim",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "procedural task instructions, document length constraints, or prompt dispatch commands rather than substantive declarative stances, analytical findings, or strategic recommendations",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -15245,6 +15324,10 @@
                   "anti_patterns": [
                     {
                       "pattern": "referring only to 'the data' or 'information' without naming any specific variable or source",
+                      "allows_contextual_excuse": false
+                    },
+                    {
+                      "pattern": "operational problem background parameters, organizational staffing figures, or task briefing variables supplied as input context rather than analytical datasets, reference benchmarks, or primary evidence sources",
                       "allows_contextual_excuse": false
                     }
                   ],
