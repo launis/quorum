@@ -143,4 +143,8 @@ trigger: always_on
     <rule_block id="studio_driven_parameterization_mandate">
         <mandate>NEVER decouple or purge schema fields by inventing backend heuristics or trace scrapers. Background workers, synthesis orchestrators, and prompt compilers MUST operate as deterministic pipelines driven 100% by explicit Studio UI configurations (e.g. `OutputProfile.variance_target_block`, `matrix_synthesis_groups`). If a downstream feature requires a specific matrix block or step, expose it as an explicit selector in Quorum Studio and validate it fail-fast in Pydantic.</mandate>
     </rule_block>
+
+    <rule_block id="prompt_illustrative_examples_mandate">
+        <mandate>NEVER purge illustrative 'e.g.' examples from LLM prompts, system instructions, or schema descriptions under the false assumption that anti-ambiguity documentation rules apply to LLM prompting. In LLM instructions, 'e.g.' is permitted and expected whenever providing illustrative, open-ended examples (such as aliases `(e.g., 'a0', 'a1')`, sample absence rules, or context modalities). You may remove 'e.g.' or replace it with 'specifically:' ONLY IF you are 100% mathematically certain that the referenced list is permanently and exhaustively fixed across the entire system lifecycle (an immutable closed enum/set). Replacing open-ended illustrative examples with 'specifically:' misleads the LLM into assuming only those exact items exist, causing severe reasoning failures and false constraint hallucinations.</mandate>
+    </rule_block>
 </architectural_invariants>

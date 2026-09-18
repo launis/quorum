@@ -63,7 +63,7 @@ def test_global_mandates_negative_partitions() -> None:
         CONTEXT_SEGREGATION_MANDATE,
         GLOBAL_MANDATES_XML,
     ]
-    banned_tokens = ["e.g.", "atom_id", "exact_quotes", "decision"]
+    banned_tokens = ["atom_id", "exact_quotes", "decision"]
     for mandate in mandates:
         for token in banned_tokens:
             assert token not in mandate, f"Banned token '{token}' detected in mandate: {mandate[:50]}..."

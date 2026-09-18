@@ -8,7 +8,7 @@ DESC_EXACT_QUOTES = (
     "the claim in its asserted modality."
 )
 
-DESC_ALIAS = "The short identifier alias assigned to the claim (specifically: 'a0', 'a1')."
+DESC_ALIAS = "The short identifier alias assigned to the claim (e.g., 'a0', 'a1')."
 
 DESC_IS_TRUE = (
     "True if the text confirms the claim AND is grounded by an exact source_quote (or contextual_override=True). "
@@ -40,7 +40,10 @@ DESC_REASONING_TRACE = "Extensive analytical reasoning trace explaining the deci
 
 DESC_EVALUATION_NOTES = "General qualitative evaluation notes and analytical synthesis."
 
-DESC_EXACT_QUOTE_TEXT = "Exact verbatim sentence strictly entailing the claim in its asserted modality extracted directly from the source text."
+DESC_EXACT_QUOTE_TEXT = (
+    "Exact verbatim sentence strictly entailing the claim in its asserted modality "
+    "extracted directly from the source text."
+)
 
 STRICT_JSON_STRUCTURE_MANDATE = (
     "\n\n<json_structure_mandate>\nOutput must match this JSON Schema:\n{schema_json}\n</json_structure_mandate>"
