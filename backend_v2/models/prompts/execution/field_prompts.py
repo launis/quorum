@@ -8,7 +8,7 @@ DESC_EXACT_QUOTES = (
     "the claim in its asserted modality."
 )
 
-DESC_ALIAS = "The short identifier alias assigned to the claim (e.g., 'a0', 'a1')."
+DESC_ALIAS = "The short identifier alias assigned to the claim (specifically: 'a0', 'a1')."
 
 DESC_IS_TRUE = (
     "True if the text confirms the claim AND is grounded by an exact source_quote (or contextual_override=True). "

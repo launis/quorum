@@ -438,3 +438,23 @@ def test_anchor_validation_unicode_typographical_and_zero_width_spaces() -> None
     assert extracted_rev is not None
     assert len(extracted_rev) == 1
     assert extracted_rev[0] == "Strateginen suunta on määritelty"
+
+
+def test_anchor_validation_empty_and_punctuation_quotes_fail_lexical_validation() -> None:
+    """Negative ISTQB tests verifying empty, whitespace, and punctuation-only quotes fail _is_lexically_valid."""
+    norm_text, _ = AnchorValidationService.normalize_text_with_mapping("Any valid document text context here.")
+
+    # 1. Empty string quote
+    assert AnchorValidationService._is_lexically_valid("", "", norm_text, strictness_level=50) is False
+
+    # 2. Whitespace-only normalized quote
+    assert AnchorValidationService._is_lexically_valid("   ", "", norm_text, strictness_level=50) is False
+
+    # 3. Punctuation-only quote normalizing to empty string
+    assert AnchorValidationService._is_lexically_valid(".", "", norm_text, strictness_level=50) is False
+    assert AnchorValidationService._is_lexically_valid("---", "", norm_text, strictness_level=50) is False
+
+    # 4. Valid quote still succeeds
+    valid_quote = "valid document text"
+    norm_quote, _ = AnchorValidationService.normalize_text_with_mapping(valid_quote)
+    assert AnchorValidationService._is_lexically_valid(valid_quote, norm_quote, norm_text, strictness_level=50) is True

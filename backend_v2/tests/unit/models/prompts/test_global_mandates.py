@@ -47,3 +47,23 @@ def test_global_mandates_constants() -> None:
     assert "<context_segregation_mandate>" in GLOBAL_MANDATES_XML
     assert "<assignment_context>" in GLOBAL_MANDATES_XML
     assert "<anti_score_mandate>" in GLOBAL_MANDATES_XML
+
+
+def test_global_mandates_negative_partitions() -> None:
+    """ISTQB negative partition assertions ensuring obsolete V1 terms and ambiguity tokens are purged."""
+    mandates = [
+        ANTI_SCORE_MANDATE,
+        ANTI_ID_MANDATE,
+        EPISTEMIC_GLOSSARY_MANDATE,
+        SEMANTIC_BLEED_MANDATE,
+        NULL_HYPOTHESIS_MANDATE,
+        VERBATIM_EXTRACTION_MANDATE,
+        EXTENSION_ANCHORING_MANDATE,
+        SCHEMA_PURITY_MANDATE,
+        CONTEXT_SEGREGATION_MANDATE,
+        GLOBAL_MANDATES_XML,
+    ]
+    banned_tokens = ["e.g.", "atom_id", "exact_quotes", "decision"]
+    for mandate in mandates:
+        for token in banned_tokens:
+            assert token not in mandate, f"Banned token '{token}' detected in mandate: {mandate[:50]}..."

@@ -691,6 +691,36 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
             contextual_override=False,
         )
 
+    # Partition 7 (Boundary Negative): is_true=True, source_quote with 9 chars (< 10) raises ValidationError
+    with pytest.raises(ValidationError):
+        BooleanEvaluationResult(
+            alias="a0",
+            reasoning="Too short quote",
+            is_true=True,
+            source_quote="123456789",
+            contextual_override=False,
+        )
+
+    # Partition 8 (Boundary Positive): is_true=True, source_quote with exactly 10 chars passes
+    res8 = BooleanEvaluationResult(
+        alias="a0",
+        reasoning="Valid 10 char quote",
+        is_true=True,
+        source_quote="1234567890",
+        contextual_override=False,
+    )
+    assert res8.source_quote == "1234567890"
+
+    # Partition 9 (Negative): is_true=True, contextual_override=True with non-null source_quote raises ValidationError
+    with pytest.raises(ValidationError, match="Null hypothesis violation"):
+        BooleanEvaluationResult(
+            alias="a0",
+            reasoning="Override cannot have quote",
+            is_true=True,
+            source_quote="valid quote here",
+            contextual_override=True,
+        )
+
 
 def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
     """Verifies that resolve_majority_vote preserves winning vote's source_quote."""

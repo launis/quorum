@@ -32,11 +32,9 @@ ANTI_SCORE_MANDATE = (
 
 ANTI_ID_MANDATE = (
     "<anti_id_mandate>\n"
-    "- CRITICAL FORMATTING RULE for textual fields (e.g., semantic_reasoning, exact_quote): "
+    "- CRITICAL FORMATTING RULE for textual fields (specifically: reasoning, source_quote): "
     "Do NOT include raw system IDs in your explanatory text.\n"
     "- Refer to concepts by their human-readable names in your text.\n"
-    "- HOWEVER, the JSON key `atom_id` MUST ALWAYS be populated with the correct system ID. "
-    "Never omit the `atom_id` from the JSON object.\n"
     "</anti_id_mandate>"
 )
 
@@ -72,10 +70,10 @@ SEMANTIC_BLEED_MANDATE = (
 NULL_HYPOTHESIS_MANDATE = (
     "<null_hypothesis_mandate>\n"
     "- ABSENCE VERIFICATION PROTOCOL: If the rule requires verifying the ABSENCE of a feature "
-    "(e.g., 'no jargon', 'without empirical data'), you must search for physical evidence of "
-    "that feature. If you do NOT find physical evidence of it, you MUST return an empty list [] "
-    "for `exact_quotes` and set `decision` to True. Only if you find physical evidence of it, "
-    "do you return the matching `exact_quotes` and set `decision` to False.\n"
+    "(specifically: absent jargon or missing empirical data), you must search for physical evidence of "
+    "that feature. If you do NOT find physical evidence of it, you MUST set `source_quote` to null "
+    "and set `is_true` to False. Only if you find physical evidence of it, "
+    "do you return the matching `source_quote` and set `is_true` to True.\n"
     '- You MUST assume the "Null Hypothesis" by default: The source document DOES NOT satisfy '
     "the criteria unless you can find explicit, undeniable evidence proving otherwise. The burden "
     "of proof is on the text. If you have to guess, the answer is False/No/N/A.\n"
@@ -94,8 +92,8 @@ VERBATIM_EXTRACTION_MANDATE = (
 
 EXTENSION_ANCHORING_MANDATE = (
     "<extension_anchoring_mandate>\n"
-    "- CRITICAL XAI RULE: Every generated extension field (e.g. coaching, falsification, "
-    "remediation, missing_context) MUST be explicitly anchored to the user's raw input "
+    "- CRITICAL XAI RULE: Every generated extension field (specifically: coaching, "
+    "falsification, remediation, or missing_context) MUST be explicitly anchored to the user's raw input "
     "or the extracted evidence quote.\n"
     "- Do NOT output generic theoretical advice, assumed knowledge, or standard consultant "
     "jargon. If you offer a coaching tip, falsification, or point out missing context, it MUST "
@@ -111,7 +109,7 @@ SCHEMA_PURITY_MANDATE = (
     "- Your output will be parsed with 'extra=forbid' strictness, and any unauthorized fields "
     "will cause an immediate systemic crash.\n"
     '- CRITICAL JSON FORMATTING: If your extracted text or generated content contains double quotes (`"`), '
-    'you MUST properly escape them with a backslash (e.g., `\\"`) so that the final JSON remains valid. '
+    'you MUST properly escape them with a backslash (specifically: `\\"`) so that the final JSON remains valid. '
     "Failing to escape quotes inside JSON strings will break the parser.\n"
     "</schema_purity_mandate>"
 )
@@ -122,7 +120,7 @@ CONTEXT_SEGREGATION_MANDATE = (
     "misattribution.\n"
     "- <user_payload>: Contains the original human input. When evaluating the human's behavior, intent, or claims, "
     "your EXACT evidence quotes MUST ONLY be extracted from within this tag.\n"
-    "- <ai_draft_context>: Contains AI-generated text (e.g., previous chat responses, intermediate drafts). "
+    "- <ai_draft_context>: Contains AI-generated text (specifically: previous chat responses or intermediate drafts). "
     "You MUST read this to understand the conversational context surrounding the human's input. However, unless "
     "the claim's <target_speaker> is explicitly set to AI, in which case evidence MUST be drawn exclusively from "
     "<ai_draft_context>, you MUST NOT extract evidence quotes from this tag.\n"

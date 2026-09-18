@@ -123,7 +123,7 @@ class AnchorValidationService:
 
     @staticmethod
     def _is_lexically_valid(
-        quote: str, norm_quote: str, norm_text: str, strictness_level: int, locale: str | None
+        quote: str, norm_quote: str, norm_text: str, strictness_level: int, locale: str | None = None
     ) -> bool:
         """Helper to determine if a quote is lexically valid against a normalized source text.
 
@@ -137,6 +137,10 @@ class AnchorValidationService:
         Returns:
             True if lexically valid against the text, False otherwise.
         """
+        if not norm_quote:
+            logger.warning("Lexical Verifier rejected quote: normalized quote is empty.")
+            return False
+
         start_norm_idx = norm_text.find(norm_quote)
         if start_norm_idx != -1:
             return True

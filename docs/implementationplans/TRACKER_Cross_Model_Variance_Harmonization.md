@@ -17,7 +17,7 @@
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization.md]
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization.md] @[docs/implementationplans/TRACKER_Cross_Model_Variance_Harmonization.md]`
-  - [ ] Step 1: Pre-Implementation Cleanups (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`)
+  - [x] Step 1: Pre-Implementation Cleanups (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`)
   - [ ] Step 2: Static System Prompt Hardening (`matrix_evaluation.py`)
   - [ ] Step 3: Test Harness & Ingress Invariance (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`)
   - [ ] Step 4: Seed Data Hardening (`seed_data.json` - 19 high-entropy atoms)
@@ -73,11 +73,11 @@
 
 | Requirement | Description | Plan Step | Status |
 | :--- | :--- | :--- | :--- |
-| REQ-01 | Purge contradictory `atom_id`, V1 `exact_quotes`/`decision` terms, and open-ended `e.g.` ambiguity tokens from `global_mandates.py` | Step 1 | [ ] |
-| REQ-02 | Replace open-ended `e.g.` token in `DESC_ALIAS` with deterministic closed list `(specifically: 'a0', 'a1')` in `field_prompts.py` | Step 1 | [ ] |
-| REQ-03 | Replace silent auto-mutation `model_copy(update=)` with Fail-Fast `ValueError` in `StepDTOSemantic._enforce_override_exclusivity` | Step 1 | [ ] |
-| REQ-04 | Eradicate empty normalized quote bypass bug in `AnchorValidationService._is_lexically_valid` with `if not norm_quote: return False` | Step 1 | [ ] |
-| REQ-05 | Harden `BooleanEvaluationResult` schema with `min_length=10`, `strip()`, and non-whitespace character assertions on `source_quote` | Step 1 | [ ] |
+| REQ-01 | Purge contradictory `atom_id`, V1 `exact_quotes`/`decision` terms, and open-ended `e.g.` ambiguity tokens from `global_mandates.py` | Step 1 | [x] |
+| REQ-02 | Replace open-ended `e.g.` token in `DESC_ALIAS` with deterministic closed list `(specifically: 'a0', 'a1')` in `field_prompts.py` | Step 1 | [x] |
+| REQ-03 | Replace silent auto-mutation `model_copy(update=)` with Fail-Fast `ValueError` in `StepDTOSemantic._enforce_override_exclusivity` | Step 1 | [x] |
+| REQ-04 | Eradicate empty normalized quote bypass bug in `AnchorValidationService._is_lexically_valid` with `if not norm_quote: return False` | Step 1 | [x] |
+| REQ-05 | Harden `BooleanEvaluationResult` schema with `min_length=10`, `strip()`, and non-whitespace character assertions on `source_quote` | Step 1 | [x] |
 | REQ-06 | Inject `<procedural_prompt_disqualification_protocol>` and `<document_metadata_disqualification_protocol>` into `matrix_evaluation.py` | Step 2 | [ ] |
 | REQ-07 | Harden `CONTEXTUAL_OVERRIDE_DIRECTIVE` in `matrix_evaluation.py` requiring concrete alternative mechanisms and Null Hypothesis on inverse rules | Step 2 | [ ] |
 | REQ-08 | Apply Unicode NFKC normalization and uniform whitespace standardization before SHA-256 computation in `diff_executions.py` | Step 3 | [ ] |

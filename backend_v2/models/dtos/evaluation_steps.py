@@ -144,7 +144,7 @@ class StepDTOSemantic(StepDTOStrict):
     def _enforce_override_exclusivity(self) -> Self:
         """Enforces that exact_quotes is empty if contextual_override is True."""
         if self.contextual_override and self.exact_quotes:
-            return self.model_copy(update={"exact_quotes": []})
+            raise ValueError("Null hypothesis violation: exact_quotes must be empty when contextual_override is True.")
         return self
 
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 from typing import Annotated, Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -60,6 +61,7 @@ class BooleanEvaluationResult(BaseModel):
         str | None,
         Field(
             default=None,
+            min_length=10,
             max_length=500,
             description=DESC_SOURCE_QUOTE,
         ),
@@ -93,7 +95,7 @@ class BooleanEvaluationResult(BaseModel):
                         "Null hypothesis violation: source_quote must be None when contextual_override is True."
                     )
             else:
-                if not self.source_quote or not self.source_quote.strip():
+                if not self.source_quote or not re.search(r"\S", self.source_quote):
                     raise ValueError(
                         "Ungrounded positive evaluation: source_quote must be populated with non-empty text when is_true is True."
                     )
