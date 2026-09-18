@@ -16,7 +16,7 @@ Unconstrained LLM generation in evaluative workflows suffers from three systemic
 3. **Latency & FinOps Inefficiency:** Monolithic, dynamic prompts that inject execution variables into the system directive break model provider prefix caching, causing high latency and multiplying inference costs.
 
 To eliminate these vulnerabilities, Quorum enforces the **Four-Layer Clean Stack** hierarchy:
-* **Layer 1: Static System Directives & Epistemic Protocols:** Static prefix defining strict evaluator posture, null-hypothesis tie-breakers, and quote invariants.
+* **Layer 1: Static System Directives & Epistemic Protocols:** Static prefix defining strict evaluator posture, null-hypothesis tie-breakers, procedural prompt disqualification, document metadata disqualification, Metacognitive Safe Harbor, and quote invariants.
 * **Layer 2: Theory Grounding & Epistemic Context:** Explicit academic citations and domain objectives framing the cognitive audit.
 * **Layer 3: Massive Context Target:** Raw source materials (transcripts, deliverables, logs) encapsulated inside bounded XML tags.
 * **Layer 4: Dynamic Execution Parameters:** Runtime batch assertions (TDA atoms) mapped to deterministic opaque aliases (`a0`, `a1`), isolated at the absolute tail of the message payload.
@@ -322,6 +322,35 @@ A Test-Driven Assertion (TDA) represents the smallest indivisible unit of eviden
 
 ---
 
+### 2.14 Contextual Override Hardening (`contextual_override`)
+* **Role:** Governs the epistemic burden for excusing apparent defects or granting exceptions to explicit evaluative criteria.
+* **Operational Rules & Invariants:**
+  * **Physical Alternative Mechanism Mandate:** A contextual override requires that the source text explicitly provides a concrete alternative mechanism, mitigating factor, or compensating control physically present in the text.
+  * **Ban on Silence and Topical Omission Overrides:** Overrides are never granted for passive omission, silence, or topical non-mention. Speculative justifications (e.g. assuming an unmentioned factor is handled elsewhere) are strictly prohibited.
+  * **Deterministic Null Hypothesis on Inverse Rules:** For inverse rules (`inverse_evidence = True`), if an author simply does not mention an alternative mechanism, the defect is absent by default (`is_true = false`, mapping to `PASSED`). Overrides are not used to excuse an unmentioned mechanism.
+  * **Sovereign Evidence Prohibition:** Whenever `contextual_override = True`, `source_quote` is strictly forced to `None`. Evidence quotes cannot substantiate an overridden or excused claim.
+* **Prompt Wrapper & Mechanics:**
+  Encapsulated in Layer 1 `<contextual_override_directive>`:
+  ```xml
+  <contextual_override_directive>
+  - CONTEXTUAL OVERRIDE EXPLANATION MANDATE: If an assertion is not explicitly fulfilled, but the text provides an alternative concrete mechanism or contextually justifies its absence, you MAY set contextual_override = true.
+  - BANNED SPECULATIVE OVERRIDES: Never grant a contextual override based on assumptions, charity, passive omission, silence, or topical mention.
+  - QUALIFYING CRITERIA: A valid override requires that the author explicitly provides a different, functional mechanism that achieves equivalent analytical rigor.
+  - INVERSE RULE NULL HYPOTHESIS: For inverse rules, if an author does not mention an alternative mechanism, the defect is absent by default (is_true = false). Do NOT use contextual_override to excuse an unmentioned mechanism.
+  - NULL HYPOTHESIS BURDEN: When contextual_override is true, source_quote MUST be null.
+  </contextual_override_directive>
+  ```
+
+---
+
+### 2.15 Schema Term Purity & Ambiguity Elimination
+* **Role:** Enforces 100% strict alignment between static prompt directives and runtime Pydantic V2 DTO schemas (`BooleanEvaluationResult`, `BatchEvaluationResponse`).
+* **Operational Invariants:**
+  * **SSOT Field Alignment:** Prompt instructions refer exclusively to authoritative V2 DTO field names: `source_quote` (never legacy `exact_quotes`), `is_true` (never legacy `decision`), and `alias` (never legacy `atom_id`).
+  * **Ambiguity Token Eradication:** Open-ended ambiguity tokens (`e.g.`, `etc.`, `such as`, `like`) are banned from all prompt directives in favor of deterministic closed lists (specifically: `a0`, `a1`, `a2`).
+
+---
+
 ## 3. End-to-End Prompt Assembly & Transmission
 
 When Quorum compiles an evaluation step, it packages the static prefix and dynamic parameters into a strictly segregated message structure:
@@ -346,6 +375,21 @@ When Quorum compiles an evaluation step, it packages the static prefix and dynam
 - ASSIGNMENT BRIEFS & CONTEXT: <assignment_context> tags contain environmental task briefs, instructions, or evaluation rubrics. You MUST read this to understand assignment requirements, but you must NEVER quote from <assignment_context> as evidence for either USER or AI claims.
 - SINGLE-AUTHOR DELIVERABLES: For non-dialogue documents without dialogue tags, the entire text is author text (USER), and evidence is drawn directly from the primary document.
 </speaker_attribution_protocol>
+
+<procedural_prompt_disqualification_protocol>
+- PROCEDURAL PROMPT DISQUALIFICATION: User task briefings, prompt constraints, and instructions directed at an external AI assistant do NOT constitute evidence of cognitive competence.
+- METACOGNITIVE SAFE HARBOR: Author-directed self-regulation, analytical methodology, and deliberate scope boundary setting within deliverables remain valid cognitive evidence.
+</procedural_prompt_disqualification_protocol>
+
+<document_metadata_disqualification_protocol>
+- DOCUMENT METADATA DISQUALIFICATION: Document headers, distribution lists, recipient tags, and file paths do NOT serve as operational scope boundaries or substantive evidence.
+</document_metadata_disqualification_protocol>
+
+<contextual_override_directive>
+- QUALIFYING CRITERIA: A valid contextual override requires that the author explicitly provides a different, functional mechanism that achieves equivalent analytical rigor.
+- INVERSE RULE NULL HYPOTHESIS: For inverse rules, if an author does not mention an alternative mechanism, the defect is absent by default (is_true = false). Do NOT use contextual_override to excuse an unmentioned mechanism.
+- NULL HYPOTHESIS BURDEN: When contextual_override is true, source_quote MUST be null.
+</contextual_override_directive>
 
 <epistemic_decision_protocol>
 - POSITIVE CLAIMS (Standard Evidence): Evaluate whether the required structure is explicitly substantiated.

@@ -49,6 +49,12 @@ Bibliographic references and academic provenance metadata are strictly decoupled
 ### 2.12. Structured Few-Shot Calibration Schema (ContrastivePairDTO)
 Evaluation assertions and rubrics across the ontology define structured few-shot grounding via `ContrastivePairDTO`, encapsulating `acceptable` and `rejected` exemplars with enforced minimum length boundaries and equality conflict rejection. This eliminates unstructured string delimiters and manual prefix conventions from the seed vault, guaranteeing that every matrix atom provides a pristine, strongly typed boundary definition ready for prompt compilation and direct production deployment across all environments without runtime parsing shims.
 
+### 2.13. Matrix Seed Vault Hardening & Anti-Pattern Standards
+High-entropy evaluation atoms across the 13 canonical matrices enforce deterministic anti-patterns and disambiguated multi-step acceptance criteria to eliminate subjective evaluation drift:
+- **Scaffolding and Prompt Parameter Disqualification**: Explicit anti-patterns disqualify user task briefings, problem constraints, headcount allocations, and external AI dispatch instructions from satisfying cognitive competence criteria.
+- **Cognitive Theory Hardening**: Atoms evaluating Bloom's Revised Taxonomy and Kahneman's Dual Process Theory enforce rigorous ontological boundaries. System 1 claims require demonstrated rule-of-thumb judgment rather than textbook definitions, while System 2 claims require active step-by-step cognitive calculation rather than passive retrospective review.
+- **Multi-Step Deductive Criteria**: High-entropy triage atoms specify sequential acceptance criteria requiring multi-stage causal mediators and empirical scrutiny of proxy performance indicators, ensuring consistent interpretation across multi-provider evaluation fleets.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

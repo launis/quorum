@@ -71,6 +71,13 @@ All evidence extraction and provenance gating across the architecture enforce th
 ### 2.17. Decoupled Cloud Credentials & Dynamic Model Registry Resolution
 Google Cloud Vertex AI (`LLMProvider.VERTEX_AI`) and Google AI Studio (`LLMProvider.AI_STUDIO`) operate as sovereign, decoupled providers with complete credential and network isolation. Vertex AI resolves authentication exclusively via Google Cloud Application Default Credentials (ADC, configured via `GOOGLE_APPLICATION_CREDENTIALS` pointing to `service-account.json`) and requires explicit regional parameterization (`settings.vertex_location`, defaulting to EU Hamina `europe-north1`). Google AI Studio resolves authentication exclusively via environment variable injection (`google_api_key`). Hardcoding API keys, service tokens, or magic database identifiers in domain models, default workflow properties, or service layers is prohibited. Model registries exist as dynamic database documents (`SystemConfigModelRegistry`) referenced explicitly by workflows (`workflow.model_registry_id`), resolving cognitive tier profiles in $O(1)$ time via typed provider enums without string-prefix or substring heuristics.
 
+### 2.18. Cryptographic Input Ingress Determinism & Cross-Model Consensus Bounds
+To guarantee repeatable evaluation and eliminate test harness noise across foundational model fleets:
+1. **Ingress Hoisting & Cryptographic Collision**: In deterministic execution modes (`--no-noise`), input resolution and file extraction are hoisted outside execution loops, sharing an immutable input capsule across comparison runs. Pre-flight assertions verify that serialized input payloads produce byte-identical SHA-256 hashes before model dispatch.
+2. **Ingress Table Extraction Determinism**: PDF table extraction applies camelCase boundary spacing and whitespace normalization to prevent layout-state artifacts from altering token sequences between runs.
+3. **Canonical Hash Verification**: Execution comparison tooling standardizes text via Unicode NFKC normalization and whitespace uniformity before calculating file hashes, eliminating false-positive divergence alerts.
+4. **Statistical Consensus Invariants**: Multi-provider evaluations are mathematically calibrated to near-perfect consensus: Cohen's Kappa $\kappa \ge 0.9500$, Fleiss' Kappa $\kappa \ge 0.9500$, Mean Absolute Difference (MAD) $\le 1.85\text{ pp}$, and maximum block drift $\le 2.50\text{ pp}$ across the 205-atom holistic evaluation suite.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
