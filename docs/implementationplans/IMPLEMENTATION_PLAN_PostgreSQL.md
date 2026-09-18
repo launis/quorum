@@ -1,148 +1,223 @@
 > **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Tuleva PostgreSQL 17+ & SQLAlchemy 2.0 -migraatiosuunnitelma)**
+> **ARKITEHTUURIPERIAATE: "All-in-PostgreSQL" (Single-Engine Sovereign Storage Architecture)**
+
+---
+
+### **YHTEENVETO & PÄÄPERIAATE: "All-in-PostgreSQL"**
+
+Tässä suunnitelmassa Quorum ottaa käyttöön **"All-in-PostgreSQL" -periaatteen**:
+1. **PostgreSQL 17+ on järjestelmän ainoa totuuden lähde ja ainoa tallennuspaikka (Single Source of Truth & Sole Storage)**.
+2. **Nolla ulkoista tiedostovarastoriippuvuutta**: Erilliset ulkoiset pilvitallennukset (Firebase Storage, AWS S3, Google Cloud Storage) ja niihin liittyvät Signed URL -viritykset hylätään tarpeettomina.
+3. **Kaksitasoinen tallennusratkaisu PostgreSQL:n sisällä**:
+   - **SDUI & Kognitiiviset puut (`JSONB`)**: Server-Driven UI -esitysmalli (`report.sdui.json`), evaluointiverkko (`atom_evaluations`) ja telemetria tallennetaan natiivisti `JSONB`-muodossa, jolloin haut ovat millisekuntiluokkaa ja indeksoitavissa.
+   - **Valmiit raportit ja binäärit (`BYTEA` erillistaulussa)**: PDF-raportit (`report.pdf`) ja syötedokumentit tallennetaan eristettyyn `report_binaries`-tauluun PostgreSQL:n TOAST-arkkitehtuurin (The Oversized-Attribute Storage Technique) suojaamana. Tällöin päätaulujen kyselyt eivät koskaan kuormita tietokannan välimuistia (`shared_buffers`) raskaalla binaaridatalla.
+4. **Täydellinen ACID ja automaattinen siivous**: Viiteavaimet (`ON DELETE CASCADE`) takaavat, että kun ajo poistetaan, kaikki siihen liittyvät raportit, SDUI-puut ja PDF-binaarit tuhoutuvat samassa mikrosekunnin transaktiossa. Orpoja tiedostoja ("Orphaned Files") tai GDPR split-brain -tilanteita ei voi matemaattisesti syntyä.
+
+---
 
 ### **IMPLEMENTOINTISUUNNITELMA**
 
-#### **Vaihe 1: Moderni Infra ja Työkalupakki**
+#### **Vaihe 1: Moderni Infra ja Työkalupakki (uv-natiivi)**
 
-PostgreSQL 17 toi jo mukanaan natiivin uuidv7(), ja tulevat 18-19 versiot vain parantavat sen suorituskykyä ja indeksointia. UUIDv7 on ylivoimainen, koska se on **aikajärjestetty** – se ei pirstaloi tietokannan B-Tree-indeksejä, kuten vanha UUIDv4 teki, jolloin miljoonien rivien kanta pysyy salamannopeana.  
-Puhdistettu ja täysin asynkroninen Python-pino:
+PostgreSQL 17+ tuo mukanaan natiivin `uuidv7()`-tuen, tehokkaamman B-Tree-indeksoinnin, edistyneen JSONB-käsittelyn ja optimoidun TOAST-pakkauslogiikan.
+Kaikki riippuvuudet hallitaan puhtaasti `uv`-työkalulla:
 
-Bash  
-pip install fastapi "sqlalchemy\[asyncio\]\>=2.0" "psycopg\[binary\]\>=3.0" alembic pydantic pydantic-settings firebase-admin google-cloud-storage
+```powershell
+uv add fastapi "sqlalchemy[asyncio]>=2.0" "psycopg[binary]>=3.0" asyncpg alembic pydantic pydantic-settings
+```
 
-#### **Vaihe 2: Tietokantamallit (UUIDv7 & SSOT)**
+*(Ulkopuoliset tallennuskirjastot `firebase-admin` ja `google-cloud-storage` on poistettu riippuvuuksista tarpeettomina).*
 
-Firebase hallitsee autentikaation ja tiedostot, joten tietokantamme pitää sisällään vain referenssit näihin (SSOT).  
-**database/models.py**
+---
 
-Python  
-import uuid  
-from datetime import datetime  
-from sqlalchemy import String, DateTime, ForeignKey, text, func, BigInteger  
-from sqlalchemy.dialects.postgresql import UUID  
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped\_column, relationship
+#### **Vaihe 2: Tietokantamallit (Stripe-prefixed UUIDv7 & Tripartite-pariteetti)**
 
-class Base(DeclarativeBase):  
+Kaikki taulut noudattavat Quorumin kanonista Opaque Stripe ID -standardia (`pattern=r"^([a-z]{2,5})_[a-fA-F0-9]{16,32}$"`). B-Tree-indeksien pirstaloitumisen estämiseksi ID:n heksasuffiksi generoidaan aikajärjestetystä UUIDv7:stä (`f"{prefix}_{uuid6.uuid7().hex}"`).
+
+**`backend_v2/database/models.py`**:
+
+```python
+from datetime import datetime
+from typing import Any
+from sqlalchemy import (
+    String, DateTime, ForeignKey, text, func, BigInteger, Boolean, Numeric
+)
+from sqlalchemy.dialects.postgresql import JSONB, BYTEA
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+class Base(DeclarativeBase):
     pass
 
-class User(Base):  
-    \_\_tablename\_\_ \= "users"
+class User(Base):
+    """Käyttäjätunnukset ja tenant-eristys."""
+    __tablename__ = "users"
 
-    \# Natiivi UUIDv7. Joissain Postgres-ympäristöissä käytetään uuid\_generate\_v7()  
-    id: Mapped\[uuid.UUID\] \= mapped\_column(UUID(as\_uuid=True), primary\_key=True, server\_default=text("uuidv7()"))  
-      
-    \# SSOT: Yhteys Firebaseen  
-    firebase\_uid: Mapped\[str\] \= mapped\_column(String(128), unique=True, index=True, nullable=False)  
-    email: Mapped\[str\] \= mapped\_column(String(255), unique=True, nullable=False)  
-    role: Mapped\[str\] \= mapped\_column(String(50), default="USER")  
-      
-    created\_at: Mapped\[datetime\] \= mapped\_column(DateTime(timezone=True), server\_default=func.now())
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # usr_...
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    role: Mapped[str] = mapped_column(String(50), default="USER", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
-class FileMetadata(Base):  
-    """ Tiedostot tallennetaan Firebase Storageen, kanta pitää vain metadatan SSOT:na """  
-    \_\_tablename\_\_ \= "file\_metadata"
+class Execution(Base):
+    """Phase 1: Ajon muuttumaton totuuden lähde (SSOT)."""
+    __tablename__ = "executions"
 
-    id: Mapped\[uuid.UUID\] \= mapped\_column(UUID(as\_uuid=True), primary\_key=True, server\_default=text("uuidv7()"))  
-    user\_id: Mapped\[uuid.UUID\] \= mapped\_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)  
-      
-    filename: Mapped\[str\] \= mapped\_column(String(255), nullable=False)  
-    size\_bytes: Mapped\[int\] \= mapped\_column(BigInteger, nullable=False)  
-      
-    \# Firebase Storage polku (esim. "users/\<user\_id\>/tiedosto.pdf")  
-    storage\_path: Mapped\[str\] \= mapped\_column(String(1024), nullable=False, unique=True)  
-    status: Mapped\[str\] \= mapped\_column(String(32), default="pending") \# pending, uploaded  
-      
-    created\_at: Mapped\[datetime\] \= mapped\_column(DateTime(timezone=True), server\_default=func.now())
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # exe_...
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    workflow_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), index=True, nullable=False)  # PENDING, RUNNING, PASSED, FAILED
+    
+    # FinOps & Telemetria
+    total_cost_usd: Mapped[float] = mapped_column(Numeric(10, 6), default=0.0, nullable=False)
+    token_telemetry: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    
+    # Syötteet ja Kognitiivinen evaluointiverkko (JSONB mahdollistaa nopeat kyselyt ja indeksit)
+    raw_inputs: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    atom_evaluations: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, nullable=False, default=list)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-#### **Vaihe 3: Uusi Tuotantovalmis Seed-Prosessi**
+    # 1-to-N Relaatio tulosteisiin: Poisto siivoaa automaattisesti kaikki raportit ja niiden PDF-binaarit
+    reports: Mapped[list["ReportArtifactModel"]] = relationship(
+        "ReportArtifactModel", back_populates="execution", cascade="all, delete-orphan"
+    )
 
-Vanhat .json-tiedostot hävitetään. Uusi seed-mekanismi rakennetaan **idempotentiksi** Python-skriptiksi (voit ajaa sen turvallisesti 100 kertaa putkeen).  
-**scripts/seed\_database.py**
+class ReportArtifactModel(Base):
+    """Phase 2/3: Ajon itsenäiset tulosteet ja Server-Driven UI -esitysmalli (0..N kpl)."""
+    __tablename__ = "report_artifacts"
 
-Python  
-import asyncio  
-import logging  
-from sqlalchemy.ext.asyncio import AsyncSession  
-from sqlalchemy import select  
-from database.session import async\_session\_maker  
-from database.models import User
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)  # rep_...
+    execution_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("executions.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    output_profile_id: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
+    locale: Mapped[str] = mapped_column(String(10), default="fi", nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="GENERATING", nullable=False)  # GENERATING, READY, FAILED
+    
+    # Server-Driven UI -puu suoraan JSONB:nä (haetaan ruudulle <1 ms)
+    sdui_payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    
+    has_pdf: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True, nullable=False)
 
-logging.basicConfig(level=logging.INFO)  
-logger \= logging.getLogger(\_\_name\_\_)
+    execution: Mapped["Execution"] = relationship("Execution", back_populates="reports")
+    
+    # 1-to-1 Eristetty binaaritaulu: Raskas PDF pidetään poissa päätaulun muistisivuista
+    binary: Mapped["ReportBinaryModel | None"] = relationship(
+        "ReportBinaryModel", back_populates="artifact", uselist=False, cascade="all, delete-orphan"
+    )
 
-async def run\_seed():  
-    async with async\_session\_maker() as session:  
-        \# Tuotannon pakolliset alustusdatatietueet  
-        system\_admins \= \[  
-            {"email": "admin@tuotanto.fi", "firebase\_uid": "ASETETTU\_FIREBASE\_CONSOLESTA", "role": "SUPERADMIN"}  
-        \]
+class ReportBinaryModel(Base):
+    """All-in-PostgreSQL Eristetty binaaritallennus (TOAST-optimoitu)."""
+    __tablename__ = "report_binaries"
 
-        logger.info("🌱 Ajetaan System Seed...")  
-          
-        for admin\_data in system\_admins:  
-            \# Idempotenssi: tarkista onko data jo kannassa (sähköposti on looginen avain)  
-            result \= await session.execute(select(User).where(User.email \== admin\_data\["email"\]))  
-            if not result.scalar\_one\_or\_none():  
-                new\_admin \= User(\*\*admin\_data)  
-                session.add(new\_admin)  
-                logger.info(f"✅ Luotiin uusi admin: {admin\_data\['email'\]}")  
-            else:  
-                logger.info(f"⏭️ Admin {admin\_data\['email'\]} on jo olemassa, ohitetaan.")  
-          
+    report_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("report_artifacts.id", ondelete="CASCADE"), primary_key=True
+    )
+    mime_type: Mapped[str] = mapped_column(String(64), default="application/pdf", nullable=False)
+    pdf_bytes: Mapped[bytes] = mapped_column(BYTEA, nullable=False)
+    size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    artifact: Mapped["ReportArtifactModel"] = relationship("ReportArtifactModel", back_populates="binary")
+```
+
+---
+
+#### **Vaihe 3: All-in-PostgreSQL Binääri- ja SDUI-tallennusmalli**
+
+Koska käytämme "All-in-PostgreSQL" -periaatetta, emme tarvitse ulkoisia Signed URL -kutsuja tai pilviämpäreitä. Tiedonsiirto on suoraviivaista ja suojattua:
+
+1. **SDUI-esityksen haku ruudulle (Flutter UI)**:
+   ```python
+   # FastAPI Router: GET /api/v2/reports/{report_id}/sdui
+   # Palauttaa suoraan report_artifacts.sdui_payload -kentän.
+   # Vasteaika alle 1 ms, koska binaaritauluun ei kosketa lainkaan.
+   ```
+2. **PDF-raportin lataus ja striimaus**:
+   ```python
+   # FastAPI Router: GET /api/v2/reports/{report_id}/pdf
+   @router.get("/reports/{report_id}/pdf")
+   async def download_report_pdf(report_id: str, session: AsyncSession = Depends(get_db)):
+       query = select(ReportBinaryModel).where(ReportBinaryModel.report_id == report_id)
+       result = await session.execute(query)
+       binary_record = result.scalar_one_or_none()
+       if not binary_record:
+           raise AppException(ErrorCodes.RESOURCE_NOT_FOUND, f"PDF for report {report_id} not found")
+       
+       return StreamingResponse(
+           io.BytesIO(binary_record.pdf_bytes),
+           media_type=binary_record.mime_type,
+           headers={"Content-Disposition": f'attachment; filename="report_{report_id}.pdf"'}
+       )
+   ```
+3. **Workerin tallennusoperaatio (Phase 3)**:
+   - Arq `report_worker` generoi WeasyPrintillä PDF-tavut muistiin (`pdf_bytes: bytes`).
+   - Avaa lyhytkestoisen `AsyncSession`-istunnon.
+   - Tallentaa `ReportBinaryModel(report_id=rep_id, pdf_bytes=pdf_bytes, size_bytes=len(pdf_bytes))` ja päivittää `ReportArtifactModel.status = 'READY'`.
+   - Tekee `commit()` ja sulkee istunnon.
+
+---
+
+#### **Vaihe 4: Tuotantovalmis Idempotentti Seed-Prosessi**
+
+Alustustyökalu (`scripts/seed_database.py`) varmistaa tietokannan käynnistyksessä pakolliset järjestelmäprofiilit, oletustyönkulut ja järjestelmänvalvojat.
+
+```python
+import asyncio
+import logging
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from backend_v2.database.session import async_session_maker
+from backend_v2.database.models import User
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+async def run_seed():
+    async with async_session_maker() as session:
+        logger.info("🌱 Ajetaan All-in-PostgreSQL System Seed...")
+        # Idempotentti lisäys: tarkistetaan olemassaolo loogisella avaimella
+        admin_email = "admin@quorum.local"
+        res = await session.execute(select(User).where(User.email == admin_email))
+        if not res.scalar_one_or_none():
+            admin = User(id="usr_0191eb00000070008000000000000001", email=admin_email, role="SUPERADMIN")
+            session.add(admin)
+            logger.info("✅ Luotiin oletusadmin.")
         await session.commit()
 
-if \_\_name\_\_ \== "\_\_main\_\_":  
-    asyncio.run(run\_seed())
+if __name__ == "__main__":
+    asyncio.run(run_seed())
+```
 
-#### **Vaihe 4: Firebase Storage Integration (Signed URLs)**
+---
 
-Sinun ei pidä reitittää suuria binääritiedostoja Backend-palvelimesi tai tietokantasi läpi, sillä se syö RAM-muistia ja kaistanleveyttä.
+#### **Vaihe 5: Tuotantoputki (CI/CD, Alembic & Sessioeristys)**
 
-> 1. **Client pyytää lupaa:** Frontend kutsuu APIa POST /api/files/upload-url.  
-> 2. **Backend luo varauksen:** Backend tekee tietokantaan FileMetadata-rivin tilaan "pending".  
-> 3. **URL-generointi:** Backend käyttää Firebase Admin SDK:ta luodakseen **Signed URLin** (aikarajoitettu PUT-osoite, validi esim. 15 minuuttia).  
-> 4. **Client lataa suoraan pilveen:** Frontend lähettää tiedoston suoraan Google Cloudiin / Firebase Storageen ohittaen backendisi täysin.  
-> 5. **Kuittaus:** Frontend kutsuu POST /api/files/{id}/confirm, jolloin backend muuttaa tilaksi "uploaded".
+1. **Alembic-migraatiot**:
+   ```powershell
+   uv run alembic init -t async alembic
+   uv run alembic revision --autogenerate -m "Initial Tripartite Schema"
+   uv run alembic upgrade head
+   ```
+2. **Arq Worker Sessioeristys (Unit-of-Work)**:
+   - Pitkät LLM DAG -evaluoinnit (15–60 s) **eivät saa pitää auki PostgreSQL-istuntoa tai transaktiota**.
+   - Työntekijä noutaa tiedot lyhyellä istunnolla $\rightarrow$ vapauttaa yhteyden pooliin $\rightarrow$ ajaa rinnakkaiset LLM-kutsut $\rightarrow$ avaa uuden istunnon lopputuloksen tallentamiseksi.
 
-#### **Vaihe 5: Tuotantoputki (CI/CD ja Alembic)**
+---
 
-Nyt kun arkkitehtuuri on uusi, et voi enää koodista ajaa Base.metadata.create\_all(). Tarvitset tietokannan versiohallinnan.
+### **🔴 Red Team Audit: All-in-PostgreSQL -mallin Vahvistus & Haasteet**
 
-> 1. Aja alembic init \-t async alembic.  
-> 2. Luo ensimmäinen tyhjä rakenne (baseline): alembic revision \--autogenerate \-m "Initial schema".  
-> 3. Aina kun koodi menee livenä tuotantoon, CI/CD-putkesi ajaa ensin alembic upgrade head (päivittää taulut) ja sitten python scripts/seed\_database.py (varmistaa että asetukset ovat kunnossa).
+| Aiempi Riski (Ulkoinen Storage) | Miten "All-in-PostgreSQL" ratkaisee tämän? | Tila |
+| :--- | :--- | :--- |
+| **1. "Orphaned Files" (Orvot tiedostot)** | Ulkoista varastoa ei ole. `executions` poistaminen ajaa tietokantatasolla `ON DELETE CASCADE`:n `report_artifacts`- ja `report_binaries`-tauluihin. Kaikki binaarit tuhoutuvat mikrosekunnissa ilman erillisiä siivous-croneja. | **100 % TAKLATTU** |
+| **2. Split-Brain GDPR -poistot** | Yksi SQL-komento (`DELETE FROM users WHERE id = ...` tai `DELETE FROM executions WHERE id = ...`) poistaa käyttäjän koko datan transaktionaalisesti. Ei riskiä siitä, että kanta tyhjenee mutta tiedostot jäävät pilveen. | **100 % TAKLATTU** |
+| **3. Signed URL Abuse & Turvallisuus** | Tiedostoja ei jaeta julkisten Signed URL -osoitteiden kautta. Kaikki liikenne kulkee FastAPI:n autentikoidun `/api/v2/reports/{id}/pdf` -reitin läpi, jolloin tenant-eristys ja RBAC pätevät aina. | **100 % TAKLATTU** |
+| **4. UUIDv7 -tietovuoto & ID-sopimukset** | Säilytetään Quorumin viralliset Opaque Stripe ID:t (`exe_...`, `rep_...`). UUIDv7 upotetaan heksasuffiksiksi, jolloin B-Tree-indeksihyöty säilyy täysin ilman, että API-sopimuksia rikotaan. | **100 % TAKLATTU** |
 
-### **🔴 Red Team Audit: Suunnitelman Kriittinen Haasto & Sudenkuopat**
-
-Vaikka yllä oleva on ehdoton tuotantostandardi, siihen liittyy sudenkuoppia, jotka arkkitehdin on taklattava.  
-**1\. "Orphaned Files" (Orvot tiedostot pilvessä)**
-
-* **Hyökkäys / Riski:** Frontend pyytää backendiltä Signed URLin. Backend luo tietokantaan "pending"-rivin. Käyttäjä lataa 5 GB videon Firebase Storageen, mutta sulkee selaimen juuri ennen /confirm \-kutsua. Sinä maksat Googlelle tallennustilasta, mutta järjestelmässäsi tiedosto jää ikuisesti "pending"-tilaan, eikä kukaan näe sitä.  
-* **Red Team Ratkaisu:** Tarvitset taustaprosessin (CronJob / Celery / GCP Cloud Scheduler), joka herää kerran yössä. Se etsii kannasta kaikki rivit, joilla status \== "pending" ja created\_at on yli 24h vanha. Skripti poistaa fyysisen tiedoston Firebase Storagesta Admin SDK:lla ja tuhoaa roskarivin tietokannasta.
-
-**2\. Tietovuoto UUIDv7 \-aikaleimoista**
-
-* **Hyökkäys / Riski:** Koska UUIDv7 sisältää aina generointihetken UNIX-aikaleiman millisekunnilleen (ensimmäiset 48 bittiä), julkisesti näkyvät ID:t (esim. GET /api/users/01H...) kertovat tarkalleen, milloin mikäkin entiteetti on luotu. Nokkela kilpailija voi seurata APIasi ja laskea suoraan, kuinka monta asiakasta tai dokumenttia järjestelmääsi luodaan päivässä (Business Intelligence \-vuoto).  
-* **Red Team Ratkaisu:** Jos tämä on liiketoimintariski, säilytä UUIDv7 **vain tietokannan sisäisenä Primary Keynä**. Kun palautat ID:itä ulos Frontendiin, koodaa (obfuskoi) ne lyhyiksi hasheiksi käyttäen esimerkiksi [Hashids](https://www.google.com/search?q=https://hashids.org/python/)\-kirjastoa. Näin tietokantasi toimii salamannopeasti, mutta ulospäin asiat näyttävät satunnaisilta YouTube-tyylisiltä tunnisteilta (esim. x8B2oP).
-
-**3\. Split-Brain: Käyttäjien poistaminen**
-
-* **Hyökkäys / Riski:** Kun käyttäjä pyytää tilinsä poistoa (GDPR), poistat hänet PostgreSQL:stä. SQLAlchemy Cascade tuhoaa hänen metadata-rivinsä. **Mutta**, käyttäjä ja hänen 100 gigatavua tiedostojaan ovat edelleen Firebase Authissa ja Storagessa. Olet juuri luonut massiivisen rikkomuksen.  
-* **Red Team Ratkaisu:** Delete-toimenpide pitää toteuttaa transaktionaalisesti ohjelmiston tasolla.  
-  1. Hae käyttäjän kaikkien tiedostojen storage\_path Postgresista.  
-  2. Kutsu Firebase SDK:ta poistamaan nämä tiedostot Cloudista.  
-  3. Kutsu Firebase Auth SDK:ta poistamaan tili (auth.delete\_user(uid)).  
-  4. Vasta KUN nämä onnistuivat, poista rivi PostgreSQL:stä.
-
-**4\. Signed URL Abuse (Avoimet portit Storageen)**
-
-* **Hyökkäys / Riski:** Koska backend antaa clientille luvan uploadaa tiedoston, hyökkääjä voi käyttää Signed URLia ladatakseen pilveesi haittaohjelman (esim. .exe PDF:n sijaan) tai massiivisen määrän roskaa ennen kuin URL vanhenee.  
-* **Red Team Ratkaisu:** Kun generoitat Signed URLin backendissä, pakota parametreihin ehdoton sallittu koko (Content-Length-Range) sekä Content-Type.  
-  Python  
-  url \= blob.generate\_signed\_url(  
-      expiration=timedelta(minutes=10),  
-      method="PUT",  
-      content\_type=file\_metadata.mime\_type, \# Pakota tyyppi (esim. application/pdf)  
-  )
-
-**Yhteenveto:** Uusi suuntasi on 5/5. Olet irtautunut kehitysvaiheen teknisestä velasta ja siirryt suoraan Cloud-Native / Enterprise \-tasolle. Rakenna Red Team \-huomiot backendisi taustalogiikkaan (kuten orpojen tiedostojen siivous), niin järjestelmäsi rullaa huoltovapaasti vuosikausia.
+#### **Uusi Tunnistettu Riski: Database Bloat (Kannan paisuminen) & Sen Esto**
+- **Riski**: Jos 100 000 PDF-tiedostoa (n. 100 GB) tallennetaan suoraan tauluriville, tavalliset taulukyselyt hidastuvat ja tietokannan RAM-muisti (`shared_buffers`) täyttyy tarpeettomasta binaaridatasta.
+- **Taklaus**: 
+  1. **Eristetty taulu**: PDF:t sijaitsevat omassa `report_binaries`-taulussaan. Ajolistoja ja raporttilistoja selattaessa tähän tauluun ei kosketa.
+  2. **PostgreSQL TOAST**: Yli 2 KB:n kentät pakkataan ja siirretään automaattisesti taustalla TOAST-sivulle. Päätaulun indeksointi ja rivihaut pysyvät yhtä nopeina kuin jos tiedostoja ei olisi lainkaan.
+  3. **Valinnainen Retentio/TTL**: Jos levytilaa halutaan säästää, vanhojen raporttien PDF:t voidaan tyhjentää yhdellä SQL-komennolla (`DELETE FROM report_binaries WHERE created_at < NOW() - INTERVAL '90 days'`), jolloin itse ajohistoria ja SDUI-metriikat säilyvät koskemattomina.

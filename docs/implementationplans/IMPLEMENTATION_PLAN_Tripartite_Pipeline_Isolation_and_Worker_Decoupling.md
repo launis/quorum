@@ -39,6 +39,12 @@ Furthermore, this plan formalizes the **Materialized Report Artifact Architectur
     - *Option A Sovereign Model Stack Architecture*: Workflows bind to a dedicated 4-tier model stack via `Workflow.model_registry_id` (100% dynamic DB resolution, zero code-level default registry IDs). `SystemConfigModelRegistry` houses `name: str`, `default_provider: LaxLLMProvider`, and flat `tier_definitions: dict[CognitiveTier, ModelProfile]`.
     - *Provider-Agnostic Cognitive Tiers*: Workflow steps author abstract cognitive tiers (`FAST`, `BALANCED`, `DEEP`, `REASONING`) via `Step.cognitive_tier: CognitiveTier`. `LLMClient.from_tier()` resolves clients in $O(1)$ time, and `ExecutionMetadata` / `ExecutionCreate` carry `provider_override: LLMProvider | None` and `model_registry_id: str | None`.
     The Tripartite decomposition MUST strictly preserve, respect, and integrate these architectures across all decomposed domain modules (`domain/system_config.py`, `domain/step.py`, `domain/workflow.py`, `domain/execution.py`), background workers (`workers/execution_worker.py`, `workers/report_worker.py`), and execution services (`services/execution/ingress_service.py`, `services/report_service.py`). Report workers and `ReportService` invoke `LLMClient.from_tier(CognitiveTier.BALANCED, ...)` using the execution's bound `model_registry_id` and `provider_override`, with zero regression to legacy string strategies or merged pseudo-providers.
+14. **Physical Codebase Baseline & AST Verification Invariant (2026-09-18 Verification)**: Physical line measurements confirm the active codebase baseline: `backend_v2/models/v2_core.py` is at 1,901 lines, `backend_v2/worker.py` is at 1,987 lines, `backend_v2/services/execution.py` is at 1,494 lines, and `backend_v2/services/blueprint.py` is at 589 lines. All extraction slices MUST be re-verified against physical AST node ranges via `scripts/_ast_boundary_utils.py` prior to code extraction, ensuring deterministic boundary slicing regardless of historical line shifts.
+15. **Context Amnesia Phasing & Handover Governance**: To prevent context amnesia across 60+ touched files, execution of this plan MUST be structured into three sequential phases separated by explicit `/tier5-session-handover` checkpoints:
+    - *Phase A: God Code Decomposition & Ghost Field Purge (Steps 1–2)* -> Handover A->B
+    - *Phase B: Worker & Service Decoupling (Steps 3–7)* -> Handover B->C
+    - *Phase C: REST API, Flutter UI & Documentation (Steps 8–12)*
+    All architectural features (specifically: B2B Public API, per-report model overrides, 4-format compilation, and extended telemetry) are 100% retained and executed as planned.
 
 ---
 
@@ -153,6 +159,71 @@ To eradicate loose dictionaries (`dict[str, Any]`), untyped state tuples, and si
    - **Zero Naked Dicts**: `dict[str, Any]` and `TypedDict` are banned from domain state transit. Every nested structure is an explicit, immutable Pydantic V2 model.
    - **Full-Duplex Serialization Parity**: Every Python Pydantic V2 model has a 1:1 typed Dart Freezed counterpart in Flutter (`@Freezed(equal: false)`) with matching `snake_case` $\leftrightarrow$ `camelCase` `@JsonKey` mappings.
 
+### 7.1 Lifecycle Ontology & Pipeline Streamlining: ReportArtifact vs. ReportDataDTO vs. ReportRowItemDTO
+
+To guarantee a streamlined, high-performance pipeline that completely eliminates redundant computations across multi-channel rendering, the architecture enforces the **"Compute Once, Project Many"** paradigm across three distinct model roles:
+
+```
+[Phase 1: ExecutionRecord] (Authoritative raw analytical computation & atom scores)
+             │
+             ▼
+[Phase 2: LLM Synthesis] (Section-mapped markdown syntheses for profile & locale)
+             │
+             ▼
+[Phase 3: BlueprintTransformer]
+   │
+   └─► ASSEMBLED ONCE: ReportDataDTO  (Immutable SSOT Presentation Envelope)
+            │
+            ├──────────────────────┬──────────────────────┐
+            ▼                      ▼                      ▼
+      report.sdui.json        report.pdf            ReportRowItemDTO (Pure Map)
+      (Screen rendering)     (WeasyPrint)                 │
+                                                          ├─► report.xlsx (Excel workbook)
+                                                          ├─► report.csv (Flat CSV export)
+                                                          └─► GET /api/v2/reports/{id}/rows
+```
+
+1. **Model Ontologies & Operational Roles**:
+   - **`ReportArtifact` (Lifecycle Entity & Database Record)**:
+     - The parent container entity residing in the `report_artifacts` database collection (`id: rep_...`).
+     - Tracks generation state (`PENDING`, `GENERATING`, `READY`, `FAILED`), associated metadata (duration, token cost, active LLM model/provider), and physical storage paths (`report.sdui.json`, `report.pdf`, `report.xlsx`, `report.csv`).
+     - Created *first* upon receipt of `POST /api/v2/executions/{id}/reports`.
+   - **`ReportDataDTO` (Presentation Payload & Content SSOT)**:
+     - The internal, intelligent presentation payload assembled by `BlueprintTransformer`.
+     - Synthesizes Phase 1 analytical atoms (`results: list[AtomResultDTO]`), $O(1)$ reference lookups (`hydrated_references: dict[str, HydratedAtomDTO]`), forensic evidence (`mcp_tool_audit: list[MCPAuditTrace]`), and pre-compiled visual SDUI components (`inner_sdui_blocks: list[AnySduiBlock]`).
+     - Created *second* inside the background worker and serialized directly to `artifacts/reports/{id}/report.sdui.json`.
+   - **`ReportRowItemDTO` (Tabular Row Projection)**:
+     - A lightweight, flat data contract optimized for relational databases, BI tools (PowerBI), and tabular spreadsheet consumers.
+     - Created *third* as a pure $O(N)$ projection directly from `ReportDataDTO.results` and `ReportDataDTO.hydrated_references` via a deterministic mapper function (`extract_report_rows(report_dto)`). It NEVER re-parses execution traces or issues database queries.
+
+2. **Streamlined Pipeline & Anti-Redundancy Invariants (Compute Once, Project Many)**:
+   - **Single Transformer Invariant**: `BlueprintTransformer` executes exactly once per report generation request. It performs all topological sorting, score rounding, and visual block composition in memory, outputting the canonical `ReportDataDTO`.
+   - **Zero Redundant Parsing**: WeasyPrint PDF compilation, Excel workbook compilation (`ExportService.export_excel`), and CSV generation (`ExportService.export_flat_csv`) consume the already-assembled `ReportDataDTO` (and its projected `ReportRowItemDTO` list) directly. No downstream sink ever reads `ExecutionRecord.execution_trace` or re-calculates metrics.
+   - **Eager Materialization to Object Storage**: All four output projections (`report.sdui.json`, `report.pdf`, `report.xlsx`, `report.csv`) are generated and persisted concurrently during the background job. All subsequent client retrieval endpoints (`GET /sdui`, `GET /pdf`, `GET /excel`, `GET /csv`, `GET /rows`) operate as instantaneous $O(1)$ file or JSON streams with zero server-side computation.
+
+### 7.2 UI Value Hydration Lifecycle & Cross-Platform Semantic Parity (Screen ↔ PDF)
+
+1. **Two-Phase UI Hydration Lifecycle**:
+   - **Phase 1 Execution Tracking**: When the user launches an analysis, Flutter's `ExecutionView` binds to the real-time Server-Sent Events (SSE) status stream (`stream_status`). It renders live DAG progression ("Matrix analysis running...", step completion nodes). The UI displays zero report cards or output canvases during this phase because analytical reasoning is strictly in-flight.
+   - **Phase Transition**: Upon DAG conclusion, `worker.py` transitions the execution directly to `ExecutionStatus.PASSED`. If "Run until output" (`[x] Aja tulosteeksi saakka`) was selected, the UI controller automatically issues `POST /api/v2/executions/{id}/reports`.
+   - **Phase 2 & 3 Background Compilation**: `ReportService` and `report_worker` compile `ReportDataDTO` and the 4 physical files, updating `ReportArtifact.status = READY`.
+   - **O(1) Instantaneous UI Hydration**:
+     1. Flutter receives the `READY` status event and calls `GET /api/v2/reports/{id}/sdui`.
+     2. The backend streams the pre-compiled `report.sdui.json` payload directly from disk with $O(1)$ latency.
+     3. Flutter deserializes the payload into the client `@Freezed ReportDataDTO` model.
+     4. Flutter's `SduiRenderer` traverses `inner_sdui_blocks` and maps each polymorphic block (`HeroInsightBlock`, `VarianceBlock`, `DataGridBlock`, `MarkdownBlock`) directly into corresponding native Flutter widgets.
+
+2. **Cross-Platform Semantic Parity Mandate (Screen ↔ PDF Parity)**:
+   - **The Architectural Parity Invariant**:
+     `ReportDataDTO` encapsulates `inner_sdui_blocks` precisely because Flutter is designed as a **Dumb Painter**. The client application does not contain heuristic rules or layout algorithms; layout topology is governed 100% by the server-side Studio definition (`OutputProfile.target_block_order`). Because the exact same `ReportDataDTO` and `inner_sdui_blocks` are supplied to both Flutter (`SduiRenderer`) and WeasyPrint (`PdfReportService`), Semantic Parity Drift is architecturally prevented.
+   - **Mathematical Parity Proof via Automated E2E Testing (`test_sdui_semantic_parity.py`)**:
+     Cross-domain parity between the Flutter canvas and generated PDF is mathematically verified by the automated integration test `backend_v2/tests/integration/test_sdui_semantic_parity.py`:
+     1. *Dynamic Mock Generation*: Generates a comprehensive `ReportDataDTO` instance encompassing matrix tables, contextual overrides, and dimensional scores.
+     2. *Physical Flutter Engine Execution*: Executes `flutter test test/features/execution/sdui_semantic_parity_test.dart`, rendering the real Flutter widget tree and extracting all visible text, headers, and numbers into a structured semantic token stream (`SduiSemanticTokenDTO`).
+     3. *Physical WeasyPrint PDF Generation*: Compiles the identical DTO into an actual vector PDF using `PdfReportService`.
+     4. *PDF Forensic Text Extraction*: Extracts rendered document text using `pymupdf4llm`.
+     5. *Mathematical Assertion*: Cross-references every semantic token extracted from Flutter against the PDF text stream, enforcing that 100% of text and scores visible on the Flutter screen exist identically in the generated PDF. Any semantic omission or mismatch immediately fails the Universal Quality Gate.
+
 ---
 
 ### 8. Module-Specific Responsibility Allocation & God Code Decomposition Architecture (SRP & DDD)
@@ -163,52 +234,52 @@ To eradicate monolithic God Files and prevent cross-cutting architectural entang
 
 | Osa-alue | Vanha monoliitti | Uusi Tripartite-rakenne | Vastuu ja eristys |
 | :--- | :--- | :--- | :--- |
-| **Laskentapalvelut** | `ExecutionService` (1 468 riviä monoliitti) | `backend_v2/services/execution/` (Mikropalvelut, jokainen <180 riviä) | **Pilkotut elinkaaripalvelut**:<br>1. `ExecutionLifecycleService` (~180 riviä, `lifecycle_service.py`): Elinkaaren hallinta ja koordinointi (`list_executions`, `get_execution`, `delete_execution`, `cancel_execution`).<br>2. `ExecutionIngressService` (~180 riviä, `ingress_service.py`): Syötteiden validointi (`SmartIngressResolver`), dokumenttiliitteet, SDUI-vihjeet ja `create_execution_record`.<br>3. `ExecutionResumptionService` (~120 riviä, `resumption_service.py`): Ajon jatkamiskelpoisuus (`check_resumability`), FinOps-tarkistus ja uudelleenkäynnistys.<br>4. `ExecutionOverrideService` (~140 riviä, `override_service.py`): Ihmiskorjaukset (`override_atom`), todisteiden hylkäys ja pisteiden uudelleenlaskenta.<br>5. `ExecutionStreamService` (~80 riviä, `stream_service.py`): SSE-tilavirran striimaus (`stream_status`).<br>6. `FrozenContextService` (~50 riviä, `context_service.py`): Oikeusforensiikan jäädytetyn kontekstin luku.<br>*(Juuren `services/execution.py` säilyy <80 rivin Strangler Fig -julkisivuna explicit re-exportilla).* |
-| **Ydintietomallit** | `v2_core.py` (1 845 riviä megamonoliitti) | `backend_v2/models/domain/` (DDD-alueet, jokainen <300 riviä) | **Tripartite-jaetut domain-mallit**:<br>1. `domain/matrix.py` (~260 riviä): Phase 1 matriisit ja väitteet.<br>2. `domain/execution.py` (~250 riviä): Phase 1 laskennan tila ja elinkaari.<br>3. `dtos/atom_result.py` (~110 riviä): Phase 1 atomien tulokset.<br>4. `domain/synthesis.py` (~160 riviä): Phase 2 synteesit ja XAI.<br>5. `domain/output_profile.py` (~300 riviä): Phase 3 esitysprofiili.<br>6. `domain/report_artifact.py` (~90 riviä): Phase 3 raporttientiteetti.<br>7. `dtos/report_data.py` (~80 riviä): Phase 3 SDUI-kuori.<br>8. `domain/workflow.py` (~160 riviä) & `domain/step.py` (~260 riviä): Studio-mallit.<br>9. `domain/system_config.py` (~140 riviä): FinOps ja MCP.<br>*(Juuren `v2_core.py` säilyy <90 rivin Strangler Fig -julkisivuna explicit re-exportilla).* |
+| **Laskentapalvelut** | `ExecutionService` (1 494 riviä monoliitti) | `backend_v2/services/execution/` (Mikropalvelut, jokainen <180 riviä) | **Pilkotut elinkaaripalvelut**:<br>1. `ExecutionLifecycleService` (~180 riviä, `lifecycle_service.py`): Elinkaaren hallinta ja koordinointi (`list_executions`, `get_execution`, `delete_execution`, `cancel_execution`).<br>2. `ExecutionIngressService` (~180 riviä, `ingress_service.py`): Syötteiden validointi (`SmartIngressResolver`), dokumenttiliitteet, SDUI-vihjeet ja `create_execution_record`.<br>3. `ExecutionResumptionService` (~120 riviä, `resumption_service.py`): Ajon jatkamiskelpoisuus (`check_resumability`), FinOps-tarkistus ja uudelleenkäynnistys.<br>4. `ExecutionOverrideService` (~140 riviä, `override_service.py`): Ihmiskorjaukset (`override_atom`), todisteiden hylkäys ja pisteiden uudelleenlaskenta.<br>5. `ExecutionStreamService` (~80 riviä, `stream_service.py`): SSE-tilavirran striimaus (`stream_status`).<br>6. `FrozenContextService` (~50 riviä, `context_service.py`): Oikeusforensiikan jäädytetyn kontekstin luku.<br>*(Juuren `services/execution.py` säilyy <80 rivin Strangler Fig -julkisivuna explicit re-exportilla).* |
+| **Ydintietomallit** | `v2_core.py` (1 901 riviä megamonoliitti) | `backend_v2/models/domain/` (DDD-alueet, jokainen <300 riviä) | **Tripartite-jaetut domain-mallit**:<br>1. `domain/matrix.py` (~260 riviä): Phase 1 matriisit ja väitteet.<br>2. `domain/execution.py` (~250 riviä): Phase 1 laskennan tila ja elinkaari.<br>3. `dtos/atom_result.py` (~110 riviä): Phase 1 atomien tulokset.<br>4. `domain/synthesis.py` (~160 riviä): Phase 2 synteesit ja XAI.<br>5. `domain/output_profile.py` (~300 riviä): Phase 3 esitysprofiili.<br>6. `domain/report_artifact.py` (~90 riviä): Phase 3 raporttientiteetti.<br>7. `dtos/report_data.py` (~80 riviä): Phase 3 SDUI-kuori.<br>8. `domain/workflow.py` (~160 riviä) & `domain/step.py` (~260 riviä): Studio-mallit.<br>9. `domain/system_config.py` (~140 riviä): FinOps ja MCP.<br>*(Juuren `v2_core.py` säilyy <90 rivin Strangler Fig -julkisivuna explicit re-exportilla).* |
 | **Tulostuspalvelu** | Sekaisin `execution.py` ja `worker.py` | `ReportService` [NEW] (~250 riviä) | **Vain raporttien elinkaari**: Luo ja hallinnoi `ReportArtifact`-tietueita, koordinoi taustagenerointia, hakee pre-compiloidut tiedostot levyltä/oliolevyltä, B2B-taulukkorivien generointi ja uudelleengenerointi. |
 | **Tiedostovienti** | Piilotettu `execution.py`:hyn | `ExportService` [NEW] (~150 riviä) | **Vain tiedostomuunnokset**: Puhdas konvertteri: `ReportDataDTO` $\rightarrow$ monivälilehtinen Excel ja flat CSV backendin omalla `I18nText`-kielistyksellä. Ei koskaan lue frontendin `.arb`-tiedostoja. |
 | **Esitysmuunnin** | `BlueprintTransformer` (kirjoitti kantaan!) | `BlueprintTransformer` (Puhdas funktio) | **Vain SDUI-näkymä**: 100 % read-only. Muuntaa lasketut matriisit ja faktat visuaalisiksi näkymälohkoiksi tallentamatta kantaan yhtään mitään (`update_execution` poistettu täysin). |
-| **Taustatyöt** | `worker.py` (1 915 riviä sekasotkua) | Eristetyt Arq-tehtävät (`backend_v2/workers/`) | `execute_workflow_job` ajaa vain Phase 1:n ja sulkeutuu. `generate_report_artifact_job` suorittaa vain raportoinnin. `worker.py` toimii ohuena Strangler Fig -julkisivuna (<150 riviä). |
+| **Taustatyöt** | `worker.py` (1 987 riviä sekasotkua) | Eristetyt Arq-tehtävät (`backend_v2/workers/`) | `execute_workflow_job` ajaa vain Phase 1:n ja sulkeutuu. `generate_report_artifact_job` suorittaa vain raportoinnin. `worker.py` toimii ohuena Strangler Fig -julkisivuna (<150 riviä). |
 | **API-rajapinnat** | Kaikki `/executions`-reitittimessä | `executions.py` and `reports.py` [NEW] | **Selkeä jako**: `/api/v2/executions` käsittelee laskentaa, `/api/v2/reports` käsittelee tulosteita ja B2B-rividataa. |
 | **Käyttöliittymä** | `ExecutionView` (kaikki samassa ruudussa) | `ExecutionView` + `ExecutionReportsView` [NEW] | Käyttäjä katsoo ajon aikana laskennan edistymistä, ja tuloste avataan erilliseen Pro Tool -raportointinäkymään Adaptive Master Selector -standardin mukaisesti. |
 
 #### 2. God Code Decomposition Protocol (/tier3-god-code-decomposition Style)
 
-Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposition`, the decomposition of the system's monoliths (`backend_v2/worker.py` with 1,915 lines, `backend_v2/services/execution.py` with 1,468 lines, and `backend_v2/models/v2_core.py` with 1,845 lines) follows the Strangler Fig Pattern:
+Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposition`, the decomposition of the system's monoliths (`backend_v2/worker.py` with 1,987 lines, `backend_v2/services/execution.py` with 1,494 lines, and `backend_v2/models/v2_core.py` with 1,901 lines) follows the Strangler Fig Pattern:
 
 1. **Worker Decomposition (`backend_v2/workers/`)**:
    - **`[NEW] backend_v2/workers/__init__.py`**: Subpackage initialization and explicit export facade.
    - **`[NEW] backend_v2/workers/execution_worker.py` (~400 lines)**:
-     - Extracted strictly from `worker.py` lines 136–544.
+     - Extracted strictly from `worker.py` lines 139–556.
      - Houses `execute_workflow_job`.
      - Operates strictly on Phase 1 DAG execution, topological scoring, token usage accumulation, and transitions directly to `ExecutionStatus.PASSED`.
      - Completely blind to `ReportService`, PDF engines, and report jobs. Zero AST imports or task enqueues targeting Phase 2/3.
    - **`[NEW] backend_v2/workers/report_worker.py` (~450 lines)**:
-     - Extracted strictly from `worker.py` lines 547–1816.
+     - Extracted strictly from `worker.py` lines 557–1892.
      - Houses `generate_report_artifact_job`, `generate_pdf_task`, `render_profile_job`, and `generate_profile_synthesis_and_pdf_task`.
      - Handles Phase 2 LLM synthesis (executive summaries, cognitive variance explanations, XAI highlights, Harvard citations) and Phase 3 WeasyPrint PDF compilation.
      - Enforces Failure Isolation: presentation and synthesis errors update `ReportArtifact.status = ReportStatus.FAILED`, never polluting `ExecutionRecord.status`.
    - **`[MODIFY] backend_v2/worker.py` (Strangler Fig Facade & Entrypoint, <150 lines)**:
-     - Retains Arq lifecycle functions: `startup`, `shutdown`, `health_check`, and `WorkerSettings`.
+     - Retains Arq lifecycle functions: `startup` (#L1893-L1946), `shutdown` (#L1947-L1955), `health_check` (#L1956-L1967), and `WorkerSettings` (#L1968-L1987).
      - Imports `execute_workflow_job` from `backend_v2.workers.execution_worker` and report tasks from `backend_v2.workers.report_worker`.
      - **MyPy Strict Re-Export Enforcement**: Explicitly re-exports all legacy public symbols via `__all__ = [...]` and redundant aliases (`from backend_v2.workers.execution_worker import execute_workflow_job as execute_workflow_job`) to satisfy PEP 484 and prevent `[attr-defined]` / `implicit re-export` errors in CI/CD quality gates.
      - Ensures downstream entry points specifically `backend_v2/run_worker.py` continue functioning without disruption.
 
 2. **Execution Service Decomposition (`backend_v2/services/execution/`)**:
-   To eradicate the 1,468-line monolith and guarantee that no single service exceeds the 200-line limit mandated in @[ki_god_code_prevention.md], the execution service layer is decomposed into a dedicated `backend_v2/services/execution/` subpackage composed of single-responsibility micro-services:
+   To eradicate the 1,494-line monolith and guarantee that no single service exceeds the 200-line limit mandated in @[ki_god_code_prevention.md], the execution service layer is decomposed into a dedicated `backend_v2/services/execution/` subpackage composed of single-responsibility micro-services:
    - **`[NEW] backend_v2/services/execution/__init__.py`**: Subpackage initialization and explicit export facade.
    - **`[NEW] backend_v2/services/execution/lifecycle_service.py` (~180 lines)**:
-     - Encapsulates tenant-isolated execution lifecycle operations: `list_executions` (with concurrent resumability evaluation), `get_execution` (with permission checks), `delete_execution` (with storage cleanup), and `cancel_execution`.
+     - Encapsulates tenant-isolated execution lifecycle operations: `list_executions` (with concurrent resumability evaluation), `get_execution` (with permission checks), `delete_execution` (with storage cleanup), and `cancel_execution` (#L160-L386).
    - **`[NEW] backend_v2/services/execution/ingress_service.py` (~180 lines)**:
-     - Encapsulates execution startup: workflow validation, FinOps quota verification (`usage_service.check_quota`), dynamic input slot resolution via `SmartIngressResolver`, document attachment extraction via `DocumentExtractionService`, dynamic synchronous SDUI hint generation (`DataDictionaryField`), and type-safe record factory instantiation (`create_execution_record`). Enqueues `execute_workflow_job` in Arq Redis.
+     - Encapsulates execution startup: workflow validation, FinOps quota verification (`usage_service.check_quota`), dynamic input slot resolution via `SmartIngressResolver`, document attachment extraction via `DocumentExtractionService`, dynamic synchronous SDUI hint generation (`DataDictionaryField`), and type-safe record factory instantiation (`create_execution_record` #L99-L159 cleansed of `**extra_persistence_fields`). Enqueues `execute_workflow_job` in Arq Redis (#L387-L630).
    - **`[NEW] backend_v2/services/execution/resumption_service.py` (~120 lines)**:
-     - Encapsulates execution resumption: `check_resumability` (evaluates FAILED state, checkpoint history, DAG version parity, and FinOps quota) and `resume_execution` (re-enqueues job into worker pool).
+     - Encapsulates execution resumption: `check_resumability` (evaluates FAILED state, checkpoint history, DAG version parity, and FinOps quota #L631-L693, with duck-typing cleansed) and `resume_execution` (#L694-L786; re-enqueues job into worker pool).
    - **`[NEW] backend_v2/services/execution/override_service.py` (~140 lines)**:
-     - Encapsulates human-in-the-loop modifications: `override_atom` (updates `scorecard_atoms` and `step_states`, triggers hook recalculation via `recalculate()`, and appends `evidence_override` trace event) and `reject_evidence_quote`.
+     - Encapsulates human-in-the-loop modifications: `override_atom` (updates `scorecard_atoms` and `step_states`, triggers hook recalculation via `recalculate()`, and appends `evidence_override` trace event) and `reject_evidence_quote` (#L966-L1129).
    - **`[NEW] backend_v2/services/execution/stream_service.py` (~80 lines)**:
-     - Encapsulates Server-Sent Events (SSE) status streaming: `stream_status` with connection authorization, JSON formatting (`data: ...`), retry backoff, and error event emission.
+     - Encapsulates Server-Sent Events (SSE) status streaming: `stream_status` with connection authorization, JSON formatting (`data: ...`), retry backoff, and error event emission (#L1130-L1210).
    - **`[NEW] backend_v2/services/execution/context_service.py` (~50 lines)**:
-     - Encapsulates forensic snapshot access: `get_frozen_context_bytes` (reads from `StorageDriver` or in-memory snapshot, formats JSON for audit).
+     - Encapsulates forensic snapshot access: `get_frozen_context_bytes` (reads from `StorageDriver` or in-memory snapshot, formats JSON for audit #L1211-L1260).
    - **`[MODIFY] backend_v2/services/execution.py` (Strangler Fig Facade, <80 lines)**:
      - Composes the decomposed services into a unified `ExecutionService` class and provides explicit PEP 484 re-exports (`__all__ = ["ExecutionService", "create_execution_record", ...]`) and redundant aliases (`from backend_v2.services.execution.ingress_service import create_execution_record as create_execution_record`), providing an invariant migration facade for all existing callers and unit tests.
 
@@ -218,25 +289,25 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
      - Implements complete `ReportArtifact` lifecycle: `create_report_artifact_entry`, `process_artifact_compilation`, `get_report_sdui`, `get_report_pdf_bytes`, `get_report_excel_bytes`, `get_report_csv_bytes`, `get_report_rows`, `delete_report_artifact`, and `regenerate_report_artifact`.
      - Operates strictly downstream of completed Phase 1 executions.
    - **`[NEW] backend_v2/services/export_service.py` (~150 lines)**:
-     - Pure functional converter converting `ReportDataDTO` into multi-tab Excel workbooks (`Summary` and `Raw Data`) and flat CSV bytes.
-     - Resolves column headers strictly from backend `I18nText` database records and static dictionaries, eliminating all client `.arb` reads.
+     - Pure functional converter converting `ReportDataDTO` into multi-tab Excel workbooks (`Summary` and `Raw Data`) and flat CSV bytes (extracted from `execution.py#L787-L965`).
+     - Resolves column headers strictly from backend `I18nText` database records and static dictionaries, eliminating all client `.arb` reads (#L836-L838).
 
 4. **Core Domain Model Decomposition (`backend_v2/models/v2_core.py` -> `backend_v2/models/domain/`)**:
-   Adhering to @[ki_tripartite_pipeline_architecture.md], @[ki_god_code_prevention.md], and @[.agents/workflows/tier3-god-code-decomposition.md], the 1,845-line `backend_v2/models/v2_core.py` monolith is decomposed across the 3 Tripartite Phases and Studio Bounded Contexts:
+   Adhering to @[ki_tripartite_pipeline_architecture.md], @[ki_god_code_prevention.md], and @[.agents/workflows/tier3-god-code-decomposition.md], the 1,901-line `backend_v2/models/v2_core.py` monolith is decomposed across the 3 Tripartite Phases and Studio Bounded Contexts:
    - **Phase 1 (Execution & Matrix Engine)**:
-     - `[NEW] backend_v2/models/domain/matrix.py` (~260 lines): `TheoryGrounding`, `AcceptanceCriterion`, `AntiPattern`, `ContrastivePairDTO`, `TDAAssertion`, `MatrixClaim`, `MatrixRow`, `MatrixScale`.
-     - `[NEW] backend_v2/models/domain/execution.py` (~250 lines): `ExecutionRecord`, `ExecutionStep`, `ExecutionSummarySnapshot`, `ExecutionCreate`, `FrozenContext`, `JobAcceptedDTO`, `EvidenceRejectionRequest`.
-     - `[NEW] backend_v2/models/dtos/atom_result.py` (~110 lines): `AtomResultDTO`, `ExtractedValueDTO`, `HydratedAtomDTO`, `ErrorDetailsDTO`, `ExecutionMetricsDTO`, `ExtensionMetricsDTO`.
+     - `[NEW] backend_v2/models/domain/matrix.py` (~260 lines): `TheoryGrounding` (#L121), `AcceptanceCriterion` (#L137), `AntiPattern` (#L146), `ContrastivePairDTO` (#L162), `TDAAssertion` (#L197), `MatrixClaim` (#L329), `MatrixRow` (#L347), `MatrixScale` (#L361).
+     - `[NEW] backend_v2/models/domain/execution.py` (~250 lines): `FrozenContext` (#L1548), `ExecutionCreate` (#L1564), `ExecutionStep` (#L1608), `ExecutionSummarySnapshot` (#L1644), `ExecutionRecord` (#L1703), `JobAcceptedDTO` (#L1780), `EvidenceRejectionRequest` (#L1790).
+     - `[NEW] backend_v2/models/dtos/atom_result.py` (~110 lines): `ErrorDetailsDTO` (#L830), `HydratedAtomDTO` (#L836), `ExtractedValueDTO` (#L847), `AtomResultDTO` (#L853), `ExecutionMetricsDTO` (#L920), `ExtensionMetricsDTO` (#L1657).
    - **Phase 2 (Synthesis & XAI)**:
-     - `[MODIFY] backend_v2/models/domain/synthesis.py` (~160 lines): Consolidates `MatrixSynthesisGroup`, `RenderedSynthesisCache`, `BaseMatrixXAI`, `BaseTDAExtraction`.
+     - `[MODIFY] backend_v2/models/domain/synthesis.py` (~160 lines): Consolidates `MatrixSynthesisGroup` (#L1008-L1065), `RenderedSynthesisCache` (#L1670), `BaseMatrixXAI` (#L1801), `BaseTDAExtraction` (#L1812).
    - **Phase 3 (SDUI & Presentation / Reports)**:
-     - `[MODIFY] backend_v2/models/domain/output_profile.py` (~300 lines): Elevates from a 10-line re-export stub to the authoritative `OutputProfile` domain model, strictly preserving explicit block selectors (`variance_target_block`, `user_role_target_block`) in compliance with `studio_driven_parameterization_mandate`.
+     - `[MODIFY] backend_v2/models/domain/output_profile.py` (~300 lines): Elevates from a 10-line re-export stub to the authoritative `OutputProfile` domain model (#L1066-L1379), strictly preserving explicit block selectors (`variance_target_block`, `user_role_target_block`) in compliance with `studio_driven_parameterization_mandate`.
      - `[NEW] backend_v2/models/domain/report_artifact.py` (~90 lines): Dedicated domain entity for `ReportArtifact` with storage paths, metadata, and status.
-     - `[NEW] backend_v2/models/dtos/report_data.py` (~80 lines): Pure presentation envelope `ReportDataDTO`.
+     - `[NEW] backend_v2/models/dtos/report_data.py` (~80 lines): Pure presentation envelope `ReportDataDTO` (#L928-L1007).
    - **Studio & Platform Bounded Contexts**:
-     - `[NEW] backend_v2/models/domain/workflow.py` (~160 lines): `Workflow` domain model (cleansed of dead-weight `allowed_exports`).
-     - `[NEW] backend_v2/models/domain/step.py` (~260 lines): `Step`, `StepRule`, `Role`, `QuestionnaireItem`, `ExpectedInput`.
-     - `[NEW] backend_v2/models/domain/system_config.py` (~140 lines): `ModelProfile`, `SystemConfigModelRegistry`, `SystemConfigMCPGateways`, `AllowedMCPTool`, `MCPAuditTrace`, `ChatMessageDTO`, `ChatHistoryDTO`, `DataDictionaryField`, `ProviderExtraParamsDTO`.
+     - `[NEW] backend_v2/models/domain/workflow.py` (~160 lines): `Workflow` domain model (#L1380-L1547; cleansed of dead-weight `allowed_exports`).
+     - `[NEW] backend_v2/models/domain/step.py` (~260 lines): `Step` (#L542), `StepRule` (#L632), `Role` (#L674), `QuestionnaireItem` (#L687), `ExpectedInput` (#L700).
+     - `[NEW] backend_v2/models/domain/system_config.py` (~140 lines): `ChatMessageDTO` (#L383), `ChatHistoryDTO` (#L397), `DataDictionaryField` (#L409), `ProviderExtraParamsDTO` (#L420), `ModelProfile` (#L433), `SystemConfigModelRegistry` (#L465), `AllowedMCPTool` (#L492), `MCPAuditTrace` (#L505), `SystemConfigMCPGateways` (#L529).
    - **Strangler Fig Proxy Facade (`[MODIFY] backend_v2/models/v2_core.py`, <90 lines)**:
      - Imports all extracted models from `backend_v2.models.domain.*` and `backend_v2.models.dtos.*`.
      - Explicitly exports all 42 symbols via `__all__ = [...]` and redundant aliases (`from backend_v2.models.domain.execution import ExecutionRecord as ExecutionRecord`), guaranteeing seamless import resolution for all 250+ existing callers and satisfying PEP 484 and `mypy --strict`.
@@ -260,32 +331,32 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
 
 ### Target Files (Files to Modify or Create)
 - `[NEW]` @[backend_v2/workers/__init__.py] - Subpackage initialization and explicit export facade for background workers.
-- `[NEW]` @[backend_v2/workers/execution_worker.py] - Extracted from `worker.py` lines 136–544; Phase 1 DAG execution background task (`execute_workflow_job`), <400 lines.
-- `[NEW]` @[backend_v2/workers/report_worker.py] - Extracted from `worker.py` lines 547–1816; Phase 2 & 3 report artifact compilation (`generate_report_artifact_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`), <450 lines.
-- `[MODIFY]` @[backend_v2/worker.py] - Strangler Fig entrypoint & facade (<150 lines); configures `WorkerSettings`, registers Arq tasks, and explicitly re-exports all public symbols via `__all__` to satisfy PEP 484 and `mypy --strict`.
+- `[NEW]` @[backend_v2/workers/execution_worker.py] - Extracted from `worker.py` lines 139–556; Phase 1 DAG execution background task (`execute_workflow_job`), <400 lines.
+- `[NEW]` @[backend_v2/workers/report_worker.py] - Extracted from `worker.py` lines 557–1892; Phase 2 & 3 report artifact compilation (`generate_report_artifact_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`), <450 lines.
+- `[MODIFY]` @[backend_v2/worker.py] - Strangler Fig entrypoint & facade (<150 lines); configures `WorkerSettings` (#L1968-L1987), lifecycle functions (`startup` #L1893, `shutdown` #L1947, `health_check` #L1956), registers Arq tasks, and explicitly re-exports all public symbols via `__all__` to satisfy PEP 484 and `mypy --strict`.
 - `[NEW]` @[backend_v2/services/execution/__init__.py] - Subpackage initialization and explicit export facade for calculation services.
-- `[NEW]` @[backend_v2/services/execution/lifecycle_service.py] - Tenant-isolated execution lifecycle operations (`list_executions`, `get_execution`, `delete_execution`, `cancel_execution`), ~180 lines.
-- `[NEW]` @[backend_v2/services/execution/ingress_service.py] - Execution startup: `SmartIngressResolver`, document attachments, dynamic SDUI hints generation, `create_execution_record`, and Arq job enqueuing, ~180 lines.
-- `[NEW]` @[backend_v2/services/execution/resumption_service.py] - Resumption and checkpoint validation: `check_resumability` and `resume_execution`, ~120 lines.
-- `[NEW]` @[backend_v2/services/execution/override_service.py] - Human-in-the-loop modifications: `override_atom`, `reject_evidence_quote`, and scoring hook recalculation, ~140 lines.
-- `[NEW]` @[backend_v2/services/execution/stream_service.py] - Server-Sent Events (SSE) status streaming (`stream_status`), ~80 lines.
-- `[NEW]` @[backend_v2/services/execution/context_service.py] - Forensic snapshot retrieval (`get_frozen_context_bytes`), ~50 lines.
+- `[NEW]` @[backend_v2/services/execution/lifecycle_service.py] - Tenant-isolated execution lifecycle operations (`list_executions`, `get_execution`, `delete_execution`, `cancel_execution` #L160-L386), ~180 lines.
+- `[NEW]` @[backend_v2/services/execution/ingress_service.py] - Execution startup: `SmartIngressResolver`, document attachments, dynamic SDUI hints generation, `create_execution_record` (#L99-L159 cleansed of `**extra_persistence_fields`), and Arq job enqueuing (#L387-L630), ~180 lines.
+- `[NEW]` @[backend_v2/services/execution/resumption_service.py] - Resumption and checkpoint validation: `check_resumability` (#L631-L693, duck-typing cleansed) and `resume_execution` (#L694-L786), ~120 lines.
+- `[NEW]` @[backend_v2/services/execution/override_service.py] - Human-in-the-loop modifications: `override_atom`, `reject_evidence_quote`, and scoring hook recalculation (#L966-L1129), ~140 lines.
+- `[NEW]` @[backend_v2/services/execution/stream_service.py] - Server-Sent Events (SSE) status streaming (`stream_status` #L1130-L1210), ~80 lines.
+- `[NEW]` @[backend_v2/services/execution/context_service.py] - Forensic snapshot retrieval (`get_frozen_context_bytes` #L1211-L1260), ~50 lines.
 - `[MODIFY]` @[backend_v2/services/execution.py] - Strangler Fig facade (<80 lines) composing execution services and providing explicit PEP 484 re-exports (`__all__`) for seamless caller migration.
-- `[NEW]` @[backend_v2/services/export_service.py] - Extracted from `execution.py` lines 769–965 (~150 lines); pure converter from `ReportDataDTO` to multi-tab Excel and flat CSV using backend `I18nText` SSOT.
-- `[NEW]` @[backend_v2/services/report_service.py] - Extracted from `execution.py` lines 1130–1348 (~250 lines); manages full `ReportArtifact` lifecycle, Cloud-Native Object Storage coordination, row-level data extraction, and regeneration.
-- `[MODIFY]` @[backend_v2/services/blueprint.py#L62-L588] - Make `BlueprintTransformer` 100% read-only; eradicate `update_execution` and recursive dict scraping.
+- `[NEW]` @[backend_v2/services/export_service.py] - Extracted from `execution.py` lines 787–965 (~150 lines); pure converter from `ReportDataDTO` to multi-tab Excel and flat CSV using backend `I18nText` SSOT, eliminating direct `.arb` reads (#L836-L838).
+- `[NEW]` @[backend_v2/services/report_service.py] - Core reporting service (~250 lines); manages full `ReportArtifact` lifecycle, Cloud-Native Object Storage coordination, row-level data extraction, and regeneration.
+- `[MODIFY]` @[backend_v2/services/blueprint.py#L62-L589] - Make `BlueprintTransformer` 100% read-only; eradicate `update_execution` (#L360) and recursive dict scraping in `extract_evidence_ids` (#L461-L480).
 - `[MODIFY]` @[backend_v2/models/dtos/trace.py#L40-L57] - Update `ExecutionCreateDTO` to declare `output_profile_id: Annotated[str | None, Field(default=None)] = None`.
-- `[MODIFY]` @[backend_v2/models/v2_core.py] - Decompose 1,845-line monolith into single-responsibility domain models; refactor into a thin Strangler Fig Facade (<90 lines) with PEP 484 explicit re-exports (`__all__` and redundant aliases) to ensure zero broken imports codebase-wide.
-- `[NEW]` @[backend_v2/models/domain/workflow.py] (~160 lines) - Houses `Workflow` domain model; completely cleansed of `allowed_exports`, with `default_profile_id` optional.
-- `[NEW]` @[backend_v2/models/domain/step.py] (~260 lines) - Houses `Step`, `StepRule`, `Role`, `QuestionnaireItem`, `ExpectedInput`.
-- `[NEW]` @[backend_v2/models/domain/matrix.py] (~260 lines) - Tripartite Phase 1 evaluation models: `TheoryGrounding`, `AcceptanceCriterion`, `AntiPattern`, `ContrastivePairDTO`, `TDAAssertion`, `MatrixClaim`, `MatrixRow`, `MatrixScale`.
-- `[NEW]` @[backend_v2/models/domain/execution.py] (~250 lines) - Tripartite Phase 1 runtime models: `ExecutionRecord`, `ExecutionStep`, `ExecutionSummarySnapshot`, `ExecutionCreate`, `FrozenContext`, `JobAcceptedDTO`, `EvidenceRejectionRequest`.
-- `[NEW]` @[backend_v2/models/dtos/atom_result.py] (~110 lines) - Tripartite Phase 1 atom evaluation DTOs: `AtomResultDTO`, `ExtractedValueDTO`, `HydratedAtomDTO`, `ErrorDetailsDTO`, `ExecutionMetricsDTO`, `ExtensionMetricsDTO`.
-- `[MODIFY]` @[backend_v2/models/domain/synthesis.py] (~160 lines) - Tripartite Phase 2 synthesis models: Consolidates `MatrixSynthesisGroup`, `RenderedSynthesisCache`, `BaseMatrixXAI`, `BaseTDAExtraction`.
-- `[MODIFY]` @[backend_v2/models/domain/output_profile.py] (~300 lines) - Tripartite Phase 3 presentation profile: Elevate from 10-line re-export stub to canonical `OutputProfile` domain model, strictly preserving explicit block selectors (`variance_target_block`, `user_role_target_block`) adhering to `studio_driven_parameterization_mandate`.
+- `[MODIFY]` @[backend_v2/models/v2_core.py] - Decompose 1,901-line monolith into single-responsibility domain models; refactor into a thin Strangler Fig Facade (<90 lines) with PEP 484 explicit re-exports (`__all__` and redundant aliases) to ensure zero broken imports codebase-wide.
+- `[NEW]` @[backend_v2/models/domain/workflow.py] (~160 lines) - Houses `Workflow` domain model (#L1380-L1547); completely cleansed of `allowed_exports`, with `default_profile_id` optional.
+- `[NEW]` @[backend_v2/models/domain/step.py] (~260 lines) - Houses `Step` (#L542), `StepRule` (#L632), `Role` (#L674), `QuestionnaireItem` (#L687), `ExpectedInput` (#L700).
+- `[NEW]` @[backend_v2/models/domain/matrix.py] (~260 lines) - Tripartite Phase 1 evaluation models: `TheoryGrounding` (#L121), `AcceptanceCriterion` (#L137), `AntiPattern` (#L146), `ContrastivePairDTO` (#L162), `TDAAssertion` (#L197), `MatrixClaim` (#L329), `MatrixRow` (#L347), `MatrixScale` (#L361).
+- `[NEW]` @[backend_v2/models/domain/execution.py] (~250 lines) - Tripartite Phase 1 runtime models: `FrozenContext` (#L1548), `ExecutionCreate` (#L1564), `ExecutionStep` (#L1608), `ExecutionSummarySnapshot` (#L1644), `ExecutionRecord` (#L1703), `JobAcceptedDTO` (#L1780), `EvidenceRejectionRequest` (#L1790).
+- `[NEW]` @[backend_v2/models/dtos/atom_result.py] (~110 lines) - Tripartite Phase 1 atom evaluation DTOs: `ErrorDetailsDTO` (#L830), `HydratedAtomDTO` (#L836), `ExtractedValueDTO` (#L847), `AtomResultDTO` (#L853), `ExecutionMetricsDTO` (#L920), `ExtensionMetricsDTO` (#L1657).
+- `[MODIFY]` @[backend_v2/models/domain/synthesis.py] (~160 lines) - Tripartite Phase 2 synthesis models: Consolidates `MatrixSynthesisGroup` (#L1008-L1065), `RenderedSynthesisCache` (#L1670), `BaseMatrixXAI` (#L1801), `BaseTDAExtraction` (#L1812).
+- `[MODIFY]` @[backend_v2/models/domain/output_profile.py] (~300 lines) - Tripartite Phase 3 presentation profile: Elevate from 10-line re-export stub to canonical `OutputProfile` domain model (#L1066-L1379), strictly preserving explicit block selectors (`variance_target_block`, `user_role_target_block`) adhering to `studio_driven_parameterization_mandate`.
 - `[NEW]` @[backend_v2/models/domain/report_artifact.py] (~90 lines) - Tripartite Phase 3 report entity: Declare `ReportArtifact` domain entity with storage paths, metadata, and status (instead of polluting `v2_core.py`).
-- `[NEW]` @[backend_v2/models/dtos/report_data.py] (~80 lines) - Tripartite Phase 3 SDUI envelope: Houses canonical `ReportDataDTO`.
-- `[NEW]` @[backend_v2/models/domain/system_config.py] (~140 lines) - Platform & FinOps configurations: `ModelProfile`, `SystemConfigModelRegistry`, `SystemConfigMCPGateways`, `AllowedMCPTool`, `MCPAuditTrace`, `ChatMessageDTO`, `ChatHistoryDTO`, `DataDictionaryField`, `ProviderExtraParamsDTO`.
+- `[NEW]` @[backend_v2/models/dtos/report_data.py] (~80 lines) - Tripartite Phase 3 SDUI envelope: Houses canonical `ReportDataDTO` (#L928-L1007).
+- `[NEW]` @[backend_v2/models/domain/system_config.py] (~140 lines) - Platform & FinOps configurations: `ChatMessageDTO` (#L383), `ChatHistoryDTO` (#L397), `DataDictionaryField` (#L409), `ProviderExtraParamsDTO` (#L420), `ModelProfile` (#L433), `SystemConfigModelRegistry` (#L465), `AllowedMCPTool` (#L492), `MCPAuditTrace` (#L505), `SystemConfigMCPGateways` (#L529).
 - `[NEW]` @[backend_v2/models/dtos/report_artifact.py] - Declare strict Pydantic V2 DTOs: `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`, `ReportStoragePathsDTO`, `ReportRowItemDTO`, `PublicReportDTO`.
 - `[MODIFY]` @[backend_v2/models/dtos/output_profile.py#L39-L263] - Synchronize `OutputProfileCreateDTO` with decoupled fields.
 - `[MODIFY]` @[backend_v2/models/dtos/output_profile.py#L266-L478] - Synchronize `OutputProfileUpdateDTO` with decoupled fields.
@@ -332,15 +403,15 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
 
 | 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
-| **@[backend_v2/models/v2_core.py#L1380-L1545]**<br>Domain & DTO Decomposition | Monolithic 1,845-line God Model. Ghost field `Workflow.allowed_exports`. Unused legacy mappings. Naked dict typing. | Decomposed domain subpackage `backend_v2/models/domain/` (<350 lines per file). Strangler Fig facade in `v2_core.py` (<90 lines) with PEP 484 explicit re-exports (`__all__` and redundant aliases). `ConfigDict(strict=True, extra="forbid")` on all models. Explicit block selectors (`variance_target_block`, `user_role_target_block`) preserved. | Speculative compatibility wrappers or duplicate shadow models banned. One concept = One schema. | `test_v2_core_proxy.py` verifying all 42 symbols; AST test checking `v2_core.py` line count < 90 lines; `backend_audit_loop.py` strict typing. |
+| **@[backend_v2/models/v2_core.py#L121-L1815]**<br>Domain & DTO Decomposition | Monolithic 1,901-line God Model. Ghost field `Workflow.allowed_exports`. Unused legacy mappings. Naked dict typing. | Decomposed domain subpackage `backend_v2/models/domain/` (<350 lines per file). Strangler Fig facade in `v2_core.py` (<90 lines) with PEP 484 explicit re-exports (`__all__` and redundant aliases). `ConfigDict(strict=True, extra="forbid")` on all models. Explicit block selectors (`variance_target_block`, `user_role_target_block`) preserved. | Speculative compatibility wrappers or duplicate shadow models banned. One concept = One schema. | `test_v2_core_proxy.py` verifying all 42 symbols; AST test checking `v2_core.py` line count < 90 lines; `backend_audit_loop.py` strict typing. |
 | **@[backend_v2/models/dtos/trace.py#L40-L57]**<br>`ExecutionCreateDTO` Boundary | Hardcoded required `output_profile_id: Annotated[str, Field(min_length=1)]` forcing profile coupling at calculation start. | `output_profile_id: Annotated[str | None, Field(default=None, description="Optional presentation profile identifier")] = None`. | Banned fake/dummy profile fallback instantiation or auto-creating shadow profiles. | Pydantic validation test with `output_profile_id=None`; AST inspection in `test_rest_only_pipeline_boundary.py`. |
-| **@[backend_v2/services/execution.py#L387-L630]**<br>`ExecutionService.start_execution` & Decomposition | Mandatory profile resolution raising 400 if `profile_id` missing. Monolithic 1,468-line God Service mixing ingress, lifecycle, resumption, overrides, streaming, and export. | Ingress decoupling: `resolved_profile_id = payload.profile_id or workflow.default_profile_id` (allows `None`). Decomposition into `backend_v2/services/execution/` subpackage (6 micro-services, each <180 lines). Strangler Fig facade in `execution.py` (<80 lines). | Speculative middleware interceptors or synthetic default profiles pruned. | Unit test `test_start_execution_without_profile` passing `profile_id=None`; AST line count validation on all decomposed services. |
-| **@[backend_v2/services/execution.py#L99-L158]**<br>`create_execution_record` Factory Invariant | Unvalidated reflection `# noqa: QGR012` using `isinstance(resolved_metadata, dict)` and raw kwargs spreading `**extra_persistence_fields`. | Strict Pydantic validation via `TypeAdapter(ExecutionMetadata).validate_python(resolved_metadata)` and typed parameter enforcement with zero duck-typing or QGR suppressions. | Speculative metadata auto-wrapping layers or dictionary normalization helpers pruned. | AST guardrail `test_ast_guardrails.py` verifying zero QGR suppressions and strict model instantiation. |
+| **@[backend_v2/services/execution.py#L387-L630]**<br>`ExecutionService.start_execution` & Decomposition | Mandatory profile resolution raising 400 if `profile_id` missing. Monolithic 1,494-line God Service mixing ingress, lifecycle, resumption, overrides, streaming, and export. | Ingress decoupling: `resolved_profile_id = payload.profile_id or workflow.default_profile_id` (allows `None`). Decomposition into `backend_v2/services/execution/` subpackage (6 micro-services, each <180 lines). Strangler Fig facade in `execution.py` (<80 lines). | Speculative middleware interceptors or synthetic default profiles pruned. | Unit test `test_start_execution_without_profile` passing `profile_id=None`; AST line count validation on all decomposed services. |
+| **@[backend_v2/services/execution.py#L99-L159]**<br>`create_execution_record` Factory Invariant | Unvalidated reflection `# noqa: QGR012` using `isinstance(resolved_metadata, dict)` (#L136) and raw kwargs spreading `**extra_persistence_fields` (#L107, L134, L146). | Strict Pydantic validation via `TypeAdapter(ExecutionMetadata).validate_python(resolved_metadata)` and typed parameter enforcement with zero duck-typing or QGR suppressions. | Speculative metadata auto-wrapping layers or dictionary normalization helpers pruned. | AST guardrail `test_ast_guardrails.py` verifying zero QGR suppressions and strict model instantiation. |
 | **@[backend_v2/services/orchestrator/dag_executor.py#L382-L1076]**<br>`DAGExecutor.execute_workflow` | Synthetic virtual step injection `sys_render_{profile_id}` with dummy label `"system.virtual.rendering"` and hardcoded `output_profile_id` requirement. | Absolute removal of `sys_render_*` step injection from `steps` and `step_states`. Pure analytical DAG evaluation pipeline. DAG executor operates purely on workflow steps. | Pruned virtual step state mapping, synthetic execution steps, and post-DAG render flags. | Unit test verifying `exec_record.steps` contains zero `sys_render_*` steps; AST guardrail in `test_execution_worker.py`. |
-| **@[backend_v2/worker.py#L139-L554]**<br>& **[NEW] @[backend_v2/workers/execution_worker.py]**<br>Phase 1 Execution Worker | Automatic queuing of `render_profile_job` upon DAG completion. Setting status to RUNNING to wait for PDF rendering. `v_step_id = f"sys_render_{profile_id}"` step mutation. Monolithic 1,915-line God Worker. | Transition directly to `ExecutionStatus.PASSED` upon topological scoring and telemetry completion. Zero background worker auto-enqueuing of report jobs. Extraction to `backend_v2/workers/execution_worker.py` (<400 lines). Thin facade `worker.py` (<150 lines). | Pruned worker-to-worker auto-triggers and intermediate `RUNNING` status hacks. | `test_execution_worker.py` asserting `status == PASSED` and 0 jobs enqueued in Redis; AST boundary test in `test_rest_only_pipeline_boundary.py`. |
-| **@[backend_v2/worker.py#L753-L1887]**<br>& **[NEW] @[backend_v2/workers/report_worker.py]**<br>Phase 2/3 Report Worker | PDF/synthesis errors mutating `ExecutionRecord.status = ExecutionStatus.FAILED`. Overwriting Phase 1 analytical score with presentation failure. Loose exception catching with string formatting. | Presentation failure isolation: synthesis or WeasyPrint errors update ONLY `ReportArtifact.status = ReportStatus.FAILED`. `ExecutionRecord.status` remains `PASSED`. Extracted to `report_worker.py` (<450 lines) with RFC 7807 structured logging. | Pruned cross-entity error cascade logic and recursive failure updates. | Unit test in `test_report_worker.py` injecting WeasyPrint crash and asserting `execution.status == PASSED` and `report.status == FAILED`. |
-| **@[backend_v2/services/blueprint.py#L62-L588]**<br>`BlueprintTransformer` | Presentation transformer mutating DB via `await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))`. Recursive dict traversal in `extract_evidence_ids`. Loose dictionary scraping. | 100% Read-Only Dumb Painter. Delete DB write completely. Typed extraction of MCP evidence from `MCPAuditTrace` and `AtomResultDTO.used_evidence_ids`. Deterministic variance validation anchored to `OutputProfile.variance_target_block`. | Pruned repository write access in `BlueprintTransformer`. Transformer takes snapshot and outputs pure `ReportDataDTO`. | `test_blueprint_read_only.py` asserting `exec_repo.update_execution` call count is 0; test variance block rendering adhering to explicit block selector. |
-| **[NEW] @[backend_v2/services/export_service.py]**<br>& **@[backend_v2/services/execution.py#L787-L990]**<br>CQRS Export Extraction | Backend opening frontend `.arb` files via `open("client_app_v2/lib/l10n/app_{locale}.arb")` (`#L840-L841`). Export logic embedded in `ExecutionService`. | Dedicated `ExportService` (<150 lines) using backend `I18nText` database SSOT and static localization tables. Multi-tab Excel ('Summary' and 'Raw Data') and flat CSV generation. | Pruned cross-repository file-system reads and frontend localization coupling. | Unit test `test_export_service.py` asserting no file handles to `.arb` files; verifies 2-tab Excel output bytes. |
+| **@[backend_v2/worker.py#L139-L556]**<br>& **[NEW] @[backend_v2/workers/execution_worker.py]**<br>Phase 1 Execution Worker | Automatic queuing of `render_profile_job` upon DAG completion. Setting status to RUNNING to wait for PDF rendering. `v_step_id = f"sys_render_{profile_id}"` step mutation. Monolithic 1,987-line God Worker. | Transition directly to `ExecutionStatus.PASSED` upon topological scoring and telemetry completion. Zero background worker auto-enqueuing of report jobs. Extraction to `backend_v2/workers/execution_worker.py` (<400 lines). Thin facade `worker.py` (<150 lines). | Pruned worker-to-worker auto-triggers and intermediate `RUNNING` status hacks. | `test_execution_worker.py` asserting `status == PASSED` and 0 jobs enqueued in Redis; AST boundary test in `test_rest_only_pipeline_boundary.py`. |
+| **@[backend_v2/worker.py#L557-L1892]**<br>& **[NEW] @[backend_v2/workers/report_worker.py]**<br>Phase 2/3 Report Worker | PDF/synthesis errors mutating `ExecutionRecord.status = ExecutionStatus.FAILED`. Overwriting Phase 1 analytical score with presentation failure. Loose exception catching with string formatting. | Presentation failure isolation: synthesis or WeasyPrint errors update ONLY `ReportArtifact.status = ReportStatus.FAILED`. `ExecutionRecord.status` remains `PASSED`. Extracted to `report_worker.py` (<450 lines) with RFC 7807 structured logging. | Pruned cross-entity error cascade logic and recursive failure updates. | Unit test in `test_report_worker.py` injecting WeasyPrint crash and asserting `execution.status == PASSED` and `report.status == FAILED`. |
+| **@[backend_v2/services/blueprint.py#L62-L589]**<br>`BlueprintTransformer` | Presentation transformer mutating DB via `await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))` (#L360). Recursive dict traversal in `extract_evidence_ids` (#L461-L480). Loose dictionary scraping. | 100% Read-Only Dumb Painter. Delete DB write completely. Typed extraction of MCP evidence from `MCPAuditTrace` and `AtomResultDTO.used_evidence_ids`. Deterministic variance validation anchored to `OutputProfile.variance_target_block`. | Pruned repository write access in `BlueprintTransformer`. Transformer takes snapshot and outputs pure `ReportDataDTO`. | `test_blueprint_read_only.py` asserting `exec_repo.update_execution` call count is 0; test variance block rendering adhering to explicit block selector. |
+| **[NEW] @[backend_v2/services/export_service.py]**<br>& **@[backend_v2/services/execution.py#L787-L965]**<br>CQRS Export Extraction | Backend opening frontend `.arb` files via `open("client_app_v2/lib/l10n/app_{locale}.arb")` (`#L836-L838`). Export logic embedded in `ExecutionService`. | Dedicated `ExportService` (<150 lines) using backend `I18nText` database SSOT and static localization tables. Multi-tab Excel ('Summary' and 'Raw Data') and flat CSV generation. | Pruned cross-repository file-system reads and frontend localization coupling. | Unit test `test_export_service.py` asserting no file handles to `.arb` files; verifies 2-tab Excel output bytes. |
 | **[NEW] @[backend_v2/database/repositories/report_artifact.py]**<br>& **[NEW] @[backend_v2/models/domain/report_artifact.py]**<br>Materialized Report Artifact CRUD | Packing PDF paths, SDUI blobs, and export paths into `ExecutionRecord` root document. Single report per execution limitation. | First-class `ReportArtifact` domain entity with storage paths (`report.pdf`, `report.sdui.json`, `report.xlsx`, `report.csv`), lifecycle status (`PENDING`, `GENERATING`, `READY`, `FAILED`), and dedicated repository `ReportArtifactRepositoryImpl` operating on `report_artifacts`. | Pruned monolithic execution record inflation. Heavy files offloaded to `StorageDriver`. | Unit test `test_report_artifact_repository.py` verifying CRUD operations, foreign key isolation, and storage cleanup. |
 | **[NEW] @[backend_v2/api/routers/execution/reports.py]**<br>REST-API-Only Boundary Router | Implicit in-process chaining or worker auto-queuing. Calculate and report coupled in single HTTP transaction. | Sovereign REST API router: `POST /api/v2/executions/{id}/reports` is the EXCLUSIVE trigger for report generation. Enforces `execution.status == PASSED` (raising 409 Conflict if not ready). Complete CRUD endpoints (`/reports/{id}`, `/reports/{id}/sdui`, `/reports/{id}/pdf`, `/reports/{id}/excel`, `/reports/{id}/rows`). | Pruned backdoor worker auto-triggers and in-process execution chaining. | `test_rest_only_pipeline_boundary.py` AST inspection and 409 conflict test; `test_reports_api.py` endpoint integration suite. |
 | **[NEW] @[client_app_v2/lib/features/reports/]**<br>& **@[client_app_v2/lib/features/execution/views/execution_view.dart]**<br>Desktop Pro Tool Studio UX | Unbounded vertical stacking. Mixing live DAG tracking with finished report viewing. Missing dirty-check modal guard. Raw widgets outside AppErrorBoundary. | `ExecutionReportsView` adhering to @[ki_desktop_pro_tool_studio_ux.md]: Adaptive Master Selector (wide >=900px lateral 260px sidebar vs compact <900px top-bar chips). Single Cognitive Unit. Progressive Disclosure (4 tabs). `CreateReportDialog` with Dual-Shield FormField and `PopScope` dirty check. All detail canvases wrapped in `AppErrorBoundary`. | Pruned monolithic multi-report stacked views and brittle ad-hoc tab controllers. | Widget tests verifying lateral layout at 1200px width, top-bar chips at 800px width, `AppErrorBoundary` coverage, and `PopScope` interception on uncommitted form dismissal. |
@@ -351,31 +422,31 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
 
 ## Pre-Implementation Technical Debt Cleanups (Scoped Boy Scout)
 
-1. **Eradicate Database Write in Blueprint Transformer**:
-   In @[backend_v2/services/blueprint.py#L122-L588] (`build_report_dto`), `BlueprintTransformer.build_report_dto` mutates `execution.step_states` via `await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))`. This must be removed completely. The transformer receives an immutable snapshot and returns a pure `ReportDataDTO`. Any state adjustments for human overrides must happen in `ExecutionService.override_atom`, never inside a presentation builder.
-2. **Eradicate Recursive Sanity Traversal**:
-   In @[backend_v2/services/blueprint.py#L122-L588] (`build_report_dto`), `extract_evidence_ids` uses recursive `isinstance(payload_data, dict)` traversal. This must be replaced with typed extraction against `MCPAuditTrace` and `AtomResultDTO` structures.
-3. **Eradicate Direct Frontend `.arb` Reading**:
-   In @[backend_v2/services/execution.py#L787-L990] (`get_execution_export_bytes`), the backend opens `client_app_v2/lib/l10n/app_{locale}.arb` directly using `json.load`. This breaks architectural layer isolation and must be replaced with backend translation dictionaries or `I18nText` keys.
-4. **Purge Dead-Weight Ghost Field `allowed_exports`**:
-   Forensic audit confirmed that `Workflow.allowed_exports` (@[backend_v2/models/v2_core.py#L1380-L1545] and Flutter @[client_app_v2/lib/features/studio/models/workflow.dart#L169-L171]) is accessed 0 times across backend business logic, 0 times in background workers, and 0 times in Flutter UI widgets or screens. It is not stored in `seed_data.json`. It is dead weight that must be deleted from `v2_core.py` and Flutter `workflow.dart` without being relocated anywhere.
-5. **Eradicate Synthetic Step Injection in DAG Executor**:
-   In @[backend_v2/services/orchestrator/dag_executor.py#L382-L1076], `DAGExecutor` injects `v_step_id = f"sys_render_{exec_record.output_profile_id}"` into `steps` and `step_states`. This must be removed completely. Phase 1 DAG executor must only execute and track workflow steps defined in the workflow definition.
-6. **Eradicate Synthetic Virtual Step Resumption Exceptions**:
-   In @[backend_v2/services/execution.py#L632-L692] and @[backend_v2/tests/unit/services/test_execution_resumability.py#L85-L125], remove custom filtering and test hacks that exist solely to tolerate virtual `sys_render_*` steps during resumption validation.
-7. **Eradicate Reflection and Duck-Typing in `create_execution_record` Factory**:
-   In @[backend_v2/services/execution.py#L99-L158], purge `# noqa: QGR012` suppression and `isinstance(resolved_metadata, dict)` reflection. Enforce strict Pydantic validation via `TypeAdapter(ExecutionMetadata).validate_python(resolved_metadata)` and enforce typed parameters, eliminating `**extra_persistence_fields` pass-throughs.
-8. **Eradicate Loose Dictionary Signatures and Catch-All Handlers in Background Workers**:
-   In @[backend_v2/worker.py#L139-L554], eliminate loose `inputs: dict[str, Any]` argument transit in favor of typed `ExecutionInputsDTO`. Replace generic multi-type exception handling with typed `AppException` mapping and RFC 7807 structured errors with explicit `ErrorCodes`.
-9. **Preserve Explicit Prompt Block Selectors in Output Profile DTOs**:
+1. **[ACTIVE DEBT - TARGET] Eradicate Database Write in Blueprint Transformer**:
+   In @[backend_v2/services/blueprint.py#L360] (`build_report_dto`), `BlueprintTransformer.build_report_dto` mutates `execution.step_states` via `await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))`. This must be removed completely. The transformer receives an immutable snapshot and returns a pure `ReportDataDTO`. Any state adjustments for human overrides happen strictly in `ExecutionService.override_atom`, never inside a presentation builder.
+2. **[ACTIVE DEBT - TARGET] Eradicate Recursive Sanity Traversal & Dict Duck-Typing in Blueprint Transformer**:
+   In @[backend_v2/services/blueprint.py#L461-L480] (`build_report_dto`), `extract_evidence_ids` uses recursive `isinstance(payload_data, dict)` traversal (`# noqa: QGR012`). This must be replaced with direct, typed extraction against `MCPAuditTrace` and `AtomResultDTO.used_evidence_ids` structures.
+3. **[ACTIVE DEBT - TARGET] Eradicate Direct Frontend `.arb` Reading in Execution Export**:
+   In @[backend_v2/services/execution.py#L836-L838] (`get_execution_export_bytes`), the backend opens `client_app_v2/lib/l10n/app_{locale}.arb` directly using `json.load`. This breaks architectural layer isolation and must be replaced with backend translation dictionaries or `I18nText` keys in the dedicated `ExportService`.
+4. **[ACTIVE DEBT - TARGET] Purge Dead-Weight Ghost Field `allowed_exports`**:
+   Forensic audit confirmed that `Workflow.allowed_exports` (@[backend_v2/models/v2_core.py#L1459-L1462] and Flutter @[client_app_v2/lib/features/studio/models/workflow.dart#L169-L171]) is accessed 0 times across backend business logic, 0 times in background workers, and 0 times in Flutter UI widgets or screens. It is not stored in `seed_data.json`. It is dead weight that must be deleted from `v2_core.py`, `studio.py#L95-L128`, 50+ test fixtures, and Flutter `workflow.dart` without being relocated anywhere.
+5. **[ACTIVE DEBT - TARGET] Eradicate Synthetic Step Injection in DAG Executor**:
+   In @[backend_v2/services/orchestrator/dag_executor.py#L482-L494], `DAGExecutor` injects `v_step_id = f"sys_render_{exec_record.output_profile_id}"` into `steps` and `step_states`. This must be removed completely. Phase 1 DAG executor must only execute and track workflow steps defined in the workflow definition.
+6. **[ACTIVE DEBT - TARGET] Eradicate Synthetic Virtual Step Resumption Exceptions**:
+   In @[backend_v2/services/execution.py#L666-L667] and @[backend_v2/tests/unit/services/test_execution_resumability.py#L85-L125], remove custom filtering (`k.startswith("sys_render_")`) and test hacks that exist solely to tolerate virtual `sys_render_*` steps during resumption validation.
+7. **[ACTIVE DEBT - TARGET] Eradicate Reflection, Duck-Typing and QGR012 in Factory and Resumption**:
+   In @[backend_v2/services/execution.py#L99-L159] (`create_execution_record`), eradicate `**extra_persistence_fields: Any` (#L107, L134, L146) and `if isinstance(resolved_metadata, dict): # noqa: QGR012` (#L136). In `check_resumability` at @[backend_v2/services/execution.py#L673-L680], eradicate `elif isinstance(record.metadata, dict): # noqa: QGR012` and raw dict `.get("workflow_version")`. Refactor both to strict typed `ExecutionMetadata` access with zero duck-typing or QGR suppressions.
+8. **[ACTIVE DEBT - TARGET] Eradicate Loose Dictionary Signatures and Catch-All Handlers in Background Workers**:
+   In @[backend_v2/worker.py#L467-L469] and worker task definitions, eradicate worker auto-enqueue of `render_profile_job` from `execute_workflow_job`, and eliminate loose `inputs: dict[str, Any]` argument transit in favor of typed `ExecutionInputsDTO`. Replace generic multi-type exception handling with typed `AppException` mapping and RFC 7807 structured errors with explicit `ErrorCodes`.
+9. **[ACTIVE TARGET] Preserve Explicit Prompt Block Selectors in Output Profile DTOs**:
    In @[backend_v2/models/dtos/output_profile.py#L39-L263] and @[backend_v2/models/dtos/output_profile.py#L266-L478], strictly preserve `variance_target_block` and `user_role_target_block` with strict typed Pydantic V2 validation in compliance with `ban_heuristic_identifier_matching` and `studio_driven_parameterization_mandate`, ensuring zero heuristic string guessing or identifier matching.
-10. **Enforce Flutter AppErrorBoundary Wrapping and Axis 1 Localization Parity**:
+10. **[ACTIVE TARGET] Enforce Flutter AppErrorBoundary Wrapping and Axis 1 Localization Parity**:
     Across all new UI views in `client_app_v2/lib/features/reports/` (`ExecutionReportsView`, `CreateReportDialog`, `ReportArtifactCard`), wrap all interactive sub-canvases and detail tabs in `AppErrorBoundary` and ensure 100% of UI chrome resolves strictly from compile-time `.arb` localizations without hardcoded strings.
-11. **Eradicate Broad Exception Handlers in Execution Service and Worker**:
+11. **[ACTIVE TARGET] Eradicate Broad Exception Handlers in Execution Service and Worker**:
     Replace silent or untyped `except Exception as e:` blocks across `backend_v2/services/execution.py` and `backend_v2/worker.py` with specific, typed exceptions (`AppException`, `ValidationError`, `OSError`, `RedisError`) and structured RFC 7807 error logging (`logger.error(..., extra={"error_code": ...})`).
-12. **Audit and Validate `model_copy(update=...)` Mutations**:
+12. **[ACTIVE TARGET] Audit and Validate `model_copy(update=...)` Mutations**:
     Audit and eradicate unvalidated `model_copy(update=...)` calls in `backend_v2/services/execution.py` (specifically: `is_resumable` calculation and execution state mutations) to ensure state transitions pass through strict Pydantic V2 validation without field smuggling.
-13. **Decouple Ingress Profile Requirements in Domain and DTO Contracts**:
+13. **[ACTIVE TARGET] Decouple Ingress Profile Requirements in Domain and DTO Contracts**:
     Update `ExecutionRecord.output_profile_id` and `Workflow.default_profile_id` from required strings (`Annotated[str, Field(min_length=1)]`) to optional strings (`Annotated[str | None, Field(default=None)] = None`) in domain models and DTOs to enforce complete phase decoupling from the first line of code.
 
 ---
@@ -389,19 +460,19 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
       - Change output_profile_id to Annotated[str | None, Field(default=None, description="Optional presentation profile identifier")].
       - Ensure ConfigDict(strict=True, extra="forbid") is preserved.
     </action>
-    <action>Decompose monolithic @[backend_v2/models/v2_core.py] (1,901 lines) into cohesive domain models under backend_v2/models/domain/ and backend_v2/models/dtos/:
-      - Create [NEW] @[backend_v2/models/domain/workflow.py] (~160 lines): Extract Workflow (#L1380-L1547). Completely purge allowed_exports (#L1459-L1462). Make default_profile_id optional (Annotated[str | None, Field(default=None)]). Preserves dynamic model_registry_id (pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$", zero code-level default ID), default_strictness_level=50, and security/passivity penalties.
-      - Delete allowedExports completely from Workflow in @[client_app_v2/lib/features/studio/models/workflow.dart#L169-L171].
-      - Create [NEW] @[backend_v2/models/domain/step.py] (~260 lines): Extract Step, StepRule, Role, QuestionnaireItem, ExpectedInput (#L570-L800). Preserves cognitive_tier: CognitiveTier and validate_step_consistency() (banning legacy string model_strategy).
-      - Create [NEW] @[backend_v2/models/domain/matrix.py] (~260 lines): Extract TheoryGrounding, AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TDAAssertion, MatrixClaim, MatrixRow, MatrixScale (#L121-L380).
-      - Create [NEW] @[backend_v2/models/domain/execution.py] (~250 lines): Extract ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot, ExecutionCreate, FrozenContext, JobAcceptedDTO, EvidenceRejectionRequest (#L1548-L1840). Preserves ExecutionCreate.provider_override (LLMProvider | None) and ExecutionCreate.model_registry_id (str | None).
-      - Create [NEW] @[backend_v2/models/dtos/atom_result.py] (~110 lines): Extract AtomResultDTO, ExtractedValueDTO, HydratedAtomDTO, ErrorDetailsDTO, ExecutionMetricsDTO, ExtensionMetricsDTO (#L385-L495).
-      - Modify @[backend_v2/models/domain/synthesis.py] (~160 lines): Consolidate MatrixSynthesisGroup, RenderedSynthesisCache, BaseMatrixXAI, BaseTDAExtraction (#L990-L1065).
-      - Modify @[backend_v2/models/domain/output_profile.py] (~300 lines): Elevate from 10-line stub to canonical OutputProfile domain model (#L1066-L1379). Strictly preserve explicit Studio UI selectors `variance_target_block` and `user_role_target_block` with strict Pydantic validation adhering to `studio_driven_parameterization_mandate` and `ban_heuristic_identifier_matching`.
-      - Synchronize @[backend_v2/models/dtos/output_profile.py#L39-L263] and @[backend_v2/models/dtos/output_profile.py#L266-L478]: Maintain strict typed validation for `variance_target_block` and `user_role_target_block` on OutputProfileCreateDTO and OutputProfileUpdateDTO.
-      - Create [NEW] @[backend_v2/models/dtos/report_data.py] (~80 lines): Extract ReportDataDTO (#L496-L580).
-      - Create [NEW] @[backend_v2/models/domain/system_config.py] (~160 lines): Extract ModelProfile, SystemConfigModelRegistry, SystemConfigMCPGateways, AllowedMCPTool, MCPAuditTrace, ChatMessageDTO, ChatHistoryDTO, DataDictionaryField, ProviderExtraParamsDTO (#L430-L560). Preserves Option A Sovereign Model Stack contracts: SystemConfigModelRegistry.name, default_provider (defaulting to LLMProvider.AI_STUDIO), flat tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], ...], and validate_tier_completeness() enforcing 4 canonical tiers.
-      - Refactor @[backend_v2/models/v2_core.py] into a thin Strangler Fig Facade (<90 lines): Re-exports all 42 public symbols with explicit __all__ = [...] and redundant aliases (specifically: from backend_v2.models.domain.workflow import Workflow as Workflow) to satisfy PEP 484 and mypy --strict.
+    <action>Decompose monolithic @[backend_v2/models/v2_core.py] (1,901 actual physical lines) into cohesive domain models under backend_v2/models/domain/ and backend_v2/models/dtos/. To prevent Context Amnesia during the 42-symbol extraction, execute strictly in 7 atomic sub-batches, verifying each with `uv run python scripts/backend_audit_loop.py backend_v2 --test` before proceeding:
+      - Sub-batch 1: Create [NEW] @[backend_v2/models/domain/matrix.py] (~260 lines) as a leaf dependency: Extract TheoryGrounding, AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TDAAssertion, MatrixClaim, MatrixRow, MatrixScale (#L121-L382).
+      - Sub-batch 2: Create [NEW] @[backend_v2/models/domain/system_config.py] (~160 lines) for platform models: Extract ChatMessageDTO, ChatHistoryDTO, DataDictionaryField, ProviderExtraParamsDTO, ModelProfile, SystemConfigModelRegistry, AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways (#L383-L541). Preserves Option A Sovereign Model Stack contracts: SystemConfigModelRegistry.name, default_provider (defaulting to LLMProvider.AI_STUDIO), flat tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], ...], and validate_tier_completeness() enforcing 4 canonical tiers.
+      - Sub-batch 3: Create [NEW] @[backend_v2/models/domain/step.py] (~260 lines): Extract Step, StepRule, Role, QuestionnaireItem, ExpectedInput (#L542-L829). Preserves cognitive_tier: CognitiveTier and validate_step_consistency() (banning legacy string model_strategy).
+      - Sub-batch 4: Create [NEW] @[backend_v2/models/domain/workflow.py] (~160 lines): Extract Workflow (#L1380-L1547). Completely purge allowed_exports (#L1459-L1462). Make default_profile_id optional (Annotated[str | None, Field(default=None)]). Preserves dynamic model_registry_id (pattern=r"^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$", zero code-level default ID), default_strictness_level=50, and security/passivity penalties. Concurrently delete allowedExports completely from Workflow in @[client_app_v2/lib/features/studio/models/workflow.dart#L169-L171].
+      - Sub-batch 5: Create [NEW] @[backend_v2/models/domain/execution.py] (~250 lines): Extract FrozenContext (#L1548), ExecutionCreate (#L1564), ExecutionStep (#L1608), ExecutionSummarySnapshot (#L1644), ExecutionRecord (#L1703), JobAcceptedDTO (#L1780), EvidenceRejectionRequest (#L1790). Preserves ExecutionCreate.provider_override (LLMProvider | None) and ExecutionCreate.model_registry_id (str | None).
+      - Sub-batch 6: Create remaining DTOs and presentation models:
+        * Create [NEW] @[backend_v2/models/dtos/atom_result.py] (~110 lines): Extract ErrorDetailsDTO (#L830), HydratedAtomDTO (#L836), ExtractedValueDTO (#L847), AtomResultDTO (#L853), ExecutionMetricsDTO (#L920), ExtensionMetricsDTO (#L1657).
+        * Modify @[backend_v2/models/domain/synthesis.py] (~160 lines): Consolidate MatrixSynthesisGroup (#L1008-L1065), RenderedSynthesisCache (#L1670), BaseMatrixXAI (#L1801), BaseTDAExtraction (#L1812).
+        * Modify @[backend_v2/models/domain/output_profile.py] (~300 lines): Elevate from 10-line stub to canonical OutputProfile domain model (#L1066-L1379). Strictly preserve explicit Studio UI selectors `variance_target_block` and `user_role_target_block` with strict Pydantic validation adhering to `studio_driven_parameterization_mandate` and `ban_heuristic_identifier_matching`.
+        * Synchronize @[backend_v2/models/dtos/output_profile.py#L39-L263] and @[backend_v2/models/dtos/output_profile.py#L266-L478]: Maintain strict typed validation for `variance_target_block` and `user_role_target_block` on OutputProfileCreateDTO and OutputProfileUpdateDTO.
+        * Create [NEW] @[backend_v2/models/dtos/report_data.py] (~80 lines): Extract ReportDataDTO (#L928-L1007).
+      - Sub-batch 7: Refactor @[backend_v2/models/v2_core.py] into a thin Strangler Fig Facade (<90 lines): Re-exports all 42 public symbols with explicit __all__ = [...] and redundant aliases (specifically: from backend_v2.models.domain.workflow import Workflow as Workflow) to satisfy PEP 484 and mypy --strict.
     </action>
     <constraint invariant="zero_permissive_typing">
       DTO models must enforce ConfigDict(strict=True, extra="forbid"). No naked dictionaries, legacy ghost fields, or loose optional bypasses.
@@ -420,21 +491,23 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
       - Maintain dynamic model registry resolution: resolved_registry_id = payload.model_registry_id or workflow.model_registry_id. Validate resolved_registry_id strictly against system repository (get_model_registry(resolved_registry_id)), raising AppException with ErrorCodes.RESOURCE_NOT_FOUND if missing or non-existent.
       - Maintain provider_override=payload.provider_override and model_registry_id=resolved_registry_id in ExecutionMetadata.
     </action>
-    <action>Modify @[backend_v2/services/orchestrator/dag_executor.py#L382-L1076]:
+    <action>Modify @[backend_v2/services/orchestrator/dag_executor.py#L482-L494]:
       - Delete lines injecting v_step_id = f"sys_render_{exec_record.output_profile_id}" or f"sys_render_{workflow.default_profile_id}".
       - Pass output_profile_id=exec_record.output_profile_id directly to create_execution_record without injecting virtual rendering steps into steps or step_states.
       - Ensure DAG execution continues to instantiate StrategyContext strictly with cognitive_tier=step_def.cognitive_tier.
     </action>
+    <action>Execute /tier5-session-handover to checkpoint Phase A completion and transition cleanly to Phase B, preventing context amnesia before worker and service extraction.</action>
     <constraint invariant="universal_fail_fast">
       If a specific profile_id is explicitly provided by the caller but not found in the database, raise AppException with ErrorCodes.RESOURCE_NOT_FOUND. Do NOT fall back silently.
     </constraint>
   </step>
 
   <step id="3" name="WORKER_DECOMPOSITION_AND_LIFECYCLE_ISOLATION">
-    <action>Execute AST boundary analysis on @[backend_v2/worker.py] to verify exact line bounds of execute_workflow_job, generate_pdf_job, generate_pdf_task, render_profile_job, and generate_profile_synthesis_and_pdf_task.</action>
+    <action>Execute Golden Master characterization test to record baseline test coverage before worker decomposition per @[ki_god_code_prevention.md]: uv run pytest backend_v2/tests/ --cov=backend_v2.worker --cov-report=term-missing</action>
+    <action>Execute AST boundary analysis on @[backend_v2/worker.py] (1,987 actual lines) via scripts/_ast_boundary_utils.py to verify exact physical node bounds of execute_workflow_job, generate_pdf_job, generate_pdf_task, render_profile_job, and generate_profile_synthesis_and_pdf_task.</action>
     <action>Create [NEW] subpackage @[backend_v2/workers/__init__.py] with public worker exports.</action>
     <action>Create [NEW] file @[backend_v2/workers/execution_worker.py] (<400 lines):
-      - Extract execute_workflow_job from worker.py lines 136–544.
+      - Extract execute_workflow_job from worker.py lines 139–556.
       - Upon completion of DAG execution and topological scoring, calculate duration_ms and finalize telemetry metrics (prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens, cost_estimate, models_used).
       - Set execution status directly: update_dto = ExecutionUpdateDTO(status=ExecutionStatus.PASSED, completed_at=datetime.now(UTC), ...).
       - Delete lines injecting v_step_id = f"sys_render_{profile_id}" and label="Generating Output Report" into updated_exec_record.steps and step_states.
@@ -443,7 +516,7 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
       - Persist ExecutionStatus.PASSED immediately. The execution is finished from Phase 1 perspective.
     </action>
     <action>Create [NEW] file @[backend_v2/workers/report_worker.py] (<450 lines):
-      - Extract generate_pdf_job, generate_pdf_task, render_profile_job, and generate_profile_synthesis_and_pdf_task from worker.py lines 547–1816.
+      - Extract generate_pdf_job, generate_pdf_task, render_profile_job, and generate_profile_synthesis_and_pdf_task from worker.py lines 557–1892.
       - Register generate_report_artifact_job(ctx, report_id: str) delegating directly to report_service.process_artifact_compilation.
       - Maintain sovereign cognitive tier resolution for synthesis tasks:
         1. Executive summary synthesis: Invoke LLMClient.from_tier(CognitiveTier.BALANCED, repository=repo, provider=execution.metadata.provider_override, registry_id=execution.metadata.model_registry_id).
@@ -458,6 +531,7 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
       - Import generate_report_artifact_job, generate_pdf_job, generate_pdf_task, render_profile_job, generate_profile_synthesis_and_pdf_task from backend_v2.workers.report_worker.
       - Enforce PEP 484 and MyPy Strict explicit re-exports: declare __all__ = ["execute_workflow_job", "generate_report_artifact_job", "generate_pdf_job", "generate_pdf_task", "render_profile_job", "generate_profile_synthesis_and_pdf_task", "WorkerSettings", "startup", "shutdown", "health_check"] and redundant aliases (from ... import func as func).
     </action>
+    <action>Execute Arq Worker smoke test after extraction to verify task registration survives extraction: uv run python -c "from backend_v2.worker import WorkerSettings; print([f.name for f in WorkerSettings.functions])"</action>
     <constraint invariant="tripartite_phase_isolation">
       Phase 3 rendering failures MUST NEVER mutate Phase 1 ExecutionRecord.status to FAILED. An analytical run remains PASSED once DAG evaluations succeed.
     </constraint>
@@ -467,10 +541,10 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
   </step>
 
   <step id="4" name="MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY">
-    <action>Modify @[backend_v2/services/blueprint.py#L62-L588]:
-      - Delete lines where new_step_states are updated and exec_repo.update_execution is invoked.
+    <action>Modify @[backend_v2/services/blueprint.py#L62-L589]:
+      - Delete lines where new_step_states are updated and exec_repo.update_execution is invoked (#L345-L361).
       - Remove self.exec_repo write access from build_report_dto. The transformer must only read execution data.
-      - Replace extract_evidence_ids recursive dictionary search with direct iteration over structured mcp_audit_data items and AtomResultDTO used_evidence_ids.
+      - Replace extract_evidence_ids (#L461-L480) recursive dictionary search and isinstance(payload_data, dict) with direct iteration over structured mcp_audit_data items and AtomResultDTO used_evidence_ids.
       - Replace token re-summing trace iteration fallback with strict consumption of execution.prompt_tokens, completion_tokens, and reasoning_tokens.
       - In variance block resolution, strictly preserve typed extraction from the profile's explicit selector (`profile.variance_target_block`), ensuring deterministic execution without heuristic identifier guessing.
     </action>
@@ -487,9 +561,9 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
         2. 'Raw Data': Tabular list of every evaluated atom, score, weight, quote, and causal reasoning.
       - Implement export_flat_csv(execution: ExecutionRecord, report_dto: ReportDataDTO) -> tuple[bytes, str] using FlatFileService.
       - Define static column header dictionaries in English and Finnish within the service or reference backend I18nText SSOT.
-      - Eradicate open(client_app_v2/lib/l10n/app_{locale}.arb).
+      - Eradicate open(client_app_v2/lib/l10n/app_{locale}.arb) (#L836-L838 in execution.py).
     </action>
-    <action>Refactor @[backend_v2/services/execution.py#L787-L990]:
+    <action>Refactor @[backend_v2/services/execution.py#L787-L965]:
       - Purge legacy export logic and direct .arb reading from ExecutionService.
       - Inject ExportService into ExecutionService if temporary proxy delegation is required during migration, marking delegating methods with @deprecated.
     </action>
@@ -542,6 +616,8 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
   </step>
 
   <step id="7" name="DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE">
+    <action>Execute Golden Master characterization test to record baseline test coverage before execution service decomposition per @[ki_god_code_prevention.md]: uv run pytest backend_v2/tests/ --cov=backend_v2.services.execution --cov-report=term-missing</action>
+    <action>Execute AST boundary analysis on @[backend_v2/services/execution.py] (1,494 actual lines) via scripts/_ast_boundary_utils.py to verify exact physical node ranges before extraction.</action>
     <action>Create [NEW] file @[backend_v2/services/report_service.py] (~250 lines) defining ReportService:
       - Coordinate full report artifact lifecycle:
         1. create_report_artifact_entry(payload: ReportArtifactCreateDTO) -> ReportArtifact
@@ -563,17 +639,18 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
         9. delete_report_artifact(report_id: str) -> None: delete database record AND all physical storage files via storage driver.
         10. regenerate_report_artifact(report_id: str, arq_pool: ArqRedis) -> None: reset status to GENERATING and re-enqueue worker job.
     </action>
-    <action>Decompose @[backend_v2/services/execution.py] (1,494 lines) into dedicated subpackage backend_v2/services/execution/:
+    <action>Decompose @[backend_v2/services/execution.py] (1,494 actual lines) into dedicated subpackage backend_v2/services/execution/:
       - Create [NEW] @[backend_v2/services/execution/__init__.py]: Package export facade.
-      - Create [NEW] @[backend_v2/services/execution/lifecycle_service.py] (~180 lines): Tenant-isolated execution lifecycle (list_executions, get_execution, delete_execution, cancel_execution).
-      - Create [NEW] @[backend_v2/services/execution/ingress_service.py] (~180 lines): Execution startup, SmartIngressResolver slot mapping, document attachment extraction, dynamic SDUI hints generation, model_registry_id dynamic validation against system repository, create_execution_record, and Arq job dispatch.
-      - Create [NEW] @[backend_v2/services/execution/resumption_service.py] (~120 lines): Checkpoint history validation, DAG version parity, FinOps quota check, and resume_execution.
-      - Create [NEW] @[backend_v2/services/execution/override_service.py] (~140 lines): Human override handling (override_atom, reject_evidence_quote), scorecard_atoms update, and hook recalculation.
-      - Create [NEW] @[backend_v2/services/execution/stream_service.py] (~80 lines): SSE status streaming (stream_status) with retry backoff and error event emission.
-      - Create [NEW] @[backend_v2/services/execution/context_service.py] (~50 lines): Forensic context retrieval (get_frozen_context_bytes).
+      - Create [NEW] @[backend_v2/services/execution/lifecycle_service.py] (~180 lines): Tenant-isolated execution lifecycle (list_executions, get_execution, delete_execution, cancel_execution #L160-L386).
+      - Create [NEW] @[backend_v2/services/execution/ingress_service.py] (~180 lines): Execution startup, SmartIngressResolver slot mapping, document attachment extraction, dynamic SDUI hints generation, model_registry_id dynamic validation against system repository, create_execution_record (#L99-L159 cleansed of `**extra_persistence_fields` and `isinstance(resolved_metadata, dict)`), and Arq job dispatch (#L387-L630).
+      - Create [NEW] @[backend_v2/services/execution/resumption_service.py] (~120 lines): Checkpoint history validation, DAG version parity, FinOps quota check, and resume_execution (#L694-L786). Refactor check_resumability (#L631-L693, specifically #L673-L680) to strict typed ExecutionMetadata access, eradicating duck-typing and # noqa: QGR012.
+      - Create [NEW] @[backend_v2/services/execution/override_service.py] (~140 lines): Human override handling (override_atom, reject_evidence_quote), scorecard_atoms update, and hook recalculation (#L966-L1129).
+      - Create [NEW] @[backend_v2/services/execution/stream_service.py] (~80 lines): SSE status streaming (stream_status #L1130-L1210) with retry backoff and error event emission.
+      - Create [NEW] @[backend_v2/services/execution/context_service.py] (~50 lines): Forensic context retrieval (get_frozen_context_bytes #L1211-L1260).
       - Refactor @[backend_v2/services/execution.py] into a thin Strangler Fig Facade (<80 lines): Composes the sub-services into ExecutionService and provides explicit PEP 484 re-exports (__all__) for seamless caller migration.
       - Wire ReportService, ExportService, and ExecutionService in @[backend_v2/api/dependencies.py].
     </action>
+    <action>Execute /tier5-session-handover to checkpoint Phase B completion and transition cleanly to Phase C, preserving context budget for API router, Flutter UI, and documentation.</action>
     <constraint invariant="tripartite_phase_isolation">
       ReportService is 100% downstream of Phase 1. Artifact generation failures MUST update only the ReportArtifact.status to FAILED, with zero mutation to ExecutionRecord.status.
     </constraint>
@@ -830,8 +907,20 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
 ## Verification Plan
 
 ### Automated Test Commands
-1. **Targeted Unit Tests**:
+0. **Pre-Execution AST Boundary Verification & Characterization Baselines**:
    ```powershell
+   uv run python scripts/_ast_boundary_utils.py backend_v2/models/v2_core.py
+   uv run python scripts/_ast_boundary_utils.py backend_v2/worker.py
+   uv run python scripts/_ast_boundary_utils.py backend_v2/services/execution.py
+   uv run python scripts/_ast_boundary_utils.py backend_v2/services/orchestrator/dag_executor.py
+   uv run pytest backend_v2/tests/ --cov=backend_v2.worker --cov=backend_v2.services.execution --cov-report=term-missing
+   ```
+1. **Targeted Unit Tests & Smoke Tests**:
+   ```powershell
+   # Post-Step 3 Arq Worker smoke test:
+   uv run python -c "from backend_v2.worker import WorkerSettings; print([f.name for f in WorkerSettings.functions])"
+
+   # Targeted domain and unit tests:
    uv run pytest backend_v2/tests/unit/workers/ -v
    uv run pytest backend_v2/tests/unit/test_worker_proxy.py -v
    uv run pytest backend_v2/tests/unit/services/test_blueprint.py -k "test_blueprint_read_only" -v
@@ -840,6 +929,7 @@ Adhering strictly to @[ki_god_code_prevention.md] and `/tier3-god-code-decomposi
    uv run pytest backend_v2/tests/unit/services/test_report_service.py -v
    uv run pytest backend_v2/tests/unit/api/test_reports_api.py -v
    uv run pytest backend_v2/tests/unit/test_rest_only_pipeline_boundary.py -v
+   uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py -v
    ```
 2. **Model Discovery & Cognitive Tier Regression Suites**:
    ```powershell
