@@ -34,18 +34,14 @@ __all__ = [
     "load_matrix_by_id",
 ]
 
-FINNISH_PATTERN = re.compile(
-    r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I
-)
-FINNISH_KEYWORDS_PATTERN = re.compile(
-    r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b", re.I
-)
+FINNISH_PATTERN = re.compile(r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I)
+FINNISH_KEYWORDS_PATTERN = re.compile(r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b", re.I)
 SCANDINAVIAN_CHAR_PATTERN = re.compile(r"[äöåÄÖÅ]")
 EMPIRICAL_METRIC_PATTERN = re.compile(r"\b\d+%\b|\b(N=\d+|p<0\.\d+|kysely|haastattelu|tilasto)\b", re.I)
 COMPARATIVE_RE = re.compile(r"\b(compar|relat|synthe|integrat|weigh|contrast|trade-?off)\b", re.I)
 AMBIGUITY_PATTERN = re.compile(r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.I)
 BACKEND_LEAK_PATTERN = re.compile(r"\b(pydantic|backend architecture|pydantic hooks)\b", re.I)
-INSTITUTION_PATTERN = re.compile(r"\b(stanford|työterveyslaitos)\b", re.I)
+INSTITUTION_PATTERN = re.compile(r"\b(stanford|työterveyslaitos|sitra)\b", re.I)
 TOY_DOMAIN_PATTERN = re.compile(r"\b(postgresql|sqlite|mongodb)\b", re.I)
 
 
@@ -111,6 +107,9 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
                 if tda.contrastive_example is not None:
                     text_fields.append(("contrastive_example.acceptable", tda.contrastive_example.acceptable))
                     text_fields.append(("contrastive_example.rejected", tda.contrastive_example.rejected))
+                if tda.anti_patterns:
+                    for idx, ap in enumerate(tda.anti_patterns):
+                        text_fields.append((f"anti_patterns[{idx}].pattern", ap.pattern))
                 for f_name, val in text_fields:
                     clean_val = re.sub(r"'[^']*'|\"[^\"]*\"", "", val)
                     has_finnish = bool(
@@ -143,7 +142,10 @@ def detect_empirical_contamination(matrix: MatrixPromptBlock) -> list[Contaminat
                     if TOY_DOMAIN_PATTERN.search(val):
                         findings.append(
                             ContaminationFindingDTO(
-                                tda_id=tda.tda_id, field=f_name, snippet=val[:80], reason="Toy domain reference detected"
+                                tda_id=tda.tda_id,
+                                field=f_name,
+                                snippet=val[:80],
+                                reason="Toy domain reference detected",
                             )
                         )
     return findings

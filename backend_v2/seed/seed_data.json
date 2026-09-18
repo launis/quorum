@@ -1871,7 +1871,7 @@
                       "allows_contextual_excuse": false
                     },
                     {
-                      "pattern": "concise factual summary of an explicitly cited external study, publication, or public report (specifically reports titled 'Megatrendit 2023 - Sitra' or primary research sources) reflecting the source's findings rather than asserting personal unchallengeable dogmatism",
+                      "pattern": "concise factual summary of an explicitly cited external study, publication, or public report (specifically official institutional white papers, government reports, or peer-reviewed research sources) reflecting the source's findings rather than asserting personal unchallengeable dogmatism",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -3422,7 +3422,7 @@
                   ],
                   "contrastive_example": {
                     "acceptable": "Market adoption spreads like electrical percolation through a conductive mesh, suddenly snapping into alignment once the critical node density is achieved.",
-                    "rejected": "As Sitra's foresight report notes, 'megatrends collide like tectonic plates shaping future geopolitical landscapes.'"
+                    "rejected": "As the institutional foresight report notes, 'megatrends collide like tectonic plates shaping future geopolitical landscapes.'"
                   },
                   "syntactic_anchors": [],
                   "enforce_pre_flight": false,
@@ -6649,7 +6649,7 @@
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "defensive ingest pipelines enforcing strict Pydantic or schema boundary validation",
+                      "pattern": "defensive ingest pipelines enforcing strict schema boundary validation",
                       "allows_contextual_excuse": false
                     }
                   ],
@@ -13472,7 +13472,7 @@
                   ],
                   "anti_patterns": [
                     {
-                      "pattern": "rejection criteria: If the prior text ALREADY contains the requested parameters (i.e. the user did actually ask for it e...",
+                      "pattern": "prior text explicitly contains the requested parameters in preceding instructions",
                       "allows_contextual_excuse": false
                     }
                   ],

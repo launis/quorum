@@ -192,6 +192,32 @@ def test_detect_empirical_contamination_flags_run_artifacts() -> None:
     assert len(findings) > 0
     assert any("Empirical" in f.reason for f in findings)
 
+    # Mutate anti_patterns to verify empirical institution leak (e.g. Sitra) in anti_patterns is flagged
+    from backend_v2.models.v2_core import AntiPattern
+
+    bad_ap_tda = (
+        base_mat.scales[0]
+        .claims[0]
+        .tda_assertions[0]
+        .model_copy(
+            update={
+                "anti_patterns": [
+                    AntiPattern(
+                        pattern="reports titled 'Megatrendit 2023 - Sitra' or primary research sources",
+                        allows_contextual_excuse=False,
+                    )
+                ]
+            }
+        )
+    )
+    bad_claim_ap = base_mat.scales[0].claims[0].model_copy(update={"tda_assertions": [bad_ap_tda]})
+    bad_scale_ap = base_mat.scales[0].model_copy(update={"claims": [bad_claim_ap]})
+    mutated_mat_ap = base_mat.model_copy(update={"scales": [bad_scale_ap] + list(base_mat.scales[1:])})
+    findings_ap = detect_empirical_contamination(mutated_mat_ap)
+    assert len(findings_ap) > 0
+    assert any("Institution" in f.reason for f in findings_ap)
+    assert any("anti_patterns[0].pattern" == f.field for f in findings_ap)
+
     # Verify that all 13 calibrated matrices in the database have 0 contamination
     for cid in (
         "blk_440a5fef9331451b",

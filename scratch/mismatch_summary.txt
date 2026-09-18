@@ -1,0 +1,149 @@
+TOTAL COMMON ATOMS: 205
+MISMATCHES: 30 (Variance: 14.6%)
+KAPPA: Cohen=0.0000, Fleiss=0.6951
+2-WAY TRANSITIONS: {'PASSED->FAILED': 9, 'FAILED->PASSED': 21, 'Other': 0}
+ROOT CAUSES: {'retrieval_gap_count': 23, 'reasoning_gap_count': 0, 'contextual_override_count': 7, 'technical_error_count': 0, 'total_mismatches': 30}
+
+=======================================================
+
+BLOCK: Syy-seuraussuhteet (Kausaalisuuden ja Abduktiivisen Päättelyn Auditointi) (blk_c5804a9143c34cb1) (4 mismatches)
+  * tda_01edff70b75047ec9f6df0c49745f46e | Scale 3.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: A causal inference derived from a limited domain is applied universally without boundary conditions.
+    R1: quote='' | reason: Käyttäjän syötteissä ei esitetä rajoitetusta toimialueesta johdettujen kausaalipäätelmien yleistämis
+    R2: quote='' | reason: Teksti tekee oppilaitosta koskevan johtopäätöksen ja soveltaa sitä suoraan koko organisaatioon ilman
+  * tda_728cd0dff7384300bc55622fa7dfffc0 | Scale 2.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Explicitly specifies the directional orientation of causal influence between variables.
+    R1: quote='' | reason: Käyttäjän syötteissä ei määritellä eksplisiittisesti operationaalisten muuttujien välistä suunnattua
+    R2: quote='Se määräytyy sen mukaan, mitä työtehtävä kulloinkin vaatii j' | reason: Teksti määrittää selvästi suunnan: työtehtävä määrää etätyön määrän ja tavoitettavuus sidotaan opetu
+  * tda_8e87f38a5ec6d86e20e210f6205015cc | Scale 2.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Articulates an intermediate transmission mediator explaining the step-by-step propagation from cause to effect.
+    R1: quote='' | reason: Tekstissä ei esitetä monivaiheista syy-seurausketjua, jossa eriteltäisiin eksplisiittinen välittävä 
+    R2: quote='Etätyön myönteiset vaikutukset ovat työntekijän lisääntynyt ' | reason: Tekstissä on monivaiheinen kausaalinen ketju: etätyö lisää joustavuutta, mikä tukee hyvinvointia ja 
+  * tda_c607024dbf524f7a9d68af443901c40e | Scale 3.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Provides a granular structural mechanism detailing how an operational variable causes an observed state change.
+    R1: quote='' | reason: Tekstissä ei kuvata järjestelmän yksityiskohtaista rakenteellista mekanismia tai sisäisiä tilasiirty
+    R2: quote='Tavoitettavuus sidotaan opetuksen rytmiin. Jos opettajan kur' | reason: Teksti kuvaa useita toiminnallisia mekanismeja, kuten tavoitettavuuden sitomisen opetuksen rytmiin j
+
+BLOCK: Väitteiden perustelu (Toulminin Argumentaatiomalli) (blk_440a5fef9331451b) (6 mismatches)
+  * tda_10dd47750c9244139c394ca875f160e6 | Scale 4.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: The text contains an explicitly articulated, robust Warrant that establishes the causal or logical necessity between Data and Claim.
+    R1: quote='Koko oppilaitoksen yhteisestä "ankkuripäivästä" luovutaan, j' | reason: Teksti esittää toiminnallisen oikeutuksen, jossa yhteisestä ankkuripäivästä luopuminen perustellaan 
+    R2: quote='' | reason: Tekstissä on toimeksiantoa ja taustatietoa, mutta ei eksplisiittistä sääntöä, joka yhdistäisi premis
+  * tda_34259a6c02b74917b12f74b5f3839a66 | Scale 1.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: The text asserts an empirical claim entirely devoid of supporting data, observable evidence, or ground truth.
+    R1: quote='' | reason: Teksti ei esitä irrallisia empiirisiä väitteitä ilman kontekstuaalista taustadataa tai tutkimusviitt
+    R2: quote='' | reason: Kirjoittaja esittää määrällisiä väitteitä organisaatiosta, mutta samassa kohdassa ei ole viitettä, m
+  * tda_47bade191cf346ec818757f081f6aef3 | Scale 4.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: The text demonstrates constructive engagement with Rebuttal conditions by systematically evaluating and refuting counter-claims with data.
+    R1: quote='Koko oppilaitoksen yhteisestä "ankkuripäivästä" luovutaan, j' | reason: Kirjoittaja käsittelee yhteisen ankkuripäivän aiheuttamaa ruuhkautumisriskiä ja kumoaa sen tiimikoht
+    R2: quote='' | reason: Vastaväite kyllä tunnistetaan, mutta sitä ei systemaattisesti arvioida eikä kumota datalla tai trade
+  * tda_6e3e3aa6b9134a01838c3b70a35b4f32 | Scale 3.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: The argument articulates both Claim and Data, with an underlying Warrant that is structurally present though intuitive.
+    R1: quote='Koska noin 30 % opetuksestamme toteutetaan jo verkossa, etät' | reason: Väite ja data kytketään toisiinsa ymmärrettävällä ja rakenteellisesti toimivalla periaatteella.
+    R2: quote='' | reason: Sekä empiirinen data että sitä seuraava käyttäjän oma johtopäätös pitäisi olla eksplisiittisesti läs
+  * tda_9a08254fb47a46fdb8a78030ed68f853 | Scale 5.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The author documents deliberate self-falsification, systematically testing their own claim against disconfirming evidence.
+    R1: quote='' | reason: Kirjoittaja ei dokumentoi eksplisiittistä itsensä falsifiointia tai hypoteesin kumoamiskoetta lopull
+    R2: quote='Hyvä. Toimi nyt paholaisen asianajajana ja anna säälimätöntä' | reason: Käyttäjä pyytää nimenomaisesti vastakkaista, hajottavaa tarkastelua omalle ehdotukselle ennen uuden 
+  * tda_b5ae6dbc4d2bdcda5ed0e62aec398444 | Scale 2.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The claim relies on unverified consensus or unnamed authority without citing verifiable academic or technical sources.
+    R1: quote='' | reason: Väite nojaa nimeämättömään arvovaltaan ja yleiseen tutkimustietoon nimeämättä konkreettisia tutkijoi
+    R2: quote='' | reason: Käyttäjä ei vetoa nimeämättömään asiantuntijakonsensukseen, vaan päinvastoin pyytää lähteitä ja luot
+
+BLOCK: Luovuus ja syvyys (Bloomin Taksonomia) (blk_f921c7c0989b47e8) (6 mismatches)
+  * tda_10f455c36f754d33a3a551e9e7b61da4 | Scale 4.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Deconstructing a complex system or proposition into distinct, constituent structural components.
+    R1: quote='' | reason: Käyttäjä ei pura monimutkaista järjestelmää toiminnallisiin osiin rajapintoineen, vaan ainoastaan lu
+    R2: quote='Olen tekemässä selvitystä etätyön myönteisistä ja kielteisis' | reason: Käyttäjä pilkkoo tarkastelun selvästi erillisiin analyysikomponentteihin: talous-, henkilöstö- ja st
+  * tda_85988e1249fe8a9a3ec181163f17c006 | Scale 4.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Identifying architectural paradoxes, conflicting constraints, or systemic friction points between sub-components.
+    R1: quote='' | reason: Käyttäjän viesteissä ei analysoida järjestelmän sisäisiä arkkitehtonisia ristiriitoja tai kitkapiste
+    R2: quote='osa henkilöistä ei voi tehdä etätyötä ja saattavat
+kokea mui' | reason: Teksti tunnistaa kaksi yhtä aikaa vaikuttavaa ehtoa: kaikkia tehtäviä ei voi tehdä etänä, ja tämä sy
+  * tda_9a8a71406006c7c7d8a21ac227050494 | Scale 4.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: Enumerating system components superficially without analyzing their interactions, data flows, or dependency hierarchies.
+    R1: quote='' | reason: Käyttäjä mainitsee oppilaitoksen henkilöstöryhmät toimeksiannon taustatietona, eikä kyseessä ole ark
+    R2: quote='' | reason: Teksti luettelee organisaation osia, mutta ei selitä niiden välisiä riippuvuuksia, rajapintoja tai t
+  * tda_b36d3ec7b1f94fe9ad4b45795a8a104b | Scale 1.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Standalone declarative recall of factual definitions or nomenclature without causal elaboration.
+    R1: quote='' | reason: Käyttäjän syötteissä ei esiinny käsitteiden tai nimistön irrallista määrittelyä ilman syy-seuraussuh
+    R2: quote='Opetuksesta noin 30%
+tehdään etänä. Oppilaitoksessa on noin ' | reason: Teksti sisältää irrallisen faktatiedon organisaatiosta ilman mekanistista selitystä, joten se toimii
+  * tda_b7dfe23403db4db5b92a29a8bda9957c | Scale 2.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: Concepts or entities are listed in mere juxtaposition without explaining their relational connection, functional interaction, or synthesis.
+    R1: quote='' | reason: Käyttäjä ei esitä teorioita tai käsitteitä pelkkänä rinnakkaisena luettelona ilman yhteyksien tarkas
+    R2: quote='' | reason: Käsitteitä ja rooleja esitetään rinnakkain pelkkänä luettelona ilman suhteiden tai yhteistoiminnan a
+  * tda_defc33928bb9c172f2f64e090b90f935 | Scale 1.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Enumeration of dates, names, or terminology components presented as an unintegrated catalog.
+    R1: quote='' | reason: Käyttäjän viesteissä ei ole päivämäärien, nimien tai termien luettelointia passiivisena luettelona.
+    R2: quote='100 ovat
+opettajia ja loput päälliköitä, sihteereitä, IT-asi' | reason: Teksti sisältää passiivisen luettelon rooleista ilman niiden toimintasuhteiden avaamista, joten se t
+
+BLOCK: Harkintakyky (Kahnemanin Kaksoisprosessiteoria) (blk_109dab5b6b3f403a) (3 mismatches)
+  * tda_20f87ebd0c5b7de765cc4f6abc9b0fdd | Scale 1.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The evaluated text articulates an initial intuitive proposition, subjective reaction, or declarative stance without multi-step analytical framing.
+    R1: quote='' | reason: Käyttäjä ei esitä intuitiivista väitettä tai subjektiivista reaktiota omana suorana kannanottonaan, 
+    R2: quote='osa henkilöistä ei voi tehdä etätyötä ja saattavat
+kokea mui' | reason: Käyttäjä esittää suoran väitteen etätyön rajoista ja koetusta epäreiluudesta ilman väliin rakennettu
+  * tda_5257ba1edae34afe8b837c8c238cf743 | Scale 3.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Decomposing a complex composite problem into at least three distinct, mutually exclusive and testable constituent sub-components or analytical dimensions.
+    R1: quote='' | reason: Käyttäjä ei itse analyyttisesti pura ongelmaa kolmeen operationalisoituun osakomponenttiin, vaan pyy
+    R2: quote='Tavoitteena on maksimoida
+työhyvinvointi, kulttuurin ylläpit' | reason: Tavoite pilkotaan neljään erilliseen arviointidimensioon, mikä jäsentää ongelman useiksi tarkasteluk
+  * tda_6df2bc5ac5e194367107f8d29fa6503e | Scale 2.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The argument explicitly bounds its assertions by specifying boundary conditions, situational constraints, and failure modes under which the reasoning ceases to hold.
+    R1: quote='' | reason: Käyttäjä ei määrittele argumentaatiossaan eksplisiittisiä reunaehtoja tai tilanteita, joissa mallin 
+    R2: quote='Selvitä mikä olisi opetusalalle sopiva etätyöpolitiikka. Ota' | reason: Pyyntö rajaa soveltamisalan aikuiskoulutukseen ja lisää toiminnallisen rajan, ettei kaikkien työ sov
+
+BLOCK: Avoimuus (Selitettävyys ja Läpinäkyvyys) (blk_f6e286f050c94d60) (3 mismatches)
+  * tda_2f6c6565bf10f613d787c03fc97bfb91 | Scale 1.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The text states at least one explicit declarative stance, finding, or recommendation.
+    R1: quote='' | reason: Käyttäjän syötteet koostuvat kehotteista ja toimeksiannon reunaehdoista eivätkä sisällä itsenäistä d
+    R2: quote='Yksi sivu riittää.' | reason: Tekstissä on selvä deklaratiivinen kannanotto muistion laajuudesta.
+  * tda_99e85328acc8396007c0766de9aea317 | Scale 1.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: Factual assertions or empirical figures are stated with complete absence of source provenance.
+    R1: quote='' | reason: Käyttäjä ei esitä tekstissään strategisia johtopäätöksiä tai suosituksia ilman perusteluja, vaan ant
+    R2: quote='' | reason: Käyttäjä esittää useita numeerisia taustaväitteitä, mutta ei nimeä niille mitään lähdettä, aineistoa
+  * tda_f421022aacc8c0c5d2ab80aa5c9719c4 | Scale 2.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The text explicitly names at least one specific input variable, source file, or parameter.
+    R1: quote='' | reason: Käyttäjä ei nimeä eksplisiittisesti kanonista syötemuuttujaa tai lähdedatan nimeä analyyttisessä keh
+    R2: quote='Opetuksesta noin 30%
+tehdään etänä. Oppilaitoksessa on noin ' | reason: Tekstissä nimetään useita konkreettisia syöteparametreja, kuten opetuksen etäosuus, henkilöstömäärä 
+
+BLOCK: Itsensä haastaminen (Falsifioinnin Auditointi) (blk_b476f89fb732448c) (3 mismatches)
+  * tda_3b951170f9f54f649b7da95fb9f121e6 | Scale 3.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Empirical observations are reported descriptively without formulating a testable or falsifiable hypothesis.
+    R1: quote='' | reason: Käyttäjä ei raportoi empiirisiä havaintoja kuvailevasti ilman testausta, vaan määrittelee toimeksian
+    R2: quote='Tutkimukset (kuten Työterveyslaitoksen raportit) osoittavat,' | reason: Teksti esittää havaintoja ja tutkimusviitteitä kuvailevasti, mutta ei rakenna niistä erillistä testa
+  * tda_d0d7af27db792d928edd752480a16fdd | Scale 3.0 | R1(Gemini)=passed vs R2(GPT5.4)=failed
+    Concept: Discusses uncertainties, caveats, and alternative views extensively, yet fails to define any quantitative or operational conditions under which the core thesis would be abandoned.
+    R1: quote='' | reason: Käyttäjä ei pohdi riskejä tai epävarmuustekijöitä laajasti omassa tekstissään, vaan antaa tekoälylle
+    R2: quote='' | reason: Teksti käsittelee useita riskejä ja vaihtoehtoja, mutta siinä ei määritellä selkeää operatiivista ra
+  * tda_f1a3d9151c48fe065df1c0afe580caa2 | Scale 1.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: States at least one explicit, declarative analytical proposition or recommendation that serves as the baseline subject for critical scrutiny and falsification testing.
+    R1: quote='' | reason: Käyttäjä ei itse esitä eksplisiittistä deklaratiivista analyyttistä väitettä tai suositusta, vaan ai
+    R2: quote='Tämän selvityksen tavoitteena on korvata nykyinen malli tavo' | reason: Tekstissä esitetään selkeä, arvioitava suositus hybridityömallista. Se toimii keskustelun perusväitt
+
+BLOCK: Aktiivinen ohjaus (Performatiivisuus ja Goodhartin Laki) (blk_53f32679aa514fcb) (2 mismatches)
+  * tda_657fb164be984788a760eed250b3bc61 | Scale 4.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Author directs model reasoning by providing concrete structural templates, schemas, or few-shot behavioral exemplars.
+    R1: quote='' | reason: Käyttäjä ei tarjoa mallille konkreettisia rakenteellisia skeemoja, muotopohjia tai esimerkkisuorituk
+    R2: quote='Haluan, että käyt dialogia itsesi kanssa kolmesta eri näköku' | reason: Käyttäjä antaa selkeän rakenteen: kolme näkökulmaa, dialogimuoto, selvä kieli ja tutkimustiedon huom
+  * tda_bd85f009b0fb4f7899b40ff0e763dee7 | Scale 4.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: Author actively identifies Goodhart's Law by questioning the validity and corruptibility of proxy metrics.
+    R1: quote='' | reason: Käyttäjä ei analysoi Goodhartin lakia eikä kyseenalaista mittareiden vääristymistä tai niiden erkaan
+    R2: quote='Tulosten johtaminen: Esihenkilöiden työtä tuetaan siirtymäll' | reason: Teksti erottaa mittarit varsinaisista tavoitteista ja varoittaa läsnäolon seurannasta, mikä osoittaa
+
+BLOCK: Oman tiedon rajat (Episteeminen Nöyryys) (blk_22e3598e06414409) (3 mismatches)
+  * tda_a946688e5f5549e8ac30584d1a02ad26 | Scale 3.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The argument delivers objective, impersonal propositions without subjective or first-person anchoring.
+    R1: quote='' | reason: Teksti ei ole täysin persoonatonta, vaan käyttäjä käyttää toistuvasti ensimmäisen persoonan ilmauksi
+    R2: quote='Aikuiskoulutusoppilaitoksemme 200 työntekijän työkulttuuri o' | reason: Teksti on pääosin impersonalisoitu ja kuvaa organisaation tilannetta, rakenteita ja suosituksia ilma
+  * tda_c752762564eda7902ecc4525ffd58f59 | Scale 3.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The text names at least one baseline assumption underlying the core propositions.
+    R1: quote='' | reason: Käyttäjän tekstissä ei nimetä eksplisiittisesti perusoletuksia, joiden varaan johtopäätökset rakentu
+    R2: quote='Koska noin 30 % opetuksestamme toteutetaan jo verkossa, etät' | reason: Teksti nimeää lähtöoletuksia, kuten että etätyö on jo osa arkea ja että malli perustuu tutkimustieto
+  * tda_f29c602444b446a3a6973aa9953a0b01 | Scale 4.0 | R1(Gemini)=failed vs R2(GPT5.4)=passed
+    Concept: The context substantiates explicit boundary setting.
+    R1: quote='' | reason: Tekstissä ei esitetä analyyttisia ennusteita tai johtopäätöksiä, joiden varmuutta rajattaisiin ekspl
+    R2: quote='Lukujärjestyksen salliessa (esim. verkkoopetuspäivinä ja arv' | reason: Tekstissä on selviä ehtoja ja rajauksia, kuten tehtäväkohtainen määräytyminen ja lukujärjestyksen sa
