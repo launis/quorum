@@ -23,6 +23,8 @@ def test_matrix_sensor_system_prompt_structure() -> None:
         "anti_repetition_mandate",
         "evidence_extraction_mandate",
         "speaker_attribution_protocol",
+        "procedural_prompt_disqualification_protocol",
+        "document_metadata_disqualification_protocol",
         "contextual_override_directive",
         "output_mandate",
     ]
@@ -57,6 +59,13 @@ def test_matrix_sensor_system_prompt_directives() -> None:
     assert "COGNITIVE AGENCY VS. ECHO PARROTING" in prompt
     assert "ENDORSED DELIVERABLES & CO-DRAFTING:" in prompt
     assert "Verbatim repetitions, passive echoing, or copying" in prompt
+    assert "PROCEDURAL PROMPT DISQUALIFICATION:" in prompt
+    assert "Instructions directed at an external AI assistant" in prompt
+    assert "METACOGNITIVE SAFE HARBOR" in prompt
+    assert "primary analytical input datasets/variables" in prompt
+    assert "DOCUMENT METADATA DISQUALIFICATION:" in prompt
+    assert "Document metadata headers, distribution lists, recipient designations" in prompt
+    assert "INVERSE RULE NULL HYPOTHESIS:" in prompt
 
 
 def test_matrix_sensor_system_prompt_negative_partitions() -> None:
@@ -105,6 +114,8 @@ def test_contextual_override_directive() -> None:
     assert "CONTEXTUAL OVERRIDE EXPLANATION MANDATE:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "BANNED SPECULATIVE OVERRIDES:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "QUALIFYING CRITERIA:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "INVERSE RULE NULL HYPOTHESIS:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
+    assert "passive omission, silence, or topical mention" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "NULL HYPOTHESIS BURDEN:" in CONTEXTUAL_OVERRIDE_DIRECTIVE
     assert "maximum 25 words per claim" in CONTEXTUAL_OVERRIDE_DIRECTIVE
 
