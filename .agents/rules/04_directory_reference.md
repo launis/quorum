@@ -107,17 +107,17 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; widgets: tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart), execution/ (Pillar 4 SDUI Dashboards & DTOs), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
+        <key_domains>studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; widgets: tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart), execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>error/app_error_boundary.dart, models/enums.dart, network/</key_domains>
+        <key_domains>api/execution_client.dart (Typed Future<ExecutionRecord> Client), error/app_error_boundary.dart, models/enums.dart, network/</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">
         <responsibility>SHARED UI WIDGETS & CROSS-DOMAIN MODELS</responsibility>
-        <key_domains>widgets/ (i18n_text_field.dart, omni_input_box.dart, pdf_export_guide_dialog.dart), models/ (i18n_text.dart, sdui_block_dto.dart)</key_domains>
+        <key_domains>widgets/ (execution_timeline.dart, i18n_text_field.dart, omni_input_box.dart, pdf_export_guide_dialog.dart), models/ (i18n_text.dart, sdui_block_dto.dart)</key_domains>
     </module>
     
     <module path="client_app_v2/lib/l10n/">

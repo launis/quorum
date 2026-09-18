@@ -83,6 +83,12 @@ During local development and diagnostic inspection, LLM task executions record d
 - **Parent Context Preservation**: When sub-engine tasks pass sub-task tags (`validation_context={"sub_task": "..."}`), the execution pipeline merges caller parameters with default validation context (`{**(default or {}), **(caller or {})}`), ensuring parent `execution_id` and `step_id` persist unbroken across child task dispatches.
 - **Event-Loop Asynchronous File-Locking (`_get_debug_file_lock`)**: All debug logger operations are asynchronous and serialized under an event-loop-bound lazy `asyncio.Lock()`. When parallel sub-engine tasks run concurrently inside `asyncio.TaskGroup`, the lock serializes file appends to eliminate Windows file collision crashes (`WinError 32: PermissionError`), guaranteeing loss-free trace persistence across multi-task evaluations.
 
+### 2.14. Lightweight Polling Resilience & Regulatory Record-Keeping
+Operational monitoring and status streaming incorporate resilient polling and regulatory compliance controls:
+- **Lightweight State Polling**: Real-time status streaming endpoints query execution models with payload hydration and resumability verification disabled (`hydrate=False, skip_resumability=True`). This isolates high-frequency polling from multi-megabyte blob reads (`frozen_context`, `execution_trace`), preventing disk I/O starvation. Polling intervals (`settings.sse_polling_interval_seconds`) and transient disconnect retry limits (`settings.sse_max_transient_retries`) are governed by centralized configuration.
+- **Regulatory Record-Keeping (EU AI Act Articles 12–15)**: The execution record acts as a legally auditable artifact capturing bi-temporal timestamps and actor identification (Article 12), verbatim prompt and theory snapshots in frozen context storage (Article 13), human-in-the-loop expert override fields on scorecard atoms (Article 14), and exact lexical grounding against source documents (Article 15).
+- **Client Deserialization Fail-Fast**: Client models strictly disallow unrecognized keys (`CheckedFromJsonException`), ensuring schema drift between services and client interfaces is detected immediately at boundary ingress rather than failing silently during rendering.
+
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD

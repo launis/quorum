@@ -46,7 +46,7 @@ These units form a Directed Acyclic Graph (DAG) whose dependencies, edge constra
 Workflows execute completely outside the synchronous HTTP request-response cycle:
 1. The API Ingress router receives the request, initializes and persists the execution record with `status=RUNNING`, persists the frozen context snapshot, and enqueues the job to an asynchronous Redis-backed task queue.
 2. The router returns an immediate `HTTP 202 Accepted` response with the execution record, preventing thread blocking.
-3. The client connects to an independent Server-Sent Events (SSE) stream (`/executions/{id}/stream`) to receive real-time execution progress, status updates, and trace events while background worker processes compute the graph.
+3. The client connects to an independent Server-Sent Events (SSE) stream (`/executions/{id}/stream`) to receive real-time execution progress, status updates, and trace events while background worker processes compute the graph. The streaming endpoint queries execution state in a lightweight mode (`hydrate=False, skip_resumability=True`) decoupled from heavy blob loading, serializes payloads with null-exclusion (`exclude_none=True`), and governs polling cadence via central configuration (`settings.sse_polling_interval_seconds = 2.0`).
 
 ### 2.8. Sensor Caching Parity & Enriched Context Caching
 The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.
@@ -132,6 +132,12 @@ Automated score deduction percentages are execution-tier parameters defined on `
   - *Passivity Penalty (`passivity_penalty`)*: Deducted when evasive, non-responsive, or passive avoidance behaviors are detected in candidate deliverables.
 - **Cumulative Clamping & Safety Bounds**: Cumulative penalty percentages are capped at `MAX_TOTAL_PENALTY_RATIO = 0.40` (40% maximum deduction). The finalized score is computed as `final_score = round(max(0.0, average_score * (1.0 - effective_penalty)), 1)`.
 - **Token Formatting & Audit Trail**: Active penalties are formatted as tokens (`PENALTY_<TYPE>:<PERCENTAGE>`) and stored in `scoring_result.penalties_applied` within `TraceScoringPayloadDTO`, locking the evaluation score permanently upon execution completion.
+
+### 2.21. Real-Time Step Progress Synchronization & Committer Invariants
+Step execution progression and anomaly indicators (`progress: int | None`, `has_warning: bool`) are first-class domain properties synchronized across DAG orchestration and background workers:
+- **Real-Time Step Advancement**: As steps process chunks and sub-tasks, progress callbacks mutate both the active step instance and the unified `steps` collection in `ExecutionRecord`.
+- **Atomic Committer Persistence**: The trace committer (`ExecutionCommitter.commit_trace`) accepts and persists the current `steps` collection alongside trace events, ensuring that intermediate commits and state updates never overwrite step progression with stale or null data.
+- **Worker Completion Telemetry Preservation**: When the DAG terminates, the background worker preserves verified step progression percentages and warning states during final telemetry aggregation and fallback step reconstruction, preventing timeline indicators from resetting upon task completion.
 
 ## 3. Logical Data Flow & Prompt Assembly Pipeline
 
