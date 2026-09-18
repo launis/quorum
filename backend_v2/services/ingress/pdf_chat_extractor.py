@@ -8,6 +8,7 @@ using vector drawings and layout-aware text aggregation without LLM calls.
 from __future__ import annotations
 
 import logging
+import re
 from typing import TYPE_CHECKING
 
 import fitz
@@ -295,6 +296,8 @@ class PdfChatExtractorService:
                                 cleaned_row.append("")
                             else:
                                 c_text = str(cell).replace("\r\n", " ").replace("\n", " ").replace("|", "\\|").strip()
+                                c_text = re.sub(r"([a-zåäö])([A-ZÅÄÖ])", r"\1 \2", c_text)
+                                c_text = re.sub(r"\s+", " ", c_text).strip()
                                 cleaned_row.append(c_text)
                         sanitized_rows.append(cleaned_row)
 

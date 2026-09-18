@@ -528,7 +528,6 @@ def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
             normalized_text="",
         )
 
-    sha256_hash = hashlib.sha256(raw_bytes).hexdigest()
     text = raw_bytes.decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
 
     found_variants: list[str] = []
@@ -537,6 +536,11 @@ def _inspect_input_file(file_path: Path) -> InputFileInspectionDTO:
             found_variants.append(name)
 
     noise_desc = ", ".join(found_variants) if found_variants else "Standard ASCII"
+
+    # Canonical normalization: Unicode NFKC + uniform whitespace standardization
+    canonical_text = unicodedata.normalize("NFKC", text)
+    canonical_text = "\n".join(re.sub(r"[ \t]+", " ", line).strip() for line in canonical_text.splitlines()).strip()
+    sha256_hash = hashlib.sha256(canonical_text.encode("utf-8")).hexdigest()
 
     char_count = len(text)
     word_count = len(text.split())

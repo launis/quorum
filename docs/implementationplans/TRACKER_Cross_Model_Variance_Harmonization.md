@@ -19,7 +19,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization.md] @[docs/implementationplans/TRACKER_Cross_Model_Variance_Harmonization.md]`
   - [x] Step 1: Pre-Implementation Cleanups (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`)
   - [x] Step 2: Static System Prompt Hardening (`matrix_evaluation.py`)
-  - [ ] Step 3: Test Harness & Ingress Invariance (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`)
+  - [x] Step 3: Test Harness & Ingress Invariance (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`)
   - [ ] Step 4: Seed Data Hardening (`seed_data.json` - 19 high-entropy atoms)
   - [ ] Step 5: Automated Test Suite & Audit Gates
   - [ ] Step 6: Knowledge Base Synchronization & KI Documentation Updates
@@ -80,10 +80,10 @@
 | REQ-05 | Harden `BooleanEvaluationResult` schema with `min_length=10`, `strip()`, and non-whitespace character assertions on `source_quote` | Step 1 | [x] |
 | REQ-06 | Inject `<procedural_prompt_disqualification_protocol>` and `<document_metadata_disqualification_protocol>` into `matrix_evaluation.py` | Step 2 | [x] |
 | REQ-07 | Harden `CONTEXTUAL_OVERRIDE_DIRECTIVE` in `matrix_evaluation.py` requiring concrete alternative mechanisms and Null Hypothesis on inverse rules | Step 2 | [x] |
-| REQ-08 | Apply Unicode NFKC normalization and uniform whitespace standardization before SHA-256 computation in `diff_executions.py` | Step 3 | [ ] |
-| REQ-09 | Enforce camelCase word-boundary regex spacing and space collapsing for table cells in `pdf_chat_extractor.py` | Step 3 | [ ] |
-| REQ-10 | Hoist `expected_inputs` resolution and `load_inputs_from_path` outside the execution loop in `run_e2e_variance_test.py` under `--no-noise` | Step 3 | [ ] |
-| REQ-11 | Add Pre-Flight Ingress Hash Assertion in `run_e2e_variance_test.py` verifying byte-identical SHA-256 hashes across comparison runs | Step 3 | [ ] |
+| REQ-08 | Apply Unicode NFKC normalization and uniform whitespace standardization before SHA-256 computation in `diff_executions.py` | Step 3 | [x] |
+| REQ-09 | Enforce camelCase word-boundary regex spacing and space collapsing for table cells in `pdf_chat_extractor.py` | Step 3 | [x] |
+| REQ-10 | Hoist `expected_inputs` resolution and `load_inputs_from_path` outside the execution loop in `run_e2e_variance_test.py` under `--no-noise` | Step 3 | [x] |
+| REQ-11 | Add Pre-Flight Ingress Hash Assertion in `run_e2e_variance_test.py` verifying byte-identical SHA-256 hashes across comparison runs | Step 3 | [x] |
 | REQ-12 | Harden Group A structural atoms (Toulmin, Goodhart, XAI: 6 atoms) in `seed_data.json` with anti-patterns and acceptance criteria | Step 4 | [ ] |
 | REQ-13 | Harden Group B Kahneman Dual-Process atoms (3 atoms) in `seed_data.json` to disqualify task briefings and scenario parameters | Step 4 | [ ] |
 | REQ-14 | Harden Group C Bloom Taxonomy, Falsification & Clarity atoms (7 atoms) in `seed_data.json` against prompt commands and headcounts | Step 4 | [ ] |
@@ -98,14 +98,14 @@
 ## Achieved
 - Standalone single-phase implementation plan `docs/implementationplans/IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization.md` reconciled across all audits (0110 vs 0218 diff reports, input data asymmetry forensics, Tier 0 research, Tier 8 audit).
 - Plan tracker `docs/implementationplans/TRACKER_Cross_Model_Variance_Harmonization.md` generated with complete 1:1 step tracking, granular file-level hardening checklists, and 20-requirement traceability matrix.
+- Step 1 completed: Legacy terms purged, quote validation hardened, and fail-fast enforced (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`).
+- Step 2 completed: Static system prompt hardened with procedural prompt and document metadata disqualification protocols, English Metacognitive Safe Harbor, and inverse rule Null Hypothesis directive (`matrix_evaluation.py`).
+- Step 3 completed: Test harness ingress hoisting, table cell regex spacing, and canonical hash normalization implemented (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`). 138 unit tests passing with 100% Quality Gate.
 ## Learned
 - Cross-model variance between Gemini 3.8 Flash and OpenAI GPT-5.4 was driven by extractive sensitivity/prompt mining (76.7%), contextual override asymmetry on inverse rules (23.3%), and Kahneman System 1/2 concept drift (+21.98 pp), NOT input text divergence.
 - Naive `len(quote) > 0` checks fail against compliance evasion whitespace/punctuation tokens; four-layer defense architecture (`min_length=10`, `strip()`, `if not norm_quote: return False`, Null Hypothesis) guarantees strict grounding.
 - PyMuPDF in-memory table layout artifacts can cause minor whitespace differences; hoisting inputs outside the variance test loop in `--no-noise` mode cryptographically guarantees byte-identical inputs (`KOLLISIO`).
 ## Remaining
-- Execute Step 1: Pre-Implementation Cleanups (`global_mandates.py`, `field_prompts.py`, `evaluation_steps.py`, `anchor_validation_service.py`, `extractive_sensor_service.py`).
-- Execute Step 2: Static System Prompt Hardening (`matrix_evaluation.py`).
-- Execute Step 3: Test Harness & Ingress Invariance (`diff_executions.py`, `pdf_chat_extractor.py`, `run_e2e_variance_test.py`).
 - Execute Step 4: Seed Data Hardening (`seed_data.json` - 19 high-entropy atoms).
 - Execute Step 5: Automated Test Suite & Audit Gates.
 - Execute Step 6: Knowledge Base Synchronization & KI Documentation Updates.

@@ -36,7 +36,8 @@ def _create_synthetic_chat_pdf() -> bytes:
     # AI text outside the bubble (left-aligned)
     page.insert_text((59, 200), "Hei käyttäjä! Quorum on kognitiivinen arkkitehtuuri.")
 
-    pdf_bytes = doc.tobytes()
+    raw = doc.tobytes()
+    pdf_bytes = bytes(raw)
     doc.close()
     return pdf_bytes
 
@@ -52,7 +53,8 @@ def _create_synthetic_truncated_chat_pdf() -> bytes:
     page.insert_text((370, 120), "Pitkä kehote joka katkesi...")
     page.insert_text((370, 150), "Näytä lisää")
 
-    pdf_bytes = doc.tobytes()
+    raw = doc.tobytes()
+    pdf_bytes = bytes(raw)
     doc.close()
     return pdf_bytes
 
@@ -540,3 +542,32 @@ def test_pdf_chat_extractor_span_deduplication_and_orphan_token_suppression() ->
         assert ">" not in ai_content
     finally:
         doc.close()
+
+
+def test_reconstruct_tables_as_markdown_whitespace_and_camelcase_normalization() -> None:
+    """Verify table cell camelCase splitting and multi-space collapsing."""
+    mock_page = MagicMock()
+    mock_page.rect.width = 595.0
+    mock_page.rect.height = 842.0
+
+    mock_table = MagicMock()
+    mock_table.bbox = (50, 50, 300, 200)
+    mock_table.extract.return_value = [
+        ["SarakeYksi", "SarakeKaksi"],
+        ["sopeudutaanRajoihinJaParannetaan", "moni   välilyönti   solussa"],
+    ]
+
+    mock_tables = MagicMock()
+    mock_tables.tables = [mock_table]
+    mock_page.find_tables.return_value = mock_tables
+
+    rects = [fitz.Rect(50, 50, 300, 200)]
+    results = PdfChatExtractorService._reconstruct_tables_as_markdown(mock_page, rects)
+
+    assert len(results) == 1
+    _, md_text = results[0]
+    assert "Sarake Yksi" in md_text
+    assert "Sarake Kaksi" in md_text
+    assert "sopeudutaan Rajoihin Ja Parannetaan" in md_text
+    assert "moni välilyönti solussa" in md_text
+    assert "   " not in md_text

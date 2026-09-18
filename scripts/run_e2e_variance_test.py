@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import copy
 import datetime
+import hashlib
 import io
 import json
 import os
@@ -81,6 +82,7 @@ __all__ = [
     "load_inputs_from_path",
     "main",
     "make_noise_injector",
+    "poll_database_for_execution",
     "print_model_telemetry",
     "print_workflow_matrix_telemetry",
     "resolve_all_workflows_matrix_telemetry",
@@ -203,7 +205,8 @@ def _match_input_key(
                     tier2_matches.add(key)
                     break
 
-            # Word-level stem matching for compound filenames (e.g., 'Tehtävä 3 - sitra' -> 'Tehtävänanto ja Reunaehdot')
+            # Word-level stem matching for compound filenames
+            # (e.g. 'Tehtävä 3 - sitra' -> 'Tehtävänanto ja Reunaehdot')
             cand_tokens = [
                 re.sub(r"[^\w\d]", "", t.lower(), flags=re.UNICODE) for t in re.split(r"[\s\-_]+", candidate)
             ]
@@ -1514,6 +1517,41 @@ def print_workflow_matrix_telemetry(db_path: Path, workflow_id: str | None = Non
         print("=" * 80 + "\n")
 
 
+def poll_database_for_execution(
+    target_db_path: Path,
+    exec_id: str,
+    timeout_seconds: int = 1800,
+) -> dict[str, Any] | None:
+    """Poll database until execution reaches a terminal status or timeout expires.
+
+    Args:
+        target_db_path: Path to runtime database json file.
+        exec_id: Execution ID string to monitor.
+        timeout_seconds: Maximum seconds to wait.
+
+    Returns:
+        Execution dictionary if terminal status reached, otherwise None.
+    """
+    print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
+    start = time.time()
+    while time.time() - start < timeout_seconds:
+        time.sleep(5)
+        try:
+            with target_db_path.open("r", encoding="utf-8") as f:
+                db_data = json.load(f)
+            execs = list(db_data.get("executions", {}).values())
+            if execs:
+                found_exec = next((e for e in execs if e.get("id") == exec_id), None)
+                if found_exec:
+                    status = str(found_exec.get("status")).upper()
+                    if status in ["PASSED", "FAILED", "SYSTEM_ERROR"] and isinstance(found_exec, dict):
+                        print(f"Execution {exec_id} finished with status: {status}")
+                        return found_exec
+        except (json.JSONDecodeError, OSError) as e:
+            print(f"[Polling] Notice while reading database {target_db_path}: {e}")
+    return None
+
+
 def run_variance_test(
     inputs_target: str | None = None,
     num_runs: int = 2,
@@ -1634,6 +1672,8 @@ def run_variance_test(
     print("================================================================================")
 
     execution_ids: list[str] = []
+    cached_raw_inputs: dict[str, Any] | None = None
+    run1_inputs_hash: str | None = None
 
     for i in range(num_runs):
         print(f"\n=== RUN {i + 1} ===")
@@ -1793,7 +1833,12 @@ def run_variance_test(
             raise RuntimeError(msg)
 
         expected_inputs = resolved_workflow.get("expected_inputs", [])
-        raw_inputs = load_inputs_from_path(inputs_target, expected_inputs=expected_inputs)
+        if no_noise and cached_raw_inputs is not None:
+            raw_inputs = copy.deepcopy(cached_raw_inputs)
+        else:
+            raw_inputs = load_inputs_from_path(inputs_target, expected_inputs=expected_inputs)
+            if no_noise and cached_raw_inputs is None:
+                cached_raw_inputs = copy.deepcopy(raw_inputs)
 
         scratch_inputs_dir = Path("scratch/variance_inputs")
         scratch_inputs_dir.mkdir(parents=True, exist_ok=True)
@@ -1806,6 +1851,17 @@ def run_variance_test(
             with output_path.open("w", encoding="utf-8") as f:
                 json.dump(marked_inputs, f)
             os.environ["TEST_INPUTS_FILE"] = str(output_path.resolve())
+
+            # Pre-flight Ingress Hash Assertion
+            current_run_hash = hashlib.sha256(output_path.read_bytes()).hexdigest()
+            if i == 0:
+                run1_inputs_hash = current_run_hash
+            elif run1_inputs_hash is not None and current_run_hash != run1_inputs_hash:
+                msg = (
+                    "Pre-flight Ingress Hash Mismatch: e2e_inputs_run1.json and e2e_inputs_run2.json "
+                    "SHA-256 hashes diverge under --no-noise mode."
+                )
+                raise RuntimeError(msg)
         else:
             print(f"Injecting unique deterministic marker into inputs for Run {i + 1}...")
             marked_payload = inject_unique_run_marker(raw_inputs, run_index=i)
@@ -1837,30 +1893,8 @@ def run_variance_test(
         if exec_id:
             execution_ids.append(exec_id)
 
-        print(f"Polling database for execution {exec_id} completion (max {timeout_seconds // 60} mins)...")
-        start = time.time()
-        done = False
-        target_exec: dict[str, Any] | None = None
-
-        while time.time() - start < timeout_seconds:
-            time.sleep(5)
-            try:
-                with target_db_path.open("r", encoding="utf-8") as f:
-                    db_data = json.load(f)
-                execs = list(db_data.get("executions", {}).values())
-                if execs:
-                    found_exec = next((e for e in execs if e.get("id") == exec_id), None)
-                    if found_exec:
-                        status = str(found_exec.get("status")).upper()
-                        if status in ["PASSED", "FAILED", "SYSTEM_ERROR"]:
-                            print(f"Execution {exec_id} finished with status: {status}")
-                            target_exec = found_exec
-                            done = True
-                            break
-            except (json.JSONDecodeError, OSError) as e:
-                print(f"[Polling] Notice while reading database {target_db_path}: {e}")
-
-        if not done or not target_exec:
+        target_exec = poll_database_for_execution(target_db_path, exec_id, timeout_seconds=timeout_seconds)
+        if not target_exec:
             print("Timeout waiting for execution!")
             sys.exit(1)
 
@@ -1934,13 +1968,18 @@ def main(argv: list[str] | None = None) -> list[str]:
         "--strategies",
         nargs="+",
         default=None,
-        help="List of model strategies to run sequentially for cross-model differential comparison (e.g. strict openai_strict)",
+        help=(
+            "List of model strategies to run sequentially for cross-model differential "
+            "comparison (e.g. strict openai_strict)"
+        ),
     )
     parser.add_argument(
         "--providers",
         nargs="+",
         default=None,
-        help="List of LLM providers to run sequentially for cross-provider differential comparison (e.g. google openai)",
+        help=(
+            "List of LLM providers to run sequentially for cross-provider differential comparison (e.g. google openai)"
+        ),
     )
     parser.add_argument(
         "--model-registry",

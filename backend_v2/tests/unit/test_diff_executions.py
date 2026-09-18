@@ -130,6 +130,27 @@ class TestInspectInputFile:
             assert info.char_count == 0
             assert info.word_count == 0
 
+    def test_inspect_input_file_canonical_hash_identical_across_whitespace_and_nfkc(self) -> None:
+        """Verify identical SHA-256 hash across ASCII, NBSP, and table whitespace variations."""
+        text_standard = "Table cell text.\nSecond line."
+        text_whitespace = "Table   cell  text.  \nSecond line.   "
+        text_nbsp = "Table\u00a0cell\u00a0text.\nSecond line."
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            p1 = Path(tmpdir) / "standard.md"
+            p2 = Path(tmpdir) / "whitespace.md"
+            p3 = Path(tmpdir) / "nbsp.md"
+
+            p1.write_text(text_standard, encoding="utf-8")
+            p2.write_text(text_whitespace, encoding="utf-8")
+            p3.write_text(text_nbsp, encoding="utf-8")
+
+            info1 = _inspect_input_file(p1)
+            info2 = _inspect_input_file(p2)
+            info3 = _inspect_input_file(p3)
+
+            assert info1.sha256 == info2.sha256 == info3.sha256
+
 
 class TestUnicodeSpaceRegistrySSOT:
     """Test suite for UNICODE_SPACE_REGISTRY SSOT governance."""
@@ -1374,9 +1395,7 @@ class TestRunDiff:
                 "model_registry_id": "sys_6f8b1c4a2e0d49f1",
                 "models_used": {"openai/gpt-5.4-mini": 1200, "openai/gpt-5.4": 3500},
                 "ui_hints_snapshot": {
-                    "blk_440a5fef9331451b": {
-                        "options": [{"label": {"translations": {"fi": "Visio", "en": "Vision"}}}]
-                    }
+                    "blk_440a5fef9331451b": {"options": [{"label": {"translations": {"fi": "Visio", "en": "Vision"}}}]}
                 },
             }
             (exe2 / "frozen_context.json").write_text(json.dumps(openai_frozen), encoding="utf-8")
@@ -1464,7 +1483,6 @@ class TestRunDiff:
             out_file = tmp_path / "notel_diff.md"
             res = run_diff([str(exe1), str(exe2)], output_file=out_file)
             assert Path(res).exists()
-
 
 
 class TestVerifyQuoteInCorpusUnicodeAndResilience:
