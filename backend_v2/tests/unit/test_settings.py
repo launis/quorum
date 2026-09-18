@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.core.test_settings import get_test_settings
 from backend_v2.settings import Settings, get_settings
 
 
@@ -311,3 +312,38 @@ def test_dev_max_thinking_budget_invariants() -> None:
     # 4. Negative BVA test: < 0 raises ValidationError
     with pytest.raises(ValidationError):
         Settings(use_mock_llm=True, dev_max_thinking_budget=-1)
+
+
+# Phase 2, Step 2.2: Comprehensive ISTQB BVA test function for llm_default_timeout
+def test_settings_llm_default_timeout_invariants() -> None:
+    """Verify Settings.llm_default_timeout default, bounds, and test settings parity."""
+    # 1. Default positive value: 120.0
+    settings = Settings(use_mock_llm=True)
+    assert settings.llm_default_timeout == 120.0
+
+    # 2. Test settings parity
+    assert get_test_settings().llm_default_timeout == 120.0
+
+    # 3. Custom valid positive float
+    custom = Settings(use_mock_llm=True, llm_default_timeout=60.0)
+    assert custom.llm_default_timeout == 60.0
+
+    # 4. Lower boundary valid (gt=0.0)
+    lower_bound = Settings(use_mock_llm=True, llm_default_timeout=0.001)
+    assert lower_bound.llm_default_timeout == 0.001
+
+    # 5. Upper boundary valid (le=3600.0)
+    upper_bound = Settings(use_mock_llm=True, llm_default_timeout=3600.0)
+    assert upper_bound.llm_default_timeout == 3600.0
+
+    # 6. Negative BVA boundary (<= 0.0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, llm_default_timeout=0.0)
+
+    # 7. Negative BVA boundary (< 0.0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, llm_default_timeout=-1.0)
+
+    # 8. Negative BVA boundary (> 3600.0)
+    with pytest.raises(ValidationError):
+        Settings(use_mock_llm=True, llm_default_timeout=3601.0)

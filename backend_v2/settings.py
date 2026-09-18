@@ -305,6 +305,16 @@ class Settings(BaseSettings):
         dict[str, Any] | None,
         Field(default=None, description="System Config Model Registry snapshot (Optional)."),
     ] = None
+    # Phase 2, Step 2.1: Restore llm_default_timeout SSOT for LiteLLM network timeouts
+    llm_default_timeout: Annotated[
+        float,
+        Field(
+            default=120.0,
+            gt=0.0,
+            le=3600.0,
+            description="Network timeout in seconds for LLM calls",
+        ),
+    ] = 120.0
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
     sse_max_transient_retries: Annotated[
         int,
