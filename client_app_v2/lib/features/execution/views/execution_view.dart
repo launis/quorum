@@ -102,12 +102,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
 
     final isRecoverable = record.isResumable == true;
 
-    final frozenContext = record.frozenContext ?? {};
-
-    final stepStatesMap = record.stepStates ?? {};
-    final stepStatesList = stepStatesMap.values
-        .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
-        .toList();
+    final versionId = record.frozenContext?.versionId;
 
     return CustomScrollView(
       slivers: [
@@ -214,8 +209,7 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
         ),
 
         // Version Drift Warning Banner
-        if (frozenContext.containsKey('version_id') &&
-            (frozenContext['version_id']?.toString() ?? '') != 'v2.0.0')
+        if (versionId != null && versionId.isNotEmpty && versionId != 'v2.0.0')
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
@@ -240,9 +234,9 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                     const SizedBox(width: AppSpacing.s12),
                     Expanded(
                       child: Text(
-                        AppLocalizations.of(context)!.auditDriftWarning(
-                          (frozenContext['version_id']?.toString() ?? ''),
-                        ),
+                        AppLocalizations.of(
+                          context,
+                        )!.auditDriftWarning(versionId),
                         style: TextStyle(
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
@@ -283,14 +277,14 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           ),
 
         // Real-Time Execution Timeline
-        if (stepStatesList.isNotEmpty)
+        if (record.steps.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.s16,
                 vertical: AppSpacing.s8,
               ),
-              child: ExecutionTimeline(steps: stepStatesList, compact: false),
+              child: ExecutionTimeline(steps: record.steps, compact: false),
             ),
           ),
 

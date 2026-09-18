@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, call, patch
 
 import pytest
 
@@ -1114,7 +1114,13 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
 
     call_count = 0
 
-    async def mock_get_exec(initiator: Any, execution_id: str) -> Any:
+    async def mock_get_exec(
+        initiator: Any,
+        execution_id: str,
+        hydrate: bool = True,
+        skip_resumability: bool = False,
+        **kwargs: Any,
+    ) -> Any:
         nonlocal call_count
         call_count += 1
         if call_count <= 2:
@@ -1674,6 +1680,7 @@ async def test_stream_status_sse_events() -> None:
 
     assert len(events) >= 1
     assert "PASSED" in events[0]
+    assert repo_mock.get_execution.call_args_list[-1] == call("exe_1", hydrate=False)
 
 
 @pytest.mark.asyncio

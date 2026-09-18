@@ -353,6 +353,8 @@ async def execute_workflow_job(
                             last_error=v.last_error,
                             message_code=v.message_code,
                             scorecard_atoms=v.scorecard_atoms,
+                            progress=v.progress,
+                            has_warning=v.has_warning,
                         )
                         for k, v in updated_exec_record.step_states.items()
                     ]
@@ -363,6 +365,8 @@ async def execute_workflow_job(
                     last_err = st_state.last_error if st_state else st.last_error
                     msg_code = st_state.message_code if st_state else st.message_code
                     scorecard = st_state.scorecard_atoms if st_state else st.scorecard_atoms
+                    actual_progress = st_state.progress if st_state else st.progress
+                    actual_warning = st_state.has_warning if st_state else st.has_warning
 
                     tel = step_telemetry.get(st.id)
                     if tel:
@@ -372,6 +376,8 @@ async def execute_workflow_job(
                                 "last_error": last_err,
                                 "message_code": msg_code,
                                 "scorecard_atoms": scorecard,
+                                "progress": actual_progress,
+                                "has_warning": actual_warning,
                                 "model_strategy": tel["model_strategy"],
                                 "physical_model": tel["physical_model"],
                                 "system_fingerprint": tel["system_fingerprint"],
@@ -391,6 +397,8 @@ async def execute_workflow_job(
                                 "last_error": last_err,
                                 "message_code": msg_code,
                                 "scorecard_atoms": scorecard,
+                                "progress": actual_progress,
+                                "has_warning": actual_warning,
                             }
                         )
                         updated_steps.append(updated_st)
@@ -434,7 +442,11 @@ async def execute_workflow_job(
 
                     v_step_id = f"sys_render_{profile_id}"
                     v_step = ExecutionStep(
-                        id=v_step_id, label="Generating Output Report", status=ExecutionStatus.RUNNING
+                        id=v_step_id,
+                        label="Generating Output Report",
+                        status=ExecutionStatus.RUNNING,
+                        progress=0,
+                        has_warning=False,
                     )
 
                     new_steps = [s for s in updated_exec_record.steps if s.id != v_step_id] + [v_step]
@@ -594,7 +606,7 @@ async def generate_pdf_task(
     Raises:
         AppException: Inherited from inner logic if generation or update fails.
     """
-    logger.info(f"[Task] Starting Async PDF Koonti for execution {execution_id}")
+    logger.info(f"[Task] Starting Async PDF assembly for execution {execution_id}")
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
@@ -651,10 +663,10 @@ async def generate_pdf_task(
             if v_step_id in exec_record_local.step_states:
                 old_state = exec_record_local.step_states[v_step_id]
                 new_states = dict(exec_record_local.step_states)
-                new_step = old_state.model_copy(update={"status": ExecutionStatus.PASSED})
+                new_step = old_state.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
                 new_states[v_step_id] = new_step
                 new_steps = [
-                    s.model_copy(update={"status": ExecutionStatus.PASSED}) if s.id == v_step_id else s
+                    s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == v_step_id else s
                     for s in exec_record_local.steps
                 ]
                 exec_record_local = exec_record_local.model_copy(update={"step_states": new_states, "steps": new_steps})
@@ -692,10 +704,24 @@ async def generate_pdf_task(
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     new_states = dict(exec_record_local.step_states)
-                    new_step = old_state.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                    new_step = old_state.model_copy(
+                        update={
+                            "status": ExecutionStatus.FAILED,
+                            "last_error": str(e),
+                            "progress": None,
+                            "has_warning": True,
+                        }
+                    )
                     new_states[v_step_id] = new_step
                     new_steps = [
-                        s.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                        s.model_copy(
+                            update={
+                                "status": ExecutionStatus.FAILED,
+                                "last_error": str(e),
+                                "progress": None,
+                                "has_warning": True,
+                            }
+                        )
                         if s.id == v_step_id
                         else s
                         for s in exec_record_local.steps
@@ -810,7 +836,13 @@ async def generate_profile_synthesis_and_pdf_task(
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
-                    updated_state = ExecutionStep(id=v_step_id, label=msg, status=ExecutionStatus.RUNNING)
+                    updated_state = ExecutionStep(
+                        id=v_step_id,
+                        label=msg,
+                        status=ExecutionStatus.RUNNING,
+                        progress=0,
+                        has_warning=False,
+                    )
                 new_states = dict(exec_record_local.step_states)
                 new_states[v_step_id] = updated_state
                 new_steps = [
@@ -824,7 +856,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     ExecutionUpdateDTO(steps=new_steps, step_states=new_states),
                 )
 
-        await _update_render_status("Lasketaan dynaamisia tuloksia...")
+        await _update_render_status("Calculating dynamic results...")
 
         projector = StateProjector()
         for evt in execution.execution_trace:
@@ -886,7 +918,7 @@ async def generate_profile_synthesis_and_pdf_task(
 
             logger.info(f"[Task] Starvation synthesis cached for {execution_id} (Profile: {profile_id})")
 
-            await _update_render_status("Koostetaan tulosteita valmiiksi...")
+            await _update_render_status("Compiling output documents...")
             if redis:
                 await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
             return
@@ -980,7 +1012,7 @@ async def generate_profile_synthesis_and_pdf_task(
                     logger.warning(f"Failed to calculate dynamic score for {pb_id}: {e}")
 
         # Extract Synthesis from DAG Execution Trace (Phase 3/4)
-        await _update_render_status("Generoidaan tekoälysynteesiä (tämä saattaa kestää verkosta riippuen)...")
+        await _update_render_status("Generating AI synthesis...")
         is_synthesis_expected = active_profile_dto.is_synthesis_expected if active_profile_dto else True
 
         # Inject dynamic locale and execution context into hook_state for synthesis_distiller
@@ -1078,6 +1110,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 if execution.metadata:
                     synthesis_provider = execution.metadata.provider_override
                     synthesis_reg_id = execution.metadata.model_registry_id
+                if not synthesis_reg_id:
+                    synthesis_reg_id = workflow_def.model_registry_id
 
                 client = await LLMClient.from_tier(
                     synthesis_tier,
@@ -1294,6 +1328,8 @@ async def generate_profile_synthesis_and_pdf_task(
                 if execution.metadata:
                     row_provider_override = execution.metadata.provider_override
                     row_reg_id = execution.metadata.model_registry_id
+                if not row_reg_id:
+                    row_reg_id = workflow_def.model_registry_id
 
                 client = await LLMClient.from_tier(
                     CognitiveTier.FAST,
@@ -1489,6 +1525,8 @@ async def generate_profile_synthesis_and_pdf_task(
                     if execution.metadata:
                         var_provider_override = execution.metadata.provider_override
                         var_reg_id = execution.metadata.model_registry_id
+                    if not var_reg_id:
+                        var_reg_id = workflow_def.model_registry_id
 
                     client_var = await LLMClient.from_tier(
                         CognitiveTier.DEEP,
@@ -1807,7 +1845,7 @@ async def generate_profile_synthesis_and_pdf_task(
         logger.info(f"[Task] Synthesis cached for {execution_id} (Profile: {profile_id})")
 
         # Now trigger the statically cached PDF job based on our newly cached synthesis
-        await _update_render_status("Koostetaan tulosteita valmiiksi...")
+        await _update_render_status("Compiling output documents...")
         if redis:
             await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
 
@@ -1852,12 +1890,24 @@ async def generate_profile_synthesis_and_pdf_task(
                 if v_step_id in exec_record_local.step_states:
                     old_state = exec_record_local.step_states[v_step_id]
                     updated_state = old_state.model_copy(
-                        update={"status": ExecutionStatus.FAILED, "last_error": str(e)}
+                        update={
+                            "status": ExecutionStatus.FAILED,
+                            "last_error": str(e),
+                            "progress": None,
+                            "has_warning": True,
+                        }
                     )
                     new_step_states = dict(exec_record_local.step_states)
                     new_step_states[v_step_id] = updated_state
                     new_steps = [
-                        s.model_copy(update={"status": ExecutionStatus.FAILED, "last_error": str(e)})
+                        s.model_copy(
+                            update={
+                                "status": ExecutionStatus.FAILED,
+                                "last_error": str(e),
+                                "progress": None,
+                                "has_warning": True,
+                            }
+                        )
                         if s.id == v_step_id
                         else s
                         for s in exec_record_local.steps

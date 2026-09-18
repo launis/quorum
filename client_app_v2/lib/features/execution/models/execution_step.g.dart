@@ -29,6 +29,8 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
             'cost_usd',
             'duration_ms',
             'chunk_count',
+            'progress',
+            'has_warning',
             'scorecard_atoms',
           ],
         );
@@ -72,9 +74,21 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
             'chunk_count',
             (v) => (v as num?)?.toInt() ?? 1,
           ),
+          progress: $checkedConvert('progress', (v) => (v as num?)?.toInt()),
+          hasWarning: $checkedConvert(
+            'has_warning',
+            (v) => v as bool? ?? false,
+          ),
           scorecardAtoms: $checkedConvert(
             'scorecard_atoms',
-            (v) => v as Map<String, dynamic>? ?? const {},
+            (v) =>
+                (v as Map<String, dynamic>?)?.map(
+                  (k, e) => MapEntry(
+                    k,
+                    ScorecardAtomDto.fromJson(e as Map<String, dynamic>),
+                  ),
+                ) ??
+                const {},
           ),
         );
         return val;
@@ -92,6 +106,7 @@ _ExecutionStep _$ExecutionStepFromJson(Map<String, dynamic> json) =>
         'costUsd': 'cost_usd',
         'durationMs': 'duration_ms',
         'chunkCount': 'chunk_count',
+        'hasWarning': 'has_warning',
         'scorecardAtoms': 'scorecard_atoms',
       },
     );
@@ -113,5 +128,9 @@ Map<String, dynamic> _$ExecutionStepToJson(_ExecutionStep instance) =>
       'cost_usd': instance.costUsd,
       'duration_ms': instance.durationMs,
       'chunk_count': instance.chunkCount,
-      'scorecard_atoms': instance.scorecardAtoms,
+      'progress': instance.progress,
+      'has_warning': instance.hasWarning,
+      'scorecard_atoms': instance.scorecardAtoms.map(
+        (k, e) => MapEntry(k, e.toJson()),
+      ),
     };

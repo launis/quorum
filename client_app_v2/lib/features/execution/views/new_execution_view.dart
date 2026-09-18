@@ -61,7 +61,7 @@ class NewExecutionController extends _$NewExecutionController {
 
       final response = await client.startExecution(request: request);
 
-      final executionId = response['id']?.toString() ?? '';
+      final executionId = response.id;
       state = const AsyncValue.data(null);
 
       // Return the ID properly instead of throwing an Error

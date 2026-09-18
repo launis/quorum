@@ -6,14 +6,14 @@ import asyncio
 import io
 import json
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, MutableMapping
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 from arq.connections import ArqRedis
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -53,6 +53,7 @@ from backend_v2.models.state import (
 from backend_v2.models.v2_core import (
     ComponentType,
     DataDictionaryField,
+    EvaluatedMatrixContextDTO,
     ExecutionCreate,
     ExecutionRecord,
     ExecutionStatus,
@@ -128,13 +129,10 @@ def create_execution_record(
         AppException: If Pydantic validation fails (VALIDATION_FAILED).
     """
     try:
+        raw_meta = metadata if metadata is not None else extra_persistence_fields.pop("metadata", None)
         resolved_metadata = (
-            metadata
-            if metadata is not None
-            else (extra_persistence_fields.pop("metadata", None) or ExecutionMetadata())
+            TypeAdapter(ExecutionMetadata).validate_python(raw_meta) if raw_meta is not None else ExecutionMetadata()
         )
-        if isinstance(resolved_metadata, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            resolved_metadata = ExecutionMetadata.model_validate(resolved_metadata)
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,
@@ -236,12 +234,20 @@ class ExecutionService:
                 message=msg, status_code=500, details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
             ) from e
 
-    async def get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
+    async def get_execution(
+        self,
+        initiator: TokenData,
+        execution_id: str,
+        hydrate: bool = True,
+        skip_resumability: bool = False,
+    ) -> ExecutionRecord:
         """Fetch single execution securely.
 
         Args:
             initiator: The TokenData containing user identity and role.
             execution_id: The UUID of the target execution.
+            hydrate: Whether to hydrate offloaded blob payloads.
+            skip_resumability: Whether to skip check_resumability projection.
 
         Returns:
             The hydrated ExecutionRecord object.
@@ -250,7 +256,7 @@ class ExecutionService:
             ResourceNotFoundError: If the execution is missing.
             PermissionDeniedError: If the tenant doesn't own the execution.
         """
-        data = await self.exec_repo.get_execution(execution_id)
+        data = await self.exec_repo.get_execution(execution_id, hydrate=hydrate)
         if not data:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
 
@@ -259,6 +265,9 @@ class ExecutionService:
         if initiator.role != "ROOT" and data.organization_id != org_id and data.created_by != initiator.id:
             msg = "You do not have permission to view this execution."
             raise PermissionDeniedError(msg)
+
+        if skip_resumability:
+            return data
 
         # Dynamic projection of is_resumable flag on fetch
         is_resumable = await self.check_resumability(data)
@@ -283,21 +292,26 @@ class ExecutionService:
 
         settings = get_settings()
         retry_count = 0
-        max_retries = 3
+        max_retries = settings.sse_max_transient_retries
 
         while True:
             try:
-                # Poll database (Fallback from Redis Pub/Sub for simpler local portability)
-                record = await self.get_execution(initiator=initiator, execution_id=execution_id)
+                # Poll database with lightweight projection (skip heavy hydration and resumability query)
+                record = await self.get_execution(
+                    initiator=initiator,
+                    execution_id=execution_id,
+                    hydrate=False,
+                    skip_resumability=True,
+                )
                 retry_count = 0
 
-                # V2 Protocol Requirement: JSON Payload inside 'data: '
-                yield f"data: {record.model_dump_json()}\n\n"
+                # V2 Protocol Requirement: JSON Payload inside 'data: ' excluding null keys
+                yield f"data: {record.model_dump_json(exclude_none=True)}\n\n"
 
                 if record.status in [ExecutionStatus.PASSED, ExecutionStatus.FAILED]:
                     break
 
-                await asyncio.sleep(settings.llm_retry_delay)
+                await asyncio.sleep(settings.sse_polling_interval_seconds)
             except ResourceNotFoundError as e:
                 retry_count += 1
                 if retry_count <= max_retries:
@@ -308,7 +322,7 @@ class ExecutionService:
                         max_retries,
                         str(e),
                     )
-                    await asyncio.sleep(settings.llm_retry_delay)
+                    await asyncio.sleep(settings.sse_polling_interval_seconds)
                     continue
 
                 logger.error(
@@ -663,21 +677,21 @@ class ExecutionService:
 
         # Structural validation: Step set parity (detect if DAG was restructured mid-flight)
         workflow_step_ids = {step.id for step in workflow.steps}
-        # V2 Fix: Filter out virtual system steps (sys_render_*) that are dynamically injected for PDF rendering.
-        exec_step_ids = {k for k in record.step_states.keys() if not k.startswith("sys_render_")}
+        # Filter out all virtual system steps (sys_* and system.rag.preflight)
+        exec_step_ids = {
+            k
+            for k, s in record.step_states.items()
+            if not k.startswith("sys_") and not s.label.startswith("system.rag.preflight")
+        }
         if workflow_step_ids != exec_step_ids:
             return False
 
         # Version validation: Detect seed blueprint drift
         orig_version: int | None = None
-        if isinstance(record.metadata, ExecutionMetadata):
+        if record.metadata is not None:
             orig_version = record.metadata.workflow_version
-        elif isinstance(record.metadata, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-            raw_v = record.metadata.get("workflow_version")
-            if isinstance(raw_v, int):
-                orig_version = raw_v
-            elif isinstance(raw_v, str) and raw_v.isdigit():
-                orig_version = int(raw_v)
+        elif record.workflow_version is not None:
+            orig_version = record.workflow_version
         if orig_version is not None and workflow.version != orig_version:
             return False
 
@@ -1093,15 +1107,18 @@ class ExecutionService:
         record = record.model_copy(update={"step_states": new_step_states})
 
         for _k, v in record.context_variables.items():
-            if isinstance(v, dict) and "evaluated_atoms" in v:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                if atom_id in v["evaluated_atoms"]:
-                    v["evaluated_atoms"][atom_id] = payload.new_status
-                    if "raw_atoms" in v and isinstance(v["raw_atoms"], list):
-                        for ra in v["raw_atoms"]:
-                            if ("tda_id" in ra and ra["tda_id"] == atom_id) or (
-                                "atom_id" in ra and ra["atom_id"] == atom_id
-                            ):
-                                ra["human_override"] = payload.new_status
+            try:
+                matrix_ctx = TypeAdapter(EvaluatedMatrixContextDTO).validate_python(v)
+            except ValidationError:
+                continue
+            if atom_id in matrix_ctx.evaluated_atoms:
+                matrix_ctx.evaluated_atoms[atom_id] = payload.new_status
+                for ra in matrix_ctx.raw_atoms:
+                    if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
+                        ra["human_override"] = payload.new_status
+                if isinstance(v, MutableMapping):
+                    v["evaluated_atoms"] = matrix_ctx.evaluated_atoms
+                    v["raw_atoms"] = matrix_ctx.raw_atoms
 
         deps = HookDependencies(
             exec_repo=self.exec_repo,

@@ -305,8 +305,15 @@ class Settings(BaseSettings):
         dict[str, Any] | None,
         Field(default=None, description="System Config Model Registry snapshot (Optional)."),
     ] = None
-    llm_default_timeout: Annotated[float, Field(description="LLM Timeout in seconds")] = 120.0
     llm_retry_delay: Annotated[float, Field(description="Delay between retries in seconds")] = 10.0
+    sse_max_transient_retries: Annotated[
+        int,
+        Field(default=3, ge=1, le=10, description="Maximum transient retry count for SSE polling"),
+    ] = 3
+    sse_polling_interval_seconds: Annotated[
+        float,
+        Field(default=2.0, gt=0.0, le=30.0, description="Polling interval in seconds for SSE execution status stream"),
+    ] = 2.0
 
     # --- Rate Limits (Strict Mode) ---
     llm_default_tpm: Annotated[int | None, Field(description="Default Tokens Per Minute (None = Strict)")] = None

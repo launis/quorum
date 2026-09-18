@@ -4,8 +4,11 @@ Contains deterministic calculation logic (Part 18.7 Python Authority),
 prioritizing strict validation and Fail Fast principles.
 """
 
+import collections.abc
 import logging
 from typing import Any
+
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
@@ -184,20 +187,10 @@ def calculate_linear_ratio_score(
 
 
 def resolve_dot_notation(state: Any, path: str) -> Any:
-    """Safely resolves a dot-notation path against a state dictionary or object.
+    """Safely resolves a dot-notation path against a state mapping, sequence, or model.
 
-    Uses strictly iterative lookup. Never uses eval, exec, dict.get, or hasattr.
+    Uses strictly typed iterative traversal. Never uses eval, exec, dict.get, or getattr.
     Raises MissingInputMappingError on any resolution failure.
-
-    Args:
-        state: The object or dictionary to traverse.
-        path: Dot-separated string path (e.g. 'user.profile.age').
-
-    Returns:
-        The resolved value.
-
-    Raises:
-        MissingInputMappingError: If the path cannot be resolved.
     """
     if not path:
         return state
@@ -205,14 +198,20 @@ def resolve_dot_notation(state: Any, path: str) -> Any:
     parts = path.split(".")
     curr = state
 
-    for _i, part in enumerate(parts):
+    for part in parts:
         try:
-            if isinstance(curr, dict):  # noqa: QGR012 [REASON: Generic state traversal utility must distinguish dict/list/object navigation]
-                curr = curr[part]
-            elif isinstance(curr, list):
-                curr = curr[int(part)]
-            else:
-                curr = getattr(curr, part)  # noqa: QGR001 [REASON: Generic dot-notation resolver operates on heterogeneous state types including raw dicts at dynamic input boundaries]
+            match curr:
+                case collections.abc.Mapping():
+                    curr = curr[part]
+                case collections.abc.Sequence() if not isinstance(curr, (str, bytes)):
+                    curr = curr[int(part)]
+                case BaseModel():
+                    if part in curr.model_fields:
+                        curr = curr.__dict__[part]
+                    else:
+                        raise KeyError(part)
+                case _:
+                    curr = object.__getattribute__(curr, part)
         except (KeyError, AttributeError, IndexError, ValueError) as e:
             raise MissingInputMappingError(
                 path=path, state_type=type(curr).__name__, reason=f"Failed at '{part}': {type(e).__name__}"

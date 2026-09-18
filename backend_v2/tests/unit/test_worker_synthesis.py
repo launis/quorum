@@ -55,7 +55,7 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
         "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
-        "default_provider": "google",
+        "default_provider": "vertex_ai",
         "tier_definitions": {
             "fast": profile,
             "balanced": profile,
@@ -106,6 +106,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
+        "model_registry_id": "cfg_model_registry_01",
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
@@ -227,6 +228,7 @@ def _setup_mock_repo_for_metrics(
         "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
+        "model_registry_id": "cfg_model_registry_01",
         "expected_inputs": [],
         "steps": [],
     }

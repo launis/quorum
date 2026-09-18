@@ -59,7 +59,7 @@ String _$executionListHash() => r'53088a35bac32973bee5242a2b42f1f7a2ee3506';
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
+/// - Uses strictly typed `ExecutionRecord` models.
 
 @ProviderFor(ExecutionController)
 final executionControllerProvider = ExecutionControllerProvider._();
@@ -69,7 +69,7 @@ final executionControllerProvider = ExecutionControllerProvider._();
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
+/// - Uses strictly typed `ExecutionRecord` models.
 final class ExecutionControllerProvider
     extends $StreamNotifierProvider<ExecutionController, ExecutionRecord?> {
   /// Controller managing the lifecycle of a V2 DAG Execution.
@@ -77,7 +77,7 @@ final class ExecutionControllerProvider
   /// Implements Riverpod 3.x optimal practices:
   /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
   /// - Handles real-time backend updates efficiently without manual polling loops.
-  /// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
+  /// - Uses strictly typed `ExecutionRecord` models.
   ExecutionControllerProvider._()
     : super(
         from: null,
@@ -98,14 +98,14 @@ final class ExecutionControllerProvider
 }
 
 String _$executionControllerHash() =>
-    r'1149a17fd3fa892eacc582d7f55ce0c39796d2cf';
+    r'792800d0fa3d4611c73f3e221f2aa0d4dd2d933c';
 
 /// Controller managing the lifecycle of a V2 DAG Execution.
 ///
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
+/// - Uses strictly typed `ExecutionRecord` models.
 
 abstract class _$ExecutionController extends $StreamNotifier<ExecutionRecord?> {
   Stream<ExecutionRecord?> build();

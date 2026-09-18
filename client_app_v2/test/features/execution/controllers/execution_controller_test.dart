@@ -5,29 +5,30 @@ import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 class MockExecutionClient implements ExecutionClient {
   @override
-  Future<Map<String, dynamic>> startExecution({
+  Future<ExecutionRecord> startExecution({
     required ExecutionCreateRequestDto request,
   }) async {
-    return {
-      'id': 'test_exec',
-      'workflow_id': request.workflowId,
-      'target_locale': request.targetLocale,
-      'status': 'running',
-    };
+    return ExecutionRecord(
+      id: 'test_exec',
+      workflowId: request.workflowId,
+      targetLocale: request.targetLocale,
+      status: 'RUNNING',
+    );
   }
 
   @override
-  Future<Map<String, dynamic>> resumeExecution(String executionId) async {
-    return {
-      'id': executionId,
-      'workflow_id': 'test_wf',
-      'target_locale': 'fi',
-      'status': 'running',
-    };
+  Future<ExecutionRecord> resumeExecution(String executionId) async {
+    return ExecutionRecord(
+      id: executionId,
+      workflowId: 'test_wf',
+      targetLocale: 'fi',
+      status: 'RUNNING',
+    );
   }
 
   @override
@@ -52,13 +53,13 @@ class MockExecutionClient implements ExecutionClient {
   }
 
   @override
-  Future<Map<String, dynamic>> getExecutionStatus(String executionId) async {
-    return {
-      'id': executionId,
-      'workflow_id': 'test_wf',
-      'target_locale': 'fi',
-      'status': 'passed',
-    };
+  Future<ExecutionRecord> getExecutionStatus(String executionId) async {
+    return ExecutionRecord(
+      id: executionId,
+      workflowId: 'test_wf',
+      targetLocale: 'fi',
+      status: 'PASSED',
+    );
   }
 
   Future<Map<String, dynamic>> getScorecard(String executionId) async {

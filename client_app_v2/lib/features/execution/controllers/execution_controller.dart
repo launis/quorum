@@ -46,7 +46,7 @@ Future<List<ExecutionRecord>> executionList(Ref ref) async {
 /// Implements Riverpod 3.x optimal practices:
 /// - Uses [StreamNotifier] for built-in loading/error/data states reacting to SSE.
 /// - Handles real-time backend updates efficiently without manual polling loops.
-/// - Uses `ExecutionRecord` strictly adhering to the De-Generator Policy.
+/// - Uses strictly typed `ExecutionRecord` models.
 @riverpod
 class ExecutionController extends _$ExecutionController {
   StreamSubscription? _sseSubscription;
@@ -82,10 +82,10 @@ class ExecutionController extends _$ExecutionController {
       );
       final initialRecord = await client.startExecution(request: request);
 
-      final executionId = initialRecord['id'] as String;
+      final executionId = initialRecord.id;
 
       // Update with initial record before stream connects
-      state = AsyncValue.data(ExecutionRecord.fromJson(initialRecord));
+      state = AsyncValue.data(initialRecord);
 
       // Connect to SSE stream
       _connectToStream(executionId);
@@ -124,7 +124,7 @@ class ExecutionController extends _$ExecutionController {
       final resumedRecord = await client.resumeExecution(executionId);
 
       // Immediately hydrate with the backend's verified resumed state
-      state = AsyncValue.data(ExecutionRecord.fromJson(resumedRecord));
+      state = AsyncValue.data(resumedRecord);
 
       // Wait a tiny bit for the backend to transition state before we hook SSE again
       await Future.delayed(

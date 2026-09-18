@@ -76,7 +76,7 @@ final class NewExecutionControllerProvider
 }
 
 String _$newExecutionControllerHash() =>
-    r'ecc151ddade885348312e3984e2b801a6b4fdc94';
+    r'b934c9e57c6f9f97dd3ce2c91caa2542b5a4521a';
 
 abstract class _$NewExecutionController extends $AsyncNotifier<void> {
   FutureOr<void> build();

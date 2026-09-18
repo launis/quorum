@@ -1,10 +1,12 @@
-// ignore_for_file: invalid_annotation_target
 import 'dart:convert';
 
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/execution/models/execution_metadata.dart';
 import 'package:client_app/features/execution/models/execution_step.dart';
+import 'package:client_app/features/execution/models/execution_summary_snapshot.dart';
+import 'package:client_app/features/execution/models/frozen_context_snapshot.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
+import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution_record.freezed.dart';
@@ -13,8 +15,7 @@ part 'execution_record.g.dart';
 String _statusFromJson(String status) => status.toUpperCase();
 
 /// Represents the status and metadata of an execution.
-/// Follows The De-Generator Mandate: Replaces the old dynamic 'results' map
-/// with strict typed fields and an explicit reference to the [ReportDataDTO].
+/// Contains strictly typed fields and an explicit reference to the [ReportDataDto].
 @Freezed(equal: false)
 abstract class ExecutionRecord with _$ExecutionRecord {
   const ExecutionRecord._();
@@ -28,7 +29,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'workflow_version') @Default(1) int workflowVersion,
     @JsonKey(name: 'active_profile_id') String? activeProfileId,
     @JsonKey(name: 'output_profile_id') String? outputProfileId,
-    @JsonKey(name: 'raw_inputs') Map<String, dynamic>? rawInputs,
+    @JsonKey(name: 'raw_inputs') WorkflowInputs? rawInputs,
     @JsonKey(name: 'duration_ms') int? durationMs,
     @JsonKey(name: 'cost_estimate') double? costEstimate,
     @JsonKey(name: 'prompt_tokens') @Default(0) int promptTokens,
@@ -39,12 +40,13 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'cumulative_synthesis_tokens')
     int? cumulativeSynthesisTokens,
     @JsonKey(name: 'cumulative_synthesis_cost') double? cumulativeSynthesisCost,
-    @JsonKey(name: 'models_used') Map<String, dynamic>? modelsUsed,
-    @JsonKey(name: 'execution_summary') Map<String, dynamic>? executionSummary,
+    @JsonKey(name: 'models_used') Map<String, int>? modelsUsed,
+    @JsonKey(name: 'execution_summary')
+    ExecutionSummarySnapshot? executionSummary,
     @JsonKey(name: 'metadata') ExecutionMetadata? metadata,
     @JsonKey(name: 'error') String? error,
     @JsonKey(name: 'is_resumable') bool? isResumable,
-    @JsonKey(name: 'frozen_context') Map<String, dynamic>? frozenContext,
+    @JsonKey(name: 'frozen_context') FrozenContextSnapshot? frozenContext,
     @JsonKey(name: 'frozen_context_storage_path')
     String? frozenContextStoragePath,
     @JsonKey(name: 'context_variables') Map<String, dynamic>? contextVariables,
@@ -58,7 +60,7 @@ abstract class ExecutionRecord with _$ExecutionRecord {
     @JsonKey(name: 'source_identity_manifest')
     Map<String, String>? sourceIdentityManifest,
     @JsonKey(name: 'steps') @Default([]) List<ExecutionStep> steps,
-    @JsonKey(name: 'step_states') Map<String, dynamic>? stepStates,
+    @JsonKey(name: 'step_states') Map<String, ExecutionStep>? stepStates,
     @JsonKey(name: 'profile_syntheses') Map<String, dynamic>? profileSyntheses,
     @JsonKey(name: 'progress') int? progress,
     @JsonKey(name: 'status_message') String? statusMessage,

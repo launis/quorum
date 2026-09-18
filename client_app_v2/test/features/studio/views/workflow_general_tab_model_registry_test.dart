@@ -244,7 +244,8 @@ void main() {
           expect(
             (dropdown as dynamic).isExpanded,
             isTrue,
-            reason: 'Dropdown must have isExpanded: true to prevent horizontal overflow',
+            reason:
+                'Dropdown must have isExpanded: true to prevent horizontal overflow',
           );
         }
       },
@@ -252,8 +253,7 @@ void main() {
   });
 }
 
-class MockEmptyModelRegistryController
-    extends AsyncNotifier<List<ModelConfig>>
+class MockEmptyModelRegistryController extends AsyncNotifier<List<ModelConfig>>
     implements ModelRegistryController {
   @override
   Future<List<ModelConfig>> build() async => const [];

@@ -1,4 +1,4 @@
-// ignore_for_file: invalid_annotation_target
+import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'execution_step.freezed.dart';
@@ -26,9 +26,11 @@ abstract class ExecutionStep with _$ExecutionStep {
     @JsonKey(name: 'cost_usd') @Default(0.0) double costUsd,
     @JsonKey(name: 'duration_ms') @Default(0) int durationMs,
     @JsonKey(name: 'chunk_count') @Default(1) int chunkCount,
+    @JsonKey(name: 'progress') int? progress,
+    @JsonKey(name: 'has_warning') @Default(false) bool hasWarning,
     @JsonKey(name: 'scorecard_atoms')
     @Default({})
-    Map<String, dynamic> scorecardAtoms,
+    Map<String, ScorecardAtomDto> scorecardAtoms,
   }) = _ExecutionStep;
 
   /// Instantiates a strictly typed [ExecutionStep] from raw JSON.

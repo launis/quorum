@@ -92,6 +92,7 @@ class ExecutionCommitter:
         error: str | None = None,
         frozen_context: Any | None = None,
         context_variables: dict[str, Any] | None = None,
+        steps: list[ExecutionStep] | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely.
 
@@ -102,19 +103,23 @@ class ExecutionCommitter:
             error: Optional execution failure message to record.
             frozen_context: Serialized snapshot state if provided.
             context_variables: Execution level global variables.
+            steps: Optional list of ExecutionStep objects to persist.
 
         Raises:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
         """
         try:
-            update_dto = ExecutionUpdateDTO(
-                status=status,
-                execution_trace=trace,
-                step_states=step_states,
-                frozen_context=frozen_context,
-                context_variables=context_variables,
-                error=error,
-            )
+            update_data: dict[str, Any] = {
+                "status": status,
+                "execution_trace": trace,
+                "step_states": step_states,
+                "frozen_context": frozen_context,
+                "context_variables": context_variables,
+                "error": error,
+            }
+            if steps is not None:
+                update_data["steps"] = steps
+            update_dto = ExecutionUpdateDTO(**update_data)
             await self.exec_repo.update_execution(self.execution_id, update_dto)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
@@ -623,7 +628,11 @@ class DAGExecutor:
                 failed_previous_steps.append(step_id)
                 new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.PENDING})
                 new_states = {**exec_record.step_states, step_id: new_state}
-                exec_record = exec_record.model_copy(update={"step_states": new_states})
+                new_steps = [
+                    s.model_copy(update={"status": ExecutionStatus.PENDING}) if s.id == step_id else s
+                    for s in exec_record.steps
+                ]
+                exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
         semaphore = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
         _update_lock = asyncio.Lock()
@@ -641,6 +650,7 @@ class DAGExecutor:
                     error=error_override if error_override is not None else current.error,
                     frozen_context=current.frozen_context,
                     context_variables=current.context_variables,
+                    steps=current.steps,
                 )
 
         async def run_step_wrapper(step_id: str) -> None:
@@ -659,7 +669,11 @@ class DAGExecutor:
                                 update={"status": ExecutionStatus.FAILED}
                             )
                             new_states = {**exec_record.step_states, step_id: new_state}
-                            exec_record = exec_record.model_copy(update={"step_states": new_states})
+                            new_steps = [
+                                s.model_copy(update={"status": ExecutionStatus.FAILED}) if s.id == step_id else s
+                                for s in exec_record.steps
+                            ]
+                            exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                         await _safe_commit()
                         logger.warning(
                             "[DAGExecutor] Cascading failure: Step %s failed because dependency %s failed.",
@@ -701,7 +715,11 @@ class DAGExecutor:
                 async with _update_lock:
                     new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.QUEUED})
                     new_states = {**exec_record.step_states, step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    new_steps = [
+                        s.model_copy(update={"status": ExecutionStatus.QUEUED}) if s.id == step_id else s
+                        for s in exec_record.steps
+                    ]
+                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
                 await _safe_commit()
 
@@ -717,7 +735,11 @@ class DAGExecutor:
                                 update={"status": ExecutionStatus.RUNNING}
                             )
                             new_states = {**exec_record.step_states, step_id: new_state}
-                            exec_record = exec_record.model_copy(update={"step_states": new_states})
+                            new_steps = [
+                                s.model_copy(update={"status": ExecutionStatus.RUNNING}) if s.id == step_id else s
+                                for s in exec_record.steps
+                            ]
+                            exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                             needs_commit = True
 
                     if needs_commit:
@@ -738,10 +760,21 @@ class DAGExecutor:
                         label = f"Evaluating batch {completed}/{total}..."
 
                     async with _update_lock:
-                        new_state = exec_record.step_states[step_id].model_copy(update={"label": label})
+                        new_state = exec_record.step_states[step_id].model_copy(
+                            update={"label": label, "progress": prog}
+                        )
                         new_states = {**exec_record.step_states, step_id: new_state}
+                        new_steps = [
+                            s.model_copy(update={"label": label, "progress": prog}) if s.id == step_id else s
+                            for s in exec_record.steps
+                        ]
                         exec_record = exec_record.model_copy(
-                            update={"step_states": new_states, "progress": prog, "status_message": label}
+                            update={
+                                "step_states": new_states,
+                                "steps": new_steps,
+                                "progress": prog,
+                                "status_message": label,
+                            }
                         )
                     try:
                         await _safe_commit()
@@ -867,8 +900,15 @@ class DAGExecutor:
                         updates["frozen_context"] = new_fc
 
                     step_status = ExecutionStatus.FAILED if has_error_evt else ExecutionStatus.PASSED
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": step_status})
+                    step_prog = 100 if step_status == ExecutionStatus.PASSED else None
+                    new_state = exec_record.step_states[step_id].model_copy(
+                        update={"status": step_status, "progress": step_prog}
+                    )
                     updates["step_states"] = {**exec_record.step_states, step_id: new_state}
+                    updates["steps"] = [
+                        s.model_copy(update={"status": step_status, "progress": step_prog}) if s.id == step_id else s
+                        for s in exec_record.steps
+                    ]
 
                     exec_record = exec_record.model_copy(update=updates)
 
@@ -901,8 +941,28 @@ class DAGExecutor:
                             err_code = code_val
 
                 async with _update_lock:
-                    new_state = exec_record.step_states[step_id].model_copy(update={"status": ExecutionStatus.FAILED})
+                    new_state = exec_record.step_states[step_id].model_copy(
+                        update={
+                            "status": ExecutionStatus.FAILED,
+                            "last_error": str(e),
+                            "progress": None,
+                            "has_warning": True,
+                        }
+                    )
                     new_states = {**exec_record.step_states, step_id: new_state}
+                    new_steps = [
+                        s.model_copy(
+                            update={
+                                "status": ExecutionStatus.FAILED,
+                                "last_error": str(e),
+                                "progress": None,
+                                "has_warning": True,
+                            }
+                        )
+                        if s.id == step_id
+                        else s
+                        for s in exec_record.steps
+                    ]
                     error_evt = TraceEvent(
                         step_name=step_id,
                         event_type="error",
@@ -910,7 +970,7 @@ class DAGExecutor:
                     )
                     exec_record.execution_trace.append(error_evt)
                     projector.apply_delta(error_evt)
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                 logger.error("[DAGExecutor] Step %s failed with error: %s", step_id, str(e), exc_info=True)
             finally:
@@ -929,14 +989,19 @@ class DAGExecutor:
                         break
 
             if has_prehydrated and preflight_target_step:
-                virtual_step_id = f"stp_{uuid.uuid4().hex[:16]}"
+                virtual_step_id = f"sys_rag_{uuid.uuid4().hex[:16]}"
 
                 async with _update_lock:
                     new_state = ExecutionStepState(
-                        id=virtual_step_id, label="system.rag.preflight", status=ExecutionStatus.RUNNING
+                        id=virtual_step_id,
+                        label="system.rag.preflight",
+                        status=ExecutionStatus.RUNNING,
+                        progress=0,
+                        has_warning=False,
                     )
                     new_states = {**exec_record.step_states, virtual_step_id: new_state}
-                    exec_record = exec_record.model_copy(update={"step_states": new_states})
+                    new_steps = [s for s in exec_record.steps if s.id != virtual_step_id] + [new_state]
+                    exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
 
                 await _safe_commit()
 
@@ -950,6 +1015,24 @@ class DAGExecutor:
                     async with _update_lock:
                         exec_record.execution_trace.append(evt)
                         projector.apply_delta(evt)
+                        new_state = exec_record.step_states[virtual_step_id].model_copy(
+                            update={"progress": pct, "label": f"system.rag.preflight: {message}"}
+                        )
+                        new_states = {**exec_record.step_states, virtual_step_id: new_state}
+                        new_steps = [
+                            s.model_copy(update={"progress": pct, "label": f"system.rag.preflight: {message}"})
+                            if s.id == virtual_step_id
+                            else s
+                            for s in exec_record.steps
+                        ]
+                        exec_record = exec_record.model_copy(
+                            update={
+                                "step_states": new_states,
+                                "steps": new_steps,
+                                "progress": pct,
+                                "status_message": f"Preflight: {message}",
+                            }
+                        )
                     try:
                         await _safe_commit()
                     except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
@@ -970,22 +1053,46 @@ class DAGExecutor:
 
                     async with _update_lock:
                         pass_state = exec_record.step_states[virtual_step_id].model_copy(
-                            update={"status": ExecutionStatus.PASSED}
+                            update={"status": ExecutionStatus.PASSED, "progress": 100}
                         )
                         new_states = {**exec_record.step_states, virtual_step_id: pass_state}
+                        new_steps = [
+                            s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
+                            if s.id == virtual_step_id
+                            else s
+                            for s in exec_record.steps
+                        ]
                         new_cv = dict(exec_record.context_variables)
                         new_cv["__GLOBAL_ATOM_BLACKBOARD__"] = blackboard_payload
                         exec_record = exec_record.model_copy(
-                            update={"step_states": new_states, "context_variables": new_cv}
+                            update={"step_states": new_states, "steps": new_steps, "context_variables": new_cv}
                         )
                     await _safe_commit()
                 except Exception as e:
                     async with _update_lock:
                         fail_state = exec_record.step_states[virtual_step_id].model_copy(
-                            update={"status": ExecutionStatus.FAILED}
+                            update={
+                                "status": ExecutionStatus.FAILED,
+                                "last_error": str(e),
+                                "progress": None,
+                                "has_warning": True,
+                            }
                         )
                         new_states = {**exec_record.step_states, virtual_step_id: fail_state}
-                        exec_record = exec_record.model_copy(update={"step_states": new_states})
+                        new_steps = [
+                            s.model_copy(
+                                update={
+                                    "status": ExecutionStatus.FAILED,
+                                    "last_error": str(e),
+                                    "progress": None,
+                                    "has_warning": True,
+                                }
+                            )
+                            if s.id == virtual_step_id
+                            else s
+                            for s in exec_record.steps
+                        ]
+                        exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                     await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                     raise WorkflowExecutionError(
                         step_id=virtual_step_id, task_key="system.rag.preflight", original_error=e
@@ -1002,6 +1109,7 @@ class DAGExecutor:
                     status=exec_record.status,
                     step_states=exec_record.step_states,
                     context_variables=exec_record.context_variables,
+                    steps=exec_record.steps,
                 )
                 msg = "Workflow completed with failed steps"
                 logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
@@ -1016,6 +1124,7 @@ class DAGExecutor:
                 status=exec_record.status,
                 step_states=exec_record.step_states,
                 context_variables=exec_record.context_variables,
+                steps=exec_record.steps,
             )
 
             return exec_record
@@ -1026,10 +1135,36 @@ class DAGExecutor:
             new_states = dict(exec_record.step_states)
             for state_id, state in new_states.items():
                 if state.status == ExecutionStatus.RUNNING:
-                    new_states[state_id] = state.model_copy(update={"status": ExecutionStatus.FAILED})
+                    new_states[state_id] = state.model_copy(
+                        update={
+                            "status": ExecutionStatus.FAILED,
+                            "last_error": str(primary_err),
+                            "progress": None,
+                            "has_warning": True,
+                        }
+                    )
+
+            new_steps = [
+                s.model_copy(
+                    update={
+                        "status": ExecutionStatus.FAILED,
+                        "last_error": str(primary_err),
+                        "progress": None,
+                        "has_warning": True,
+                    }
+                )
+                if s.status == ExecutionStatus.RUNNING
+                else s
+                for s in exec_record.steps
+            ]
 
             exec_record = exec_record.model_copy(
-                update={"step_states": new_states, "status": ExecutionStatus.FAILED, "error": str(primary_err)}
+                update={
+                    "step_states": new_states,
+                    "steps": new_steps,
+                    "status": ExecutionStatus.FAILED,
+                    "error": str(primary_err),
+                }
             )
 
             await self.committer.commit_trace(
@@ -1038,6 +1173,7 @@ class DAGExecutor:
                 step_states=exec_record.step_states,
                 error=exec_record.error,
                 context_variables=exec_record.context_variables,
+                steps=exec_record.steps,
             )
 
             if isinstance(primary_err, AppException):
@@ -1052,8 +1188,39 @@ class DAGExecutor:
             ) from primary_err
 
         except Exception as unexpected_err:
+            new_states = dict(exec_record.step_states)
+            for state_id, state in new_states.items():
+                if state.status == ExecutionStatus.RUNNING:
+                    new_states[state_id] = state.model_copy(
+                        update={
+                            "status": ExecutionStatus.FAILED,
+                            "last_error": str(unexpected_err),
+                            "progress": None,
+                            "has_warning": True,
+                        }
+                    )
+
+            new_steps = [
+                s.model_copy(
+                    update={
+                        "status": ExecutionStatus.FAILED,
+                        "last_error": str(unexpected_err),
+                        "progress": None,
+                        "has_warning": True,
+                    }
+                )
+                if s.status == ExecutionStatus.RUNNING
+                else s
+                for s in exec_record.steps
+            ]
+
             exec_record = exec_record.model_copy(
-                update={"status": ExecutionStatus.FAILED, "error": str(unexpected_err)}
+                update={
+                    "step_states": new_states,
+                    "steps": new_steps,
+                    "status": ExecutionStatus.FAILED,
+                    "error": str(unexpected_err),
+                }
             )
 
             await self.committer.commit_trace(
@@ -1062,6 +1229,7 @@ class DAGExecutor:
                 step_states=exec_record.step_states,
                 error=exec_record.error,
                 context_variables=exec_record.context_variables,
+                steps=exec_record.steps,
             )
 
             if isinstance(unexpected_err, AppException):

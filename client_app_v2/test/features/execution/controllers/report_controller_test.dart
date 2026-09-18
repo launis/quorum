@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
+import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 
 class MockExecutionClientPending implements ExecutionClient {
@@ -37,16 +38,32 @@ class MockExecutionClientPending implements ExecutionClient {
   }
 
   @override
-  Future<Map<String, dynamic>> startExecution({
+  Future<ExecutionRecord> startExecution({
     required ExecutionCreateRequestDto request,
-  }) async => {};
+  }) async => const ExecutionRecord(
+    id: 'test_exec',
+    workflowId: 'test_wf',
+    targetLocale: 'en',
+    status: 'PASSED',
+  );
 
   @override
-  Future<Map<String, dynamic>> resumeExecution(String executionId) async => {};
+  Future<ExecutionRecord> resumeExecution(String executionId) async =>
+      const ExecutionRecord(
+        id: 'test_exec',
+        workflowId: 'test_wf',
+        targetLocale: 'en',
+        status: 'PASSED',
+      );
 
   @override
-  Future<Map<String, dynamic>> getExecutionStatus(String executionId) async =>
-      {};
+  Future<ExecutionRecord> getExecutionStatus(String executionId) async =>
+      const ExecutionRecord(
+        id: 'test_exec',
+        workflowId: 'test_wf',
+        targetLocale: 'en',
+        status: 'PASSED',
+      );
 
   Future<Map<String, dynamic>> getScorecard(String executionId) async => {};
 

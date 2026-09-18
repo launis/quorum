@@ -76,7 +76,9 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       rawInputs: $checkedConvert(
         'raw_inputs',
-        (v) => v as Map<String, dynamic>?,
+        (v) => v == null
+            ? null
+            : WorkflowInputs.fromJson(v as Map<String, dynamic>),
       ),
       durationMs: $checkedConvert('duration_ms', (v) => (v as num?)?.toInt()),
       costEstimate: $checkedConvert(
@@ -113,11 +115,15 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       modelsUsed: $checkedConvert(
         'models_used',
-        (v) => v as Map<String, dynamic>?,
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) => MapEntry(k, (e as num).toInt()),
+        ),
       ),
       executionSummary: $checkedConvert(
         'execution_summary',
-        (v) => v as Map<String, dynamic>?,
+        (v) => v == null
+            ? null
+            : ExecutionSummarySnapshot.fromJson(v as Map<String, dynamic>),
       ),
       metadata: $checkedConvert(
         'metadata',
@@ -129,7 +135,9 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       isResumable: $checkedConvert('is_resumable', (v) => v as bool?),
       frozenContext: $checkedConvert(
         'frozen_context',
-        (v) => v as Map<String, dynamic>?,
+        (v) => v == null
+            ? null
+            : FrozenContextSnapshot.fromJson(v as Map<String, dynamic>),
       ),
       frozenContextStoragePath: $checkedConvert(
         'frozen_context_storage_path',
@@ -170,7 +178,10 @@ _ExecutionRecord _$ExecutionRecordFromJson(
       ),
       stepStates: $checkedConvert(
         'step_states',
-        (v) => v as Map<String, dynamic>?,
+        (v) => (v as Map<String, dynamic>?)?.map(
+          (k, e) =>
+              MapEntry(k, ExecutionStep.fromJson(e as Map<String, dynamic>)),
+        ),
       ),
       profileSyntheses: $checkedConvert(
         'profile_syntheses',
@@ -224,46 +235,47 @@ _ExecutionRecord _$ExecutionRecordFromJson(
   },
 );
 
-Map<String, dynamic> _$ExecutionRecordToJson(_ExecutionRecord instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'workflow_id': instance.workflowId,
-      'target_locale': instance.targetLocale,
-      'status': instance.status,
-      'workflow_version': instance.workflowVersion,
-      'active_profile_id': instance.activeProfileId,
-      'output_profile_id': instance.outputProfileId,
-      'raw_inputs': instance.rawInputs,
-      'duration_ms': instance.durationMs,
-      'cost_estimate': instance.costEstimate,
-      'prompt_tokens': instance.promptTokens,
-      'completion_tokens': instance.completionTokens,
-      'cached_tokens': instance.cachedTokens,
-      'reasoning_tokens': instance.reasoningTokens,
-      'dag_cost_usd': instance.dagCostUsd,
-      'cumulative_synthesis_tokens': instance.cumulativeSynthesisTokens,
-      'cumulative_synthesis_cost': instance.cumulativeSynthesisCost,
-      'models_used': instance.modelsUsed,
-      'execution_summary': instance.executionSummary,
-      'metadata': instance.metadata?.toJson(),
-      'error': instance.error,
-      'is_resumable': instance.isResumable,
-      'frozen_context': instance.frozenContext,
-      'frozen_context_storage_path': instance.frozenContextStoragePath,
-      'context_variables': instance.contextVariables,
-      'context_variables_storage_path': instance.contextVariablesStoragePath,
-      'execution_trace': instance.executionTrace,
-      'execution_trace_storage_path': instance.executionTraceStoragePath,
-      'pdf_report_path': instance.pdfReportPath,
-      'source_identity_manifest': instance.sourceIdentityManifest,
-      'steps': instance.steps.map((e) => e.toJson()).toList(),
-      'step_states': instance.stepStates,
-      'profile_syntheses': instance.profileSyntheses,
-      'progress': instance.progress,
-      'status_message': instance.statusMessage,
-      'created_at': instance.createdAt,
-      'updated_at': instance.updatedAt,
-      'completed_at': instance.completedAt,
-      'created_by': instance.createdBy,
-      'organization_id': instance.organizationId,
-    };
+Map<String, dynamic> _$ExecutionRecordToJson(
+  _ExecutionRecord instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'workflow_id': instance.workflowId,
+  'target_locale': instance.targetLocale,
+  'status': instance.status,
+  'workflow_version': instance.workflowVersion,
+  'active_profile_id': instance.activeProfileId,
+  'output_profile_id': instance.outputProfileId,
+  'raw_inputs': instance.rawInputs?.toJson(),
+  'duration_ms': instance.durationMs,
+  'cost_estimate': instance.costEstimate,
+  'prompt_tokens': instance.promptTokens,
+  'completion_tokens': instance.completionTokens,
+  'cached_tokens': instance.cachedTokens,
+  'reasoning_tokens': instance.reasoningTokens,
+  'dag_cost_usd': instance.dagCostUsd,
+  'cumulative_synthesis_tokens': instance.cumulativeSynthesisTokens,
+  'cumulative_synthesis_cost': instance.cumulativeSynthesisCost,
+  'models_used': instance.modelsUsed,
+  'execution_summary': instance.executionSummary?.toJson(),
+  'metadata': instance.metadata?.toJson(),
+  'error': instance.error,
+  'is_resumable': instance.isResumable,
+  'frozen_context': instance.frozenContext?.toJson(),
+  'frozen_context_storage_path': instance.frozenContextStoragePath,
+  'context_variables': instance.contextVariables,
+  'context_variables_storage_path': instance.contextVariablesStoragePath,
+  'execution_trace': instance.executionTrace,
+  'execution_trace_storage_path': instance.executionTraceStoragePath,
+  'pdf_report_path': instance.pdfReportPath,
+  'source_identity_manifest': instance.sourceIdentityManifest,
+  'steps': instance.steps.map((e) => e.toJson()).toList(),
+  'step_states': instance.stepStates?.map((k, e) => MapEntry(k, e.toJson())),
+  'profile_syntheses': instance.profileSyntheses,
+  'progress': instance.progress,
+  'status_message': instance.statusMessage,
+  'created_at': instance.createdAt,
+  'updated_at': instance.updatedAt,
+  'completed_at': instance.completedAt,
+  'created_by': instance.createdBy,
+  'organization_id': instance.organizationId,
+};

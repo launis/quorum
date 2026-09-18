@@ -1633,6 +1633,11 @@ class ExecutionStep(V2CoreBase):
     duration_ms: int = Field(default=0, ge=0, description="Step duration in milliseconds")
     chunk_count: int = Field(default=1, ge=1, description="Number of parallel chunks processed in this step")
 
+    progress: Annotated[
+        int | None, Field(default=None, ge=0, le=100, description="Step progress percentage for SSE streaming (0-100)")
+    ] = None
+    has_warning: Annotated[bool, Field(default=False, description="Whether the step completed with warnings")] = False
+
     scorecard_atoms: dict[str, ScorecardAtomDTO] = Field(
         default_factory=dict, description="Presentation atoms including potential human overrides."
     )
@@ -1652,6 +1657,20 @@ class ExecutionSummarySnapshot(V2CoreBase):
     system_concurrency_snapshot: dict[str, int] = Field(
         default_factory=dict, description="Concurrency metric snapshot at termination"
     )
+
+
+class EvaluatedMatrixContextDTO(V2CoreBase):
+    """DTO for evaluated matrix context within execution context_variables."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+    evaluated_atoms: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Map of atom IDs to evaluation status"),
+    ]
+    raw_atoms: Annotated[
+        list[dict[str, Any]],
+        Field(default_factory=list, description="Raw evaluated atom payloads"),
+    ]
 
 
 class ExtensionMetricsDTO(V2CoreBase):

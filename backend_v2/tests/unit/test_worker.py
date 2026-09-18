@@ -73,7 +73,7 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
         "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
-        "default_provider": "google",
+        "default_provider": "vertex_ai",
         "tier_definitions": {
             "fast": profile,
             "balanced": profile,
@@ -158,6 +158,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
@@ -182,6 +183,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": None,
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": None,
@@ -213,6 +215,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
@@ -287,6 +290,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
@@ -627,6 +631,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
             mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
@@ -693,6 +698,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
 
@@ -809,6 +815,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
                 "default_strictness_level": 50,
             }
 
@@ -856,6 +863,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
@@ -967,6 +975,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
                 "default_strictness_level": 85,
             }
 
@@ -1206,6 +1215,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
@@ -1318,6 +1328,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
@@ -1343,6 +1354,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "default_strictness_level": 50,
     }
     mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
@@ -1438,6 +1450,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
@@ -1463,6 +1476,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "default_strictness_level": 50,
     }
     mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
@@ -1524,6 +1538,7 @@ def _get_base_workflow_dict() -> dict[str, Any]:
         "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
+        "model_registry_id": "cfg_model_registry_01",
         "default_strictness_level": 50,
     }
 

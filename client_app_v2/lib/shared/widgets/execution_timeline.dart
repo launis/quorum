@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class ExecutionTimeline extends StatelessWidget {
-  final List<Map<String, dynamic>> steps;
+  final List<ExecutionStep> steps;
   final bool compact;
 
   const ExecutionTimeline({
@@ -14,7 +15,7 @@ class ExecutionTimeline extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (steps.isEmpty) {
-      return const SizedBox(width: 0, height: 0);
+      return const SizedBox.shrink();
     }
 
     return Card(
@@ -27,32 +28,28 @@ class ExecutionTimeline extends StatelessWidget {
         separatorBuilder: (_, _) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final step = steps[index];
-          final stepStatus =
-              step['status']?.toString().toLowerCase() ?? 'pending';
-          final stepLabel = step['label']?.toString() ?? 'Tuntematon askel';
+          final stepStatus = step.status.toLowerCase();
+          final stepLabel = step.label;
 
-          final isCompleted =
-              stepStatus == 'passed' ||
-              stepStatus == 'finished' ||
-              stepStatus == 'completed';
-          final isQueued = stepStatus == 'queued';
+          final isCompleted = stepStatus == 'passed';
+          final isQueued = stepStatus == 'queued' || stepStatus == 'pending';
           final isRunning = stepStatus == 'running';
-          final isFailed = stepStatus == 'failed' || stepStatus == 'error';
+          final isFailed =
+              stepStatus == 'failed' || stepStatus == 'system_error';
 
           Color? labelColor;
           if (isRunning) {
-            labelColor = Theme.of(context).primaryColor;
+            labelColor = Theme.of(context).colorScheme.primary;
           } else if (isQueued) {
             labelColor = Theme.of(context).disabledColor;
           } else if (isFailed) {
             labelColor = Theme.of(context).colorScheme.error;
           }
 
-          final lastError = step['last_error']?.toString();
-          final messageCode = step['message_code']?.toString();
-          final progress = step['progress'] as num?;
-          final hasWarnings =
-              step['has_warning'] == true || step['has_warnings'] == true;
+          final lastError = step.lastError;
+          final messageCode = step.messageCode;
+          final progress = step.progress;
+          final hasWarnings = step.hasWarning;
 
           Widget? subtitleWidget;
           if (isFailed && lastError != null && lastError.isNotEmpty) {
@@ -63,8 +60,7 @@ class ExecutionTimeline extends StatelessWidget {
                 fontSize: 12,
               ),
             );
-          } else if ((isRunning || stepStatus == 'processing') &&
-              progress != null) {
+          } else if (isRunning && progress != null) {
             subtitleWidget = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -88,7 +84,7 @@ class ExecutionTimeline extends StatelessWidget {
                       '${progress.toInt()}%',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).primaryColor,
+                        color: Theme.of(context).colorScheme.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -108,8 +104,7 @@ class ExecutionTimeline extends StatelessWidget {
                 const SizedBox(height: 4),
               ],
             );
-          } else if ((isRunning || stepStatus == 'processing') &&
-              messageCode == 'event_llm_anomaly_retry') {
+          } else if (isRunning && messageCode == 'event_llm_anomaly_retry') {
             subtitleWidget = Text(
               AppLocalizations.of(context)!.eventLlmAnomalyRetry,
               style: TextStyle(
@@ -133,6 +128,7 @@ class ExecutionTimeline extends StatelessWidget {
             ),
             title: Text(
               stepLabel,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontWeight: isRunning || isCompleted
                     ? FontWeight.bold
@@ -177,9 +173,9 @@ class ExecutionTimeline extends StatelessWidget {
       );
     }
     if (isCompleted) {
-      return const Icon(
+      return Icon(
         Icons.check_circle,
-        color: const Color(0xFF2E7D32),
+        color: Theme.of(context).colorScheme.primary,
         size: 20,
       );
     }
