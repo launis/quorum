@@ -20,7 +20,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.synthesis import (
@@ -101,14 +101,15 @@ async def generate_profile_synthesis_and_pdf_task(
         AppException: If synthesis or execution update fails with VALIDATION_FAILED,
             CONFIGURATION_ERROR, or INTERNAL_SERVER_ERROR.
     """
-    if not accept_language:
-        msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be None."
+    if not accept_language or not accept_language.strip():
+        msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
         logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
+
     logger.info("[Task] Starting Async Text Synthesis for execution %s (Profile: %s)", execution_id, profile_id)
     try:
         driver = await get_driver(get_settings())
@@ -185,10 +186,15 @@ async def generate_profile_synthesis_and_pdf_task(
         ):
             return
 
-        p_dict = await repo.get_output_profile_by_id(profile_id) if profile_id else None
-        active_profile_dto: OutputProfile | None = (
-            OutputProfile.model_validate(p_dict, strict=False) if p_dict else None
-        )
+        if profile_id:
+            p_dict = await repo.get_output_profile_by_id(profile_id)
+            if not p_dict:
+                msg = f"Strict Fail-Fast Enforced: OutputProfile '{profile_id}' not found in repository."
+                logger.error("[Worker] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise ResourceNotFoundError(resource_type="output_profile", resource_id=profile_id)
+            active_profile_dto: OutputProfile | None = OutputProfile.model_validate(p_dict, strict=False)
+        else:
+            active_profile_dto = None
 
         w_dict = await repo.get_workflow_by_id(execution.workflow_id)
         if not w_dict:

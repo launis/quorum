@@ -29,6 +29,7 @@ from backend_v2.services.file_driver import FileDriver
 from backend_v2.services.localization import set_language
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
+from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
 
 logger = logging.getLogger(__name__)
 
@@ -136,9 +137,12 @@ class ReportService:
             set_language(report.locale)
 
             if report.profile_id not in execution.profile_syntheses:
-                from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
-
-                await generate_profile_synthesis_and_pdf_task(report.execution_id, report.profile_id, report.locale)
+                # Step 1: Enforce explicit keyword parameter bindings to avoid positional inversion
+                await generate_profile_synthesis_and_pdf_task(
+                    report.execution_id,
+                    accept_language=report.locale,
+                    profile_id=report.profile_id,
+                )
                 refreshed = await self.repo.get_execution(report.execution_id)
                 if refreshed:
                     execution = ExecutionRecord.model_validate(refreshed, strict=False)

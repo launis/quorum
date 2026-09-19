@@ -1,5 +1,6 @@
 import 'package:client_app/core/api/reports_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
@@ -476,7 +477,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                 controller: _tabController,
                 children: [
                   // Tab 1: Interactive SDUI View
-                  _buildInteractiveTab(report.id),
+                  _buildInteractiveTab(report),
                   // Tab 2: PDF Preview
                   _buildPdfTab(report.id, client),
                   // Tab 3: Tabular Rows
@@ -492,8 +493,88 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     );
   }
 
-  Widget _buildInteractiveTab(String reportId) {
-    final sduiAsync = ref.watch(reportSduiProvider(reportId));
+  Widget _buildInteractiveTab(ReportArtifactSummary reportSummary) {
+    final detailAsync = ref.watch(reportDetailProvider(reportSummary.id));
+    final currentStatus =
+        detailAsync.asData?.value.status ?? reportSummary.status;
+
+    if (currentStatus == ReportStatus.failed) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+      final errorMessage = detailAsync.asData?.value.errorMessage;
+
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 600),
+          child: Card(
+            elevation: 2,
+            margin: AppSpacing.p24,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: theme.colorScheme.error.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Padding(
+              padding: AppSpacing.p24,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: theme.colorScheme.error,
+                  ),
+                  AppSpacing.h16,
+                  Text(
+                    l10n.reportGenerationFailedNotice,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (errorMessage != null && errorMessage.isNotEmpty) ...[
+                    AppSpacing.h12,
+                    Container(
+                      padding: AppSpacing.p12,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.errorContainer.withValues(
+                          alpha: 0.3,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        errorMessage,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'monospace',
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                  AppSpacing.h24,
+                  FilledButton.icon(
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(l10n.retryReportGenerationLabel),
+                    onPressed: () {
+                      ref
+                          .read(reportArtifactActionsProvider.notifier)
+                          .regenerateReport(
+                            reportId: reportSummary.id,
+                            executionId: widget.executionId,
+                          );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final sduiAsync = ref.watch(reportSduiProvider(reportSummary.id));
 
     return AppErrorBoundary(
       child: sduiAsync.when(
