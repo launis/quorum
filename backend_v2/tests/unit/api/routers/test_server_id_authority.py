@@ -10,17 +10,15 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.dtos.studio import (
     PromptBlockCreateDTO,
     StepCreateDTO,
     WorkflowCreateDTO,
 )
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, StepType
-from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixSynthesisGroup,
-    StepRule,
-)
 
 # ==============================================================================
 # TC-ID-01 & TC-ID-02: WorkflowCreateDTO Authority

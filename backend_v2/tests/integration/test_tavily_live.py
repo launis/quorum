@@ -20,8 +20,8 @@ from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.models.domain.mcp import TavilySearchResult
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID

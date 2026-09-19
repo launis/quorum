@@ -1,10 +1,10 @@
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.matrix import TheoryGrounding
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
-from backend_v2.models.v2_core import TheoryGrounding
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
 

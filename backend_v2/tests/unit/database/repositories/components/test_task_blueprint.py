@@ -10,8 +10,8 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import CognitiveTier
-from backend_v2.models.v2_core import Step
 
 
 @pytest.fixture

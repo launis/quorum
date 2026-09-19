@@ -3,8 +3,9 @@ from unittest.mock import MagicMock
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.v2_core import I18nText, Step
+from backend_v2.models.domain.step import Step
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 
 

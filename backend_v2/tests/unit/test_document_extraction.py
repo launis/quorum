@@ -150,7 +150,7 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
     service = DocumentExtractionService()
     import fitz
 
-    from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+    from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 
     doc = fitz.open()
     page = doc.new_page(width=595, height=842)

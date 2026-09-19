@@ -1,6 +1,6 @@
 """Unit tests for PromptCompilerAdapter and static-first cryptographic determinism verification."""
 
-from backend_v2.models.v2_core import ChatMessageDTO
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 
 

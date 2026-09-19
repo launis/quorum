@@ -12,8 +12,8 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.dtos.ingress import ResolvedIngressDTO
-from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.ingress.smart_ingress_resolver import SmartIngressResolver
 
 

@@ -11,9 +11,9 @@ from backend_v2.api.routers.execution.executions import (
     start_execution,
 )
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ async def test_start_execution(
     mock_current_user: Any, mock_execution_service: AsyncMock, mock_doc_service: AsyncMock, mock_arq_pool: AsyncMock
 ) -> None:  # noqa: E501
     """Test starting an execution router delegation."""
-    from backend_v2.models.v2_core import ExecutionCreate
+    from backend_v2.models.domain.execution import ExecutionCreate
 
     payload = ExecutionCreate.model_validate(
         {

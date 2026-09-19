@@ -5,6 +5,8 @@ import json
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixRow, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import (
     PROMPT_BLOCK_REGISTRY,
     MatrixPromptBlock,
@@ -14,7 +16,6 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixRow, MatrixScale, TDAAssertion
 
 
 @pytest.fixture

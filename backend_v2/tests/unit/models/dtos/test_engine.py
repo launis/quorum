@@ -104,11 +104,11 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
     from unittest.mock import MagicMock
 
     from backend_v2.llm.client import LLMClient
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.dtos.dag_models import CausalEdge
     from backend_v2.models.dtos.engine import EngineExecutionRequest
     from backend_v2.models.enums import CognitiveTier
     from backend_v2.models.execution_core import ExecutionMetadata
-    from backend_v2.models.v2_core import StepRule
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
     edge = CausalEdge(

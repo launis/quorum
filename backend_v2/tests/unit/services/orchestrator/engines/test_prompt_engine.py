@@ -8,10 +8,10 @@ from pydantic import BaseModel, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 

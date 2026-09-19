@@ -3,9 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import (
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
-    I18nText,
     ModelProfile,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
@@ -45,9 +45,7 @@ def test_system_config_discriminator_model_registry() -> None:
     data = {
         "id": "cfg_0123456789abcdef",
         "type": "model_registry",
-        "tier_definitions": {
-            tier.value: profile.model_dump(mode="json") for tier in CognitiveTier
-        },
+        "tier_definitions": {tier.value: profile.model_dump(mode="json") for tier in CognitiveTier},
     }
     result = adapter.validate_python(data)
     assert isinstance(result, SystemConfigModelRegistry)

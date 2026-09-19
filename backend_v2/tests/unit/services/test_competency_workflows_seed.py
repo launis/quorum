@@ -15,14 +15,11 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, WorkflowCompilationError
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import ExpectedInput, Step
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import PresetView
-from backend_v2.models.v2_core import (
-    ExpectedInput,
-    MatrixSynthesisGroup,
-    OutputProfile,
-    Step,
-    Workflow,
-)
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")

@@ -2,14 +2,11 @@
 
 import pytest
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace
 from backend_v2.models.enums import SourcesDisplayMode
-from backend_v2.models.v2_core import (
-    AllowedMCPTool,
-    I18nText,
-    MCPAuditTrace,
-    OutputProfile,
-    RenderedSynthesisCache,
-)
 from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import (
@@ -371,8 +368,7 @@ def test_build_verified_evidence_with_matrix_quotes_and_custom_tool_gateway(
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
     from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-    from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import ExecutionStatus
+    from backend_v2.models.enums import ExecutionStatus, VisualIntent
     from backend_v2.models.view.sdui import ParagraphBlock
 
     atom = ScorecardAtomDTO(

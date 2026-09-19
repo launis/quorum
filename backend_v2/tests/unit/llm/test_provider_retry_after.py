@@ -23,8 +23,8 @@ from backend_v2.llm.provider import (
     _AdaptiveWaitWithRetryAfter,
     _extract_retry_after_seconds,
 )
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMProvider
-from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 from backend_v2.settings import get_settings
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 

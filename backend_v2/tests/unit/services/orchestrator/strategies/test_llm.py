@@ -684,8 +684,8 @@ async def test_execute_with_role_and_persona_and_protocol(
     }
     from unittest.mock import AsyncMock, patch
 
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
     from backend_v2.models.dtos.engine import EngineExecutionResult
-    from backend_v2.models.v2_core import ExecutionRecord, FrozenContext
 
     mock_repo.get_step = AsyncMock(return_value=mock_repo.get_step_by_id.return_value)
 
@@ -891,7 +891,8 @@ async def test_execute_anomaly_retry_flow(
         },
     ]
 
-    from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus, ExecutionStepState
+    from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
+    from backend_v2.models.enums import ExecutionStatus
 
     mock_exec_record = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
@@ -1611,7 +1612,7 @@ async def test_execute_matrix_chunking_flow(
     }
     mock_hook_state.global_context_vars = {}
 
-    from backend_v2.models.v2_core import ExecutionRecord, FrozenContext
+    from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 
     mock_repo.get_execution.return_value = ExecutionRecord(
         id="exe_0123456789abcdef0123456789abcdef",
@@ -2060,10 +2061,10 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
 
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+    from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.dtos.engine import EngineExecutionResult
     from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
     from backend_v2.models.state import StepOutputDTO
-    from backend_v2.models.v2_core import ExpectedInput
 
     step = MagicMock()
     step.id = "step_multi_doc"
@@ -2205,10 +2206,10 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
+    from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.dtos.engine import EngineExecutionResult
     from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
     from backend_v2.models.state import StepOutputDTO
-    from backend_v2.models.v2_core import ExpectedInput
 
     projector = MagicMock()
     projector.snapshot = [

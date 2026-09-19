@@ -139,7 +139,8 @@ async def test_save_workflow_and_save_step(
     repo: WorkflowRepositoryImpl, mock_driver: AsyncMock, valid_workflow_doc: dict, valid_step_doc: dict
 ) -> None:
     """Positive: tests in-place atomic upsert for Workflow and Step domain models."""
-    from backend_v2.models.v2_core import Step, Workflow
+    from backend_v2.models.domain.step import Step
+    from backend_v2.models.domain.workflow import Workflow
 
     wf_model = Workflow.model_validate(valid_workflow_doc, strict=False)
     mock_driver.upsert.return_value = wf_model.id

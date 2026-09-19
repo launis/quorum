@@ -5,15 +5,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.matrix import AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TDAAssertion
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import (
-    AcceptanceCriterion,
-    AntiPattern,
-    ContrastivePairDTO,
-    TDAAssertion,
-)
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import (
     MatrixSensorPromptBuilder,
 )

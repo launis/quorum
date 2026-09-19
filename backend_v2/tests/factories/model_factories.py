@@ -5,18 +5,16 @@ from typing import Any, Literal
 
 from polyfactory.factories.pydantic_factory import ModelFactory
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
     PromptBlockCategory,
     TargetBlockType,
-)
-from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixSynthesisGroup,
-    OutputProfile,
-    Workflow,
 )
 
 

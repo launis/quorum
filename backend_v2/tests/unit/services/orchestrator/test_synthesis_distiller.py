@@ -122,9 +122,11 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
 
 
 def test_build_title_map_with_blocks_and_steps() -> None:
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
-    from backend_v2.models.v2_core import ExpectedInput, I18nText, Step, StepRule, Workflow
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     blocks_by_id = {
@@ -184,8 +186,10 @@ def test_build_title_map_missing_blueprint_raises() -> None:
     import pytest
 
     from backend_v2.exceptions import AppException
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import HistoricalContextMode
-    from backend_v2.models.v2_core import I18nText, StepRule, Workflow
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
     wf = Workflow(
@@ -217,9 +221,10 @@ async def test_build_historical_context_all_branches() -> None:
         HookDependencies,
         HookState,
     )
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
     from backend_v2.models.execution_core import ExecutionMetadata
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
     from backend_v2.models.view.sdui import ParagraphBlock
     from backend_v2.services.orchestrator.synthesis_distiller import _fetch_historical_context
 

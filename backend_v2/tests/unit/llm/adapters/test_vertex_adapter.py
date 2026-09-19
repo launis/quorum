@@ -9,10 +9,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
-from backend_v2.models.v2_core import ModelProfile
 
 # Setup mock modules for heavy GCP / Vertex AI SDK libraries BEFORE importing adapter
 if not hasattr(sys, "_mock_cached_contents"):

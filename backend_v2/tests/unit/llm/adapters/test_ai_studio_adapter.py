@@ -15,10 +15,10 @@ from backend_v2.llm.adapters.ai_studio_adapter import (  # noqa: E402
     GoogleAIStudioCacheAdapter,
     get_redis_client,
 )
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ModelProfile
 
 # Setup mock modules for google.genai BEFORE importing adapter
 if not hasattr(sys, "_mock_genai_client"):

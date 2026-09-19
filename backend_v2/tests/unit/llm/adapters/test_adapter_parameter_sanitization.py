@@ -9,7 +9,7 @@ from backend_v2.llm.adapters.ai_studio_adapter import GoogleAIStudioCacheAdapter
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
 from backend_v2.llm.adapters.openai_adapter import OpenAICacheAdapter
 from backend_v2.llm.adapters.vertex_adapter import VertexCacheAdapter
-from backend_v2.models.v2_core import ModelProfile
+from backend_v2.models.domain.system_config import ModelProfile
 
 
 @pytest.fixture

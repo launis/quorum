@@ -6,10 +6,12 @@ import pytest
 
 from backend_v2.core.hook_registry import HookResult
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
-from backend_v2.models.v2_core import I18nText, StepRule, Workflow
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
@@ -291,8 +293,8 @@ async def test_dynamic_synthesis_model_strategy_routing(
     mock_compiler: AsyncMock,
 ) -> None:
     """PROMISE: Validate dynamic model_strategy == 'synthesis' routing logic invokes MatrixReducer."""
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.enums import HistoricalContextMode
-    from backend_v2.models.v2_core import StepRule
     from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
     executor = DAGExecutor(

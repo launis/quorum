@@ -11,14 +11,14 @@ from pydantic import ValidationError
 from backend_v2.exceptions import PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
-from backend_v2.models.dtos.studio import GCPLocationDTO
-from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
-from backend_v2.models.v2_core import (
+from backend_v2.models.domain.system_config import (
     AllowedMCPTool,
     ModelProfile,
     SystemConfigMCPGateways,
     SystemConfigModelRegistry,
 )
+from backend_v2.models.dtos.studio import GCPLocationDTO
+from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 

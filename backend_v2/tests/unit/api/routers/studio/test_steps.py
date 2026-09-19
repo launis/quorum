@@ -14,9 +14,10 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.api.routers.studio.steps import router
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.studio import StepSimulationResponse, StepSimulationTraceDTO
 from backend_v2.models.enums import StepType
-from backend_v2.models.v2_core import I18nText, Step
 
 app = FastAPI()
 app.include_router(router)

@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.models.domain.matrix import TDAAssertion
 
 
 def _load_block_assertions() -> dict[str, TDAAssertion]:

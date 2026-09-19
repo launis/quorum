@@ -4,12 +4,16 @@ import pytest
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     PROMPT_BLOCK_REGISTRY,
     MatrixPromptBlock,
     PromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.enums import (
     BlockDataType,
     DisplayScale,
@@ -18,14 +22,6 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
 )
 from backend_v2.models.state import WorkflowState  # noqa: F401
-from backend_v2.models.v2_core import (
-    ExpectedInput,
-    I18nText,
-    MatrixClaim,
-    MatrixScale,
-    OutputProfile,
-    TDAAssertion,
-)
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
 
@@ -561,7 +557,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
 def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     """Test level breakdown parsing, invalid level breakdown, and synthesis cache requirements."""
     from backend_v2.exceptions import AppException, ErrorCodes
-    from backend_v2.models.v2_core import MatrixSynthesisGroup
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -672,9 +668,10 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
 
 def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache() -> None:
     """Test that data starvation bypasses the missing row_explanations_cache check."""
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.dtos.trace import DataStarvationEvent
     from backend_v2.models.execution_core import ExecutionMetadata
-    from backend_v2.models.v2_core import ExecutionRecord, RenderedSynthesisCache
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -724,7 +721,7 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
 
 def test_parse_matrices_context_target_and_xai_extensions() -> None:
     """Test extraction of context_target, context_target_label, remediation_steps, coaching, and falsification."""
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -782,7 +779,7 @@ def test_parse_matrices_context_target_and_xai_extensions() -> None:
 
 def test_parse_matrices_dynamic_filename_context_target() -> None:
     """Test extraction of dynamic filename context_target without standard localization mapping."""
-    from backend_v2.models.v2_core import ExpectedInput, StepRule
+    from backend_v2.models.domain.step import ExpectedInput, StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -887,7 +884,6 @@ def test_parse_matrices_invalid_payload_fails_fast() -> None:
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
-
 def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None:
     """ISTQB Negative Partition: Test that missing input_mappings or extensions gracefully assign None."""
     profile = get_dummy_profile()
@@ -920,7 +916,7 @@ def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None
 
 def test_parse_matrices_axis_collision_coverage() -> None:
     """Test axis name collision resolution loop for coverage."""
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -959,7 +955,7 @@ def test_parse_matrices_axis_collision_coverage() -> None:
 
 def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
     """Verifies that MatrixPromptBlock.target_input_key resolves with SSOT precedence."""
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -1000,7 +996,7 @@ def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
 
 def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
     """Verifies that a multi-input step without explicit target_input_key defaults to 'all'."""
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()

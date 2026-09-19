@@ -1,6 +1,6 @@
 import pytest
 
-from backend_v2.models.v2_core import MatrixScorecardRowDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.utils.static_charts import generate_radar_chart, generate_scatter_chart
 
 

@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import BaseTDAExtraction
+from backend_v2.models.domain.synthesis import BaseTDAExtraction
 
 
 def test_contextual_override_cross_validation() -> None:

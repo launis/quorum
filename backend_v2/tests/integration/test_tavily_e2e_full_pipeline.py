@@ -24,9 +24,10 @@ from backend_v2.database.factory import get_driver
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import MCPAuditTrace, OutputProfile
 from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.printable_sources_adapter import PrintableSourcesAdapter

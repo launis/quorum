@@ -315,14 +315,10 @@ class TestPhase2PipelineUnification:
                 },
             ),
         ]
+        from backend_v2.models.core_base import I18nText
+        from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
         from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
         from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-        from backend_v2.models.v2_core import (
-            I18nText,
-            MatrixClaim,
-            MatrixScale,
-            TDAAssertion,
-        )
 
         def _make_pb(block_id: str, label_en: str, tda_id: str) -> PromptBlock:
             return MatrixPromptBlock(

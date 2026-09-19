@@ -355,7 +355,8 @@ def test_build_dynamic_schema_instruction_with_custom_category() -> None:
 
 
 def test_build_xml_context() -> None:
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
     state = {
@@ -411,7 +412,8 @@ def test_build_xml_context_assignment_mode() -> None:
     """Verify that ExpectedInput with 'assignment' mode wraps into
     <assignment_context> and excludes <user_payload>.
     """
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
     state = {
@@ -469,7 +471,8 @@ def test_build_xml_context_endorsed_deliverable_provenance() -> None:
     """Verify that ExpectedInput with is_endorsed_deliverable=True emits
     <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance> in metadata.
     """
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.services.orchestrator.prompt_compiler import _InputMetaDTO
 
     # Verify _InputMetaDTO contract
@@ -535,7 +538,8 @@ def test_build_xml_context_endorsed_deliverable_provenance() -> None:
 
 def test_input_meta_dto_is_assignment_predicate() -> None:
     """Verify is_assignment predicate behavior on _InputMetaDTO and ExpectedInput."""
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.services.orchestrator.prompt_compiler import _InputMetaDTO
 
     meta_assignment = _InputMetaDTO(
@@ -587,7 +591,8 @@ def test_input_meta_dto_is_assignment_predicate() -> None:
 def test_build_xml_context_unmapped_inputs_raises_app_exception() -> None:
     """Verify that an unmapped $inputs reference triggers immediate Fail-Fast AppException."""
     from backend_v2.exceptions import AppException, ErrorCodes
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
     state = {
@@ -628,7 +633,8 @@ def test_build_xml_context_unmapped_inputs_raises_app_exception() -> None:
 
 def test_all_standard_input_types_wrapped_in_user_payload() -> None:
     """Verify that standard deliverable inputs are wrapped in <user_payload> with <document_metadata>."""
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
     standard_keys = [
@@ -722,9 +728,9 @@ def test_extract_value_from_state() -> None:
 
 
 def test_compile_static_and_dynamic_instructions() -> None:
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     compiler = PromptCompiler()
     block = SystemRulePromptBlock(
@@ -795,7 +801,8 @@ def test_get_schema_healing_prompt_eof_and_logical() -> None:
 
 
 def test_build_xml_context_with_alias_engine_and_generic_path() -> None:
-    from backend_v2.models.v2_core import ExpectedInput, I18nText
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.utils.alias_engine import AliasEngine
 
     compiler = PromptCompiler()

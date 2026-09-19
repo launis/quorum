@@ -7,12 +7,16 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
@@ -25,16 +29,6 @@ from backend_v2.models.enums import (
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
-)
-from backend_v2.models.v2_core import (
-    ExpectedInput,
-    I18nText,
-    MatrixClaim,
-    MatrixScale,
-    Step,
-    StepRule,
-    TDAAssertion,
-    Workflow,
 )
 from backend_v2.services.studio.simulation_service import StudioSimulationService
 

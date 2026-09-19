@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -15,10 +16,9 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
-from backend_v2.models.enums import RoleClassification
+from backend_v2.models.enums import ExecutionStatus, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
 from backend_v2.worker import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task

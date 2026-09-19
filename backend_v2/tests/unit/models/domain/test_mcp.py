@@ -17,7 +17,7 @@ from backend_v2.models.domain.mcp import (
     TavilySearchResult,
     TavilyToolArgsDTO,
 )
-from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace
 
 
 def test_openai_function_call_dto_valid() -> None:

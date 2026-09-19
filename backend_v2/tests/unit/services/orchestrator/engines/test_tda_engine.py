@@ -10,10 +10,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 

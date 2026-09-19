@@ -8,13 +8,9 @@ import pytest
 
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.system import SystemConfigCreateDTO, SystemConfigUpdateDTO, SystemSettingsDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
-from backend_v2.models.v2_core import (
-    ModelProfile,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-)
 
 
 @pytest.fixture

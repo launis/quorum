@@ -5,16 +5,13 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStatus,
-    FrozenContext,
-    ReportDataDTO,
-    Workflow,
-    WorkflowInputs,
-)
 from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.sdui_mapper_service import SduiMapperService
@@ -214,8 +211,8 @@ async def test_epic_93_e2e_golden_master() -> None:
 @pytest.mark.asyncio
 async def test_epic_95_na_cascade_e2e() -> None:
     """Verify that N_A AtomResultDTO correctly cascades to an n_a_card SduiComponent."""
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
     from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-    from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO
 
     # Create dummy ExecutionRecord mapped as ReportDataDTO with an N_A result
     execution_id = "exe_na1234567890"

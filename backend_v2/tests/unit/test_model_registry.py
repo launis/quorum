@@ -16,9 +16,9 @@ from backend_v2.api.routers.studio.model_registry import (
     save_model_registry,
 )
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
 from backend_v2.models.enums import CognitiveTier
-from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 
 def _make_dummy_registry(reg_id: str = "sys_1234567890abcdef") -> SystemConfigModelRegistry:

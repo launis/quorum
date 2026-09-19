@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import RenderedSynthesisCache
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.view.sdui import ParagraphBlock
 
 

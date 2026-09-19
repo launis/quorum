@@ -4,8 +4,8 @@ import pytest
 
 from backend_v2.exceptions import AppException, ServiceUnavailableError
 from backend_v2.llm.handler import LLMHandler
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMProvider
-from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 
 @pytest.fixture

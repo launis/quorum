@@ -10,7 +10,7 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.role import RoleRepositoryImpl
 from backend_v2.exceptions import AppException, ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.v2_core import Role
+from backend_v2.models.domain.step import Role
 
 
 @pytest.fixture

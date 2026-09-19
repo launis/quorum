@@ -10,7 +10,8 @@ import base64
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.utils.static_charts import (
     generate_quadrant_matrix_chart,
     generate_radar_chart,

@@ -7,11 +7,11 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStep
 from backend_v2.settings import get_settings
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_render_profile_job_catches_service_unavailable_error,
@@ -1831,6 +1831,7 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
             ),
         ),
     ):
-        await generate_profile_synthesis_and_pdf_task(
-            "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
-        )
+        with pytest.raises(ResourceNotFoundError):
+            await generate_profile_synthesis_and_pdf_task(
+                "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=AsyncMock()
+            )

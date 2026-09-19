@@ -13,8 +13,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord, Step, StepRule, WorkflowInputs
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
 

@@ -134,7 +134,7 @@ class TestExecutionCoreFieldsValidation:
 
     def test_execution_record_missing_target_locale_raises_validation_error(self) -> None:
         """Contract: Verify ExecutionRecord missing target_locale raises ValidationError (Fail-Fast)."""
-        from backend_v2.models.v2_core import ExecutionRecord
+        from backend_v2.models.domain.execution import ExecutionRecord
 
         payload = {
             "id": "exe_1234567890abcdef",
@@ -146,7 +146,7 @@ class TestExecutionCoreFieldsValidation:
 
     def test_execution_record_accepts_null_frozen_context_when_offloaded(self) -> None:
         """Contract: Verify ExecutionRecord accepts null frozen_context when offloaded to storage."""
-        from backend_v2.models.v2_core import ExecutionRecord
+        from backend_v2.models.domain.execution import ExecutionRecord
 
         payload = {
             "id": "exe_1234567890abcdef",

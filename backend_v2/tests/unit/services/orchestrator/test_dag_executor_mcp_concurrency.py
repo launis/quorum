@@ -6,14 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    I18nText,
-    MCPAuditTrace,
-    StepRule,
-    Workflow,
-    WorkflowInputs,
-)
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 

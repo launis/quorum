@@ -13,8 +13,8 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.matrix import ContrastivePairDTO, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
-from backend_v2.models.v2_core import ContrastivePairDTO, TDAAssertion
 
 SEED_DATA_PATH = Path("backend_v2/seed/seed_data.json")
 

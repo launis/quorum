@@ -7,18 +7,14 @@ import pytest
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User, UserRole
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionStep, FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import (
-    ExecutionStatus,
-    ExecutionStep,
-    FrozenContext,
-    I18nText,
-    Step,
-    StepRule,
-    Workflow,
-    WorkflowInputs,
-)
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
 
 
@@ -207,7 +203,7 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         mock_node_execute.return_value = []
 
         # Inject one step to trigger execution
-        from backend_v2.models.v2_core import StepRule
+        from backend_v2.models.domain.step import StepRule
 
         workflow = workflow.model_copy(
             update={
@@ -252,7 +248,9 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         prompt_compiler=mock_compiler,
     )
 
-    from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
@@ -314,9 +312,10 @@ async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compi
     """Verify that NodeExecutor injects SynthesisEngine when criteria block is synthesis or model_strategy is synthesis."""
     import asyncio
 
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.enums import PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText, StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
@@ -393,7 +392,7 @@ async def test_node_executor_blueprint_missing_error(mock_repo: Any, mock_compil
     import asyncio
 
     from backend_v2.exceptions import ErrorCodes
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
@@ -432,7 +431,7 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
     import asyncio
 
     from backend_v2.exceptions import ErrorCodes
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
@@ -470,9 +469,11 @@ async def test_node_executor_step_def_not_found_error(mock_repo: Any, mock_compi
 @pytest.mark.asyncio
 async def test_node_executor_injects_tda_and_prompt_engines(mock_repo: Any, mock_compiler: Any) -> None:
     """Test NodeExecutor resolves TDAEngine for matrix blocks and PromptEngine for regular blocks."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.matrix import MatrixScale
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
+    from backend_v2.models.domain.step import Step
     from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
-    from backend_v2.models.v2_core import I18nText, MatrixScale, Step
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
     from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -552,10 +553,11 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
     """Test NodeExecutor input_mappings normalization and error trace event returning on generic exception."""
     import asyncio
 
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.enums import PromptBlockCategory
     from backend_v2.models.state import ErrorTraceEvent, StepOutputDTO
-    from backend_v2.models.v2_core import I18nText, StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 
@@ -624,8 +626,10 @@ async def test_node_executor_normalizes_input_mappings_and_handles_exception(
 @pytest.mark.asyncio
 async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_compiler: Any) -> None:
     """Test that downstream steps fail fast with cascading failure when their dependency fails."""
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.state import ErrorTraceEvent
-    from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
 
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
@@ -689,17 +693,13 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
 @pytest.mark.asyncio
 async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_repo: Any, mock_compiler: Any) -> None:
     """Test DAGExecutor resuming an existing record with already passed steps and executing RAG preflight."""
+    from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState, FrozenContext
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import ExecutionStatus
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        ExecutionStatus,
-        ExecutionStepState,
-        FrozenContext,
-        MCPAuditTrace,
-        StepRule,
-        Workflow,
-        WorkflowInputs,
-    )
 
     mock_rag_preflight = AsyncMock()
     mock_rag_preflight.execute.return_value = {"atoms": ["a1", "a2"]}
@@ -1168,10 +1168,10 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
     import asyncio
 
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.domain.step import Step, StepRule
     from backend_v2.models.enums import CognitiveTier, PromptBlockCategory, StepType
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import StateProjector
-    from backend_v2.models.v2_core import Step, StepRule
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor
     from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 
@@ -1476,6 +1476,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
             )
             assert result.step_states["sr_2222333344445555"].status == ExecutionStatus.PASSED
 
+
 @pytest.mark.asyncio
 async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, mock_compiler: Any) -> None:
     """Verify DAGExecutor raises AppException(CONFIGURATION_ERROR) if step blueprint is not found."""
@@ -1562,7 +1563,11 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         source_identity_manifest={},
         status=ExecutionStatus.PENDING,
         steps=[ExecutionStep(id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING)],
-        step_states={"stp_2222333344445555": ExecutionStep(id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING)},
+        step_states={
+            "stp_2222333344445555": ExecutionStep(
+                id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING
+            )
+        },
     ).model_copy(update={"metadata": None})
     mock_repo.get_execution.return_value = existing_record
 
@@ -1610,7 +1615,9 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
     from backend_v2.services.execution import create_execution_record
 
     step1 = StepRule(id="stp_3333444455556666", task_blueprint="bp_3333444455556666", depends_on=[])
-    step2 = StepRule(id="stp_4444555566667777", task_blueprint="bp_4444555566667777", depends_on=["stp_3333444455556666"])
+    step2 = StepRule(
+        id="stp_4444555566667777", task_blueprint="bp_4444555566667777", depends_on=["stp_3333444455556666"]
+    )
     workflow = Workflow(
         historical_context_mode="DISABLED",
         id="wf_3333444455556666",
@@ -1648,8 +1655,12 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
             ExecutionStep(id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
         ],
         step_states={
-            "stp_3333444455556666": ExecutionStep(id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
-            "stp_4444555566667777": ExecutionStep(id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
+            "stp_3333444455556666": ExecutionStep(
+                id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED
+            ),
+            "stp_4444555566667777": ExecutionStep(
+                id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED
+            ),
         },
         metadata=ExecutionMetadata(workflow_version=1, model_registry_id="cfg_model_registry_01"),
     )

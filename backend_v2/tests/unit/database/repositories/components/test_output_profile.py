@@ -10,7 +10,7 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.output_profile import OutputProfileRepositoryImpl
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.domain.output_profile import OutputProfile
 
 
 @pytest.fixture

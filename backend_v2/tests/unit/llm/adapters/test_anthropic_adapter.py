@@ -4,10 +4,10 @@ import pytest
 from pydantic import BaseModel, Field
 
 from backend_v2.llm.adapters.anthropic_adapter import AnthropicCacheAdapter
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ModelProfile
 
 
 def test_lazy_import_proof() -> None:

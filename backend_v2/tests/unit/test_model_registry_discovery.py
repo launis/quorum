@@ -26,8 +26,8 @@ from backend_v2.llm.adapters.vertex_adapter import (
 )
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
-from backend_v2.models.v2_core import ModelProfile
 from backend_v2.services.studio.system_config_service import StudioSystemConfigService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 

@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import (
     OutputProfileCreateDTO,
     OutputProfileResponseDTO,
@@ -10,7 +11,6 @@ from backend_v2.models.dtos.output_profile import (
 )
 from backend_v2.models.dtos.studio import WorkflowUpdateDTO
 from backend_v2.models.enums import DisplayScale, SourcesDisplayMode, TargetBlockType, XaiExtensionType
-from backend_v2.models.v2_core import OutputProfile
 
 _VALID_CREATE_PAYLOAD: dict[str, Any] = {
     "slug": "my-profile",
@@ -290,7 +290,7 @@ def test_output_profile_response_dto_accepts_string_enums_from_storage_payload()
 
 def test_output_profile_custom_scale_bounds_positive() -> None:
     """ISTQB Positive: display_scale=CUSTOM with valid custom_scale_min < custom_scale_max passes."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     # 1. OutputProfileCreateDTO
     payload = {
@@ -315,7 +315,7 @@ def test_output_profile_custom_scale_bounds_positive() -> None:
 
 def test_output_profile_custom_scale_missing_bounds_negative() -> None:
     """ISTQB Negative Boundary 1: display_scale=CUSTOM with missing bounds raises ValidationError."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     # Missing min
     with pytest.raises(ValidationError, match="custom_scale_min and custom_scale_max are required"):
@@ -343,7 +343,7 @@ def test_output_profile_custom_scale_missing_bounds_negative() -> None:
 
 def test_output_profile_custom_scale_inverted_bounds_negative() -> None:
     """ISTQB Negative Boundary 2: display_scale=CUSTOM with custom_scale_min > custom_scale_max raises ValidationError."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
         OutputProfileCreateDTO.model_validate(
@@ -369,7 +369,7 @@ def test_output_profile_custom_scale_inverted_bounds_negative() -> None:
 
 def test_output_profile_custom_scale_equal_bounds_negative() -> None:
     """ISTQB Negative Boundary 3: display_scale=CUSTOM with custom_scale_min == custom_scale_max raises ValidationError."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     with pytest.raises(ValidationError, match="must be strictly greater than custom_scale_min"):
         OutputProfileCreateDTO.model_validate(
@@ -419,7 +419,7 @@ def test_output_profile_update_dto_custom_scale_validation() -> None:
 
 def test_output_profile_sources_config_defaults() -> None:
     """Test default values for sources_display_mode and show_sources_summary_box across DTOs and Domain model."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     # 1. CreateDTO defaults
     create_dto = OutputProfileCreateDTO.model_validate(_VALID_CREATE_PAYLOAD)
@@ -449,7 +449,7 @@ def test_output_profile_sources_config_defaults() -> None:
 
 def test_output_profile_sources_config_explicit_values() -> None:
     """Test explicit custom values and string enum hydration for sources configuration."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
         **_VALID_CREATE_PAYLOAD,
@@ -479,7 +479,7 @@ def test_output_profile_sources_config_explicit_values() -> None:
 
 def test_output_profile_sources_display_mode_invalid_string_negative() -> None:
     """Negative test: Invalid string in sources_display_mode raises ValidationError."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
         **_VALID_CREATE_PAYLOAD,

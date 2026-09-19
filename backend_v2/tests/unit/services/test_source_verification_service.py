@@ -10,8 +10,8 @@ from backend_v2.models.domain.source_verification import (
     SourceClaimDTO,
     SourceVerificationStatus,
 )
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
-from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.source_verification_service import SourceVerificationService

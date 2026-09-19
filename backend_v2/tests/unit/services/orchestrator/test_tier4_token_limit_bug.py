@@ -1,8 +1,8 @@
 import pytest
 
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-from backend_v2.models.v2_core import I18nText
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 

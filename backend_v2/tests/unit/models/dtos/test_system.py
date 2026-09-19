@@ -36,16 +36,13 @@ def test_client_error_payload_strictness() -> None:
 
 def test_system_config_dtos_and_discriminated_union() -> None:
     """Test SystemSettingsDTO and AnySystemConfig discriminated union validation."""
+    from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
     from backend_v2.models.dtos.system import (
         AnySystemConfigAdapter,
         SystemConfigCreateDTO,
         SystemConfigUpdateDTO,
         SystemConfigUpsertDTO,
         SystemSettingsDTO,
-    )
-    from backend_v2.models.v2_core import (
-        ModelProfile,
-        SystemConfigModelRegistry,
     )
 
     # 1. SystemSettingsDTO

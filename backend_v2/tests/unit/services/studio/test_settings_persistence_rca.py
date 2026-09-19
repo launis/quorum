@@ -22,19 +22,17 @@ from backend_v2.database.wrapper import TinyDBClient
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
     TargetBlockType,
-)
-from backend_v2.models.v2_core import (
-    MatrixSynthesisGroup,
-    OutputProfile,
-    Step,
-    Workflow,
 )
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService

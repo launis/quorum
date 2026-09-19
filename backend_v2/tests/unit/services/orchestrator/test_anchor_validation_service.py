@@ -3,9 +3,9 @@ from unittest.mock import patch
 import pytest
 
 from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
-from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 
 

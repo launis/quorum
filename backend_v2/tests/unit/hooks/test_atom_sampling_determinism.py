@@ -12,16 +12,12 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixClaim,
-    MatrixScale,
-    Step,
-    TDAAssertion,
-)
 
 
 def _build_test_matrix_block(block_id: str, num_atoms_per_scale: int = 10) -> MatrixPromptBlock:

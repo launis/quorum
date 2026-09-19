@@ -13,8 +13,9 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.input_processing import _process_chat_history, process_inputs
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, I18nText
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 
 
@@ -588,7 +589,7 @@ async def test_process_chat_history_unstructured_parser_failure() -> None:
 
 def test_process_questionnaire_invalid_dict() -> None:
     from backend_v2.hooks.input_processing import _process_questionnaire
-    from backend_v2.models.v2_core import ExpectedInput
+    from backend_v2.models.domain.step import ExpectedInput
 
     expected_input = ExpectedInput(
         input_key="Q",

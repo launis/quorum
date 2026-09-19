@@ -13,6 +13,7 @@ from backend_v2.database.repositories import (
     SystemRepositoryImpl,
     WorkflowRepositoryImpl,
 )
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.base import (
     AuditLogCreateDTO,
     DetailedUsageDTO,
@@ -22,7 +23,6 @@ from backend_v2.models.domain.base import (
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, StepType
-from backend_v2.models.v2_core import I18nText
 
 
 @pytest.fixture

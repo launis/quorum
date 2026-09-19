@@ -1,10 +1,8 @@
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.v2_core import (
-    MatrixScorecardRowDTO,
-    MCPAuditTrace,
-    ReportDataDTO,
-)
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import (
     SduiMetrics1DBlock,
     SduiQuoteCard,

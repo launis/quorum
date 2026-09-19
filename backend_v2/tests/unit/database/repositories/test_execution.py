@@ -72,7 +72,7 @@ async def test_repository_reconstitutes_typed_domain_models(
     repo: ExecutionRepositoryImpl, mock_driver: AsyncMock, valid_execution_doc: dict
 ) -> None:
     """Contract: Raw database record dictionary from driver reconstitutes into strict frozen Pydantic Domain model."""
-    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.domain.execution import ExecutionRecord
 
     mock_driver.get.return_value = valid_execution_doc
     record = await repo.get_execution("exe_1234567890abcdef")

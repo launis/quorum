@@ -56,8 +56,8 @@ async def test_worker_preserves_models_used() -> None:
 
     from datetime import datetime, timezone
 
+    from backend_v2.models.domain.execution import ExecutionRecord
     from backend_v2.models.execution_core import ExecutionMetadata
-    from backend_v2.models.v2_core import ExecutionRecord
 
     mock_updated_record = ExecutionRecord(
         id=execution_id,

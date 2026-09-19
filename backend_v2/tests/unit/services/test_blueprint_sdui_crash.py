@@ -3,13 +3,11 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.llm.mock_data import MOCK_PERFORMATIVITY_OUTPUT
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStatus,
-    ExtensionMetricsDTO,
-    RenderedSynthesisCache,
-)
 from backend_v2.services.blueprint import BlueprintTransformer
 
 

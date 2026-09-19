@@ -5,6 +5,7 @@ from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AgentExecutionError, AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import (
     AtomEvaluationResultDTO,
@@ -23,7 +24,6 @@ from backend_v2.models.prompts.execution.field_prompts import (
     DESC_SEMANTIC_REASONING,
     DESC_SOURCE_QUOTE,
 )
-from backend_v2.models.v2_core import TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.extractive_sensor_service import (
     BooleanEvaluationResult,

@@ -9,18 +9,15 @@ import pytest
 from polyfactory.factories.pydantic_factory import ModelFactory
 from pydantic import BaseModel, ConfigDict, TypeAdapter
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
-from backend_v2.models.v2_core import (
-    AtomResultDTO,
-    HydratedAtomDTO,
-    I18nText,
-    MCPAuditTrace,
-    ReportDataDTO,
-    Workflow,
-)
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     MarkdownBlock,

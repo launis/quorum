@@ -1,9 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
+from backend_v2.models.domain.step import Step
 from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, Step, TDAAssertion
 
 
 def test_prompt_block_allow_decimals_requires_numeric() -> None:

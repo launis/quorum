@@ -10,10 +10,11 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.settings import get_settings
 from backend_v2.worker import generate_profile_synthesis_and_pdf_task
 

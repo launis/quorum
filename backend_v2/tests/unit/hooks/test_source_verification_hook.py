@@ -19,9 +19,9 @@ from backend_v2.models.domain.source_verification import (
     SourceVerificationStatus,
     VerifiedSourceDTO,
 )
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import MCPAuditTrace
 
 
 @pytest.fixture

@@ -14,8 +14,8 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.inputs import ProcessedChatDTO
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.chat_parser import ChatParserService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository

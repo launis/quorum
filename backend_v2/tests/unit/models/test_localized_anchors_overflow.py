@@ -36,7 +36,7 @@ def test_localized_anchors_accepts_12_items() -> None:
     XML prompt mandates extracting all physical anchors, legitimately producing
     12 anchor keywords.
     """
-    from backend_v2.models.v2_core import BaseTDAExtraction
+    from backend_v2.models.domain.synthesis import BaseTDAExtraction
 
     payload = {
         "localized_anchors_found": SITRA_ANCHORS_12,

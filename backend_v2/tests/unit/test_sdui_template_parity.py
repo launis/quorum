@@ -20,7 +20,8 @@ from bs4 import BeautifulSoup
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import MCPAuditTrace, ReportDataDTO
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import (
     AccordionBlock,
     AlertBlock,

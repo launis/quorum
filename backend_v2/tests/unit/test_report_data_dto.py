@@ -3,8 +3,9 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, ReportDataDTO
 
 
 def test_atom_result_cognitive_vs_system_state_missing_reasoning() -> None:

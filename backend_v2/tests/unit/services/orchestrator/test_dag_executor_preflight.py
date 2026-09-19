@@ -4,9 +4,13 @@ import pytest
 
 import backend_v2.llm.client
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionStatus, I18nText, Step, StepRule, Workflow, WorkflowInputs
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 
@@ -279,7 +283,7 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
         prompt_compiler=mock_compiler,
     )
 
-    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.domain.execution import ExecutionRecord
 
     workflow = Workflow(
         historical_context_mode="DISABLED",
@@ -380,7 +384,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
     mock_repo: MagicMock, mock_compiler: MagicMock
 ) -> None:
     """Tests that input with total characters < 50 short-circuits without calling TwoPassAtomizer."""
-    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.domain.execution import ExecutionRecord
 
     service = RAGPreflightService(
         workflow_repo=mock_repo,
@@ -435,7 +439,7 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
 ) -> None:
     """Tests that concise reflection (>= 50 chars) proceeds to LLM atomization."""
     from backend_v2.models.domain.blackboard import DraftAtomList
-    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.domain.execution import ExecutionRecord
 
     service = RAGPreflightService(
         workflow_repo=mock_repo,

@@ -4,13 +4,11 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStatus,
-    StepRule,
-    Workflow,
-)
 from backend_v2.services.execution import ExecutionService
 
 
@@ -363,4 +361,3 @@ async def test_check_resumability_missing_step_in_step_states_returns_false() ->
         is_res = await service.check_resumability(record)
 
     assert is_res is False
-

@@ -14,7 +14,11 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, generate_opaque_id
+from backend_v2.models.domain.matrix import MatrixScale
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, ProtocolPromptBlock
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
     CognitiveTier,
@@ -24,7 +28,6 @@ from backend_v2.models.enums import (
     StepType,
     TargetBlockType,
 )
-from backend_v2.models.v2_core import MatrixScale, OutputProfile, Step, StepRule, Workflow
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryOutputProfileRepository,

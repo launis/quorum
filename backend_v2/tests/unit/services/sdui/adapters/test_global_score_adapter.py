@@ -2,7 +2,10 @@
 
 import pytest
 
-from backend_v2.models.v2_core import DataStarvationEvent, I18nText, OutputProfile, RenderedSynthesisCache
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.view.sdui import SduiScoreCardBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter

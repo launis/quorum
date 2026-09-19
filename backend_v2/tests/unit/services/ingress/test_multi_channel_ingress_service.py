@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.ingress.multi_channel_ingress_service import MultiChannelIngressService
 from backend_v2.tests.fakes.in_memory_repositories import InMemorySystemRepository
 

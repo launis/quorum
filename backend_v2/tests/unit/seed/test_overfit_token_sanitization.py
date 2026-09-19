@@ -14,7 +14,7 @@ from typing import Any
 
 import pytest
 
-from backend_v2.models.v2_core import TDAAssertion
+from backend_v2.models.domain.matrix import TDAAssertion
 
 
 def _load_seed_data() -> dict[str, Any]:

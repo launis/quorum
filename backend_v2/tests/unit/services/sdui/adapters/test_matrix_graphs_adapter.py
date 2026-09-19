@@ -1,12 +1,9 @@
 import backend_v2.models.state  # noqa: F401
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import PresetView
-from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixScorecardRowDTO,
-    MatrixSynthesisGroup,
-    OutputProfile,
-    RenderedSynthesisCache,
-)
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
     ParagraphBlock,

@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord
 
 
 def test_execution_record_status_casing() -> None:

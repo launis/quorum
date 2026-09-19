@@ -4,27 +4,15 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+from backend_v2.models.domain.step import ALLOWED_INPUT_MODES, ExpectedInput, QuestionnaireItem, Step, StepRule
+from backend_v2.models.domain.system_config import AllowedMCPTool, ModelProfile, ProviderExtraParamsDTO
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import CognitiveTier, ExecutionStatus, HistoricalContextMode
 from backend_v2.models.llm import TokenUsage
-from backend_v2.models.v2_core import (
-    ALLOWED_INPUT_MODES,
-    AllowedMCPTool,
-    ExecutionRecord,
-    ExecutionStep,
-    ExecutionSummarySnapshot,
-    ExpectedInput,
-    I18nText,
-    MatrixClaim,
-    MatrixScale,
-    ModelProfile,
-    ProviderExtraParamsDTO,
-    QuestionnaireItem,
-    Step,
-    StepRule,
-    TDAAssertion,
-    Workflow,
-)
 
 
 def test_provider_extra_params_valid() -> None:
@@ -408,7 +396,7 @@ def test_execution_record_extra_forbidden() -> None:
 
 def test_coerce_to_tuple_helper() -> None:
     """Verifies _coerce_to_tuple converts lists to tuples."""
-    from backend_v2.models.v2_core import _coerce_to_tuple
+    from backend_v2.models.domain.matrix import _coerce_to_tuple
 
     assert _coerce_to_tuple([1, 2, 3]) == (1, 2, 3)
     assert _coerce_to_tuple("not_a_list") == "not_a_list"
@@ -666,8 +654,9 @@ def test_expected_input_endorsed_deliverable_validations() -> None:
 
 def test_output_profile_synthesis_properties_and_custom_scale_validation() -> None:
     """Verifies OutputProfile synthesis properties and custom scale validations."""
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import DisplayScale
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
     role_blk_id = "blk_1234567890abcdef"
 
@@ -717,8 +706,8 @@ def test_output_profile_synthesis_properties_and_custom_scale_validation() -> No
 
 def test_base_tda_extraction_validation() -> None:
     """Verifies BaseTDAExtraction cross-validation between exact_quotes and contextual_override."""
+    from backend_v2.models.domain.synthesis import BaseTDAExtraction
     from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-    from backend_v2.models.v2_core import BaseTDAExtraction
 
     # contextual_override=True with exact_quotes raises ValueError
     with pytest.raises(ValueError, match="cannot be combined with exact_quotes"):
@@ -741,7 +730,7 @@ def test_base_tda_extraction_validation() -> None:
 
 def test_execution_create_resolve_matrix_sampling_strategy() -> None:
     """Verifies ExecutionCreate resolves matrix_sampling_strategy when passed as None."""
-    from backend_v2.models.v2_core import ExecutionCreate
+    from backend_v2.models.domain.execution import ExecutionCreate
 
     ec = ExecutionCreate.model_validate(
         {
@@ -755,12 +744,7 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
 
 def test_contrastive_pair_dto_and_tda_assertions() -> None:
     """Verifies ContrastivePairDTO diversity and TDAAssertion criteria length validations."""
-    from backend_v2.models.v2_core import (
-        AcceptanceCriterion,
-        AntiPattern,
-        ContrastivePairDTO,
-        TDAAssertion,
-    )
+    from backend_v2.models.domain.matrix import AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TDAAssertion
 
     # Valid ContrastivePairDTO
     pair = ContrastivePairDTO(
@@ -811,7 +795,8 @@ def test_contrastive_pair_dto_and_tda_assertions() -> None:
 
 def test_step_type_llm_and_logic_validations() -> None:
     """Verifies Step validation rules for llm and logic steps."""
-    from backend_v2.models.v2_core import I18nText, Step
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import Step
 
     valid_llm_base = {
         "id": "stp_11111111111111111111111111111111",
@@ -861,7 +846,7 @@ def test_step_type_llm_and_logic_validations() -> None:
 
 def test_atom_evaluation_result_dto_cognitive_states() -> None:
     """Verifies AtomResultDTO validation across cognitive vs system error states."""
-    from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
 
     # FAILED without reasoning raises ValueError
     with pytest.raises(ValidationError, match="Reasoning is mandatory"):
@@ -930,7 +915,7 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
 
 def test_system_config_model_registry_option_a_completeness() -> None:
     """Test Option A SystemConfigModelRegistry flat tier definitions and completeness validator."""
-    from backend_v2.models.v2_core import SystemConfigModelRegistry
+    from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 
     dummy_profile = ModelProfile(
         model_name="gemini-3.8-flash",
@@ -971,8 +956,8 @@ def test_system_config_model_registry_option_a_completeness() -> None:
 
 def test_workflow_model_registry_id_binding() -> None:
     """Test Workflow model_registry_id requirement and regex pattern validation."""
+    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.enums import HistoricalContextMode
-    from backend_v2.models.v2_core import Workflow
 
     # Missing model_registry_id fails validation (required field)
     with pytest.raises(ValidationError, match="Field required"):
@@ -1018,8 +1003,8 @@ def test_workflow_model_registry_id_binding() -> None:
 
 def test_execution_create_and_dtos_model_registry_id() -> None:
     """Test ExecutionCreate and Studio Workflow DTOs support model_registry_id."""
+    from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.dtos.studio import WorkflowCreateDTO, WorkflowUpdateDTO
-    from backend_v2.models.v2_core import ExecutionCreate
 
     # ExecutionCreate with optional model_registry_id
     ec = ExecutionCreate(

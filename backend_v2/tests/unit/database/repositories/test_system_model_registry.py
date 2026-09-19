@@ -8,8 +8,8 @@ import pytest
 
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier, LLMProvider
-from backend_v2.models.v2_core import ModelProfile, SystemConfigModelRegistry
 
 
 def _build_test_registry(

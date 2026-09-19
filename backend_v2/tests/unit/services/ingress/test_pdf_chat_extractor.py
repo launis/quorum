@@ -14,7 +14,7 @@ import fitz
 import pytest
 
 from backend_v2.exceptions import AppException
-from backend_v2.models.v2_core import ChatHistoryDTO
+from backend_v2.models.domain.system_config import ChatHistoryDTO
 from backend_v2.services.ingress.pdf_chat_extractor import PdfChatExtractorService
 
 _DOCS_DIR = Path("docs/jwdatat")

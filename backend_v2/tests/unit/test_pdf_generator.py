@@ -5,9 +5,11 @@ from unittest.mock import patch
 import pytest
 
 from backend_v2.exceptions import AppException, ConfigurationError
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import VisualIntent
-from backend_v2.models.v2_core import I18nText, MatrixScorecardRowDTO, ReportDataDTO, ScorecardAtomDTO
 from backend_v2.models.view.sdui import (
     ParagraphBlock,
     SduiMatrixTableBlock,

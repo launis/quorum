@@ -6,15 +6,18 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from backend_v2.models.auth import User, UserRole
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import BlockDataType, PresetView, PromptBlockCategory
-from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion, XaiHighlightItem
 from backend_v2.tests.unit.services.test_blueprint_sdui_crash import *  # noqa: F403, F401
 
 
 def fix_mock_dict(d: Any) -> Any:
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 
     if isinstance(d, list):
         for item in d:
@@ -111,18 +114,15 @@ def fix_mock_dict(d: Any) -> Any:
 from datetime import datetime, timezone
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
+from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExtensionMetricsDTO,
-    I18nText,
-    MatrixSynthesisGroup,
-    OutputProfile,
-    RenderedSynthesisCache,
-    ReportDataDTO,
-)
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
@@ -691,7 +691,8 @@ async def test_mcp_audit_deduplication_uses_strict_model_attrs(mock_repo_transfo
     """Phase 4: Verifies that MCPAuditTrace items are accessed via strict attribute access
     (audit.tool_id, audit.query) and that duplicates are deduplicated by hash.
     """
-    from backend_v2.models.v2_core import FrozenContext, MCPAuditTrace
+    from backend_v2.models.domain.execution import FrozenContext
+    from backend_v2.models.domain.system_config import MCPAuditTrace
 
     frozen = FrozenContext(
         mcp_tool_audit=[
@@ -734,7 +735,7 @@ async def test_mcp_audit_fails_fast_on_incomplete_data() -> None:
     """
     from pydantic import ValidationError
 
-    from backend_v2.models.v2_core import ExecutionRecord
+    from backend_v2.models.domain.execution import ExecutionRecord
 
     # Missing "query"
     invalid_mcp_audit = {
@@ -1301,15 +1302,12 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_transformer: Any) -> None:
     """Verify that xai_highlights are grouped into AccordionBlocks."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
     from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        I18nText,
-        MatrixSynthesisGroup,
-        OutputProfile,
-        RenderedSynthesisCache,
-    )
 
     profile_mock = OutputProfile.model_construct(
         id="prf_dddd1111dddd1111",
@@ -1397,15 +1395,12 @@ async def test_blueprint_matrix_extensions_instantiate_alert_blocks(mock_repo_tr
 @pytest.mark.asyncio
 async def test_blueprint_matrix_extensions_unknown_language(mock_repo_transformer: Any) -> None:
     """Verify fallback language logic when target language is unknown."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
     from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        I18nText,
-        MatrixSynthesisGroup,
-        OutputProfile,
-        RenderedSynthesisCache,
-    )
 
     profile_mock = OutputProfile.model_construct(
         id="prf_dddd1111dddd1111",
@@ -1548,7 +1543,8 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
     """Verify that if step_detector is missing in cv, authenticity_evaluation falls back to folded trace extraction."""
     from datetime import datetime, timezone
 
-    from backend_v2.models.v2_core import StepRule, Workflow
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
 
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
         id="exe_0000000000000097",
@@ -1761,7 +1757,8 @@ async def test_blueprint_apply_pii_masking(mock_repo_transformer: Any) -> None:
 
 @pytest.mark.asyncio
 async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_transformer: Any) -> None:
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.services.blueprint import BlueprintTransformer
 
     _transformer = BlueprintTransformer(
@@ -1918,7 +1915,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 @pytest.mark.asyncio
 async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transformer: Any) -> None:
     from backend_v2.exceptions import AppException
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.services.blueprint import BlueprintTransformer
 
     _transformer = BlueprintTransformer(
@@ -2090,7 +2087,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
 @pytest.mark.asyncio
 async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -> None:
     """Verifies penalty parsing and ensures AI output slop never affects global score."""
-    from backend_v2.models.v2_core import ExpectedInput
+    from backend_v2.models.domain.step import ExpectedInput
 
     mock_repo_transformer.get_workflow.return_value.expected_inputs = [
         ExpectedInput(
@@ -2158,7 +2155,8 @@ async def test_blueprint_slop_and_penalty_coverage(mock_repo_transformer: Any) -
         ]
     )
 
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
     mock_repo_transformer.get_all_output_profiles.return_value = fix_mock_dict(
         [
@@ -2616,13 +2614,9 @@ async def test_blueprint_transformer_step_state_update_and_reverse_lookup(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test step_states updating and reverse lookup for MCP audit data."""
-    from backend_v2.models.v2_core import (
-        ExecutionStepState,
-        FrozenContext,
-        HumanOverrideDTO,
-        MCPAuditTrace,
-        ScorecardAtomDTO,
-    )
+    from backend_v2.models.domain.execution import ExecutionStepState, FrozenContext
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+    from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, ScorecardAtomDTO
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2787,11 +2781,9 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test evidence override user rejection, AtomResultDTO parsing, and MCP audit impacted axis mapping."""
+    from backend_v2.models.domain.execution import FrozenContext
+    from backend_v2.models.domain.system_config import MCPAuditTrace
     from backend_v2.models.enums import SDUIComponentType
-    from backend_v2.models.v2_core import (
-        FrozenContext,
-        MCPAuditTrace,
-    )
 
     transformer = BlueprintTransformer(
         exec_repo=mock_repo_transformer,
@@ -2985,15 +2977,12 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Positive: BlueprintTransformer resolves MCP gateway and maps tools cleanly into context."""
-    from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        ExecutionStatus,
-        I18nText,
-        MatrixSynthesisGroup,
-        OutputProfile,
-        Workflow,
-    )
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import ExecutionStatus, TargetBlockType
     from backend_v2.services.blueprint import BlueprintTransformer
 
     profile = OutputProfile(
@@ -3077,22 +3066,18 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
     """Test direct results/hydrated_references and human_override preservation in step_states."""
     from datetime import datetime, timezone
 
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
+    from backend_v2.models.domain.matrix import MatrixScale
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, ScorecardAtomDTO
     from backend_v2.models.enums import ExecutionStatus, TargetBlockType, VisualIntent
+    from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import TraceEvent
-    from backend_v2.models.v2_core import (
-        ExecutionMetadata,
-        ExecutionRecord,
-        ExecutionStepState,
-        HumanOverrideDTO,
-        I18nText,
-        MatrixScale,
-        OutputProfile,
-        ScorecardAtomDTO,
-        StepRule,
-        Workflow,
-    )
 
     pb = MatrixPromptBlock(
         id="blk_0000000000000001",
@@ -3249,9 +3234,11 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
 
 def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     """Strict TDD: Verify MatrixDomainParser.parse_matrices processes payloads with atom_quotes."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.matrix import MatrixScale
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText, MatrixScale, OutputProfile
     from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 
     pb_id = "blk_0000000000000001"
@@ -3344,18 +3331,14 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test contract 1: build_report_dto invokes zero update methods on exec_repo (Dumb Painter invariance)."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.trace import ExecutionMetadata
-    from backend_v2.models.enums import BlockDataType, PromptBlockCategory, TargetBlockType
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        ExecutionStatus,
-        ExecutionStep,
-        I18nText,
-        OutputProfile,
-    )
+    from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, TargetBlockType
 
     profile = OutputProfile(
         id="prf_0000000000000001",
@@ -3457,19 +3440,17 @@ async def test_blueprint_variance_target_block_adherence(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test contract 2: variance validation block renders correctly adhering to OutputProfile.variance_target_block."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionRecord
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
     from backend_v2.models.dtos.trace import ExecutionMetadata
     from backend_v2.models.enums import (
+        ExecutionStatus,
         TargetBlockType,
         XaiExtensionType,
-    )
-    from backend_v2.models.v2_core import (
-        ExecutionRecord,
-        ExecutionStatus,
-        I18nText,
-        OutputProfile,
     )
 
     variance_target_id = "blk_0000000000000001"

@@ -9,8 +9,9 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import TargetBlockType
-from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 from backend_v2.services.studio.output_profile_service import StudioOutputProfileService
 
 
@@ -249,4 +250,3 @@ async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assign
 
     draft = await service.create_output_profile_draft(initiator)
     assert draft.variance_target_block is None
-

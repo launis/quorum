@@ -21,8 +21,8 @@ from backend_v2.api.dependencies import (
     get_studio_workflow_service,
 )
 from backend_v2.models.auth import UserRole
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.enums import HistoricalContextMode
-from backend_v2.models.v2_core import I18nText
 
 
 def mock_get_current_user() -> TokenData:

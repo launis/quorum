@@ -152,7 +152,8 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     During real runtime, record.step_states has empty scorecard_atoms={}.
     The evaluated atoms exist exclusively as AtomResultDTOs inside record.execution_trace output events.
     """
-    from backend_v2.models.v2_core import AtomResultDTO, ExecutionStatus, ExtractedValueDTO
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
+    from backend_v2.models.enums import ExecutionStatus
 
     atom_1 = AtomResultDTO(
         tda_id="tda_11111111111111111111111111111111",

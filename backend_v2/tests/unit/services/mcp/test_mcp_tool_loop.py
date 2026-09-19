@@ -121,7 +121,7 @@ async def test_execute_tool_loop_deterministic_search() -> None:
     ):
         from datetime import datetime, timezone
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
             query = args[0] if args else kwargs.get("query", "test")
@@ -187,7 +187,7 @@ async def test_ensemble_vote_consensus() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
             query = kwargs.get("query") or (args[0] if args else "")
@@ -226,7 +226,7 @@ async def test_strictness_override_bypasses_physical_anchoring() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
             query = kwargs.get("query") or (args[0] if args else "")
@@ -291,7 +291,7 @@ async def test_agentic_self_reflection_success() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         from datetime import datetime, timezone
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         async def fake_search(*args: Any, **kwargs: Any):
             query = kwargs.get("query") or (args[0] if args else "")
@@ -404,7 +404,7 @@ def test_build_tool_evidence_message() -> None:
     """Tests _build_tool_evidence_message formatting for both empty and populated audit traces."""
     import datetime
 
-    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.models.domain.system_config import MCPAuditTrace
     from backend_v2.services.mcp.mcp_tool_loop import _build_tool_evidence_message
 
     # Empty response summary and empty sources
@@ -457,7 +457,7 @@ async def test_execute_tool_loop_with_synthesis_instructions() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -498,7 +498,7 @@ async def test_execute_tool_loop_invalid_synthesis_instructions_raises_app_excep
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -547,7 +547,7 @@ async def test_execute_tool_loop_phase2_failure_raises_app_exception() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -607,7 +607,7 @@ async def test_max_tool_calls_limit_reached(monkeypatch: pytest.MonkeyPatch) -> 
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -655,7 +655,7 @@ async def test_extraction_dict_model_validation() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",
@@ -703,7 +703,7 @@ async def test_phase2_app_exception_passthrough() -> None:
     with patch("backend_v2.services.mcp.mcp_tool_loop.DISPATCHER.execute_tool") as mock_search:
         import datetime
 
-        from backend_v2.models.v2_core import MCPAuditTrace
+        from backend_v2.models.domain.system_config import MCPAuditTrace
 
         mock_search.return_value = MCPAuditTrace(
             tool_id="mcp_tavily_search",

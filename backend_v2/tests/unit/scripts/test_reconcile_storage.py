@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from tinydb import TinyDB
 
-from backend_v2.models.v2_core import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionRecord
 from scripts.reconcile_storage import ReconciliationReport, reconcile_storage
 
 

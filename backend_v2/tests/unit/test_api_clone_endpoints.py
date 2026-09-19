@@ -14,21 +14,18 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import (
     BlockDataType,
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
     TargetBlockType,
-)
-from backend_v2.models.v2_core import (
-    I18nText,
-    Step,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-    Workflow,
 )
 
 
@@ -104,7 +101,7 @@ def mock_studio_service() -> AsyncMock:
         type="mcp_gateways",
         tools=[],
     )
-    from backend_v2.models.v2_core import MatrixSynthesisGroup
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
     service.clone_output_profile.return_value = OutputProfile(
         id="prof_1111111111111112",

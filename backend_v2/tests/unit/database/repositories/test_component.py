@@ -10,9 +10,9 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.component import ComponentRepositoryImpl
 from backend_v2.exceptions import ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixRow, MatrixScale
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-from backend_v2.models.v2_core import MatrixRow, MatrixScale
 
 
 @pytest.fixture

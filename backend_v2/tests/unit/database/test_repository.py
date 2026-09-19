@@ -19,7 +19,9 @@ from backend_v2.models.domain.knowledge import (
     ConceptCreateDTO,
     ReferenceCreateDTO,
 )
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
@@ -36,7 +38,6 @@ from backend_v2.models.enums import (
     PromptBlockCategory,
     TargetBlockType,
 )
-from backend_v2.models.v2_core import ModelProfile, OutputProfile
 
 
 @pytest.mark.asyncio

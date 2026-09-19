@@ -50,7 +50,7 @@ def test_build_caching_prefix_success() -> None:
 
 def test_build_caching_prefix_with_theory_grounding_xml() -> None:
     """PROMISE: Prove theory_grounding is injected as pure <theory_context> XML."""
-    from backend_v2.models.v2_core import TheoryGrounding
+    from backend_v2.models.domain.matrix import TheoryGrounding
 
     tg = TheoryGrounding(
         source_url="https://example.com/test",

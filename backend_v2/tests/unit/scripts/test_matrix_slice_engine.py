@@ -14,8 +14,8 @@ import pytest
 from pydantic import ValidationError
 
 import scripts.matrix_hardening_loop as loop_mod
+from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-from backend_v2.models.v2_core import TDAAssertion
 from scripts.matrix_slice_engine import (
     append_matrix_theory_explanation,
     apply_matrix_slice,
@@ -193,7 +193,7 @@ def test_detect_empirical_contamination_flags_run_artifacts() -> None:
     assert any("Empirical" in f.reason for f in findings)
 
     # Mutate anti_patterns to verify empirical institution leak (e.g. Sitra) in anti_patterns is flagged
-    from backend_v2.models.v2_core import AntiPattern
+    from backend_v2.models.domain.matrix import AntiPattern
 
     bad_ap_tda = (
         base_mat.scales[0]

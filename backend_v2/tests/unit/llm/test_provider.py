@@ -68,8 +68,8 @@ def test_resolve_env_variables(monkeypatch: pytest.MonkeyPatch) -> None:
 @pytest.mark.asyncio
 async def test_lite_llm_provider_additional_params(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test LiteLLMProvider correctly resolves and uses additional_params in call_kwargs."""
+    from backend_v2.models.domain.system_config import ProviderExtraParamsDTO
     from backend_v2.models.llm import LLMProviderConfig
-    from backend_v2.models.v2_core import ProviderExtraParamsDTO
     from backend_v2.settings import get_settings
 
     monkeypatch.setenv("TEST_REGION_VAR", "europe-west3")

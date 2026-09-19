@@ -1,6 +1,6 @@
 from backend_v2.models.domain.mcp import CitationExtractionItemDTO
+from backend_v2.models.domain.synthesis import BaseMatrixXAI, BaseTDAExtraction
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.v2_core import BaseMatrixXAI, BaseTDAExtraction
 
 
 def test_mcp_reasoning_graceful_truncation():

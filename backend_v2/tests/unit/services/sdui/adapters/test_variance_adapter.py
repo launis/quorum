@@ -8,15 +8,13 @@ and negative validation exception branches.
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExtensionMetricsDTO,
-    I18nText,
-    OutputProfile,
-    RenderedSynthesisCache,
-)
 from backend_v2.models.view.sdui import (
     AlertBlock,
     BulletListBlock,

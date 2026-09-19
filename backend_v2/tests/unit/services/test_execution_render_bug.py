@@ -3,8 +3,9 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord, ExecutionStatus
 from backend_v2.services.execution import ExecutionService
 
 

@@ -92,8 +92,8 @@ def test_prompt_factory_build_success(mock_compiler: MagicMock) -> None:
 
 def test_prompt_factory_missing_tda_assertions(mock_compiler: MagicMock) -> None:
     """Test Fail-Fast when tda_assertions are missing."""
+    from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-    from backend_v2.models.v2_core import MatrixClaim, MatrixScale
 
     criteria_blocks = [
         MatrixPromptBlock.model_construct(
@@ -246,12 +246,12 @@ def test_prompt_factory_has_zero_reflection_via_ast() -> None:
 
 def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) -> None:
     """Test polymorphic resolution of PersonaPromptBlock, ProtocolPromptBlock, and SystemRulePromptBlock."""
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import (
         PersonaPromptBlock,
         ProtocolPromptBlock,
     )
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     persona = PersonaPromptBlock(
         id="blk_1111111111111111",
@@ -305,9 +305,9 @@ def test_prompt_factory_polymorphic_blocks_resolution(mock_compiler: MagicMock) 
 
 def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMock) -> None:
     """Test SystemRulePromptBlock and default fallback persona in PromptFactory."""
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     # 1. SystemRulePromptBlock with instruction_text for persona, role, protocol
     persona_sys = SystemRulePromptBlock(

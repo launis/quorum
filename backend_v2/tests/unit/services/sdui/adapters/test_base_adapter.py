@@ -3,7 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.v2_core import I18nText, OutputProfile
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 

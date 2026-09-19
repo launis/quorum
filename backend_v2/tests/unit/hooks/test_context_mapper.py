@@ -4,8 +4,9 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.context_mapper import ContextMapper
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, SystemRulePromptBlock
-from backend_v2.models.v2_core import I18nText, MatrixScale
 
 
 def test_context_mapper_build_ordinal_mapping_empty() -> None:

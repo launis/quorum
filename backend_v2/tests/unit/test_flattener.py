@@ -4,8 +4,11 @@ from backend_v2.models.view.sdui import SduiMetrics1DBlock
 
 import uuid
 
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import ExecutionRecord, I18nText, MatrixScorecardRowDTO, ReportDataDTO
 
 ExecutionRecord.model_rebuild()
 from backend_v2.services.flattener import FlatFileService

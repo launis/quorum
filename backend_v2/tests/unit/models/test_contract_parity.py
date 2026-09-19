@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 
 
 def test_report_data_dto_contract_parity() -> None:

@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from backend_v2.models.v2_core import ChatHistoryDTO
+from backend_v2.models.domain.system_config import ChatHistoryDTO
 
 
 @pytest.mark.asyncio

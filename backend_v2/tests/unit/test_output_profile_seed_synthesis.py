@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.domain.output_profile import OutputProfile
 
 
 def test_seed_data_output_profiles_have_valid_synthesis_config() -> None:

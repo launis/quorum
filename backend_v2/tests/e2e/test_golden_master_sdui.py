@@ -4,8 +4,9 @@ import json
 
 import pytest
 
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-from backend_v2.models.v2_core import AtomResultDTO, HydratedAtomDTO, ReportDataDTO
 
 
 @pytest.fixture

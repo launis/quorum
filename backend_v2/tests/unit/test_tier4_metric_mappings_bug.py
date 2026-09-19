@@ -1,6 +1,6 @@
 from typing import Any
 
-from backend_v2.models.v2_core import OutputProfile
+from backend_v2.models.domain.output_profile import OutputProfile
 
 
 def test_worker_db_hydration_metric_mappings_bug() -> None:

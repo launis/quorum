@@ -7,7 +7,13 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.auth import User, UserRole
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO
 from backend_v2.models.enums import (
     DisplayScale,
@@ -17,14 +23,6 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    I18nText,
-    MatrixSynthesisGroup,
-    OutputProfile,
-    ReportDataDTO,
-    Workflow,
-)
 from backend_v2.models.view.sdui import SduiMetadataBlock
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.localization import LocalizationService

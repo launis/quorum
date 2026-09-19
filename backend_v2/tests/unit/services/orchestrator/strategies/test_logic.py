@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector
-from backend_v2.models.v2_core import StepRule
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 

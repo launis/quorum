@@ -5,8 +5,8 @@ import pytest
 
 from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException
+from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyDependencies
 
 

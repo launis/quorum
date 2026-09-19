@@ -14,12 +14,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge
 from backend_v2.models.dtos.engine import EngineExecutionRequest, FlattenedAtom
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO, StepRule
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 

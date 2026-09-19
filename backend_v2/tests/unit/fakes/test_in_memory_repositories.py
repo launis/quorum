@@ -17,10 +17,13 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.base import AuditLogCreateDTO, UsageAggregateUpdateDTO, UsageRecord
 from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
+from backend_v2.models.domain.step import Role, Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.dtos.system import (
     SystemConfigCreateDTO,
@@ -30,12 +33,6 @@ from backend_v2.models.dtos.system import (
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, StepType
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    I18nText,
-    Role,
-    Step,
-    SystemConfigMCPGateways,
-)
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
     InMemoryAuditRepository,

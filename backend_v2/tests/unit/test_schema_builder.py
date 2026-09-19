@@ -2,6 +2,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.schema_builder import SchemaCompilerService
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock, SystemRulePromptBlock
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory, XaiExtensionType
 from backend_v2.models.prompts.common import (
@@ -11,13 +12,12 @@ from backend_v2.models.prompts.common import (
     XAI_DESC_RISK_FLAG,
     XAI_DESC_THEORY_LINK,
 )
-from backend_v2.models.v2_core import I18nText
 
 
 def create_mock_block(slug: str, btype: BlockDataType, extensions: list[str]) -> PromptBlock:
     """Helper to create a valid V2 PromptBlock for schema testing."""
     if btype in (BlockDataType.FLOAT, BlockDataType.INT):
-        from backend_v2.models.v2_core import MatrixClaim, MatrixScale, TDAAssertion
+        from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 
         scale = MatrixScale(
             score=1,

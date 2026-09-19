@@ -16,7 +16,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ResourceNotFoundError
-from backend_v2.models.v2_core import ContrastivePairDTO
+from backend_v2.models.domain.matrix import ContrastivePairDTO
 from scripts.diff_executions import (
     UNICODE_SPACE_REGISTRY,
     AtomEvaluationSnapshotDTO,

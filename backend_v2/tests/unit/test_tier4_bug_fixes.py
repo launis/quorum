@@ -1,5 +1,5 @@
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO, OutputProfileUpdateDTO
-from backend_v2.models.v2_core import OutputProfile
 
 
 def test_bug_metric_mappings_silent_override() -> None:

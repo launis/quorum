@@ -4,7 +4,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.llm.schema_builder import SchemaCompilerService
-from backend_v2.models.v2_core import BlockDataType
+from backend_v2.models.enums import BlockDataType
 
 
 class MockBlock:

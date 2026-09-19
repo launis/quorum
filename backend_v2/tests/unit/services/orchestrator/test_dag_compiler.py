@@ -2,7 +2,8 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.exceptions import WorkflowCompilationError
-from backend_v2.models.v2_core import StepRule, Workflow
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 
 

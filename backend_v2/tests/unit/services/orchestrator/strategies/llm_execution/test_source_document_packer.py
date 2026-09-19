@@ -8,8 +8,8 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExpectedInput
 from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import (
     ContextTargetFilterDTO,
     SourceDocumentPacker,
@@ -154,11 +154,13 @@ def test_source_document_packer_step_scoping_and_context_target_filter() -> None
         "nested": "$inputs.assignment_brief",
     }
     targets = SourceDocumentPacker.resolve_context_targets(mappings)
-    assert targets.allowed_input_keys == frozenset({
-        "product_text",
-        "chat_log",
-        "assignment_brief",
-    })
+    assert targets.allowed_input_keys == frozenset(
+        {
+            "product_text",
+            "chat_log",
+            "assignment_brief",
+        }
+    )
     assert targets.allowed_step_ids is None
     assert not targets.wants_all_steps
 

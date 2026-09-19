@@ -1,4 +1,4 @@
-from backend_v2.models.v2_core import BaseTDAExtraction
+from backend_v2.models.domain.synthesis import BaseTDAExtraction
 
 
 def test_base_tda_extraction_has_correct_phase4_fields() -> None:

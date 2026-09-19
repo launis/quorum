@@ -1,10 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.enums import DisplayScale
 from backend_v2.models.state import WorkflowState  # noqa: F401 (Ensures ExecutionRecord is rebuilt)
-from backend_v2.models.v2_core import ExecutionRecord, MCPAuditTrace, OutputProfile
 
 
 def test_prompt_block_fail_fast_on_corrupt_type() -> None:
@@ -133,8 +135,8 @@ def test_strict_schema_parity_for_core_execution_fields() -> None:
     ExecutionRecord uses LaxExecutionStatus (broader type) while
     ExecutionCoreFields uses Literal (strict domain type).
     """
+    from backend_v2.models.domain.execution import ExecutionRecord
     from backend_v2.models.execution_core import ExecutionCoreFields
-    from backend_v2.models.v2_core import ExecutionRecord
 
     core_field_names = set(ExecutionCoreFields.model_fields.keys())
     assert len(core_field_names) >= 5, "ExecutionCoreFields must define at least 5 shared fields"
@@ -164,7 +166,7 @@ def test_strict_schema_parity_for_core_execution_fields() -> None:
 def test_output_profile_rejects_purged_synthesis_field() -> None:
     """Negative test: OutputProfile rejects purged synthesis field with ValidationError under extra='forbid'."""
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
         "id": "prf_1234567890abcdef",
@@ -181,8 +183,9 @@ def test_output_profile_rejects_purged_synthesis_field() -> None:
 def test_output_profile_computed_properties() -> None:
     """Test computed properties on OutputProfile."""
     from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -218,7 +221,7 @@ def test_output_profile_computed_properties() -> None:
 def test_matrix_synthesis_group_validation() -> None:
     """Test MatrixSynthesisGroup strict validation and fields."""
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.v2_core import MatrixSynthesisGroup
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 
     # Valid group with 16-hex Opaque ID
     group = MatrixSynthesisGroup(
@@ -259,8 +262,9 @@ def test_matrix_synthesis_group_validation() -> None:
 def test_output_profile_validate_matrix_graphs_coherence() -> None:
     """Test OutputProfile cross-field validation for MATRIX_GRAPHS_BLOCK and matrix_synthesis_groups."""
     from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import MatrixSynthesisGroup, OutputProfile
 
     group = MatrixSynthesisGroup(
         id="grp_1111111111111111",
@@ -305,7 +309,7 @@ def test_output_profile_validate_matrix_graphs_coherence() -> None:
 )
 def test_output_profile_rejects_purged_legacy_fields(purged_field: str) -> None:
     """Negative test: OutputProfile rejects purged legacy fields under extra='forbid'."""
-    from backend_v2.models.v2_core import OutputProfile
+    from backend_v2.models.domain.output_profile import OutputProfile
 
     payload = {
         "id": "prf_1234567890123456",
@@ -322,8 +326,9 @@ def test_output_profile_rejects_purged_legacy_fields(purged_field: str) -> None:
 
 def test_matrix_synthesis_group_cardinality_validation() -> None:
     """Verify strict dimensional cardinality coupling on MatrixSynthesisGroup."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import PresetView
-    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
 
@@ -367,8 +372,10 @@ def test_matrix_synthesis_group_cardinality_validation() -> None:
 
 def test_output_profile_unique_group_ids_validation() -> None:
     """Verify OutputProfile enforces unique MatrixSynthesisGroup IDs."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
     from backend_v2.models.enums import PresetView, TargetBlockType
-    from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     grp1 = MatrixSynthesisGroup(
@@ -392,8 +399,9 @@ def test_output_profile_unique_group_ids_validation() -> None:
 
 def test_output_profile_plain_string_directives_and_length_constraints() -> None:
     """Verify OutputProfile accepts English plain strings for all 9 prompt directives and length constraints."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import I18nText, OutputProfile
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     profile = OutputProfile(
@@ -428,8 +436,9 @@ def test_output_profile_plain_string_directives_and_length_constraints() -> None
 
 def test_output_profile_matrix_graph_length_constraint_validation() -> None:
     """Verify matrix_graph_length_constraint valid partition [50-2000] and boundary rejection."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.output_profile import OutputProfile
     from backend_v2.models.enums import TargetBlockType
-    from backend_v2.models.v2_core import I18nText, OutputProfile
 
     title = I18nText(translations={"en": "Title", "fi": "Otsikko"})
     base_kwargs = {

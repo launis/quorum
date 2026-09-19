@@ -177,13 +177,13 @@ def test_compile_dynamic_instructions_execution_time_types() -> None:
 
 def test_compile_static_instructions_polymorphic_subtypes() -> None:
     """Test compile_static_instructions extracts text correctly across Persona, Protocol, and SystemRule blocks."""
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import (
         PersonaPromptBlock,
         ProtocolPromptBlock,
         SystemRulePromptBlock,
     )
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     compiler = LocalizationCompiler()
 
@@ -249,9 +249,9 @@ def test_compile_dynamic_instructions_unsupported_locale_raises_app_exception() 
 
 def test_compile_dynamic_instructions_polymorphic_system_rule() -> None:
     """Test compile_dynamic_instructions extracts instruction_text on SystemRulePromptBlock."""
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     compiler = LocalizationCompiler()
     block = SystemRulePromptBlock(

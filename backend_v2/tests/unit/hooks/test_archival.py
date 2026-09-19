@@ -11,9 +11,9 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.archival import retrieve_precedent_hook
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord
 
 
 @pytest.mark.asyncio

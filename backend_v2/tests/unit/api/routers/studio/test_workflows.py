@@ -13,12 +13,13 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.api.routers.studio.workflows import router
 from backend_v2.models.auth import TokenData
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     WorkflowResponseDTO,
     WorkflowSimulationResponse,
 )
 from backend_v2.models.enums import HistoricalContextMode
-from backend_v2.models.v2_core import I18nText, Workflow
 
 app = FastAPI()
 app.include_router(router)

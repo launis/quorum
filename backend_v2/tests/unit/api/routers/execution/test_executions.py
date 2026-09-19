@@ -10,9 +10,10 @@ from fastapi.testclient import TestClient
 from backend_v2.api.dependencies import get_arq_pool, get_current_user_from_header, get_execution_service
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionRecord, ReportDataDTO
 from backend_v2.models.view.sdui import ReportView
 
 # Basic mock for user
@@ -220,7 +221,7 @@ def test_render_execution_json(override_dependencies: Any, mock_execution_servic
 
 def test_render_execution_job_accepted(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id}/render returning JobAcceptedDTO."""
-    from backend_v2.models.v2_core import JobAcceptedDTO
+    from backend_v2.models.domain.execution import JobAcceptedDTO
 
     client = TestClient(app)
     mock_execution_service.render_execution.return_value = (

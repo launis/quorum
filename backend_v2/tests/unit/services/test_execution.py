@@ -11,26 +11,25 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
-from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import (
     ExecutionCreate,
     ExecutionRecord,
-    ExecutionStatus,
     ExecutionStep,
     ExecutionStepState,
     FrozenContext,
-    HumanOverrideRequest,
-    I18nText,
     JobAcceptedDTO,
-    OutputProfile,
-    ReportDataDTO,
-    Step,
-    StepRule,
-    Workflow,
-    WorkflowInputs,
 )
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
+from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
 )
@@ -325,7 +324,7 @@ async def test_start_execution_success() -> None:
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     # Mock workflow to get default_profile_id
-    from backend_v2.models.v2_core import Workflow
+    from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
     mock_wf.id = "wf_1"
@@ -339,7 +338,8 @@ async def test_start_execution_success() -> None:
 
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
-    from backend_v2.models.v2_core import ExecutionCreate, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
 
     payload = ExecutionCreate(
         workflow_id="wf_1",
@@ -393,7 +393,9 @@ async def test_start_execution_model_registry_override() -> None:
     )
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
-    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
     mock_wf.id = "wf_1"
@@ -442,7 +444,9 @@ async def test_start_execution_permission_denied() -> None:
         executor=Mock(),
     )
     from backend_v2.exceptions import PermissionDeniedError
-    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
     mock_wf.id = "wf_private"
@@ -647,11 +651,8 @@ async def test_override_atom_success() -> None:
     from unittest.mock import patch
 
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import (
-        HumanOverrideRequest,
-        ScorecardAtomDTO,
-    )
 
     repo_mock = AsyncMock()
     executor_mock = Mock()
@@ -758,8 +759,8 @@ async def test_get_execution_export_bytes_success() -> None:
     mock_record.execution_trace_storage_path = None
     mock_record.execution_trace = []
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import ScorecardAtomDTO
 
     mock_record.step_states = {
         "step_1": ExecutionStepState(
@@ -858,10 +859,11 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
             },
         )
     ]
+    from backend_v2.models.domain.execution import ExecutionStepState
     from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
+    from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import ExecutionStepState, ScorecardAtomDTO
 
     mock_record.step_states = {
         "step_1": ExecutionStepState(
@@ -968,7 +970,7 @@ async def test_phase_1_5_negative_invalid_human_override_crashes() -> None:
     """
     from pydantic import ValidationError
 
-    from backend_v2.models.v2_core import HumanOverrideRequest
+    from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 
     with pytest.raises(ValidationError):
         HumanOverrideRequest(
@@ -980,9 +982,9 @@ async def test_phase_1_5_negative_invalid_human_override_crashes() -> None:
 
 def test_execution_create_dto_preserves_output_profile_id() -> None:
     """Regression: ExecutionCreateDTO must support and persist output_profile_id."""
+    from backend_v2.models.domain.execution import ExecutionRecord
     from backend_v2.models.dtos.trace import ExecutionCreateDTO
     from backend_v2.models.execution_core import ExecutionMetadata
-    from backend_v2.models.v2_core import ExecutionRecord
 
     dto = ExecutionCreateDTO(
         workflow_id="wf_1234567890abcdef",
@@ -1000,7 +1002,9 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
 @pytest.mark.asyncio
 async def test_start_execution_succeeds_without_profile() -> None:
     """Ingress Decoupling: start_execution succeeds when no profile_id is provided."""
-    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     service = ExecutionService(
@@ -1050,7 +1054,9 @@ async def test_start_execution_succeeds_without_profile() -> None:
 @pytest.mark.asyncio
 async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when profile is not found in database."""
-    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     out_prof_repo_mock = AsyncMock()
@@ -1105,7 +1111,9 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
 async def test_start_execution_fails_fast_when_model_registry_not_found() -> None:
     """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when model registry is not found in database."""
     from backend_v2.exceptions import ResourceNotFoundError
-    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     system_repo_mock = AsyncMock()
@@ -1237,8 +1245,10 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     from unittest.mock import patch
 
     from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.domain.inputs import WorkflowInputsIngress
-    from backend_v2.models.v2_core import ExecutionCreate, ExpectedInput, Workflow
+    from backend_v2.models.domain.step import ExpectedInput
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     service = ExecutionService(
@@ -1307,7 +1317,10 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     from unittest.mock import patch
 
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.v2_core import ExecutionCreate, ExpectedInput, Workflow, WorkflowInputs
+    from backend_v2.models.domain.execution import ExecutionCreate
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.domain.step import ExpectedInput
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     service = ExecutionService(
@@ -1438,13 +1451,10 @@ async def test_get_and_delete_execution_not_found_and_permission_denied() -> Non
 
 @pytest.mark.asyncio
 async def test_start_execution_with_steps_and_blocks() -> None:
+    from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, MatrixScale
-    from backend_v2.models.v2_core import (
-        ExecutionCreate,
-        Step,
-        StepRule,
-        Workflow,
-    )
+    from backend_v2.models.domain.step import Step, StepRule
+    from backend_v2.models.domain.workflow import Workflow
 
     repo_mock = AsyncMock()
     prompt_block_repo = AsyncMock()
@@ -1612,7 +1622,7 @@ async def test_clear_profile_synthesis() -> None:
     )
     initiator = TokenData(id="usr_1", role=UserRole.ADMIN, organization_id="org_1")
 
-    from backend_v2.models.v2_core import RenderedSynthesisCache
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 
     rec = Mock(spec=ExecutionRecord)
     rec.id = "exe_1"

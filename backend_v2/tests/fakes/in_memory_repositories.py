@@ -51,6 +51,7 @@ from backend_v2.models.domain.base import (
     UsageAggregateUpdateDTO,
     UsageRecord,
 )
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.knowledge import (
     BannedPhrase,
     Claim,
@@ -63,6 +64,9 @@ from backend_v2.models.domain.knowledge import (
 )
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.step import Role, Step
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.dtos.system import (
     AnySystemConfig,
@@ -73,15 +77,6 @@ from backend_v2.models.dtos.system import (
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import CognitiveTier, LLMProvider
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ModelProfile,
-    Role,
-    Step,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-    Workflow,
-)
 
 
 class BaseInMemoryRepository[T: BaseModel]:

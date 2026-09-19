@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.v2_core import ExpectedInput
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from scripts.run_e2e_variance_test import (
     UNICODE_SPACE_REGISTRY,

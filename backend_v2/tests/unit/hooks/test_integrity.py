@@ -253,8 +253,8 @@ async def test_verify_citation_integrity_hook_full_success_with_citations() -> N
 @pytest.mark.asyncio
 async def test_gather_source_texts_with_storage() -> None:
     from backend_v2.hooks.integrity import _gather_source_texts
+    from backend_v2.models.domain.execution import ExecutionRecord
     from backend_v2.models.domain.inputs import WorkflowInputs
-    from backend_v2.models.v2_core import ExecutionRecord
 
     deps = MagicMock(spec=HookDependencies)
     deps.exec_repo = AsyncMock()

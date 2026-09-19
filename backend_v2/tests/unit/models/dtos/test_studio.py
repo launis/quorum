@@ -206,9 +206,9 @@ def test_step_update_dto_negative_partitions() -> None:
 
 def test_prompt_block_simulation_request_strictness() -> None:
     """Test PromptBlockSimulationRequest strictness, field validation, and extra='forbid'."""
+    from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-    from backend_v2.models.v2_core import I18nText
 
     block = SystemRulePromptBlock(
         id="blk_11111111111111111111111111111111",
@@ -252,7 +252,7 @@ def test_prompt_block_simulation_request_strictness() -> None:
 def test_step_simulation_request_strictness() -> None:
     """Test StepSimulationRequest strictness, field validation, and extra='forbid'."""
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.v2_core import Step
+    from backend_v2.models.domain.step import Step
 
     step = Step(
         id="stp_1111111111111111",

@@ -4,11 +4,12 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.blackboard import LLMDraftAtom, LLMDraftAtomList
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import ExtractedAtom, GlobalOntologyMap, OntologyEntity
-from backend_v2.models.v2_core import I18nText, MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.atomizer import PromptAtomizer
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
