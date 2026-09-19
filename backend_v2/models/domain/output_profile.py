@@ -346,4 +346,13 @@ class OutputProfile(V2CoreBase):
         return self.requires_executive_synthesis or self.requires_group_synthesis or self.requires_row_explanations
 
 
-OutputProfile.model_rebuild()
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+
+OutputProfile.model_rebuild(
+    _types_namespace={
+        "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+        "MCPAuditTrace": MCPAuditTrace,
+        "AnySduiBlock": AnySduiBlock,
+    }
+)

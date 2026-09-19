@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
 from backend_v2.models.core_base import I18nText, V2CoreBase
-from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import LaxUiVariant, LaxVisualIntent, LaxXaiExtensionType, VisualIntent
+
+if TYPE_CHECKING:
+    from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 
 StrictStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -731,3 +735,26 @@ AnySduiBlock = Annotated[
     | SduiAuditTrailBlock,
     Field(discriminator="block_type"),
 ]
+
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+
+_sdui_localns = {
+    "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+    "LaxXaiExtensionType": LaxXaiExtensionType,
+    "AnySduiBlock": AnySduiBlock,
+    "MCPAuditTrace": MCPAuditTrace,
+}
+SduiRadarChartBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiScatterPlotBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiQuadrantMatrixBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiMatrixTableBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiMetrics1DBlock.model_rebuild(_types_namespace=_sdui_localns)
+SduiGridBlock.model_rebuild(_types_namespace=_sdui_localns)
+
+MatrixScorecardRowDTO.model_rebuild(
+    _types_namespace={
+        "AnySduiBlock": AnySduiBlock,
+        "MCPAuditTrace": MCPAuditTrace,
+    }
+)

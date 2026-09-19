@@ -11,6 +11,7 @@ from backend_v2.exceptions import (
     ResourceNotFoundError,
 )
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.v2_core import (
@@ -1930,8 +1931,8 @@ async def test_get_workflow_ui_schema_success_and_not_found() -> None:
     )
     service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
     res = await service.get_workflow_ui_schema("wor_0123456789abcdef")
-    assert "expected_inputs" in res
-    assert res["expected_inputs"] == []
+    assert isinstance(res, WorkflowSchemaResponseDTO)
+    assert res.expected_inputs == []
 
 
 @pytest.mark.asyncio

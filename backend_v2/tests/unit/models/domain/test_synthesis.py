@@ -64,3 +64,143 @@ def test_synthesis_step_data_dto_forbids_extra_fields() -> None:
     }
     with pytest.raises(ValidationError):
         SynthesisStepDataDTO.model_validate(data)
+
+
+def test_base_matrix_xai() -> None:
+    from backend_v2.models.domain.synthesis import BaseMatrixXAI
+
+    xai = BaseMatrixXAI(semantic_reasoning="Good explanation")
+    assert xai.semantic_reasoning == "Good explanation"
+
+
+def test_distilled_evaluation() -> None:
+    from backend_v2.models.domain.synthesis import DistilledEvaluation
+
+    de = DistilledEvaluation(
+        atom_id="atm_123",
+        exact_quotes=["quote 1"],
+        semantic_reasoning="reasoning",
+        extensions={"ext1": True},
+    )
+    assert de.atom_id == "atm_123"
+    assert de.exact_quotes == ["quote 1"]
+
+
+def test_base_tda_extraction_valid_and_coerce() -> None:
+    from backend_v2.models.domain.synthesis import BaseTDAExtraction
+    from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+
+    quote = LLMExtractedQuote(text="Extracted text here")
+    ext = BaseTDAExtraction(
+        exact_quotes=[quote],
+        localized_anchors_found=["avainsana"],
+        contextual_override=False,
+        semantic_reasoning="Reasoning text",
+    )
+    assert len(ext.exact_quotes) == 1
+    assert ext.contextual_override is False
+
+    # None coerced to []
+    ext_none = BaseTDAExtraction(
+        exact_quotes=None,  # type: ignore[arg-type]
+        localized_anchors_found=[],
+        contextual_override=False,
+        semantic_reasoning="Reasoning",
+    )
+    assert ext_none.exact_quotes == []
+
+
+def test_base_tda_extraction_override_validation() -> None:
+    from backend_v2.models.domain.synthesis import BaseTDAExtraction
+    from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+
+    quote = LLMExtractedQuote(text="Some text")
+    # contextual_override=True with exact_quotes raises ValueError
+    with pytest.raises(ValueError, match="cannot be combined with exact_quotes"):
+        BaseTDAExtraction(
+            exact_quotes=[quote],
+            localized_anchors_found=[],
+            contextual_override=True,
+            semantic_reasoning="Reasoning",
+        )
+
+    # contextual_override=False with [CONTEXTUAL_OVERRIDE_APPLIED] quote raises ValueError
+    quote_override = LLMExtractedQuote(text="[CONTEXTUAL_OVERRIDE_APPLIED]")
+    with pytest.raises(ValueError, match="Cross-validation failed"):
+        BaseTDAExtraction(
+            exact_quotes=[quote_override],
+            localized_anchors_found=[],
+            contextual_override=False,
+            semantic_reasoning="Reasoning",
+        )
+
+
+
+def test_matrix_synthesis_group_cardinality() -> None:
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+    from backend_v2.models.enums import PresetView
+
+    title = I18nText(translations={"en": "Title"})
+
+    # 1D with 1 block: ok
+    g1 = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=title,
+        target_blocks=["blk_1"],
+        view_type=PresetView.METRICS_1D,
+    )
+    assert len(g1.target_blocks) == 1
+
+    # 1D with 2 blocks: raises
+    with pytest.raises(ValueError, match="requires exactly 1 target block"):
+        MatrixSynthesisGroup(
+            id="grp_0123456789abcdef",
+            title=title,
+            target_blocks=["blk_1", "blk_2"],
+            view_type=PresetView.METRICS_1D,
+        )
+
+    # 2D with 2 blocks: ok; with 1 block: raises
+    g2 = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=title,
+        target_blocks=["blk_1", "blk_2"],
+        view_type=PresetView.COMPARE_2D,
+    )
+    assert len(g2.target_blocks) == 2
+
+    with pytest.raises(ValueError, match="requires exactly 2 target blocks"):
+        MatrixSynthesisGroup(
+            id="grp_0123456789abcdef",
+            title=title,
+            target_blocks=["blk_1"],
+            view_type=PresetView.COMPARE_2D,
+        )
+
+    # 3D with 3 blocks: ok; with 2 blocks: raises
+    g3 = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=title,
+        target_blocks=["blk_1", "blk_2", "blk_3"],
+        view_type=PresetView.MATRIX_3D,
+    )
+    assert len(g3.target_blocks) == 3
+
+    with pytest.raises(ValueError, match="requires exactly 3 target blocks"):
+        MatrixSynthesisGroup(
+            id="grp_0123456789abcdef",
+            title=title,
+            target_blocks=["blk_1"],
+            view_type=PresetView.MATRIX_3D,
+        )
+
+    # TEXT_ONLY with >= 1 blocks: ok
+    gt = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=title,
+        target_blocks=["blk_1"],
+        view_type=PresetView.TEXT_ONLY,
+    )
+    assert len(gt.target_blocks) == 1
+

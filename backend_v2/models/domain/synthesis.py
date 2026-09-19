@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Self
 
 if TYPE_CHECKING:
-    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.dtos.base import DataStarvationEvent
     from backend_v2.models.view.sdui import AnySduiBlock
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -235,3 +235,18 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
     token_usage: Annotated[TokenUsage, Field()] = Field(
         default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
     )
+
+
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.view.sdui import AnySduiBlock
+
+RenderedSynthesisCache.model_rebuild(
+    _types_namespace={
+        "DataStarvationEvent": DataStarvationEvent,
+        "AnySduiBlock": AnySduiBlock,
+        "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+        "MCPAuditTrace": MCPAuditTrace,
+    }
+)

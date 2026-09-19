@@ -102,3 +102,15 @@ class ReportDataDTO(V2CoreBase):
             raise ValueError(f"Referential Integrity Error: Missing keys in hydrated_references: {missing_keys}")
 
         return self
+
+
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.view.sdui import AnySduiBlock
+
+ReportDataDTO.model_rebuild(
+    _types_namespace={
+        "AnySduiBlock": AnySduiBlock,
+        "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
+        "MCPAuditTrace": MCPAuditTrace,
+    }
+)

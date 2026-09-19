@@ -7,7 +7,6 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import (
     IExecutionRepository,
     IOutputProfileRepository,
@@ -32,6 +31,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.system_config import DataDictionaryField
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionCreateDTO
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.models.enums import ComponentType, EntityPrefix, ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.document_extraction import DocumentExtractionService
@@ -179,13 +179,13 @@ class ExecutionIngressService:
         self.system_repo = system_repo
         self.usage_service = usage_service
 
-    async def get_workflow_ui_schema(self, workflow_id: str) -> dict[str, Any]:
+    async def get_workflow_ui_schema(self, workflow_id: str) -> WorkflowSchemaResponseDTO:
         """Retrieve expected inputs schema for dynamic frontend forms."""
         workflow_record = await self.workflow_repo.get_workflow_by_id(workflow_id)
         if not workflow_record:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=workflow_id)
-        workflow = execution.Workflow.model_validate(workflow_record)
-        return {"expected_inputs": [inp.model_dump(mode="json") for inp in workflow.expected_inputs]}
+        workflow = Workflow.model_validate(workflow_record)
+        return WorkflowSchemaResponseDTO(expected_inputs=workflow.expected_inputs)
 
     async def start_execution(
         self,
@@ -199,7 +199,7 @@ class ExecutionIngressService:
         if not workflow_dict:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=payload.workflow_id)
 
-        workflow = execution.Workflow.model_validate(workflow_dict)
+        workflow = Workflow.model_validate(workflow_dict)
         if not is_resource_accessible(initiator, workflow.organization_id, is_public=workflow.is_public):
             raise PermissionDeniedError("You do not have permission to execute this workflow.")
 

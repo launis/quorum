@@ -104,6 +104,9 @@ class ExecutionCreate(V2CoreBase):
         return data
 
 
+ExecutionCreate.model_rebuild()
+
+
 class ExecutionStep(V2CoreBase):
     """Real-time status tracking, scorecard outputs, and FinOps telemetry for a single DAG node."""
 

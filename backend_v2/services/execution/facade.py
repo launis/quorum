@@ -23,6 +23,7 @@ from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution.context_service import ExecutionContextService
 from backend_v2.services.execution.ingress_service import ExecutionIngressService, create_execution_record
@@ -133,7 +134,7 @@ class ExecutionService:
     ) -> ExecutionRecord:
         return await self._ingress.start_execution(initiator, payload, arq_pool, doc_service)
 
-    async def get_workflow_ui_schema(self, workflow_id: str) -> dict[str, Any]:
+    async def get_workflow_ui_schema(self, workflow_id: str) -> WorkflowSchemaResponseDTO:
         return await self._ingress.get_workflow_ui_schema(workflow_id)
 
     async def check_resumability(self, record: ExecutionRecord) -> bool:

@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from backend_v2.api.dependencies import (
     get_current_user_from_header,
+    get_execution_service,
     get_studio_output_profile_service,
     get_studio_prompt_block_service,
     get_studio_simulation_service,
@@ -13,6 +14,7 @@ from backend_v2.api.dependencies import (
 )
 from backend_v2.exceptions import PermissionDeniedError
 from backend_v2.models.auth import TokenData, UserRole
+from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
 
 # Mock setup_logging to avoid litellm crash on Pydantic V2 during tests
 patch("backend_v2.main.setup_logging").start()
@@ -77,3 +79,17 @@ def test_workflow_rbac_delete_member_forbidden(client_member: Any) -> None:
         response = client_member.delete("/studio/workflows/wf_someid123")
 
     assert response.status_code == 403
+
+
+def test_get_workflow_ui_schema_success(client_member: Any) -> None:
+    mock_exec = AsyncMock()
+    mock_exec.get_workflow_ui_schema.return_value = WorkflowSchemaResponseDTO(expected_inputs=[])
+    app.dependency_overrides[get_execution_service] = lambda: mock_exec
+    try:
+        response = client_member.get("/api/v2/execution/workflows/wf_test123/ui_schema")
+        assert response.status_code == 200
+        assert response.json() == {"expected_inputs": []}
+        mock_exec.get_workflow_ui_schema.assert_awaited_once_with("wf_test123")
+    finally:
+        app.dependency_overrides.pop(get_execution_service, None)
+

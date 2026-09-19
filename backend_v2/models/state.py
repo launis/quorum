@@ -20,20 +20,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.analyst import AnalystOutput
-from backend_v2.models.domain.archivist import ArchivistOutput
-from backend_v2.models.domain.causal import CausalOutput
-from backend_v2.models.domain.coach import CoachingPlan
-from backend_v2.models.domain.falsifier import FalsifierOutput
-from backend_v2.models.domain.interaction import InteractionAnalysis
-from backend_v2.models.domain.judge import JudgeOutput
-from backend_v2.models.domain.logician import LogicianOutput
-from backend_v2.models.domain.overseer import OverseerOutput
-from backend_v2.models.domain.performativity import PerformativityOutput
-from backend_v2.models.domain.profiler import ProfilerOutput
-from backend_v2.models.domain.security import InputProcessingOutputDTO
-from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.utils.pydantic_utils import inflate
@@ -66,6 +52,22 @@ class StepExecutionEnvelope(V2CoreBase):
     timestamp_isot: str | None = Field(default=None)
     unix_time: int | None = Field(default=None)
     v2_engine: bool | None = Field(default=None)
+
+
+class StepOutputDTO(V2CoreBase):
+    """Strict execution trace payload format."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    step_id: str = Field(description="The opaque DAG Step ID.")
+    block_id: str = Field(description="The opaque PromptBlock ID.")
+    data_type: Literal["text", "matrix", "unknown"] = Field(
+        description="Inferred or explicitly parsed data type (e.g. matrix, text)."
+    )
+    payload: Any = Field(description="The actual data payload.")
+
+
+from backend_v2.models.domain.usage import TokenUsage
 
 
 class ReasoningTrace(V2CoreBase):
@@ -174,18 +176,10 @@ class TombstoneEvent(TraceEvent):
     redacted_hash: str = Field(description="Cryptographic hash or identifier of the original redacted data.")
 
 
-class StepOutputDTO(V2CoreBase):
-    """Strict execution trace payload format."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    step_id: str = Field(description="The opaque DAG Step ID.")
-    block_id: str = Field(description="The opaque PromptBlock ID.")
-    data_type: Literal["text", "matrix", "unknown"] = Field(
-        description="Inferred or explicitly parsed data type (e.g. matrix, text)."
-    )
-    payload: Any = Field(description="The actual data payload.")
-
+from backend_v2.models.domain.analyst import AnalystOutput
+from backend_v2.models.domain.archivist import ArchivistOutput
+from backend_v2.models.domain.causal import CausalOutput
+from backend_v2.models.domain.coach import CoachingPlan
 
 # Resolve deferred annotations on ExecutionCoreFields and ExecutionRecord (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
@@ -196,10 +190,20 @@ from backend_v2.models.domain.execution import (
     ExecutionSummarySnapshot,
     FrozenContext,
 )
+from backend_v2.models.domain.falsifier import FalsifierOutput
 from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.domain.interaction import InteractionAnalysis
+from backend_v2.models.domain.judge import JudgeOutput
+from backend_v2.models.domain.logician import LogicianOutput
+from backend_v2.models.domain.overseer import OverseerOutput
+from backend_v2.models.domain.performativity import PerformativityOutput
+from backend_v2.models.domain.profiler import ProfilerOutput
+from backend_v2.models.domain.security import InputProcessingOutputDTO
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
@@ -217,6 +221,8 @@ _state_localns = {
     "FrozenContext": FrozenContext,
     "RenderedSynthesisCache": RenderedSynthesisCache,
     "WorkflowInputsIngress": WorkflowInputsIngress,
+    "ScorecardAtomDTO": ScorecardAtomDTO,
+    "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
 }
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
 ExecutionRecord.model_rebuild(_types_namespace=_state_localns)

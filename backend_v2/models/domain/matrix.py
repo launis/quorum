@@ -293,3 +293,8 @@ class MatrixScale(V2CoreBase):
     claims: list[MatrixClaim] = Field(
         default_factory=list, description="List of behavioral claims/criteria for this score."
     )
+
+
+from backend_v2.models.dtos.dag_models import CausalEdge
+
+TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
