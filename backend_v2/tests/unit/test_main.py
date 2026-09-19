@@ -1,6 +1,7 @@
 """Unit tests for backend_v2/main.py covering lifespan, pre-flight checks, middlewares, and exception handlers."""
 
 import logging
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -240,3 +241,109 @@ async def test_rate_limit_exception_handler_delegation() -> None:
         res = await rate_limit_exception_handler(mock_request, mock_exc)
         mock_handler.assert_called_once_with(mock_request, mock_exc)
         assert res.status_code == 429
+
+
+@pytest.mark.asyncio
+async def test_path_normalization_middleware_collapses_double_slashes() -> None:
+    """Test PathNormalizationMiddleware collapses redundant slashes in HTTP paths."""
+    from backend_v2.main import PathNormalizationMiddleware
+
+    called_scope: dict[str, Any] = {}
+
+    async def mock_app(scope: Any, receive: Any, send: Any) -> None:
+        called_scope.update(scope)
+
+    middleware = PathNormalizationMiddleware(mock_app)
+    scope = {"type": "http", "path": "/api/v2//reports/rep_123///pdf"}
+
+    async def mock_receive() -> dict[str, Any]:
+        return {}
+
+    async def mock_send(message: Any) -> None:
+        pass
+
+    await middleware(scope, mock_receive, mock_send)
+    assert scope["path"] == "/api/v2/reports/rep_123/pdf"
+    assert called_scope["path"] == "/api/v2/reports/rep_123/pdf"
+
+
+@pytest.mark.asyncio
+async def test_path_normalization_middleware_ignores_non_http() -> None:
+    """Test PathNormalizationMiddleware ignores non-http scopes."""
+    from backend_v2.main import PathNormalizationMiddleware
+
+    called = False
+
+    async def mock_app(scope: Any, receive: Any, send: Any) -> None:
+        nonlocal called
+        called = True
+
+    middleware = PathNormalizationMiddleware(mock_app)
+    scope = {"type": "websocket", "path": "//ws"}
+
+    async def mock_receive() -> dict[str, Any]:
+        return {}
+
+    async def mock_send(message: Any) -> None:
+        pass
+
+    await middleware(scope, mock_receive, mock_send)
+    assert called is True
+    assert scope["path"] == "//ws"
+
+
+def test_audit_execution_storage_sync_clean(tmp_path: Path) -> None:
+    """Test _audit_storage_and_database_sync when records and disk files match cleanly."""
+    from backend_v2.main import _audit_storage_and_database_sync
+
+    mock_db = MagicMock()
+    mock_table = MagicMock()
+    mock_table.all.return_value = [
+        {"id": "exe_1", "execution_trace_storage_path": str(tmp_path / "exe_1" / "execution_trace.json")}
+    ]
+    mock_db.table.return_value = mock_table
+
+    exe_dir = tmp_path / "exe_1"
+    exe_dir.mkdir(parents=True)
+    (exe_dir / "execution_trace.json").write_text("{}")
+
+    mock_logger = MagicMock()
+    _audit_storage_and_database_sync(db=mock_db, logger=mock_logger, storage_dir=tmp_path)
+    mock_logger.info.assert_called_once()
+    assert "PASSED" in mock_logger.info.call_args[0][0]
+
+
+def test_audit_execution_storage_sync_desync(tmp_path: Path) -> None:
+    """Test _audit_storage_and_database_sync warns on orphaned DB records and unindexed disk runs."""
+    from backend_v2.main import _audit_storage_and_database_sync
+
+    mock_db = MagicMock()
+    mock_table = MagicMock()
+    mock_table.all.return_value = [
+        {"id": "exe_orphaned", "execution_trace_storage_path": None},
+        {"id": ""},
+    ]
+    mock_db.table.return_value = mock_table
+
+    disk_dir = tmp_path / "exe_unindexed"
+    disk_dir.mkdir(parents=True)
+    (disk_dir / "execution_trace.json").write_text("{}")
+
+    mock_logger = MagicMock()
+    _audit_storage_and_database_sync(db=mock_db, logger=mock_logger, storage_dir=tmp_path)
+    mock_logger.warning.assert_called_once()
+    assert "Storage/Database desync detected" in mock_logger.warning.call_args[0][0]
+
+
+@pytest.mark.asyncio
+async def test_lifespan_workflow_detection(tmp_path: Path) -> None:
+    """Test lifespan startup logs workflow files when workflow directory exists."""
+    test_app = FastAPI()
+    with (
+        patch("backend_v2.main._validate_database_preflight"),
+        patch("os.path.exists", return_value=True),
+        patch("os.listdir", return_value=["test_wf.json", "other.txt"]),
+    ):
+        async with lifespan(test_app):
+            pass
+

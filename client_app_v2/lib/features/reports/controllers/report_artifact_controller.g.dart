@@ -353,21 +353,24 @@ final class ReportRowsFamily extends $Family
 }
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
+// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
 
 @ProviderFor(ReportArtifactActions)
 final reportArtifactActionsProvider = ReportArtifactActionsProvider._();
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
+// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
 final class ReportArtifactActionsProvider
     extends $NotifierProvider<ReportArtifactActions, AsyncValue<void>> {
   /// Controller managing report lifecycle mutations (create, regenerate, delete).
+  // Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
   ReportArtifactActionsProvider._()
     : super(
         from: null,
         argument: null,
         retry: null,
         name: r'reportArtifactActionsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -389,9 +392,10 @@ final class ReportArtifactActionsProvider
 }
 
 String _$reportArtifactActionsHash() =>
-    r'82aacd1da9fc291df7e595131b0d5139b14cf810';
+    r'3ace1d79d4e2a5f8fdf6578f54a26c38b48127f6';
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
+// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
 
 abstract class _$ReportArtifactActions extends $Notifier<AsyncValue<void>> {
   AsyncValue<void> build();

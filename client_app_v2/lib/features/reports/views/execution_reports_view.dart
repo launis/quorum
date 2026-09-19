@@ -11,7 +11,7 @@ import 'package:client_app/features/reports/views/widgets/report_artifact_card.d
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:file_saver/file_saver.dart';
 
 /// Comprehensive Master-Detail reports management view adhering to Desktop Pro Tool UX.
 class ExecutionReportsView extends ConsumerStatefulWidget {
@@ -74,9 +74,91 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     }
   }
 
-  Future<void> _downloadFile(String url) async {
-    final uri = Uri.parse(url);
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _downloadPdf(String reportId) async {
+    try {
+      final client = ref.read(reportsClientProvider);
+      final bytes = await client.downloadPdf(reportId);
+      await FileSaver.instance.saveAs(
+        name: 'report_$reportId',
+        bytes: bytes,
+        fileExtension: 'pdf',
+        mimeType: MimeType.pdf,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lataus epäonnistui: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadExcel(String reportId) async {
+    try {
+      final client = ref.read(reportsClientProvider);
+      final bytes = await client.downloadExcel(reportId);
+      await FileSaver.instance.saveAs(
+        name: 'report_$reportId',
+        bytes: bytes,
+        fileExtension: 'xlsx',
+        mimeType: MimeType.microsoftExcel,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lataus epäonnistui: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadCsv(String reportId) async {
+    try {
+      final client = ref.read(reportsClientProvider);
+      final bytes = await client.downloadCsv(reportId);
+      await FileSaver.instance.saveAs(
+        name: 'report_$reportId',
+        bytes: bytes,
+        fileExtension: 'csv',
+        mimeType: MimeType.csv,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.downloadSuccess),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lataus epäonnistui: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -287,18 +369,9 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                   report: r,
                   isSelected: r.id == _selectedReportId,
                   onSelect: () => setState(() => _selectedReportId = r.id),
-                  onDownloadPdf: () {
-                    final client = ref.read(reportsClientProvider);
-                    _downloadFile(client.getPdfDownloadUrl(r.id));
-                  },
-                  onDownloadExcel: () {
-                    final client = ref.read(reportsClientProvider);
-                    _downloadFile(client.getExcelDownloadUrl(r.id));
-                  },
-                  onDownloadCsv: () {
-                    final client = ref.read(reportsClientProvider);
-                    _downloadFile(client.getCsvDownloadUrl(r.id));
-                  },
+                  onDownloadPdf: () => _downloadPdf(r.id),
+                  onDownloadExcel: () => _downloadExcel(r.id),
+                  onDownloadCsv: () => _downloadCsv(r.id),
                   onRegenerate: () {
                     ref
                         .read(reportArtifactActionsProvider.notifier)
@@ -408,21 +481,17 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                           size: 18,
                         ),
                         label: const Text('PDF'),
-                        onPressed: () =>
-                            _downloadFile(client.getPdfDownloadUrl(report.id)),
+                        onPressed: () => _downloadPdf(report.id),
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.table_chart_outlined, size: 18),
                         label: const Text('Excel'),
-                        onPressed: () => _downloadFile(
-                          client.getExcelDownloadUrl(report.id),
-                        ),
+                        onPressed: () => _downloadExcel(report.id),
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.description_outlined, size: 18),
                         label: const Text('CSV'),
-                        onPressed: () =>
-                            _downloadFile(client.getCsvDownloadUrl(report.id)),
+                        onPressed: () => _downloadCsv(report.id),
                       ),
                       FilledButton.tonalIcon(
                         icon: const Icon(Icons.refresh, size: 18),
@@ -641,7 +710,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                 FilledButton.icon(
                   icon: const Icon(Icons.download),
                   label: Text(l10n.downloadPdfTooltip),
-                  onPressed: () => _downloadFile(pdfUrl),
+                  onPressed: () => _downloadPdf(reportId),
                 ),
               ],
             ),

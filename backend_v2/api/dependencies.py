@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     pass
 
 from arq.connections import ArqRedis
-from fastapi import Depends, Request, Security
+from fastapi import Depends, Query, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend_v2.database.driver import StorageDriver
@@ -282,12 +282,14 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 async def get_current_user_from_header(
     auth_service: Annotated[AuthService, Depends(get_auth_service)],
     token: Annotated[HTTPAuthorizationCredentials | None, Security(security)] = None,
+    token_query: Annotated[str | None, Query(alias="token")] = None,
 ) -> TokenData:
-    """Extract and verify the current user from the authorization header.
+    """Extract and verify the current user from the authorization header or query parameter.
 
     Args:
         auth_service: Authentication service.
-        token: HTTP bearer token.
+        token: Optional HTTP bearer token.
+        token_query: Optional query parameter token fallback for file streaming.
 
     Returns:
         Verified token data.
@@ -295,12 +297,13 @@ async def get_current_user_from_header(
     Raises:
         AuthenticationError: If the token is missing or invalid.
     """
-    if not token:
+    raw_token = token.credentials if token is not None else token_query
+    if not raw_token:
         msg = "Missing authentication token"
         error_code = "AUTH_TOKEN_MISSING"
         logger.error("[Dependencies] %s", msg, extra={"error_code": error_code})
         raise AuthenticationError(message=msg, details={"error_code": error_code})
-    return await auth_service.verify_token(token.credentials)
+    return await auth_service.verify_token(raw_token)
 
 
 UserDep = Annotated[TokenData, Depends(get_current_user_from_header)]

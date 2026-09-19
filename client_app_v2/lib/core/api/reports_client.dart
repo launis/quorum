@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:dio/dio.dart';
@@ -44,7 +45,10 @@ class ReportsClient {
     final response = await _dio.get('/executions/$executionId/reports');
     final list = response.data as List<dynamic>;
     return list
-        .map((item) => ReportArtifactSummary.fromJson(item as Map<String, dynamic>))
+        .map(
+          (item) =>
+              ReportArtifactSummary.fromJson(item as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -82,8 +86,43 @@ class ReportsClient {
     await _dio.delete('/reports/$reportId');
   }
 
+  /// Downloads compiled binary PDF document for a report artifact.
+  Future<Uint8List> downloadPdf(String reportId) async {
+    final response = await _dio.get<List<int>>(
+      '/reports/$reportId/pdf',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data!);
+  }
+
+  /// Downloads generated forensic Excel workbook for a report artifact.
+  Future<Uint8List> downloadExcel(String reportId) async {
+    final response = await _dio.get<List<int>>(
+      '/reports/$reportId/excel',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data!);
+  }
+
+  /// Downloads flat CSV export for a report artifact.
+  Future<Uint8List> downloadCsv(String reportId) async {
+    final response = await _dio.get<List<int>>(
+      '/reports/$reportId/csv',
+      options: Options(responseType: ResponseType.bytes),
+    );
+    return Uint8List.fromList(response.data!);
+  }
+
+  String _normalizeBaseUrl() {
+    final base = _dio.options.baseUrl;
+    return base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+  }
+
   /// Download URL builders for direct browser/file streaming
-  String getPdfDownloadUrl(String reportId) => '${_dio.options.baseUrl}/reports/$reportId/pdf';
-  String getExcelDownloadUrl(String reportId) => '${_dio.options.baseUrl}/reports/$reportId/excel';
-  String getCsvDownloadUrl(String reportId) => '${_dio.options.baseUrl}/reports/$reportId/csv';
+  String getPdfDownloadUrl(String reportId) =>
+      '${_normalizeBaseUrl()}/reports/$reportId/pdf';
+  String getExcelDownloadUrl(String reportId) =>
+      '${_normalizeBaseUrl()}/reports/$reportId/excel';
+  String getCsvDownloadUrl(String reportId) =>
+      '${_normalizeBaseUrl()}/reports/$reportId/csv';
 }

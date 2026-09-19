@@ -299,6 +299,23 @@ class LocalizationMiddleware(BaseHTTPMiddleware):
         return response
 
 
+class PathNormalizationMiddleware:
+    """Normalizes redundant slashes in ASGI URL scope to prevent Starlette 404 routing mismatches."""
+
+    def __init__(self, app_instance: Any) -> None:
+        self.app_instance = app_instance
+
+    async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
+        if "type" in scope and scope["type"] == "http":
+            if "path" in scope and "//" in scope["path"]:
+                path: str = scope["path"]
+                while "//" in path:
+                    path = path.replace("//", "/")
+                scope["path"] = path
+        await self.app_instance(scope, receive, send)
+
+
+app.add_middleware(PathNormalizationMiddleware)
 app.add_middleware(RequestIdMiddleware)
 app.add_middleware(LocalizationMiddleware)
 

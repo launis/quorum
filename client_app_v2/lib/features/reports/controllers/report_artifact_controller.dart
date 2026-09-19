@@ -39,7 +39,8 @@ Future<List<ReportRowItem>> reportRows(Ref ref, String reportId) async {
 }
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
-@riverpod
+// Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban
+@Riverpod(keepAlive: true)
 class ReportArtifactActions extends _$ReportArtifactActions {
   @override
   AsyncValue<void> build() => const AsyncValue.data(null);
@@ -61,11 +62,15 @@ class ReportArtifactActions extends _$ReportArtifactActions {
         customPrefaceMd: customPrefaceMd,
         modelRegistryId: modelRegistryId,
       );
-      ref.invalidate(executionReportsProvider(executionId));
-      state = const AsyncValue.data(null);
+      if (ref.mounted) {
+        ref.invalidate(executionReportsProvider(executionId));
+        state = const AsyncValue.data(null);
+      }
       return summary;
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (ref.mounted) {
+        state = AsyncValue.error(e, st);
+      }
       rethrow;
     }
   }
@@ -78,14 +83,18 @@ class ReportArtifactActions extends _$ReportArtifactActions {
     try {
       final client = ref.read(reportsClientProvider);
       final summary = await client.regenerateReport(reportId);
-      ref.invalidate(executionReportsProvider(executionId));
-      ref.invalidate(reportDetailProvider(reportId));
-      ref.invalidate(reportSduiProvider(reportId));
-      ref.invalidate(reportRowsProvider(reportId));
-      state = const AsyncValue.data(null);
+      if (ref.mounted) {
+        ref.invalidate(executionReportsProvider(executionId));
+        ref.invalidate(reportDetailProvider(reportId));
+        ref.invalidate(reportSduiProvider(reportId));
+        ref.invalidate(reportRowsProvider(reportId));
+        state = const AsyncValue.data(null);
+      }
       return summary;
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (ref.mounted) {
+        state = AsyncValue.error(e, st);
+      }
       rethrow;
     }
   }
@@ -98,11 +107,15 @@ class ReportArtifactActions extends _$ReportArtifactActions {
     try {
       final client = ref.read(reportsClientProvider);
       await client.deleteReport(reportId);
-      ref.invalidate(executionReportsProvider(executionId));
-      ref.invalidate(reportDetailProvider(reportId));
-      state = const AsyncValue.data(null);
+      if (ref.mounted) {
+        ref.invalidate(executionReportsProvider(executionId));
+        ref.invalidate(reportDetailProvider(reportId));
+        state = const AsyncValue.data(null);
+      }
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      if (ref.mounted) {
+        state = AsyncValue.error(e, st);
+      }
       rethrow;
     }
   }
