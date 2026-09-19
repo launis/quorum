@@ -1,0 +1,10332 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Enterprise AI Orchestration Engine (2026 SOTA)">
+      
+      
+      
+      
+        <link rel="prev" href="../IMPLEMENTATION_PLAN_Workflow_MCP_Gateway_and_Output_Profile_Relations/">
+      
+      
+        <link rel="next" href="../IMPLEMENTATION_PLAN_Zero_Variance_Engine_Hardening/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Implementation Plan: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding & Pro Tool UX - Cognitive Quorum</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#implementation-plan-option-a-sovereign-model-stack-architecture-deterministic-workflow-binding-pro-tool-ux" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Cognitive Quorum" class="md-header__button md-logo" aria-label="Cognitive Quorum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Cognitive Quorum
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implementation Plan: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding &amp; Pro Tool UX
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Etusivu
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../architecture/00_executive_summary.md" class="md-tabs__link">
+          
+  
+  
+  🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../Holistinen Mestaruus.md" class="md-tabs__link">
+          
+  
+  
+  🧠 Kognitiivinen Orkestraatio (Teoria)
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../BACKLOG_ALIAS_ENGINE_AND_DICT_PURGE/" class="md-tabs__link">
+          
+  
+  
+  🚀 Epics & Features
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../swagger/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  ⚙️ API Swagger Docs
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Cognitive Quorum" class="md-nav__button md-logo" aria-label="Cognitive Quorum" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Cognitive Quorum
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Etusivu
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🏛️ Arkkitehtuurimäärittely (The Modular Engine)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/00_executive_summary.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    00. Yhteenveto & Säännöt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/01_backend_api_and_core.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01. API-kerros ja Asynkroninen Core
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/02_domain_models.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02. Pydantic-tietomalli & Fail-Fast
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/03_business_services_and_dag.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03. Työnkulkujen Orkestraatio (DAG)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/04_hooks_and_llm.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04. Tekoälyn Hooks & LLM Päätepisteet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/05_data_persistence_and_seeding.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05. Yhteystasot, CQRS & The Seed Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/06_desktop_first_flutter_client.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06. Esityskerros (Desktop-first Flutter)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/07_infrastructure_and_observability.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07. Infrastruktuuri & Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🧠 Kognitiivinen Orkestraatio (Teoria)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🧠 Kognitiivinen Orkestraatio (Teoria)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Holistinen Mestaruus.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Holistinen Mestaruus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Agent_Workflows_Opas.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Workflows Opas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 Epics & Features
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    🚀 Epics & Features
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../BACKLOG_ALIAS_ENGINE_AND_DICT_PURGE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backlog: AliasEngine Refactoring &amp; Complete Dict Traversal Purge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../CLEAN_PYDANTIC_TRANSITION_CATALOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Clean Pydantic Transition Catalog &amp; Refactoring Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Epistemic%20Determinism%20in%20Stochastic%20Large%20Language%20Models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epistemic Determinism in Stochastic Large Language Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../KATTAVA%20TUOTANTOARKITEHTUURIN%20IMPLEMENTO/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KATTAVA TUOTANTOARKITEHTUURIN IMPLEMENTO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../Teht%C3%A4v%C3%A4%20-%20Ty%C3%B6n%20ja%20vapaa-ajan%20suhde%201/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TEKOÄLYN KÄYTÖN TESTAUS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arkkitehtuurin_elinkaari/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arkkitehtuurin ja Dokumentaation Elinkaari (The Antigravity Way)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arkkitehtuurin_parannuskohteet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Arkkitehtuurin ja Tietomallien Parannuskohteet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deep_dict_leakage_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Syvyysauditointi: Dict-Vuotovektorit Nykyisen Suunnitelman Ohitse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../plan_workflow_step_controls_restructuring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Workflow Step Controls &amp; Terminology Restructuring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../teoreettinen_ja_kaupallinen_positiointi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quorumin Tieteellinen ja Kaupallinen Positiointi (2024–2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tier3_decomposition_instructions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ohje: Miten käyttää /tier3-god-code-decomposition -työnkulkua
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_12" id="__nav_4_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/00_README_META_ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    META-GOVERNANCE: THE DUAL-AXIS DOCUMENTATION PARADIGM
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/01_system_context_and_invariants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System Context &amp; Core Invariants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/02_data_seeding_and_ontology/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Seeding &amp; Ontology
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/03_cognitive_orchestration_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cognitive Orchestration Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/04_server_driven_ui_and_presentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server-Driven UI &amp; Presentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/05_resilience_and_observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Resilience &amp; Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/06_enriched_atom_graph_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enriched Atom Graph Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/07_eu_ai_act_compliance_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EU AI Act Compliance &amp; Governance Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/08_matrix_explanations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Matrix Theory Explanations Compendium
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/09_llm_prompt_orchestration_and_matrix_evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Prompt Orchestration &amp; Matrix Evaluation Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_13" id="__nav_4_13_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Audit
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_bipolar_matrix_scores/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System 2 Feature &amp; Phenomenon Audit: Polarisoituneet 0/5 ja 5/5 Matriisitasot
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_context_target_inputs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature &amp; Architectural Audit: Context Target Input Routing &amp; "Lopputuote" Badge Hardcoding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/feature_audit_theory_grounding_calibration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Audit Report: Theory-Grounding Matrix Calibration &amp; Diagnostic Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/red_team_audit_binary_target_speaker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit: Binary Target Speaker Contract Anchored to is_chat_history SSOT &amp; Strict Quote Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/red_team_audit_modern_python_typing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit: Modern Python Typing, 100% Protocol Reconstitution, Dict Eradication &amp; Strict Boundary Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit/red_team_audit_scoring_double_inversion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit: Scoring Double-Inversion Elimination, Multi-Input Context Target Routing &amp; Verbatim Quote Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14" id="__nav_4_14_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Epic
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2%20-%20Osa%201%20%28Valmistelu%29/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: B2B SaaS IAM-arkkitehtuuri 2026 - Osa 1 (Valmistelu)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2%20-%20Osa%202%20%28Integraatio%29/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: B2B SaaS IAM-arkkitehtuuri 2026 - Osa 2 (Integraatio)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026%20vrs2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: IAM, Hybrid-Organisaatiomalli &amp; Enterprise Hardening (SaaS 2026)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/B2B%20SaaS%20IAM-arkkitehtuuri%202026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC: IAM &amp; Organisaatiomalli (SaaS 2026 - Nykyarkkitehtuurin Vahvistus)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_101_Global_Extraction_Node/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 101: RAG Pre-Flight Pipeline &amp; Deterministic Anchoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_102_structured_provenance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 102: Structured Provenance &amp; Context Segregation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_102_structured_provenance_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 102: Structured Provenance &amp; Context Segregation - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_103_tda_best_of_three_flash/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 103: TDA Best-Of-Three Flash Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_103_tda_best_of_three_flash_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 103: TDA Best-Of-Three Flash Architecture Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_104_tda_pipeline_extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 104: TDA Pipeline Extraction &amp; Strategy Injection
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_104_tda_pipeline_extraction_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 104: TDA Pipeline Extraction — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_105_synthesis_engine_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 105: Synthesis Engine Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_105_synthesis_engine_unification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 105: Synthesis Engine Unification — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_106_output_profile_simplification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 106: OutputProfile Simplification &amp; SDUI Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_106_output_profile_simplification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 106 Tracker: OutputProfile Simplification &amp; SDUI Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_107_execution_pipeline_optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 107: Execution Pipeline Optimization &amp; Pacing Lock Resolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_107_execution_pipeline_optimization_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 107 Tracker: Execution Pipeline Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_108_cognitive_pagination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 108: Cognitive Pagination &amp; Semantic Anchor Extraction (Atomizer NLP Optimization)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_108_cognitive_pagination_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 108 Tracker: Cognitive Pagination &amp; Semantic Anchor Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_109_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_109_output_profile_ui_and_i18n_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109: Output Profile UI and i18n Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_109_output_profile_ui_and_i18n_unification_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 109: Output Profile UI and i18n Unification Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_110_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_110_dumb_painter_sdui_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110: Dumb Painter SDUI Architecture (Zero Intelligence Rendering)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_110_dumb_painter_sdui_architecture_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 110: Dumb Painter SDUI Architecture Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_111_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111: Final Audit Report (Tier 8)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_111_sdui_legacy_eradication_and_ui_refactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111: Eradicate Legacy SDUI Fields &amp; Output Profile Refactoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_111_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 111 TRACKER: Eradicate Legacy SDUI Fields &amp; Output Profile Refactoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_114_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114: Shift-Left Testing &amp; QA Architecture - Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_114_shift_left_testing_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114: Shift-Left Testing &amp; QA Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_114_shift_left_testing_architecture_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 114 Tracker: Shift-Left Testing &amp; QA Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_115_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 115: Timeless Architecture Documentation Reform - Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_115_timeless_architecture_documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 115: Timeless Architecture Documentation Reform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_115_timeless_architecture_documentation_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: EPIC 115 - Timeless Architecture Documentation Reform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_116_tda_context_enriched_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 116: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_117_Dynamic_Tool_Registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 117: Dynamic Tool Registry &amp; SRP Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_118_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118 Audit Report: Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_118_tda_context_enriched_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_118_tda_context_enriched_pipeline_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 118 Tracker: TDA Context-Enriched Decompose-Verify Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_119_XML_Sandwich_Standardization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119: Universal XML Sandwich &amp; Context Quarantine Standardization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_119_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119 Audit Report (System 2 Reverse Epic Analysis)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_119_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 119: Universal XML Sandwich &amp; Context Quarantine Standardization Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_120_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120 Final Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_120_database_driven_sdui_templates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120: SDUI Strictness Hardening — Eradicating Unstructured Presentation Fields
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_120_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 120 Tracker: SDUI Strictness Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_121_admin_studio_sdui_template_editor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 121: Admin Studio Output Profile SDUI Template Editor
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_122_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_122_legacy_parity_output_profile/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122: Legacy Parity Output Profile (Strict SDUI)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_122_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 122: Legacy Parity Output Profile (Strict SDUI) - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_123_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123 Audit Report: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_123_legacy_matrix_synthesis_and_pure_sdui_parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_123_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 123 Tracker: Legacy Matrix Synthesis and Pure SDUI Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_130_blueprint_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 130: Blueprint Transformer Decomposition into Modular SDUI Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_130_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 130 Tracker: Blueprint Transformer Decomposition into Modular SDUI Adapters
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_131_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131 AUDIT REPORT: SDUI Layout Unification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_131_sdui_layout_unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131: SDUI Layout Unification — Flat Polymorphic Block Pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_131_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 131: SDUI Layout Unification Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_132_sdui_pre_computation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 132: SDUI Pre-computation &amp; Dynamic Workflow Extensions Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_133A_lightweight_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133A: Lightweight Matrix God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_133A_lightweight_matrix_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133A Tracker: Lightweight Matrix God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_133B_tripartite_pipeline_strictness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133B: Tripartite Pipeline Strictness (Regex &amp; JSON Mapping Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_133C_domain_model_sdui_localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 133C: Domain Model &amp; SDUI Localization (Enums &amp; "N/A" Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_133_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ylätason suunnitelma: God Code -tiedostojen refaktorointi (Tier 2 &amp; Tier 3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_134_v2_core_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 134: v2_core.py God Code Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_134_v2_core_god_code_decomposition_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 134: v2_core.py God Code Decomposition - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_135_Schema_Convergence_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_135_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication - Final Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_135_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 135: Schema Convergence &amp; Legacy Matrix Eradication - Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_136_Test_Expansion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 136: Comprehensive Test Expansion &amp; AST Guardrails — Implementation Plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_136_Test_Expansion_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: EPIC 136 Comprehensive Test Expansion &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_136_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Report: EPIC 136 Comprehensive Test Expansion &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_Qualitative_Depth_Restoration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137: Qualitative Depth Restoration &amp; TDA Extraction Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 Tracker: Qualitative Depth Restoration &amp; TDA Extraction Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_138_TDA_Engine_DTO_Projection_Refactor/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 138: TDA Engine DTO Projection Refactor (ResultProjector Eradication)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_139_Strict_Type_Checks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 139: Strict Service Layer Type Checking (Replacing hasattr Duck Typing)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_140_Matrix_Scoring_Reliability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 140: Matrix Scoring Reliability &amp; Protocol Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_141_Holistic_Executive_Synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 141: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_141_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 141 Audit Report: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_141_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 141: Holistic Executive Synthesis &amp; RAG Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142_Matrix_Atom_Boolean_Evaluation_Fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142: Matrix Atom Boolean Evaluation Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142 Tracker: Matrix Atom Boolean Evaluation Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_143_Synthesis_Matrix_Explanation_Fix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_143_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143 Audit Report: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_143_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 143 Tracker: Synthesis Matrix Explanation Timing Fix &amp; Architecture Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_144_Output_Profile_Studio_UI_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization &amp; Visual Block Builder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_144_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization — Forensic Audit Report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_144_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 144: Output Profile Studio UI Modernization — Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_145_Workflow_Context_Governance_and_Studio_UX/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_145_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145 Audit Report: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_145_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 145 Tracker: Workflow Context Governance &amp; Studio UX Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146: Unified Prompt Orchestration and Cognitive Instruction Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_146_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146 Retrospective Audit Report: Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_146_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 146 Tracker: Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_147_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Audit Report: Engine Dispatch, Strategy Container &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_147_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 147 Tracker: Engine Dispatch, Strategy Container &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_148_Domain_Model_SSOT_and_Localization_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 Domain Model SSOT and Localization Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_148_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 Audit Report: Domain Model SSOT &amp; Presentation Localization Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_148_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 148 tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_149_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SYSTEM 2 ARCHITECTURAL RESEARCH &amp; AUDIT REPORT: EPIC 149
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_149_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 149 Tracker: Clean Pydantic V2 Full Codebase Transition &amp; AST Guardrails Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_150_Zero_Permissive_Typing_Lockdown/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 150 Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_150_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 150: FINAL SYSTEM 2 REVERSE EPIC AUDIT REPORT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_150_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 150 Tracker: Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_151_PostgreSQL_Clean_Slate_Migration_and_TinyDB_Eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 151 PostgreSQL Clean Slate Migration and TinyDB Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_151_audit_report/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 151 audit report
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_72_PostgreSQL_Driver_and_Data_Layer_Migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 72 PostgreSQL Driver and Data Layer Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_73_CICD_Pipeline_and_Automated_Quality_Assurance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 73: CI/CD Pipeline ja Automaattinen Laadunvarmistus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_74_Production_Deployment_GCP/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 74: Production Deployment — Google Cloud Platform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_89_Dynamic_Tool_Registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    🚀 EPIC 89: Dynamic Tool Registry &amp; SRP Hardening (V2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_91_5_DTO_Bridge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 91.5: The Universal DTO Bridge (Vaihe 1/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_92_Enriched_Atom_Graph_Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 92: Enriched Atom Graph Architecture (Vaihe 2/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_93_SDUI_Output_Rendering_Unification%202/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 93: SDUI Output Rendering Unification (Vaihe 3/3)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_94_Frontend_SDUI_Synchronization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 94: Frontend SDUI Synchronization (Flutter V2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_94_Module_Decomposition_Workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 94: God Code Module Decomposition Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_94_SDUI_Output_Rendering_Unification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OSA 1: Alkuperäinen Luonnos ja Nykytilan Kartoitus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_95_Go_Live_Readiness/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 95: Quorum V2 Go-Live Readiness &amp; Production Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_95_Verification_Bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TIER 5 SESSION HANDOVER: Verification &amp; Testing Pyramid Epic
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_95_Verification_Testing_Pyramid/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 95: Verification Testing Pyramid &amp; End-to-End Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/HOWTO_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    KÄYTTÖOHJE: Massiivisten "God Code" -tiedostojen purkaminen (Tier 3 &amp; Tier 2)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/component_decomposition_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic Tracker: component.py Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/epic_100/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 100: Radical Speedup &amp; DAG Scalability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/epic_100_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 100 Tracker: Radical Speedup &amp; DAG Scalability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/epic_101_global_extraction_tracker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Epic 101: Global Extraction Node — Master Tracker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/quorum_architecture_post_epic_101/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quorum Core Architecture &amp; Invariants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_128" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_128" id="__nav_4_14_128_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 137 plans
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_128_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_128">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EPIC 137 plans
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 phase1 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 phase2 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 phase3 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 phase4 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/05_phase5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 phase5 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_137_plans/06_phase6_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 phase6 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_129" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_129" id="__nav_4_14_129_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_129_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_129">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    EPIC 142
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_1_5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 5 plan
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: DTO Boundary Lockdown &amp; Pre-flight Coercion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: MatrixDomainParser Scoring Fix (Pure Domain Logic &amp; Denominator Correction)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Synthesis Context Preservation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142: Phase 4 - Atomic Test Alignment (Test Expansion)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/EPIC_142/phase_5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    EPIC 142 Phase 5: Pydantic Schema CoT Ordering Audit &amp; Fix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_130" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_130" id="__nav_4_14_130_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 141
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_130_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_130">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 141
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_141/Phase_1_DAG_Engine_Strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 DAG Engine Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_141/Phase_2_Distiller_Extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Distiller Extraction &amp; Payload Compression Isolation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_141/Phase_3_Sensor_Routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Sensor Routing &amp; Matrix Explanation Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_141/Phase_4_Automated_Testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Automated Testing Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_141/Phase_5_Post_Implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Post-Implementation Final Gates
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_131" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_131" id="__nav_4_14_131_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 143
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_131_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_131">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 143
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Foundation &amp; SSOT Utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Distiller Unfiltered Context Pipeline &amp; Locale Hoisting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Matrix Explanation Service Hardening &amp; Dual Reporting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: SDUI Presentation &amp; XAI Highlights Fair Distribution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/red_team_audit_01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red-Team Audit Report: EPIC 143 Phase 1 (Foundation &amp; SSOT Utilities)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/red_team_audit_02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Red Team Audit Report: Phase 2 (Distiller Unfiltered Context Pipeline &amp; Locale Hoisting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/red_team_audit_03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    System 2 Red-Team Audit Report: Phase 3 (Matrix Explanation Service Hardening &amp; Dual Reporting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_143/red_team_audit_04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tier 8 Red Team Plan Audit Report: Phase 4 (SDUI Presentation &amp; XAI Highlights Fair Distribution)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_132" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_132" id="__nav_4_14_132_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 144
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_132_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_132">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 144
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/01_p0_backend_config_enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-A: Backend Config, Enums &amp; Settings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/02_p0_seed_sanitization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-B: Master Seed Sanitization &amp; Local Reseed
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/03_p0_backend_models_dto_purge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-C: Backend Models &amp; DTO Strict Purge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/04_p0_backend_test_fixtures_batch1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-D: Backend Test Fixtures Alignment Batch 1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/05_p0_backend_test_fixtures_batch2/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-E: Backend Test Fixtures Alignment Batch 2
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/06_p0_openapi_sync_gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-F: OpenAPI Synchronization Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/07_p0_frontend_enums_freezed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-G: Frontend Enum &amp; Freezed Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/08_p0_frontend_test_fixtures/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-H: Frontend Test Fixtures &amp; Negative Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/09_p0_integration_checkpoint/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0-I: Integration Checkpoint
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/10_p1_golden_master_baseline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1-A: Golden Master Test Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/11_p1_tab_scaffold_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1-B: 3-Tab Scaffold Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/12_placeholder_phase2_block_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Visual Block Builder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/13_placeholder_phase3_backend_alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Execution, Synthesis Alignment &amp; Prompt DRY Simplification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/14_placeholder_phase4_localization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Localization Synchronization &amp; Freezed Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_144/15_placeholder_phase5_quality_gates/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Quality Gates &amp; Anti-Happy-Path Falsification
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_133" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_133" id="__nav_4_14_133_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 145 Workflow Context Governance and Studio UX
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_133_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_133">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 145 Workflow Context Governance and Studio UX
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/01_phase1_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Cross-Domain DTO Parity, Freezed Code Generation Lock &amp; Pre-Implementation Tech Debt Cleanups (Contract First &amp; Zero Duct-Tape)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/02_phase2_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Atomic Seed Data Migration &amp; Database Re-seeding Gate (Vault Protocol)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/03_phase3_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Domain &amp; Synthesis Payload Compression Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/04_phase4_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Studio Workflow &amp; Step Blueprint UX Restructuring (3-Zone Management &amp; Core Protection)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_145_Workflow_Context_Governance_and_Studio_UX/05_phase5_plan/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Verification, Widget Testing &amp; E2E Integration Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_134" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_134" id="__nav_4_14_134_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 146 Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_134_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_134">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 146 Unified Prompt Orchestration and Cognitive Harmonization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/01_phase1_backend_tech_debt_and_ast_guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Requisite Technical Debt Cleanups &amp; AST Guardrails (Backend)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/02_phase1_frontend_tech_debt_cleanups/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Requisite Technical Debt Cleanups (Frontend Studio Views)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/03_phase2_seed_data_verification_and_reseed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Seed Data Migration &amp; Vault Mutation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/04_placeholder_phase3_backend_domain_and_service_harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Backend Domain &amp; Service Harmonization (and Test Fixtures Harmonization)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/05_placeholder_phase4_flutter_studio_client_harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Flutter Studio Client Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/06_placeholder_phase6_layer1_global_mandates_and_compiler/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6: Layer 1 Global Mandates Injection &amp; Compiler Foundation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/07_placeholder_phase7_polymorphic_prompt_blocks_and_ast_guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7: Polymorphic AnyPromptBlock Discriminated Union &amp; AST Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/08_placeholder_phase8_clean_stack_compiler_assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 8: Clean Stack Compiler Layer Assembly
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/09_placeholder_phase9_flutter_studio_zero_xml_ui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 9: Flutter Studio Zero-XML UI Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/10_placeholder_phase10_seed_vault_pruning_and_reseeding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 10: Seed Vault Pruning &amp; Database Reseeding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_146_Unified_Prompt_Orchestration_and_Cognitive_Harmonization/11_placeholder_phase11_e2e_live_integration_verification/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 11: End-to-End Live Integration Verification Gate &amp; Knowledge Synchronization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_135" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_135" id="__nav_4_14_135_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_135_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_135">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 147 Engine Dispatch and Cognitive Grounding Resilience
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/01_phase1_tech_debt_dtos_repositories_and_strategy_registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Pre-Implementation Technical Debt Cleanups, DTOs, Repository Interfaces &amp; Strategy Registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/02_phase2_engine_architecture_node_executor_and_dag_concurrency/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Engine Architecture, NodeExecutor Decomposition, Single-Fetch DI &amp; DAG Concurrency Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/03_placeholder_phase3_ghost_execution_elimination_and_hook_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: Ghost Execution Elimination &amp; Source Verification Hook Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_147_Engine_Dispatch_and_Cognitive_Grounding_Resilience/04_placeholder_phase4_ast_guardrails_unit_test_suites_and_e2e_gate/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: AST Guardrails, Unit Test Suites, Mock Migrations &amp; E2E Integration Gate
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_136" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_136" id="__nav_4_14_136_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 148
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_136_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_136">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 148
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_148/01_phase1_theory_grounding_and_epistemic_anchor_sanitization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Theory Grounding &amp; Epistemic Anchor Sanitization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_148/02_phase2_atomic_i18n_text_modernization_and_systemic_fixture_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: ATOMIC I18nText Modernization &amp; Systemic Fixture Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_148/03_placeholder_phase3_output_profile_sdui_dumb_painter_and_localization_parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: ATOMIC OutputProfile, SDUI Dumb Painter &amp; Localization Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_148/04_placeholder_phase4_ast_guardrails_parity_suites_and_final_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: AST Guardrails, Parity Suites &amp; Final Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_137" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_137" id="__nav_4_14_137_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_137_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_137">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 149 Clean Pydantic V2 Full Codebase Transition
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/01_phase1_seed_vault_ssot_foundation_and_client_ingress/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: Seed Vault Sanitization, Pre-Implementation Cleanups &amp; SSOT Foundation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/02_phase2_repository_reconstitution_and_dal_tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2: Repository Reconstitution, Storage Blob Hydration &amp; DAL Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/03_placeholder_phase3a_scoring_god_code_decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3A: scoring.py God Code Decomposition (Strangler Fig Proxy Pattern)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/04_placeholder_phase3b_hooks_pydantic_v2_migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3B: Full Hooks Pydantic V2 Migration &amp; Hook Tests (PRODUCERS FIRST)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/05_placeholder_phase4_orchestration_and_strategy_core/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Orchestration &amp; Strategy Core Refactoring &amp; Tests (CONSUMERS SECOND)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/06_placeholder_phase5_service_layer_and_identity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5: Service Layer, Utility Services &amp; Service Tests (CONSUMERS SECOND)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/07_placeholder_phase6_workers_typed_cache_and_storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6: Background Workers, Typed Cache Boundary &amp; Storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_149_Clean_Pydantic_V2_Full_Codebase_Transition/08_placeholder_phase7_ast_guardrails_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7: AST Guardrail Hardening (Mathematical Drift Prevention)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_138" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_138" id="__nav_4_14_138_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    tasks EPIC 150 Zero Permissive Typing Lockdown
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_138_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_138">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    tasks EPIC 150 Zero Permissive Typing Lockdown
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/01_phase1a_llm_models_and_prompt_dto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    01 phase1a llm models and prompt dto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/02_phase1b_llm_adapters_and_provider_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    02 phase1b llm adapters and provider pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/03_phase1c_coupled_tests_and_seed_validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    03 phase1c coupled tests and seed validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/04_phase2a_service_and_progress_dto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    04 phase2a service and progress dto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/05_phase2b_studio_and_seed_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    05 phase2b studio and seed models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/06_phase3a_hooks_suppression_eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    06 phase3a hooks suppression eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/07_phase3b_orchestrator_suppression_eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    07 phase3b orchestrator suppression eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/08_phase3c_repositories_and_domain_models/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    08 phase3c repositories and domain models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_EPIC_150_Zero_Permissive_Typing_Lockdown/09_phase4_ast_hardening_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    09 phase4 ast hardening and governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_14_139" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_14_139" id="__nav_4_14_139_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks tda pipeline extraction
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_4_14_139_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_14_139">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tasks tda pipeline extraction
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_tda_pipeline_extraction/phase_0_protocol_prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0: Protocol Prerequisites &amp; Directory Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_tda_pipeline_extraction/phase_1_tda_engine_extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1: TDA Engine Extraction &amp; Settings Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_tda_pipeline_extraction/phase_2_strategy_refactoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 &amp; 3: LLMNodeStrategy Refactoring, Engine Delegation, &amp; DAG Wiring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_tda_pipeline_extraction/phase_3_dag_executor_wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3: DAG Executor Wiring &amp; Fail-Fast Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../epic/tasks_tda_pipeline_extraction/phase_4_testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4: Engine Unit Tests &amp; Post-Extraction Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_15" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4_15" id="__nav_4_15_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementationplans
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_15_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Implementationplans
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../FEATURE_AUDIT_API_Bypass_and_UI_Matrix_Linter/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FEATURE AUDIT API Bypass and UI Matrix Linter
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_AI_Studio_Native_Context_Caching/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN AI Studio Native Context Caching
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_AST_Codebase_Guardrails/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN AST Codebase Guardrails
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Canonical_Import_Migration_and_Strangler_Fig_Facade_Eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Canonical Import Migration and Strangler Fig Facade Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Circuit_Breaker_Sparse_Data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Circuit Breaker Sparse Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Cognitive_Instruction_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Cognitive Instruction Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Cross_Model_Variance_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Cross Model Variance Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Data_Flow_Strictness_and_State_Transitions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Data Flow Strictness and State Transitions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Dynamic_Causal_Discovery_Engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Dynamic Causal Discovery Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Engine_Dispatch_and_Node_Executor_Decomposition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Engine Dispatch and Node Executor Decomposition
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Execution_Record_Hardening_and_Tech_Debt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Execution Record Hardening and Tech Debt
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Flutter_Schema_Hardening_and_Parity/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Flutter Schema Hardening and Parity
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Full_Database_Verification_Engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Full Database Verification Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Gemini_37_Flash_Migration_and_Model_Registry_Normalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Gemini 37 Flash Migration and Model Registry Normalization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Harvard_Bibliography_and_Source_Verification_Config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Harvard Bibliography and Source Verification Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Matrix_Causal_DAG_Integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Matrix Causal DAG Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Modern_Python_Typing_and_Protocol_Enforcement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Modern Python Typing and Protocol Enforcement
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Modular_Competency_Training_Workflows/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Modular Competency Training Workflows, Output Profiles, and Dynamic Ingress Specs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_PostgreSQL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN PostgreSQL
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Prompt_Architecture_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN: Prompt Architecture Harmonization (Tripartite Subpackage Topology, FinOps Caching, Studio UI 1:1 Parity &amp; SSOT Length Budgeting)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Scoring_Double_Inversion_Elimination_Context_Targets_and_Quote_Extraction/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Scoring Double Inversion Elimination Context Targets and Quote Extraction
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Sovereign_Dynamic_Model_Discovery_and_Google_Providers_Decoupling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Sovereign Dynamic Model Discovery &amp; Google Providers Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Studio_TDA_Editor_Input_Modernization_and_ContrastivePairDTO_Migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Studio TDA Editor Input Modernization &amp; ContrastivePairDTO Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Tavily_Source_Bibliography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Tavily Source Bibliography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Test_Architecture_Lockdown_and_Mock_Eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Test Architecture Lockdown and Mock Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Theory_Grounding_Dual_Injection_Elimination/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Theory Grounding Dual Injection Elimination
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Theory_Grounding_Matrix_Calibration_and_Micro_Slice_Engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Theory Grounding Matrix Calibration and Micro Slice Engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Token_Counter_SSOT_and_FinOps_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Token Counter SSOT and FinOps Harmonization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Tripartite Pipeline Isolation and Worker Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Typing_Syntax_and_Interface_Modernization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Typing Syntax and Interface Modernization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Unified_Cognitive_Parity_Variance_Optimizations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unified Implementation Plan: Inter-Model Epistemic Parity, Provider-Agnostic Cognitive Tiers &amp; E2E Pipeline Variance Optimizations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Unified_Model_Registry_Multi_Region_Discovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Unified Model Registry Multi Region Discovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Unified_Prompt_Orchestration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Unified Prompt Orchestration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Wikipedia_MCP_Integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Wikipedia MCP Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Workflow_MCP_Gateway_and_Output_Profile_Relations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Workflow MCP Gateway and Output Profile Relations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding &amp; Pro Tool UX
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation Plan: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding &amp; Pro Tool UX
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Objective
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#user-review-required" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        User Review Required
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-target-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope &amp; Target Boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Scope &amp; Target Boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-pre-implementation-cleanups-discovered-technical-debt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Pre-Implementation Cleanups (Discovered Technical Debt)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target-files-precise-ast-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target Files &amp; Precise AST Bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#falsification-red-teaming-analysis-attack-surface-mitigations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Falsification &amp; Red-Teaming Analysis (Attack Surface &amp; Mitigations)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-column-architectural-directive-table" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5-Column Architectural Directive Table
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Verification Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Verification Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#automated-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Automated Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../IMPLEMENTATION_PLAN_Zero_Variance_Engine_Hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    IMPLEMENTATION PLAN Zero Variance Engine Hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Canonical_Import_Migration_and_Strangler_Fig_Facade_Eradication/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: Canonical Import Migration &amp; Strangler Fig Facade Eradication
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Cross_Model_Variance_Harmonization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: Cross-Model Variance Harmonization, Global Sensor Directives, Matrix Seed Vault Hardening, and Input Ingress Determinism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Execution_Record_Hardening_and_Tech_Debt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: ExecutionRecord Hardening &amp; Technical Debt Resolution
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Sovereign_Dynamic_Model_Discovery_and_Google_Providers_Decoupling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: Sovereign Dynamic Model Discovery &amp; Google Providers Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    TRACKER Tripartite Pipeline Isolation and Worker Decoupling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TRACKER_Workflow_Model_Registry_Binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tracker: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding &amp; Pro Tool UX
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../implementation_plan_vertex_cache_hardening/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Implementation plan vertex cache hardening
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ⚙️ API Swagger Docs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="implementation-plan-option-a-sovereign-model-stack-architecture-deterministic-workflow-binding-pro-tool-ux">Implementation Plan: Option A Sovereign Model Stack Architecture, Deterministic Workflow Binding &amp; Pro Tool UX</h1>
+<p><required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/03_seed_vault.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
+  <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_provider_agnostic_caching.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+</required_context_rules></p>
+<h2 id="objective">Objective</h2>
+<p>Evolve Quorum's model configuration architecture into <strong>Option A: Sovereign Model Stack Architecture (One Document = One Coherent 4-Tier Model Stack)</strong> with deterministic workflow-level binding (<code>Workflow.model_registry_id</code>), eradicate vendor name leakage from workflow step authoring, upgrade the Model Registry UI to strictly comply with Desktop Pro Tool UX standards (<code>@[ki_desktop_pro_tool_studio_ux.md]</code>), and modernize <code>run_e2e_variance_test.py</code> to source all model telemetry dynamically from the database without hardcoding and support automated <code>--compare-registries</code> differential benchmark runs.</p>
+<p>This plan delivers five core pillars:
+1. <strong>Option A Sovereign Model Stack Architecture:</strong> Flattens <code>SystemConfigModelRegistry.tier_definitions</code> from a nested multi-provider map (<code>dict[provider, dict[tier, profile]]</code>) to a direct 4-tier mapping: <code>tier_definitions: dict[CognitiveTier, ModelProfile]</code>. Each registry document represents a single named, self-contained model stack (specifically: "Google Gemini Sovereign Stack", "OpenAI O-Series Stack", or a custom hybrid stack). Each tier profile encapsulates its own <code>provider</code>, <code>model_name</code>, and execution parameters.
+2. <strong>Strict Vendor-Neutral Step Authoring:</strong> Eradicates physical model strings (specifically <code>[gemini/gemini-3.8-flash]</code>) and hardcoded vendor chips from <code>StepBuilderView</code>. Workflow steps author pure abstract cognitive tiers (<code>FAST</code>, <code>BALANCED</code>, <code>DEEP</code>, <code>REASONING</code>), decoupling workflow blueprints from underlying physical model infrastructure.
+3. <strong>Deterministic Workflow-to-Registry Binding:</strong> Establishes <code>Workflow.model_registry_id</code> across backend domain models, studio DTOs, Flutter Freezed models, and <code>WorkflowGeneralTab</code>, enabling workflows to deterministically target dedicated model stacks.
+4. <strong>Desktop Pro Tool UX for Model Registry CRUD &amp; Clone:</strong> Upgrades <code>ModelRegistryView</code> and <code>StudioDashboardView</code> to satisfy <code>ki_desktop_pro_tool_studio_ux.md</code>:
+   - Enforces Bounded Canvas Containment (<code>maxWidth: 1200px</code>) centered on screen.
+   - Dual-Shield <code>PopScope</code> navigation guards with serialization-based dirty checking and localized discard confirmation modals.
+   - In-view deep clone trigger (<code>Icons.copy</code>) in the top AppBar.
+   - Clean 4-card tier layout (<code>FAST</code>, <code>BALANCED</code>, <code>DEEP</code>, <code>REASONING</code>) without nested expansion tiles.
+   - Scalable list browsing in Studio Dashboard Tab 6 with real-time search, count indicator, and density-optimized tiles.
+5. <strong>Dynamic Database Sourcing &amp; Automated Multi-Model Comparison in E2E Variance Harness:</strong>
+   - In <code>scripts/run_e2e_variance_test.py</code>, all model telemetry and execution parameters are dynamically resolved from the active database (<code>data/db_v2.json</code> or <code>seed_data.json</code>) eliminating hardcoded assumptions.
+   - All printed telemetry displays human-readable stack names (specifically: "Google Gemini Sovereign Stack"), default providers, and actual physical model names (specifically: <code>gemini/gemini-3.8-flash</code>, <code>openai/gpt-5.1</code>) rather than opaque ID strings.
+   - Adds <code>--model-registry</code> CLI option enabling ad-hoc override of the model stack for a single execution run.
+   - Adds automated <code>--compare-registries</code> CLI option (supporting zero-argument automatic pairing of workflow registry against alternative DB stack, or explicit two-argument pairing) that executes sequential runs across two distinct model stacks with identical inputs and automatically synthesizes a differential report via <code>scripts/diff_executions.py</code>.</p>
+<hr />
+<h2 id="user-review-required">User Review Required</h2>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>Option A Schema Flattening:</strong>
+<code>SystemConfigModelRegistry</code> simplifies from <code>dict[LLMProvider, dict[CognitiveTier, ModelProfile]]</code> to <code>dict[CognitiveTier, ModelProfile]</code>. Each registry document represents one complete 4-tier stack. A workflow binds to exactly one registry via <code>Workflow.model_registry_id</code>. When a step requests <code>CognitiveTier.FAST</code>, the orchestrator queries <code>registry.tier_definitions[CognitiveTier.FAST]</code>, resolving the exact physical model and provider configured for that stack.</p>
+<p>[!IMPORTANT]
+<strong>Workflow General Tab Selection:</strong>
+In <code>WorkflowGeneralTab</code> (Quorum Studio), the workflow author selects which Model Registry stack is used by that specific workflow from a dedicated dropdown (<code>Workflow.model_registry_id</code>). Individual workflow steps only choose abstract cognitive tiers (<code>FAST</code>, <code>BALANCED</code>, <code>DEEP</code>, <code>REASONING</code>) with zero vendor leakage.</p>
+<p>[!IMPORTANT]
+<strong>Automated Multi-Model Comparison (<code>--compare-registries</code>):</strong>
+In <code>scripts/run_e2e_variance_test.py</code>, <code>--compare-registries</code> supports both automatic and explicit modes:
+- <strong>Automatic Mode (<code>--compare-registries</code> without arguments):</strong> Automatically discovers the active workflow's bound registry (specifically: "Google Gemini Sovereign Stack") and pairs it against the alternative registry available in the database (specifically: "OpenAI O-Series Stack").
+- <strong>Explicit Mode (<code>--compare-registries &lt;REG1&gt; &lt;REG2&gt;</code>):</strong> Allows specifying any two registries by ID, slug, or title (specifically: <code>--compare-registries sys_e26807f3bfa3454d sys_6f8b1c4a2e0d49f1</code>).
+- <strong>Execution &amp; Differential Synthesis:</strong> Executes Run 1 with Registry A, Run 2 with Registry B using identical inputs, and automatically spawns <code>scripts/diff_executions.py</code> to compare scoring variance, Cohen's Kappa, quote provenance, latency, and FinOps costs between the two models, saving the diff report to <code>data/files/executions/</code>.</p>
+</blockquote>
+<hr />
+<h2 id="scope-target-boundaries">Scope &amp; Target Boundaries</h2>
+<h3 id="phase-1-pre-implementation-cleanups-discovered-technical-debt">Phase 1: Pre-Implementation Cleanups (Discovered Technical Debt)</h3>
+<ol>
+<li><strong>Database System Repository Determinism (<code>@[backend_v2/database/repositories/system.py#L26-L61]</code>):</strong></li>
+<li>Current <code>get_model_registry()</code> ignores <code>id</code> parameter and queries <code>Filter("type", "==", "model_registry")</code> with <code>limit=1</code>, always returning whichever registry happens to be first.</li>
+<li>Current <code>update_model_registry()</code> forces <code>doc_id = res_list[0]["id"]</code>, clobbering existing registries rather than upserting strictly by <code>registry_data.id</code>.</li>
+<li>Add parameter <code>registry_id: str | None = None</code> to <code>get_model_registry</code> and implement <code>get_all_model_registries() -&gt; list[SystemConfigModelRegistry]</code>.</li>
+<li><strong>System Config Service Multi-Registry Parity (<code>@[backend_v2/services/studio/system_config_service.py#L182-L360]</code>):</strong></li>
+<li><code>get_system_config(initiator, id)</code> ignores the <code>id</code> argument and calls <code>get_model_registry()</code>.</li>
+<li><code>save_system_config(initiator, id, data)</code> re-fetches with parameterless <code>get_model_registry()</code>.</li>
+<li><code>create_system_config_draft</code> passes obsolete <code>models={}</code> not defined in <code>SystemConfigModelRegistry</code>.</li>
+<li><code>clone_system_config(initiator, id)</code> clones whatever registry is first, ignores <code>id</code>, and omits <code>name = f"{data.name} (Copy)"</code>.</li>
+<li><code>delete_system_config(initiator, id)</code> queries the first registry instead of target <code>id</code> and lacks a repository delete call.</li>
+<li><strong>Internal Vocabulary Ban Compliance (<code>@[backend_v2/services/orchestrator/strategies/llm.py#L597]</code>):</strong></li>
+<li>Eradicate <code>"Epic 27 Telemetry: ..."</code> log string in <code>LLMNodeStrategy.execute</code> to strictly comply with <code>&lt;rule_block id="internal_language_and_epic_ban"&gt;</code>.</li>
+<li><strong>E2E Test Runner Telemetry Sourcing (<code>@[scripts/run_e2e_variance_test.py#L870-L968]</code>):</strong></li>
+<li><code>resolve_model_telemetry</code> assumes nested provider mapping <code>tier_defs[prov_name][tier_name]</code> and breaks on the first <code>model_registry</code> entry, failing when multi-registry or flat schemas are present.</li>
+<li><strong>Studio Dashboard Tab 6 Virtualization &amp; Pro-Tool Density (<code>@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L526-L630]</code>):</strong></li>
+<li>Line 571 <code>config.tierDefinitions.values.fold</code> crashes with <code>NoSuchMethodError</code> on flat <code>tierDefinitions: Map&lt;String, LlmModelConfig&gt;</code>.</li>
+<li>Violates <code>scalable_list_browsing_and_virtualization_standard</code> by using <code>ListView.builder(shrinkWrap: true)</code> inside <code>SingleChildScrollView</code>.</li>
+<li>Missing real-time search, count badge indicator, and displays only raw opaque IDs without human-readable names.</li>
+<li><strong>Step Builder Vendor Suffix Leakage (<code>@[client_app_v2/lib/features/studio/views/step_builder_view.dart#L440-L470]</code>):</strong></li>
+<li>Eradicate physical model suffix <code>[${physical.modelName}]</code> and hardcoded vendor chip (<code>${defaultProvider.toUpperCase()}: ${resolvedModel.modelName}</code>) to restore vendor-neutral cognitive tier selection.</li>
+<li><strong>Model Registry Desktop Pro Tool UX Standards (<code>@[client_app_v2/lib/features/studio/views/model_registry_view.dart#L1-L300]</code>):</strong></li>
+<li>Implement <code>ConstrainedBox(constraints: BoxConstraints(maxWidth: 1200))</code> canvas containment.</li>
+<li>Implement <code>PopScope</code> serialization-based dirty checking with localized discard confirmation modal.</li>
+<li>Add in-view Clone action button (<code>Icons.copy</code>) in AppBar.</li>
+<li>Replace nested expansion tiles with 4 clean Tier cards (<code>FAST</code>, <code>BALANCED</code>, <code>DEEP</code>, <code>REASONING</code>).</li>
+<li>Add <code>TextFormField</code> for editing human-readable <code>name</code>.</li>
+<li><strong>Architectural Guardrail Seed Test Fixture Parity (<code>@[backend_v2/tests/unit/test_seed_architectural_guardrails.py#L129-L133]</code>):</strong></li>
+<li>Guardrail test iterates <code>.values()</code> assuming nested provider dictionaries; update to inspect flat <code>tier_definitions.keys()</code>.</li>
+<li><strong>LLM Client Tier Test Fixture Parity (<code>@[backend_v2/tests/unit/llm/test_llm_client_tiers.py#L198-L202]</code>, <code>@[backend_v2/tests/unit/llm/test_llm_client_tiers.py#L230-L232]</code>):</strong></li>
+<li>Test fixtures manipulate nested <code>tier_definitions["google"]["reasoning"]</code> instead of flat <code>tier_definitions["reasoning"]</code>.</li>
+</ol>
+<hr />
+<h3 id="target-files-precise-ast-bounds">Target Files &amp; Precise AST Bounds</h3>
+<ul>
+<li><strong>Python Backend Domain &amp; Schemas (<code>backend_v2/</code>):</strong></li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/v2_core.py#L464-L489]</code> (<code>SystemConfigModelRegistry</code>: flatten <code>tier_definitions</code> to <code>dict[LaxCognitiveTier, ModelProfile]</code>; add <code>name: str</code>; enforce 4-tier completeness)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/v2_core.py#L1379-L1540]</code> (<code>Workflow</code>: add <code>model_registry_id: str = Field(default="sys_e26807f3bfa3454d", ...)</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/v2_core.py#L1560-L1598]</code> (<code>ExecutionCreate</code>: add optional <code>model_registry_id: str | None = None</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/execution_core.py#L22-L44]</code> (<code>ExecutionMetadata</code>: add <code>model_registry_id: str | None = None</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/dtos/studio.py#L100-L150]</code> (<code>WorkflowCreateDTO</code>: add optional <code>model_registry_id: str | None = None</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/models/dtos/studio.py#L583-L614]</code> (<code>WorkflowUpdateDTO</code>: add optional <code>model_registry_id: str | None = None</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/database/interfaces.py#L206-L217]</code> (<code>ISystemRepository</code>: declare <code>get_model_registry(registry_id: str | None = None)</code> and <code>get_all_model_registries()</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/database/repositories/system.py#L26-L61]</code> (<code>SystemRepositoryImpl</code>: implement keyed lookup, upsert by <code>registry_data.id</code>, and <code>get_all_model_registries()</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/services/studio/system_config_service.py#L182-L360]</code> (<code>StudioSystemConfigService</code>: multi-registry lookup, save, draft, clone, delete)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/services/execution.py#L385-L617]</code> (<code>ExecutionService.start_execution</code>: stamp <code>model_registry_id</code> on <code>ExecutionMetadata</code> and <code>ExecutionRecord</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/services/orchestrator/strategies/base.py#L37-L67]</code> (<code>StrategyContext</code>: add <code>model_registry_id: str | None = None</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/services/orchestrator/dag_executor.py#L161-L306]</code> (<code>NodeExecutor.execute</code>: forward <code>model_registry_id</code> to <code>StrategyContext</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/services/orchestrator/strategies/llm.py#L565-L605]</code> (<code>LLMNodeStrategy.execute</code>: forward <code>registry_id=context.model_registry_id</code> to <code>LLMClient.from_tier</code>; eradicate line 597 telemetry text)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/llm/client.py#L124-L214]</code> (<code>LLMClient.from_tier</code>: accept <code>registry_id: str | None = None</code> and resolve directly from flat <code>tier_definitions[tier]</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/worker.py#L1050-L1075]</code> (<code>generate_profile_synthesis_and_pdf_task</code>: forward <code>registry_id</code> to <code>LLMClient.from_tier</code>)</li>
+<li>
+<p><code>[MODIFY]</code> <code>@[backend_v2/services/studio/workflow_service.py#L279-L306]</code> (<code>StudioWorkflowService.create_workflow_draft</code>: bind default <code>model_registry_id</code>)</p>
+</li>
+<li>
+<p><strong>Target Data Vault (<code>backend_v2/seed/seed_data.json</code>):</strong></p>
+</li>
+<li>
+<p><code>[MODIFY]</code> <code>@[backend_v2/seed/seed_data.json#L4-L131]</code> (Migrate <code>sys_e26807f3bfa3454d</code> to Option A flat schema with <code>name: "Google Gemini Sovereign Stack"</code>; add <code>sys_6f8b1c4a2e0d49f1</code> with <code>name: "OpenAI O-Series Stack"</code>; bind <code>model_registry_id: "sys_e26807f3bfa3454d"</code> to all workflows)</p>
+</li>
+<li>
+<p><strong>E2E Variance &amp; Reliability Test Harness (<code>scripts/</code>):</strong></p>
+</li>
+<li><code>[MODIFY]</code> <code>@[scripts/run_e2e_variance_test.py#L717-L820]</code> (<code>trigger_execution</code>: forward <code>model_registry_id</code> in execution payload)</li>
+<li><code>[MODIFY]</code> <code>@[scripts/run_e2e_variance_test.py#L870-L968]</code> (<code>resolve_model_telemetry</code>: resolve Option A flat schema by registry ID or workflow binding)</li>
+<li><code>[MODIFY]</code> <code>@[scripts/run_e2e_variance_test.py#L970-L1010]</code> (<code>print_model_telemetry</code>: display human-readable stack names and physical model names)</li>
+<li><code>[MODIFY]</code> <code>@[scripts/run_e2e_variance_test.py#L1333-L1641]</code> (<code>run_variance_test</code>: implement sequential multi-model comparison and diff report generation)</li>
+<li>
+<p><code>[MODIFY]</code> <code>@[scripts/run_e2e_variance_test.py#L1643-L1707]</code> (<code>main</code>: add <code>--model-registry</code> and <code>--compare-registries</code> CLI flags with argument validation)</p>
+</li>
+<li>
+<p><strong>Flutter Client Domain &amp; Quorum Studio (<code>client_app_v2/</code>):</strong></p>
+</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/models/model_config.dart#L10-L24]</code> (<code>ModelConfig</code>: flat <code>tierDefinitions: Map&lt;String, LlmModelConfig&gt;</code>, <code>name: String</code>)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/models/workflow.dart#L128-L175]</code> (<code>Workflow</code>: add <code>modelRegistryId: String</code>)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/views/step_builder_view.dart#L430-L475]</code> (Remove physical model name suffix and hardcoded vendor chip)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/views/model_registry_view.dart#L1-L300]</code> (Bounded canvas 1200px, PopScope dirty checks, AppBar clone action, name input, 4-tier cards)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L526-L630]</code> (Tab 6: real-time search, count badge, virtualized list, and pro-tool cards)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart#L159-L220]</code> (Model registry dropdown selector adjacent to output profile and MCP gateway dropdowns)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/lib/l10n/app_en.arb]</code> (Add model registry localization keys)</li>
+<li>
+<p><code>[MODIFY]</code> <code>@[client_app_v2/lib/l10n/app_fi.arb]</code> (Add Finnish model registry localization keys)</p>
+</li>
+<li>
+<p><strong>Automated Verification Tests:</strong></p>
+</li>
+<li><code>[NEW]</code> <code>@[backend_v2/tests/unit/database/repositories/test_system_model_registry.py]</code> (Test <code>get_model_registry(id)</code>, <code>get_all_model_registries()</code>, and <code>ResourceNotFoundError</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/tests/unit/test_model_registry.py#L24-L41]</code> (Update dummy registry fixture for Option A flat schema)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/tests/unit/test_seed_architectural_guardrails.py#L122-L165]</code> (Update seed guardrail assertions for flat <code>tier_definitions</code>)</li>
+<li><code>[MODIFY]</code> <code>@[backend_v2/tests/unit/llm/test_llm_client_tiers.py#L161-L241]</code> (Update tier test fixtures in <code>TestLLMClientTiersFailFast</code> for flat <code>tier_definitions</code>)</li>
+<li><code>[NEW]</code> <code>@[client_app_v2/test/features/studio/views/workflow_general_tab_model_registry_test.dart]</code> (Test model registry dropdown selection and mutation)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/test/features/studio/views/step_builder_view_dropdown_test.dart]</code> (Verify vendor-neutral cognitive tier dropdown labels)</li>
+<li><code>[MODIFY]</code> <code>@[client_app_v2/test/features/studio/views/model_registry_view_test.dart]</code> (Verify 1200px containment, name field, 4-tier cards, and dirty-state confirmation)</li>
+</ul>
+<hr />
+<h3 id="falsification-red-teaming-analysis-attack-surface-mitigations">Falsification &amp; Red-Teaming Analysis (Attack Surface &amp; Mitigations)</h3>
+<ol>
+<li><strong>Failure Vector 1: Seed Vault &amp; In-Memory Pre-Flight Deserialization Shock:</strong></li>
+<li><em>Attack</em>: Modifying <code>SystemConfigModelRegistry.tier_definitions</code> in <code>backend_v2/models/v2_core.py</code> before updating <code>seed_data.json</code> or running database re-seed will immediately break all backend tests and application boots with Pydantic <code>ValidationError</code>.</li>
+<li><em>Mitigation</em>: Enforce strict Two-Phase Atomic Ingress per <code>03_seed_vault.md</code>: migrate <code>backend_v2/seed/seed_data.json</code> in the exact same atomic transaction as <code>v2_core.py</code>, run <code>scripts/audit_database_atoms.py --strict</code>, and execute <code>uv run python backend_v2/seed/run_seed.py local --dry-run</code> to verify 100% in-memory validation before persisting.</li>
+<li><strong>Failure Vector 2: Tab 6 Dashboard Runtime Method Absence (<code>NoSuchMethodError</code>):</strong></li>
+<li><em>Attack</em>: In <code>client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L571</code>, the code runs <code>config.tierDefinitions.values.fold(...)</code> assuming <code>tierDefinitions</code> is a nested map where <code>.values</code> returns maps with <code>.length</code>. With Option A flat <code>Map&lt;String, LlmModelConfig&gt;</code>, <code>.values</code> returns <code>LlmModelConfig</code> objects. Calling <code>.length</code> on <code>LlmModelConfig</code> throws runtime <code>NoSuchMethodError</code> crashing Tab 6.</li>
+<li><em>Mitigation</em>: Update <code>studio_dashboard_view.dart</code> in Phase 1 before running <code>flutter_audit_loop.py</code>, replacing the fold loop with direct <code>config.tierDefinitions.length</code>.</li>
+<li><strong>Failure Vector 3: Multi-Registry Fallback Cascade vs Single Sovereign Pipeline Invariant:</strong></li>
+<li><em>Attack</em>: If <code>Workflow.model_registry_id</code> targets a non-existent or deleted registry ID, the orchestrator might fall back to parameterless <code>get_model_registry()</code>, violating <code>&lt;rule_block id="zero_backward_compatibility_planning_ban"&gt;</code> and silently executing workflows on unintended models.</li>
+<li><em>Mitigation</em>: <code>ISystemRepository.get_model_registry(registry_id: str | None = None)</code> MUST raise <code>ResourceNotFoundError(resource_type="system_config", resource_id=registry_id)</code> Fail-Fast when an explicit ID is not found, preceded by structured <code>logger.error</code> per <code>rfc7807_dual_reporting_mandate</code>. Zero silent fallback to other registries.</li>
+<li><strong>Failure Vector 4: Freezed Model Dirty Checking False Positives:</strong></li>
+<li><em>Attack</em>: In <code>ModelRegistryView</code>, using reference inequality (<code>_editableConfig != widget.initialConfig</code>) triggers false-positive dirty confirmation dialogs on unmodified views because <code>@Freezed</code> entities do not implement deep value equality.</li>
+<li><em>Mitigation</em>: Implement Serialization-Based Dirty Checking per <code>desktop_pro_tool_studio_ux_mandate</code>: <code>jsonEncode(_editableConfig.toJson()) != _initialConfigJson</code>, guaranteeing deterministic dirty state with zero false positives.</li>
+<li><strong>Failure Vector 5: E2E Runner Argument Count Ambiguity:</strong></li>
+<li><em>Attack</em>: In <code>scripts/run_e2e_variance_test.py</code>, <code>--compare-registries</code> configured with <code>nargs="*"</code> could receive 1 or 3+ arguments, causing indexing errors or ambiguous pairings.</li>
+<li><em>Mitigation</em>: Explicitly validate in <code>main</code>: <code>if len(args.compare_registries) not in (0, 2): parser.error("--compare-registries requires either 0 arguments (auto-paired against DB alternative) or exactly 2 arguments (&lt;REG1&gt; &lt;REG2&gt;).")</code>.</li>
+</ol>
+<hr />
+<h2 id="5-column-architectural-directive-table">5-Column Architectural Directive Table</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">1. Target Scope &amp; Boundaries</th>
+<th style="text-align: left;">2. Eradicated Duct-Tape (Under-Engineering Ban)</th>
+<th style="text-align: left;">3. Approved Best Practice (Target Invariant)</th>
+<th style="text-align: left;">4. Pruned Over-Engineering (Complexity Slayer)</th>
+<th style="text-align: left;">5. Verification &amp; Fail-Fast (Proof Anchor)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Backend Domain Schemas</strong><br><code>@[backend_v2/models/v2_core.py#L464-L489]</code><br><code>@[backend_v2/models/v2_core.py#L1379-L1540]</code><br><code>@[backend_v2/models/dtos/studio.py#L100-L150]</code></td>
+<td style="text-align: left;">Banned nested multi-provider dictionaries (<code>tier_definitions[provider][tier]</code>), loose string defaults, and drive-by schema mutations.</td>
+<td style="text-align: left;">Enforce Option A flat mapping <code>tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)]</code>, <code>name: str</code>, <code>model_registry_id</code> on <code>Workflow</code> and DTOs, and <code>@model_validator(mode="after")</code> verifying all 4 canonical tiers (<code>FAST</code>, <code>BALANCED</code>, <code>DEEP</code>, <code>REASONING</code>).</td>
+<td style="text-align: left;">Pruned multi-provider fallback cascades, heuristic provider detection, and custom stack wrapper classes.</td>
+<td style="text-align: left;"><code>test_seed_architectural_guardrails.py</code><br><code>ValidationError</code> on missing tier. <code>backend_audit_loop.py</code> strict typing gate.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Database Persistence &amp; Studio Service</strong><br><code>@[backend_v2/database/repositories/system.py#L26-L61]</code><br><code>@[backend_v2/services/studio/system_config_service.py#L182-L360]</code></td>
+<td style="text-align: left;">Banned parameterless <code>get_model_registry()</code>, hardcoded <code>limit=1</code> blind queries, ignoring <code>id</code> in service CRUD/clone, and obsolete <code>models={}</code> fields.</td>
+<td style="text-align: left;">Deterministic <code>get_model_registry(registry_id: str | None = None)</code> raising <code>ResourceNotFoundError</code> if missing, <code>get_all_model_registries()</code>, keyed upsert by <code>registry_data.id</code>, and clone with <code>name = f"{data.name} (Copy)"</code>.</td>
+<td style="text-align: left;">Pruned generic repository abstractions and dynamic reflection (<code>getattr</code>/<code>hasattr</code>).</td>
+<td style="text-align: left;"><code>backend_v2/tests/unit/database/repositories/test_system_model_registry.py</code><br>Assertion of real database persistence roundtrip.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Orchestrator &amp; LLM Dispatch</strong><br><code>@[backend_v2/services/execution.py#L385-L617]</code><br><code>@[backend_v2/services/orchestrator/dag_executor.py#L161-L306]</code><br><code>@[backend_v2/services/orchestrator/strategies/llm.py#L565-L605]</code><br><code>@[backend_v2/llm/client.py#L124-L214]</code><br><code>@[backend_v2/worker.py#L1050-L1075]</code></td>
+<td style="text-align: left;">Banned ad-hoc strategy aliases, hardcoded model strings ("gpt-5.1"), silent fallback to default registry when execution requests override, and internal vocabulary string <code>"Epic 27 Telemetry"</code>.</td>
+<td style="text-align: left;">Stamp <code>model_registry_id</code> on <code>ExecutionMetadata</code> and <code>ExecutionRecord</code>; forward <code>registry_id</code> through <code>StrategyContext</code> and <code>worker.py</code> into <code>LLMClient.from_tier(tier, repo, registry_id=...)</code>; resolve profile in O(1) from flat <code>registry.tier_definitions[tier]</code>.</td>
+<td style="text-align: left;">Pruned parallel strategy loaders, heuristic provider overrides, and dual execution pipelines.</td>
+<td style="text-align: left;"><code>test_llm_client_tiers.py</code><br>Verification that <code>from_tier</code> loads exact physical model and provider from specified registry.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Studio UI &amp; Pro Tool UX</strong><br><code>@[client_app_v2/lib/features/studio/views/step_builder_view.dart#L430-L475]</code><br><code>@[client_app_v2/lib/features/studio/views/model_registry_view.dart#L1-L300]</code><br><code>@[client_app_v2/lib/features/studio/views/studio_dashboard_view.dart#L526-L630]</code><br><code>@[client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart#L159-L220]</code></td>
+<td style="text-align: left;">Banned physical model leak (<code>[${physical.modelName}]</code>), vendor preview chips in step builder, unbounded form width stretching, <code>shrinkWrap: true</code> lists, and un-intercepted modal dismissal.</td>
+<td style="text-align: left;">Enforce vendor-neutral tier dropdowns, Bounded Canvas Containment (<code>maxWidth: 1200px</code>), <code>PopScope</code> serialization dirty checking with localized discard modal, in-view clone button (<code>Icons.copy</code>), real-time search and count badge in Tab 6, and workflow dropdown selector.</td>
+<td style="text-align: left;">Pruned nested expansion tiles in <code>ModelRegistryView</code> in favor of 4 clean tier cards; pruned redundant vendor indicator widgets.</td>
+<td style="text-align: left;"><code>step_builder_view_dropdown_test.dart</code><br><code>model_registry_view_test.dart</code><br><code>workflow_general_tab_model_registry_test.dart</code><br><code>flutter_audit_loop.py --build</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>E2E Variance Test Harness</strong><br><code>@[scripts/run_e2e_variance_test.py#L717-L1707]</code><br><code>@[backend_v2/seed/seed_data.json#L4-L131]</code></td>
+<td style="text-align: left;">Banned hardcoded model assumptions, breaking on first registry document in database, and opaque ID outputs.</td>
+<td style="text-align: left;">Dynamic database resolution of <code>tier_definitions</code> for target stack; human-readable telemetry output; <code>--model-registry &lt;ID&gt;</code> override flag; automated <code>--compare-registries</code> pairing workflow registry against alternative DB stack and spawning <code>diff_executions.py</code>.</td>
+<td style="text-align: left;">Pruned manual execution diff scripting and custom pricing dictionaries.</td>
+<td style="text-align: left;"><code>uv run python scripts/run_e2e_variance_test.py --help</code><br><code>--compare-registries --show-matrices</code> dry run verification.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<hr />
+<pre><code class="language-xml">&lt;execution_protocol level=&quot;0_create_plan&quot;&gt;
+  &lt;step id=&quot;1&quot; name=&quot;BACKEND DOMAIN SCHEMA FLATTENING FOR OPTION A&quot;&gt;
+    &lt;action&gt;In `backend_v2/models/v2_core.py`, update `SystemConfigModelRegistry` to implement Option A:&lt;/action&gt;
+    &lt;action&gt;Add `name: str = Field(default=&quot;Default Model Registry&quot;, description=&quot;Human-readable title&quot;)`.&lt;/action&gt;
+    &lt;action&gt;Change `tier_definitions: Annotated[dict[LaxCognitiveTier, ModelProfile], Field(strict=False)] = Field(description=&quot;Direct mapping of the four canonical cognitive tiers to physical profiles&quot;)`.&lt;/action&gt;
+    &lt;action&gt;Update `validate_tier_completeness` to assert that `self.tier_definitions` contains all four canonical tiers (`FAST`, `BALANCED`, `DEEP`, `REASONING`).&lt;/action&gt;
+    &lt;action&gt;Add `model_registry_id: str = Field(default=&quot;sys_e26807f3bfa3454d&quot;, pattern=r&quot;^(sys_[a-fA-F0-9]{16,32}|cfg_model_registry_\d{2})$&quot;, description=&quot;System config ID of the attached model registry&quot;)` to `Workflow` in `backend_v2/models/v2_core.py`.&lt;/action&gt;
+    &lt;action&gt;Add `model_registry_id: str | None = Field(default=None, description=&quot;Optional execution-level model registry stack override&quot;)` to `ExecutionCreate` in `backend_v2/models/v2_core.py`.&lt;/action&gt;
+    &lt;action&gt;Update `WorkflowCreateDTO` and `WorkflowUpdateDTO` in `backend_v2/models/dtos/studio.py` to include optional `model_registry_id: str | None = None`.&lt;/action&gt;
+    &lt;constraint invariant=&quot;ConfigDict(strict=True, extra='forbid')&quot;&gt;All updated Pydantic models must preserve strict mode and forbid extra attributes.&lt;/constraint&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;2&quot; name=&quot;DATABASE REPOSITORY &amp; SERVICE MULTI-REGISTRY RESOLUTION&quot;&gt;
+    &lt;action&gt;Update `ISystemRepository` in `backend_v2/database/interfaces.py` to declare `get_model_registry(registry_id: str | None = None) -&gt; SystemConfigModelRegistry` and `get_all_model_registries() -&gt; list[SystemConfigModelRegistry]`.&lt;/action&gt;
+    &lt;action&gt;In `backend_v2/database/repositories/system.py`, implement deterministic registry lookup:&lt;/action&gt;
+    &lt;action&gt;If `registry_id` is supplied, query `system_config` with filter `id == registry_id` and raise `ResourceNotFoundError` if not found.&lt;/action&gt;
+    &lt;action&gt;If `registry_id` is None, query `system_config` with filter `type == &quot;model_registry&quot;` ordered deterministically.&lt;/action&gt;
+    &lt;action&gt;Implement `update_model_registry` to upsert using `registry_data.id` as the document key.&lt;/action&gt;
+    &lt;action&gt;In `backend_v2/services/studio/system_config_service.py`, update `get_system_config` to query by `registry_id=id`, `get_all_system_configs` to call `get_all_model_registries`, and `clone_system_config` to clone source registry with updated `name = f&quot;{data.name} (Copy)&quot;` and new opaque ID.&lt;/action&gt;
+    &lt;action&gt;In `backend_v2/services/execution.py`, update `start_execution` to stamp `model_registry_id = payload.model_registry_id or workflow.model_registry_id` onto the created execution record.&lt;/action&gt;
+    &lt;constraint invariant=&quot;rfc7807_dual_reporting_mandate&quot;&gt;Precede any ResourceNotFoundError with structured logger.error containing registry_id parameter.&lt;/constraint&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;3&quot; name=&quot;ORCHESTRATOR &amp; LLM DISPATCH INTEGRATION&quot;&gt;
+    &lt;action&gt;Add `model_registry_id: str | None = None` to `StrategyContext` in `backend_v2/services/orchestrator/strategies/base.py`.&lt;/action&gt;
+    &lt;action&gt;Update `DAGExecutor` in `backend_v2/services/orchestrator/dag_executor.py` to pass `model_registry_id=execution.model_registry_id or workflow.model_registry_id` when constructing `StrategyContext`.&lt;/action&gt;
+    &lt;action&gt;Update `LLMNodeStrategy` in `backend_v2/services/orchestrator/strategies/llm.py` to forward `registry_id=context.model_registry_id` into `LLMClient.from_tier`.&lt;/action&gt;
+    &lt;action&gt;In `backend_v2/llm/client.py`, update `LLMClient.from_tier` to resolve strategy directly: `target_strategy = registry.tier_definitions[tier]`, reading `target_strategy.provider` and `target_strategy.model_name` from that profile.&lt;/action&gt;
+    &lt;action&gt;Update `worker.py` synthesis and explanation invocations to pass `execution.model_registry_id or workflow.model_registry_id` when instantiating `LLMClient` instances.&lt;/action&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;4&quot; name=&quot;VENDOR LEAK ERADICATION IN STEP BUILDER&quot;&gt;
+    &lt;action&gt;In `client_app_v2/lib/features/studio/views/step_builder_view.dart`, remove physical model name suffix `[${physical.modelName}]` from `DropdownMenuItem` text.&lt;/action&gt;
+    &lt;action&gt;Display pure abstract cognitive tier label and description via `getTierLabel(tier)`.&lt;/action&gt;
+    &lt;action&gt;Remove hardcoded vendor preview chip from step authoring layout.&lt;/action&gt;
+    &lt;action&gt;Update `client_app_v2/test/features/studio/views/step_builder_view_dropdown_test.dart` to verify that dropdown menu items contain zero physical model strings.&lt;/action&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;5&quot; name=&quot;DESKTOP PRO TOOL UX UPGRADE FOR MODEL REGISTRY&quot;&gt;
+    &lt;action&gt;In `client_app_v2/lib/features/studio/models/model_config.dart`, update `tierDefinitions` to `Map&lt;String, LlmModelConfig&gt;` and add `name: String`.&lt;/action&gt;
+    &lt;action&gt;In `client_app_v2/lib/features/studio/views/model_registry_view.dart`, implement Bounded Canvas Containment by wrapping form body in `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200), ...))`.&lt;/action&gt;
+    &lt;action&gt;In `_buildSystemAttributes`, add a `TextFormField` for editing human-readable `name`, and add a `DropdownButtonFormField&lt;String&gt;` for `default_provider` (`google` versus `openai`).&lt;/action&gt;
+    &lt;action&gt;Replace nested provider expansion tiles in `_buildModelsSection` with 4 clean Tier cards (`FAST`, `BALANCED`, `DEEP`, `REASONING`), each displaying provider selector, model name input, and execution parameters.&lt;/action&gt;
+    &lt;action&gt;In `ModelRegistryView` AppBar, add an in-view Clone action button (`Icons.copy`) that invokes `modelRegistryControllerProvider.notifier.cloneConfig(id)` and navigates to the cloned draft.&lt;/action&gt;
+    &lt;action&gt;Implement `PopScope` with serialization-based dirty checking (`jsonEncode(_editableConfig.toJson()) != _initialConfigJson`) and localized discard confirmation modal.&lt;/action&gt;
+    &lt;action&gt;In `client_app_v2/lib/features/studio/views/studio_dashboard_view.dart` Tab 6, add real-time search input, active count indicator badge, and pro-tool compact card density displaying `name`, `id`, and `default_provider` badges.&lt;/action&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;6&quot; name=&quot;WORKFLOW GENERAL TAB MODEL REGISTRY LINKAGE&quot;&gt;
+    &lt;action&gt;Update `Workflow` in `client_app_v2/lib/features/studio/models/workflow.dart` to include `@JsonKey(name: 'model_registry_id') @Default('sys_e26807f3bfa3454d') String modelRegistryId`.&lt;/action&gt;
+    &lt;action&gt;In `client_app_v2/lib/features/studio/views/widgets/workflow/workflow_general_tab.dart`, add a `DropdownButtonFormField&lt;String&gt;` selector listing available model registries by `name` and `default_provider`.&lt;/action&gt;
+    &lt;action&gt;Add localized strings for `studioWorkflowModelRegistry` in `app_en.arb` and `app_fi.arb`.&lt;/action&gt;
+    &lt;action&gt;Regenerate Freezed models: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/models/workflow.dart --build`.&lt;/action&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;7&quot; name=&quot;SEED VAULT SYNCHRONIZATION &amp; QUALITY GATES&quot;&gt;
+    &lt;action&gt;Migrate `sys_e26807f3bfa3454d` in `backend_v2/seed/seed_data.json` to Option A flat schema: `&quot;name&quot;: &quot;Google Gemini Sovereign Stack&quot;`, `&quot;default_provider&quot;: &quot;google&quot;`, and `&quot;tier_definitions&quot;` directly mapping `&quot;fast&quot;`, `&quot;balanced&quot;`, `&quot;deep&quot;`, `&quot;reasoning&quot;`.&lt;/action&gt;
+    &lt;action&gt;Add `&quot;sys_6f8b1c4a2e0d49f1&quot;` in `backend_v2/seed/seed_data.json`: `&quot;name&quot;: &quot;OpenAI O-Series Stack&quot;`, `&quot;default_provider&quot;: &quot;openai&quot;`, and `&quot;tier_definitions&quot;` directly mapping the four tiers to OpenAI profiles.&lt;/action&gt;
+    &lt;action&gt;Add `&quot;model_registry_id&quot;: &quot;sys_e26807f3bfa3454d&quot;` to all workflow definitions in `backend_v2/seed/seed_data.json`.&lt;/action&gt;
+    &lt;action&gt;Update test fixtures in `test_model_registry.py`, `test_seed_architectural_guardrails.py`, and `test_llm_client_tiers.py` to match Option A flat schema.&lt;/action&gt;
+    &lt;action&gt;Execute seed verification: `uv run python scripts/audit_database_atoms.py --strict`.&lt;/action&gt;
+    &lt;action&gt;Execute backend audit: `uv run python scripts/backend_audit_loop.py backend_v2/database/repositories/system.py --test`.&lt;/action&gt;
+    &lt;action&gt;Execute flutter audit: `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/views/model_registry_view.dart`.&lt;/action&gt;
+  &lt;/step&gt;
+
+  &lt;step id=&quot;8&quot; name=&quot;E2E VARIANCE TEST HARNESS DYNAMIC TELEMETRY &amp; AUTOMATED COMPARISON&quot;&gt;
+    &lt;action&gt;In `scripts/run_e2e_variance_test.py`, update `resolve_model_telemetry` to load target model registry records from `data/db_v2.json` or `seed_data.json` based on the workflow's `model_registry_id` or CLI override.&lt;/action&gt;
+    &lt;action&gt;Update `print_model_telemetry` to display human-readable stack names, default providers, and actual physical model names (`gemini/gemini-3.8-flash`, `openai/gpt-5.1`) without raw opaque IDs.&lt;/action&gt;
+    &lt;action&gt;In `main` of `scripts/run_e2e_variance_test.py`, add `--model-registry` CLI option accepting registry ID, slug, or name.&lt;/action&gt;
+    &lt;action&gt;In `main` of `scripts/run_e2e_variance_test.py`, add `--compare-registries` CLI option with `nargs=&quot;*&quot;` supporting zero arguments (automatic comparison of workflow registry against alternative DB stack) or two arguments (`--compare-registries &lt;REG1&gt; &lt;REG2&gt;`).&lt;/action&gt;
+    &lt;action&gt;Implement `resolve_comparison_registries(db_path, workflow_id, cli_args)` to deterministically resolve Registry A and Registry B by ID, slug, or title, falling back to pairing the workflow stack with the other available database stack.&lt;/action&gt;
+    &lt;action&gt;In `run_variance_test`, implement the multi-model comparison flow: print side-by-side telemetry for both stacks, execute Run 1 with Registry A, execute Run 2 with Registry B using identical inputs, and automatically invoke `scripts/diff_executions.py` on the resulting execution IDs with markdown report generation.&lt;/action&gt;
+    &lt;action&gt;In `trigger_execution`, forward `model_registry_id` to `POST /api/v2/execution/executions/` request payload when an override is active.&lt;/action&gt;
+    &lt;action&gt;Verify execution test harness: `uv run python scripts/run_e2e_variance_test.py --help`.&lt;/action&gt;
+  &lt;/step&gt;
+&lt;/execution_protocol&gt;
+</code></pre>
+<hr />
+<h2 id="verification-plan">Verification Plan</h2>
+<h3 id="automated-tests">Automated Tests</h3>
+<ol>
+<li><strong>Repository Unit Test:</strong>
+   <code>powershell
+   uv run pytest backend_v2/tests/unit/database/repositories/test_system_model_registry.py -vv</code>
+   Verifies:</li>
+<li>Querying an existing registry ID returns that exact model registry.</li>
+<li>Querying all model registries returns the complete list.</li>
+<li>
+<p>Querying an invalid ID raises <code>ResourceNotFoundError</code> Fail-Fast.</p>
+</li>
+<li>
+<p><strong>LLMClient Dispatch Unit Test:</strong>
+   <code>powershell
+   uv run pytest backend_v2/tests/unit/llm/test_llm_client_tiers.py -vv</code>
+   Verifies that <code>LLMClient.from_tier(..., registry_id="...")</code> forwards the registry ID and resolves strategy directly from the flat <code>tier_definitions[tier]</code>.</p>
+</li>
+<li>
+<p><strong>Step Builder Vendor Neutrality Widget Test:</strong>
+   <code>powershell
+   uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/step_builder_view_dropdown_test.dart</code>
+   Verifies that the dropdown choices display only cognitive tier descriptions and contain no physical model identifiers.</p>
+</li>
+<li>
+<p><strong>Model Registry Desktop Pro Tool UX Widget Test:</strong>
+   <code>powershell
+   uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/model_registry_view_test.dart</code>
+   Verifies <code>maxWidth: 1200px</code> canvas containment, in-view clone action, 4-tier cards layout, and dirty-state discard confirmation.</p>
+</li>
+<li>
+<p><strong>Workflow General Tab Selector Widget Test:</strong>
+   <code>powershell
+   uv run python scripts/flutter_audit_loop.py client_app_v2/test/features/studio/views/workflow_general_tab_model_registry_test.dart</code>
+   Verifies that the model registry dropdown lists registered configs and mutates <code>workflow.modelRegistryId</code>.</p>
+</li>
+<li>
+<p><strong>E2E Variance Test CLI Verification:</strong>
+   <code>powershell
+   uv run python scripts/run_e2e_variance_test.py --help
+   uv run python scripts/run_e2e_variance_test.py --compare-registries --show-matrices</code>
+   Verifies that <code>--model-registry</code> and <code>--compare-registries</code> CLI options are registered, documented, and automatically resolve comparison model stacks without error.</p>
+</li>
+<li>
+<p><strong>Global Quality Gates:</strong>
+   <code>powershell
+   uv run python scripts/backend_audit_loop.py backend_v2/models/v2_core.py --test
+   uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/views/model_registry_view.dart</code></p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "toc.integrate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

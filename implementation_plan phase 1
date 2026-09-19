@@ -1,0 +1,298 @@
+# Implementation Plan: Complete Root-Cause Elimination of Permissive Typing Bypasses
+
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <rule>@[.agents/rules/05_llm_architecture.md]</rule>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_ast_guardrail_engine.md]</knowledge_item>
+  <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
+</required_context_rules>
+
+## Goal Description
+
+> [!CAUTION]
+> **ABSOLUTE ZERO TOLERANCE — NO EXEMPTIONS, NO ALLOWLISTS, NO EXCEPTIONS.**
+
+Perform an exhaustive, holistic, root-cause structural remediation of the Quorum backend (`backend_v2`) across **ALL 74 affected files** to permanently eliminate ALL permissive typing bypasses and soft shortcuts with zero remaining technical debt:
+
+1. **Zero `dict[str, Any]` and naked dictionaries in state transit** — ALL intermediate state dictionaries, message lists (`list[dict[str, Any]]`), and loose metadata dicts replaced 100% with strongly typed Pydantic V2 DTOs (`LLMMessageDTO`, `TaskMetadataDTO`, `GlobalContextVarsDTO`).
+2. **Zero `isinstance(..., dict)` duck-typing** — ALL **193 instances** eliminated (**136 QGR-suppressed + 57 unsuppressed**) across **59 files**. No fault domain exemptions (including Repository, Driver, Model, and Util layers).
+3. **Zero `# noqa: QGR` suppressions** — ALL **169 suppressions** removed (**136 QGR012, 7 QGR002, 7 QGR001, 18 QGR003, 1 QGR007**). No inline suppressions remain anywhere.
+4. **Zero `match/case dict` and `case {'id': ...}` duck-tape** — ALL **7 instances** across 4 files eliminated.
+5. **Zero QGR violations** — `uv run python scripts/_ast_guardrails.py backend_v2 --strict` passes with ZERO violations and FATAL enforcement across all non-test files.
+6. **Zero `cast(Any, ...)` bypasses** — ALL **5 instances** refactored into strictly typed structures.
+7. **Zero `extra="ignore"` / Token Shield bypasses** — 100% of models enforce `ConfigDict(extra="forbid", strict=True)` with zero exceptions.
+
+---
+
+## Complete Codebase Inventory (Exhaustive & Deterministic)
+
+> [!IMPORTANT]
+> **74 unique files requiring physical remediation across 8 structured phases.**
+
+| Category | Count | Files Involved | Phase Assignment |
+|---|---|---|---|
+| `# noqa: QGR012` (suppressed `isinstance(dict)`) | **136** | 37 files | Phase 5 (Hooks), Phase 6 (Services), Phase 7 (Repositories) |
+| Unsuppressed `isinstance(..., dict)` | **57** | 22 files (20 new + 2 plan overlap) | Phase 8 (LLM Provider, Models, Repositories, Utils) |
+| **TOTAL `isinstance(dict)`** | **193** | **59 files** | **Phases 5, 6, 7, 8** |
+| `# noqa: QGR003` (broad exception handlers) | **18** | **9 files** | Phase 4B (Worker, DAG Executor, LLM Strategy, Adapters) |
+| `# noqa: QGR002` (.get() fallback in adapters) | **7** | **3 files** | Phase 3 (`LLMMessageDTO` migration) |
+| `# noqa: QGR001` (reflection/hasattr/getattr) | **7** | **4 files** | Phase 4A (`main.py`, `blueprint.py`, `adapter.py`, `registry.py`) |
+| `# noqa: QGR007` (loose routing config keys) | **1** | **1 file** | Phase 4A (`context_router.py`) |
+| `match/case dict` and `case {'id': ...}` | **7** | **4 files** | Phase 2 (Studio services + `progress.py`) |
+| `cast(Any, ...)` bypasses | **5** | **4 files** | Phase 7 (`run_worker.py`, `registry.py`, `execution.py`, `llm.py`) |
+| **GRAND TOTAL UNIQUE TARGET FILES** | **74** | — | **Phases 1–8** |
+
+---
+
+## Rules Hardening & Closed-Loop Directives (Locked)
+
+> [!IMPORTANT]
+> The following 4 rules in `@[.agents/rules/01-python-backend.md]` have been physically updated to permanently close all AI bypass loopholes:
+
+1. **`idiomatic_pattern_matching`**: Explicitly bans `case dict()` and `case {"key": ...}` patterns on raw untyped dictionaries; mandates that `match/case` is used exclusively on strictly typed Pydantic models, Enums, and Discriminated Unions.
+2. **`duck_typing_token_shield_ban`**: Banning `extra="ignore"` and `extra="allow"` unconditionally on ALL Pydantic models across the codebase; bans the creation or classification of "Token Shields".
+3. **`pydantic_configuration_enforcement`**: Enforces `model_config = ConfigDict(extra="forbid", strict=True)` on ALL Domain Models, DTOs, and schemas without exception.
+4. **`strict_attribute_integrity`**: Banned `if "key" in raw_dict:` or `if key in dict:` checks for duck-typing. The `in` operator is restricted exclusively to typed collection membership testing.
+
+---
+
+## 5-Column Architectural Directives
+
+| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
+| :--- | :--- | :--- | :--- | :--- |
+| **LLM Caching & Prompt Layer**<br>`@[backend_v2/models/prompt.py]`<br>`@[backend_v2/llm/adapters/base_adapter.py]` (3 QGR002 + 4 isinstance)<br>`@[backend_v2/llm/adapters/ai_studio_adapter.py]` (2 QGR002 + 1 QGR003)<br>`@[backend_v2/llm/adapters/vertex_adapter.py]` (2 QGR002 + 1 QGR003)<br>`@[backend_v2/llm/adapters/anthropic_adapter.py]` (1 isinstance) | Banned: `list[dict[str, Any]]` message lists, `.get("role")`, `.get("content")` fallbacks, `msg["role"]`/`msg["content"]` dict indexing, `isinstance(block, dict)` in adapters. | `CompiledPrompt` fields typed as `list[LLMMessageDTO]` (**NOT** `ChatMessageDTO`). `LLMMessageDTO` includes optional `tool_calls`, `tool_call_id`, `name` fields. Adapters access typed DTO attributes natively. | Do NOT extend `ChatMessageDTO` (different domain: chat parsing vs prompt compilation). Do NOT introduce intermediary wrapper classes. `_merge_flat` operates directly on `LLMMessageDTO` objects. | `uv run pytest backend_v2/tests/unit/services/orchestrator/test_prompt_compiler_adapter.py`<br>`uv run pytest backend_v2/tests/integration/test_caching_integration.py`<br>Negative: test `CompiledPrompt` rejects `list[dict]` input with `ValidationError`. |
+| **Studio Hydration Layer**<br>`@[backend_v2/services/studio/output_profile_service.py]`<br>`@[backend_v2/services/studio/workflow_service.py]`<br>`@[backend_v2/services/studio/prompt_block_service.py]` | Banned: `match data: case dict() as data_dict:` (1), `case {"id": str() as p_id}:` (5 across 3 files), `{**existing_dict, **data_dict}` merge patterns. | Require concrete Pydantic models (`OutputProfile`, `Workflow`, `PromptBlockBase`) in all method signatures. Access typed `.id` property natively. | Prune ad-hoc dictionary merging logic. Do NOT create new intermediate DTOs — the existing domain models are sufficient. | `uv run pytest backend_v2/tests/unit/services/test_output_profile_service.py`<br>`uv run pytest backend_v2/tests/unit/services/test_workflow_service.py`<br>Negative: test method rejects `dict` input with `TypeError`/`ValidationError`. |
+| **Progress Tracking Layer**<br>`@[backend_v2/services/progress.py]` | Banned: `case dict() as details_dict: dumped.update(details_dict)` at L278. | Replace `match/case dict()` with direct typed conditional: `if details := dumped.pop("details", None): dumped.update(details)`. | Do NOT replace with a full ProgressEventDTO — the existing `ProgressState.model_dump()` + conditional flatten is sufficient. | `uv run pytest backend_v2/tests/unit/services/test_progress.py`<br>Negative: verify `_emit` with `details=None` and `details={"key": "val"}`. |
+| **Reflection & Core System Boundaries**<br>`@[backend_v2/main.py]` (4 QGR001)<br>`@[backend_v2/services/blueprint.py]` (1 QGR001, 11 QGR012)<br>`@[backend_v2/services/orchestrator/prompt_compiler_adapter.py]` (1 QGR001)<br>`@[backend_v2/services/orchestrator/context_router.py]` (1 QGR007, 2 QGR012)<br>`@[backend_v2/core/registry.py]` (1 QGR001, 2 cast(Any)) | Banned: `hasattr(pool, "aclose")`, `hasattr(strat_raw, "value")`, `__getattr__` dynamic delegation, `metadata: dict[str, Any]` on `TaskDefinition`. | `main.py`: Explicit `isinstance(pool, ArqRedis)` type narrowing.<br>`blueprint.py`: Strict `ScoringStrategy(strat_raw).value` Enum coercion.<br>`prompt_compiler_adapter.py`: Declare explicit facade methods.<br>`registry.py`: Type `metadata` as strict `TaskMetadataDTO \| None = None`.<br>`context_router.py`: `ConfigDict(strict=True, extra='forbid')` on `RoutingModeConfig`. | Do NOT create an abstract Protocol for the Redis pool. Prune `__getattr__` reflection entirely; list the forwarded methods explicitly. | `uv run python scripts/_ast_guardrails.py backend_v2/main.py backend_v2/services/blueprint.py backend_v2/core/registry.py --strict`<br>Negative: test `PromptCompilerAdapter` raises `AttributeError` on non-existent method access. |
+| **Resilience: Worker + ALL DLQ/Fail-Soft Catch-Alls**<br>`@[backend_v2/worker.py]` (8 QGR003 + 7 isinstance)<br>`@[backend_v2/services/cache/typed_cache.py]` (1 QGR003)<br>`@[backend_v2/services/orchestrator/dag_executor.py]` (2 QGR003, 3 QGR012)<br>`@[backend_v2/services/orchestrator/strategies/llm.py]` (2 QGR003, 19 QGR012, 1 cast(Any))<br>`@[backend_v2/llm/adapters/ai_studio_adapter.py]` (1 QGR003)<br>`@[backend_v2/llm/adapters/vertex_adapter.py]` (1 QGR003)<br>`@[backend_v2/services/llm_task_executor.py]` (1 QGR003)<br>`@[backend_v2/services/orchestrator/enriched_dag_executor.py]` (1 QGR003)<br>`@[backend_v2/services/orchestrator/two_pass_atomizer.py]` (1 QGR003) | Banned: ALL 18 silent `except Exception:` swallows lacking `raise` or RFC-7807 logging across ALL 9 files. | **DLQ Top-Level** (`worker.py` L398, L471, L615; `dag_executor.py` L298, L773; `two_pass_atomizer.py` L481): Keep `except Exception:` but add RFC-7807 `logger.error(..., extra={"error_code": ErrorCodes.*.value})` + explicit `raise` or DLQ yield.<br>**Fail-Soft** (`ai_studio_adapter.py` L213, `vertex_adapter.py` L237): Catch `(ConnectionError, TimeoutError, CacheError)` specifically.<br>**Best-Effort**: Narrow to `(ConnectionError, TimeoutError, OSError)`. | Prune nested broad try/except blocks. Do NOT introduce exception hierarchies or retry wrappers. | `uv run pytest backend_v2/tests/unit/test_worker.py`<br>`uv run pytest backend_v2/tests/unit/services/test_typed_cache.py`<br>`uv run python scripts/_ast_guardrails.py backend_v2/worker.py backend_v2/services/orchestrator/dag_executor.py --strict` |
+| **Hooks Layer Typed DTOs**<br>17 files in `backend_v2/hooks/` (50 QGR012) | Banned: `isinstance(..., dict)` checks and loose dict traversals. | Ingress boundaries validate heterogeneous payloads using `TypeAdapter(list[AtomResultDTO] \| str \| int \| float).validate_python(payload)` and strict DTOs. | Prune recursive dictionary traversing helpers. Use domain-specific discriminated unions per-file. | `uv run python scripts/_ast_guardrails.py backend_v2/hooks/ --strict`<br>Negative: test with malformed payload triggers `ValidationError`. |
+| **Services & Orchestrator Layer**<br>19 files in `backend_v2/services/` (82 QGR012) | Banned: `isinstance(..., dict)` checks across DAG execution, synthesis, and matrix calculation. | Replace with typed DTO access and `TypeAdapter` validation. | Domain-specific unions per-file. | `uv run python scripts/_ast_guardrails.py backend_v2/services/ --strict` |
+| **Repository & Driver Boundaries**<br>`@[backend_v2/database/repositories/execution.py]` (4 QGR012)<br>`@[backend_v2/database/repositories/component.py]` (2 isinstance)<br>`@[backend_v2/database/repositories/components/matrix.py]` (2 isinstance)<br>`@[backend_v2/database/repositories/audit.py]` (1 isinstance)<br>`@[backend_v2/database/repositories/workflow.py]` (1 isinstance)<br>`@[backend_v2/database/firestore_driver.py]` (1 isinstance)<br>`@[backend_v2/database/tinydb_driver.py]` (1 isinstance) | Banned: `isinstance(..., dict)` checks across ALL database access layers. | Reconstitution firewall: Drivers return raw DB docs, and Repository methods validate immediately into strictly typed Domain Models / DTOs via `TypeAdapter` before returning. Zero dict leakage across repository boundaries. | Zero tolerance per `service_layer_hydration_firewall`. No allowlists or exemptions. | `uv run pytest backend_v2/tests/unit/database/`<br>`uv run python scripts/_ast_guardrails.py backend_v2/database/ --strict` |
+| **LLM Provider & Ingress Layer (Unsuppressed)**<br>`@[backend_v2/llm/provider.py]` (12 isinstance)<br>`@[backend_v2/llm/ingress_pipeline.py]` (3 isinstance)<br>`@[backend_v2/llm/mock.py]` (1 isinstance) | Banned: 16 ad-hoc `isinstance(..., dict)` checks in LiteLLM provider response handling, tool call parsing, and mock routing. | Strongly typed response processing via LiteLLM DTOs and Pydantic model validation. | Eliminate ad-hoc dictionary inspecting in provider wrapper. | `uv run pytest backend_v2/tests/unit/llm/` |
+| **Domain Models & DTO Validation (Unsuppressed)**<br>`@[backend_v2/models/domain/inputs.py]` (4 isinstance)<br>`@[backend_v2/models/domain/mechanical_anchors.py]` (3 isinstance)<br>`@[backend_v2/models/dtos/evaluation_steps.py]` (2 isinstance)<br>`@[backend_v2/models/dtos/quote_evidence.py]` (2 isinstance)<br>`@[backend_v2/models/state.py]` (2 isinstance)<br>`@[backend_v2/models/domain/archivist.py]` (1 isinstance)<br>`@[backend_v2/models/dtos/matrix_scorecard.py]` (1 isinstance) | Banned: 15 `isinstance(data, dict)` checks inside `@model_validator(mode="before")` or helper methods. | Replace with `@model_validator(mode="after")` on strongly typed `self` models, eliminating raw dictionary inspection before validation. | Prune mode="before" dictionary scrubbing validators. | `uv run pytest backend_v2/tests/unit/models/` |
+| **Utils & Seed Registry (Unsuppressed)**<br>`@[backend_v2/utils/dict_utils.py]` (3 isinstance)<br>`@[backend_v2/utils/alias_engine.py]` (2 isinstance)<br>`@[backend_v2/seed/seed_registry.py]` (1 isinstance) | Banned: Recursive `isinstance(..., dict)` deep-merging and untyped traversing in utils. | Type narrowing with typed containers or strict generic bounds. | Refactor `dict_utils.py` to operate with explicit typed DTO mergers. | `uv run pytest backend_v2/tests/unit/utils/` |
+
+---
+
+## Phased Implementation Structure (8 Phases, Session-Bounded)
+
+> [!IMPORTANT]
+> **Session Boundary Protocol**: Each phase sub-batch MUST NOT exceed 4-5 files. Execute `/tier5-session-handover` at the designated boundary markers.
+
+### Phase 1: Pre-Implementation Cleanups & AST Guardrails Severity Hardening
+- **[MODIFY] @[scripts/_ast_guardrails.py#L160-L635]**: Harden QGR001, QGR002, and QGR012 severity to `FATAL` for ALL non-test files across the entire codebase (`self._is_non_test = not self._is_test_file`). No directory allowlists.
+- **[MODIFY] @[ki_ast_guardrail_engine.md]**: Update SSOT table and documentation for universal zero-suppression enforcement.
+
+### Phase 2: Elimination of `match/case dict` and Hydration Duct-Tape (4 files)
+- **[MODIFY] @[backend_v2/services/studio/output_profile_service.py#L50-L145]**: Enforce strict `data: OutputProfile` signature; eliminate `case dict() as data_dict:` and `case {"id": str() as p_id}:`.
+- **[MODIFY] @[backend_v2/services/progress.py#L274-L282]**: Replace `match/case dict()` with typed conditional flatten.
+- **[MODIFY] @[backend_v2/services/studio/prompt_block_service.py#L65-L95]**: Replace `case {"id": str() as p_id}:` with direct typed properties.
+- **[MODIFY] @[backend_v2/services/studio/workflow_service.py#L70-L150]**: Replace all 3 `case {"id": str() as ...}:` patterns with direct typed properties.
+
+### Phase 3: Typed Prompt Messages (`LLMMessageDTO`) & LLM Adapter Remediation (Atomic Batch — 6 files)
+
+> [!WARNING]
+> Phase 3 MUST be executed as a single atomic batch because `compile_prompt()` processes messages as `list[dict[str, Any]]` and feeds into `CompiledPrompt`.
+
+- **[NEW] @[backend_v2/models/dtos/system.py]**: Define `LLMMessageDTO(BaseModel)` with `role: str`, `content: str | None`, `tool_calls: list[dict[str, Any]] | None`, `tool_call_id: str | None`, `name: str | None` with `ConfigDict(strict=True, extra='forbid', frozen=True)`. Also define `TaskMetadataDTO(BaseModel)` with `ConfigDict(strict=True, extra='forbid')`.
+- **[MODIFY] @[backend_v2/models/prompt.py#L20-L120]**: Refactor `CompiledPrompt.static_messages` and `dynamic_messages` to typed `list[LLMMessageDTO]`; update `_merge_flat`, `to_static_flat`, `to_dynamic_flat`, `to_flat_messages`, and `_forbid_system_in_dynamic` to use `.role` / `.content` attribute access.
+- **[MODIFY] @[backend_v2/llm/adapters/base_adapter.py#L185-L365]**: Direct attribute access `msg.role` and `msg.content`; eliminate `.get("role")`, `.get("content")` (3 QGR002) and 4 unsuppressed `isinstance(dict)` checks.
+- **[MODIFY] @[backend_v2/llm/adapters/ai_studio_adapter.py#L170-L225]**: Direct attribute access on `LLMMessageDTO`; eliminate `msg.get("role")` and `msg.get("content")` (2 QGR002).
+- **[MODIFY] @[backend_v2/llm/adapters/vertex_adapter.py#L190-L245]**: Direct attribute access on `LLMMessageDTO`; eliminate `msg.get("role")` and `msg.get("content")` (2 QGR002).
+- **[MODIFY] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py#L1-L140]**: Refactor `compile_prompt()` to accept `list[LLMMessageDTO]` and return `CompiledPrompt`. Explicitly declare forwarded methods instead of `__getattr__` (1 QGR001). Update callers in `llm_task_executor.py` and `client.py`.
+
+### Phase 4A: Reflection, Exception & Schema Rigor (`QGR001`, `QGR007` — 4 files)
+- **[MODIFY] @[backend_v2/main.py#L150-L170]**: Replace `hasattr(pool, "aclose")` with explicit `isinstance(pool, ArqRedis)` (4 QGR001).
+- **[MODIFY] @[backend_v2/services/blueprint.py#L560-L585]**: Replace `hasattr(strat_raw, "value")` with strict `ScoringStrategy(strat_raw).value` Enum coercion (1 QGR001).
+- **[MODIFY] @[backend_v2/services/orchestrator/context_router.py#L23-L33]**: Add `model_config = ConfigDict(strict=True, extra='forbid')` to `RoutingModeConfig` (1 QGR007).
+- **[MODIFY] @[backend_v2/core/registry.py#L45-L53]**: Type `metadata` field on `TaskDefinition` as strict `TaskMetadataDTO | None = None` (1 QGR001).
+
+### Phase 4B: ALL 18 QGR003 Exception Handlers Across 9 Files
+- **[MODIFY] @[backend_v2/worker.py#L390-L1370]**: ALL 8 `except Exception:` handlers refactored: Top-level DLQ handlers (`L398`, `L471`, `L615`) add RFC-7807 structured logging + explicit `raise`. Inner handlers (`L419`, `L440`, `L586`, `L836`, `L1364`) narrow to `(ConnectionError, TimeoutError, OSError)`. Remove 8 `# noqa: QGR003`.
+- **[MODIFY] @[backend_v2/services/cache/typed_cache.py#L55-L59]**: Catch specific `(ConnectionError, TimeoutError, OSError)` on Redis delete (1 QGR003).
+- **[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L295-L300, L770-L775]**: NodeExecutor DLQ handler (L298) and Step failure isolation (L773) add RFC-7807 logging + `raise` (2 QGR003).
+- **[MODIFY] @[backend_v2/services/orchestrator/strategies/llm.py#L435-L455]**: L437 = Debug prompt logging (narrow to `OSError`). L453 = Group serialization (narrow to `(TypeError, ValueError, OSError)`) (2 QGR003).
+- **[MODIFY] @[backend_v2/llm/adapters/ai_studio_adapter.py#L210-L215]**: Fail-Soft cache degradation narrows to `(ConnectionError, TimeoutError, CacheError)` + `logger.warning` (1 QGR003).
+- **[MODIFY] @[backend_v2/llm/adapters/vertex_adapter.py#L235-L240]**: Fail-Soft cache degradation narrows to `(ConnectionError, TimeoutError, CacheError)` + `logger.warning` (1 QGR003).
+- **[MODIFY] @[backend_v2/services/llm_task_executor.py#L195-L200]**: Telemetry logging narrows to `(OSError, ConnectionError)` + `logger.warning` (1 QGR003).
+- **[MODIFY] @[backend_v2/services/orchestrator/enriched_dag_executor.py#L170-L175]**: Best-effort cache teardown narrows to `(ConnectionError, TimeoutError, OSError)` (1 QGR003).
+- **[MODIFY] @[backend_v2/services/orchestrator/two_pass_atomizer.py#L479-L485]**: DLQ Worker error isolation adds RFC-7807 logging + DLQ yield (1 QGR003).
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Phase 4B.**
+
+### Phase 5: Hooks Layer Typed DTOs (`QGR012` — 17 Files, 50 suppressions)
+
+#### Sub-Phase 5A: Scoring Hooks (4 files, 23 suppressions)
+- **[MODIFY] @[backend_v2/hooks/scoring/matrix_hook.py#L60-L420]** (7 QGR012)
+- **[MODIFY] @[backend_v2/hooks/scoring/falsifier_hook.py#L80-L280]** (8 QGR012)
+- **[MODIFY] @[backend_v2/hooks/scoring/normalization_hook.py#L60-L290]** (5 QGR012)
+- **[MODIFY] @[backend_v2/hooks/scoring/passivity_hook.py#L100-L200]** (3 QGR012)
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 5A.**
+
+#### Sub-Phase 5B: Validation, Ingress & Data Hooks (8 files, 18 suppressions)
+- **[MODIFY] @[backend_v2/hooks/validation.py#L70-L320]** (3 QGR012)
+- **[MODIFY] @[backend_v2/hooks/input_processing.py#L50-L350]** (4 QGR012)
+- **[MODIFY] @[backend_v2/hooks/integrity.py#L70-L340]** (4 QGR012)
+- **[MODIFY] @[backend_v2/hooks/hydration.py#L40-L80]** (2 QGR012)
+- **[MODIFY] @[backend_v2/hooks/linguistics.py#L50-L70]** (2 QGR012)
+- **[MODIFY] @[backend_v2/hooks/llm.py#L50-L100]** (2 QGR012)
+- **[MODIFY] @[backend_v2/hooks/source_verification_hook.py#L50-L100]** (2 QGR012)
+- **[MODIFY] @[backend_v2/hooks/references.py#L100-L140]** (2 QGR012)
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 5B.**
+
+#### Sub-Phase 5C: Peripheral & Metadata Hooks (5 files, 7 suppressions)
+- **[MODIFY] @[backend_v2/hooks/metadata.py#L60-L80]** (1 QGR012)
+- **[MODIFY] @[backend_v2/hooks/metrics.py#L230-L290]** (2 QGR012)
+- **[MODIFY] @[backend_v2/hooks/archival.py#L50-L70]** (1 QGR012)
+- **[MODIFY] @[backend_v2/hooks/dlq_guard.py#L50-L70]** (1 QGR012)
+- **[MODIFY] @[backend_v2/hooks/interaction_hook.py#L55-L75]** (1 QGR012)
+
+### Phase 6: Services & Orchestrator Layer Typed DTOs (`QGR012` — 19 Files, 82 suppressions)
+
+#### Sub-Phase 6A: Core Orchestrator (5 files, 20 suppressions)
+- **[MODIFY] @[backend_v2/services/orchestrator/strategies/llm.py#L120-L840]** (19 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L50-L160]** (7 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L50-L150]** (6 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/matrix_explanation_service.py#L65-L200]** (5 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/prompt_compiler.py#L275-L330]** (5 QGR012)
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 6A.**
+
+#### Sub-Phase 6B: DAG, Synthesis & Extraction (7 files, 15 suppressions)
+- **[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L450-L790]** (3 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L65-L190]** (3 QGR012)
+- **[MODIFY] @[backend_v2/services/matrix_domain_parser.py#L110-L490]** (3 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/context_router.py#L23-L80]** (2 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/extraction_schema_factory.py#L20-L55]** (2 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/rag_preflight_service.py#L65-L85]** (2 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/matrix_reducer.py#L50-L90]** (2 QGR012)
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 6B.**
+
+#### Sub-Phase 6C: Remaining Services & Blueprint (7 files, 25+ suppressions)
+- **[MODIFY] @[backend_v2/services/blueprint.py#L100-L700]** (**11 QGR012** — 699 lines)
+- **[MODIFY] @[backend_v2/services/execution.py#L110-L1060]** (6 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L50-L90]** (2 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/engines/tda_engine.py#L70-L90]** (1 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/localization_compiler.py#L40-L70]** (1 QGR012)
+- **[MODIFY] @[backend_v2/services/orchestrator/synthesis_distiller.py#L220-L245]** (1 QGR012)
+- **[MODIFY] @[backend_v2/services/document_extraction.py#L40-L80]** (1 QGR012)
+
+### Phase 7: Repository Reconstitution & `cast(Any, ...)` Elimination (5 files)
+- **[MODIFY] @[backend_v2/database/repositories/execution.py#L30-L150]**: Refactor 4 `isinstance(..., dict)` checks into `TypeAdapter` validation at repository boundary. Remove 4 `# noqa: QGR012`.
+- **[MODIFY] @[backend_v2/services/orchestrator/strategies/llm.py#L851]**: Replace `cast(Any, exec_record_raw)` with typed `ExecutionRecord.model_validate()`.
+- **[MODIFY] @[backend_v2/services/execution.py#L1060]**: Replace `cast(Any, None)` with explicit `None` typing on parameter.
+- **[MODIFY] @[backend_v2/run_worker.py#L41]**: Replace `cast(Any, WorkerSettings)` with typed worker settings annotation.
+- **[MODIFY] @[backend_v2/core/registry.py#L390-L400]**: Replace `cast(Any, (...))` dynamic model bases with explicit `type[AtomResponseBase]` typed tuple.
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Phase 7.**
+
+### Phase 8: Unsuppressed `isinstance(dict)` Remediation (20 files, 44 instances + 2 files with 11 extra instances)
+
+> [!IMPORTANT]
+> **TIER 0 EXPANDED PHASE.** Eliminates all 57 unsuppressed `isinstance(..., dict)` instances that are invisible to non-strict AST guardrails.
+
+#### Sub-Phase 8A: LLM Layer (4 files, 17 instances)
+- **[MODIFY] @[backend_v2/llm/provider.py#L170-L1155]** (**12 isinstance(dict)** — tool calls, hidden params, model_extra, grounding chunks, mock checks).
+- **[MODIFY] @[backend_v2/llm/ingress_pipeline.py#L230-L310]** (3 isinstance(dict) — item, val, data checks).
+- **[MODIFY] @[backend_v2/llm/adapters/anthropic_adapter.py#L50-L55]** (1 isinstance(dict) — block type check).
+- **[MODIFY] @[backend_v2/llm/mock.py#L65-L70]** (1 isinstance(dict) — response_schema check).
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 8A.**
+
+#### Sub-Phase 8B: Domain Models & DTOs (7 files, 15 instances)
+- **[MODIFY] @[backend_v2/models/domain/inputs.py#L75-L100]** (4 isinstance(dict) — data, v, dynamic_inputs, sub_v base64 checks).
+- **[MODIFY] @[backend_v2/models/domain/mechanical_anchors.py#L40-L70]** (3 isinstance(dict) — data, raw_inputs, pat checks).
+- **[MODIFY] @[backend_v2/models/dtos/evaluation_steps.py#L40-L80]** (2 isinstance(dict) — data checks).
+- **[MODIFY] @[backend_v2/models/dtos/quote_evidence.py#L35-L95]** (2 isinstance(dict) — data checks).
+- **[MODIFY] @[backend_v2/models/state.py#L395-L425]** (2 isinstance(dict) — event.content, step_output checks).
+- **[MODIFY] @[backend_v2/models/domain/archivist.py#L120-L125]** (1 isinstance(dict) — data check).
+- **[MODIFY] @[backend_v2/models/dtos/matrix_scorecard.py#L120-L130]** (1 isinstance(dict) — data check).
+
+> **SESSION BOUNDARY: Execute `/tier5-session-handover` after Sub-Phase 8B.**
+
+#### Sub-Phase 8C: Repositories & Database Drivers (6 files, 8 instances)
+- **[MODIFY] @[backend_v2/database/repositories/component.py#L140-L155]** (2 isinstance(dict) — content, crit checks).
+- **[MODIFY] @[backend_v2/database/repositories/components/matrix.py#L90-L105]** (2 isinstance(dict) — content, crit checks).
+- **[MODIFY] @[backend_v2/database/repositories/audit.py#L230-L235]** (1 isinstance(dict) — models_used check).
+- **[MODIFY] @[backend_v2/database/repositories/workflow.py#L228-L235]** (1 isinstance(dict) — step check).
+- **[MODIFY] @[backend_v2/database/firestore_driver.py#L55-L60]** (1 isinstance(dict) — data check).
+- **[MODIFY] @[backend_v2/database/tinydb_driver.py#L45-L50]** (1 isinstance(dict) — data check).
+
+#### Sub-Phase 8D: Utils, Seed & Worker Extras (4 files, 14 instances)
+- **[MODIFY] @[backend_v2/worker.py#L255-L1150]** (**7 extra unsuppressed isinstance(dict)** — event.content, step_meta checks).
+- **[MODIFY] @[backend_v2/utils/dict_utils.py#L25-L70]** (3 isinstance(dict) — merged, value_copy, curr checks).
+- **[MODIFY] @[backend_v2/utils/alias_engine.py#L245-L310]** (2 isinstance(dict) — node checks).
+- **[MODIFY] @[backend_v2/seed/seed_registry.py#L30-L35]** (1 isinstance(dict) — v check).
+
+---
+
+## Verification Plan (Zero Tolerance Proof Anchors)
+
+### Automated Tests — Absolute Zero Verification (Must ALL Return 0)
+
+1. **Zero `# noqa: QGR` (Must return exactly 0 across ALL files in `backend_v2`)**:
+   ```powershell
+   uv run python -c "import os, re; matches = [f'{r}/{f}' for r, _, fs in os.walk('backend_v2') if 'tests' not in r for f in fs if f.endswith('.py') for line in open(f'{r}/{f}', encoding='utf-8') if re.search(r'#\\s*noqa:\\s*QGR', line)]; print('Remaining QGR noqas:', len(matches)); assert len(matches) == 0, f'Found {len(matches)} remaining QGR noqas'"
+   ```
+
+2. **Zero `isinstance(..., dict)` (Must return exactly 0 across ALL files in `backend_v2`, NO file exclusions)**:
+   ```powershell
+   uv run python -c "import os, re; matches = [f'{r}/{f}:{i}:{line.strip()}' for r, _, fs in os.walk('backend_v2') if 'tests' not in r for f in fs if f.endswith('.py') for i, line in enumerate(open(f'{r}/{f}', encoding='utf-8'), 1) if re.search(r'isinstance\\s*\\([^,]+,\\s*dict\\s*\\)', line)]; print('Remaining isinstance dict:', len(matches)); [print(' ', m) for m in matches[:10]]; assert len(matches) == 0, f'Found {len(matches)} remaining isinstance(dict)'"
+   ```
+
+3. **Zero `match/case dict` and `case {'key': ...}` (Must return exactly 0)**:
+   ```powershell
+   uv run python -c "import os, re; matches = [f'{r}/{f}:{i}:{line.strip()}' for r, _, fs in os.walk('backend_v2') if 'tests' not in r for f in fs if f.endswith('.py') for i, line in enumerate(open(f'{r}/{f}', encoding='utf-8'), 1) if re.search(r'case\\s+dict\\b|case\\s+\\{', line)]; print('Remaining dict match cases:', len(matches)); assert len(matches) == 0, f'Found {len(matches)} remaining match/case dict'"
+   ```
+
+4. **Zero `cast(Any, ...)` (Must return exactly 0)**:
+   ```powershell
+   uv run python -c "import os, re; matches = [f'{r}/{f}:{i}:{line.strip()}' for r, _, fs in os.walk('backend_v2') if 'tests' not in r for f in fs if f.endswith('.py') for i, line in enumerate(open(f'{r}/{f}', encoding='utf-8'), 1) if re.search(r'cast\\s*\\(\\s*Any\\s*,', line)]; print('Remaining cast(Any):', len(matches)); assert len(matches) == 0, f'Found {len(matches)} remaining cast(Any)'"
+   ```
+
+5. **Zero `extra="ignore"` / `extra="allow"` (Must return exactly 0 across all Pydantic models)**:
+   ```powershell
+   uv run python -c "import os, re; matches = [f'{r}/{f}:{i}:{line.strip()}' for r, _, fs in os.walk('backend_v2') if 'tests' not in r for f in fs if f.endswith('.py') for i, line in enumerate(open(f'{r}/{f}', encoding='utf-8'), 1) if re.search(r'extra\s*=\s*[\"\'](ignore|allow)[\"\']', line)]; print('Remaining extra=ignore/allow:', len(matches)); assert len(matches) == 0, f'Found {len(matches)} remaining loose extra configs'"
+   ```
+
+6. **Zero QGR Violations — AST Guardrails Engine (Strict Mode across ALL files)**:
+   ```powershell
+   uv run python scripts/_ast_guardrails.py backend_v2 --strict
+   ```
+
+7. **Full Backend Audit Loop & Test Suite (>90% Strict TDD Coverage)**:
+   ```powershell
+   uv run python scripts/backend_audit_loop.py backend_v2 --test --ast-strict
+   uv run pytest backend_v2/tests/unit -v
+   uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py -v
+   ```
+
+---
+
+## Resolved Architectural Decisions
+
+| # | Topic | Resolution | Invariant Reference |
+|---|---|---|---|
+| Q1 | `strict=False` Scope | **DESCOPED** | 163 instances follow `pydantic_pure_hydration_boundary` rule |
+| Q2 | Repository Layer Remediation | **REFACTOR (Zero Exemptions)** | `service_layer_hydration_firewall` |
+| Q3 | `cast(Any, ...)` Remediation | **REFACTOR ALL (Zero Exemptions)** | `no_naked_dicts_in_state` |
+| Q4 | Prompt Message DTO | **NEW `LLMMessageDTO`** | Distinct domain from `ChatMessageDTO`; encapsulates `tool_calls` |
+| Q5 | Unsuppressed `isinstance(dict)` (57) | **FULL REMEDIATION in Phase 8** | Complete elimination across all 20 unsuppressed files |
+| Q6 | Token Shield Concept | **PERMANENTLY BANNED** | Universal `extra="forbid", strict=True` across 100% of models |
+| Q7 | Pattern Matching Rule | **HARDENED** | Explicitly bans `case dict()` and `case {'id': ...}` |
+| Q8 | `in` Operator Rule | **HARDENED** | Banned on untyped dicts; restricted to typed collections/models |
+
+---
+
+## Execution Command
+
+Start a fresh chat session and execute:
+```
+/tier2-execute @[implementation_plan.md]
+```
