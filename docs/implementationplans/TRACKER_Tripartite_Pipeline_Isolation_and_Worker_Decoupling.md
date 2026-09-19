@@ -286,5 +286,5 @@
 
 ## Resume Command
 ```
-/tier5-resume --target="@[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]" --workflow="/tier2-execute" --rules="01-python-backend.md"
+/tier5-resume --target="@[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]" --workflow="/tier2-execute" --rules="01-python-backend.md" --full-auto
 ```

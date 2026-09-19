@@ -89,3 +89,8 @@
   - **Step 6**: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
   - **Step 7**: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
 - **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
+
+## Resume Command
+```
+/tier5-resume --target="@[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]" --workflow="/tier2-execute" --rules="01-python-backend.md" --full-auto
+```
