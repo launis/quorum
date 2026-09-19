@@ -61,9 +61,9 @@
       - [x] 3.7: Execute Arq Worker smoke test
     - [x] (fd8e5eea) Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
       - [x] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
-    - [ ] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
-      - [ ] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
-      - [ ] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
+    - [x] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
+      - [x] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
+      - [x] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
     - [ ] Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
       - [ ] 6.1: Create @[backend_v2/models/dtos/report_artifact.py]: `ReportStatus`, `ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`
       - [ ] 6.2: Create @[backend_v2/models/domain/report_artifact.py] (~90 lines): `ReportArtifact` domain model
@@ -225,7 +225,7 @@
 | REQ-04 | Read-Only Presentation Transformers | `BlueprintTransformer` 100% side-effect-free, zero `update_execution` calls | Step 4 | `[x]` |
 | REQ-05 | Ghost Field Purge (`allowed_exports`) | Complete eradication from Python domain, DTOs, seed, Flutter, and test fixtures | Steps 1, 10 | `[x]` |
 | REQ-06 | Studio Parameterization Governance | Preserve `variance_target_block` and `user_role_target_block` typed selectors | Steps 1, 4 | `[x]` |
-| REQ-07 | CQRS Export Extraction | Dedicated `ExportService` with backend I18nText headers, zero `.arb` reading | Step 5 | `[ ]` |
+| REQ-07 | CQRS Export Extraction | Dedicated `ExportService` with backend I18nText headers, zero `.arb` reading | Step 5 | `[x]` |
 | REQ-08 | Materialized Report Artifacts | `ReportArtifact` domain model with full-lifecycle CRUD | Steps 6, 7, 8 | `[ ]` |
 | REQ-09 | REST-API-Only Pipeline Boundary | Zero worker-to-worker auto-enqueue; `POST /reports` is sole gateway | Steps 3, 8, 10 | `[ ]` |
 | REQ-10 | Database Schema Segregation | `executions` and `report_artifacts` strict collection isolation | Step 6 | `[ ]` |

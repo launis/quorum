@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-import io
 import json
 import logging
 from collections.abc import AsyncGenerator, MutableMapping
 from datetime import datetime, timezone
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from warnings import deprecated
 
-import pandas as pd
 from arq.connections import ArqRedis
 from pydantic import TypeAdapter, ValidationError
 
@@ -37,10 +35,7 @@ from backend_v2.models.auth import TokenData
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
-    PersonaPromptBlock,
     PromptBlockAdapter,
-    ProtocolPromptBlock,
-    SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix
@@ -73,13 +68,10 @@ from backend_v2.models.view.sdui import (
     AlertBlock,
     MarkdownBlock,
     ParagraphBlock,
-    SduiMatrixTableBlock,
-    SduiMetrics1DBlock,
-    SduiRadarChartBlock,
-    SduiScatterPlotBlock,
 )
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.document_extraction import DocumentExtractionService
+from backend_v2.services.export_service import ExportService
 from backend_v2.services.flattener import FlatFileService
 from backend_v2.services.ingress import SmartIngressResolver
 from backend_v2.services.pdf_generator import PdfReportService
@@ -170,6 +162,7 @@ class ExecutionService:
         system_repo: ISystemRepository,
         usage_service: UsageService,
         executor: DAGExecutor,
+        export_service: ExportService | None = None,
     ) -> None:
         """Initialize the ExecutionService with repository and engine dependencies.
 
@@ -183,6 +176,7 @@ class ExecutionService:
             system_repo: Repository for system configuration.
             usage_service: Service for usage quota tracking and reporting.
             executor: Underlying DAG orchestration executor.
+            export_service: Optional export service for generating Excel/CSV files.
         """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
@@ -193,6 +187,7 @@ class ExecutionService:
         self.system_repo = system_repo
         self.usage_service = usage_service
         self.executor = executor
+        self.export_service = export_service or ExportService(comp_repo=comp_repo)
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
         """Fetch executions securely based on Tenant/Role.
@@ -830,6 +825,7 @@ class ExecutionService:
         frozen_json = fc.model_dump_json(indent=2)
         return frozen_json.encode("utf-8"), f"frozen_context_{execution_id}.json"
 
+    @deprecated("Use ExportService.export_excel directly or ReportService.get_report_excel_bytes.")
     async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
         """Generates an Excel export for the execution including Summary and Raw Data tabs.
 
@@ -872,21 +868,11 @@ class ExecutionService:
                 status_code=400,
                 details={
                     "type": "about:blank",
-                    "title": "No Exportable Data",
+                    "title": "No Scoreable Atoms",
                     "error_code": ErrorCodes.VALIDATION_FAILED.value,
                 },
             )
 
-        # 2. String Resolution via Flutter ARB
-        locale = execution.target_locale
-        arb_path = Path(f"client_app_v2/lib/l10n/app_{locale}.arb")
-        if not arb_path.exists():
-            arb_path = Path("client_app_v2/lib/l10n/app_en.arb")
-
-        with open(arb_path, encoding="utf-8") as f:
-            l10n = json.load(f)
-
-        # 3. Attempt to fetch ReportDataDTO to populate the summary sheet.
         try:
             report_dto = await self.get_report_dto(initiator, execution_id)
         except AppException:
@@ -909,131 +895,14 @@ class ExecutionService:
                 },
             ) from e
 
-        def _l10n_label(key: str, default: str) -> str:
-            return str(l10n[key]) if key in l10n else default
-
-        summary_rows: list[dict[str, Any]] = []
-        if report_dto:
-            matrices = []
-            if report_dto.inner_sdui_blocks:
-                for block in report_dto.inner_sdui_blocks:
-                    match block:
-                        case (
-                            SduiRadarChartBlock(axes=axes)
-                            | SduiScatterPlotBlock(axes=axes)
-                            | SduiMatrixTableBlock(axes=axes)
-                            | SduiMetrics1DBlock(axes=axes)
-                        ):
-                            matrices.extend(axes)
-                        case _:
-                            pass
-
-            for matrix in matrices:
-                score = matrix.score
-                max_score = matrix.scale_max
-                summary_rows.append(
-                    {
-                        _l10n_label("excelHeaderMatrix", "Matrix"): matrix.label_i18n.resolve()
-                        if matrix.label_i18n
-                        else matrix.name,
-                        _l10n_label("excelHeaderGrade", "Grade"): score,
-                        _l10n_label("excelHeaderMaxScore", "Max Score"): max_score,
-                    }
-                )
-
-        df_summary = pd.DataFrame(summary_rows)
-
-        # 4. Reconstruct the Raakadata directly from the ExecutionStepState's scorecard_atoms
         components = await self.comp_repo.get_all_components("prompt_block")
-        blocks_by_id = {b.id: b for b in components}
-
-        rows: list[dict[str, Any]] = []
-        for _step_id, step_state in execution.step_states.items():
-            for atom_id, atom in step_state.scorecard_atoms.items():
-                num_status = None
-                if atom.status == "PASS":
-                    num_status = 1
-
-                internal_logic = atom.internal_logic_en
-                word_count = 0
-                if atom.semantic_reasoning:
-                    word_count = len(atom.semantic_reasoning.split())
-                quotes_str = ""
-                if atom.exact_quotes:
-                    quotes_str = "; ".join([q.quote for q in atom.exact_quotes])
-
-                sources_list = []
-                if atom.exact_quotes:
-                    for q in atom.exact_quotes:
-                        if q.verified_source_ids:
-                            sources_list.extend(q.verified_source_ids)
-                        if q.unverified_aliases:
-                            sources_list.extend(q.unverified_aliases)
-
-                sources = list(dict.fromkeys(sources_list))
-                sources_str = ", ".join(sources)
-
-                claim_rule = ""
-                if atom_id in blocks_by_id:
-                    matched_block = blocks_by_id[atom_id]
-                    match matched_block:
-                        case MatrixPromptBlock(ai_description=desc) if desc:
-                            claim_rule = desc
-                        case SystemRulePromptBlock(instruction_text=text) if text:
-                            claim_rule = text
-                        case PersonaPromptBlock(role_enforcement=text) if text:
-                            claim_rule = text
-                        case ProtocolPromptBlock(protocol_instructions=text) if text:
-                            claim_rule = text
-
-                internalization = ""
-                anti_patterns = ""
-                if internal_logic:
-                    internalization = internal_logic.step_1_identify_premise
-                    anti_patterns = internal_logic.step_3_evaluate_anti_patterns
-
-                rows.append(
-                    {
-                        _l10n_label("excelHeaderMatrix", "Matrix"): step_state.label,
-                        _l10n_label("excelHeaderCriterion", "Criterion Name (UI)"): atom.claim_label,
-                        _l10n_label("excelHeaderAiRule", "AI Rule"): claim_rule,
-                        _l10n_label("excelHeaderInternalizedRule", "Internalized Rule"): internalization,
-                        _l10n_label("excelHeaderResultStatus", "Result (Status)"): num_status,
-                        _l10n_label("excelHeaderConfidence", "Confidence Estimate"): None,
-                        _l10n_label("excelHeaderReasoningLength", "Reasoning Length"): word_count,
-                        _l10n_label("excelHeaderFoundQuotes", "Found Quotes"): quotes_str,
-                        _l10n_label("excelHeaderUsedSources", "Used Sources"): sources_str,
-                        _l10n_label("excelHeaderAiReasoning", "AI Reasoning"): atom.semantic_reasoning,
-                        _l10n_label("excelHeaderFalsification", "Falsification"): anti_patterns,
-                    }
-                )
-
-        df_raw = pd.DataFrame(rows)
-
-        output = io.BytesIO()
-        try:
-            with pd.ExcelWriter(output, engine="openpyxl") as writer:
-                df_summary.to_excel(writer, sheet_name=_l10n_label("excelSheetSummary", "Summary"), index=False)
-                df_raw.to_excel(writer, sheet_name=_l10n_label("excelSheetRawData", "Raw Data"), index=False)
-        except Exception as e:
-            logger.error(
-                "[ExecutionService] %s: Excel writing failed - %s",
-                ErrorCodes.INTERNAL_SERVER_ERROR.name,
-                e,
-                exc_info=True,
-            )
-            raise AppException(
-                message="Failed to generate Excel export",
-                status_code=500,
-                details={
-                    "type": "about:blank",
-                    "title": "Excel Generation Failed",
-                    "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
-                },
-            ) from e
-
-        output.seek(0)
-        return output.getvalue(), f"execution_export_{execution_id}.xlsx"
+        return await self.export_service.export_excel(
+            execution=execution,
+            report_dto=report_dto,
+            locale=execution.target_locale,
+            components=components,
+            execution_id=execution_id,
+        )
 
     async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
         """Removes the synthesized data for a specific profile to force re-render via LLM Hook."""

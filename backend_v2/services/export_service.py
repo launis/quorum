@@ -1,0 +1,221 @@
+"""Export domain service for generating forensic Excel and flat CSV reports.
+
+Adheres strictly to Tripartite Pipeline Architecture and Dual-Axis Localization:
+- Axis 1 (Flutter .arb) is segregated; backend export services use static SSOT mappings.
+- Separates presentation export logic from core execution lifecycle.
+"""
+
+import csv
+import io
+import logging
+from typing import Any
+
+import pandas as pd
+
+from backend_v2.database.interfaces import IComponentRepository
+from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.prompt_blocks import (
+    AnyPromptBlock,
+    MatrixPromptBlock,
+    PersonaPromptBlock,
+    ProtocolPromptBlock,
+    SystemRulePromptBlock,
+)
+from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.view.sdui import (
+    SduiMatrixTableBlock,
+    SduiMetrics1DBlock,
+    SduiRadarChartBlock,
+    SduiScatterPlotBlock,
+)
+from backend_v2.services.flattener import FlatFileService
+
+logger = logging.getLogger(__name__)
+
+_EXCEL_KEYS = (
+    ("excelHeaderMatrix", "Matriisi", "Matrix"),
+    ("excelHeaderGrade", "Arvosana", "Grade"),
+    ("excelHeaderMaxScore", "Maksimi", "Max Score"),
+    ("excelHeaderCriterion", "Kriteeri (UI)", "Criterion Name (UI)"),
+    ("excelHeaderAiRule", "AI-s\u00e4\u00e4nt\u00f6", "AI Rule"),
+    ("excelHeaderInternalizedRule", "Sis\u00e4istetty s\u00e4\u00e4nt\u00f6", "Internalized Rule"),
+    ("excelHeaderResultStatus", "Tulos (Status)", "Result (Status)"),
+    ("excelHeaderConfidence", "Luottamusarvio", "Confidence Estimate"),
+    ("excelHeaderReasoningLength", "Perustelun pituus", "Reasoning Length"),
+    ("excelHeaderFoundQuotes", "L\u00f6ydetyt sitaatit", "Found Quotes"),
+    ("excelHeaderUsedSources", "K\u00e4ytetyt l\u00e4hteet", "Used Sources"),
+    ("excelHeaderAiReasoning", "AI-perustelu", "AI Reasoning"),
+    ("excelHeaderFalsification", "Falsifiointi", "Falsification"),
+    ("excelSheetSummary", "Yhteenveto", "Summary"),
+    ("excelSheetRawData", "Raakadata", "Raw Data"),
+)
+_EXCEL_HEADERS_FI: dict[str, str] = {k: fi for k, fi, _ in _EXCEL_KEYS}
+_EXCEL_HEADERS_EN: dict[str, str] = {k: en for k, _, en in _EXCEL_KEYS}
+
+
+def _extract_claim_rule(block: AnyPromptBlock | None) -> str:
+    """Extracts the operational rule description from a prompt block."""
+    match block:
+        case MatrixPromptBlock(ai_description=desc) if desc:
+            return desc
+        case SystemRulePromptBlock(instruction_text=text) if text:
+            return text
+        case PersonaPromptBlock(role_enforcement=text) if text:
+            return text
+        case ProtocolPromptBlock(protocol_instructions=text) if text:
+            return text
+        case _:
+            return ""
+
+
+class ExportService:
+    """Domain service for generating forensic Excel and flat CSV exports."""
+
+    def __init__(self, comp_repo: IComponentRepository | None = None) -> None:
+        """Initializes the ExportService with an optional component repository.
+
+        Args:
+            comp_repo: Optional repository for resolving prompt block component descriptions.
+        """
+        self.comp_repo = comp_repo
+
+    async def export_excel(
+        self,
+        execution: ExecutionRecord,
+        report_dto: ReportDataDTO | None,
+        locale: str = "fi",
+        components: list[AnyPromptBlock] | None = None,
+        execution_id: str | None = None,
+    ) -> tuple[bytes, str]:
+        """Generates an Excel export for the execution including Summary and Raw Data tabs.
+
+        Args:
+            execution: The ExecutionRecord containing evaluation data.
+            report_dto: Optional ReportDataDTO containing presentation metrics.
+            locale: Target localization code ('fi' or 'en').
+            components: Optional pre-fetched prompt blocks for rule text resolution.
+            execution_id: Optional explicit execution ID for the export filename.
+
+        Returns:
+            A tuple of the Excel file bytes and the suggested filename.
+
+        Raises:
+            AppException: If validation fails or Excel generation crashes.
+        """
+        if execution.status != ExecutionStatus.PASSED:
+            msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
+            logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        has_atoms = any(s.scorecard_atoms for s in execution.step_states.values()) if execution.step_states else False
+        if not has_atoms:
+            msg = "Strict Fail-Fast: Execution has no scoreable atoms."
+            logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+
+        h = _EXCEL_HEADERS_FI if locale.lower().startswith("fi") else _EXCEL_HEADERS_EN
+
+        summary_rows: list[dict[str, Any]] = []
+        if report_dto and report_dto.inner_sdui_blocks:
+            matrices: list[Any] = []
+            for block in report_dto.inner_sdui_blocks:
+                match block:
+                    case (
+                        SduiRadarChartBlock(axes=axes)
+                        | SduiScatterPlotBlock(axes=axes)
+                        | SduiMatrixTableBlock(axes=axes)
+                        | SduiMetrics1DBlock(axes=axes)
+                    ):
+                        matrices.extend(axes)
+                    case _:
+                        pass
+            for m in matrices:
+                lbl = m.label_i18n.resolve() if m.label_i18n else m.name
+                summary_rows.append(
+                    {
+                        h["excelHeaderMatrix"]: lbl,
+                        h["excelHeaderGrade"]: m.score,
+                        h["excelHeaderMaxScore"]: m.scale_max,
+                    }
+                )
+
+        blocks_by_id: dict[str, AnyPromptBlock] = {}
+        if components is not None:
+            blocks_by_id = {b.id: b for b in components}
+        elif self.comp_repo is not None:
+            comp_list = await self.comp_repo.get_all_components("prompt_block")
+            blocks_by_id = {b.id: b for b in comp_list}
+
+        rows: list[dict[str, Any]] = []
+        for _step_id, step_state in execution.step_states.items():
+            for atom_id, atom in step_state.scorecard_atoms.items():
+                sources_list: list[str] = []
+                if atom.exact_quotes:
+                    for q in atom.exact_quotes:
+                        sources_list.extend(q.verified_source_ids)
+                        sources_list.extend(q.unverified_aliases)
+
+                p = atom.internal_logic_en
+                rule_text = _extract_claim_rule(blocks_by_id.get(atom_id))
+                q_str = "; ".join([q.quote for q in atom.exact_quotes]) if atom.exact_quotes else ""
+                s_str = ", ".join(list(dict.fromkeys(sources_list)))
+                w_count = len(atom.semantic_reasoning.split()) if atom.semantic_reasoning else 0
+
+                rows.append(
+                    {
+                        h["excelHeaderMatrix"]: step_state.label,
+                        h["excelHeaderCriterion"]: atom.claim_label,
+                        h["excelHeaderAiRule"]: rule_text,
+                        h["excelHeaderInternalizedRule"]: p.step_1_identify_premise if p else "",
+                        h["excelHeaderResultStatus"]: 1 if atom.status == "PASS" else None,
+                        h["excelHeaderConfidence"]: None,
+                        h["excelHeaderReasoningLength"]: w_count,
+                        h["excelHeaderFoundQuotes"]: q_str,
+                        h["excelHeaderUsedSources"]: s_str,
+                        h["excelHeaderAiReasoning"]: atom.semantic_reasoning,
+                        h["excelHeaderFalsification"]: p.step_3_evaluate_anti_patterns if p else "",
+                    }
+                )
+
+        output = io.BytesIO()
+        try:
+            with pd.ExcelWriter(output, engine="openpyxl") as writer:
+                pd.DataFrame(summary_rows).to_excel(writer, sheet_name=h["excelSheetSummary"], index=False)
+                pd.DataFrame(rows).to_excel(writer, sheet_name=h["excelSheetRawData"], index=False)
+        except Exception as e:
+            logger.error("[ExportService] %s: Excel writing failed - %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, e)
+            raise AppException(
+                message="Failed to generate Excel export",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            ) from e
+
+        output.seek(0)
+        target_id = execution_id if execution_id is not None else execution.id
+        return output.getvalue(), f"execution_export_{target_id}.xlsx"
+
+    def export_flat_csv(
+        self,
+        execution: ExecutionRecord,
+        report_dto: ReportDataDTO | None = None,
+        execution_id: str | None = None,
+    ) -> tuple[bytes, str]:
+        """Generates a flat CSV export for the execution using FlatFileService.
+
+        Args:
+            execution: The ExecutionRecord containing evaluation data.
+            report_dto: Optional ReportDataDTO containing presentation metrics.
+            execution_id: Optional explicit execution ID for the export filename.
+
+        Returns:
+            A tuple of the CSV file bytes and the suggested filename.
+        """
+        flat_data = FlatFileService.flatten_results(execution, report_dto)
+        output = io.StringIO()
+        writer = csv.DictWriter(output, fieldnames=list(flat_data.keys()))
+        writer.writeheader()
+        writer.writerow(flat_data)
+        target_id = execution_id if execution_id is not None else execution.id
+        return output.getvalue().encode("utf-8"), f"execution_export_{target_id}.csv"
