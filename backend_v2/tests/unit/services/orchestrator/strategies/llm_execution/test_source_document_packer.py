@@ -4,12 +4,16 @@ import re
 from typing import Any
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExpectedInput
-from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
+from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import (
+    ContextTargetFilterDTO,
+    SourceDocumentPacker,
+)
 
 
 def _build_expected_input(key: str, ai_desc: str | None = None) -> ExpectedInput:
@@ -119,12 +123,6 @@ def test_source_document_packer_survives_tda_paragraph_split() -> None:
     packed = SourceDocumentPacker.pack(inputs, expected_inputs)
     paragraphs = [p.strip() for p in packed.split("\n\n") if p.strip()]
 
-    # Verify paragraph count and structure:
-    # 1. <ai_context_directive document="chat_log">...
-    # 2. Paragraph 1 of chat.
-    # 3. Paragraph 2 of chat.
-    # 4. <ai_context_directive document="reflection_text">...
-    # 5. Single paragraph reflection.
     assert len(paragraphs) == 5
 
     # Each directive MUST be completely self-contained within its own single paragraph block
@@ -147,44 +145,56 @@ def test_source_document_packer_survives_tda_paragraph_split() -> None:
         assert ">" not in cp
 
 
-def test_source_document_packer_step_scoping_and_allowed_keys() -> None:
-    """Verify resolve_allowed_keys resolution and pack() key filtering according to step contracts."""
-    # 1. resolve_allowed_keys canonical $inputs.<key> resolution
+def test_source_document_packer_step_scoping_and_context_target_filter() -> None:
+    """Verify resolve_context_targets resolution and pack() key filtering according to step contracts."""
+    # 1. resolve_context_targets canonical $inputs.<key> resolution
     mappings = {
         "text": "$inputs.product_text",
         "chat": "$inputs.chat_log",
         "nested": "$inputs.assignment_brief",
     }
-    assert SourceDocumentPacker.resolve_allowed_keys(mappings) == {
+    targets = SourceDocumentPacker.resolve_context_targets(mappings)
+    assert targets.allowed_input_keys == frozenset({
         "product_text",
         "chat_log",
         "assignment_brief",
-    }
+    })
+    assert targets.allowed_step_ids is None
+    assert not targets.wants_all_steps
 
-    # 2. $steps and $steps.<step_id> mappings are resolved into allowed keys
+    # 2. $steps and $steps.<step_id> mappings are resolved into step targets
     step_mappings = {
         "prior_1": "$steps.node_1",
         "prior_2": "$steps.node_2.output",
         "raw_step": "$steps",
     }
-    assert SourceDocumentPacker.resolve_allowed_keys(step_mappings) == {
-        "$steps.node_1",
-        "$steps.node_2.output",
-        "$steps",
-    }
+    step_targets = SourceDocumentPacker.resolve_context_targets(step_mappings)
+    assert step_targets.allowed_step_ids == frozenset({"node_1", "node_2.output"})
+    assert step_targets.wants_all_steps is True
+    assert step_targets.allowed_input_keys is None
 
     # Mixed mappings
     mixed = {
         "doc": "$inputs.target_doc",
         "step": "$steps.previous",
     }
-    assert SourceDocumentPacker.resolve_allowed_keys(mixed) == {"target_doc", "$steps.previous"}
+    mixed_targets = SourceDocumentPacker.resolve_context_targets(mixed)
+    assert mixed_targets.allowed_input_keys == frozenset({"target_doc"})
+    assert mixed_targets.allowed_step_ids == frozenset({"previous"})
+    assert not mixed_targets.wants_all_steps
 
-    # 3. Empty or None mappings yield empty set
-    assert SourceDocumentPacker.resolve_allowed_keys({}) == set()
-    assert SourceDocumentPacker.resolve_allowed_keys(None) == set()
+    # 3. Empty or None mappings yield empty sets in ContextTargetFilterDTO
+    empty_targets = SourceDocumentPacker.resolve_context_targets({})
+    assert empty_targets.allowed_input_keys == frozenset()
+    assert empty_targets.allowed_step_ids == frozenset()
+    assert not empty_targets.wants_all_steps
 
-    # 4. pack with allowed_keys excluding unmapped inputs
+    none_targets = SourceDocumentPacker.resolve_context_targets(None)
+    assert none_targets.allowed_input_keys == frozenset()
+    assert none_targets.allowed_step_ids == frozenset()
+    assert not none_targets.wants_all_steps
+
+    # 4. pack with targets excluding unmapped inputs
     inputs = {
         "product_text": "Substantive memo text.",
         "chat_log": "Dialogue to be excluded.",
@@ -194,19 +204,24 @@ def test_source_document_packer_step_scoping_and_allowed_keys() -> None:
         _build_expected_input("product_text", "Executive memo description."),
         _build_expected_input("chat_log", "Dialogue description."),
     ]
-    packed = SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys={"product_text"})
+    packed = SourceDocumentPacker.pack(
+        inputs,
+        expected_inputs,
+        targets=ContextTargetFilterDTO(allowed_input_keys=frozenset({"product_text"})),
+    )
     assert "Substantive memo text." in packed
     assert '<ai_context_directive document="product_text">' in packed
     assert "Dialogue to be excluded." not in packed
     assert "chat_log" not in packed
     assert "Extra unmapped document." not in packed
 
-    # 5. pack with empty allowed_keys set() returns empty string for both dict and str payloads
-    assert SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys=set()) == ""
-    assert SourceDocumentPacker.pack("Standalone raw document", allowed_keys=set()) == ""
+    # 5. pack with empty targets returns empty string for both dict and str payloads
+    assert SourceDocumentPacker.pack(inputs, expected_inputs, targets=empty_targets) == ""
+    assert SourceDocumentPacker.pack("Standalone raw document", targets=empty_targets) == ""
 
-    # Non-existent key in allowed_keys yields empty string
-    assert SourceDocumentPacker.pack(inputs, expected_inputs, allowed_keys={"non_existent_key"}) == ""
+    # Non-existent key in targets yields empty string
+    non_existent_target = ContextTargetFilterDTO(allowed_input_keys=frozenset({"non_existent_key"}))
+    assert SourceDocumentPacker.pack(inputs, expected_inputs, targets=non_existent_target) == ""
 
 
 def test_source_document_packer_step_outputs_packing_positive() -> None:
@@ -235,7 +250,7 @@ def test_source_document_packer_step_outputs_packing_positive() -> None:
     # Wildcard $steps packing
     packed = SourceDocumentPacker.pack(
         inputs_payload=None,
-        allowed_keys={"$steps"},
+        targets=ContextTargetFilterDTO(wants_all_steps=True),
         step_outputs=step_outputs,
     )
     assert '<step_output step_id="sr_step_1">' in packed
@@ -247,7 +262,7 @@ def test_source_document_packer_step_outputs_packing_positive() -> None:
     # Specific step targeting $steps.sr_step_1
     packed_single = SourceDocumentPacker.pack(
         inputs_payload=None,
-        allowed_keys={"$steps.sr_step_1"},
+        targets=ContextTargetFilterDTO(allowed_step_ids=frozenset({"sr_step_1"})),
         step_outputs=step_outputs,
     )
     assert '<step_output step_id="sr_step_1">' in packed_single
@@ -258,7 +273,10 @@ def test_source_document_packer_step_outputs_packing_positive() -> None:
     inputs = {"memo": "Candidate deliverable text"}
     packed_mixed = SourceDocumentPacker.pack(
         inputs_payload=inputs,
-        allowed_keys={"memo", "$steps.sr_step_2"},
+        targets=ContextTargetFilterDTO(
+            allowed_input_keys=frozenset({"memo"}),
+            allowed_step_ids=frozenset({"sr_step_2"}),
+        ),
         step_outputs=step_outputs,
     )
     assert "Candidate deliverable text" in packed_mixed
@@ -281,7 +299,7 @@ def test_source_document_packer_non_existent_step_reference_fails_fast() -> None
     with pytest.raises(AppException) as exc_info:
         SourceDocumentPacker.pack(
             inputs_payload=None,
-            allowed_keys={"$steps.sr_nonexistent"},
+            targets=ContextTargetFilterDTO(allowed_step_ids=frozenset({"sr_nonexistent"})),
             step_outputs=step_outputs,
         )
 
@@ -294,7 +312,8 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
     """Test structured payload dictionary parsing, non-string mappings, and invalid items."""
     # 1. Non-string value in input_mappings
     mappings: dict[str, Any] = {"doc": "$inputs.valid", "bad": 12345}
-    assert SourceDocumentPacker.resolve_allowed_keys(mappings) == {"valid"}
+    targets = SourceDocumentPacker.resolve_context_targets(mappings)
+    assert targets.allowed_input_keys == frozenset({"valid"})
 
     # 2. Structured dict payloads in step_outputs (text, markdown, content, and empty)
     step_outputs = [
@@ -325,7 +344,7 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
     ]
 
     packed = SourceDocumentPacker.pack(
-        allowed_keys={"$steps"},
+        targets=ContextTargetFilterDTO(wants_all_steps=True),
         step_outputs=step_outputs,
     )
     assert '<step_output step_id="sr_text">' in packed
@@ -340,7 +359,7 @@ def test_source_document_packer_structured_dict_payload_and_edge_cases() -> None
     for invalid_item in [{"step_id": "invalid_missing_fields"}, 12345]:
         with pytest.raises(AppException) as exc_info:
             SourceDocumentPacker.pack(
-                allowed_keys={"$steps"},
+                targets=ContextTargetFilterDTO(wants_all_steps=True),
                 step_outputs=[invalid_item],
             )
         assert exc_info.value.status_code == 500
@@ -369,14 +388,33 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
         "reduced_matrix": "$steps.matrix_reducer.reduced_atoms",
         "assignment_context": "$inputs.assignment_context",
     }
-    allowed = SourceDocumentPacker.resolve_allowed_keys(mappings)
+    targets = SourceDocumentPacker.resolve_context_targets(mappings)
 
     # Must NOT raise AppException: Strict Fail-Fast: Mapped step(s) ['matrix_reducer.reduced_atoms'] not found in prior step outputs.
     packed = SourceDocumentPacker.pack(
         inputs_payload={"assignment_context": "The assignment brief."},
-        allowed_keys=allowed,
+        targets=targets,
         step_outputs=step_outputs,
     )
     assert '<step_output step_id="sr_03c1d71000000006">' in packed
     assert "Step 6 evaluation output." in packed
     assert "The assignment brief." in packed
+
+
+def test_source_document_packer_context_target_filter_dto_validation() -> None:
+    """ISTQB Boundary: ContextTargetFilterDTO strict validation, wildcard patterns, and positive key mapping."""
+    # 1. Strict validation: extra fields are forbidden
+    with pytest.raises(ValidationError):
+        ContextTargetFilterDTO.model_validate({"extra_field": "disallowed"})
+
+    # 2. Direct un-prefixed input mapping resolves to allowed_input_keys
+    direct_mapping = {"doc": "financials_q3"}
+    targets = SourceDocumentPacker.resolve_context_targets(direct_mapping)
+    assert targets.allowed_input_keys == frozenset({"financials_q3"})
+    assert targets.allowed_step_ids is None
+
+    # 3. Wildcard step mapping $steps.* sets wants_all_steps
+    wildcard_mapping = {"all": "$steps.*"}
+    targets_wildcard = SourceDocumentPacker.resolve_context_targets(wildcard_mapping)
+    assert targets_wildcard.wants_all_steps is True
+    assert targets_wildcard.allowed_step_ids is None

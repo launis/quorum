@@ -35,16 +35,16 @@
   - [x] Run quality gate on `matrix_domain_parser.py`
   - [x] Git checkpoint
 
-- [ ] **Milestone 5: SourceDocumentPacker & Orchestrator LLM Strategy Modernization**
-  - [ ] Create `ContextTargetFilterDTO` in `source_document_packer.py`
-  - [ ] Refactor `resolve_context_targets(input_mappings)` returning `ContextTargetFilterDTO`
-  - [ ] Modernize `pack()` signature (eradicate `inputs_payload: Any`, `list[Any]`, and legacy `allowed_keys` shim)
-  - [ ] Modernize filtering to inspect `ContextTargetFilterDTO` directly (eradicate `not k.startswith("$steps")`)
-  - [ ] Fix Python 2 exception syntax (`except (TypeError, ValueError):`) and variable scoping (`item.block_id`)
-  - [ ] Modernize `llm.py` caller site
-  - [ ] Modernize `test_source_document_packer.py` and implement ISTQB negative boundary tests
-  - [ ] Run quality gate on `source_document_packer.py` and `llm.py`
-  - [ ] Git checkpoint
+- [x] **Milestone 5: SourceDocumentPacker & Orchestrator LLM Strategy Modernization**
+  - [x] Create `ContextTargetFilterDTO` in `source_document_packer.py`
+  - [x] Refactor `resolve_context_targets(input_mappings)` returning `ContextTargetFilterDTO`
+  - [x] Modernize `pack()` signature (eradicate `inputs_payload: Any`, `list[Any]`, and legacy `allowed_keys` shim)
+  - [x] Modernize filtering to inspect `ContextTargetFilterDTO` directly (eradicate `not k.startswith("$steps")`)
+  - [x] Fix Python 2 exception syntax (`except (TypeError, ValueError):`) and variable scoping (`item.block_id`)
+  - [x] Modernize `llm.py` caller site
+  - [x] Modernize `test_source_document_packer.py` and implement ISTQB negative boundary tests
+  - [x] Run quality gate on `source_document_packer.py` and `llm.py`
+  - [x] Git checkpoint
 
 - [ ] **Milestone 6: PrintableSourcesAdapter Sanitization Modernization**
   - [ ] Modernize internal step reference filtering using `EntityPrefix.STEP_REFERENCE` while preserving Harvard academic citations

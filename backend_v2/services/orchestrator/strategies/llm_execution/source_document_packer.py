@@ -2,16 +2,36 @@
 
 import json
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.models.v2_core import ExpectedInput
 
 logger = logging.getLogger(__name__)
+
+
+class ContextTargetFilterDTO(V2CoreBase):
+    """Authoritative typed container for resolved context target filters."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    allowed_input_keys: frozenset[str] | None = Field(
+        default=None,
+        description="Specifically allowed input document keys (e.g. 'product_text'). None means unrestricted if targets was not provided.",
+    )
+    allowed_step_ids: frozenset[str] | None = Field(
+        default=None,
+        description="Specifically allowed step identifiers or compound targets (e.g. 'sr_1', 'sr_1.blk_1').",
+    )
+    wants_all_steps: bool = Field(
+        default=False,
+        description="Whether all prior step outputs are requested (e.g. '$steps' or '$steps.*').",
+    )
 
 
 @dataclass(frozen=True)
@@ -23,7 +43,8 @@ class PriorStepOutput:
     text_content: str
 
 
-_dict_adapter: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
+_dict_adapter: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
+_step_output_adapter: TypeAdapter[StepOutputDTO] = TypeAdapter(StepOutputDTO)
 
 
 class SourceDocumentPacker:
@@ -37,36 +58,76 @@ class SourceDocumentPacker:
     """
 
     @staticmethod
-    def resolve_allowed_keys(input_mappings: dict[str, str] | None) -> set[str]:
-        """Resolve explicitly mapped input and step keys from step input mappings.
+    def resolve_context_targets(input_mappings: dict[str, str] | None) -> ContextTargetFilterDTO:
+        """Resolve explicitly mapped input keys and step targets from step input mappings.
 
         Parses canonical '$inputs.<key>' values to identify input documents
         targeted for ingestion by the step, and '$steps' or '$steps.<step_id>'
-        references to target prior step execution outputs.
+        references to target prior step execution outputs. Direct un-prefixed keys
+        are treated as positive input key references.
 
         Args:
             input_mappings: Mapping dictionary from step definition,
                 e.g. {'doc': '$inputs.product_text', 'prior': '$steps'}.
 
         Returns:
-            Set of resolved input and step document keys.
-            Returns an empty set if input_mappings is None or empty.
+            ContextTargetFilterDTO containing resolved immutable sets and wildcard flags.
+            Returns an empty filter (empty sets) if input_mappings is None or empty.
         """
         if not input_mappings:
-            return set()
+            return ContextTargetFilterDTO(
+                allowed_input_keys=frozenset(),
+                allowed_step_ids=frozenset(),
+                wants_all_steps=False,
+            )
 
-        allowed: set[str] = set()
+        input_keys: set[str] = set()
+        step_ids: set[str] = set()
+        wants_all = False
+        has_any_mapping = False
+
         for value in input_mappings.values():
             if not isinstance(value, str):
                 continue
             val = value.strip()
+            if not val:
+                continue
+            has_any_mapping = True
             if val.startswith("$inputs."):
                 key = val[len("$inputs.") :].strip()
                 if key:
-                    allowed.add(key)
-            elif val == "$steps" or val.startswith("$steps."):
-                allowed.add(val)
-        return allowed
+                    input_keys.add(key)
+            elif val == "$steps":
+                wants_all = True
+            elif val.startswith("$steps."):
+                step_target = val[len("$steps.") :].strip()
+                if step_target == "*":
+                    wants_all = True
+                elif step_target:
+                    step_ids.add(step_target)
+            elif not val.startswith("$"):
+                input_keys.add(val)
+
+        if not has_any_mapping:
+            return ContextTargetFilterDTO(
+                allowed_input_keys=frozenset(),
+                allowed_step_ids=frozenset(),
+                wants_all_steps=False,
+            )
+
+        resolved_input_keys: frozenset[str] | None = None
+        if len(input_keys) > 0:
+            resolved_input_keys = frozenset(input_keys)
+
+        resolved_step_ids: frozenset[str] | None = None
+        if len(step_ids) > 0:
+            resolved_step_ids = frozenset(step_ids)
+
+        return ContextTargetFilterDTO(
+            allowed_input_keys=resolved_input_keys,
+            allowed_step_ids=resolved_step_ids,
+            wants_all_steps=wants_all,
+        )
 
     @staticmethod
     def _is_step_target_matched(
@@ -96,18 +157,18 @@ class SourceDocumentPacker:
 
     @staticmethod
     def pack(
-        inputs_payload: Any = None,
+        inputs_payload: object = None,
         expected_inputs: list[ExpectedInput] | None = None,
-        allowed_keys: set[str] | None = None,
-        step_outputs: list[StepOutputDTO] | list[Any] | None = None,
+        targets: ContextTargetFilterDTO | None = None,
+        step_outputs: Sequence[StepOutputDTO] | Sequence[object] | None = None,
     ) -> str:
         """Pack input documents and prior step outputs with inline context directives.
 
         Args:
             inputs_payload: Raw payload containing a string or key-value dictionary of documents.
             expected_inputs: Optional workflow definitions containing input keys and ai_descriptions.
-            allowed_keys: Optional set of allowed input/step keys. If provided and empty, returns empty string.
-                When populated, filters dictionary payload and prior step outputs to include only matching keys.
+            targets: Optional ContextTargetFilterDTO container. If provided and empty, returns empty string.
+                When populated, filters dictionary payload and prior step outputs to include only matching targets.
             step_outputs: Optional collection of prior StepOutputDTO objects from execution snapshot.
 
         Returns:
@@ -119,15 +180,26 @@ class SourceDocumentPacker:
         if not inputs_payload and not step_outputs:
             return ""
 
-        if allowed_keys is not None and len(allowed_keys) == 0:
-            return ""
+        if targets is not None:
+            has_no_input_targets = targets.allowed_input_keys is not None and len(targets.allowed_input_keys) == 0
+            has_no_step_targets = (
+                not targets.wants_all_steps
+                and targets.allowed_step_ids is not None
+                and len(targets.allowed_step_ids) == 0
+            )
+            if has_no_input_targets and has_no_step_targets:
+                return ""
 
         sections: list[str] = []
 
-        # 1. Process inputs_payload if present and not exclusively step-scoped
-        has_input_keys = allowed_keys is None or any(not k.startswith("$steps") for k in allowed_keys)
+        # 1. Process inputs_payload if present and targeted
+        include_inputs = False
+        if targets is None:
+            include_inputs = True
+        elif targets.allowed_input_keys is not None and len(targets.allowed_input_keys) > 0:
+            include_inputs = True
 
-        if inputs_payload and has_input_keys:
+        if inputs_payload and include_inputs:
             meta_map: dict[str, str] = {}
             if expected_inputs:
                 for ei in expected_inputs:
@@ -150,8 +222,9 @@ class SourceDocumentPacker:
                     ) from e
 
                 for key, value in dict_payload.items():
-                    if allowed_keys is not None and key not in allowed_keys:
-                        continue
+                    if targets is not None and targets.allowed_input_keys is not None:
+                        if key not in targets.allowed_input_keys:
+                            continue
                     if not isinstance(value, str) or not value.strip():
                         continue
                     clean_value = value.strip()
@@ -162,19 +235,23 @@ class SourceDocumentPacker:
                     else:
                         sections.append(clean_value)
 
-        # 2. Process step_outputs if present and step-scoped
-        wants_steps = allowed_keys is None or any(k == "$steps" or k.startswith("$steps.") for k in allowed_keys)
+        # 2. Process step_outputs if present and targeted
+        include_steps = False
+        wildcard_steps = False
+        specific_step_targets: set[str] = set()
 
-        if wants_steps and (step_outputs or (allowed_keys and any(k.startswith("$steps.") for k in allowed_keys))):
-            specific_step_targets: set[str] = set()
-            wildcard_steps = allowed_keys is None or "$steps" in allowed_keys
-            if allowed_keys is not None:
-                for k in allowed_keys:
-                    if k.startswith("$steps."):
-                        target = k[len("$steps.") :].strip()
-                        if target:
-                            specific_step_targets.add(target)
+        if targets is None:
+            include_steps = True
+            wildcard_steps = True
+        else:
+            if targets.wants_all_steps:
+                include_steps = True
+                wildcard_steps = True
+            elif targets.allowed_step_ids is not None and len(targets.allowed_step_ids) > 0:
+                include_steps = True
+                specific_step_targets = set(targets.allowed_step_ids)
 
+        if include_steps and (step_outputs or specific_step_targets):
             available_step_ids: set[str] = set()
             available_compound_targets: set[str] = set()
             prior_steps_list: list[PriorStepOutput] = []
@@ -182,11 +259,7 @@ class SourceDocumentPacker:
             if step_outputs:
                 for item in step_outputs:
                     try:
-                        dto = (
-                            item
-                            if isinstance(item, StepOutputDTO)
-                            else TypeAdapter(StepOutputDTO).validate_python(item)
-                        )
+                        dto = item if isinstance(item, StepOutputDTO) else _step_output_adapter.validate_python(item)
                         s_id = dto.step_id
                         b_id = dto.block_id
                         payload = dto.payload
@@ -209,7 +282,7 @@ class SourceDocumentPacker:
                     if isinstance(payload, str):
                         text_content = payload.strip()
                     else:
-                        step_dict_payload: dict[str, Any] | None = None
+                        step_dict_payload: dict[str, object] | None = None
                         try:
                             raw_data = payload.model_dump(mode="json") if isinstance(payload, BaseModel) else payload
                             step_dict_payload = _dict_adapter.validate_python(raw_data)
@@ -254,17 +327,17 @@ class SourceDocumentPacker:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
-            for item in prior_steps_list:
-                s_id = item.step_id
+            for prior_item in prior_steps_list:
+                s_id = prior_item.step_id
                 compound = ""
-                if b_id:
-                    compound = f"{s_id}.{b_id}"
+                if prior_item.block_id:
+                    compound = f"{s_id}.{prior_item.block_id}"
                 if SourceDocumentPacker._is_step_target_matched(
                     step_id=s_id,
                     compound_target=compound,
                     specific_targets=specific_step_targets,
                     is_wildcard=wildcard_steps,
                 ):
-                    sections.append(f'<step_output step_id="{s_id}">\n\n{item.text_content}\n\n</step_output>')
+                    sections.append(f'<step_output step_id="{s_id}">\n\n{prior_item.text_content}\n\n</step_output>')
 
         return "\n\n".join(sections)
