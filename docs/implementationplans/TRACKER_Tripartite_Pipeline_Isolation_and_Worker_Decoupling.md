@@ -101,14 +101,14 @@
       - [x] 9.6: Modify @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Add `autoGenerateReport` checkbox
       - [x] 9.7: Modify @[client_app_v2/lib/features/execution/views/execution_view.dart] — Auto-trigger report on PASSED with `autoGenerateReport`
       - [x] 9.8: Update @[client_app_v2/lib/l10n/app_fi.arb] and @[client_app_v2/lib/l10n/app_en.arb] — Add 24 localization keys with 1:1 bilingual parity
-    - [x] Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES
+    - [x] (17fbc27e) Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES
       - [x] 10.1: Create test suites for workers, proxies, services, API endpoints, and REST boundary AST tests
       - [x] 10.2: Execute full automated quality gate suite
-    - [ ] Step 11: KNOWLEDGE_BASE_DOCUMENTATION_AND_KI_SYNCHRONIZATION
-      - [ ] 11.1: Update @[ki_tripartite_pipeline_architecture.md]
-      - [ ] 11.2: Update @[ki_dual_axis_localization_architecture.md]
-      - [ ] 11.3: Update @[ki_god_code_prevention.md]
-      - [ ] 11.4: Update @[ki_desktop_pro_tool_studio_ux.md]
+    - [x] Step 11: KNOWLEDGE_BASE_DOCUMENTATION_AND_KI_SYNCHRONIZATION
+      - [x] 11.1: Update @[ki_tripartite_pipeline_architecture.md]
+      - [x] 11.2: Update @[ki_dual_axis_localization_architecture.md]
+      - [x] 11.3: Update @[ki_god_code_prevention.md]
+      - [x] 11.4: Update @[ki_desktop_pro_tool_studio_ux.md]
     - [ ] Step 12: TIER_7_AS_BUILT_ARCHITECTURE_SYNCHRONIZATION
       - [ ] 12.1: Update @[docs/architecture/01_system_context_and_invariants.md]
       - [ ] 12.2: Update @[docs/architecture/03_cognitive_orchestration_engine.md]
@@ -238,15 +238,15 @@
 | REQ-17 | `EntityPrefix.REPORT` Canonical Taxonomy | `REPORT = "rep"` in `EntityPrefix` enum | Step 6 | `[x]` |
 | REQ-18 | `ReportStatus.l10n_key` Strict Enum Adapter | Camel-case ARB key mapping, zero runtime string manipulation | Step 6 | `[x]` |
 | REQ-19 | Execution Cascade Deletion & Storage Cleanup | Delete execution deletes all associated `ReportArtifact` records and physical files | Steps 7, 10 | `[x]` |
-| REQ-20 | Idempotency & Concurrent Generation Guard | Reject concurrent report generation with HTTP 409 Conflict | Steps 8, 10 | `[ ]` |
-| REQ-21 | Desktop Pro Tool UX (16 Pillars) | Adaptive Master Selector, Dual-Shield FormField, Modal Dismissal Protocol, AppErrorBoundary | Step 9 | `[ ]` |
-| REQ-22 | Dual-Axis Localization Parity | 24 new ARB keys with 1:1 FI/EN parity, zero hardcoded UI strings | Step 9 | `[ ]` |
-| REQ-23 | B2B Tabular Row Delivery | `ReportRowItemDTO` via REST API and multi-tab Excel/CSV | Steps 6, 8 | `[ ]` |
+| REQ-20 | Idempotency & Concurrent Generation Guard | Reject concurrent report generation with HTTP 409 Conflict | Steps 8, 10 | `[x]` |
+| REQ-21 | Desktop Pro Tool UX (16 Pillars) | Adaptive Master Selector, Dual-Shield FormField, Modal Dismissal Protocol, AppErrorBoundary | Step 9 | `[x]` |
+| REQ-22 | Dual-Axis Localization Parity | 24 new ARB keys with 1:1 FI/EN parity, zero hardcoded UI strings | Step 9 | `[x]` |
+| REQ-23 | B2B Tabular Row Delivery | `ReportRowItemDTO` via REST API and multi-tab Excel/CSV | Steps 6, 8 | `[x]` |
 | REQ-24 | KI & Architecture Documentation Sync | Update 4 KIs, 3 architecture pillars, and directory reference | Steps 11, 12 | `[ ]` |
 | REQ-25 | Ingress Decoupling in Execution Service | Decouple `start_execution` from mandatory `output_profile_id`, delete `sys_render_*` from DAG executor | Step 2 | `[x]` |
-| REQ-26 | Report Artifact REST API Endpoints | 11 REST endpoints for report lifecycle (POST create, GET list/detail/sdui/pdf/excel/csv/rows/external, DELETE, POST regenerate) | Step 8 | `[ ]` |
-| REQ-27 | Automated Regression Verification & Quality Gates | Unit test suites for workers, proxies, services, API, REST boundary AST tests, and full audit loop | Step 10 | `[ ]` |
-| REQ-28 | KI Synchronization | Update @[ki_tripartite_pipeline_architecture.md], @[ki_dual_axis_localization_architecture.md], @[ki_god_code_prevention.md], @[ki_desktop_pro_tool_studio_ux.md] | Step 11 | `[ ]` |
+| REQ-26 | Report Artifact REST API Endpoints | 11 REST endpoints for report lifecycle (POST create, GET list/detail/sdui/pdf/excel/csv/rows/external, DELETE, POST regenerate) | Step 8 | `[x]` |
+| REQ-27 | Automated Regression Verification & Quality Gates | Unit test suites for workers, proxies, services, API, REST boundary AST tests, and full audit loop | Step 10 | `[x]` |
+| REQ-28 | KI Synchronization | Update @[ki_tripartite_pipeline_architecture.md], @[ki_dual_axis_localization_architecture.md], @[ki_god_code_prevention.md], @[ki_desktop_pro_tool_studio_ux.md] | Step 11 | `[x]` |
 | REQ-29 | As-Built Architecture Synchronization | `/tier7-describe-architecture` sync of 3 architecture pillars, directory reference, and meta-architecture | Step 12 | `[ ]` |
 
 ---
