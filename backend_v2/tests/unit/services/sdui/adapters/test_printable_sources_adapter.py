@@ -165,9 +165,17 @@ def test_build_preserves_existing_bullet_prefix_fi(valid_output_profile_fixture:
 
 
 def test_build_filters_sr_internal_keys(valid_output_profile_fixture: OutputProfile) -> None:
-    """Negative: Filters out internal DAG step IDs (sr_... and _results)."""
+    """Negative: Filters out internal DAG step IDs (sr_..., stp_..., and _results) while preserving Harvard citations."""
     cache = RenderedSynthesisCache(
-        cited_sources=["sr_123456_results", "sr_faktantarkistaja", "Legitimate Harvard Source (2024)"],
+        cited_sources=[
+            "sr_123456_results",
+            "sr_faktantarkistaja",
+            "- sr_bulleted_step",
+            "stp_blueprint_stage",
+            "- stp_coaching_protocol",
+            "Popper, K. (1959). The Logic of Scientific Discovery.",
+            "Legitimate Harvard Source (2024)",
+        ],
     )
     context = AdapterContext(
         execution=None,
@@ -185,6 +193,10 @@ def test_build_filters_sr_internal_keys(valid_output_profile_fixture: OutputProf
     text = blocks[0].text
     assert "sr_123456_results" not in text
     assert "sr_faktantarkistaja" not in text
+    assert "sr_bulleted_step" not in text
+    assert "stp_blueprint_stage" not in text
+    assert "stp_coaching_protocol" not in text
+    assert "- **Popper, K. (1959). The Logic of Scientific Discovery.**" in text
     assert "- **Legitimate Harvard Source (2024)**" in text
 
 

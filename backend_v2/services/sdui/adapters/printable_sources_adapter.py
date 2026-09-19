@@ -10,7 +10,7 @@ import logging
 import re
 from typing import Any
 
-from backend_v2.models.enums import SourcesDisplayMode
+from backend_v2.models.enums import EntityPrefix, SourcesDisplayMode
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     MarkdownBlock,
@@ -108,11 +108,17 @@ class PrintableSourcesAdapter:
                 item = src.strip()
                 if not item:
                     continue
-                # Scope isolation: filter internal execution keys like sr_... and _results
-                if item.startswith("sr_") or "_results" in item:
-                    continue
                 clean_item = item.removeprefix("- ").strip()
-                if clean_item and clean_item not in clean_cited_sources:
+                if not clean_item:
+                    continue
+                # Scope isolation: filter internal execution step IDs like sr_... and stp_...
+                if (
+                    clean_item.startswith(f"{EntityPrefix.STEP_REFERENCE}_")
+                    or clean_item.startswith(f"{EntityPrefix.STEP}_")
+                    or "_results" in clean_item
+                ):
+                    continue
+                if clean_item not in clean_cited_sources:
                     clean_cited_sources.append(clean_item)
 
         # 2. READ: Extract MCP audit traces

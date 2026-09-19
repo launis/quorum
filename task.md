@@ -46,10 +46,10 @@
   - [x] Run quality gate on `source_document_packer.py` and `llm.py`
   - [x] Git checkpoint
 
-- [ ] **Milestone 6: PrintableSourcesAdapter Sanitization Modernization**
-  - [ ] Modernize internal step reference filtering using `EntityPrefix.STEP_REFERENCE` while preserving Harvard academic citations
-  - [ ] Run quality gate on `printable_sources_adapter.py`
-  - [ ] Git checkpoint
+- [x] **Milestone 6: PrintableSourcesAdapter Sanitization Modernization**
+  - [x] Modernize internal step reference filtering using `EntityPrefix.STEP_REFERENCE` while preserving Harvard academic citations
+  - [x] Run quality gate on `printable_sources_adapter.py`
+  - [x] Git checkpoint
 
 - [ ] **Milestone 7: Global Completion & Regression Verification**
   - [ ] Run full test suite regression across all modified components
