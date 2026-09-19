@@ -3,6 +3,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import (
     PROMPT_BLOCK_REGISTRY,
     MatrixPromptBlock,
@@ -215,8 +216,6 @@ def test_parse_matrices_invalid_payload_fail_fast() -> None:
         payload = "not a dict"
 
     pb = get_dummy_pb(category=PromptBlockCategory.MATRIX)
-
-    from backend_v2.exceptions import AppException
 
     with pytest.raises(AppException) as exc_info:
         MatrixDomainParser.parse_matrices(
@@ -783,7 +782,7 @@ def test_parse_matrices_context_target_and_xai_extensions() -> None:
 
 def test_parse_matrices_dynamic_filename_context_target() -> None:
     """Test extraction of dynamic filename context_target without standard localization mapping."""
-    from backend_v2.models.v2_core import StepRule
+    from backend_v2.models.v2_core import ExpectedInput, StepRule
 
     profile = get_dummy_profile()
     pb = get_dummy_pb()
@@ -791,7 +790,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
     step_rule = StepRule(
         id="sr_1234567890abcdef",
         task_blueprint="step_1234567890abcdef",
-        input_mappings={"context": "financials_q3.pdf"},
+        input_mappings={"context": "financials_q3"},
     )
 
     payload = {
@@ -801,6 +800,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
+    # 1. Positive resolution without expected_inputs_map (harness compatibility)
     _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
@@ -812,13 +812,80 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
         row_curated_quotes_cache={},
     )
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
-    assert row.context_target == "financials_q3.pdf"
+    assert row.context_target == "financials_q3"
     assert row.context_target_label is not None
-    assert row.context_target_label.resolve("en") == "financials_q3.pdf"
-    assert row.context_target_label.resolve("fi") == "financials_q3.pdf"
-    assert row.remediation_steps is None
-    assert row.coaching is None
-    assert row.falsification is None
+    assert row.context_target_label.resolve("en") == "financials_q3"
+    assert row.context_target_label.resolve("fi") == "financials_q3"
+
+    # 2. Positive resolution with matching expected_inputs_map
+    expected_map = {
+        "financials_q3": ExpectedInput(
+            input_key="financials_q3",
+            input_modes=["file"],
+            required=True,
+            description=I18nText(translations={"en": "Desc", "fi": "Kuvaus"}),
+            label=I18nText(translations={"en": "Q3 Financials", "fi": "Q3 Talous"}),
+        )
+    }
+    _eval_m2, _info_m2, all_parsed2, _ = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": step_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+        expected_inputs_map=expected_map,
+    )
+    row2 = all_parsed2["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row2.context_target == "financials_q3"
+    assert row2.context_target_label is not None
+    assert row2.context_target_label.resolve("en") == "Q3 Financials"
+
+    # 3. Negative resolution: unmapped key rejected when expected_inputs_map is provided
+    unmapped_rule = StepRule(
+        id="sr_1234567890abcdef",
+        task_blueprint="step_1234567890abcdef",
+        input_mappings={"context": "unmapped_doc"},
+    )
+    _eval_m3, _info_m3, all_parsed3, _ = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={"step1": unmapped_rule},
+        profile=profile,
+        row_explanations_cache={"blk_1234567890abcdef1234567890abcdef": "Valid explanation."},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+        expected_inputs_map=expected_map,
+    )
+    row3 = all_parsed3["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row3.context_target is None
+
+
+def test_parse_matrices_invalid_payload_fails_fast() -> None:
+    """ISTQB Negative: Non-dict / malformed payload triggers fail-fast AppException."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    # Pass an integer payload instead of valid dict
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=12345)
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
 
 
 def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None:

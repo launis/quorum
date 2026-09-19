@@ -127,19 +127,9 @@ class MatrixDomainParser:
             if not pb_meta or not isinstance(pb_meta, MatrixPromptBlock):
                 continue
 
-            if not isinstance(block_data, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                msg = (
-                    f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': "
-                    f"expected dict, got {type(block_data)}"
-                )
-                logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-                )
-
             try:
                 matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
-            except Exception as e:
+            except (ValidationError, TypeError, ValueError) as e:
                 msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
                 logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
@@ -345,9 +335,7 @@ class MatrixDomainParser:
             synthesis_expected = profile.requires_row_explanations and has_synthesis_cache
             is_data_starved = False
             if execution and execution.profile_syntheses:
-                current_cache = execution.profile_syntheses.get(profile.id) or execution.profile_syntheses.get(
-                    "default"
-                )
+                current_cache = execution.profile_syntheses.get(profile.id)
                 if current_cache and current_cache.data_starvation is not None:
                     is_data_starved = True
 
@@ -372,12 +360,15 @@ class MatrixDomainParser:
             clustered_row_sources: list[Any] = []
 
             if "quotes" in matrix_visible_cols or "criteria" in matrix_visible_cols:
-                step_evals_map = {}
+                step_evals_map: dict[str, AtomResultDTO] = {}
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "results" and isinstance(r_dto.payload, list):
                         for ev in r_dto.payload:
-                            if isinstance(ev, dict) and "tda_id" in ev:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                                step_evals_map[ev["tda_id"]] = ev
+                            try:
+                                atom_dto = AtomResultDTO.model_validate(ev)
+                                step_evals_map[atom_dto.tda_id] = atom_dto
+                            except ValidationError, TypeError, ValueError:
+                                continue
                         break
 
                 if pb_meta.scales:
@@ -393,9 +384,7 @@ class MatrixDomainParser:
 
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
-                                ev_data = None
-                                if atom_id in step_evals_map:
-                                    ev_data = step_evals_map[atom_id]
+                                val_data = step_evals_map.get(atom_id)
 
                                 display_label = "Kriteeri"
                                 if claim_label.strip():
@@ -403,10 +392,8 @@ class MatrixDomainParser:
                                 elif tda.concept_description and tda.concept_description.strip():
                                     display_label = tda.concept_description.strip()
 
-                                if ev_data:
+                                if val_data:
                                     try:
-                                        val_data = AtomResultDTO.model_validate(ev_data)
-
                                         r_step = ReasoningStepDTO(
                                             step_1_identify_premise="",
                                             step_2_scan_source="",
@@ -504,22 +491,23 @@ class MatrixDomainParser:
             if step_id in workflow_steps:
                 step_rule = workflow_steps[step_id]
 
-            input_mappings = None
-            if isinstance(step_rule, StepRule):
-                input_mappings = step_rule.input_mappings
-
             step_input_keys: list[str] = []
-            if input_mappings and isinstance(input_mappings, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                for mapped_val in input_mappings.values():
+            if step_rule and step_rule.input_mappings:
+                for mapped_val in step_rule.input_mappings.values():
                     if isinstance(mapped_val, str):
-                        if mapped_val.startswith("$inputs."):
-                            k = mapped_val.split("$inputs.", 1)[1].strip()
-                            if k and k not in step_input_keys:
-                                step_input_keys.append(k)
-                        elif not mapped_val.startswith("$"):
-                            k = mapped_val.strip()
-                            if k and k not in step_input_keys:
-                                step_input_keys.append(k)
+                        val_clean = mapped_val.strip()
+                        if val_clean.startswith("$inputs."):
+                            clean_key = val_clean.removeprefix("$inputs.").strip()
+                            if expected_inputs_map is None or clean_key in expected_inputs_map:
+                                if clean_key not in step_input_keys:
+                                    step_input_keys.append(clean_key)
+                        elif expected_inputs_map is not None and val_clean in expected_inputs_map:
+                            if val_clean not in step_input_keys:
+                                step_input_keys.append(val_clean)
+                        elif expected_inputs_map is None and not val_clean.startswith("$"):
+                            # Harness compatibility for isolated unit tests lacking expected_inputs_map
+                            if val_clean not in step_input_keys:
+                                step_input_keys.append(val_clean)
 
             # Tier 1: Single-Input Step
             if len(step_input_keys) == 1:
