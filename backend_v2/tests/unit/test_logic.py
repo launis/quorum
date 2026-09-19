@@ -94,7 +94,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
             new_callable=AsyncMock,
             return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={})),
         ) as mock_hook,
-        patch("backend_v2.models.v2_core.Step.model_validate", return_value=v2_step_mock),
+        patch("backend_v2.models.domain.step.Step.model_validate", return_value=v2_step_mock),
     ):
         await strategy.execute(step, projector, context, None, [], semaphore=asyncio.Semaphore(2))
         hook_state = mock_hook.call_args[0][1]

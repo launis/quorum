@@ -7,7 +7,6 @@ import pytest
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 DART_ENUM_PATH = os.path.join(REPO_ROOT, "client_app_v2", "lib", "core", "models", "enums.dart")
 PYTHON_ENUMS_PATH = os.path.join(REPO_ROOT, "backend_v2", "models", "enums.py")
-PYTHON_V2_CORE_PATH = os.path.join(REPO_ROOT, "backend_v2", "models", "v2_core.py")
 PYTHON_SDUI_PATH = os.path.join(REPO_ROOT, "backend_v2", "models", "view", "sdui.py")
 JINJA_TEMPLATE_PATH = os.path.join(REPO_ROOT, "backend_v2", "templates", "report_template.jinja2")
 
