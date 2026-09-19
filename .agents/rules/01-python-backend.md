@@ -83,6 +83,10 @@
     <rule_block id="single_router_ssot_mandate">
         <mandate>NEVER define multiple or parallel FastAPI APIRouters for the same domain entity (e.g. `/output-profiles/` and `/studio/profiles/`), create shadow routes under secondary prefixes, or split route handlers of a single domain entity across multiple files. Every domain entity MUST possess exactly ONE authoritative APIRouter mounted at a single canonical endpoint prefix (SSOT). All CRUD, draft, simulation, and clone operations for that entity MUST reside strictly within that single router file. Before creating or modifying endpoints, agents MUST perform `grep_search` across `backend_v2/api/routers/` to verify no existing router handles the entity.</mandate>
     </rule_block>
+    
+    <rule_block id="direct_id_relational_mandate">
+        <mandate>NEVER use `startswith`/`endswith` string checks, negative exclusion patterns (`not k.startswith(...)`, `not val.startswith("$")`), or substring lookups for entity resolution, relational traversal, or context filtering. NEVER maintain heterogeneous string collections or bags where database IDs (`blk_...`, `sr_...`) share a single collection with system enums (`glb_...`) or background worker keys (`sys_...`). ALL entity targeting and validation MUST use positive set membership checks against canonical ID collections (`k in valid_id_set`), typed separated collections (`prompt_block_ids: set[str]`, `system_targets: set[TargetBlockType]`), and strongly typed Pydantic DTOs.</mandate>
+    </rule_block>
 </catastrophic_system_bans>
 
 <architectural_invariants>
