@@ -160,3 +160,7 @@ class AppExceptionBoundaryState extends State<AppExceptionBoundary> {
     return widget.child;
   }
 }
+
+/// Type alias supporting both naming conventions across Studio and Reports features.
+typedef AppErrorBoundary = AppExceptionBoundary;
+

@@ -23,6 +23,7 @@ import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/features/execution/views/dashboard_view.dart';
 import 'package:client_app/features/execution/views/execution_view.dart';
 import 'package:client_app/features/execution/views/execution_report_view.dart';
+import 'package:client_app/features/reports/views/execution_reports_view.dart';
 
 part 'router.g.dart';
 
@@ -175,12 +176,19 @@ class DashboardRoute extends GoRouteData with $DashboardRoute {
 }
 
 class ExecutionRoute extends GoRouteData with $ExecutionRoute {
-  const ExecutionRoute({required this.executionId});
+  const ExecutionRoute({
+    required this.executionId,
+    this.autoGenerateReport = false,
+  });
   final String executionId;
+  final bool autoGenerateReport;
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ExecutionView(executionId: executionId);
+      ExecutionView(
+        executionId: executionId,
+        autoGenerateReport: autoGenerateReport,
+      );
 }
 
 class ExecutionReportRoute extends GoRouteData with $ExecutionReportRoute {
@@ -193,7 +201,7 @@ class ExecutionReportRoute extends GoRouteData with $ExecutionReportRoute {
 
   @override
   Widget build(BuildContext context, GoRouterState state) =>
-      ExecutionReportView(executionId: executionId, variant: variant);
+      ExecutionReportsView(executionId: executionId);
 }
 
 class NewAnalysisBranch extends StatefulShellBranchData {

@@ -3734,7 +3734,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get mustBeIntegerError => 'Must be an integer';
 
   @override
-  String get customPrefaceLabel => 'Custom Preface (Rich Text)';
+  String get customPrefaceLabel => 'Custom Preface (Optional)';
 
   @override
   String get scoringEngineTitle => 'Scoring Engine and Strictness';
@@ -5090,4 +5090,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get modelRegistrySearchPlaceholder =>
       'Search model registries by name, ID, or provider...';
+
+  @override
+  String get reportsTitle => 'Reports & Outputs';
+
+  @override
+  String reportsCountSubtitle(int count) {
+    return '$count reports available';
+  }
+
+  @override
+  String get createReportButtonLabel => 'New Report';
+
+  @override
+  String get createReportDialogTitle => 'Create New Report';
+
+  @override
+  String get outputProfileSelectLabel => 'Select Output Profile';
+
+  @override
+  String get localeSelectLabel => 'Report Language';
+
+  @override
+  String get saveReportButtonLabel => 'Generate Report';
+
+  @override
+  String get downloadPdfTooltip => 'Download PDF file';
+
+  @override
+  String get downloadExcelTooltip => 'Download Excel file';
+
+  @override
+  String get downloadCsvTooltip => 'Download CSV file';
+
+  @override
+  String get regenerateReportTooltip => 'Refresh and regenerate';
+
+  @override
+  String get deleteReportTooltip => 'Delete report';
+
+  @override
+  String get deleteReportConfirmTitle => 'Delete Report?';
+
+  @override
+  String get deleteReportConfirmMessage =>
+      'Are you sure you want to delete this report? This action cannot be undone.';
+
+  @override
+  String get discardChangesConfirmTitle => 'Discard changes?';
+
+  @override
+  String get discardChangesConfirmMessage =>
+      'There are unsaved changes. Do you want to discard them?';
+
+  @override
+  String get keepEditingButtonLabel => 'Continue Editing';
+
+  @override
+  String get discardButtonLabel => 'Discard Changes';
+
+  @override
+  String get tabInteractiveView => 'Interactive View';
+
+  @override
+  String get tabPdfPreview => 'PDF Preview';
+
+  @override
+  String get tabTabularRows => 'Row Data & Tables';
+
+  @override
+  String get tabTelemetryMetadata => 'Metadata & Evidence';
+
+  @override
+  String get reportStatusPending => 'Pending';
+
+  @override
+  String get reportStatusGenerating => 'Generating...';
+
+  @override
+  String get reportStatusReady => 'Ready';
+
+  @override
+  String get reportStatusFailed => 'Failed';
+
+  @override
+  String get autoGenerateReportLabel =>
+      'Generate report immediately upon completion (Run until output)';
+
+  @override
+  String get autoGeneratingReportNotice =>
+      'Analysis complete (100%). Generating report...';
+
+  @override
+  String get reportGenerationFailedNotice =>
+      'Report generation failed, you can retry';
+
+  @override
+  String get viewReportsButtonLabel => 'View Reports';
+
+  @override
+  String get retryReportGenerationLabel => 'Retry';
 }

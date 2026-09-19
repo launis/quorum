@@ -1804,5 +1804,45 @@
   "modelRegistryKeepEditingBtn": "Jatka muokkausta",
   "studioWorkflowModelRegistry": "Mallirekisteri",
   "studioWorkflowModelRegistrySubtitle": "Määrittää kognitiivisia tasoja vastaavat fyysiset LLM-mallit",
-  "modelRegistrySearchPlaceholder": "Etsi mallirekistereitä nimellä, tunnisteella tai tarjoajalla..."
+  "modelRegistrySearchPlaceholder": "Etsi mallirekistereitä nimellä, tunnisteella tai tarjoajalla...",
+  "reportsTitle": "Tulosteet ja raportit",
+  "reportsCountSubtitle": "{count} raporttia saatavilla",
+  "@reportsCountSubtitle": {
+    "description": "Subtitle showing count of reports available",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createReportButtonLabel": "Uusi tuloste",
+  "createReportDialogTitle": "Luo uusi tuloste",
+  "outputProfileSelectLabel": "Valitse esitysprofiili",
+  "localeSelectLabel": "Tulosteen kieli",
+  "customPrefaceLabel": "Muokattu esipuhe (Valinnainen)",
+  "saveReportButtonLabel": "Generoi tuloste",
+  "downloadPdfTooltip": "Lataa PDF-tiedosto",
+  "downloadExcelTooltip": "Lataa Excel-tiedosto",
+  "downloadCsvTooltip": "Lataa CSV-tiedosto",
+  "regenerateReportTooltip": "Päivitä ja generoi uudelleen",
+  "deleteReportTooltip": "Poista tuloste",
+  "deleteReportConfirmTitle": "Poistetaanko tuloste?",
+  "deleteReportConfirmMessage": "Haluatko varmasti poistaa tämän tulosteen? Toimintoa ei voi perua.",
+  "discardChangesConfirmTitle": "Hylätäänkö muutokset?",
+  "discardChangesConfirmMessage": "Lomakkeella on tallentamattomia tietoja. Haluatko hylätä muutokset?",
+  "keepEditingButtonLabel": "Jatka muokkausta",
+  "discardButtonLabel": "Hylkää muutokset",
+  "tabInteractiveView": "Interaktiivinen näkymä",
+  "tabPdfPreview": "PDF-esikatselu",
+  "tabTabularRows": "Rividata & Taulukot",
+  "tabTelemetryMetadata": "Metatiedot & Todisteet",
+  "reportStatusPending": "Jonossa",
+  "reportStatusGenerating": "Generoidaan...",
+  "reportStatusReady": "Valmis",
+  "reportStatusFailed": "Epäonnistui",
+  "autoGenerateReportLabel": "Generoi tuloste heti ajon valmistuttua (Aja tulosteeksi saakka)",
+  "autoGeneratingReportNotice": "Laskenta valmis (100%). Luodaan tulostetta...",
+  "reportGenerationFailedNotice": "Tulosteen generointi epäonnistui, voit yrittää uudelleen",
+  "viewReportsButtonLabel": "Näytä tulosteet",
+  "retryReportGenerationLabel": "Yritä uudelleen"
 }

@@ -432,3 +432,16 @@ enum LLMProvider {
   @JsonValue('local')
   local,
 }
+
+/// Lifecycle compilation status for materialized report artifacts.
+@JsonEnum()
+enum ReportStatus {
+  @JsonValue('pending')
+  pending,
+  @JsonValue('generating')
+  generating,
+  @JsonValue('ready')
+  ready,
+  @JsonValue('failed')
+  failed,
+}

@@ -126,14 +126,26 @@ mixin $DashboardRoute on GoRouteData {
 }
 
 mixin $ExecutionRoute on GoRouteData {
-  static ExecutionRoute _fromState(GoRouterState state) =>
-      ExecutionRoute(executionId: state.pathParameters['executionId']!);
+  static ExecutionRoute _fromState(GoRouterState state) => ExecutionRoute(
+    executionId: state.pathParameters['executionId']!,
+    autoGenerateReport:
+        _$convertMapValue(
+          'auto-generate-report',
+          state.uri.queryParameters,
+          _$boolConverter,
+        ) ??
+        false,
+  );
 
   ExecutionRoute get _self => this as ExecutionRoute;
 
   @override
   String get location => GoRouteData.$location(
     '/dashboard/executions/${Uri.encodeComponent(_self.executionId)}',
+    queryParams: {
+      if (_self.autoGenerateReport != false)
+        'auto-generate-report': _self.autoGenerateReport.toString(),
+    },
   );
 
   @override
@@ -218,6 +230,26 @@ mixin $SettingsRoute on GoRouteData {
 
   @override
   void replace(BuildContext context) => context.replace(location);
+}
+
+T? _$convertMapValue<T>(
+  String key,
+  Map<String, String> map,
+  T? Function(String) converter,
+) {
+  final value = map[key];
+  return value == null ? null : converter(value);
+}
+
+bool _$boolConverter(String value) {
+  switch (value) {
+    case 'true':
+      return true;
+    case 'false':
+      return false;
+    default:
+      throw UnsupportedError('Cannot convert "$value" into a bool.');
+  }
 }
 
 RouteBase get $adminShellRoute => GoRouteData.$route(

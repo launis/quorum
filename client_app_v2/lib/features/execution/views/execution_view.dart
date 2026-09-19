@@ -8,7 +8,9 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/shared/widgets/global_error_view.dart';
 import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/features/execution/views/widgets/report_renderer_v2_widget.dart';
+import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/api/reports_client.dart';
+import 'package:client_app/router/router.dart';
 
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -20,14 +22,23 @@ import 'package:client_app/core/theme/app_spacing.dart';
 /// the raw backend state.
 class ExecutionView extends StatefulHookConsumerWidget {
   final String executionId;
+  final bool autoGenerateReport;
 
-  const ExecutionView({super.key, required this.executionId});
+  const ExecutionView({
+    super.key,
+    required this.executionId,
+    this.autoGenerateReport = false,
+  });
 
   @override
   ConsumerState<ExecutionView> createState() => _ExecutionViewState();
 }
 
 class _ExecutionViewState extends ConsumerState<ExecutionView> {
+  bool _reportGenerationTriggered = false;
+  bool _reportGenerationLoading = false;
+  String? _reportGenerationError;
+
   @override
   void initState() {
     super.initState();
@@ -37,6 +48,46 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
           .read(executionControllerProvider.notifier)
           .resumeExecution(widget.executionId);
     });
+  }
+
+  Future<void> _triggerAutoReportGeneration(ExecutionRecord record) async {
+    if (_reportGenerationTriggered) return;
+    setState(() {
+      _reportGenerationTriggered = true;
+      _reportGenerationLoading = true;
+      _reportGenerationError = null;
+    });
+
+    try {
+      final reportsClient = ref.read(reportsClientProvider);
+      final profileId =
+          record.outputProfileId ?? record.activeProfileId ?? 'default';
+      await reportsClient.createReport(
+        executionId: widget.executionId,
+        profileId: profileId,
+      );
+      if (!mounted) return;
+      setState(() {
+        _reportGenerationLoading = false;
+      });
+      if (context.mounted) {
+        ExecutionReportRoute(executionId: widget.executionId).go(context);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _reportGenerationLoading = false;
+        _reportGenerationError = e.toString();
+      });
+    }
+  }
+
+  void _retryReportGeneration(ExecutionRecord record) {
+    setState(() {
+      _reportGenerationTriggered = false;
+      _reportGenerationError = null;
+    });
+    _triggerAutoReportGeneration(record);
   }
 
   @override
@@ -57,26 +108,62 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
     // Watch the live stream
     final executionState = ref.watch(executionControllerProvider);
 
-    // Auto-navigation disabled to preserve timeline visibility (tulostus osa)
+    // Listen for completion to trigger auto-report generation if enabled
+    ref.listen<AsyncValue<ExecutionRecord?>>(executionControllerProvider, (
+      previous,
+      next,
+    ) {
+      if (widget.autoGenerateReport && !_reportGenerationTriggered) {
+        if (next case AsyncData(value: final record) when record != null) {
+          final status = record.status.toLowerCase();
+          if (status == 'passed' || status == 'completed') {
+            _triggerAutoReportGeneration(record);
+          }
+        }
+      }
+    });
+
+    // Check if initial state is already passed
+    if (widget.autoGenerateReport && !_reportGenerationTriggered) {
+      if (executionState case AsyncData(
+        value: final record,
+      ) when record != null) {
+        final status = record.status.toLowerCase();
+        if (status == 'passed' || status == 'completed') {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && !_reportGenerationTriggered) {
+              _triggerAutoReportGeneration(record);
+            }
+          });
+        }
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.liveExecutionTitle),
       ),
-      body: switch (executionState) {
-        AsyncData(:final value) => _buildExecutionContent(
-          value,
-          resumeMutation,
+      body: AppErrorBoundary(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: switch (executionState) {
+              AsyncData(:final value) => _buildExecutionContent(
+                value,
+                resumeMutation,
+              ),
+              AsyncError(:final error, :final stackTrace) => ErrorView(
+                error: error,
+                stackTrace: stackTrace,
+                onRetry: () => ref
+                    .read(executionControllerProvider.notifier)
+                    .resumeExecution(widget.executionId),
+              ),
+              _ => const Center(child: CircularProgressIndicator()),
+            },
+          ),
         ),
-        AsyncError(:final error, :final stackTrace) => ErrorView(
-          error: error,
-          stackTrace: stackTrace,
-          onRetry: () => ref
-              .read(executionControllerProvider.notifier)
-              .resumeExecution(widget.executionId),
-        ),
-        _ => const Center(child: CircularProgressIndicator()),
-      },
+      ),
     );
   }
 
@@ -157,6 +244,18 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
                                 ),
                           ),
                         ),
+                        if (status == 'passed' || status == 'completed')
+                          FilledButton.icon(
+                            onPressed: () => ExecutionReportRoute(
+                              executionId: widget.executionId,
+                            ).go(context),
+                            icon: const Icon(Icons.article_outlined, size: 18),
+                            label: Text(
+                              AppLocalizations.of(
+                                context,
+                              )!.viewReportsButtonLabel,
+                            ),
+                          ),
                         if (status == 'failed' && isRecoverable)
                           MutationButton<void>(
                             mutation: resumeMutation,
@@ -207,6 +306,102 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
             ),
           ),
         ),
+
+        // Auto-generating report progress banner
+        if (_reportGenerationLoading)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s8,
+              ),
+              child: Container(
+                padding: AppSpacing.p16,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withAlpha(120),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    const SizedBox(width: AppSpacing.s16),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.autoGeneratingReportNotice,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+        // Report generation failed actionable inline alert banner
+        if (_reportGenerationError != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s16,
+                vertical: AppSpacing.s8,
+              ),
+              child: Container(
+                padding: AppSpacing.p16,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSpacing.s8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: AppSpacing.s16),
+                    Expanded(
+                      child: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.reportGenerationFailedNotice,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    FilledButton.tonalIcon(
+                      onPressed: () => _retryReportGeneration(record),
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: Text(
+                        AppLocalizations.of(
+                          context,
+                        )!.retryReportGenerationLabel,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
 
         // Version Drift Warning Banner
         if (versionId != null && versionId.isNotEmpty && versionId != 'v2.0.0')
@@ -287,16 +482,6 @@ class _ExecutionViewState extends ConsumerState<ExecutionView> {
               child: ExecutionTimeline(steps: record.steps, compact: false),
             ),
           ),
-
-        // V3 Flat MVC Report Rendering
-        if (record.reportData != null) ...[
-          SliverToBoxAdapter(
-            child: ReportRendererV2Widget(
-              payload: record.reportData!,
-              executionId: widget.executionId,
-            ),
-          ),
-        ],
       ],
     );
   }

@@ -3763,7 +3763,7 @@ class AppLocalizationsFi extends AppLocalizations {
   String get mustBeIntegerError => 'Täytyy olla kokonaisluku';
 
   @override
-  String get customPrefaceLabel => 'Selite (Rich Text Preface)';
+  String get customPrefaceLabel => 'Muokattu esipuhe (Valinnainen)';
 
   @override
   String get scoringEngineTitle => 'Arviointimoottori ja Ankaruustaso';
@@ -5129,4 +5129,104 @@ class AppLocalizationsFi extends AppLocalizations {
   @override
   String get modelRegistrySearchPlaceholder =>
       'Etsi mallirekistereitä nimellä, tunnisteella tai tarjoajalla...';
+
+  @override
+  String get reportsTitle => 'Tulosteet ja raportit';
+
+  @override
+  String reportsCountSubtitle(int count) {
+    return '$count raporttia saatavilla';
+  }
+
+  @override
+  String get createReportButtonLabel => 'Uusi tuloste';
+
+  @override
+  String get createReportDialogTitle => 'Luo uusi tuloste';
+
+  @override
+  String get outputProfileSelectLabel => 'Valitse esitysprofiili';
+
+  @override
+  String get localeSelectLabel => 'Tulosteen kieli';
+
+  @override
+  String get saveReportButtonLabel => 'Generoi tuloste';
+
+  @override
+  String get downloadPdfTooltip => 'Lataa PDF-tiedosto';
+
+  @override
+  String get downloadExcelTooltip => 'Lataa Excel-tiedosto';
+
+  @override
+  String get downloadCsvTooltip => 'Lataa CSV-tiedosto';
+
+  @override
+  String get regenerateReportTooltip => 'Päivitä ja generoi uudelleen';
+
+  @override
+  String get deleteReportTooltip => 'Poista tuloste';
+
+  @override
+  String get deleteReportConfirmTitle => 'Poistetaanko tuloste?';
+
+  @override
+  String get deleteReportConfirmMessage =>
+      'Haluatko varmasti poistaa tämän tulosteen? Toimintoa ei voi perua.';
+
+  @override
+  String get discardChangesConfirmTitle => 'Hylätäänkö muutokset?';
+
+  @override
+  String get discardChangesConfirmMessage =>
+      'Lomakkeella on tallentamattomia tietoja. Haluatko hylätä muutokset?';
+
+  @override
+  String get keepEditingButtonLabel => 'Jatka muokkausta';
+
+  @override
+  String get discardButtonLabel => 'Hylkää muutokset';
+
+  @override
+  String get tabInteractiveView => 'Interaktiivinen näkymä';
+
+  @override
+  String get tabPdfPreview => 'PDF-esikatselu';
+
+  @override
+  String get tabTabularRows => 'Rividata & Taulukot';
+
+  @override
+  String get tabTelemetryMetadata => 'Metatiedot & Todisteet';
+
+  @override
+  String get reportStatusPending => 'Jonossa';
+
+  @override
+  String get reportStatusGenerating => 'Generoidaan...';
+
+  @override
+  String get reportStatusReady => 'Valmis';
+
+  @override
+  String get reportStatusFailed => 'Epäonnistui';
+
+  @override
+  String get autoGenerateReportLabel =>
+      'Generoi tuloste heti ajon valmistuttua (Aja tulosteeksi saakka)';
+
+  @override
+  String get autoGeneratingReportNotice =>
+      'Laskenta valmis (100%). Luodaan tulostetta...';
+
+  @override
+  String get reportGenerationFailedNotice =>
+      'Tulosteen generointi epäonnistui, voit yrittää uudelleen';
+
+  @override
+  String get viewReportsButtonLabel => 'Näytä tulosteet';
+
+  @override
+  String get retryReportGenerationLabel => 'Yritä uudelleen';
 }

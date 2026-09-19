@@ -6807,7 +6807,7 @@ abstract class AppLocalizations {
   /// No description provided for @customPrefaceLabel.
   ///
   /// In en, this message translates to:
-  /// **'Custom Preface (Rich Text)'**
+  /// **'Custom Preface (Optional)'**
   String get customPrefaceLabel;
 
   /// No description provided for @scoringEngineTitle.
@@ -9179,6 +9179,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search model registries by name, ID, or provider...'**
   String get modelRegistrySearchPlaceholder;
+
+  /// No description provided for @reportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports & Outputs'**
+  String get reportsTitle;
+
+  /// Subtitle showing count of reports available
+  ///
+  /// In en, this message translates to:
+  /// **'{count} reports available'**
+  String reportsCountSubtitle(int count);
+
+  /// No description provided for @createReportButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New Report'**
+  String get createReportButtonLabel;
+
+  /// No description provided for @createReportDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Create New Report'**
+  String get createReportDialogTitle;
+
+  /// No description provided for @outputProfileSelectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Output Profile'**
+  String get outputProfileSelectLabel;
+
+  /// No description provided for @localeSelectLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Report Language'**
+  String get localeSelectLabel;
+
+  /// No description provided for @saveReportButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate Report'**
+  String get saveReportButtonLabel;
+
+  /// No description provided for @downloadPdfTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download PDF file'**
+  String get downloadPdfTooltip;
+
+  /// No description provided for @downloadExcelTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Excel file'**
+  String get downloadExcelTooltip;
+
+  /// No description provided for @downloadCsvTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Download CSV file'**
+  String get downloadCsvTooltip;
+
+  /// No description provided for @regenerateReportTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh and regenerate'**
+  String get regenerateReportTooltip;
+
+  /// No description provided for @deleteReportTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete report'**
+  String get deleteReportTooltip;
+
+  /// No description provided for @deleteReportConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Report?'**
+  String get deleteReportConfirmTitle;
+
+  /// No description provided for @deleteReportConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this report? This action cannot be undone.'**
+  String get deleteReportConfirmMessage;
+
+  /// No description provided for @discardChangesConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard changes?'**
+  String get discardChangesConfirmTitle;
+
+  /// No description provided for @discardChangesConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'There are unsaved changes. Do you want to discard them?'**
+  String get discardChangesConfirmMessage;
+
+  /// No description provided for @keepEditingButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Editing'**
+  String get keepEditingButtonLabel;
+
+  /// No description provided for @discardButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard Changes'**
+  String get discardButtonLabel;
+
+  /// No description provided for @tabInteractiveView.
+  ///
+  /// In en, this message translates to:
+  /// **'Interactive View'**
+  String get tabInteractiveView;
+
+  /// No description provided for @tabPdfPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'PDF Preview'**
+  String get tabPdfPreview;
+
+  /// No description provided for @tabTabularRows.
+  ///
+  /// In en, this message translates to:
+  /// **'Row Data & Tables'**
+  String get tabTabularRows;
+
+  /// No description provided for @tabTelemetryMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata & Evidence'**
+  String get tabTelemetryMetadata;
+
+  /// No description provided for @reportStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get reportStatusPending;
+
+  /// No description provided for @reportStatusGenerating.
+  ///
+  /// In en, this message translates to:
+  /// **'Generating...'**
+  String get reportStatusGenerating;
+
+  /// No description provided for @reportStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get reportStatusReady;
+
+  /// No description provided for @reportStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get reportStatusFailed;
+
+  /// No description provided for @autoGenerateReportLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate report immediately upon completion (Run until output)'**
+  String get autoGenerateReportLabel;
+
+  /// No description provided for @autoGeneratingReportNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Analysis complete (100%). Generating report...'**
+  String get autoGeneratingReportNotice;
+
+  /// No description provided for @reportGenerationFailedNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Report generation failed, you can retry'**
+  String get reportGenerationFailedNotice;
+
+  /// No description provided for @viewReportsButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'View Reports'**
+  String get viewReportsButtonLabel;
+
+  /// No description provided for @retryReportGenerationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retryReportGenerationLabel;
 }
 
 class _AppLocalizationsDelegate

@@ -87,6 +87,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
   Map<String, dynamic>? _selectedWorkflow;
   String? _selectedProfileId;
+  bool _autoGenerateReport = true;
 
   final Map<String, dynamic> _compiledInputs = {};
 
@@ -112,6 +113,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       if (_selectedProfileId?.isEmpty ?? false) {
         _selectedProfileId = null;
       }
+      _autoGenerateReport = _selectedProfileId != null;
       _compiledInputs.clear();
       _selectedFileNames.clear();
 
@@ -238,7 +240,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             ),
           ),
         );
-        ExecutionRoute(executionId: execId).go(context);
+        ExecutionRoute(
+          executionId: execId,
+          autoGenerateReport: _autoGenerateReport,
+        ).go(context);
       }
     } catch (e) {
       if (mounted) {
@@ -398,72 +403,77 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.configureInputsFor(titleStr),
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 24),
-
-          ...expectedInputsList.map((item) {
-            final inputKey = item['input_key']?.toString() ?? '';
-            final modesRaw = item['input_modes'];
-            final modes = (modesRaw is List ? modesRaw : [])
-                .map((m) => m.toString())
-                .toList();
-
-            // Handle questionnaire first
-            if (modes.contains('questionnaire')) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 24),
-                child: _buildQuestionnaireWidget(inputKey, item),
-              );
-            }
-
-            final showFile = modes.contains('file');
-            final showText =
-                modes.contains('paste') ||
-                modes.contains('text') ||
-                (!showFile && !modes.contains('questionnaire'));
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (showFile) ...[
-                    _buildInputWidget(inputKey, 'file'),
-                    if (showText) const SizedBox(height: 16),
-                  ],
-                  if (showText) _buildInputWidget(inputKey, 'text'),
-                ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppLocalizations.of(context)!.configureInputsFor(titleStr),
+                style: Theme.of(context).textTheme.headlineSmall,
               ),
-            );
-          }),
+              const SizedBox(height: 24),
 
-          const Divider(height: 48),
+              ...expectedInputsList.map((item) {
+                final inputKey = item['input_key']?.toString() ?? '';
+                final modesRaw = item['input_modes'];
+                final modes = (modesRaw is List ? modesRaw : [])
+                    .map((m) => m.toString())
+                    .toList();
 
-          // Epic 47 Phase 2: Orchestration decoupled these from ExecutionCreate.
-          // Now managed exclusively via OutputProfile.
-          // _buildStrictnessSelector(),
-          // const SizedBox(height: 24),
-          // _buildScoringStrategySelector(),
-          // const SizedBox(height: 24),
-          _buildProfileSelector(),
+                // Handle questionnaire first
+                if (modes.contains('questionnaire')) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: _buildQuestionnaireWidget(inputKey, item),
+                  );
+                }
 
-          const SizedBox(height: 24),
+                final showFile = modes.contains('file');
+                final showText =
+                    modes.contains('paste') ||
+                    modes.contains('text') ||
+                    (!showFile && !modes.contains('questionnaire'));
 
-          if (state.hasError) ...[
-            ErrorView(error: state.error!, compact: true),
-            const SizedBox(height: 16),
-          ],
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (showFile) ...[
+                        _buildInputWidget(inputKey, 'file'),
+                        if (showText) const SizedBox(height: 16),
+                      ],
+                      if (showText) _buildInputWidget(inputKey, 'text'),
+                    ],
+                  ),
+                );
+              }),
 
-          _buildSubmitButton(state),
-        ],
+              const Divider(height: 48),
+
+              // Epic 47 Phase 2: Orchestration decoupled these from ExecutionCreate.
+              // Now managed exclusively via OutputProfile.
+              // _buildStrictnessSelector(),
+              // const SizedBox(height: 24),
+              // _buildScoringStrategySelector(),
+              // const SizedBox(height: 24),
+              _buildProfileSelector(),
+
+              const SizedBox(height: 24),
+
+              if (state.hasError) ...[
+                ErrorView(error: state.error!, compact: true),
+                const SizedBox(height: 16),
+              ],
+
+              _buildSubmitButton(state),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -676,6 +686,7 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue:
                   _selectedProfileId != null &&
                       outputProfiles.containsKey(_selectedProfileId)
@@ -699,8 +710,26 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 if (val != null) {
                   setState(() {
                     _selectedProfileId = val;
+                    _autoGenerateReport = true;
                   });
                 }
+              },
+            ),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              value: _autoGenerateReport,
+              title: Text(
+                AppLocalizations.of(context)!.autoGenerateReportLabel,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+              ),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              onChanged: (val) {
+                setState(() {
+                  _autoGenerateReport = val ?? false;
+                });
               },
             ),
             Builder(

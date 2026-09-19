@@ -2507,6 +2507,46 @@
   "modelRegistryKeepEditingBtn": "Continue Editing",
   "studioWorkflowModelRegistry": "Model Registry",
   "studioWorkflowModelRegistrySubtitle": "Sovereign model stack binding physical LLM profiles to cognitive tiers",
-  "modelRegistrySearchPlaceholder": "Search model registries by name, ID, or provider..."
+  "modelRegistrySearchPlaceholder": "Search model registries by name, ID, or provider...",
+  "reportsTitle": "Reports & Outputs",
+  "reportsCountSubtitle": "{count} reports available",
+  "@reportsCountSubtitle": {
+    "description": "Subtitle showing count of reports available",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "createReportButtonLabel": "New Report",
+  "createReportDialogTitle": "Create New Report",
+  "outputProfileSelectLabel": "Select Output Profile",
+  "localeSelectLabel": "Report Language",
+  "customPrefaceLabel": "Custom Preface (Optional)",
+  "saveReportButtonLabel": "Generate Report",
+  "downloadPdfTooltip": "Download PDF file",
+  "downloadExcelTooltip": "Download Excel file",
+  "downloadCsvTooltip": "Download CSV file",
+  "regenerateReportTooltip": "Refresh and regenerate",
+  "deleteReportTooltip": "Delete report",
+  "deleteReportConfirmTitle": "Delete Report?",
+  "deleteReportConfirmMessage": "Are you sure you want to delete this report? This action cannot be undone.",
+  "discardChangesConfirmTitle": "Discard changes?",
+  "discardChangesConfirmMessage": "There are unsaved changes. Do you want to discard them?",
+  "keepEditingButtonLabel": "Continue Editing",
+  "discardButtonLabel": "Discard Changes",
+  "tabInteractiveView": "Interactive View",
+  "tabPdfPreview": "PDF Preview",
+  "tabTabularRows": "Row Data & Tables",
+  "tabTelemetryMetadata": "Metadata & Evidence",
+  "reportStatusPending": "Pending",
+  "reportStatusGenerating": "Generating...",
+  "reportStatusReady": "Ready",
+  "reportStatusFailed": "Failed",
+  "autoGenerateReportLabel": "Generate report immediately upon completion (Run until output)",
+  "autoGeneratingReportNotice": "Analysis complete (100%). Generating report...",
+  "reportGenerationFailedNotice": "Report generation failed, you can retry",
+  "viewReportsButtonLabel": "View Reports",
+  "retryReportGenerationLabel": "Retry"
 }
 
