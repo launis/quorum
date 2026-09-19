@@ -13,6 +13,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -21,7 +22,6 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.enums import PromptBlockCategory
-from backend_v2.models.v2_core import I18nText
 
 logger = logging.getLogger(__name__)
 

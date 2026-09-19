@@ -58,8 +58,7 @@ PRINTABLE_SOURCES_RULES: dict[str, Any] = {
                 "itsenäisen laadunvalvonnan arviointi."
             ),
             "en": (
-                "Cognitive decision-making: Heuristics, cognitive biases, and "
-                "independent quality assurance evaluation."
+                "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation."
             ),
         },
         "tversky": {
@@ -68,8 +67,7 @@ PRINTABLE_SOURCES_RULES: dict[str, Any] = {
                 "itsenäisen laadunvalvonnan arviointi."
             ),
             "en": (
-                "Cognitive decision-making: Heuristics, cognitive biases, and "
-                "independent quality assurance evaluation."
+                "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation."
             ),
         },
         "default": {

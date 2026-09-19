@@ -11,10 +11,10 @@ from __future__ import annotations
 
 import argparse
 import ast
-from collections import defaultdict
 import pathlib
 import subprocess
 import sys
+from collections import defaultdict
 
 # Authoritative SSOT mapping of all 56 symbols re-exported by v2_core.py
 SYMBOL_MAP: dict[str, str] = {

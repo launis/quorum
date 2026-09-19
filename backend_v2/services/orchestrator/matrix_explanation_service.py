@@ -11,11 +11,11 @@ from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 from backend_v2.utils.ranked_round_robin import ranked_round_robin_select

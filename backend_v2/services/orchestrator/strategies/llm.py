@@ -30,25 +30,22 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PromptBlock,
     PromptBlockAdapter,
 )
+from backend_v2.models.domain.step import Step as V2Step
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    FrozenContext,
-    StepRule,
-    Workflow,
-)
-from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies

@@ -6,15 +6,12 @@ from typing import Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-from backend_v2.models.v2_core import (
-    AllowedMCPTool,
-    ExecutionRecord,
-    MatrixScorecardRowDTO,
-    MCPAuditTrace,
-    OutputProfile,
-    RenderedSynthesisCache,
-)
 from backend_v2.models.view.sdui import AnySduiBlock
 
 

@@ -8,9 +8,9 @@ from typing import Any
 from pydantic import BaseModel
 
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 

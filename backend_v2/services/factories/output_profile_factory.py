@@ -6,9 +6,10 @@ for seeding and Studio UI 'New Profile' creation. Never invoked during runtime s
 
 import re
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.enums import PresetView, TargetBlockType
-from backend_v2.models.v2_core import I18nText, MatrixSynthesisGroup, OutputProfile
 from backend_v2.settings import get_settings
 
 __all__ = [

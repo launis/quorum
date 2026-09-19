@@ -13,7 +13,7 @@ from math import pi
 from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import MatrixScorecardRowDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.services.localization import LocalizationService
 
 logger = logging.getLogger(__name__)

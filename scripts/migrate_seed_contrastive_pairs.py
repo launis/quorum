@@ -1,4 +1,4 @@
-"""Deterministic Seed Vault Migration Script for ContrastivePairDTO.
+r"""Deterministic Seed Vault Migration Script for ContrastivePairDTO.
 
 Migrates all 305 legacy string `contrastive_example` fields in `backend_v2/seed/seed_data.json`
 from multiline strings ("ACCEPTABLE: ...\\nUNACCEPTABLE: ...") into 100% valid Pydantic V2
@@ -21,7 +21,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from backend_v2.models.v2_core import ContrastivePairDTO
+from backend_v2.models.domain.matrix import ContrastivePairDTO
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
         logger.error("Seed data file not found at %s", seed_path)
         sys.exit(1)
 
-    with open(seed_path, "r", encoding="utf-8") as f:
+    with open(seed_path, encoding="utf-8") as f:
         data: dict[str, Any] = json.load(f)
 
     # 1. Create timestamped and canonical backup copies
@@ -163,7 +163,7 @@ def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
         os.fsync(tf.fileno())
 
     # Pre-flight reload check
-    with open(temp_path, "r", encoding="utf-8") as f:
+    with open(temp_path, encoding="utf-8") as f:
         json.load(f)
 
     temp_path.replace(seed_path)

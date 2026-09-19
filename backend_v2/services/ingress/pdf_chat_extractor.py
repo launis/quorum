@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 import fitz
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 
 if TYPE_CHECKING:
     pass

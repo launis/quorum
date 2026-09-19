@@ -12,13 +12,14 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.auth import SystemOrganizations
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
-from backend_v2.models.v2_core import Step, Workflow
 
 logger = logging.getLogger(__name__)
 

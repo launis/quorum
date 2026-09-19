@@ -22,7 +22,10 @@ from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.synthesis import (
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
@@ -43,12 +46,6 @@ from backend_v2.models.prompts import (
     build_linguistic_parameters,
 )
 from backend_v2.models.state import StateProjector
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStep,
-    RenderedSynthesisCache,
-    Workflow,
-)
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
 from backend_v2.settings import get_settings

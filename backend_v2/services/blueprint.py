@@ -17,22 +17,17 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
 from backend_v2.models.state import EvidenceOverrideDTO, StateProjector
-from backend_v2.models.v2_core import (
-    AllowedMCPTool,
-    AtomResultDTO,
-    HydratedAtomDTO,
-    MCPAuditTrace,
-    OutputProfile,
-    ReportDataDTO,
-    SystemConfigMCPGateways,
-)
 from backend_v2.models.view.sdui import AnySduiBlock, SduiRadarChartBlock
 from backend_v2.services.matrix_domain_parser import MatrixDomainParser
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext

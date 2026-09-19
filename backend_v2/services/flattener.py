@@ -8,7 +8,8 @@ Adheres to V2 Architecture:
 
 from typing import Any
 
-from backend_v2.models.v2_core import ExecutionRecord, ReportDataDTO
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
     SduiMetrics1DBlock,

@@ -14,8 +14,8 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.judge import JudgeOutput
-from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)

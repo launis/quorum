@@ -15,9 +15,9 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.llm import LLMProviderConfig
-from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate
 

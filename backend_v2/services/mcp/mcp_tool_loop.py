@@ -21,6 +21,7 @@ from backend_v2.models.domain.mcp import (
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
 )
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
 from backend_v2.models.prompts import (
@@ -28,7 +29,6 @@ from backend_v2.models.prompts import (
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
     build_mcp_citation_extraction_directive,
 )
-from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.mcp.dispatcher import ToolDispatcher
 from backend_v2.services.mcp.tools.tavily import TAVILY_TOOL_ID, TavilyTool
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService

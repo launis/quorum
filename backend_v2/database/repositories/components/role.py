@@ -7,7 +7,7 @@ import logging
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.v2_core import Role
+from backend_v2.models.domain.step import Role
 
 logger = logging.getLogger(__name__)
 

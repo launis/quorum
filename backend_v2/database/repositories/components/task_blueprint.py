@@ -7,8 +7,8 @@ import logging
 from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.base import AppendOnlyRepositoryBase
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.studio import StepUpdateDTO
-from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 

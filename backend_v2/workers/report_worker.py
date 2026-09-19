@@ -14,9 +14,9 @@ from pydantic import ValidationError
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import ExecutionRecord
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.localization import set_language
 from backend_v2.services.pdf_generator import PdfReportService

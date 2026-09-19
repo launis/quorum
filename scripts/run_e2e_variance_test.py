@@ -68,7 +68,8 @@ if sys.platform == "win32":
 import requests
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput
+from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.utils.scoring.unified_engine import calculate_strictness_exponent
 from scripts.diff_executions import UNICODE_SPACE_REGISTRY
 

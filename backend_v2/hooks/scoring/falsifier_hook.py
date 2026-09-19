@@ -18,10 +18,10 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import Workflow
 
 logger = logging.getLogger(__name__)
 

@@ -11,7 +11,8 @@ from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepositor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
-from backend_v2.models.v2_core import ExecutionRecord, Step, StepRule
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer

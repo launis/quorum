@@ -1,7 +1,6 @@
 """Unit tests for OutputProfile domain model."""
 
 import pytest
-from pydantic import ValidationError
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile

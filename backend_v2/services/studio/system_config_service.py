@@ -9,17 +9,13 @@ from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO
 from backend_v2.models.enums import (
     CognitiveTier,
     EntityPrefix,
     LLMPlatformType,
     LLMProvider,
-)
-from backend_v2.models.v2_core import (
-    ModelProfile,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
 )
 from backend_v2.services.studio.auth_validator import enforce_modification_rights
 from backend_v2.settings import get_settings

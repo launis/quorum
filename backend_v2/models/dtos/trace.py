@@ -14,16 +14,16 @@ from backend_v2.models.enums import LaxExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 
 if TYPE_CHECKING:
-    from backend_v2.models.domain.inputs import WorkflowInputsIngress
-    from backend_v2.models.domain.usage import TokenUsage
-    from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-    from backend_v2.models.v2_core import (
+    from backend_v2.models.domain.execution import (
         ExecutionStep,
         ExecutionStepState,
         ExecutionSummarySnapshot,
         FrozenContext,
-        RenderedSynthesisCache,
     )
+    from backend_v2.models.domain.inputs import WorkflowInputsIngress
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+    from backend_v2.models.domain.usage import TokenUsage
+    from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 __all__ = [
     "DataStarvationEvent",

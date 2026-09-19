@@ -16,9 +16,9 @@ from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.llm.prompt_builder import build_system_directive
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.ingress import ChatTurnAnchorsResponseDTO
 from backend_v2.models.enums import LLMProvider
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 

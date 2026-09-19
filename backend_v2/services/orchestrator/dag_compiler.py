@@ -1,7 +1,8 @@
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowCompilationError
-from backend_v2.models.v2_core import StepRule, Workflow
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 

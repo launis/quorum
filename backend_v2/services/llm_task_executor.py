@@ -16,11 +16,11 @@ from backend_v2.exceptions import (
     LogicalValidationError,
 )
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
-from backend_v2.models.v2_core import ChatMessageDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings

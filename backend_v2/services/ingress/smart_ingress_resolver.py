@@ -20,7 +20,7 @@ from backend_v2.models.dtos.ingress import ResolvedIngressDTO
 if TYPE_CHECKING:
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.inputs import WorkflowInputsIngress
-    from backend_v2.models.v2_core import ExpectedInput
+    from backend_v2.models.domain.step import ExpectedInput
 
 logger = logging.getLogger(__name__)
 

@@ -7,22 +7,19 @@ from typing import Any
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
+from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import DisplayScale, ExecutionStatus, VisualIntent
-from backend_v2.models.v2_core import (
-    AtomResultDTO,
-    I18nText,
-    MatrixScorecardRowDTO,
-    MCPAuditTrace,
-    OutputProfile,
-    ScorecardAtomDTO,
-    StepRule,
-)
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.localization import LocalizationService
 from backend_v2.utils.math_utils import scale_to_custom_range
@@ -367,7 +364,7 @@ class MatrixDomainParser:
                             try:
                                 atom_dto = AtomResultDTO.model_validate(ev)
                                 step_evals_map[atom_dto.tda_id] = atom_dto
-                            except (ValidationError, TypeError, ValueError):
+                            except ValidationError, TypeError, ValueError:
                                 continue
                         break
 

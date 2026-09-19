@@ -17,16 +17,12 @@ import logfire
 from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
+from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStep,
-    ExecutionSummarySnapshot,
-    Workflow,
-    WorkflowInputs,
-)
 from backend_v2.services.localization import set_language
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings

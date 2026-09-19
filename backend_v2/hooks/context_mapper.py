@@ -9,7 +9,8 @@ import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockBase
-from backend_v2.models.v2_core import MatrixSynthesisGroup, Workflow
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
+from backend_v2.models.domain.workflow import Workflow
 
 logger = logging.getLogger(__name__)
 

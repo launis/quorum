@@ -8,8 +8,8 @@ from backend_v2.database.interfaces import IOutputProfileRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
 from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.enums import EntityPrefix
-from backend_v2.models.v2_core import OutputProfile
 from backend_v2.services.factories.output_profile_factory import build_draft_output_profile
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,

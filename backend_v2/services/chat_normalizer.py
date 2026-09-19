@@ -18,8 +18,8 @@ from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.inputs import ProcessedChatDTO
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.services.chat_parser import ChatParserService
 
 logger = logging.getLogger(__name__)

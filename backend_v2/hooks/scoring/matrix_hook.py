@@ -16,17 +16,21 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.scoring.normalization_hook import recalculate
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PromptBlockAdapter,
 )
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     XaiExtensionType,
 )
-from backend_v2.models.v2_core import AtomResultDTO, ExecutionRecord, OutputProfile, Step, Workflow
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 
 logger = logging.getLogger(__name__)

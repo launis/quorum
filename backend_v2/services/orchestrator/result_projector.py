@@ -7,9 +7,9 @@ required by the frontend (AtomResultDTO and HydratedAtomDTO).
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
-from backend_v2.models.v2_core import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
 
 logger = logging.getLogger(__name__)
 

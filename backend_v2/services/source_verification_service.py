@@ -17,13 +17,13 @@ from backend_v2.models.domain.source_verification import (
     SourceVerificationStatus,
     VerifiedSourceDTO,
 )
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.source_extraction_schema import SourceExtractionResponseSchema
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
     SOURCE_EXTRACTION_SYSTEM_INSTRUCTION,
     SOURCE_VERIFICATION_SYSTEM_INSTRUCTION,
 )
-from backend_v2.models.v2_core import MCPAuditTrace
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import get_language
 from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER

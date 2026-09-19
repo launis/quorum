@@ -8,13 +8,13 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
+from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.studio import (
     StepDeleteResponse,
     StepResponseDTO,
     StepSimulationRequest,
     StepSimulationResponse,
 )
-from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 

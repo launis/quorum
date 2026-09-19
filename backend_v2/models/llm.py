@@ -15,9 +15,9 @@ from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
+from backend_v2.models.domain.system_config import ProviderExtraParamsDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
-from backend_v2.models.v2_core import ProviderExtraParamsDTO
 
 logger = logging.getLogger(__name__)
 

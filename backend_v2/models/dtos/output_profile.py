@@ -9,7 +9,8 @@ from typing import Annotated, Self
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.exceptions import ErrorCodes
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
 from backend_v2.models.dtos.base import BaseResponseDTO
 from backend_v2.models.enums import (
     DisplayScale,
@@ -20,10 +21,6 @@ from backend_v2.models.enums import (
     LaxXaiExtensionType,
     SourcesDisplayMode,
     TargetBlockType,
-)
-from backend_v2.models.v2_core import (
-    I18nText,
-    MatrixSynthesisGroup,
 )
 from backend_v2.models.view.sdui import AnySduiBlock
 

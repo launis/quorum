@@ -22,9 +22,11 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.database.interfaces import ISystemRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
 from backend_v2.models.enums import LLMProvider
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO, ExpectedInput, Workflow
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.ingress import MultiChannelIngressService
 from backend_v2.services.pii_analyzer import get_pii_service

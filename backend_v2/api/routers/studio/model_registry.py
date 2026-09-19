@@ -9,9 +9,9 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from backend_v2.api.dependencies import CurrentUserDep, LLMHandlerDep, StudioSystemConfigServiceDep
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO, LLMPlatformDTO, ModelRegistryDeleteResponse
 from backend_v2.models.enums import LLMPlatformType
-from backend_v2.models.v2_core import SystemConfigModelRegistry
 
 logger = logging.getLogger(__name__)
 

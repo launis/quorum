@@ -1,6 +1,7 @@
 """Unit tests for execution domain models."""
 
 from datetime import datetime, timezone
+
 import pytest
 from pydantic import ValidationError
 

@@ -12,6 +12,8 @@ from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -30,7 +32,6 @@ from backend_v2.models.state import (
     TombstoneEvent,
     TraceEvent,
 )
-from backend_v2.models.v2_core import DataStarvationEvent, RenderedSynthesisCache
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
 from backend_v2.services.storage import get_storage_driver

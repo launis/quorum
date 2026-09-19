@@ -18,7 +18,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Canonical_Import_Migration_and_Strangler_Fig_Facade_Eradication.md] @[docs/implementationplans/TRACKER_Canonical_Import_Migration_and_Strangler_Fig_Facade_Eradication.md]`
   - [x] Step 1: PRE_IMPLEMENTATION_CLEANUPS_AND_DTO_CREATION
   - [x] Step 2: CANONICAL_SYMBOL_MAPPING_AND_MIGRATION_SCRIPT
-  - [ ] Step 3: MIGRATE_PRODUCTION_CALLERS_BATCH_A
+  - [x] Step 3: MIGRATE_PRODUCTION_CALLERS_BATCH_A
   - [ ] Step 4: MIGRATE_TEST_CALLERS_BATCH_B
   - [ ] Step 5: PERMANENTLY_PURGE_V2_CORE
   - [ ] Step 6: STREAMLINE_EXECUTION_INIT_FACADE

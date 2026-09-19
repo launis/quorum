@@ -18,16 +18,16 @@ from backend_v2.api.dependencies import (
     ReportServiceDep,
 )
 from backend_v2.api.routers.execution.reports import execution_reports_subrouter
-from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
-from backend_v2.models.enums import ReportStatus
-from backend_v2.models.v2_core import (
+from backend_v2.models.domain.execution import (
     EvidenceRejectionRequest,
     ExecutionCreate,
     ExecutionRecord,
-    HumanOverrideRequest,
     JobAcceptedDTO,
-    ReportDataDTO,
 )
+from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
+from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.enums import ReportStatus
 from backend_v2.models.view.sdui import ReportView
 
 logger = logging.getLogger(__name__)

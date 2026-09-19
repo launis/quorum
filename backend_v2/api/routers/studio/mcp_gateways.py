@@ -8,8 +8,8 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSystemConfigServiceDep
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways
 from backend_v2.models.dtos.studio import MCPGatewayDeleteResponse
-from backend_v2.models.v2_core import SystemConfigMCPGateways
 
 logger = logging.getLogger(__name__)
 

@@ -16,6 +16,7 @@ from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, create_model
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.enums import ExecutionStatus
@@ -26,7 +27,6 @@ from backend_v2.models.prompts.common import (
     DESC_EXACT_QUOTES,
     DESC_REASONING_TRACE,
 )
-from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 from backend_v2.utils.alias_engine import AliasEngine
 

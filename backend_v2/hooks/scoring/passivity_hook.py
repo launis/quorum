@@ -14,8 +14,8 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.v2_core import Step
 
 logger = logging.getLogger(__name__)
 

@@ -154,11 +154,13 @@ def dict_to_obj(d: Any) -> Any:
             d.setdefault("expected_inputs", [])
             d.setdefault("mcp_gateway_id", None)
 
-        # Ensure mock steps have input_mappings
+        # Ensure mock steps have input_mappings as a dict
         if "id" in d and "workflow_id" not in d and "steps" not in d and "translations" not in d:
             d.setdefault("input_mappings", {})
 
-        return SimpleNamespace(**{k: dict_to_obj(v) for k, v in d.items()})
+        return SimpleNamespace(
+            **{k: (dict(v) if k == "input_mappings" and isinstance(v, dict) else dict_to_obj(v)) for k, v in d.items()}
+        )
     elif isinstance(d, list):
         return [dict_to_obj(v) for v in d]
     return d
@@ -1891,6 +1893,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         "step_1": SimpleNamespace(
             id="step_1",
             depends_on=[],
+            input_mappings={},
         )
     }
 
@@ -1999,7 +2002,7 @@ async def test_blueprint_parse_matrix_trace_results_exceptions(mock_repo_transfo
     results = [SimpleNamespace(step_id="step_1", block_id="matrix_logic1234", payload="invalid_payload_string")]
     with pytest.raises(AppException) as exc:
         MatrixDomainParser.parse_matrices(results, "en", blocks_by_id, {}, profile, {}, [], {})
-    assert "expected dict" in str(exc.value)
+    assert "Invalid matrix payload format" in str(exc.value)
 
     # 2. Validation failure inside TraceMatrixPayloadDTO -> lines 238-241
     results = [

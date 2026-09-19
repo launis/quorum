@@ -12,8 +12,8 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
-from backend_v2.models.v2_core import MatrixScorecardRowDTO
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,

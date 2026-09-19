@@ -8,13 +8,13 @@ import logging
 from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.studio import (
     WorkflowAvailableExtensionsResponse,
     WorkflowDeleteResponse,
     WorkflowResponseDTO,
     WorkflowSimulationResponse,
 )
-from backend_v2.models.v2_core import Workflow
 
 logger = logging.getLogger(__name__)
 

@@ -14,10 +14,12 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxXaiExtensionType
-from backend_v2.models.v2_core import OutputProfile, Step, Workflow
 from backend_v2.utils.math_utils import normalize_score_to_100
 from backend_v2.utils.scoring import get_scoring_engine
 

@@ -21,10 +21,13 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExecutionRecord, OutputProfile, Step, StepRule, Workflow
 from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.utils.alias_engine import AliasEngine

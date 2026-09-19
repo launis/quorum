@@ -6,10 +6,12 @@ from typing import Any, Literal
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import AtomResultDTO, ExecutionRecord, TDAAssertion
 
 logger = logging.getLogger(__name__)
 

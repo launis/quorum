@@ -13,9 +13,10 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import FrozenContext
+from backend_v2.models.domain.step import Step as V2Step
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import FrozenContext, StepRule
-from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 

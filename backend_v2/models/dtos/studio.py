@@ -8,8 +8,11 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
@@ -21,16 +24,6 @@ from backend_v2.models.enums import (
     LaxStepType,
     PromptBlockCategory,
     StepType,
-)
-from backend_v2.models.v2_core import (
-    ExpectedInput,
-    I18nText,
-    MatrixRow,
-    MatrixScale,
-    Step,
-    StepRule,
-    TheoryGrounding,
-    Workflow,
 )
 
 __all__ = [

@@ -15,21 +15,17 @@ from backend_v2.database.interfaces import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import SystemOrganizations, TokenData, UserRole
-from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.core_base import I18nText, generate_opaque_id
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PromptBlockAdapter,
 )
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.output_profile import OutputProfileResponseDTO
 from backend_v2.models.dtos.studio import WorkflowResponseDTO
 from backend_v2.models.enums import CognitiveTier, EntityPrefix, HistoricalContextMode, StepType
-from backend_v2.models.v2_core import (
-    I18nText,
-    Step,
-    StepRule,
-    Workflow,
-)
 from backend_v2.services.orchestrator.dag_compiler import DAGCompilerService
 from backend_v2.services.studio.auth_validator import (
     enforce_modification_rights,

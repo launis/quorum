@@ -12,19 +12,13 @@ from typing import TYPE_CHECKING, Annotated, Any
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.matrix import AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TheoryGrounding
+from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.enums import TargetSpeaker
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    AcceptanceCriterion,
-    AntiPattern,
-    AtomResultDTO,
-    ContrastivePairDTO,
-    HydratedAtomDTO,
-    StepRule,
-    TheoryGrounding,
-)
 
 if TYPE_CHECKING:
     from backend_v2.services.orchestrator.strategies.base import StrategyContext

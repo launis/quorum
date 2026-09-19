@@ -15,6 +15,8 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
@@ -27,10 +29,6 @@ from backend_v2.models.dtos.studio import (
 )
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.llm import LLMMessageDTO
-from backend_v2.models.v2_core import (
-    Step,
-    Workflow,
-)
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.utils.alias_engine import AliasEngine

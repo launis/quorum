@@ -8,15 +8,12 @@ from typing import Annotated
 from pydantic import Discriminator, Tag, TypeAdapter
 
 from backend_v2.models.auth import Organization, User
+from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    OutputProfile,
-    Step,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-    Workflow,
-)
+from backend_v2.models.domain.step import Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 
 __all__ = ["STANDARD_REGISTRY", "SystemConfigUnion"]
 

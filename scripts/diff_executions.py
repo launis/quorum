@@ -40,7 +40,7 @@ if _workspace_root not in sys.path:
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
-from backend_v2.models.v2_core import ContrastivePairDTO
+from backend_v2.models.domain.matrix import ContrastivePairDTO
 from backend_v2.settings import get_settings
 
 __all__ = [

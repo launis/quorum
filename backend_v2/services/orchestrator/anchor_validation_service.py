@@ -8,9 +8,9 @@ import unicodedata
 from rapidfuzz import fuzz
 
 from backend_v2.exceptions import SemanticEvidenceError
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.enums import TargetSpeaker, ValidationThresholdRatio
-from backend_v2.models.v2_core import AtomResultDTO
 from backend_v2.settings import get_lexical_fuzz_threshold
 
 logger = logging.getLogger(__name__)

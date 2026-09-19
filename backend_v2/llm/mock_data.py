@@ -40,6 +40,7 @@ from backend_v2.models.domain import (
     WaltonStressTest,
     XAIOutput,
 )
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
     MatrixSectionSynthesesResult,
@@ -59,7 +60,6 @@ from backend_v2.models.enums import (
     StrategicDepth,
     VerificationResult,
 )
-from backend_v2.models.v2_core import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.view.sdui import ParagraphBlock
 
 # 0. Shared Metadata

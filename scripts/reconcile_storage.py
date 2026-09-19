@@ -29,8 +29,8 @@ if isinstance(sys.stderr, io.TextIOWrapper):
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from tinydb import Query, TinyDB
 
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.v2_core import ExecutionRecord
 
 logger = logging.getLogger("scripts.reconcile_storage")
 

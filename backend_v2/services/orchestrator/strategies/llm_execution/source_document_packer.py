@@ -9,8 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.models.v2_core import ExpectedInput
 
 logger = logging.getLogger(__name__)
 
@@ -307,7 +307,7 @@ class SourceDocumentPacker:
                                 try:
                                     data_to_dump = step_dict_payload if step_dict_payload is not None else payload
                                     text_content = json.dumps(data_to_dump, indent=2, ensure_ascii=False, default=str)
-                                except (TypeError, ValueError):
+                                except TypeError, ValueError:
                                     text_content = ""
 
                     if text_content:

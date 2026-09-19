@@ -37,24 +37,17 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowExecutionError
 from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.auth import User
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionStepState, FrozenContext
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
-from backend_v2.models.enums import StepType, StrictnessAnchor
+from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    ExecutionStatus,
-    ExecutionStep,
-    ExecutionStepState,
-    FrozenContext,
-    I18nText,
-    MCPAuditTrace,
-    Step,
-    StepRule,
-    Workflow,
-    WorkflowInputs,
-)
 from backend_v2.services.execution import create_execution_record
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.context_router import ContextRouter

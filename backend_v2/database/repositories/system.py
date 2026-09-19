@@ -7,6 +7,7 @@ import logging
 from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import ResourceNotFoundError
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.system import (
     AnySystemConfig,
     AnySystemConfigAdapter,
@@ -15,10 +16,6 @@ from backend_v2.models.dtos.system import (
     SystemSettingsDTO,
 )
 from backend_v2.models.enums import SystemConfigID
-from backend_v2.models.v2_core import (
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-)
 
 logger = logging.getLogger(__name__)
 

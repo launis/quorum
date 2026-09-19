@@ -21,11 +21,11 @@ from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
 from backend_v2.utils.pydantic_utils import inflate

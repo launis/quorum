@@ -23,13 +23,14 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.step import ExpectedInput, StepRule
+from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
 from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.models.v2_core import ExpectedInput, FrozenContext, StepRule
-from backend_v2.models.v2_core import Step as V2Step
 from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
 from backend_v2.services.usage_service import UsageService
 

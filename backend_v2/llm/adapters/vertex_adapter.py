@@ -17,11 +17,11 @@ from pydantic import BaseModel
 from backend_v2.exceptions import ConfigurationError, ErrorCodes
 from backend_v2.llm.adapters.base_adapter import BaseLLMAdapter
 from backend_v2.models.domain.mcp import OpenAIToolCallDTO
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import PromptCacheStatus
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
-from backend_v2.models.v2_core import ModelProfile
 from backend_v2.settings import get_settings
 from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 

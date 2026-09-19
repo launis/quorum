@@ -51,7 +51,7 @@ class PromptAtomizer:
             for scale in block.scales:
                 new_claims = []
                 for claim in scale.claims:
-                    # Expect claim to have 'tda_assertions' mapped in v2_core
+                    # Expect claim to have 'tda_assertions' mapped in domain.matrix
                     if not claim.tda_assertions:
                         new_claims.append(claim)
                         continue

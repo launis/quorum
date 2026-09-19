@@ -17,10 +17,10 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.llm.provider import LLMFactory
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO
 from backend_v2.models.enums import LLMPlatformType, LLMProviderName
 from backend_v2.models.llm import LLMProviderConfig
-from backend_v2.models.v2_core import SystemConfigModelRegistry
 from backend_v2.settings import Settings, get_settings
 
 
@@ -648,7 +648,7 @@ class LLMHandler:
 
         # Pydantic V2 Validation
         try:
-            # Model config already defined in SystemConfigModelRegistry (v2_core.py)
+            # Model config already defined in SystemConfigModelRegistry (domain.system_config)
             validated = SystemConfigModelRegistry.model_validate(raw_config)
             return validated.model_dump()
         except Exception as e:

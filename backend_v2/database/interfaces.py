@@ -25,6 +25,7 @@ from backend_v2.models.domain.base import (
     UsageAggregateUpdateDTO,
     UsageRecord,
 )
+from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.knowledge import (
     BannedPhrase,
     Claim,
@@ -38,6 +39,9 @@ from backend_v2.models.domain.knowledge import (
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.domain.step import Role, Step
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
@@ -56,14 +60,6 @@ from backend_v2.models.dtos.trace import (
     ExecutionUpdateDTO,
 )
 from backend_v2.models.state import TraceEvent
-from backend_v2.models.v2_core import (
-    ExecutionRecord,
-    Role,
-    Step,
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-    Workflow,
-)
 
 __all__ = [
     "IAgentRepository",

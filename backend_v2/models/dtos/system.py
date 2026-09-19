@@ -8,11 +8,8 @@ from typing import Annotated, Any, Literal
 
 from pydantic import ConfigDict, Field, TypeAdapter
 
+from backend_v2.models.domain.system_config import SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
-from backend_v2.models.v2_core import (
-    SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
-)
 
 __all__ = [
     "HookListResponse",

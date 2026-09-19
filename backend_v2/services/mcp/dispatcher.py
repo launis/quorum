@@ -1,8 +1,8 @@
 from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseTool
-from backend_v2.models.v2_core import MCPAuditTrace
 
 
 class ToolDispatcher:

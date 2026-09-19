@@ -17,7 +17,7 @@ import markdown  # type: ignore[import-untyped, unused-ignore]
 from jinja2 import Environment, FileSystemLoader
 
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
-from backend_v2.models.v2_core import ReportDataDTO
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import SduiQuadrantMatrixBlock, SduiRadarChartBlock, SduiScatterPlotBlock
 from backend_v2.utils.static_charts import (
     generate_quadrant_matrix_chart,

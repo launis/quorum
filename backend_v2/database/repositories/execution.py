@@ -11,10 +11,11 @@ from backend_v2.database.driver import Filter
 from backend_v2.database.repositories.base import BaseRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import generate_opaque_id
+from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
-from backend_v2.models.v2_core import ExecutionRecord, FrozenContext, MCPAuditTrace
 from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
