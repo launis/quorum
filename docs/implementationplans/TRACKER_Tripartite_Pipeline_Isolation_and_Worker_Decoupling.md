@@ -59,7 +59,7 @@
       - [x] 3.5: Create @[backend_v2/workers/report_worker.py] (<450 lines): Extract `generate_pdf_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`, register `generate_report_artifact_job`
       - [x] 3.6: Refactor @[backend_v2/worker.py] into Strangler Fig Facade & Entrypoint (<150 lines) with `__all__` re-exports
       - [x] 3.7: Execute Arq Worker smoke test
-    - [x] Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
+    - [x] (fd8e5eea) Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
       - [x] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
     - [ ] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
       - [ ] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
@@ -268,7 +268,7 @@
     - Eradicated worker-to-worker auto-enqueuing (`execute_workflow_job` transitions directly to `ExecutionStatus.PASSED` with zero `render_profile_job` enqueuing).
     - Preserved sovereign cognitive tiers (`CognitiveTier.BALANCED`, `FAST`, `DEEP`) and dynamic model registry bindings.
     - Verified all 61 worker unit tests passing with 100% quality gate compliance.
-  - **Step 4** (commit pending):
+  - **Step 4** (commit `fd8e5eea`):
     - Enforced 100% read-only dumb painter invariance in @[backend_v2/services/blueprint.py]: purged all database write operations (`new_step_states` mutation and `exec_repo.update_execution` calls).
     - Replaced recursive dictionary search `extract_evidence_ids` with direct, typed iteration over `mcp_audit_data` items and `QuoteEvidenceDTO.verified_source_ids`.
     - Purged token re-summing fallback loop over `execution_trace`; directly consumes `prompt_tokens`, `completion_tokens`, `reasoning_tokens`, and `dag_cost_usd`.
