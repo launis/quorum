@@ -86,6 +86,9 @@ from backend_v2.models.domain.matrix import (
 from backend_v2.models.domain.output_profile import (
     OutputProfile as OutputProfile,
 )
+from backend_v2.models.domain.report_artifact import (
+    ReportArtifact as ReportArtifact,
+)
 from backend_v2.models.domain.step import (
     ALLOWED_INPUT_MODES as ALLOWED_INPUT_MODES,
 )
@@ -332,6 +335,7 @@ __all__ = [
     "ProviderExtraParamsDTO",
     "QuestionnaireItem",
     "RenderedSynthesisCache",
+    "ReportArtifact",
     "ReportDataDTO",
     "Role",
     "ScorecardAtomDTO",

@@ -37,6 +37,8 @@ from backend_v2.models.domain.knowledge import (
 )
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import (
     StepCreateDTO,
     StepUpdateDTO,
@@ -75,6 +77,7 @@ __all__ = [
     "IMatrixRepository",
     "IOutputProfileRepository",
     "IPromptBlockRepository",
+    "IReportArtifactRepository",
     "IRoleRepository",
     "ISystemRepository",
     "ITaskBlueprintRepository",
@@ -302,9 +305,20 @@ class IExtractionProtocolRepository(Protocol):
     async def delete_extraction_protocol(self, protocol_id: str) -> bool: ...
 
 
+class IReportArtifactRepository(Protocol):
+    """Protocol for Report Artifact persistence operations."""
+
+    async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact: ...
+    async def get_report_artifact(self, report_id: str) -> ReportArtifact | None: ...
+    async def list_report_artifacts_by_execution(self, execution_id: str) -> list[ReportArtifact]: ...
+    async def update_report_artifact(self, report_id: str, update_dto: ReportArtifactUpdateDTO) -> ReportArtifact: ...
+    async def delete_report_artifact(self, report_id: str) -> bool: ...
+
+
 class IUnifiedWorkflowRepository(
     IWorkflowRepository,
     IExecutionRepository,
+    IReportArtifactRepository,
     IComponentRepository,
     IMatrixRepository,
     IRoleRepository,

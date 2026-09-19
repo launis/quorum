@@ -58,6 +58,7 @@ __all__ = [
     "LaxPlausibilityLevel",
     "LaxPresetView",
     "LaxPromptBlockCategory",
+    "LaxReportStatus",
     "LaxRiskLevel",
     "LaxRoleClassification",
     "LaxSDUIComponentType",
@@ -79,6 +80,7 @@ __all__ = [
     "PromptBlockCategory",
     "PromptCacheStatus",
     "ReferenceTitle",
+    "ReportStatus",
     "RiskLevel",
     "RoleClassification",
     "SDUIComponentType",
@@ -195,6 +197,7 @@ class EntityPrefix(StrEnum):
     USER = "usr"
     ORGANIZATION = "org"
     TDA = "tda"
+    REPORT = "rep"
 
 
 class SystemConfigID(StrEnum):
@@ -425,6 +428,31 @@ class ExecutionStatus(StrEnum):
     def l10n_key(self) -> str:
         """strict_enum_l10n_mapping: Guarantees Flutter .arb compatibility."""
         return f"status_{self.name.lower()}"
+
+
+class ReportStatus(StrEnum):
+    """Lifecycle status of a materialized report artifact."""
+
+    PENDING = "pending"
+    GENERATING = "generating"
+    READY = "ready"
+    FAILED = "failed"
+
+    @property
+    def l10n_key(self) -> str:
+        """Maps enum value to camelCase Flutter ARB key."""
+        match self:
+            case ReportStatus.PENDING:
+                return "reportStatusPending"
+            case ReportStatus.GENERATING:
+                return "reportStatusGenerating"
+            case ReportStatus.READY:
+                return "reportStatusReady"
+            case ReportStatus.FAILED:
+                return "reportStatusFailed"
+
+
+LaxReportStatus = ReportStatus | str
 
 
 class SDUIComponentType(StrEnum):

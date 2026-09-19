@@ -14,6 +14,7 @@ from backend_v2.database.repositories.components.task_blueprint import TaskBluep
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 
@@ -21,6 +22,7 @@ from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
 class UnifiedWorkflowRepository(
     WorkflowRepositoryImpl,
     ExecutionRepositoryImpl,
+    ReportArtifactRepositoryImpl,
     ComponentRepositoryImpl,
     MatrixRepositoryImpl,
     RoleRepositoryImpl,

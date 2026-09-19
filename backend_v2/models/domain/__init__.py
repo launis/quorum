@@ -115,6 +115,7 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.retrieval import RetrievalDTO, RetrievalInput, RetrievalOutput, RetrievedFact
 
 # 2. Agent Modules
@@ -314,6 +315,7 @@ __all__ = [
     "ProviderExtraParamsDTO",
     "QuestionnaireItem",
     "RenderedSynthesisCache",
+    "ReportArtifact",
     "Role",
     "Step",
     "StepRule",
