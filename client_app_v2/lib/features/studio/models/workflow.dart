@@ -165,9 +165,6 @@ abstract class Workflow with _$Workflow {
     @Default(false)
     bool enableEagerAnonymization,
     @JsonKey(name: 'system_audit_trail') @Default(false) bool systemAuditTrail,
-    @JsonKey(name: 'allowed_exports')
-    @Default(['pdf', 'docx'])
-    List<String> allowedExports,
     @JsonKey(name: 'historical_context_mode')
     @Default('DISABLED')
     String historicalContextMode,

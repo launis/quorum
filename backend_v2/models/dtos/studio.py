@@ -92,10 +92,6 @@ class GCPLocationDTO(BaseDTO):
     description: Annotated[str, Field(description="Informational region description")]
 
 
-def _default_allowed_exports() -> list[Literal["pdf", "docx", "raw_json", "xlsx"]]:
-    return ["pdf"]
-
-
 class WorkflowCreateDTO(V2CoreBase):
     """DTO for creating a new Workflow without client-specified ID.
 
@@ -105,7 +101,6 @@ class WorkflowCreateDTO(V2CoreBase):
         description: Localized description of the workflow.
         expected_inputs: Sequence of expected input variable schemas.
         steps: Sequence of step routing rules.
-        allowed_exports: Permitted export formats.
         historical_context_mode: Historical context retention mode.
         organization_id: Optional tenant organization scope.
         default_profile_id: Optional default output profile ID.
@@ -122,10 +117,6 @@ class WorkflowCreateDTO(V2CoreBase):
     steps: Annotated[list[StepRule], Field(default_factory=list, description="Sequence of step routing rules.")] = (
         Field(default_factory=list)
     )
-    allowed_exports: Annotated[
-        list[Literal["pdf", "docx", "raw_json", "xlsx"]],
-        Field(default_factory=_default_allowed_exports, description="Permitted export formats."),
-    ] = Field(default_factory=_default_allowed_exports)
     historical_context_mode: Annotated[
         LaxHistoricalContextMode,
         Field(default=HistoricalContextMode.DISABLED, description="Historical context mode."),
@@ -595,7 +586,6 @@ class WorkflowUpdateDTO(BaseDTO):
         list[ExpectedInput] | None, Field(default=None, description="Updated expected inputs")
     ] = None
     steps: Annotated[list[StepRule] | None, Field(default=None, description="Updated step rules")] = None
-    allowed_exports: Annotated[list[Literal["pdf", "docx", "raw_json", "xlsx"]] | None, Field(default=None)] = None
     historical_context_mode: Annotated[LaxHistoricalContextMode | None, Field(default=None)] = None
     default_profile_id: Annotated[str | None, Field(default=None)] = None
     default_strictness_level: Annotated[

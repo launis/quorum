@@ -18575,10 +18575,6 @@
           "ui_pos_y": 0.0
         }
       ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
-      ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
@@ -18749,10 +18745,6 @@
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         }
-      ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
       ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
@@ -19010,10 +19002,6 @@
           "ui_pos_y": 0.0
         }
       ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
-      ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
@@ -19254,10 +19242,6 @@
           "ui_pos_y": 0.0
         }
       ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
-      ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
       "post_hoc_penalty": 0.0,
@@ -19470,10 +19454,6 @@
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         }
-      ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
       ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.0,
@@ -19689,10 +19669,6 @@
           "ui_pos_x": 0.0,
           "ui_pos_y": 0.0
         }
-      ],
-      "allowed_exports": [
-        "pdf",
-        "raw_json"
       ],
       "historical_context_mode": "DISABLED",
       "security_penalty": 0.15,

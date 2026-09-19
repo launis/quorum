@@ -11,12 +11,12 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal
 from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import I18nText, V2CoreBase
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, VisualIntent
 
 if TYPE_CHECKING:
-    from backend_v2.models.v2_core import MCPAuditTrace
     from backend_v2.models.view.sdui import AnySduiBlock
 
 __all__ = [

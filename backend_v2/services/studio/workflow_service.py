@@ -316,7 +316,6 @@ class StudioWorkflowService:
             ),
             expected_inputs=[],
             steps=[],
-            allowed_exports=["pdf"],
             historical_context_mode=HistoricalContextMode.DISABLED,
             default_profile_id="prf_0000000000000000",
             model_registry_id=chosen_registry_id,

@@ -1,37 +1,204 @@
-"""Synthesis Hook Domain Models.
+"""Domain models for synthesis, multi-matrix grouping, and XAI extraction.
 
-Provides strict Pydantic V2 validation schemas for the synthesis pipeline
-to eliminate legacy dictionary-based parsing.
+SSOT for SynthesisMetadataDTO, DistilledEvaluation, SynthesisStepDataDTO,
+MatrixSynthesisGroup, RenderedSynthesisCache, BaseMatrixXAI, and BaseTDAExtraction.
 """
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+import logging
+import uuid
+from datetime import datetime, timezone
+from typing import TYPE_CHECKING, Annotated, Any, Self
 
-from pydantic import ConfigDict, Field
+if TYPE_CHECKING:
+    from backend_v2.models.dtos.trace import DataStarvationEvent
+    from backend_v2.models.view.sdui import AnySduiBlock
 
-from backend_v2.models.core_base import V2CoreBase
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+from backend_v2.exceptions import ErrorCodes
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.dtos.synthesis import XaiHighlightItem
+from backend_v2.models.enums import LaxPresetView, PresetView
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "BaseMatrixXAI",
+    "BaseTDAExtraction",
+    "DistilledEvaluation",
+    "MatrixSynthesisGroup",
+    "RenderedSynthesisCache",
+    "SynthesisMetadataDTO",
+    "SynthesisStepDataDTO",
+]
+
+
+class BaseMatrixXAI(BaseModel):
+    """Pydantic model for matrix XAI qualitative extensions without physical extraction guarantees."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    semantic_reasoning: str = Field(
+        default="",
+        description="Matrix-level assessment explanation.",
+    )
+
+
+class BaseTDAExtraction(BaseModel):
+    """Core Pydantic model for Micro-CoT extraction with deterministic cross-validation."""
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    @field_validator("exact_quotes", mode="before")
+    @classmethod
+    def _coerce_exact_quotes(cls, v: Any) -> Any:
+        if v is None:
+            return []
+        return v
+
+    exact_quotes: list[LLMExtractedQuote] = Field(
+        default_factory=list,
+        max_length=3,
+        description="List of verbatim quotes from original text.",
+    )
+    localized_anchors_found: list[str] = Field(
+        max_length=15, description="Keywords in target language mapping English rule."
+    )
+    contextual_override: bool = Field(description="Escape hatch for implicit matches.")
+    semantic_reasoning: str = Field(description="Mapping logic explanation in target language.")
+
+    @model_validator(mode="after")
+    def validate_override_logic(self) -> Self:
+        """Validates the consistency of the extraction rules after typed hydration."""
+        if self.contextual_override:
+            if self.exact_quotes:
+                raise ValueError("contextual_override=True cannot be combined with exact_quotes")
+        else:
+            for q in self.exact_quotes:
+                if q.text == "[CONTEXTUAL_OVERRIDE_APPLIED]":
+                    msg = (
+                        "Cross-validation failed: exact_quotes cannot contain "
+                        "'[CONTEXTUAL_OVERRIDE_APPLIED]' if contextual_override is False."
+                    )
+                    logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise ValueError(msg)
+        return self
+
+
+class DistilledEvaluation(V2CoreBase):
+    """Schema for distilled evaluation data used in synthesis."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    atom_id: Annotated[str | None, Field()] = None
+    exact_quotes: Annotated[list[str], Field()] = Field(default_factory=list)
+    semantic_reasoning: Annotated[str | None, Field()] = None
+    extensions: Annotated[dict[str, str | int | float | bool | list[str]] | None, Field(default=None)] = None
+
+
+class MatrixSynthesisGroup(V2CoreBase):
+    """Represents a comparative matrix synthesis group for 2D/3D graphs and multi-matrix synthesis."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    id: str = Field(
+        default_factory=lambda: f"grp_{uuid.uuid4().hex[:16]}",
+        pattern=OPAQUE_STRIPE_ID_REGEX,
+        description="Unique Opaque Synthesis Group ID (e.g. grp_440a5fef9331451b)",
+    )
+    title: I18nText = Field(description="Localized title for the synthesis group")
+    target_blocks: list[str] = Field(min_length=1, description="List of prompt block IDs targeted by this group")
+    view_type: LaxPresetView = Field(
+        default=PresetView.METRICS_1D,
+        description=(
+            "UI presentation preset view for this matrix group (e.g. 1d_metrics, 2d_compare, 3d_matrix, text_only)."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def validate_dimensional_cardinality(self) -> Self:
+        """Enforce strict dimensional cardinality coupling between view_type and target_blocks."""
+        num_blocks = len(self.target_blocks)
+        if self.view_type == PresetView.METRICS_1D:
+            if num_blocks != 1:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '1d_metrics' requires exactly 1 target block, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.COMPARE_2D:
+            if num_blocks != 2:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '2d_compare' requires exactly 2 target blocks, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.MATRIX_3D:
+            if num_blocks != 3:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type '3d_matrix' requires exactly 3 target blocks, "
+                    f"but received {num_blocks} ({self.target_blocks})."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        elif self.view_type == PresetView.TEXT_ONLY:
+            if num_blocks < 1:
+                msg = (
+                    f"MatrixSynthesisGroup '{self.id}': view_type 'text_only' requires at least 1 target block, "
+                    f"but received {num_blocks}."
+                )
+                logger.error("[V2Core] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                raise ValueError(msg)
+        return self
+
+
+class RenderedSynthesisCache(V2CoreBase):
+    """Cached synthesis results tied to a specific OutputProfile ID."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    section_syntheses: dict[str, list[AnySduiBlock]] = Field(
+        default_factory=dict, description="Mapping of layout ID to LLM generated Section-Level synthesis blocks"
+    )
+    row_explanations: dict[str, str] = Field(
+        default_factory=dict, description="Synthesized row explanations by matrix ID"
+    )
+    row_curated_quotes: dict[str, list[str]] = Field(default_factory=dict, description="Curated quotes by matrix ID")
+    variance_explanation: Annotated[
+        str | None, Field(default=None, description="Synthesized cognitive-mechanical variance explanation")
+    ] = None
+    authenticity_explanation: Annotated[
+        str | None, Field(default=None, description="Synthesized authenticity evaluation explanation")
+    ] = None
+    cited_sources: list[str] = Field(default_factory=list, description="Citations used in this profile's synthesis")
+    xai_highlights: list[XaiHighlightItem] = Field(
+        default_factory=list, description="Synthesized XAI highlights and tips"
+    )
+    user_role: str | None = Field(default=None, description="User role")
+    user_role_justification: str | None = Field(default=None, description="User role justification")
+    extension_metrics: ExtensionMetricsDTO | None = Field(
+        default=None, description="Pre-calculated numeric or boolean metrics for UI adapters"
+    )
+    data_starvation: DataStarvationEvent | None = Field(
+        default=None, description="Domain event indicating synthesis short-circuit due to atom starvation"
+    )
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# Import StepExecutionEnvelope and StepOutputDTO after RenderedSynthesisCache to break circular dependency with state.py
 from backend_v2.models.state import StepExecutionEnvelope, StepOutputDTO
 
 
 class SynthesisMetadataDTO(V2CoreBase):
-    """Strict schema for execution metadata used during synthesis.
-
-    Attributes:
-        target_locale: Target localization code.
-        token_usage: Comprehensive tracker for LLM token usage metrics.
-        step_results: Completed step outputs mapped during parsing.
-        profile_id: Identifier of user persona profile.
-        target_profile_id: ID of the targeted evaluation profile.
-        matrix_sampling_strategy: Index defining sampling patterns.
-        workflow_version: Tracked version of execution state flow.
-        total_tokens: Total tokens consumed across all steps.
-        prompt_tokens: Cumulative tokens consumed via prompt inputs.
-        completion_tokens: Cumulative tokens returned by upstream APIs.
-        cost_estimate: Estimate representing financial metrics.
-    """
+    """Strict schema for execution metadata used during synthesis."""
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -59,31 +226,8 @@ class SynthesisMetadataDTO(V2CoreBase):
     step_metrics: Annotated[dict[str, Any] | None, Field(default=None)] = None
 
 
-class DistilledEvaluation(V2CoreBase):
-    """Schema for distilled evaluation data used in synthesis.
-
-    Attributes:
-        atom_id: The ID of the atom being evaluated.
-        exact_quotes: The exact quotes extracted as evidence.
-        semantic_reasoning: The reasoning trace from the evaluation.
-        extensions: Additional extension data.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    atom_id: Annotated[str | None, Field()] = None
-    exact_quotes: Annotated[list[str], Field()] = Field(default_factory=list)
-    semantic_reasoning: Annotated[str | None, Field()] = None
-    extensions: Annotated[dict[str, str | int | float | bool | list[str]] | None, Field(default=None)] = None
-
-
 class SynthesisStepDataDTO(StepExecutionEnvelope):
-    """Schema to safely extract required synthesis flags from generic step outputs.
-
-    Attributes:
-        reasoning_trace: Captured step-specific agent reasoning parameters.
-        token_usage: Usage statistics for this execution iteration.
-    """
+    """Schema to safely extract required synthesis flags from generic step outputs."""
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

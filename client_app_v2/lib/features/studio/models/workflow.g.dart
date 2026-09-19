@@ -571,7 +571,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'enable_semantic_smoothing',
         'enable_eager_anonymization',
         'system_audit_trail',
-        'allowed_exports',
         'historical_context_mode',
         'expected_inputs',
         'steps',
@@ -647,12 +646,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
         'system_audit_trail',
         (v) => v as bool? ?? false,
       ),
-      allowedExports: $checkedConvert(
-        'allowed_exports',
-        (v) =>
-            (v as List<dynamic>?)?.map((e) => e as String).toList() ??
-            const ['pdf', 'docx'],
-      ),
       historicalContextMode: $checkedConvert(
         'historical_context_mode',
         (v) => v as String? ?? 'DISABLED',
@@ -691,7 +684,6 @@ _Workflow _$WorkflowFromJson(Map<String, dynamic> json) => $checkedCreate(
     'enableSemanticSmoothing': 'enable_semantic_smoothing',
     'enableEagerAnonymization': 'enable_eager_anonymization',
     'systemAuditTrail': 'system_audit_trail',
-    'allowedExports': 'allowed_exports',
     'historicalContextMode': 'historical_context_mode',
     'expectedInputs': 'expected_inputs',
   },
@@ -720,7 +712,6 @@ Map<String, dynamic> _$WorkflowToJson(_Workflow instance) => <String, dynamic>{
   'enable_semantic_smoothing': instance.enableSemanticSmoothing,
   'enable_eager_anonymization': instance.enableEagerAnonymization,
   'system_audit_trail': instance.systemAuditTrail,
-  'allowed_exports': instance.allowedExports,
   'historical_context_mode': instance.historicalContextMode,
   'expected_inputs': instance.expectedInputs.map((e) => e.toJson()).toList(),
   'steps': instance.steps.map((e) => e.toJson()).toList(),

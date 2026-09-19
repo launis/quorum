@@ -10,7 +10,7 @@ from typing import Annotated
 from pydantic import BeforeValidator, ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace
 
 
 class SourceVerificationStatus(StrEnum):

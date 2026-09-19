@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Literal  # noqa: F401
 
 if TYPE_CHECKING:
-    from backend_v2.models.v2_core import MCPAuditTrace
+    from backend_v2.models.domain.system_config import MCPAuditTrace
 
 from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -189,18 +189,18 @@ class StepOutputDTO(V2CoreBase):
 
 # Resolve deferred annotations on ExecutionCoreFields and ExecutionRecord (Pydantic V2 circular reference pattern).
 # execution_core.py uses TYPE_CHECKING for TraceEvent types → annotations are strings.
-from backend_v2.models.domain.inputs import WorkflowInputsIngress
-from backend_v2.models.dtos.base import DataStarvationEvent
-from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
-from backend_v2.models.v2_core import (
+from backend_v2.models.domain.execution import (
     ExecutionRecord,
     ExecutionStep,
     ExecutionStepState,
     ExecutionSummarySnapshot,
     FrozenContext,
-    MCPAuditTrace,
-    RenderedSynthesisCache,
 )
+from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _state_localns = {

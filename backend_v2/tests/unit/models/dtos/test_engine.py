@@ -106,6 +106,7 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
     from backend_v2.llm.client import LLMClient
     from backend_v2.models.dtos.dag_models import CausalEdge
     from backend_v2.models.dtos.engine import EngineExecutionRequest
+    from backend_v2.models.enums import CognitiveTier
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.v2_core import StepRule
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -123,7 +124,7 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
         execution_id="exe_1",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
     )
     client = MagicMock(spec=LLMClient)
 

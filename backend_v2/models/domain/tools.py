@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from backend_v2.models.v2_core import MCPAuditTrace
+from backend_v2.models.domain.system_config import MCPAuditTrace
 
 
 class BaseTool(ABC):

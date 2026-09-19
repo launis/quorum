@@ -15,9 +15,9 @@ from pydantic import (
     model_validator,
 )
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
+from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
 from backend_v2.models.enums import BlockDataType, PromptBlockCategory
-from backend_v2.models.v2_core import I18nText, MatrixRow, MatrixScale, TheoryGrounding
 
 __all__ = [
     "AnyPromptBlock",

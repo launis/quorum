@@ -42,7 +42,6 @@ class WorkflowFactory(ModelFactory[Workflow]):
     version: int = 1
     is_public: bool = False
     organization_id: str | None = "org_testorg123"
-    allowed_exports: list[Literal["pdf", "docx", "raw_json", "xlsx"]] = ["pdf"]
     historical_context_mode: Literal["DISABLED"] = "DISABLED"
     expected_inputs: list[Any] = []
     steps: list[Any] = []

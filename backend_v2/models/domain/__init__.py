@@ -38,6 +38,16 @@ from backend_v2.models.domain.evaluation import (
     EvaluationResult,
     ValidationResult,
 )
+from backend_v2.models.domain.execution import (
+    EvaluatedMatrixContextDTO,
+    EvidenceRejectionRequest,
+    ExecutionCreate,
+    ExecutionRecord,
+    ExecutionStep,
+    ExecutionSummarySnapshot,
+    FrozenContext,
+    JobAcceptedDTO,
+)
 from backend_v2.models.domain.falsifier import (
     FalsifierData,
     FalsifierDTO,
@@ -64,7 +74,18 @@ from backend_v2.models.domain.logician import (
     ToulminComponent,
     WaltonScheme,
 )
+from backend_v2.models.domain.matrix import (
+    AcceptanceCriterion,
+    AntiPattern,
+    ContrastivePairDTO,
+    MatrixClaim,
+    MatrixRow,
+    MatrixScale,
+    TDAAssertion,
+    TheoryGrounding,
+)
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
+from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.overseer import (
     EthicalObservation,
     FactCheckRFI,
@@ -103,6 +124,35 @@ from backend_v2.models.domain.security import (
     SecurityCheck,
     SecurityPayloadDTO,
 )
+from backend_v2.models.domain.step import (
+    ALLOWED_INPUT_MODES,
+    ExpectedInput,
+    QuestionnaireItem,
+    Role,
+    Step,
+    StepRule,
+)
+from backend_v2.models.domain.synthesis import (
+    BaseMatrixXAI,
+    BaseTDAExtraction,
+    DistilledEvaluation,
+    MatrixSynthesisGroup,
+    RenderedSynthesisCache,
+    SynthesisMetadataDTO,
+    SynthesisStepDataDTO,
+)
+from backend_v2.models.domain.system_config import (
+    AllowedMCPTool,
+    ChatHistoryDTO,
+    ChatMessageDTO,
+    DataDictionaryField,
+    MCPAuditTrace,
+    ModelProfile,
+    ProviderExtraParamsDTO,
+    SystemConfigMCPGateways,
+    SystemConfigModelRegistry,
+)
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.domain.xai import (
     ReportResult,
     XAIOutput,
@@ -234,4 +284,44 @@ __all__ = [
     "SystemRulePromptBlock",
     "PersonaPromptBlock",
     "ProtocolPromptBlock",
+    "ALLOWED_INPUT_MODES",
+    "AcceptanceCriterion",
+    "AllowedMCPTool",
+    "AntiPattern",
+    "BaseMatrixXAI",
+    "BaseTDAExtraction",
+    "ChatHistoryDTO",
+    "ChatMessageDTO",
+    "ContrastivePairDTO",
+    "DataDictionaryField",
+    "DistilledEvaluation",
+    "EvaluatedMatrixContextDTO",
+    "EvidenceRejectionRequest",
+    "ExecutionCreate",
+    "ExecutionRecord",
+    "ExecutionStep",
+    "ExecutionSummarySnapshot",
+    "ExpectedInput",
+    "FrozenContext",
+    "JobAcceptedDTO",
+    "MCPAuditTrace",
+    "MatrixClaim",
+    "MatrixRow",
+    "MatrixScale",
+    "MatrixSynthesisGroup",
+    "ModelProfile",
+    "OutputProfile",
+    "ProviderExtraParamsDTO",
+    "QuestionnaireItem",
+    "RenderedSynthesisCache",
+    "Role",
+    "Step",
+    "StepRule",
+    "SynthesisMetadataDTO",
+    "SynthesisStepDataDTO",
+    "SystemConfigMCPGateways",
+    "SystemConfigModelRegistry",
+    "TDAAssertion",
+    "TheoryGrounding",
+    "Workflow",
 ]

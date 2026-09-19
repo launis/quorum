@@ -1,54 +1,60 @@
-# Task Checklist: Dynamic Provider Discovery, Hardcoded Preset Eradication & Model Registry Canonical Restoration
+# Task Checklist: Tripartite Pipeline Isolation, Worker Decoupling & Report Artifact CRUD
 
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
   <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
-  <rule>@[.agents/rules/03_seed_vault.md]</rule>
   <rule>@[.agents/rules/04_directory_reference.md]</rule>
   <rule>@[.agents/rules/05_llm_architecture.md]</rule>
   <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
+  <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
   <knowledge_item>@[ki_provider_agnostic_caching.md]</knowledge_item>
+  <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
   <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
 </required_context_rules>
 
-- [x] **Phase 1: Pre-Implementation Cleanups & 1-Hop Caller Synchronization**
-  - [x] 1.1 Backend Handler Caching, Timeout & Exception Hardening (`@[backend_v2/llm/handler.py]`)
-  - [x] 1.2 Eliminate Lazy Fallback Chains in Vertex Adapter (`@[backend_v2/llm/adapters/vertex_adapter.py]`)
-  - [x] 1.3 Deprecate static 6-item constraint in `GCPVertexLocation` (`@[backend_v2/models/enums.py]`)
-  - [x] 1.4 Synchronize 1-Hop Test Suites for Injected Handler Signature (`@[backend_v2/tests/unit/services/studio/test_system_config_service.py]`, `@[backend_v2/tests/unit/test_model_registry.py]`, `@[backend_v2/tests/unit/test_model_registry_discovery.py]`)
-  - [x] 1.5 Flutter L10n Tooltip Registration (`@[client_app_v2/lib/l10n/app_en.arb]`, `@[client_app_v2/lib/l10n/app_fi.arb]`)
+## Phase A: God Code Decomposition & Ghost Field Purge (Steps 1–2)
+- [x] **Step 1: PRE_IMPLEMENTATION_CLEANUPS_CORE_MODEL_DECOMPOSITION_AND_DTO_LOCK**
+  - [x] 1.1: Modify @[backend_v2/models/dtos/trace.py] — Make `output_profile_id` optional (`str | None = None`)
+  - [x] 1.2: Sub-batch 1 — Create @[backend_v2/models/domain/matrix.py] (~260 lines): Extract `TheoryGrounding`, `AcceptanceCriterion`, `AntiPattern`, `ContrastivePairDTO`, `TDAAssertion`, `MatrixClaim`, `MatrixRow`, `MatrixScale`
+  - [x] 1.3: Sub-batch 2 — Create @[backend_v2/models/domain/system_config.py] (~160 lines): Extract `ChatMessageDTO`, `ChatHistoryDTO`, `DataDictionaryField`, `ProviderExtraParamsDTO`, `ModelProfile`, `SystemConfigModelRegistry`, `AllowedMCPTool`, `MCPAuditTrace`, `SystemConfigMCPGateways`
+  - [x] 1.4: Sub-batch 3 — Create @[backend_v2/models/domain/step.py] (~260 lines): Extract `Step`, `StepRule`, `Role`, `QuestionnaireItem`, `ExpectedInput`
+  - [x] 1.5: Sub-batch 4 — Create @[backend_v2/models/domain/workflow.py] (~160 lines): Extract `Workflow`, purge `allowed_exports`
+    - [x] 1.5a: Delete `allowedExports` from @[client_app_v2/lib/features/studio/models/workflow.dart]
+    - [x] 1.5b: Purge `allowed_exports` from @[backend_v2/models/dtos/studio.py] (`_default_allowed_exports`, `WorkflowCreateDTO.allowed_exports`, `WorkflowUpdateDTO.allowed_exports`)
+    - [x] 1.5c: Purge `allowed_exports` from @[backend_v2/services/studio/workflow_service.py]
+    - [x] 1.5d: Purge `allowed_exports` from @[backend_v2/tests/factories/model_factories.py]
+    - [x] 1.5e: Purge `allowed_exports` from @[backend_v2/seed/seed_data.json] (6 workflow entries), run preflight validation and seed sync
+  - [x] 1.6: Sub-batch 5 — Create @[backend_v2/models/domain/execution.py] (~250 lines): Extract `FrozenContext`, `ExecutionCreate`, `ExecutionStep`, `ExecutionSummarySnapshot`, `EvaluatedMatrixContextDTO`, `ExecutionRecord`, `JobAcceptedDTO`, `EvidenceRejectionRequest`
+  - [x] 1.7: Sub-batch 6 — Create remaining DTOs and presentation models
+    - [x] 1.7a: Create @[backend_v2/models/dtos/atom_result.py] (~110 lines): Extract `ErrorDetailsDTO`, `HydratedAtomDTO`, `ExtractedValueDTO`, `AtomResultDTO`, `ExecutionMetricsDTO`, `ExtensionMetricsDTO`
+    - [x] 1.7b: Modify @[backend_v2/models/domain/synthesis.py] (~160 lines): Consolidate `MatrixSynthesisGroup`, `RenderedSynthesisCache`, `BaseMatrixXAI`, `BaseTDAExtraction`
+    - [x] 1.7c: Modify @[backend_v2/models/domain/output_profile.py] (~300 lines): Elevate to canonical `OutputProfile` domain model with `variance_target_block` and `user_role_target_block`
+    - [x] 1.7d: Synchronize @[backend_v2/models/dtos/output_profile.py]: Maintain strict typed validation on `OutputProfileCreateDTO` and `OutputProfileUpdateDTO`
+    - [x] 1.7e: Create @[backend_v2/models/dtos/report_data.py] (~80 lines): Extract `ReportDataDTO`
+  - [x] 1.8: Sub-batch 7 — Refactor @[backend_v2/models/v2_core.py] into Strangler Fig Facade (<90 lines) with `__all__` re-exports
+- [ ] **Step 2: INGRESS_DECOUPLING_IN_EXECUTION_SERVICE**
+  - [ ] 2.1: Modify @[backend_v2/services/execution.py] — Decouple `start_execution` from mandatory `output_profile_id`
+  - [ ] 2.2: Modify @[backend_v2/services/orchestrator/dag_executor.py] — Delete `sys_render_*` virtual step injection
+  - [ ] 2.3: Execute `/tier5-session-handover` (Phase A → Phase B checkpoint)
 
-- [x] **Phase 2: Dynamic Google Vertex AI Location Discovery & Backend Integration**
-  - [x] 2.1 Implement `fetch_vertex_locations(settings)` in `@[backend_v2/llm/handler.py]`
-  - [x] 2.2 Update `StudioSystemConfigService.get_supported_locations` in `@[backend_v2/services/studio/system_config_service.py]`
-  - [x] 2.3 Update API route in `@[backend_v2/api/routers/studio/model_registry.py]` with `LLMHandlerDep`
-  - [x] 2.4 Run backend unit tests and quality gate
+## Phase B: Worker & Service Decoupling (Steps 3–7)
+- [ ] **Step 3: WORKER_DECOMPOSITION_AND_LIFECYCLE_ISOLATION**
+- [ ] **Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY**
+- [ ] **Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK**
+- [ ] **Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD**
+- [ ] **Step 7: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE**
 
-- [x] **Phase 3: Seed Vault Canonical Stack Restoration & DB Sync**
-  - [x] 3.1 Restore Google AI Studio Stack (`sys_e26807f3bfa3454d`) to `gemini/gemini-3.8-flash` in `@[backend_v2/seed/seed_data.json]`
-  - [x] 3.2 Verify Google Cloud Vertex AI Sovereign Stack (`sys_b1c2d3e4f5a60718`) in `@[backend_v2/seed/seed_data.json]`
-  - [x] 3.3 Two-Phase Pre-Flight In-Memory Validation & Reseed `@[data/db_v2.json]`
-  - [x] 3.4 Verify seed architectural guardrails and provider separation tests
-
-- [x] **Phase 4: Flutter Studio Desktop Pro Tool UX & Freezed GcpLocation**
-  - [x] 4.1 Create strongly-typed Freezed model `@[client_app_v2/lib/features/studio/models/gcp_location.dart]`
-  - [x] 4.2 Run Flutter code generation (`build_runner` and `gen-l10n`)
-  - [x] 4.3 Update `@[client_app_v2/lib/core/api/studio_client.dart]` and `@[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]`
-  - [x] 4.4 Upgrade `@[client_app_v2/lib/features/studio/views/model_registry_view.dart]` with Desktop Pro Tool UX
-  - [x] 4.5 Run Flutter quality gate and verify widget/unit tests
-
-- [x] **Phase 5: Global Audit Loops & Verification**
-  - [x] 5.1 Run full backend audit loop
-  - [x] 5.2 Run full flutter audit loop
-  - [x] 5.3 Route to `/tier8-audit-plan`
+## Phase C: REST API, Flutter UI & Documentation (Steps 8–12)
+- [ ] **Step 8: REPORT_ARTIFACT_REST_API_ENDPOINTS**
+- [ ] **Step 9: DESKTOP_PRO_TOOL_STUDIO_UX_FOR_REPORT_ARTIFACTS**
+- [ ] **Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES**
+- [ ] **Step 11: KNOWLEDGE_BASE_DOCUMENTATION_AND_KI_SYNCHRONIZATION**
+- [ ] **Step 12: TIER_7_AS_BUILT_ARCHITECTURE_SYNCHRONIZATION**
 
 # Session Handover Context
-- Target Plan: `c:\Users\risto\.gemini\antigravity-ide\brain\42785eb8-aa27-453d-b3fa-cb91fa47c5c1\implementation_plan.md`
-- Work Completed:
-  - Dynamic GCP Vertex AI location discovery implemented in `backend_v2/llm/handler.py` and exposed via `StudioSystemConfigService.get_supported_locations` and `/studio/locations` endpoint.
-  - Eradicated hardcoded 6-item location list and lazy fallbacks across backend and frontend.
-  - Restored Google AI Studio Stack (`sys_e26807f3bfa3454d`) to `gemini/gemini-3.8-flash` across all 4 cognitive tiers in `seed_data.json` and synchronized `data/db_v2.json`.
-  - Preserved EU Hamina (`europe-north1`) active regional models (`gemini-2.5-flash`, `gemini-2.5-pro`) on Vertex AI Sovereign Stack (`sys_b1c2d3e4f5a60718`).
-  - Implemented Desktop Pro Tool UX in `ModelRegistryView` with typed `GcpLocation` Freezed model, inline refresh buttons, non-blocking loading states, error badges, and Riverpod `cacheFor`.
-  - Quality gates passed 100%: Ruff formatting, MyPy strict typing, AST guardrails, Pytest suites, Dart formatting, Dart analysis, and Flutter widget tests.
+- Plan: @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]
+- Tracker: @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]
+- Status: Initialized Phase A Step 1

@@ -99,8 +99,9 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
     with pytest.raises(ValidationError):
         ExecutionCreateDTO.model_validate({})
 
-    with pytest.raises(ValidationError):
-        ExecutionCreateDTO.model_validate({"workflow_id": "wor_1234567890abcdef"})
+    # ExecutionCreateDTO: output_profile_id is optional per Ingress Decoupling
+    valid_no_profile = ExecutionCreateDTO.model_validate({"workflow_id": "wor_1234567890abcdef"})
+    assert valid_no_profile.output_profile_id is None
 
     # Negative ExecutionCreateDTO: extra forbidden field
     with pytest.raises(ValidationError) as exc:

@@ -50,7 +50,9 @@ class ExecutionCreateDTO(BaseDTO):
     target_locale: Annotated[str, Field(default="fi", description="Target locale code")] = "fi"
     status: Annotated[str, Field(default="PENDING", description="Initial lifecycle status")] = "PENDING"
     active_profile_id: Annotated[str | None, Field(default=None, description="Active profile ID")] = None
-    output_profile_id: Annotated[str, Field(min_length=1, description="Target profile ID")]
+    output_profile_id: Annotated[
+        str | None, Field(default=None, description="Optional presentation profile identifier")
+    ] = None
     raw_inputs: Annotated[WorkflowInputsIngress | None, Field(default=None, description="Raw workflow inputs")] = None
     organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
     created_by: Annotated[str | None, Field(default=None, description="Creator user ID")] = None

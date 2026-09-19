@@ -9,8 +9,8 @@ from typing import Annotated, Any
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.v2_core import MCPAuditTrace
 
 
 class OpenAIFunctionCallDTO(V2CoreBase):
