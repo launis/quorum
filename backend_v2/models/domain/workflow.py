@@ -161,6 +161,27 @@ class Workflow(V2CoreBase):
 
         return self
 
+    def get_allowed_prompt_block_targets(self, hydrated_steps: list[Step]) -> set[str]:
+        """Calculates all allowed prompt block IDs associated with this workflow.
+
+        Args:
+            hydrated_steps: List of full Step objects from the database.
+
+        Returns:
+            A set of concrete prompt block IDs (blk_...).
+        """
+        allowed_prompt_blocks: set[str] = set()
+        task_blueprints = {rule.task_blueprint for rule in self.steps}
+        for step in hydrated_steps:
+            if step.id in task_blueprints:
+                if step.role_block_id:
+                    allowed_prompt_blocks.add(step.role_block_id)
+                if step.extraction_protocol_block_id:
+                    allowed_prompt_blocks.add(step.extraction_protocol_block_id)
+                if step.criteria_block_ids:
+                    allowed_prompt_blocks.update(step.criteria_block_ids)
+        return allowed_prompt_blocks
+
     def get_allowed_layout_targets(self, hydrated_steps: list[Step]) -> set[str]:
         """Calculates all allowed layout targets including system blocks.
 
@@ -170,20 +191,9 @@ class Workflow(V2CoreBase):
         Returns:
             A set of allowed block IDs and system TargetBlockTypes.
         """
-        allowed_blocks = set()
+        allowed_blocks = self.get_allowed_prompt_block_targets(hydrated_steps)
 
-        # 1. Add blocks from the hydrated steps that belong to this workflow
-        task_blueprints = {rule.task_blueprint for rule in self.steps}
-        for step in hydrated_steps:
-            if step.id in task_blueprints:
-                if step.role_block_id:
-                    allowed_blocks.add(step.role_block_id)
-                if step.extraction_protocol_block_id:
-                    allowed_blocks.add(step.extraction_protocol_block_id)
-                if step.criteria_block_ids:
-                    allowed_blocks.update(step.criteria_block_ids)
-
-        # 2. Add system blocks natively supported by the architecture
+        # Add system blocks natively supported by the architecture
         allowed_blocks.update([e.value for e in TargetBlockType])
 
         return allowed_blocks
