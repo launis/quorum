@@ -200,7 +200,11 @@ class ExpectedInput(V2CoreBase):
     )
     is_endorsed_deliverable: bool = Field(
         default=False,
-        description="Whether this input represents an endorsed candidate deliverable (specifically final product texts and deliverables) where adopting AI co-drafted formulations is valid and not penalized as Echo Parroting.",
+        description=(
+            "Whether this input represents an endorsed candidate deliverable (specifically final product "
+            "texts and deliverables) where adopting AI co-drafted formulations is valid and not penalized "
+            "as Echo Parroting."
+        ),
     )
     input_modes: list[str] = Field(
         default_factory=list, description="Allowed modes: 'file', 'paste', 'text', 'questionnaire', 'assignment'."

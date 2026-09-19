@@ -1,12 +1,13 @@
 """Unit tests for ExportService covering Excel and flat CSV exports."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from backend_v2.database.interfaces import IComponentRepository
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStepState
+from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
@@ -14,16 +15,17 @@ from backend_v2.models.domain.prompt_blocks import (
     SystemRulePromptBlock,
 )
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
-from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.matrix import MatrixScale
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.view.sdui import SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService, _extract_claim_rule
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryComponentRepository
 
 
-def _build_sample_execution(status: ExecutionStatus = ExecutionStatus.PASSED, has_atoms: bool = True) -> ExecutionRecord:
+def _build_sample_execution(
+    status: ExecutionStatus = ExecutionStatus.PASSED, has_atoms: bool = True
+) -> ExecutionRecord:
     step_states: dict[str, ExecutionStepState] = {}
     if has_atoms:
         atom = ScorecardAtomDTO(
@@ -161,7 +163,7 @@ async def test_export_excel_success_fi() -> None:
 
 @pytest.mark.asyncio
 async def test_export_excel_success_en_with_comp_repo() -> None:
-    comp_repo = AsyncMock(spec=IComponentRepository)
+    comp_repo = InMemoryComponentRepository()
     lbl = I18nText(translations={"fi": "L", "en": "L"})
     desc = I18nText(translations={"fi": "D", "en": "D"})
     scale = MatrixScale(score=1, ai_label="L1", claims=[])
@@ -173,7 +175,7 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
         scales=[scale],
         ai_description="English operational rule",
     )
-    comp_repo.get_all_components.return_value = [matrix_block]
+    await comp_repo.create_component(matrix_block)
 
     service = ExportService(comp_repo=comp_repo)
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
@@ -187,7 +189,7 @@ async def test_export_excel_success_en_with_comp_repo() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.xlsx"
     assert len(bytes_out) > 0
-    comp_repo.get_all_components.assert_awaited_once_with("prompt_block")
+    assert comp_repo._call_counts.get("get_all_components", 0) == 1
 
 
 @pytest.mark.asyncio

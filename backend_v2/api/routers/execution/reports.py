@@ -98,7 +98,10 @@ async def create_execution_report(
     existing_reports = await report_service.list_reports_for_execution(execution_id)
     for existing in existing_reports:
         if existing.status == ReportStatus.GENERATING and existing.profile_id == payload.profile_id:
-            msg = f"Report generation already in progress for execution '{execution_id}' and profile '{payload.profile_id}'."
+            msg = (
+                f"Report generation already in progress for execution '{execution_id}' "
+                f"and profile '{payload.profile_id}'."
+            )
             logger.error("[ReportsRouter] %s: %s", ErrorCodes.CONFLICT_ERROR.name, msg)
             raise ConflictError(
                 message=msg,

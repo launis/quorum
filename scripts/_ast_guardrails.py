@@ -451,10 +451,20 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             ):
                 if node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
                     target_str = node.args[0].value
-                    if "interfaces.I" in target_str or (
-                        ("repository" in target_str.lower() or "repo" in target_str.lower())
-                        and "service" in self.filepath.lower()
-                    ):
+                    target_lower = target_str.lower()
+                    is_repo_target = (
+                        "interfaces.i" in target_lower
+                        or "repository" in target_lower
+                        or (
+                            ("_repo" in target_lower or ".repo" in target_lower or target_lower.endswith("repo"))
+                            and not (
+                                "_report" in target_lower
+                                or ".report" in target_lower
+                                or "pdfreport" in target_lower
+                            )
+                        )
+                    )
+                    if is_repo_target and ("service" in self.filepath.lower() or "interfaces.i" in target_lower):
                         qgr014_patch_sev = (
                             GuardrailSeverity.FATAL
                             if ("service" in self.filepath.lower() or "interfaces.I" in target_str)
