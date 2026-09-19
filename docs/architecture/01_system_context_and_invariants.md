@@ -54,13 +54,25 @@ State persistence across execution sessions relies on durable double-entry bookk
 ### 2.14. Binary TargetSpeaker Contract & Input Modality Separation
 All speaker attribution contracts across backend and frontend strictly enforce a binary target speaker contract (`USER` vs `AI`). Speaker attribution designates exclusively the human participant (`TargetSpeaker.USER`) or the artificial intelligence model (`TargetSpeaker.AI`). Environmental inputs, prompt instructions, and evaluation briefs are configured as dedicated input modalities (`assignment` in `ExpectedInput.input_modes`) and isolated into specific prompt context capsules (`<assignment_context>`), completely decoupled from speaker attribution. The system strictly prohibits expanding `TargetSpeaker` to represent assignment briefs or environmental guidelines; all assertions and criteria evaluate the performance of the human or model in relation to assignment constraints, preserving epistemic determinism and strict speaker boundary defense.
 
-### 2.15. Tripartite Pipeline Isolation & Evaluation Score Sovereignty
-The architecture strictly isolates three decoupled functional tiers:
-1. **Execution Tier (Evaluation & Atom Graph Engine):** Governs candidate evaluation, objective data extraction, matrix scaling, and score deduction. All evaluation rigor parameters (`default_strictness_level`) and automated deduction penalties (`security_penalty`, `post_hoc_penalty`, `passivity_penalty`) belong sovereignly to `Workflow` entities and are calculated deterministically during execution.
-2. **Synthesis Tier (Qualitative Summarization & Reporting):** Generates human-readable narrative prose and section explanations driven by `OutputProfile` styling directives. Operates strictly on finalized execution states without modifying evaluation scores.
-3. **Presentation Tier (Server-Driven UI & Dumb Painter):** Assembles declarative UI components and PDF export documents via `BlueprintTransformer`, operating as a read-only painter that projects finalized evaluation scores without recalculating penalties or mutating metrics.
+### 2.15. Tripartite Pipeline Isolation & Materialized Report Artifacts
+The architecture strictly enforces tripartite decoupling across three sovereign, independent functional phases:
+1. **Phase 1: Heavy Execution Engine (Atom Graph & Metric Evaluation):** Governs candidate document parsing, objective data extraction, TDA matrix scaling, and score deduction. All evaluation rigor parameters (`default_strictness_level`) and automated deduction penalties (`security_penalty`, `post_hoc_penalty`, `passivity_penalty`) belong sovereignly to `Workflow` entities and are calculated deterministically during execution. Upon completion of the execution DAG and telemetry finalization, `ExecutionRecord` transitions immediately and unconditionally to `ExecutionStatus.PASSED`. Execution ingress is fully decoupled from presentation profiles (`output_profile_id: str | None = None`), allowing execution runs to commence without an output profile. The legacy `allowed_exports` field is eradicated from `Workflow`, while `variance_target_block` and `user_role_target_block` are strictly preserved on `OutputProfile`.
+2. **Phase 2: Synthesis & Reporting Engine (Qualitative Narrative Generation):** Generates human-readable narrative prose, qualitative synthesis, and section explanations driven by `OutputProfile` styling directives (`tone_instruction`, `audience`). Operates strictly on finalized execution states without modifying evaluation scores or mutating the execution record.
+3. **Phase 3: Presentation Tier (Server-Driven UI & Dumb Painter):** Assembles declarative UI components, PDF documents, and multi-tab Excel/CSV exports via `BlueprintTransformer`, `PdfGenerator`, and `ExportService`. Operates as a 100% read-only dumb painter that projects finalized evaluation scores without recalculating penalties, executing database mutations (`update_execution`), or altering execution status.
 
-Presentation profiles (`OutputProfile`) are strictly decoupled from execution rigor. Switching presentation profiles alters layout ordering, narrative tone, and block visibility, but never alters or recalculates evaluation scores.
+Presentation profiles (`OutputProfile`) are strictly decoupled from execution rigor. Switching presentation profiles alters layout ordering, narrative tone, and block visibility, but never alters or recalculates evaluation scores. Presentation layout or export crashes are strictly quarantined within Phase 3; they never cascade backwards to mark a successful Phase 1 execution as `FAILED` (Zero Reverse Pollution).
+
+#### Materialized Report Artifacts & Full-Lifecycle CRUD
+Generated outputs are elevated into independent, first-class `ReportArtifact` domain models (`EntityPrefix.REPORT = "rep"`). A single execution run can spawn multiple distinct report artifacts tailored to different audiences (Board, Executive Coach, Forensic Auditor) and languages (FI, EN). Pre-compiled SDUI JSON, PDF documents, and tabular data are stored as immutable artifacts served with $O(1)$ latency without re-evaluating the DAG or reparsing atomic traces. Complete CRUD (Create, Read, Update/Regenerate, Delete, List) is supported across the Backend Repository, Public REST API (`/api/v2/executions/{id}/reports/`), and Flutter Desktop Studio UI.
+
+#### B2B Row-Level Tabular Delivery
+Report artifacts provide enterprise-grade tabular row delivery via `ReportRowItemDTO` and dedicated endpoints (`/reports/{id}/rows`, `/reports/{id}/excel`, `/reports/{id}/csv`). Observations are compiled into strongly typed tabular rows featuring criteria labels, status, scores, extracted evidence quotes, citations, and risk flags, enabling direct ingestion into corporate BI dashboards and audit pipelines.
+
+#### SRP & CQRS Decomposition of Workers and Services
+Monolithic worker and execution structures are decomposed into Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) subpackages:
+- **Workers Subpackage (`backend_v2/workers/`):** Separates `execution_worker.py` (Phase 1 DAG execution) from `report_worker.py` (Phase 2 & 3 synthesis and artifact compilation) with an asynchronous Strangler Fig facade in `backend_v2/worker.py`.
+- **Execution Services Subpackage (`backend_v2/services/execution/`):** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a thin `ExecutionService` facade.
+- **Dedicated Export & Report Services:** `ReportService` manages full report artifact lifecycle and CRUD operations, while `ExportService` compiles multi-tab Excel and flat-file data anchored directly to backend `I18nText` SSOT.
 
 ### 2.16. Evidence Extraction Invariants, Provenance Sovereignty, & Anti-Pattern Falsification
 All evidence extraction and provenance gating across the architecture enforce three non-negotiable invariants:
@@ -89,11 +101,12 @@ flowchart TD
     B -- Valid Payload --> D[Repository Reconstitution Firewall]
     D --> E[ExecutionInputsDTO Encapsulation]
     E --> F[AliasEngine Attention Anchor Masking]
-    F --> G[Cognitive Engine & DAG Evaluation]
-    G --> H{Evaluation Result}
-    H -- Runtime Error --> C
-    H -- Success --> I[Immutable Pydantic DTO Transit]
-    I --> J[Server-Side UI Sanitization Interceptor]
-    J --> K[Opaque ID Hydration]
-    K --> L[Deterministic SDUI / PDF Output Delivery]
+    F --> G[Phase 1: Cognitive Engine & DAG Evaluation]
+    G -- Runtime Error --> C
+    G -- DAG Complete --> H[Execution Record: PASSED & Telemetry Finalized]
+    H --> I[Phase 2 & 3: Background Report Job Enqueue]
+    I --> J[Phase 2: Qualitative Synthesis & Narrative Generation]
+    J --> K[Phase 3: Dumb Painter SDUI, PDF & Excel Compilation]
+    K --> L[Materialized Report Artifacts rep_...]
+    L --> M[O1 REST API & Flutter Pro Tool Delivery]
 ```

@@ -34,24 +34,29 @@
 
     <module path="backend_v2/api/routers/">
         <responsibility>HTTP REST ENDPOINTS ONLY (1 ENTITY = 1 ROUTER SSOT)</responsibility>
-        <key_domains>execution/, iam/, studio/, system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
+        <key_domains>execution/ (executions.py, reports.py), iam/, studio/, system/, output_profiles.py (NO PARALLEL SHADOW ROUTERS)</key_domains>
     </module>
     
     <module path="backend_v2/services/">
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py, factories/ (output_profile_factory.py)
-          - Pillar 3 (Orchestration): execution.py, web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
-          - Pillar 4 (SDUI): blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (base_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
+          - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
+          - Pillar 4 (SDUI & Presentation): report_service.py, export_service.py, blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (base_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
           - Orphan: auth.py
         </key_domains>
     </module>
     
+    <module path="backend_v2/workers/">
+        <responsibility>DECOUPLED ASYNC BACKGROUND WORKERS (PILLARS 3 & 4)</responsibility>
+        <key_domains>execution_worker.py (Phase 1 heavy DAG execution), report_worker.py (Phase 2 & 3 synthesis, PDF & export artifact compilation), synthesis_worker.py, variance_synthesis.py</key_domains>
+    </module>
+
     <module path="backend_v2/worker.py">
-        <responsibility>BACKGROUND EXECUTION (PILLAR 3)</responsibility>
-        <key_domains>Arq 2026 async task processing and DAG initiation (isolated worker files)</key_domains>
+        <responsibility>ASYNC WORKER FACADE (PILLARS 3 & 4)</responsibility>
+        <key_domains>Strangler Fig re-export facade for Arq 2026 worker entrypoints (run_worker.py)</key_domains>
     </module>
     
     <module path="backend_v2/models/">

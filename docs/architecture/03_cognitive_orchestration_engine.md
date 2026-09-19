@@ -43,10 +43,22 @@ Complex evaluation workflows decompose tasks into atomic units and structured ma
 These units form a Directed Acyclic Graph (DAG) whose dependencies, edge constraints, and topological order are resolved before dispatching to specialized cognitive engines. The topological evaluator uses non-blocking task groups and per-node signaling events to execute independent nodes concurrently, immediately short-circuiting dependent children when causal preconditions fail.
 
 ### 2.7. Asynchronous Background Workers & Non-Blocking Handshake
-Workflows execute completely outside the synchronous HTTP request-response cycle:
-1. The API Ingress router receives the request, initializes and persists the execution record with `status=RUNNING`, persists the frozen context snapshot, and enqueues the job to an asynchronous Redis-backed task queue.
+Workflows and report generation execute completely outside the synchronous HTTP request-response cycle across decoupled background workers:
+1. The API Ingress router receives an execution request, initializes and persists the execution record with `status=RUNNING`, persists the frozen context snapshot, and enqueues the heavy DAG job to the asynchronous Redis-backed task queue (`execute_workflow_task`).
 2. The router returns an immediate `HTTP 202 Accepted` response with the execution record, preventing thread blocking.
 3. The client connects to an independent Server-Sent Events (SSE) stream (`/executions/{id}/stream`) to receive real-time execution progress, status updates, and trace events while background worker processes compute the graph. The streaming endpoint queries execution state in a lightweight mode (`hydrate=False, skip_resumability=True`) decoupled from heavy blob loading, serializes payloads with null-exclusion (`exclude_none=True`), and governs polling cadence via central configuration (`settings.sse_polling_interval_seconds = 2.0`).
+
+#### Phase 1 Worker Completion & Decoupled Lifecycle Sovereignty
+Upon completion of the execution DAG topological sort and final telemetry aggregation in `execution_worker.py`:
+- The execution worker transitions `ExecutionRecord.status` directly and unconditionally to `ExecutionStatus.PASSED` (or `FAILED` if unhandled execution exceptions occurred).
+- Synthetic presentation step injections (such as `sys_render_*`) are completely eliminated from `ExecutionRecord.steps` and `step_states`, preserving 100% semantic purity of the physical step execution timeline.
+- If an output profile was specified at execution ingress, an independent report generation job is enqueued to the background queue (`generate_report_artifact_job`). This report job runs in isolation without blocking, delaying, or altering the finalized `PASSED` status of the execution record.
+
+#### Decoupled Worker Subpackage Architecture (`backend_v2/workers/`)
+Worker responsibilities follow strict Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) boundaries:
+- **Execution Worker (`backend_v2/workers/execution_worker.py`):** Dedicated exclusively to Phase 1 heavy DAG computation, atom evaluations, consensus voting, and telemetry persistence.
+- **Report Worker (`backend_v2/workers/report_worker.py`):** Dedicated exclusively to Phase 2 qualitative synthesis and Phase 3 presentation compilation (SDUI JSON, PDF documents, and multi-tab Excel/CSV exports), persisting materialized `ReportArtifact` records via `generate_report_artifact_job`.
+- **Strangler Fig Worker Facade (`backend_v2/worker.py`):** Re-exports `execute_workflow_task`, `generate_report_artifact_job`, and `WorkerSettings` with complete backward compatibility for Arq worker entrypoints (`run_worker.py`).
 
 ### 2.8. Sensor Caching Parity & Enriched Context Caching
 The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.

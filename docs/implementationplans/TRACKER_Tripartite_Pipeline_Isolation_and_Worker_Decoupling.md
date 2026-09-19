@@ -47,7 +47,7 @@
         - [x] 1.7e: Create @[backend_v2/models/dtos/report_data.py] (~80 lines): Extract `ReportDataDTO`
       - [x] 1.8: Sub-batch 7 — Refactor @[backend_v2/models/v2_core.py] into Strangler Fig Facade (<90 lines) with `__all__` re-exports
     - [x] (c4ab0994) Step 2: INGRESS_DECOUPLING_IN_EXECUTION_SERVICE
-      - [x] 2.1: Modify @[backend_v2/services/execution.py] — Decouple `start_execution` from mandatory `output_profile_id`
+      - [x] 2.1: Modify @[backend_v2/services/execution/__init__.py] — Decouple `start_execution` from mandatory `output_profile_id`
       - [x] 2.2: Modify @[backend_v2/services/orchestrator/dag_executor.py] — Delete `sys_render_*` virtual step injection
       - [x] 2.3: Execute `/tier5-session-handover` (Phase A → Phase B checkpoint)
   - [x] **Phase B: Worker & Service Decoupling (Steps 3–7)**
@@ -63,7 +63,7 @@
       - [x] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
     - [x] (0e396881) Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
       - [x] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
-      - [x] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
+      - [x] 5.2: Refactor @[backend_v2/services/execution/__init__.py] — Purge legacy export logic and `.arb` reading
     - [x] (06745133) Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
       - [x] 6.1: Create @[backend_v2/models/dtos/report_artifact.py]: `ReportStatus`, `ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`
       - [x] 6.2: Create @[backend_v2/models/domain/report_artifact.py] (~90 lines): `ReportArtifact` domain model
@@ -76,7 +76,7 @@
       - [x] 6.9: Declare `ReportStatus` with `l10n_key` in @[backend_v2/models/enums.py]
     - [x] (c935605e) Step 7: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
       - [x] 7.1: Execute Golden Master characterization test (`--cov=backend_v2.services.execution`)
-      - [x] 7.2: Execute AST boundary analysis on @[backend_v2/services/execution.py]
+      - [x] 7.2: Execute AST boundary analysis on @[backend_v2/services/execution/__init__.py]
       - [x] 7.3: Create @[backend_v2/services/report_service.py] (~250 lines): Full report artifact lifecycle
       - [x] 7.4: Create @[backend_v2/services/execution/__init__.py]
       - [x] 7.5: Create @[backend_v2/services/execution/lifecycle_service.py] (~180 lines)
@@ -85,10 +85,10 @@
       - [x] 7.8: Create @[backend_v2/services/execution/override_service.py] (~140 lines)
       - [x] 7.9: Create @[backend_v2/services/execution/stream_service.py] (~80 lines)
       - [x] 7.10: Create @[backend_v2/services/execution/context_service.py] (~50 lines)
-      - [x] 7.11: Refactor @[backend_v2/services/execution.py] into Strangler Fig Facade (<80 lines)
+      - [x] 7.11: Refactor @[backend_v2/services/execution/__init__.py] into Strangler Fig Facade (<80 lines)
       - [x] 7.12: Wire `ReportService`, `ExportService`, `ExecutionService` in @[backend_v2/api/dependencies.py]
       - [x] 7.13: Execute `/tier5-session-handover` (Phase B → Phase C checkpoint)
-  - [ ] **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
+  - [x] **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
     - [x] (c953de3a) Step 8: REPORT_ARTIFACT_REST_API_ENDPOINTS
       - [x] 8.1: Create @[backend_v2/api/routers/execution/reports.py]: POST create, GET list, GET detail, GET sdui, GET pdf, GET excel, GET csv, GET rows, GET external, DELETE, POST regenerate
       - [x] 8.2: Modify @[backend_v2/api/routers/execution/executions.py] — Mount reports router
@@ -109,12 +109,12 @@
       - [x] 11.2: Update @[ki_dual_axis_localization_architecture.md]
       - [x] 11.3: Update @[ki_god_code_prevention.md]
       - [x] 11.4: Update @[ki_desktop_pro_tool_studio_ux.md]
-    - [ ] Step 12: TIER_7_AS_BUILT_ARCHITECTURE_SYNCHRONIZATION
-      - [ ] 12.1: Update @[docs/architecture/01_system_context_and_invariants.md]
-      - [ ] 12.2: Update @[docs/architecture/03_cognitive_orchestration_engine.md]
-      - [ ] 12.3: Update @[docs/architecture/04_server_driven_ui_and_presentation.md]
-      - [ ] 12.4: Update @[.agents/rules/04_directory_reference.md]
-      - [ ] 12.5: Verify @[docs/architecture/00_README_META_ARCHITECTURE.md]
+    - [x] Step 12: TIER_7_AS_BUILT_ARCHITECTURE_SYNCHRONIZATION
+      - [x] 12.1: Update @[docs/architecture/01_system_context_and_invariants.md]
+      - [x] 12.2: Update @[docs/architecture/03_cognitive_orchestration_engine.md]
+      - [x] 12.3: Update @[docs/architecture/04_server_driven_ui_and_presentation.md]
+      - [x] 12.4: Update @[.agents/rules/04_directory_reference.md]
+      - [x] 12.5: Verify @[docs/architecture/00_README_META_ARCHITECTURE.md]
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md] @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]`
 
 ---
@@ -141,7 +141,6 @@
   - [ ] @[backend_v2/models/dtos/studio.py]
   - [ ] @[backend_v2/models/v2_core.py]
   - [ ] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/services/execution.py]
   - [ ] @[backend_v2/services/execution/__init__.py]
   - [ ] @[backend_v2/services/execution/lifecycle_service.py]
   - [ ] @[backend_v2/services/execution/ingress_service.py]
@@ -242,12 +241,12 @@
 | REQ-21 | Desktop Pro Tool UX (16 Pillars) | Adaptive Master Selector, Dual-Shield FormField, Modal Dismissal Protocol, AppErrorBoundary | Step 9 | `[x]` |
 | REQ-22 | Dual-Axis Localization Parity | 24 new ARB keys with 1:1 FI/EN parity, zero hardcoded UI strings | Step 9 | `[x]` |
 | REQ-23 | B2B Tabular Row Delivery | `ReportRowItemDTO` via REST API and multi-tab Excel/CSV | Steps 6, 8 | `[x]` |
-| REQ-24 | KI & Architecture Documentation Sync | Update 4 KIs, 3 architecture pillars, and directory reference | Steps 11, 12 | `[ ]` |
+| REQ-24 | KI & Architecture Documentation Sync | Update 4 KIs, 3 architecture pillars, and directory reference | Steps 11, 12 | `[x]` |
 | REQ-25 | Ingress Decoupling in Execution Service | Decouple `start_execution` from mandatory `output_profile_id`, delete `sys_render_*` from DAG executor | Step 2 | `[x]` |
 | REQ-26 | Report Artifact REST API Endpoints | 11 REST endpoints for report lifecycle (POST create, GET list/detail/sdui/pdf/excel/csv/rows/external, DELETE, POST regenerate) | Step 8 | `[x]` |
 | REQ-27 | Automated Regression Verification & Quality Gates | Unit test suites for workers, proxies, services, API, REST boundary AST tests, and full audit loop | Step 10 | `[x]` |
 | REQ-28 | KI Synchronization | Update @[ki_tripartite_pipeline_architecture.md], @[ki_dual_axis_localization_architecture.md], @[ki_god_code_prevention.md], @[ki_desktop_pro_tool_studio_ux.md] | Step 11 | `[x]` |
-| REQ-29 | As-Built Architecture Synchronization | `/tier7-describe-architecture` sync of 3 architecture pillars, directory reference, and meta-architecture | Step 12 | `[ ]` |
+| REQ-29 | As-Built Architecture Synchronization | `/tier7-describe-architecture` sync of 3 architecture pillars, directory reference, and meta-architecture | Step 12 | `[x]` |
 
 ---
 
@@ -257,7 +256,7 @@
 - **Phase A (God Code Decomposition & Ghost Field Purge)** completed 100%:
   - **Step 1** (commit `ce69d34a`): Decomposed monolithic `v2_core.py` into canonical domain modules (`matrix.py`, `system_config.py`, `step.py`, `workflow.py`, `execution.py`, `synthesis.py`, `output_profile.py`) and DTOs (`atom_result.py`, `report_data.py`). Purged legacy `allowed_exports` across Python and Flutter models and database seeds.
   - **Step 2** (commit `c4ab0994`):
-    - Decoupled `ExecutionService.start_execution` in @[backend_v2/services/execution.py] from mandatory `output_profile_id`: falls back to `workflow.default_profile_id` when present, allows `None`, validates profile if provided (raises 404 RESOURCE_NOT_FOUND if missing from DB), and strictly validates `resolved_registry_id` against `SystemConfigRepository.get_model_registry()` (raises 404 RESOURCE_NOT_FOUND if missing).
+    - Decoupled `ExecutionService.start_execution` in @[backend_v2/services/execution/__init__.py] from mandatory `output_profile_id`: falls back to `workflow.default_profile_id` when present, allows `None`, validates profile if provided (raises 404 RESOURCE_NOT_FOUND if missing from DB), and strictly validates `resolved_registry_id` against `SystemConfigRepository.get_model_registry()` (raises 404 RESOURCE_NOT_FOUND if missing).
     - Eradicated virtual `sys_render_*` step injection in @[backend_v2/services/orchestrator/dag_executor.py] across both initial and resumption execution paths.
     - Updated and expanded unit test suite: 62 tests passing in @[backend_v2/tests/unit/services/test_execution.py] (93% coverage) and 22 tests passing in @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py] (90% coverage).
     - Passed Ruff check/format, MyPy strict typing, AST guardrails, Jinja template validation, seed validation, and Pytest coverage gates.
@@ -272,7 +271,7 @@
     - Enforced 100% read-only presentation transformation in `BlueprintTransformer` with zero database write side-effects.
   - **Step 5** (commit `0e396881`):
     - Extracted `ExportService` into @[backend_v2/services/export_service.py] (222 lines) implementing `export_excel` and `export_flat_csv`.
-    - Permanently eliminated the Axis 1 leak in @[backend_v2/services/execution.py] (`open("client_app_v2/lib/l10n/app_{locale}.arb")` eradicated; static SSOT header mapping enforced).
+    - Permanently eliminated the Axis 1 leak in @[backend_v2/services/execution/__init__.py] (`open("client_app_v2/lib/l10n/app_{locale}.arb")` eradicated; static SSOT header mapping enforced).
     - Reduced `ExecutionService` by ~150 lines, delegating `get_execution_export_bytes` to `ExportService` with `@deprecated`.
     - Created comprehensive unit test suite @[backend_v2/tests/unit/services/test_export_service.py] with 95% coverage, passing all universal quality gates.
   - **Step 6** (commit `06745133`):
