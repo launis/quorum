@@ -64,16 +64,16 @@
     - [x] (0e396881) Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
       - [x] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
       - [x] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
-    - [ ] Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
-      - [ ] 6.1: Create @[backend_v2/models/dtos/report_artifact.py]: `ReportStatus`, `ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`
-      - [ ] 6.2: Create @[backend_v2/models/domain/report_artifact.py] (~90 lines): `ReportArtifact` domain model
-      - [ ] 6.3: Modify @[backend_v2/database/interfaces.py] — Declare `IReportArtifactRepository` protocol
-      - [ ] 6.4: Create @[backend_v2/database/repositories/report_artifact.py]: `ReportArtifactRepositoryImpl`
-      - [ ] 6.5: Modify @[backend_v2/database/repository.py] — Mount `ReportArtifactRepositoryImpl`
-      - [ ] 6.6: Update @[backend_v2/models/domain/__init__.py] — Re-export `ReportArtifact`
-      - [ ] 6.7: Update @[backend_v2/models/v2_core.py] — Re-export `ReportArtifact`
-      - [ ] 6.8: Add `EntityPrefix.REPORT = "rep"` to @[backend_v2/models/enums.py]
-      - [ ] 6.9: Declare `ReportStatus` with `l10n_key` in @[backend_v2/models/enums.py]
+    - [x] (06745133) Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
+      - [x] 6.1: Create @[backend_v2/models/dtos/report_artifact.py]: `ReportStatus`, `ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`
+      - [x] 6.2: Create @[backend_v2/models/domain/report_artifact.py] (~90 lines): `ReportArtifact` domain model
+      - [x] 6.3: Modify @[backend_v2/database/interfaces.py] — Declare `IReportArtifactRepository` protocol
+      - [x] 6.4: Create @[backend_v2/database/repositories/report_artifact.py]: `ReportArtifactRepositoryImpl`
+      - [x] 6.5: Modify @[backend_v2/database/repository.py] — Mount `ReportArtifactRepositoryImpl`
+      - [x] 6.6: Update @[backend_v2/models/domain/__init__.py] — Re-export `ReportArtifact`
+      - [x] 6.7: Update @[backend_v2/models/v2_core.py] — Re-export `ReportArtifact`
+      - [x] 6.8: Add `EntityPrefix.REPORT = "rep"` to @[backend_v2/models/enums.py]
+      - [x] 6.9: Declare `ReportStatus` with `l10n_key` in @[backend_v2/models/enums.py]
     - [ ] Step 7: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
       - [ ] 7.1: Execute Golden Master characterization test (`--cov=backend_v2.services.execution`)
       - [ ] 7.2: Execute AST boundary analysis on @[backend_v2/services/execution.py]
@@ -228,15 +228,15 @@
 | REQ-07 | CQRS Export Extraction | Dedicated `ExportService` with backend I18nText headers, zero `.arb` reading | Step 5 | `[x]` |
 | REQ-08 | Materialized Report Artifacts | `ReportArtifact` domain model with full-lifecycle CRUD | Steps 6, 7, 8 | `[ ]` |
 | REQ-09 | REST-API-Only Pipeline Boundary | Zero worker-to-worker auto-enqueue; `POST /reports` is sole gateway | Steps 3, 8, 10 | `[ ]` |
-| REQ-10 | Database Schema Segregation | `executions` and `report_artifacts` strict collection isolation | Step 6 | `[ ]` |
-| REQ-11 | Four-Tier Pydantic V2 Model Invariant | `ConfigDict(strict=True, extra="forbid")` on all models | Steps 1, 6 | `[ ]` |
+| REQ-10 | Database Schema Segregation | `executions` and `report_artifacts` strict collection isolation | Step 6 | `[x]` |
+| REQ-11 | Four-Tier Pydantic V2 Model Invariant | `ConfigDict(strict=True, extra="forbid")` on all models | Steps 1, 6 | `[x]` |
 | REQ-12 | SRP Module Decomposition | `ExecutionService`, `ReportService`, `ExportService` each <300 lines | Steps 5, 7 | `[ ]` |
 | REQ-13 | God Code Decomposition (v2_core.py) | 1,647-line monolith → 7 domain modules + Strangler Fig facade <90 lines | Step 1 | `[x]` |
 | REQ-14 | God Code Decomposition (worker.py) | 1,823-line monolith → `execution_worker.py` + `report_worker.py` + facade <150 lines | Step 3 | `[x]` |
 | REQ-15 | God Code Decomposition (execution.py) | 1,307-line monolith → 6 sub-services + facade <80 lines | Step 7 | `[ ]` |
 | REQ-16 | Sovereign Model Stack Preservation | `LLMClient.from_tier()`, `model_registry_id`, `provider_override` intact in decomposed workers | Steps 1, 3, 7 | `[ ]` |
-| REQ-17 | `EntityPrefix.REPORT` Canonical Taxonomy | `REPORT = "rep"` in `EntityPrefix` enum | Step 6 | `[ ]` |
-| REQ-18 | `ReportStatus.l10n_key` Strict Enum Adapter | Camel-case ARB key mapping, zero runtime string manipulation | Step 6 | `[ ]` |
+| REQ-17 | `EntityPrefix.REPORT` Canonical Taxonomy | `REPORT = "rep"` in `EntityPrefix` enum | Step 6 | `[x]` |
+| REQ-18 | `ReportStatus.l10n_key` Strict Enum Adapter | Camel-case ARB key mapping, zero runtime string manipulation | Step 6 | `[x]` |
 | REQ-19 | Execution Cascade Deletion & Storage Cleanup | Delete execution deletes all associated `ReportArtifact` records and physical files | Steps 7, 10 | `[ ]` |
 | REQ-20 | Idempotency & Concurrent Generation Guard | Reject concurrent report generation with HTTP 409 Conflict | Steps 8, 10 | `[ ]` |
 | REQ-21 | Desktop Pro Tool UX (16 Pillars) | Adaptive Master Selector, Dual-Shield FormField, Modal Dismissal Protocol, AppErrorBoundary | Step 9 | `[ ]` |
@@ -273,6 +273,15 @@
     - Permanently eliminated the Axis 1 leak in @[backend_v2/services/execution.py] (`open("client_app_v2/lib/l10n/app_{locale}.arb")` eradicated; static SSOT header mapping enforced).
     - Reduced `ExecutionService` by ~150 lines, delegating `get_execution_export_bytes` to `ExportService` with `@deprecated`.
     - Created comprehensive unit test suite @[backend_v2/tests/unit/services/test_export_service.py] with 95% coverage, passing all universal quality gates.
+  - **Step 6** (commit `06745133`):
+    - Added `EntityPrefix.REPORT = "rep"` and `ReportStatus` (with `l10n_key` property) to @[backend_v2/models/enums.py].
+    - Created strict DTOs in @[backend_v2/models/dtos/report_artifact.py] (`ReportStoragePathsDTO`, `ReportMetadataDTO`, `ReportRowItemDTO`, `PublicReportDTO`, `ReportArtifactCreateDTO`, `ReportArtifactUpdateDTO`, `ReportArtifactSummaryDTO`).
+    - Created domain model in @[backend_v2/models/domain/report_artifact.py] (`ReportArtifact`).
+    - Re-exported `ReportArtifact` in @[backend_v2/models/domain/__init__.py] and @[backend_v2/models/v2_core.py].
+    - Declared `IReportArtifactRepository` protocol in @[backend_v2/database/interfaces.py] and mounted onto `IUnifiedWorkflowRepository`.
+    - Implemented `ReportArtifactRepositoryImpl` in @[backend_v2/database/repositories/report_artifact.py] targeting `report_artifacts` collection.
+    - Mounted `ReportArtifactRepositoryImpl` onto `UnifiedWorkflowRepository` in @[backend_v2/database/repository.py].
+    - Created 14 unit tests in @[backend_v2/tests/unit/database/repositories/test_report_artifact.py] with 100% test coverage passing all universal quality gates.
 
 ## Learned
 - `Workflow` domain model enforces strict `ConfigDict(strict=True, extra="forbid")`. Test fixtures attempting to pass legacy `allowed_exports` trigger Pydantic validation errors.
@@ -283,10 +292,10 @@
 - `QuoteEvidenceDTO` stores resolved IDs in `verified_source_ids: list[str]`, not `source_id`.
 - `I18nText` requires `translations: dict[str, str]` dictionary in Pydantic models.
 - `MatrixPromptBlock` enforces `min_length=1` on `scales`.
+- `ReportArtifact` and its DTOs strictly adhere to `ConfigDict(strict=True, extra="forbid")`, validating IDs with `OPAQUE_STRIPE_ID_REGEX`.
 
 ## Remaining
 - **Phase B: Worker & Service Decoupling (Steps 3–7)**:
-  - **Step 6**: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
   - **Step 7**: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
 - **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
 
