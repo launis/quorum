@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from backend_v2.database.interfaces import IUnifiedWorkflowRepository
-from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ExecutionNotReadyError, ResourceNotFoundError
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
@@ -85,8 +85,8 @@ class ReportService:
         execution = ExecutionRecord.model_validate(exec_dict, strict=False)
         if execution.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in PASSED state. Current status: {execution.status.value}"
-            logger.error("[ReportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=409, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error("[ReportService] %s: %s", ErrorCodes.EXECUTION_NOT_READY.name, msg)
+            raise ExecutionNotReadyError(execution_id=execution.id, current_status=execution.status.value)
 
         profile_dict = await self.repo.get_output_profile_by_id(payload.profile_id)
         if not profile_dict:

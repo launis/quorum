@@ -10,7 +10,16 @@ from typing import Any
 from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
-from backend_v2.api.dependencies import ArqPoolDep, CurrentUserDep, DocumentExtractionServiceDep, ExecutionServiceDep
+from backend_v2.api.dependencies import (
+    ArqPoolDep,
+    CurrentUserDep,
+    DocumentExtractionServiceDep,
+    ExecutionServiceDep,
+    ReportServiceDep,
+)
+from backend_v2.api.routers.execution.reports import execution_reports_subrouter
+from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
+from backend_v2.models.enums import ReportStatus
 from backend_v2.models.v2_core import (
     EvidenceRejectionRequest,
     ExecutionCreate,
@@ -24,6 +33,7 @@ from backend_v2.models.view.sdui import ReportView
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/executions", tags=["Executions"])
+router.include_router(execution_reports_subrouter)
 
 
 @router.get("/", response_model=list[ExecutionRecord])
@@ -279,6 +289,7 @@ async def render_execution(
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
+    report_service: ReportServiceDep,
     arq_pool: ArqPoolDep,
     format: str = Query("json", description="Output format: json, pdf, or flat"),
     profile_id: str | None = Query(None, description="The output profile to render"),
@@ -292,6 +303,7 @@ async def render_execution(
         execution_id: The unique identifier of the execution.
         current_user: The authenticated user making the request.
         execution_service: The execution domain service.
+        report_service: The report domain service for transparent pre-compiled artifact resolution.
         arq_pool: The Arq Redis connection pool.
         format: The desired output format (e.g., json, pdf, flat).
         profile_id: The identifier of the output profile to use.
@@ -305,6 +317,48 @@ async def render_execution(
         AppException: If rendering fails, format is unsupported, or permission denied.
     """
     accept_language = request.headers.get("accept-language")
+
+    # Transparent resolution: check if a pre-compiled ReportArtifact is ready
+    try:
+        existing_reports = await report_service.list_reports_for_execution(execution_id)
+        matching_report: ReportArtifactSummaryDTO | None = None
+        for r in existing_reports:
+            if r.status == ReportStatus.READY:
+                if profile_id and r.profile_id == profile_id:
+                    matching_report = r
+                    break
+                elif not profile_id:
+                    matching_report = r
+                    break
+
+        if matching_report and not custom_preface_md and not local_time_str:
+            fmt = format.lower()
+            if fmt == "pdf":
+                pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
+                return Response(
+                    content=pdf_bytes,
+                    media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+                )
+            elif fmt == "json":
+                sdui_dto = await report_service.get_report_sdui(matching_report.id)
+                return JSONResponse(content=sdui_dto.model_dump(mode="json"))
+            elif fmt == "excel":
+                excel_bytes, report_filename = await report_service.get_report_excel_bytes(matching_report.id)
+                return Response(
+                    content=excel_bytes,
+                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+                )
+            elif fmt == "csv":
+                csv_bytes, report_filename = await report_service.get_report_csv_bytes(matching_report.id)
+                return Response(
+                    content=csv_bytes,
+                    media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+                )
+    except Exception as resolve_err:
+        logger.debug("[ExecutionsRouter] Pre-compiled report resolution bypassed: %s", resolve_err)
 
     content, media_type, filename = await execution_service.render_execution(
         initiator=current_user,

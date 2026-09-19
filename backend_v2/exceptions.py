@@ -103,6 +103,7 @@ __all__ = [
     "ConflictError",
     "ErrorCodes",
     "ExecutionNotFoundError",
+    "ExecutionNotReadyError",
     "FatalInterruption",
     "LLMSchemaValidationError",
     "LogicalValidationError",
@@ -162,6 +163,7 @@ class ErrorCodes(StrEnum):
     # Execution
     WORKFLOW_EXECUTION_FAILED = "WORKFLOW_EXECUTION_FAILED"
     AGENT_EXECUTION_CRITICAL = "AGENT_EXECUTION_CRITICAL"
+    EXECUTION_NOT_READY = "EXECUTION_NOT_READY"
 
     # Auth
     AUTH_TOKEN_EXPIRED = "AUTH_TOKEN_EXPIRED"
@@ -650,6 +652,31 @@ class ConflictError(AppException):
         if details:
             d.update(details)
         super().__init__(message, status_code=status.HTTP_409_CONFLICT, details=d)
+
+
+class ExecutionNotReadyError(AppException):
+    """Raised when an operation requires an execution to be completed/passed, but it is not ready (409)."""
+
+    def __init__(self, execution_id: str, current_status: str, details: dict[str, Any] | None = None) -> None:
+        """Initialize the exception.
+
+        Args:
+            execution_id: Target execution identifier.
+            current_status: Current execution status string.
+            details: Additional tracking context.
+        """
+        d = {
+            "error_code": ErrorCodes.EXECUTION_NOT_READY,
+            "execution_id": execution_id,
+            "current_status": current_status,
+        }
+        if details:
+            d.update(details)
+        super().__init__(
+            message=f"Execution '{execution_id}' is not ready for report generation (status: {current_status}).",
+            status_code=status.HTTP_409_CONFLICT,
+            details=d,
+        )
 
 
 class PermissionDeniedError(AppException):
