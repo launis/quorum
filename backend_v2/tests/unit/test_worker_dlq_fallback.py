@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from backend_v2.exceptions import ServiceUnavailableError
-from backend_v2.worker import render_profile_job
+from backend_v2.workers import render_profile_job
 
 
 @pytest.mark.asyncio

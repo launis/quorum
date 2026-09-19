@@ -16,7 +16,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
-from backend_v2.worker import generate_profile_synthesis_and_pdf_task
+from backend_v2.workers import generate_profile_synthesis_and_pdf_task
 
 
 def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:

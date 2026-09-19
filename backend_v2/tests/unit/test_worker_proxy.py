@@ -8,22 +8,27 @@ def test_worker_exports_all_symbols() -> None:
     """Verify that every symbol declared in __all__ exists and is accessible."""
     assert hasattr(worker_mod, "__all__")
     expected_symbols = [
-        "VarianceExplanationResult",
         "WorkerSettings",
+        "health_check",
+        "shutdown",
+        "startup",
+    ]
+    assert set(worker_mod.__all__) == set(expected_symbols)
+    for symbol in expected_symbols:
+        assert hasattr(worker_mod, symbol)
+        assert getattr(worker_mod, symbol) is not None
+
+    banned_coroutine_symbols = [
+        "VarianceExplanationResult",
         "execute_workflow_job",
         "generate_pdf_job",
         "generate_pdf_task",
         "generate_profile_synthesis_and_pdf_task",
         "generate_report_artifact_job",
-        "health_check",
         "render_profile_job",
-        "shutdown",
-        "startup",
     ]
-    for symbol in expected_symbols:
-        assert symbol in worker_mod.__all__
-        assert hasattr(worker_mod, symbol)
-        assert getattr(worker_mod, symbol) is not None
+    for banned in banned_coroutine_symbols:
+        assert banned not in worker_mod.__all__
 
 
 def test_worker_settings_functions_registered() -> None:

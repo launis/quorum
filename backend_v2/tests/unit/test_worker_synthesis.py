@@ -21,7 +21,7 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
-from backend_v2.worker import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
+from backend_v2.workers import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
 
 
 def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345678") -> dict[str, Any] | None:

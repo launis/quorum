@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.worker import execute_workflow_job
+from backend_v2.workers import execute_workflow_job
 
 
 @pytest.mark.asyncio

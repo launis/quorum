@@ -30,16 +30,18 @@ from backend_v2.tests.unit.test_worker_synthesis import (
     test_worker_synthesis_multi_section_aggregation,
 )
 from backend_v2.worker import (
-    VarianceExplanationResult,
     WorkerSettings,
+    health_check,
+    shutdown,
+    startup,
+)
+from backend_v2.workers import (
+    VarianceExplanationResult,
     execute_workflow_job,
     generate_pdf_job,
     generate_pdf_task,
     generate_profile_synthesis_and_pdf_task,
-    health_check,
     render_profile_job,
-    shutdown,
-    startup,
 )
 
 __all__ = [

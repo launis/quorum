@@ -1,7 +1,6 @@
-"""Background Worker Entrypoint & Strangler Fig Facade.
+"""Arq 2026 worker daemon runtime entrypoint.
 
-Configures Arq WorkerSettings, registers lifecycle hooks, and re-exports decoupled
-worker coroutines from backend_v2.workers.
+Configures Arq WorkerSettings, registers lifecycle hooks, and manages worker daemon startup/shutdown.
 """
 
 from __future__ import annotations
@@ -28,25 +27,15 @@ from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompi
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
 from backend_v2.settings import get_settings
 from backend_v2.workers import (
-    VarianceExplanationResult,
     execute_workflow_job,
     generate_pdf_job,
-    generate_pdf_task,
-    generate_profile_synthesis_and_pdf_task,
     generate_report_artifact_job,
     render_profile_job,
 )
 
 __all__ = [
-    "VarianceExplanationResult",
     "WorkerSettings",
-    "execute_workflow_job",
-    "generate_pdf_job",
-    "generate_pdf_task",
-    "generate_profile_synthesis_and_pdf_task",
-    "generate_report_artifact_job",
     "health_check",
-    "render_profile_job",
     "shutdown",
     "startup",
 ]
