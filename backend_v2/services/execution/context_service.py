@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.services import storage
 from backend_v2.services.file_driver import FileDriver
-from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ class ExecutionContextService:
         get_execution_fn: Callable[..., Awaitable[ExecutionRecord]] | None = None,
     ) -> None:
         self.exec_repo = exec_repo
-        self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
+        self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self._get_execution = get_execution_fn or self._default_get_execution
 
     async def _default_get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
@@ -45,9 +44,9 @@ class ExecutionContextService:
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
 
         if record.frozen_context_storage_path:
-            storage = execution.get_storage_driver()
+            storage_drv = storage.get_storage_driver()
             try:
-                raw_bytes = await storage.read(record.frozen_context_storage_path)
+                raw_bytes = await storage_drv.read(record.frozen_context_storage_path)
                 parsed_context = FrozenContext.model_validate_json(raw_bytes)
                 pretty_bytes = parsed_context.model_dump_json(indent=2).encode("utf-8")
                 return pretty_bytes, f"frozen_context_{execution_id}.json"

@@ -75,7 +75,7 @@ async def test_check_resumability_allows_zero_outputs() -> None:
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
     # Resumption is allowed even if no step has completed (zero output events)
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is True
@@ -118,7 +118,7 @@ async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
     mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     # Must be resumable even with the virtual step present
@@ -162,7 +162,7 @@ async def test_check_resumability_structural_mismatch() -> None:
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
     # Milestone 3, Rule 3: Step ID mismatch fails resumability check
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is False
@@ -200,7 +200,7 @@ async def test_check_resumability_workflow_version_drift() -> None:
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
     # Milestone 3, Rule 3: Workflow version drift fails resumability check
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is False
@@ -242,7 +242,7 @@ async def test_check_resumability_quota_exceeded() -> None:
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
     # Milestone 3, Rule 4: Quota exceeded blocks resumption
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is False
@@ -285,7 +285,7 @@ async def test_check_resumability_successful_resumption() -> None:
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
     # Perfect scenario, everything matches and succeeds
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is True
@@ -357,7 +357,7 @@ async def test_check_resumability_missing_step_in_step_states_returns_false() ->
     mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
     repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         is_res = await service.check_resumability(record)
 
     assert is_res is False

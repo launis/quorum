@@ -61,13 +61,13 @@ async def test_render_execution_json_default_profile_resolves() -> None:
     mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"execution_id": "exe_1", "workflow_id": "wf_1"}
 
-    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
+    with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
         with patch(
-            "backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
+            "backend_v2.models.domain.workflow.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
         ):
             data, mime, filename = await service.render_execution(
                 initiator=initiator,

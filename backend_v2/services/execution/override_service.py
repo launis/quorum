@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 
 from pydantic import TypeAdapter, ValidationError
 
-import backend_v2.services.execution as execution
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -20,13 +19,15 @@ from backend_v2.database.interfaces import (
     IWorkflowRepository,
 )
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
+from backend_v2.hooks import scoring
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import EvaluatedMatrixContextDTO, ExecutionRecord
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, HumanOverrideRequest
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
+from backend_v2.services import storage
 from backend_v2.services.file_driver import FileDriver
-from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class ExecutionOverrideService:
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
-        self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
+        self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self._get_execution = get_execution_fn or self._default_get_execution
 
     async def _default_get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
@@ -79,13 +80,13 @@ class ExecutionOverrideService:
         if not workflow_data:
             raise ResourceNotFoundError(resource_type="workflow", resource_id=execution_rec.workflow_id)
 
-        workflow_obj = execution.Workflow.model_validate(workflow_data)
+        workflow_obj = Workflow.model_validate(workflow_data)
         default_pid = workflow_obj.default_profile_id
         target_pdf_path = execution_rec.pdf_report_path
 
         if profile_id == default_pid and execution_rec.pdf_report_path:
             try:
-                await execution.get_storage_driver().delete(execution_rec.pdf_report_path)
+                await storage.get_storage_driver().delete(execution_rec.pdf_report_path)
             except AppException as e:
                 if e.status_code == 404:
                     logger.warning(
@@ -197,7 +198,7 @@ class ExecutionOverrideService:
             audit_repo=None,
             system_repo=self.system_repo,
         )
-        await execution.recalculate(record.context_variables, record.active_profile_id, deps)
+        await scoring.recalculate(record.context_variables, record.active_profile_id, deps)
         await self.exec_repo.update_execution(
             execution_id, ExecutionUpdateDTO(step_states=record.step_states, context_variables=record.context_variables)
         )

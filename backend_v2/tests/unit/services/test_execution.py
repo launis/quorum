@@ -353,7 +353,7 @@ async def test_start_execution_success() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
     assert result.workflow_id == "wf_1"
@@ -422,7 +422,7 @@ async def test_start_execution_model_registry_override() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
     assert result.metadata is not None
@@ -466,7 +466,7 @@ async def test_start_execution_permission_denied() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(PermissionDeniedError) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
     assert "You do not have permission to execute this workflow." in str(exc_info.value)
@@ -504,12 +504,12 @@ async def test_render_execution_flat() -> None:
     from unittest.mock import patch
 
     mock_dto = Mock()
-    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
+    with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
-        with patch("backend_v2.services.execution.FlatFileService.flatten_results", return_value={"flat": "data"}):
+        with patch("backend_v2.services.flattener.FlatFileService.flatten_results", return_value={"flat": "data"}):
             data, mime, filename = await service.render_execution(
                 initiator=initiator,
                 execution_id="exe_1",
@@ -575,13 +575,13 @@ async def test_render_execution_json() -> None:
     mock_dto.has_warning = False
     mock_dto.model_dump.return_value = {"workflow_id": "wf_1", "profile_id": "prof_1"}
 
-    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_class:
+    with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
         with patch(
-            "backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
+            "backend_v2.models.domain.workflow.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
         ):
             data, mime, filename = await service.render_execution(
                 initiator=initiator,
@@ -720,7 +720,7 @@ async def test_override_atom_success() -> None:
         evidence_quotes=[],
     )
 
-    with patch("backend_v2.services.execution.recalculate", new_callable=AsyncMock) as mock_recalc:
+    with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
         await service.override_atom(
             initiator=initiator,
             execution_id="exe_1234567890abcdef",
@@ -1043,7 +1043,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
     assert result.workflow_id == "wf_no_prof"
@@ -1098,7 +1098,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
@@ -1157,7 +1157,7 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
 
     from unittest.mock import patch
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
@@ -1173,7 +1173,7 @@ async def test_stream_status_handles_error_without_yielding_malformed_execution_
     """Verify stream_status does not yield malformed JSON masquerading as ExecutionRecord upon error."""
     from backend_v2.exceptions import ResourceNotFoundError
 
-    monkeypatch.setattr("backend_v2.services.execution.asyncio.sleep", AsyncMock())
+    monkeypatch.setattr("backend_v2.services.execution.stream_service.asyncio.sleep", AsyncMock())
 
     repo_mock = AsyncMock()
     service = ExecutionService(
@@ -1301,7 +1301,7 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
@@ -1365,7 +1365,7 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
@@ -1588,7 +1588,7 @@ async def test_get_frozen_context_bytes() -> None:
     rec2.frozen_context = None
     repo_mock.get_execution.return_value = rec2
 
-    with patch("backend_v2.services.execution.get_storage_driver") as mock_storage_driver:
+    with patch("backend_v2.services.storage.get_storage_driver") as mock_storage_driver:
         mock_driver = AsyncMock()
         mock_driver.read.return_value = FrozenContext().model_dump_json().encode("utf-8")
         mock_storage_driver.return_value = mock_driver
@@ -1648,7 +1648,7 @@ async def test_clear_profile_synthesis() -> None:
         "steps": [],
     }
 
-    with patch("backend_v2.services.execution.get_storage_driver") as mock_storage:
+    with patch("backend_v2.services.storage.get_storage_driver") as mock_storage:
         driver = AsyncMock()
         mock_storage.return_value = driver
         await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
@@ -1717,13 +1717,13 @@ async def test_render_execution_formats() -> None:
     mock_dto.inner_sdui_blocks = []
     mock_dto.has_warning = False
 
-    with patch("backend_v2.services.execution.BlueprintTransformer") as mock_transformer_cls:
+    with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_cls:
         mock_trans = AsyncMock()
         mock_trans.build_report_dto.return_value = mock_dto
         mock_transformer_cls.return_value = mock_trans
 
         with patch(
-            "backend_v2.services.execution.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
+            "backend_v2.models.domain.workflow.Workflow.model_validate", return_value=Mock(default_profile_id="prof_1")
         ):
             data, mime, fname = await service.render_execution(
                 initiator=initiator,
@@ -1996,7 +1996,7 @@ async def test_get_sdui_view_branches() -> None:
         mock_view = Mock()
         mock_view.model_copy.return_value = mock_view
         mock_view.model_dump.return_value = {"title": "Synthetic Overview Title", "components": []}
-        with patch("backend_v2.services.execution.SduiMapperService.map_report_to_sdui", return_value=mock_view):
+        with patch("backend_v2.services.sdui_mapper_service.SduiMapperService.map_report_to_sdui", return_value=mock_view):
             view_dict = await service.get_sdui_view(initiator, "exe_0123456789abcdef")
             assert view_dict["title"] == "Synthetic Overview Title"
 
@@ -2053,10 +2053,10 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
     # HTML format
     with (
         patch(
-            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+            "backend_v2.services.blueprint.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
         ),
         patch(
-            "backend_v2.services.execution.PdfReportService.generate_execution_html",
+            "backend_v2.services.pdf_generator.PdfReportService.generate_execution_html",
             return_value="<html><body>Report</body></html>",
         ),
     ):
@@ -2112,7 +2112,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
 
     storage_mock = AsyncMock()
     storage_mock.read.return_value = b"%PDF-1.4 pregenerated"
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         pdf_bytes, mime, filename = await service.render_execution(
             initiator=initiator,
             execution_id="exe_0123456789abcdef",
@@ -2126,7 +2126,7 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
 
     # Pre-generated fetch error
     storage_mock.read.side_effect = Exception("Storage disk read error")
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.render_execution(
                 initiator=initiator,
@@ -2143,11 +2143,11 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
     storage_mock.read.side_effect = None
     storage_mock.save.return_value = "executions/exe_0123456789abcdef/report.pdf"
     with (
-        patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock),
+        patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock),
         patch(
-            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+            "backend_v2.services.blueprint.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
         ),
-        patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+        patch("backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
     ):
         pdf_bytes, mime, filename = await service.render_execution(
             initiator=initiator,
@@ -2164,11 +2164,11 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
     # Fresh PDF save error
     storage_mock.save.side_effect = Exception("Storage disk save error")
     with (
-        patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock),
+        patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock),
         patch(
-            "backend_v2.services.execution.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
+            "backend_v2.services.blueprint.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
         ),
-        patch("backend_v2.services.execution.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+        patch("backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
     ):
         with pytest.raises(AppException) as exc_info:
             await service.render_execution(
@@ -2266,20 +2266,20 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
     # 404 is ignored
     storage_mock = AsyncMock()
     storage_mock.delete_directory.side_effect = AppException("Not found", status_code=404)
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         deleted = await service.delete_execution(initiator, "exe_0123456789abcdef")
         assert deleted is True
 
     # 500 AppException raised
     storage_mock.delete_directory.side_effect = AppException("Storage error", status_code=500)
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.delete_execution(initiator, "exe_0123456789abcdef")
         assert exc_info.value.status_code == 500
 
     # Generic Exception raised
     storage_mock.delete_directory.side_effect = Exception("Generic disk crash")
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.delete_execution(initiator, "exe_0123456789abcdef")
         assert exc_info.value.status_code == 500
@@ -2287,7 +2287,7 @@ async def test_delete_execution_storage_cleanup_error_branches() -> None:
     # Repo delete error
     storage_mock.delete_directory.side_effect = None
     service.exec_repo.delete_execution.side_effect = Exception("DB crash")
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.delete_execution(initiator, "exe_0123456789abcdef")
         assert exc_info.value.status_code == 500
@@ -2333,27 +2333,27 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
 
     # 404 is ignored
     storage_mock.delete.side_effect = AppException("Not found", status_code=404)
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
         assert service.exec_repo.update_execution.called
 
     # 409 is re-raised
     storage_mock.delete.side_effect = AppException("Conflict", status_code=409)
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 409
 
     # 500 is wrapped
     storage_mock.delete.side_effect = AppException("Server Error", status_code=500)
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 500
 
     # Generic Exception is wrapped
     storage_mock.delete.side_effect = Exception("Unexpected")
-    with patch("backend_v2.services.execution.get_storage_driver", return_value=storage_mock):
+    with patch("backend_v2.services.storage.get_storage_driver", return_value=storage_mock):
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(initiator, "exe_0123456789abcdef", "prf_default")
         assert exc_info.value.status_code == 500
@@ -2430,7 +2430,7 @@ async def test_override_atom_branches() -> None:
         }
     }
     rec.active_profile_id = "prf_1"
-    with patch("backend_v2.services.execution.recalculate", return_value=None):
+    with patch("backend_v2.hooks.scoring.recalculate", return_value=None):
         await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)
         assert service.exec_repo.update_execution.called
         assert service.exec_repo.append_trace_event.called
@@ -2957,7 +2957,7 @@ async def test_start_execution_fails_fast_when_no_registry_id() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+    with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 404

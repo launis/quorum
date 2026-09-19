@@ -11,19 +11,41 @@ def test_execution_pkg_exports_all_symbols() -> None:
     """Verify that every symbol declared in __all__ exists and is accessible."""
     assert hasattr(exec_pkg, "__all__")
     expected = [
-        "ExecutionService",
-        "create_execution_record",
-        "ExecutionLifecycleService",
-        "ExecutionIngressService",
-        "ExecutionResumptionService",
-        "ExecutionOverrideService",
-        "ExecutionStreamService",
         "ExecutionContextService",
+        "ExecutionCreate",
+        "ExecutionIngressService",
+        "ExecutionLegacyRenderService",
+        "ExecutionLifecycleService",
+        "ExecutionOverrideService",
+        "ExecutionRecord",
+        "ExecutionResumptionService",
+        "ExecutionService",
+        "ExecutionStep",
+        "ExecutionStreamService",
+        "FrozenContext",
+        "create_execution_record",
     ]
+    assert set(exec_pkg.__all__) == set(expected)
     for symbol in expected:
-        assert symbol in exec_pkg.__all__
         assert hasattr(exec_pkg, symbol)
         assert getattr(exec_pkg, symbol) is not None
+
+    banned_borrowed_symbols = [
+        "BlueprintTransformer",
+        "DocumentExtractionService",
+        "ExportService",
+        "FlatFileService",
+        "OutputProfile",
+        "PdfReportService",
+        "SduiMapperService",
+        "TokenData",
+        "Workflow",
+        "asyncio",
+        "get_storage_driver",
+        "recalculate",
+    ]
+    for banned in banned_borrowed_symbols:
+        assert banned not in exec_pkg.__all__
 
 
 def test_execution_service_facade_instantiation() -> None:

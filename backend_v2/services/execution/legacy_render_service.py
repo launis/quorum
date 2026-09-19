@@ -9,7 +9,6 @@ from warnings import deprecated
 
 from arq import ArqRedis
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import (
     IComponentRepository,
     IExecutionRepository,
@@ -22,10 +21,12 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, JobAcceptedDTO
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.view.sdui import AlertBlock, MarkdownBlock, ParagraphBlock
+from backend_v2.services import blueprint, flattener, pdf_generator, sdui_mapper_service, storage
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.export_service import ExportService
 from backend_v2.services.file_driver import FileDriver
@@ -56,7 +57,7 @@ class ExecutionLegacyRenderService:
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.export_service = export_service if export_service is not None else ExportService(comp_repo=comp_repo)
-        self.storage: FileDriver = storage_driver if storage_driver is not None else execution.get_storage_driver()
+        self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self._get_execution = get_execution_fn or self._default_get_execution
         self._get_report_dto = get_report_dto_fn or self.get_report_dto
 
@@ -75,7 +76,7 @@ class ExecutionLegacyRenderService:
             or self.system_repo is None
         ):
             raise AppException("Repositories required for BlueprintTransformer are missing", 500)
-        return execution.BlueprintTransformer(
+        return blueprint.BlueprintTransformer(
             self.exec_repo,
             self.workflow_repo,
             self.comp_repo,
@@ -141,7 +142,7 @@ class ExecutionLegacyRenderService:
     async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> dict[str, Any]:
         """Get the SDUI view components for an execution."""
         dto = await self._get_report_dto(initiator, execution_id)
-        mapper = execution.SduiMapperService()
+        mapper = sdui_mapper_service.SduiMapperService()
         view = mapper.map_report_to_sdui(dto, execution_id=execution_id)
         title_summary = ""
         if dto.inner_sdui_blocks:
@@ -218,13 +219,13 @@ class ExecutionLegacyRenderService:
             rep_dto = await transformer.build_report_dto(
                 execution_id, profile_id, accept_language, custom_preface_md, local_time_str
             )
-            return execution.FlatFileService.flatten_results(record, rep_dto), "application/json", None
+            return flattener.FlatFileService.flatten_results(record, rep_dto), "application/json", None
 
         workflow_data = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
         if not workflow_data:
             raise AppException("Workflow not found", 500, {"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        workflow_obj = execution.Workflow.model_validate(workflow_data)
+        workflow_obj = Workflow.model_validate(workflow_data)
         default_pid = workflow_obj.default_profile_id
         resolved_pid = profile_id if profile_id and profile_id != "default" else default_pid
 
@@ -266,12 +267,12 @@ class ExecutionLegacyRenderService:
         if not target_locale:
             raise AppException("target_locale missing", 500, {"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        storage = execution.get_storage_driver()
+        storage_drv = storage.get_storage_driver()
         if fmt == "pdf":
             if resolved_pid == default_pid and record.pdf_report_path and not custom_preface_md and not local_time_str:
                 try:
                     return (
-                        await storage.read(record.pdf_report_path),
+                        await storage_drv.read(record.pdf_report_path),
                         "application/pdf",
                         f"execution_{execution_id}.pdf",
                     )
@@ -284,7 +285,7 @@ class ExecutionLegacyRenderService:
         rep_dto = await transformer.build_report_dto(
             execution_id, resolved_pid, target_locale, custom_preface_md, local_time_str
         )
-        pdf_service = execution.PdfReportService()
+        pdf_service = pdf_generator.PdfReportService()
 
         if fmt == "html":
             html_string = await pdf_service.generate_execution_html(execution_id, rep_dto, target_locale)
@@ -295,7 +296,7 @@ class ExecutionLegacyRenderService:
             if resolved_pid == default_pid:
                 try:
                     output_path_rel = f"executions/{execution_id}/report.pdf"
-                    saved_path = await storage.save(output_path_rel, pdf_bytes)
+                    saved_path = await storage_drv.save(output_path_rel, pdf_bytes)
                     if not record.pdf_report_path or record.pdf_report_path != saved_path:
                         await self.exec_repo.update_execution(
                             execution_id, ExecutionUpdateDTO(pdf_report_path=saved_path)

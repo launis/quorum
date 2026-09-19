@@ -7,14 +7,13 @@ import contextlib
 import logging
 from collections.abc import Awaitable, Callable
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import IExecutionRepository, IReportArtifactRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.services import storage
 from backend_v2.services.execution.resumption_service import ExecutionResumptionService
 from backend_v2.services.file_driver import FileDriver
-from backend_v2.services.storage import get_storage_driver
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +33,7 @@ class ExecutionLifecycleService:
     ) -> None:
         self.exec_repo = exec_repo
         self.resumption_service = resumption_service
-        self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
+        self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
         self.report_repo = report_repo
         self._check_resumability = check_resumability_fn or (
             resumption_service.check_resumability if resumption_service else None
@@ -126,9 +125,9 @@ class ExecutionLifecycleService:
                     )
 
             # Clean up all offloaded blobs and directory files using just-in-time storage resolution
-            storage = execution.get_storage_driver()
+            storage_drv = storage.get_storage_driver()
             try:
-                await storage.delete_directory(f"executions/{execution_id}")
+                await storage_drv.delete_directory(f"executions/{execution_id}")
             except AppException as e:
                 if e.status_code != 404:
                     msg = f"Failed to clean up directory executions/{execution_id} during deletion."

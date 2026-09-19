@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import IExecutionRepository
 from backend_v2.exceptions import AppException, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
@@ -67,7 +67,7 @@ class ExecutionStreamService:
                 if record.status in [ExecutionStatus.PASSED, ExecutionStatus.FAILED]:
                     break
 
-                await execution.asyncio.sleep(settings.sse_polling_interval_seconds)
+                await asyncio.sleep(settings.sse_polling_interval_seconds)
             except ResourceNotFoundError as e:
                 retry_count += 1
                 if retry_count <= max_retries:
@@ -78,7 +78,7 @@ class ExecutionStreamService:
                         max_retries,
                         str(e),
                     )
-                    await execution.asyncio.sleep(settings.sse_polling_interval_seconds)
+                    await asyncio.sleep(settings.sse_polling_interval_seconds)
                     continue
 
                 logger.error("Exceeded retry count for %s: %s", execution_id, str(e), exc_info=True)

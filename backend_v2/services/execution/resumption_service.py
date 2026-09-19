@@ -6,11 +6,11 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-import backend_v2.services.execution as execution
 from backend_v2.database.interfaces import IExecutionRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, PermissionDeniedError, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -71,7 +71,7 @@ class ExecutionResumptionService:
         if not workflow_dict:
             return False
 
-        workflow = execution.Workflow.model_validate(workflow_dict)
+        workflow = Workflow.model_validate(workflow_dict)
         workflow_step_ids = {step.id for step in workflow.steps}
         if not workflow_step_ids.issubset(record.step_states.keys()):
             return False
