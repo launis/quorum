@@ -22,7 +22,10 @@ class ContextTargetFilterDTO(V2CoreBase):
 
     allowed_input_keys: frozenset[str] | None = Field(
         default=None,
-        description="Specifically allowed input document keys (e.g. 'product_text'). None means unrestricted if targets was not provided.",
+        description=(
+            "Specifically allowed input document keys (e.g. 'product_text'). "
+            "None means unrestricted if targets was not provided."
+        ),
     )
     allowed_step_ids: frozenset[str] | None = Field(
         default=None,
@@ -304,7 +307,7 @@ class SourceDocumentPacker:
                                 try:
                                     data_to_dump = step_dict_payload if step_dict_payload is not None else payload
                                     text_content = json.dumps(data_to_dump, indent=2, ensure_ascii=False, default=str)
-                                except TypeError, ValueError:
+                                except (TypeError, ValueError):
                                     text_content = ""
 
                     if text_content:

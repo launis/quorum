@@ -367,7 +367,7 @@ class MatrixDomainParser:
                             try:
                                 atom_dto = AtomResultDTO.model_validate(ev)
                                 step_evals_map[atom_dto.tda_id] = atom_dto
-                            except ValidationError, TypeError, ValueError:
+                            except (ValidationError, TypeError, ValueError):
                                 continue
                         break
 

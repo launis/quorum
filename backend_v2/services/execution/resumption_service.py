@@ -32,6 +32,15 @@ class ExecutionResumptionService:
         get_execution_fn: Callable[..., Awaitable[ExecutionRecord]] | None = None,
         check_resumability_fn: Callable[..., Awaitable[bool]] | None = None,
     ) -> None:
+        """Initialize the execution resumption service.
+
+        Args:
+            exec_repo: Repository providing access to execution records.
+            workflow_repo: Repository providing access to workflow blueprints.
+            usage_service: Optional service for evaluating organization quotas.
+            get_execution_fn: Optional callable overriding execution fetching.
+            check_resumability_fn: Optional callable overriding resumability check.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.usage_service = usage_service

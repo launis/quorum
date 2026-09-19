@@ -39,20 +39,38 @@ PRINTABLE_SOURCES_RULES: dict[str, Any] = {
     },
     "theory_evidence_map": {
         "popper": {
-            "fi": "Tieteellinen arviointikehys: Hypoteesien ja toimenpiteiden falsifioitavuus, epäonnistumiskriteerit ja kriittinen rationalismi.",
-            "en": "Scientific evaluation framework: Empirical falsifiability of hypotheses, failure criteria, and critical rationalism.",
+            "fi": (
+                "Tieteellinen arviointikehys: Hypoteesien ja toimenpiteiden falsifioitavuus, "
+                "epäonnistumiskriteerit ja kriittinen rationalismi."
+            ),
+            "en": (
+                "Scientific evaluation framework: Empirical falsifiability of hypotheses, "
+                "failure criteria, and critical rationalism."
+            ),
         },
         "toulmin": {
             "fi": "Argumentaatiomalli: Väitteiden oikeutus, taustatuki (backing) ja perusteluketjujen looginen eheys.",
             "en": "Argumentation model: Claim justification, empirical backing, and logical structure integrity.",
         },
         "kahneman": {
-            "fi": "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja itsenäisen laadunvalvonnan arviointi.",
-            "en": "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation.",
+            "fi": (
+                "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja "
+                "itsenäisen laadunvalvonnan arviointi."
+            ),
+            "en": (
+                "Cognitive decision-making: Heuristics, cognitive biases, and "
+                "independent quality assurance evaluation."
+            ),
         },
         "tversky": {
-            "fi": "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja itsenäisen laadunvalvonnan arviointi.",
-            "en": "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation.",
+            "fi": (
+                "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja "
+                "itsenäisen laadunvalvonnan arviointi."
+            ),
+            "en": (
+                "Cognitive decision-making: Heuristics, cognitive biases, and "
+                "independent quality assurance evaluation."
+            ),
         },
         "default": {
             "fi": "Tieteellinen taustakirjallisuus ja arviointiviitekehys.",
