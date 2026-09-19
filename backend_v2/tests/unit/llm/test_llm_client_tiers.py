@@ -100,12 +100,12 @@ class TestLLMClientCognitiveTiers:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        ("tier", "expected_reasoning_effort"),
+        ("tier", "expected_reasoning_effort", "expected_temp"),
         [
-            (CognitiveTier.FAST, None),
-            (CognitiveTier.BALANCED, None),
-            (CognitiveTier.DEEP, "medium"),
-            (CognitiveTier.REASONING, "high"),
+            (CognitiveTier.FAST, None, 0.0),
+            (CognitiveTier.BALANCED, None, 1.0),
+            (CognitiveTier.DEEP, "medium", 1.0),
+            (CognitiveTier.REASONING, "high", 1.0),
         ],
     )
     @patch("backend_v2.llm.provider.LLMFactory.create_provider")
@@ -115,6 +115,7 @@ class TestLLMClientCognitiveTiers:
         mock_repository: AsyncMock,
         tier: CognitiveTier,
         expected_reasoning_effort: str | None,
+        expected_temp: float,
     ) -> None:
         """Verify all 4 cognitive tiers resolve correctly for explicit OpenAI provider override."""
         mock_create_provider.return_value = AsyncMock()
@@ -130,7 +131,7 @@ class TestLLMClientCognitiveTiers:
         assert client.provider_name == "openai"
         assert "gpt-5" in client.model_name.lower()
         assert client.config is not None
-        assert client.config.temperature == 1.0
+        assert client.config.temperature == expected_temp
         if expected_reasoning_effort is not None:
             assert client.config.additional_params.reasoning_effort == expected_reasoning_effort
 

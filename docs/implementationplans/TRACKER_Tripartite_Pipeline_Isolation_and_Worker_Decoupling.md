@@ -101,9 +101,9 @@
       - [x] 9.6: Modify @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Add `autoGenerateReport` checkbox
       - [x] 9.7: Modify @[client_app_v2/lib/features/execution/views/execution_view.dart] — Auto-trigger report on PASSED with `autoGenerateReport`
       - [x] 9.8: Update @[client_app_v2/lib/l10n/app_fi.arb] and @[client_app_v2/lib/l10n/app_en.arb] — Add 24 localization keys with 1:1 bilingual parity
-    - [ ] Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES
-      - [ ] 10.1: Create test suites for workers, proxies, services, API endpoints, and REST boundary AST tests
-      - [ ] 10.2: Execute full automated quality gate suite
+    - [x] Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES
+      - [x] 10.1: Create test suites for workers, proxies, services, API endpoints, and REST boundary AST tests
+      - [x] 10.2: Execute full automated quality gate suite
     - [ ] Step 11: KNOWLEDGE_BASE_DOCUMENTATION_AND_KI_SYNCHRONIZATION
       - [ ] 11.1: Update @[ki_tripartite_pipeline_architecture.md]
       - [ ] 11.2: Update @[ki_dual_axis_localization_architecture.md]
