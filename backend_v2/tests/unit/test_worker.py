@@ -69,7 +69,7 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
         "rpm_limit": 1000,
     }
     return {
-        "id": "cfg_1111111111111111",
+        "id": "sys_1111222233334444",
         "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
@@ -158,8 +158,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
     }
@@ -183,8 +182,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": None,
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": None,
     }
@@ -215,8 +213,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
     }
@@ -290,8 +287,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
     }
@@ -390,7 +386,7 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_job_success() -> None:
     """Verify generate_pdf_job calls task and returns success string."""
-    with patch("backend_v2.worker.generate_pdf_task", new_callable=AsyncMock) as mock_task:
+    with patch("backend_v2.workers.report_worker.generate_pdf_task", new_callable=AsyncMock) as mock_task:
         res = await generate_pdf_job({}, "exe_1234567890123456", "en-US", "prof_1111222233334444")
         assert res == "PDF Generated for exe_1234567890123456"
         mock_task.assert_called_once_with("exe_1234567890123456", "en-US", "prof_1111222233334444")
@@ -399,7 +395,7 @@ async def test_generate_pdf_job_success() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_job_cancelled() -> None:
     """Negative test: verify generate_pdf_job returns DLQ dictionary on cancellation."""
-    with patch("backend_v2.worker.generate_pdf_task", side_effect=asyncio.CancelledError):
+    with patch("backend_v2.workers.report_worker.generate_pdf_task", side_effect=asyncio.CancelledError):
         res = await generate_pdf_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -407,7 +403,7 @@ async def test_generate_pdf_job_cancelled() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_job_exception() -> None:
     """Negative test: verify generate_pdf_job catches generic exception and routes to DLQ."""
-    with patch("backend_v2.worker.generate_pdf_task", side_effect=RuntimeError("PDF engine crash")):
+    with patch("backend_v2.workers.report_worker.generate_pdf_task", side_effect=RuntimeError("PDF engine crash")):
         res = await generate_pdf_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -415,7 +411,7 @@ async def test_generate_pdf_job_exception() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_success() -> None:
     """Verify render_profile_job calls generate_profile_synthesis_and_pdf_task and returns success string."""
-    with patch("backend_v2.worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock) as mock_task:
+    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock) as mock_task:
         ctx = {"redis": AsyncMock()}
         res = await render_profile_job(ctx, "exe_1234567890123456", "en-US", "prof_1111222233334444")
         assert res == "Render Job Completed for exe_1234567890123456"
@@ -425,7 +421,7 @@ async def test_render_profile_job_success() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_cancelled() -> None:
     """Negative test: verify render_profile_job handles cancellation gracefully with DLQ."""
-    with patch("backend_v2.worker.generate_profile_synthesis_and_pdf_task", side_effect=asyncio.CancelledError):
+    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=asyncio.CancelledError):
         res = await render_profile_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -433,7 +429,7 @@ async def test_render_profile_job_cancelled() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_exception() -> None:
     """Negative test: verify render_profile_job routes generic exception to DLQ."""
-    with patch("backend_v2.worker.generate_profile_synthesis_and_pdf_task", side_effect=ValueError("Invalid profile")):
+    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=ValueError("Invalid profile")):
         res = await render_profile_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -441,8 +437,8 @@ async def test_render_profile_job_exception() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_task_execution_not_found() -> None:
     """Verify generate_pdf_task skips processing when execution does not exist in repo."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
@@ -454,8 +450,8 @@ async def test_generate_pdf_task_execution_not_found() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_task_success_path() -> None:
     """Verify generate_pdf_task happy path: builds DTO, creates PDF, saves to storage, updates execution."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -476,7 +472,7 @@ async def test_generate_pdf_task_success_path() -> None:
                 },
             }
 
-            with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
+            with patch("backend_v2.workers.report_worker.BlueprintTransformer") as mock_transformer_class:
                 mock_transformer = AsyncMock()
                 mock_transformer_class.return_value = mock_transformer
 
@@ -484,12 +480,12 @@ async def test_generate_pdf_task_success_path() -> None:
                 mock_dto.inner_sdui_blocks = []
                 mock_transformer.build_report_dto.return_value = mock_dto
 
-                with patch("backend_v2.worker.PdfReportService") as mock_pdf_class:
+                with patch("backend_v2.workers.report_worker.PdfReportService") as mock_pdf_class:
                     mock_pdf = AsyncMock()
                     mock_pdf_class.return_value = mock_pdf
                     mock_pdf.generate_execution_pdf.return_value = b"%PDF-1.4 sample"
 
-                    with patch("backend_v2.worker.get_storage_driver") as mock_storage_class:
+                    with patch("backend_v2.workers.report_worker.get_storage_driver") as mock_storage_class:
                         mock_storage = AsyncMock()
                         mock_storage_class.return_value = mock_storage
                         mock_storage.save.return_value = "executions/exe_1234567890123456/report.pdf"
@@ -505,8 +501,8 @@ async def test_generate_pdf_task_success_path() -> None:
 @pytest.mark.asyncio
 async def test_generate_pdf_task_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches failure and updates execution status to FAILED."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -527,7 +523,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 },
             }
 
-            with patch("backend_v2.worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")):
+            with patch("backend_v2.workers.report_worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")):
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1
@@ -536,8 +532,8 @@ async def test_generate_pdf_task_exception_handling() -> None:
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
     """Verify generate_profile_synthesis_and_pdf_task gracefully exits when execution missing."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
@@ -560,8 +556,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_language() -> Non
 async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
     """Verify generate_profile_synthesis_and_pdf_task enqueues PDF job when synthesis is cached."""
     mock_redis = AsyncMock()
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -596,8 +592,8 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
     """Verify synthesis succeeds cleanly with default system prompt even when synthesis_block_id is omitted."""
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -628,15 +624,14 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
             mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
-            with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"})
                 )
@@ -653,8 +648,8 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_items() -> None:
     """Negative test: verify visible extensions with missing max_extension_items triggers AppException."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -695,14 +690,13 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
 
-            with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
                 with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
@@ -716,8 +710,8 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
 
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -812,14 +806,13 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
                 "default_strictness_level": 50,
             }
 
-            with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
                     state_delta=HookDeltaDTO(
@@ -863,8 +856,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 85,
     }
@@ -910,9 +902,10 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     )
 
     assert res["status"] == "COMPLETED"
-    mock_redis.enqueue_job.assert_called_once_with(
-        "render_profile_job", "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444"
-    )
+    mock_redis.enqueue_job.assert_not_called()
+    mock_repo.update_execution.assert_called()
+    update_dto = mock_repo.update_execution.call_args[0][1]
+    assert update_dto.status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -921,8 +914,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
 
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -972,10 +965,9 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "status": "draft",
                 "version": 1,
                 "steps": [],
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
                 "default_strictness_level": 85,
             }
 
@@ -1039,7 +1031,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 
             mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
-            with patch("backend_v2.worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
                     state_delta=HookDeltaDTO(
@@ -1060,8 +1052,8 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises() -> None:
     """Negative test: verify database update failure in synthesis task raises AppException."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -1076,8 +1068,8 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_app_exception() -> None:
     """Negative test: verify missing workflow in synthesis task raises Fail-Fast AppException."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -1110,8 +1102,8 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
 @pytest.mark.asyncio
 async def test_generate_pdf_task_app_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches AppException and re-raises with execution update."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -1127,7 +1119,7 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 },
             }
 
-            with patch("backend_v2.worker.BlueprintTransformer") as mock_transformer_class:
+            with patch("backend_v2.workers.report_worker.BlueprintTransformer") as mock_transformer_class:
                 mock_transformer = AsyncMock()
                 mock_transformer_class.return_value = mock_transformer
                 mock_transformer.build_report_dto.side_effect = AppException(
@@ -1144,8 +1136,8 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit() -> None:
     """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
-    with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
-        with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
+    with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
+        with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
 
@@ -1215,8 +1207,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
     }
@@ -1287,7 +1278,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
     mock_storage = AsyncMock()
     mock_storage.read.return_value = offloaded_blob
 
-    with patch("backend_v2.worker.get_storage_driver", return_value=mock_storage):
+    with patch("backend_v2.workers.execution_worker.get_storage_driver", return_value=mock_storage):
         ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine, "redis": None}
         res = await execute_workflow_job(
             ctx,
@@ -1328,8 +1319,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
     }
@@ -1351,10 +1341,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
         "status": "draft",
         "version": 1,
         "steps": [],
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
         "default_strictness_level": 50,
     }
     mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
@@ -1388,11 +1377,11 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     mock_storage.read.return_value = offloaded_blob
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
-        patch("backend_v2.worker.get_storage_driver", return_value=mock_storage),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_reducers.get_storage_driver", return_value=mock_storage),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
             ),
@@ -1423,8 +1412,8 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
 async def test_job_wrappers_call_tasks() -> None:
     """Verify render_profile_job and generate_pdf_job invoke underlying tasks."""
     with (
-        patch("backend_v2.worker.generate_profile_synthesis_and_pdf_task", AsyncMock()) as mock_synth,
-        patch("backend_v2.worker.generate_pdf_task", AsyncMock()) as mock_pdf,
+        patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", AsyncMock()) as mock_synth,
+        patch("backend_v2.workers.report_worker.generate_pdf_task", AsyncMock()) as mock_pdf,
     ):
         ctx: dict[str, Any] = {"redis": None}
         r1 = await render_profile_job(ctx, "exe_123", accept_language="fi", profile_id="prof_1")
@@ -1450,8 +1439,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "version": 1,
         "steps": [],
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "default_strictness_level": 50,
     }
@@ -1473,10 +1461,9 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
         "status": "draft",
         "version": 1,
         "steps": [],
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
         "default_strictness_level": 50,
     }
     mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
@@ -1499,10 +1486,10 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     }
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"}))
             ),
@@ -1535,10 +1522,9 @@ def _get_base_workflow_dict() -> dict[str, Any]:
         "status": "draft",
         "version": 1,
         "steps": [],
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
         "default_strictness_level": 50,
     }
 
@@ -1592,10 +1578,10 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
     mock_repo.get_output_profile_by_id.return_value = prof_dict
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
@@ -1638,10 +1624,10 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
     mock_repo.get_output_profile_by_id.return_value = prof_dict
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
@@ -1685,10 +1671,10 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
     mock_repo.get_output_profile_by_id.return_value = prof_dict
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,
@@ -1736,10 +1722,10 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
     mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(return_value=HookResult(success=True, state_delta=None)),
         ),
     ):
@@ -1769,10 +1755,10 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
     mock_repo.get_output_profile_by_id.return_value = _get_base_profile_dict()
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"other_key": 1}))),
         ),
     ):
@@ -1803,10 +1789,10 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
     mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
     with (
-        patch("backend_v2.worker.get_driver", AsyncMock()),
-        patch("backend_v2.worker.UnifiedWorkflowRepository", return_value=mock_repo),
+        patch("backend_v2.workers.synthesis_worker.get_driver", AsyncMock()),
+        patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
-            "backend_v2.worker.synthesis_distiller_hook",
+            "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
             AsyncMock(
                 return_value=HookResult(
                     success=True,

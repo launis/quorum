@@ -33,7 +33,7 @@ async def test_worker_preserves_models_used() -> None:
         "description": "Test WF",
         "default_profile_id": "prf_a1b2c3d4e5f67890",
         "default_strictness_level": 1,
-        "allowed_exports": ["pdf"],
+        "model_registry_id": "sys_1111222233334444",
         "historical_context_mode": "DISABLED",
         "steps": [],
     }

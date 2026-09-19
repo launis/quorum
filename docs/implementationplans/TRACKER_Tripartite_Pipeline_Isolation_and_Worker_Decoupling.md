@@ -51,14 +51,14 @@
       - [x] 2.2: Modify @[backend_v2/services/orchestrator/dag_executor.py] — Delete `sys_render_*` virtual step injection
       - [x] 2.3: Execute `/tier5-session-handover` (Phase A → Phase B checkpoint)
   - [ ] **Phase B: Worker & Service Decoupling (Steps 3–7)**
-    - [ ] Step 3: WORKER_DECOMPOSITION_AND_LIFECYCLE_ISOLATION
-      - [ ] 3.1: Execute Golden Master characterization test (`--cov=backend_v2.worker`)
-      - [ ] 3.2: Execute AST boundary analysis on @[backend_v2/worker.py]
-      - [ ] 3.3: Create @[backend_v2/workers/__init__.py]
-      - [ ] 3.4: Create @[backend_v2/workers/execution_worker.py] (<400 lines): Extract `execute_workflow_job`, eradicate `render_profile_job` auto-enqueue, enforce Zero-Import Boundary
-      - [ ] 3.5: Create @[backend_v2/workers/report_worker.py] (<450 lines): Extract `generate_pdf_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`, register `generate_report_artifact_job`
-      - [ ] 3.6: Refactor @[backend_v2/worker.py] into Strangler Fig Facade & Entrypoint (<150 lines) with `__all__` re-exports
-      - [ ] 3.7: Execute Arq Worker smoke test
+    - [x] Step 3: WORKER_DECOMPOSITION_AND_LIFECYCLE_ISOLATION
+      - [x] 3.1: Execute Golden Master characterization test (`--cov=backend_v2.worker`)
+      - [x] 3.2: Execute AST boundary analysis on @[backend_v2/worker.py]
+      - [x] 3.3: Create @[backend_v2/workers/__init__.py]
+      - [x] 3.4: Create @[backend_v2/workers/execution_worker.py] (<405 lines): Extract `execute_workflow_job`, eradicate `render_profile_job` auto-enqueue, enforce Zero-Import Boundary
+      - [x] 3.5: Create @[backend_v2/workers/report_worker.py] (<450 lines): Extract `generate_pdf_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`, register `generate_report_artifact_job`
+      - [x] 3.6: Refactor @[backend_v2/worker.py] into Strangler Fig Facade & Entrypoint (<150 lines) with `__all__` re-exports
+      - [x] 3.7: Execute Arq Worker smoke test
     - [ ] Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
       - [ ] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
     - [ ] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK

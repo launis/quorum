@@ -51,7 +51,7 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
         "rpm_limit": 1000,
     }
     return {
-        "id": "cfg_1111111111111111",
+        "id": "sys_1111222233334444",
         "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
@@ -66,8 +66,8 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
     """Test that the worker background task extracts synthesis payload from the DAG execution trace."""
     # Enforce global offline strict mode for unit test isolation
@@ -102,18 +102,17 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
-        "allowed_exports": ["pdf"],
-        "historical_context_mode": "DISABLED",
+                "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
 
     async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
         if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "cognitive_tier": "fast", "type": "logic"}
+            return {"id": "sp_1234567812345678", "cognitive_tier": "fast", "type": "logic", "hook": "text_consolidation_hook"}
         return None
 
     mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
@@ -224,11 +223,10 @@ def _setup_mock_repo_for_metrics(
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
-        "allowed_exports": ["pdf"],
-        "historical_context_mode": "DISABLED",
+                "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
-        "model_registry_id": "cfg_model_registry_01",
+        "model_registry_id": "sys_1111222233334444",
         "expected_inputs": [],
         "steps": [],
     }
@@ -267,8 +265,8 @@ def _setup_mock_repo_for_metrics(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_extracts_metrics_from_trace(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -320,8 +318,8 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -371,8 +369,8 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_missing_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -394,8 +392,8 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_malformed_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -438,8 +436,8 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
     """Test synthesis when step metadata is missing from detector output."""
     mock_repo = AsyncMock()
@@ -470,8 +468,8 @@ async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -554,9 +552,9 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
         ),
     ],
 )
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_matrix_layout_directives(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -669,9 +667,9 @@ async def test_worker_synthesis_matrix_layout_directives(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -735,9 +733,9 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_executive_summary_instruction_and_cache(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -811,9 +809,9 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_multi_section_aggregation(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -898,9 +896,9 @@ async def test_worker_synthesis_multi_section_aggregation(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_empty_sections_not_set_in_cache(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -970,9 +968,9 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
-@patch("backend_v2.worker.LLMClient.from_tier")
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.LLMClient.from_tier")
 async def test_worker_synthesis_custom_directives_resolution(
     mock_from_tier: AsyncMock,
     _mock_driver: AsyncMock,
@@ -1068,8 +1066,8 @@ async def test_worker_synthesis_custom_directives_resolution(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_missing_variance_target_block_raises_configuration_error(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -1110,8 +1108,8 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
@@ -1146,8 +1144,8 @@ async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_extracts_user_role_from_target_block_deterministically(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:

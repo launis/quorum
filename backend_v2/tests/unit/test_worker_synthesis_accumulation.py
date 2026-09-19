@@ -27,17 +27,16 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
+        "model_registry_id": "sys_1111222233334444",
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
-
     async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
         if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "model_strategy": "synthesis", "type": "logic"}
+            return {"id": "sp_1234567812345678", "type": "logic", "hook": "text_consolidation_hook"}
         return None
 
     mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
@@ -46,34 +45,30 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
             "id": "sp_1234567812345678",
             "slug": "synthesis_step",
             "name": {"translations": {"en": "Synth"}},
-            "model_strategy": "synthesis",
             "type": "logic",
             "hook": "text_consolidation_hook",
         }
     ]
+    profile = {
+        "provider": "mock_llm_99",
+        "model_name": "gemini-2.5-pro",
+        "temperature": 0.0,
+        "max_tokens": 1024,
+        "is_active": True,
+        "tpm_limit": 100000,
+        "rpm_limit": 1000,
+    }
     mock_repo.get_model_registry.return_value = {
-        "id": "cfg_1111111111111111",
+        "id": "sys_1111222233334444",
+        "name": "Default Test Registry",
         "type": "model_registry",
         "slug": "model_registry",
-        "models": {
-            "synthesis": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
-            "fast": {
-                "provider": "mock_llm_99",
-                "model_name": "gemini-2.5-pro",
-                "temperature": 0.0,
-                "max_tokens": 1024,
-                "is_active": True,
-                "tpm_limit": 100000,
-                "rpm_limit": 1000,
-            },
+        "default_provider": "vertex_ai",
+        "tier_definitions": {
+            "fast": profile,
+            "balanced": profile,
+            "deep": profile,
+            "reasoning": profile,
         },
     }
     mock_repo.get_all_prompt_blocks.return_value = [
@@ -117,8 +112,8 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
 
 
 @pytest.mark.asyncio
-@patch("backend_v2.worker.UnifiedWorkflowRepository")
-@patch("backend_v2.worker.get_driver", new_callable=AsyncMock)
+@patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository")
+@patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_accumulates_costs_monotonically(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
