@@ -347,7 +347,9 @@ async def test_mock_provider_defaults_to_none_mock_identity() -> None:
 
 
 @pytest.mark.asyncio
-async def test_fallback_snapshot_normalization(caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_fallback_snapshot_normalization(
+    caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Verify that date-pinned snapshots from the same family do NOT trigger fallback logging, while real fallbacks do."""
     import logging
 
@@ -398,4 +400,3 @@ async def test_fallback_snapshot_normalization(caplog: pytest.LogCaptureFixture,
         await provider.generate("hello", temperature=0.0, max_tokens=10)
 
     assert "LLM Fallback utilized" in caplog.text
-

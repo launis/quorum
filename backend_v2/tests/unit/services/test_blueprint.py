@@ -3341,17 +3341,15 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test contract 1: build_report_dto invokes zero update methods on exec_repo (Dumb Painter invariance)."""
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.workflow import Workflow
-    from backend_v2.models.dtos.atom_result import AtomResultDTO
     from backend_v2.models.dtos.trace import ExecutionMetadata
     from backend_v2.models.enums import BlockDataType, PromptBlockCategory, TargetBlockType
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.v2_core import (
         ExecutionRecord,
         ExecutionStatus,
         ExecutionStep,
-        ExecutionStepState,
         I18nText,
         OutputProfile,
     )
@@ -3456,18 +3454,14 @@ async def test_blueprint_variance_target_block_adherence(
     mock_repo_transformer: MagicMock,
 ) -> None:
     """Test contract 2: variance validation block renders correctly adhering to OutputProfile.variance_target_block."""
-    from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
     from backend_v2.models.dtos.trace import ExecutionMetadata
     from backend_v2.models.enums import (
-        BlockDataType,
-        PromptBlockCategory,
         TargetBlockType,
         XaiExtensionType,
     )
-    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.v2_core import (
         ExecutionRecord,
         ExecutionStatus,
@@ -3547,4 +3541,3 @@ async def test_blueprint_variance_target_block_adherence(
     assert report is not None
     assert len(report.inner_sdui_blocks) > 0
     assert profile.variance_target_block == variance_target_id
-

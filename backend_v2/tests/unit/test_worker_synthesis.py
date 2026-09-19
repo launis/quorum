@@ -102,7 +102,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
-                "historical_context_mode": "DISABLED",
+        "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "model_registry_id": "sys_1111222233334444",
@@ -112,7 +112,12 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
         if b_id == "sp_1234567812345678":
-            return {"id": "sp_1234567812345678", "cognitive_tier": "fast", "type": "logic", "hook": "text_consolidation_hook"}
+            return {
+                "id": "sp_1234567812345678",
+                "cognitive_tier": "fast",
+                "type": "logic",
+                "hook": "text_consolidation_hook",
+            }
         return None
 
     mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
@@ -223,7 +228,7 @@ def _setup_mock_repo_for_metrics(
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "status": "draft",
-                "historical_context_mode": "DISABLED",
+        "historical_context_mode": "DISABLED",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "model_registry_id": "sys_1111222233334444",

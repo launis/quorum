@@ -2566,11 +2566,7 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
             dynamic_inputs={},
         ),
         global_context_vars=GlobalContextVarsDTO(
-            vars={
-                "__GLOBAL_ATOM_BLACKBOARD__": {
-                    "atoms_by_input": {"doc_a": []}
-                }
-            }
+            vars={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_a": []}}}
         ),
     )
     gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state)
@@ -2578,4 +2574,3 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
     assert "atm_1" in dag_results
     assert "atm_2" in dag_results
     assert "__GLOBAL_ATOM_BLACKBOARD__" in gvars
-

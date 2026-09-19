@@ -431,4 +431,3 @@ def test_gpt_5_4_reasoning_effort_mappings() -> None:
     )
     assert res_high["reasoning_effort"] == "high"
     assert "temperature" not in res_high
-

@@ -34,6 +34,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "expected_inputs": [],
         "steps": [{"id": "sr_1234567812345678", "task_blueprint": "sp_1234567812345678"}],
     }
+
     async def mock_get_step_by_id(b_id: str) -> dict[str, Any] | None:
         if b_id == "sp_1234567812345678":
             return {"id": "sp_1234567812345678", "type": "logic", "hook": "text_consolidation_hook"}

@@ -3,7 +3,6 @@
 Enforces Tripartite Phase Isolation, Four-Tier Pydantic V2 Invariants, and failure containment.
 """
 
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -18,7 +17,6 @@ from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.report_artifact import (
     ReportArtifactCreateDTO,
-    ReportArtifactUpdateDTO,
     ReportMetadataDTO,
     ReportStoragePathsDTO,
 )
@@ -200,9 +198,7 @@ async def test_process_artifact_compilation_success(monkeypatch: pytest.MonkeyPa
 
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
-    service = ReportService(
-        repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service
-    )
+    service = ReportService(repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service)
     await service.process_artifact_compilation(report.id)
 
     assert storage.save.call_count == 4

@@ -3061,6 +3061,3 @@ async def test_stream_status_handles_app_exception_interrupted() -> None:
     assert len(events) == 1
     assert "event: error" in events[0]
     assert "SSE_STREAM_INTERRUPTED" in events[0]
-
-
-

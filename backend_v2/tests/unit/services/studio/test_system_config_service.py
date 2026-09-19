@@ -485,4 +485,3 @@ async def test_save_mcp_gateways_id_mismatch_updates_id(
     target_id = "sys_1122334455667788"
     res = await service.save_mcp_gateways(root_token, target_id, gw)
     assert res.id == target_id
-

@@ -450,7 +450,7 @@ async def test_from_tier_one_shot_execution_profile(
 
 @pytest.mark.asyncio
 @patch("backend_v2.llm.provider.LLMFactory.create_provider")
-async def test_client_run_chat_success(mock_create_provider: MagicMock) -> None:
+async def test_client_run_chat_raw_content_success(mock_create_provider: MagicMock) -> None:
     """Verify run_chat executes successfully and returns raw string content."""
     mock_provider = AsyncMock()
     mock_response = MagicMock()
@@ -630,4 +630,3 @@ async def test_safety_filter_triggered(mock_create_provider: MagicMock) -> None:
             messages=[{"role": "user", "content": "Hi"}],
             response_model=DummyStrictModel,
         )
-

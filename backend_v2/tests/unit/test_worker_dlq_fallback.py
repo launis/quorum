@@ -17,7 +17,9 @@ async def test_render_profile_job_catches_service_unavailable_error() -> None:
     accept_language = "fi"
     profile_id = "prof_456"
 
-    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock) as mock_generate:
+    with patch(
+        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock
+    ) as mock_generate:
         # Simulate the TaskGroup crash from Vertex AI rate limits
         mock_generate.side_effect = ServiceUnavailableError("Model provider rate limit exceeded")
 

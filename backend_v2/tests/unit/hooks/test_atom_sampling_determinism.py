@@ -1,6 +1,5 @@
 """Unit tests for atom sampling determinism and boundary value analysis."""
 
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest

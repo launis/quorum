@@ -411,7 +411,9 @@ async def test_generate_pdf_job_exception() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_success() -> None:
     """Verify render_profile_job calls generate_profile_synthesis_and_pdf_task and returns success string."""
-    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock) as mock_task:
+    with patch(
+        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", new_callable=AsyncMock
+    ) as mock_task:
         ctx = {"redis": AsyncMock()}
         res = await render_profile_job(ctx, "exe_1234567890123456", "en-US", "prof_1111222233334444")
         assert res == "Render Job Completed for exe_1234567890123456"
@@ -421,7 +423,9 @@ async def test_render_profile_job_success() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_cancelled() -> None:
     """Negative test: verify render_profile_job handles cancellation gracefully with DLQ."""
-    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=asyncio.CancelledError):
+    with patch(
+        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=asyncio.CancelledError
+    ):
         res = await render_profile_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -429,7 +433,10 @@ async def test_render_profile_job_cancelled() -> None:
 @pytest.mark.asyncio
 async def test_render_profile_job_exception() -> None:
     """Negative test: verify render_profile_job routes generic exception to DLQ."""
-    with patch("backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task", side_effect=ValueError("Invalid profile")):
+    with patch(
+        "backend_v2.workers.report_worker.generate_profile_synthesis_and_pdf_task",
+        side_effect=ValueError("Invalid profile"),
+    ):
         res = await render_profile_job({}, "exe_1234567890123456")
         assert res == {"_dlq_status": "FAILED/DLQ"}
 
@@ -523,7 +530,9 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 },
             }
 
-            with patch("backend_v2.workers.report_worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")):
+            with patch(
+                "backend_v2.workers.report_worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")
+            ):
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1
@@ -626,12 +635,14 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 "steps": [],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
             mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
-            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
+            ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": "Data"})
                 )
@@ -692,11 +703,13 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
                 "steps": [],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
             }
             mock_repo.get_all_prompt_blocks.return_value = []
 
-            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
+            ) as mock_distiller:
                 mock_distiller.return_value = MagicMock(state_delta={"distilled_inputs": "Data"})
                 with pytest.raises(AppException):
                     await generate_profile_synthesis_and_pdf_task(
@@ -808,11 +821,13 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "steps": [],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
                 "default_strictness_level": 50,
             }
 
-            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
+            ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
                     state_delta=HookDeltaDTO(
@@ -967,7 +982,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
                 "steps": [],
                 "historical_context_mode": "DISABLED",
                 "default_profile_id": "prof_1111222233334444",
-        "model_registry_id": "sys_1111222233334444",
+                "model_registry_id": "sys_1111222233334444",
                 "default_strictness_level": 85,
             }
 
@@ -1031,7 +1046,9 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 
             mock_repo.get_model_registry.return_value = _get_base_model_registry_dict()
 
-            with patch("backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock) as mock_distiller:
+            with patch(
+                "backend_v2.workers.synthesis_worker.synthesis_distiller_hook", new_callable=AsyncMock
+            ) as mock_distiller:
                 mock_distiller.return_value = HookResult(
                     success=True,
                     state_delta=HookDeltaDTO(
@@ -1509,8 +1526,6 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     call_payload = update_calls[0]
     assert call_payload.dag_cost_usd == 1.0
     assert call_payload.cost_estimate >= 1.0
-
-
 
 
 def _get_base_workflow_dict() -> dict[str, Any]:

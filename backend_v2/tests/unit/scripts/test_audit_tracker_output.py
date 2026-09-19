@@ -518,10 +518,7 @@ def test_plan_mode_step_format_missing_components() -> None:
     assert any("Missing `**Plan:** @[...]` reference" in f.message for f in findings_no_plan)
 
     no_exec = (
-        "## Step Execution Status\n\n"
-        "**Plan:** @[plan.md]\n"
-        "  - [ ] Step 1\n"
-        "- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
+        "## Step Execution Status\n\n**Plan:** @[plan.md]\n  - [ ] Step 1\n- [ ] **[NOK] Audit:** `/tier8-audit-plan`\n"
     )
     findings_no_exec = check_step_format(no_exec)
     assert any("Missing mandatory `Execution:` step line" in f.message for f in findings_no_exec)
@@ -549,11 +546,11 @@ def test_plan_mode_traceability_mapping_forward_and_reverse(tmp_path: Path) -> N
     """Verify bidirectional mapping between single plan file steps and tracker matrix."""
     plan_file = tmp_path / "test_plan.md"
     plan_file.write_text(
-        '<execution_protocol>\n'
+        "<execution_protocol>\n"
         '  <step id="1" name="Base">\n'
         '  <step id="2.1" name="Sub">\n'
         '  <step id="3" name="Extra">\n'
-        '</execution_protocol>\n',
+        "</execution_protocol>\n",
         encoding="utf-8",
     )
 
@@ -568,10 +565,7 @@ def test_plan_mode_traceability_mapping_forward_and_reverse(tmp_path: Path) -> N
     assert "Cannot find Requirements Traceability Matrix content" in errs[0].message
 
     tracker_with_missing_step = (
-        "## Requirements Traceability Matrix\n"
-        "| REQ-1 | Step 1 |\n"
-        "| REQ-2 | Step 2.1 |\n\n"
-        "# Session Handover Context\n"
+        "## Requirements Traceability Matrix\n| REQ-1 | Step 1 |\n| REQ-2 | Step 2.1 |\n\n# Session Handover Context\n"
     )
     errs, warns = check_traceability_mapping_plan(tracker_with_missing_step, plan_file)
     assert len(errs) == 1
