@@ -3015,13 +3015,13 @@ async def test_blueprint_transformer_mcp_gateway_resolution(
         id="wf_0000000000000001",
         slug="wf-test",
         organization_id="org_0000000000000001",
+        model_registry_id="cfg_model_registry_01",
         default_profile_id=profile.id,
         mcp_gateway_id="sys_8172bda70c8641c5",
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
         status="active",
         version=1,
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         steps=[],
     )
@@ -3154,12 +3154,12 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         id="wf_0000000000000002",
         slug="wf-override",
         organization_id="org_0000000000000001",
+        model_registry_id="cfg_model_registry_01",
         default_profile_id=profile.id,
         name=I18nText(translations={"en": "Workflow"}),
         description=I18nText(translations={"en": "Description"}),
         status="active",
         version=1,
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
         steps=[
@@ -3178,6 +3178,10 @@ async def test_blueprint_transformer_direct_results_and_human_overrides(mock_rep
         status=ExecutionStatus.PASSED,
         metadata=ExecutionMetadata(),
         step_states={"sr_0000000000000001": step_state},
+        prompt_tokens=100,
+        completion_tokens=50,
+        reasoning_tokens=20,
+        dag_cost_usd=0.05,
         execution_trace=[
             TraceEvent(
                 step_name="sr_0000000000000001",
@@ -3330,3 +3334,217 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
     assert eval_m2[0].block_id == pb_id
     assert row_key2 in all_parsed2
     assert all_parsed2[row_key2].score == 4.5
+
+
+@pytest.mark.asyncio
+async def test_blueprint_read_only_invokes_zero_repository_writes(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test contract 1: build_report_dto invokes zero update methods on exec_repo (Dumb Painter invariance)."""
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.atom_result import AtomResultDTO
+    from backend_v2.models.dtos.trace import ExecutionMetadata
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory, TargetBlockType
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        ExecutionStatus,
+        ExecutionStep,
+        ExecutionStepState,
+        I18nText,
+        OutputProfile,
+    )
+
+    profile = OutputProfile(
+        id="prf_0000000000000001",
+        slug="test-profile",
+        workflow_id="wf_0000000000000001",
+        name=I18nText(translations={"en": "Test Profile"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+    )
+
+    wf = Workflow(
+        id="wf_0000000000000001",
+        slug="wf-test",
+        organization_id="org_0000000000000001",
+        model_registry_id="cfg_model_registry_01",
+        default_profile_id=profile.id,
+        name=I18nText(translations={"en": "Workflow"}),
+        description=I18nText(translations={"en": "Description"}),
+        status="active",
+        version=1,
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+        steps=[
+            StepRule(
+                id="sr_0000000000000001",
+                task_blueprint="step_0000000000000001",
+                input_mappings={"text": "$inputs.doc"},
+            )
+        ],
+    )
+
+    from backend_v2.models.domain.matrix import MatrixScale
+
+    pb = MatrixPromptBlock(
+        id="blk_0000000000000001",
+        slug="test_matrix",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        is_evaluative=True,
+        label=I18nText(translations={"en": "Test Matrix"}),
+        description=I18nText(translations={"en": "Desc"}),
+        scales=[
+            MatrixScale(
+                score=1,
+                name=I18nText(translations={"en": "Scale 1"}),
+                ai_label="S1",
+            )
+        ],
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        metadata=ExecutionMetadata(),
+        step_states={
+            "sr_0000000000000001": ExecutionStep(
+                id="sr_0000000000000001",
+                label="Step 1",
+                status=ExecutionStatus.PASSED,
+                scorecard_atoms={},
+            )
+        },
+        prompt_tokens=50,
+        completion_tokens=25,
+        reasoning_tokens=10,
+        dag_cost_usd=0.01,
+        execution_trace=[],
+        target_locale="fi",
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.get_workflow.return_value = wf
+    mock_repo_transformer.get_execution.return_value = exec_record
+    mock_repo_transformer.get_all_prompt_blocks.return_value = [pb.model_dump()]
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
+    assert report is not None
+
+    # Pure Dumb Painter Invariance: Zero DB updates / mutations permitted
+    mock_repo_transformer.update_execution.assert_not_called()
+    assert hasattr(mock_repo_transformer, "update_execution")
+
+
+@pytest.mark.asyncio
+async def test_blueprint_variance_target_block_adherence(
+    mock_repo_transformer: MagicMock,
+) -> None:
+    """Test contract 2: variance validation block renders correctly adhering to OutputProfile.variance_target_block."""
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+    from backend_v2.models.dtos.trace import ExecutionMetadata
+    from backend_v2.models.enums import (
+        BlockDataType,
+        PromptBlockCategory,
+        TargetBlockType,
+        XaiExtensionType,
+    )
+    from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
+    from backend_v2.models.v2_core import (
+        ExecutionRecord,
+        ExecutionStatus,
+        I18nText,
+        OutputProfile,
+    )
+
+    variance_target_id = "blk_0000000000000001"
+    profile = OutputProfile(
+        id="prf_0000000000000002",
+        slug="variance-profile",
+        workflow_id="wf_0000000000000002",
+        name=I18nText(translations={"en": "Variance Profile"}),
+        content_blocks=[],
+        target_block_order=[TargetBlockType.VARIANCE_VALIDATION_BLOCK],
+        visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
+        variance_target_block=variance_target_id,
+    )
+
+    wf = Workflow(
+        id="wf_0000000000000002",
+        slug="wf-var",
+        organization_id="org_0000000000000001",
+        model_registry_id="cfg_model_registry_01",
+        default_profile_id=profile.id,
+        name=I18nText(translations={"en": "Workflow"}),
+        description=I18nText(translations={"en": "Description"}),
+        status="active",
+        version=1,
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+        steps=[],
+    )
+
+    cache = RenderedSynthesisCache(
+        section_syntheses={},
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.5,
+            performative_phrases_count=3.0,
+            variance_score=0.85,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+
+    exec_record = ExecutionRecord(
+        id="exe_0000000000000002",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        metadata=ExecutionMetadata(),
+        prompt_tokens=100,
+        completion_tokens=50,
+        reasoning_tokens=20,
+        dag_cost_usd=0.02,
+        execution_trace=[],
+        target_locale="fi",
+        profile_syntheses={profile.id: cache},
+    )
+
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.get_workflow.return_value = wf
+    mock_repo_transformer.get_execution.return_value = exec_record
+    mock_repo_transformer.get_all_prompt_blocks.return_value = []
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    report = await transformer.build_report_dto(exec_record.id, profile_id=profile.id, accept_language="fi")
+    assert report is not None
+    assert len(report.inner_sdui_blocks) > 0
+    assert profile.variance_target_block == variance_target_id
+

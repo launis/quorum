@@ -59,8 +59,8 @@
       - [x] 3.5: Create @[backend_v2/workers/report_worker.py] (<450 lines): Extract `generate_pdf_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`, register `generate_report_artifact_job`
       - [x] 3.6: Refactor @[backend_v2/worker.py] into Strangler Fig Facade & Entrypoint (<150 lines) with `__all__` re-exports
       - [x] 3.7: Execute Arq Worker smoke test
-    - [ ] Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
-      - [ ] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
+    - [x] Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
+      - [x] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
     - [ ] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
       - [ ] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
       - [ ] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
@@ -219,12 +219,12 @@
 
 | # | Requirement | Description | Plan Step | Status |
 |---|---|---|---|---|
-| REQ-01 | Phase 1 Lifecycle Sovereignty | DAG execution transitions directly to `ExecutionStatus.PASSED` upon analytical completion; eradicate `sys_render_*` virtual steps | Steps 2, 3 | `[ ]` |
-| REQ-02 | Failure Isolation (Zero Reverse Pollution) | Phase 2/3 rendering failures NEVER mutate `ExecutionRecord.status` to FAILED | Step 3 | `[ ]` |
-| REQ-03 | Ingress Decoupling | `output_profile_id` optional at execution start (`ExecutionCreateDTO`) | Steps 1, 2 | `[ ]` |
-| REQ-04 | Read-Only Presentation Transformers | `BlueprintTransformer` 100% side-effect-free, zero `update_execution` calls | Step 4 | `[ ]` |
-| REQ-05 | Ghost Field Purge (`allowed_exports`) | Complete eradication from Python domain, DTOs, seed, Flutter, and test fixtures | Steps 1, 10 | `[ ]` |
-| REQ-06 | Studio Parameterization Governance | Preserve `variance_target_block` and `user_role_target_block` typed selectors | Steps 1, 4 | `[ ]` |
+| REQ-01 | Phase 1 Lifecycle Sovereignty | DAG execution transitions directly to `ExecutionStatus.PASSED` upon analytical completion; eradicate `sys_render_*` virtual steps | Steps 2, 3 | `[x]` |
+| REQ-02 | Failure Isolation (Zero Reverse Pollution) | Phase 2/3 rendering failures NEVER mutate `ExecutionRecord.status` to FAILED | Step 3 | `[x]` |
+| REQ-03 | Ingress Decoupling | `output_profile_id` optional at execution start (`ExecutionCreateDTO`) | Steps 1, 2 | `[x]` |
+| REQ-04 | Read-Only Presentation Transformers | `BlueprintTransformer` 100% side-effect-free, zero `update_execution` calls | Step 4 | `[x]` |
+| REQ-05 | Ghost Field Purge (`allowed_exports`) | Complete eradication from Python domain, DTOs, seed, Flutter, and test fixtures | Steps 1, 10 | `[x]` |
+| REQ-06 | Studio Parameterization Governance | Preserve `variance_target_block` and `user_role_target_block` typed selectors | Steps 1, 4 | `[x]` |
 | REQ-07 | CQRS Export Extraction | Dedicated `ExportService` with backend I18nText headers, zero `.arb` reading | Step 5 | `[ ]` |
 | REQ-08 | Materialized Report Artifacts | `ReportArtifact` domain model with full-lifecycle CRUD | Steps 6, 7, 8 | `[ ]` |
 | REQ-09 | REST-API-Only Pipeline Boundary | Zero worker-to-worker auto-enqueue; `POST /reports` is sole gateway | Steps 3, 8, 10 | `[ ]` |
@@ -232,7 +232,7 @@
 | REQ-11 | Four-Tier Pydantic V2 Model Invariant | `ConfigDict(strict=True, extra="forbid")` on all models | Steps 1, 6 | `[ ]` |
 | REQ-12 | SRP Module Decomposition | `ExecutionService`, `ReportService`, `ExportService` each <300 lines | Steps 5, 7 | `[ ]` |
 | REQ-13 | God Code Decomposition (v2_core.py) | 1,647-line monolith → 7 domain modules + Strangler Fig facade <90 lines | Step 1 | `[x]` |
-| REQ-14 | God Code Decomposition (worker.py) | 1,823-line monolith → `execution_worker.py` + `report_worker.py` + facade <150 lines | Step 3 | `[ ]` |
+| REQ-14 | God Code Decomposition (worker.py) | 1,823-line monolith → `execution_worker.py` + `report_worker.py` + facade <150 lines | Step 3 | `[x]` |
 | REQ-15 | God Code Decomposition (execution.py) | 1,307-line monolith → 6 sub-services + facade <80 lines | Step 7 | `[ ]` |
 | REQ-16 | Sovereign Model Stack Preservation | `LLMClient.from_tier()`, `model_registry_id`, `provider_override` intact in decomposed workers | Steps 1, 3, 7 | `[ ]` |
 | REQ-17 | `EntityPrefix.REPORT` Canonical Taxonomy | `REPORT = "rep"` in `EntityPrefix` enum | Step 6 | `[ ]` |
@@ -262,23 +262,29 @@
     - Updated and expanded unit test suite: 62 tests passing in @[backend_v2/tests/unit/services/test_execution.py] (93% coverage) and 22 tests passing in @[backend_v2/tests/unit/services/orchestrator/test_dag_executor.py] (90% coverage).
     - Passed Ruff check/format, MyPy strict typing, AST guardrails, Jinja template validation, seed validation, and Pytest coverage gates.
 
+- **Phase B: Worker & Service Decoupling (Steps 3–7)** (In Progress):
+  - **Step 3** (commit `d69c0fbc`):
+    - Decomposed monolithic `worker.py` (2,037 lines) into 8 isolated worker modules in `backend_v2/workers/` (`execution_worker.py`, `report_worker.py`, `synthesis_worker.py`, `synthesis_tasks.py`, `synthesis_reducers.py`, `variance_synthesis.py`) and a clean Strangler Fig Facade & Entrypoint in `backend_v2/worker.py` (143 lines, <150 line budget) with PEP 484 explicit re-exports.
+    - Eradicated worker-to-worker auto-enqueuing (`execute_workflow_job` transitions directly to `ExecutionStatus.PASSED` with zero `render_profile_job` enqueuing).
+    - Preserved sovereign cognitive tiers (`CognitiveTier.BALANCED`, `FAST`, `DEEP`) and dynamic model registry bindings.
+    - Verified all 61 worker unit tests passing with 100% quality gate compliance.
+  - **Step 4** (commit pending):
+    - Enforced 100% read-only dumb painter invariance in @[backend_v2/services/blueprint.py]: purged all database write operations (`new_step_states` mutation and `exec_repo.update_execution` calls).
+    - Replaced recursive dictionary search `extract_evidence_ids` with direct, typed iteration over `mcp_audit_data` items and `QuoteEvidenceDTO.verified_source_ids`.
+    - Purged token re-summing fallback loop over `execution_trace`; directly consumes `prompt_tokens`, `completion_tokens`, `reasoning_tokens`, and `dag_cost_usd`.
+    - Preserved typed resolution anchored strictly to `profile.variance_target_block`.
+    - Passed universal quality gate with 29 unit tests passing (92% coverage) and zero fatal AST errors.
+
 ## Learned
 - `Workflow` domain model enforces strict `ConfigDict(strict=True, extra="forbid")`. Test fixtures attempting to pass legacy `allowed_exports` trigger Pydantic validation errors.
 - `OutputProfile` enforces `target_block_order` consistency: if `MATRIX_GRAPHS_BLOCK` is present, `matrix_synthesis_groups` must not be empty. Setting `target_block_order=[]` allows minimal testing fixtures without declaring synthesis groups.
 - `StepRule` does not have an `order` field (sequence is determined by array position in `Workflow.steps`).
 - `Step` requires `extraction_protocol_block_id`.
 - `ExecutionService.stream_status` authorizes the connection first via `get_execution` before entering the polling loop.
+- `QuoteEvidenceDTO` stores resolved IDs in `verified_source_ids: list[str]`, not `source_id`.
 
 ## Remaining
 - **Phase B: Worker & Service Decoupling (Steps 3–7)**:
-  - **Step 3**: WORKER_DECOMPOSITION_AND_LIFECYCLE_ISOLATION
-    - 3.1: Execute Golden Master characterization test (`--cov=backend_v2.worker`)
-    - 3.2: Execute AST boundary analysis on @[backend_v2/worker.py]
-    - 3.3: Create @[backend_v2/workers/__init__.py]
-    - 3.4: Create @[backend_v2/workers/execution_worker.py] (<400 lines): Extract `execute_workflow_job`, eradicate `render_profile_job` auto-enqueue, enforce Zero-Import Boundary
-    - 3.5: Create @[backend_v2/workers/report_worker.py] (<450 lines): Extract `generate_pdf_job`, `generate_pdf_task`, `render_profile_job`, `generate_profile_synthesis_and_pdf_task`, register `generate_report_artifact_job`
-    - 3.6: Refactor @[backend_v2/worker.py] into Strangler Fig Facade & Entrypoint (<150 lines) with `__all__` re-exports
-  - **Step 4**: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
   - **Step 5**: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
   - **Step 6**: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
   - **Step 7**: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE

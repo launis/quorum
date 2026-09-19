@@ -3,9 +3,8 @@
 import logging
 import re
 from collections.abc import Callable
-from typing import Any
 
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -19,16 +18,12 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.trace import (
-    ExecutionUpdateDTO,
-    TraceEventMetadataEnvelope,
-    TraceScoringPayloadDTO,
-)
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
 )
-from backend_v2.models.state import StateProjector
+from backend_v2.models.state import EvidenceOverrideDTO, StateProjector
 from backend_v2.models.v2_core import (
     AllowedMCPTool,
     AtomResultDTO,
@@ -114,7 +109,6 @@ class BlueprintTransformer:
         Returns:
             The redacted string.
         """
-        # Basic regex fallbacks. Can be replaced with Presidio later.
         text = re.sub(r"[\w\.-]+@[\w\.-]+", "[REDACTED EMAIL]", text)
         text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED PHONE]", text)
         return text
@@ -158,11 +152,16 @@ class BlueprintTransformer:
 
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
         mcp_gw_id = workflow_obj.mcp_gateway_id
-        if mcp_gw_id and isinstance(mcp_gw_id, str):
-            raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
-            if isinstance(raw_gateway, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                gateway_obj = SystemConfigMCPGateways.model_validate(raw_gateway, strict=False)
-                mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
+        if mcp_gw_id:
+            try:
+                raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
+                if isinstance(raw_gateway, SystemConfigMCPGateways):
+                    mcp_tools_map = {tool.tool_id: tool for tool in raw_gateway.tools}
+                elif raw_gateway is not None:
+                    gateway_obj = TypeAdapter(SystemConfigMCPGateways).validate_python(raw_gateway)
+                    mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
+            except ValidationError, TypeError, AttributeError:
+                pass
 
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
@@ -211,11 +210,14 @@ class BlueprintTransformer:
                 blocks_by_id[b.id] = b
 
         has_warning = False
-        scoring_out = None
+        scoring_dto: TraceScoringPayloadDTO | None = None
 
         for dto in results:
-            if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and isinstance(dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                scoring_out = dto.payload
+            if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and dto.payload:
+                try:
+                    scoring_dto = TypeAdapter(TraceScoringPayloadDTO).validate_python(dto.payload)
+                except ValidationError:
+                    pass
             if dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload:
                 has_warning = True
 
@@ -230,21 +232,18 @@ class BlueprintTransformer:
                     status_code=500,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
-            # Note: profile_cache.user_role_justification is internal English reasoning.
 
         if any(dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload for dto in results):
             has_warning = True
 
         global_score = None
         penalties_applied: list[str] = []
-        if isinstance(scoring_out, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
+        if scoring_dto is not None:
             try:
-                score_dto = TraceScoringPayloadDTO.model_validate(scoring_out)
-                t_score = score_dto.total_score
+                t_score = scoring_dto.total_score
                 global_score = float(round(float(t_score), 1)) if t_score is not None else None
-                raw_penalties = score_dto.penalties_applied
-                if isinstance(raw_penalties, list):
-                    for p in raw_penalties:
+                if scoring_dto.penalties_applied is not None:
+                    for p in scoring_dto.penalties_applied:
                         p_str = str(p)
                         if (
                             p_str in ("PENALTY_SECURITY", "PENALTY_POST_HOC", "PENALTY_PASSIVITY")
@@ -254,7 +253,6 @@ class BlueprintTransformer:
                         ):
                             penalties_applied.append(p_str)
                         else:
-                            # Enforce Zero-Compromise Check: fail fast on legacy/unsupported penalty format
                             msg_legacy = (
                                 f"Zero-Compromise Check Failed: Legacy or unsupported penalty string: '{p_str}'"
                             )
@@ -264,6 +262,8 @@ class BlueprintTransformer:
                                 status_code=500,
                                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                             )
+            except AppException:
+                raise
             except Exception as e:
                 logger.error(
                     "[BlueprintTransformer] %s: Scoring payload extraction failed: %s",
@@ -281,11 +281,13 @@ class BlueprintTransformer:
         rejected_evq_ids: set[str] = set()
         if execution.execution_trace:
             for ev in execution.execution_trace:
-                if ev.event_type == "evidence_override" and isinstance(ev.content, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                    if ev.content.get("user_rejected") is True:
-                        evq_id = ev.content.get("evq_id")
-                        if isinstance(evq_id, str):
-                            rejected_evq_ids.add(evq_id)
+                if ev.event_type == "evidence_override" and ev.content:
+                    try:
+                        override_dto = TypeAdapter(EvidenceOverrideDTO).validate_python(ev.content)
+                        if override_dto.user_rejected and override_dto.evq_id:
+                            rejected_evq_ids.add(override_dto.evq_id)
+                    except ValidationError:
+                        pass
 
         mcp_audit_map: dict[str, MCPAuditTrace] = {}
         if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
@@ -293,18 +295,22 @@ class BlueprintTransformer:
                 if trace.id:
                     mcp_audit_map[trace.id] = trace
 
-        v2_results: list[Any] = []
-        v2_hydrated_refs: dict[str, Any] = {}
+        v2_results: list[AtomResultDTO] = []
+        v2_hydrated_refs: dict[str, HydratedAtomDTO] = {}
 
         for dto in results:
-            if dto.block_id == "results" and isinstance(dto.payload, list):
-                for r_dict in dto.payload:
-                    if isinstance(r_dict, dict) and "tda_id" in r_dict:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        v2_results.append(AtomResultDTO.model_validate(r_dict))
-            elif dto.block_id == "hydrated_references" and isinstance(dto.payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                for k, v_dict in dto.payload.items():
-                    if isinstance(v_dict, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        v2_hydrated_refs[k] = HydratedAtomDTO.model_validate(v_dict)
+            if dto.block_id == "results" and dto.payload:
+                try:
+                    parsed_atoms = TypeAdapter(list[AtomResultDTO]).validate_python(dto.payload)
+                    v2_results.extend(parsed_atoms)
+                except ValidationError:
+                    pass
+            elif dto.block_id == "hydrated_references" and dto.payload:
+                try:
+                    parsed_refs = TypeAdapter(dict[str, HydratedAtomDTO]).validate_python(dto.payload)
+                    v2_hydrated_refs.update(parsed_refs)
+                except ValidationError:
+                    pass
 
         workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
         expected_inputs_list = workflow_obj.expected_inputs if workflow_obj.expected_inputs else []
@@ -321,7 +327,7 @@ class BlueprintTransformer:
             evaluative_matrices,
             informational_matrices,
             all_parsed_matrices,
-            step_scorecard_atoms,
+            _step_scorecard_atoms,
         ) = MatrixDomainParser.parse_matrices(
             results=results,
             locale=locale,
@@ -339,63 +345,11 @@ class BlueprintTransformer:
             expected_inputs_map=expected_inputs_map,
         )
 
-        modified_step_states = False
-        new_step_states = dict(execution.step_states)
-        for step_id, atoms_dict in step_scorecard_atoms.items():
-            if step_id in new_step_states:
-                updated_atoms = {}
-                for atom_id, s_atom in atoms_dict.items():
-                    existing_atom = new_step_states[step_id].scorecard_atoms.get(atom_id)
-                    if existing_atom and existing_atom.human_override:
-                        s_atom = s_atom.model_copy(update={"human_override": existing_atom.human_override})
-                    updated_atoms[atom_id] = s_atom
-
-                new_step_states[step_id] = new_step_states[step_id].model_copy(
-                    update={"scorecard_atoms": updated_atoms}
-                )
-                modified_step_states = True
-
-        if modified_step_states:
-            execution = execution.model_copy(update={"step_states": new_step_states})
-            await self.exec_repo.update_execution(execution.id, ExecutionUpdateDTO(step_states=new_step_states))
-
         p_tokens = int(execution.prompt_tokens)
         c_tokens = int(execution.completion_tokens)
         r_tokens = int(execution.reasoning_tokens)
         t_tokens = p_tokens + c_tokens + r_tokens
         total_exec_cost = float(execution.dag_cost_usd)
-
-        # Fail-safe: If DAG cost or tokens are 0 on execution record, extract directly from execution_trace events
-        if (total_exec_cost == 0.0 or t_tokens == 0) and execution.execution_trace:
-            trace_p = 0
-            trace_c = 0
-            trace_r = 0
-            trace_t = 0
-            trace_cost = 0.0
-            for ev in execution.execution_trace:
-                if not ev.content:
-                    continue
-                try:
-                    envelope = TraceEventMetadataEnvelope.model_validate(ev.content)
-                    if envelope.step_metadata and envelope.step_metadata.token_usage:
-                        u = envelope.step_metadata.token_usage
-                        trace_p += u.prompt_tokens
-                        trace_c += u.completion_tokens
-                        trace_r += u.reasoning_tokens
-                        trace_t += u.total_tokens
-                        trace_cost += u.cost_usd
-                except ValidationError, ValueError:
-                    pass
-
-            if trace_cost > 0.0 or trace_t > 0:
-                if total_exec_cost == 0.0:
-                    total_exec_cost = trace_cost
-                if t_tokens == 0:
-                    p_tokens = trace_p
-                    c_tokens = trace_c
-                    r_tokens = trace_r
-                    t_tokens = trace_t
-
         total_exec_tokens = t_tokens
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens
@@ -424,7 +378,7 @@ class BlueprintTransformer:
             try:
                 user_obj = await self.identity_repo.get_user(execution.created_by)
                 if user_obj:
-                    user_model = user_obj if isinstance(user_obj, User) else User.model_validate(user_obj)
+                    user_model = TypeAdapter(User).validate_python(user_obj)
                     user_name = user_model.name
             except Exception as u_err:
                 msg_err = f"Failed to resolve user name for id {execution.created_by}"
@@ -454,39 +408,26 @@ class BlueprintTransformer:
                         seen_audits.add(audit_hash)
                         mcp_audit_data.append(audit)
 
-            # Phase 2.3: Reverse Lookup Mapping for MCP Audit Traces
+            # Reverse Lookup Mapping for MCP Audit Traces
             if mcp_audit_data:
                 evidence_to_axes: dict[str, set[str]] = {}
-
-                def extract_evidence_ids(payload_data: Any, b_id: str) -> None:
-                    if isinstance(payload_data, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                        if "source_id" in payload_data and isinstance(payload_data["source_id"], str):
-                            evidence_to_axes.setdefault(payload_data["source_id"], set()).add(b_id)
-                        if "used_evidence_ids" in payload_data and isinstance(payload_data["used_evidence_ids"], list):
-                            for e_id in payload_data["used_evidence_ids"]:
-                                if isinstance(e_id, str):
-                                    evidence_to_axes.setdefault(e_id, set()).add(b_id)
-                        if "used_mcp_ids" in payload_data and isinstance(payload_data["used_mcp_ids"], list):
-                            for e_id in payload_data["used_mcp_ids"]:
-                                if isinstance(e_id, str):
-                                    evidence_to_axes.setdefault(e_id, set()).add(b_id)
-                        for val in payload_data.values():
-                            extract_evidence_ids(val, b_id)
-                    elif isinstance(payload_data, list):
-                        for item in payload_data:
-                            extract_evidence_ids(item, b_id)
-
-                for dto in results:
-                    extract_evidence_ids(dto.payload, dto.block_id)
-
                 block_to_axis = {matrix_row.block_id: matrix_row.name for matrix_row in all_parsed_matrices.values()}
+
+                for matrix_row in all_parsed_matrices.values():
+                    for ev_id in matrix_row.used_evidence_ids:
+                        evidence_to_axes.setdefault(ev_id, set()).add(matrix_row.block_id)
+                    for atom in matrix_row.evaluated_atoms:
+                        for q in atom.exact_quotes:
+                            for src_id in q.verified_source_ids:
+                                evidence_to_axes.setdefault(src_id, set()).add(matrix_row.block_id)
 
                 for idx, audit in enumerate(mcp_audit_data):
                     if audit.id in evidence_to_axes:
-                        axis_names = set()
-                        for block_id in evidence_to_axes[audit.id]:
-                            if block_id in block_to_axis:
-                                axis_names.add(block_to_axis[block_id])
+                        axis_names = {
+                            block_to_axis[block_id]
+                            for block_id in evidence_to_axes[audit.id]
+                            if block_id in block_to_axis
+                        }
                         mcp_audit_data[idx] = audit.model_copy(update={"impacted_axis_names": sorted(list(axis_names))})
 
             strictness_level = workflow_obj.default_strictness_level
