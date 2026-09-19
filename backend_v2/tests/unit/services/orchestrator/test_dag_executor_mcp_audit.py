@@ -46,8 +46,8 @@ def mock_compiler() -> Any:
 def workflow_fixture() -> Workflow:
     step = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     return Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         id="wor_1111222233334444",
         slug="wf_mcp_audit_test",
         status="draft",

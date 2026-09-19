@@ -128,7 +128,7 @@ async def test_system_repo(mock_driver: AsyncMock) -> None:
     from backend_v2.exceptions import ResourceNotFoundError
 
     with pytest.raises(ResourceNotFoundError):
-        await repo.get_model_registry()
+        await repo.get_model_registry("cfg_missing")
 
 
 @pytest.mark.asyncio

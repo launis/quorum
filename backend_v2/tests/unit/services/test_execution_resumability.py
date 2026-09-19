@@ -67,6 +67,7 @@ async def test_check_resumability_allows_zero_outputs() -> None:
     record.workflow_id = "wf_1"
     record.organization_id = "org_1"
     record.metadata = {"workflow_version": 1}
+    record.workflow_version = 1
     record.step_states = {"step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock()}
     record.execution_trace = [TraceEvent(step_name="inputs", event_type="input", content={})]
 
@@ -106,6 +107,7 @@ async def test_check_resumability_allows_sys_render_virtual_steps() -> None:
     record.workflow_id = "wf_1"
     record.organization_id = "org_1"
     record.metadata = {"workflow_version": 1}
+    record.workflow_version = 1
     record.step_states = {
         "step_0dfb0101e4714c58bb0d4b430b4b81e3": Mock(),
         "sys_render_prof_1": Mock(),
@@ -145,6 +147,7 @@ async def test_check_resumability_structural_mismatch() -> None:
     record.status = ExecutionStatus.FAILED
     record.workflow_id = "wf_1"
     record.metadata = {}
+    record.workflow_version = 1
     record.execution_trace = [
         TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
     ]
@@ -187,6 +190,7 @@ async def test_check_resumability_workflow_version_drift() -> None:
     record.status = ExecutionStatus.FAILED
     record.workflow_id = "wf_1"
     record.metadata = {"workflow_version": 1}
+    record.workflow_version = 1
     record.execution_trace = [
         TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
     ]
@@ -228,6 +232,7 @@ async def test_check_resumability_quota_exceeded() -> None:
     record.workflow_id = "wf_1"
     record.organization_id = "org_1"
     record.metadata = {"workflow_version": 1}
+    record.workflow_version = 1
     record.execution_trace = [
         TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
     ]
@@ -270,6 +275,7 @@ async def test_check_resumability_successful_resumption() -> None:
     record.workflow_id = "wf_1"
     record.organization_id = "org_1"
     record.metadata = {"workflow_version": 1}
+    record.workflow_version = 1
     record.execution_trace = [
         TraceEvent(step_name="step_0dfb0101e4714c58bb0d4b430b4b81e3", event_type="output", content={})
     ]

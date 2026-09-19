@@ -54,13 +54,13 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="sys_e26807f3bfa3454d",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",
         version=1,
-        default_profile_id="prof_1234567890abcde",
+        default_profile_id="prof_1234567890abcdef",
         name=I18nText(translations={"en": "test"}),
         description=I18nText(translations={"en": "test"}),
         steps=[
@@ -77,9 +77,8 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
 
     mock_repo.get_execution.return_value = None
 
-    mock_repo.get_system_config_model_registry = AsyncMock()
     model_registry_data = SystemConfigModelRegistry(
-        id="sys_1234567890abcdef",
+        id="sys_e26807f3bfa3454d",
         type="model_registry",
         slug="models",
         name="Test Stack",
@@ -101,6 +100,7 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
     mock_repo.get_system_config_model_registry.return_value = model_registry_data
     mock_repo.get_model_registry = AsyncMock()
     mock_repo.get_model_registry.return_value = model_registry_data
+    mock_repo.get_all_model_registries.return_value = [model_registry_data]
     mock_repo.get_step_by_id.return_value = {
         "id": "blp_1234567890abcdef",
         "slug": "test_step",

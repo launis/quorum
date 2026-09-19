@@ -56,8 +56,8 @@ def _build_mock_deps() -> HookDependencies:
         "organization_id": "org_0123456789abcdef01",
         "default_profile_id": "pro_0123456789abcdef01",
         "steps": [],
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
     }
     cast(AsyncMock, deps.exec_repo.get_execution).return_value = {
         "id": "exe_0123456789abcdef01",
@@ -511,8 +511,8 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
                 "is_synthesis_source": True,
             },
         ],
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
     }
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = [
         {

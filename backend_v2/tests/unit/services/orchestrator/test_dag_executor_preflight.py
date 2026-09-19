@@ -47,8 +47,8 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",
@@ -96,8 +96,8 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",
@@ -155,8 +155,8 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",
@@ -220,8 +220,8 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",
@@ -282,8 +282,8 @@ async def test_dag_executor_preflight_ignores_system_keys(mock_repo: MagicMock, 
     from backend_v2.models.v2_core import ExecutionRecord
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         id="wf_1234567890abcdef",
         slug="test",
         status="draft",

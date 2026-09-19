@@ -131,7 +131,6 @@ def _valid_workflow(
         expected_inputs=[],
         steps=[],
         default_profile_id="prf_0123456789abcdef",
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
         model_registry_id=model_registry_id,
     )

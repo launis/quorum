@@ -182,20 +182,20 @@ def test_settings_tda_concept_min_length_defined() -> None:
 
 
 def test_ast_matrix_claim_has_no_ai_description_field() -> None:
-    """Verify MatrixClaim class in v2_core.py AST does not define ai_description."""
-    model_path = Path("backend_v2/models/v2_core.py")
-    assert model_path.exists(), "v2_core.py must exist"
+    """Verify MatrixClaim class in domain/matrix.py AST does not define ai_description."""
+    model_path = Path("backend_v2/models/domain/matrix.py")
+    assert model_path.exists(), "matrix.py must exist"
     with open(model_path, encoding="utf-8") as f:
         tree = ast.parse(f.read(), filename=str(model_path))
 
     has_ai_desc = scan_class_for_field(tree, "MatrixClaim", "ai_description")
-    assert not has_ai_desc, "MatrixClaim in v2_core.py must NOT define ai_description"
+    assert not has_ai_desc, "MatrixClaim in matrix.py must NOT define ai_description"
 
 
 def test_ast_tda_assertion_has_string_constraints_min_length_10() -> None:
     """Verify TDAAssertion.concept_description enforces min_length=10 via AST."""
-    model_path = Path("backend_v2/models/v2_core.py")
-    assert model_path.exists(), "v2_core.py must exist"
+    model_path = Path("backend_v2/models/domain/matrix.py")
+    assert model_path.exists(), "matrix.py must exist"
     with open(model_path, encoding="utf-8") as f:
         tree = ast.parse(f.read(), filename=str(model_path))
 

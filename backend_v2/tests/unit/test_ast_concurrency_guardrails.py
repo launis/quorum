@@ -85,8 +85,7 @@ def test_ast_taskgroup_guardrail() -> None:
     base = Path("backend_v2")
     files = [
         base / "services" / "orchestrator" / "dag_executor.py",
-        base / "worker.py",
-        base / "services" / "execution.py",
+        base / "workers" / "synthesis_worker.py",
     ]
     for path in files:
         if path.exists():
@@ -97,8 +96,8 @@ def test_ast_taskgroup_guardrail() -> None:
 def test_ast_enqueue_job_guardrail() -> None:
     base = Path("backend_v2")
     files = [
-        base / "worker.py",
-        base / "services" / "execution.py",
+        base / "workers" / "synthesis_worker.py",
+        base / "services" / "execution" / "ingress_service.py",
     ]
     for path in files:
         if path.exists():

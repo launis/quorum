@@ -10,6 +10,7 @@ from backend_v2.database.driver import StorageDriver
 from backend_v2.database.repositories.components.task_blueprint import TaskBlueprintRepositoryImpl
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.enums import CognitiveTier
 from backend_v2.models.v2_core import Step
 
 
@@ -38,7 +39,7 @@ def sample_step() -> Step:
         id="stp_1234567890abcdef",
         slug="step_guard",
         name=I18nText(translations={"en": "Guard Step", "fi": "Suojavaihe"}),
-        model_strategy="fast",
+        cognitive_tier=CognitiveTier.FAST,
         criteria_block_ids=["blk_1234567890abcdef"],
         extraction_protocol_block_id="blk_1234567890abcdef",
     )

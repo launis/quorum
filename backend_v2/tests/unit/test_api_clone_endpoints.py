@@ -55,8 +55,8 @@ def mock_studio_service() -> AsyncMock:
     service = AsyncMock()
     # Configure mock returns for cloning
     service.clone_workflow.return_value = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         id="wf_3333333333333333",
         slug="test_wf_3333333333333333",
         status="draft",
@@ -70,7 +70,7 @@ def mock_studio_service() -> AsyncMock:
         slug="test_step_clone",
         name=I18nText(translations={"en": "Step (Copy)", "fi": "Step (Copy)"}),
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier="fast",
         role_block_id=None,
         extraction_protocol_block_id="blk_573802341db9d68c",
         criteria_block_ids=["blk_0123456789abcdef"],
@@ -83,11 +83,20 @@ def mock_studio_service() -> AsyncMock:
         category_id=PromptBlockCategory.SYSTEM_RULE,
         type=BlockDataType.STRING,
     )
+    from backend_v2.models.domain.system_config import ModelProfile
+    from backend_v2.models.enums import CognitiveTier
+
+    dummy_profile = ModelProfile(provider="vertex_ai", model_name="gemini-1.5-flash")
     service.clone_system_config.return_value = SystemConfigModelRegistry(
         id="sys_1111111111111112",
         slug="test_sys_clone",
         type="model_registry",
-        models={},
+        tier_definitions={
+            CognitiveTier.FAST: dummy_profile,
+            CognitiveTier.BALANCED: dummy_profile,
+            CognitiveTier.DEEP: dummy_profile,
+            CognitiveTier.REASONING: dummy_profile,
+        },
     )
     service.clone_mcp_gateways.return_value = SystemConfigMCPGateways(
         id="mcp_1111111111111112",

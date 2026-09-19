@@ -14,8 +14,8 @@ from pathlib import Path
 
 def test_ast_tda_assertion_contrastive_example() -> None:
     """Verify that TDAAssertion.contrastive_example is strictly annotated as ContrastivePairDTO | None."""
-    v2_core_path = Path("backend_v2/models/v2_core.py")
-    tree = ast.parse(v2_core_path.read_text(encoding="utf-8"))
+    matrix_path = Path("backend_v2/models/domain/matrix.py")
+    tree = ast.parse(matrix_path.read_text(encoding="utf-8"))
 
     tda_class: ast.ClassDef | None = None
     for node in ast.walk(tree):
@@ -23,7 +23,7 @@ def test_ast_tda_assertion_contrastive_example() -> None:
             tda_class = node
             break
 
-    assert tda_class is not None, "TDAAssertion class not found in v2_core.py"
+    assert tda_class is not None, "TDAAssertion class not found in matrix.py"
 
     contrastive_field: ast.AnnAssign | None = None
     for stmt in tda_class.body:

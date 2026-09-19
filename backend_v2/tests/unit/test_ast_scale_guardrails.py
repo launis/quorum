@@ -44,12 +44,12 @@ def test_prompt_block_has_no_scale_min_or_max() -> None:
 
 
 def test_output_profile_has_custom_scale_bounds() -> None:
-    """AST Guardrail: OutputProfile in v2_core.py MUST have custom_scale_min and custom_scale_max fields."""
-    v2_core_path = Path("backend_v2/models/v2_core.py")
-    assert v2_core_path.exists(), f"File {v2_core_path} does not exist"
+    """AST Guardrail: OutputProfile in domain/output_profile.py MUST have custom_scale_min and custom_scale_max fields."""
+    profile_path = Path("backend_v2/models/domain/output_profile.py")
+    assert profile_path.exists(), f"File {profile_path} does not exist"
 
-    class_node = _get_class_node_from_file(v2_core_path, "OutputProfile")
-    assert class_node is not None, "OutputProfile class not found in v2_core.py"
+    class_node = _get_class_node_from_file(profile_path, "OutputProfile")
+    assert class_node is not None, "OutputProfile class not found in output_profile.py"
 
     field_names: set[str] = set()
     for stmt in class_node.body:

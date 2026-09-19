@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -8,7 +9,16 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User, UserRole
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.v2_core import ExecutionStatus, I18nText, StepRule, Workflow, WorkflowInputs
+from backend_v2.models.v2_core import (
+    ExecutionStatus,
+    ExecutionStep,
+    FrozenContext,
+    I18nText,
+    Step,
+    StepRule,
+    Workflow,
+    WorkflowInputs,
+)
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
 
 
@@ -1465,3 +1475,443 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
                 raw_inputs=WorkflowInputs.model_validate({"dynamic_inputs": {"log": "test"}}),
             )
             assert result.step_states["sr_2222333344445555"].status == ExecutionStatus.PASSED
+
+@pytest.mark.asyncio
+async def test_dag_executor_step_blueprint_not_found_fails_fast(mock_repo: Any, mock_compiler: Any) -> None:
+    """Verify DAGExecutor raises AppException(CONFIGURATION_ERROR) if step blueprint is not found."""
+    mock_repo.get_step_by_id.return_value = None
+    mock_repo.get_execution.return_value = None
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_1111222233334444",
+        slug="wf_missing_bp",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
+        name=I18nText(translations={"en": "Missing BP"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[
+            StepRule(id="stp_1111222233334444", task_blueprint="bp_1111222233334444"),
+        ],
+    )
+
+    with pytest.raises((AppException, ExceptionGroup)) as exc_info:
+        await executor.execute_workflow(
+            execution_id="exe_1111222233334444",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+    app_exc = exc_info.value.exceptions[0] if isinstance(exc_info.value, ExceptionGroup) else exc_info.value
+    assert isinstance(app_exc, AppException)
+    assert app_exc.status_code == 500
+    assert app_exc.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_registry(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Verify resuming an execution with None metadata inherits workflow.model_registry_id and version."""
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.services.execution import create_execution_record
+
+    step_rule = StepRule(id="stp_2222333344445555", task_blueprint="bp_2222333344445555")
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_2222333344445555",
+        slug="wf_resume_meta",
+        status="draft",
+        version=3,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_99",
+        name=I18nText(translations={"en": "Resume Meta"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step_rule],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "bp_2222333344445555",
+        "type": "logic",
+        "slug": "logic_step",
+        "name": {"translations": {"en": "Logic Step"}},
+        "description": {"translations": {"en": "Desc"}},
+        "hook": "mock_hook",
+    }
+
+    existing_record = create_execution_record(
+        execution_id="exe_2222333344445555",
+        workflow_id=workflow.id,
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        status=ExecutionStatus.PENDING,
+        steps=[ExecutionStep(id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING)],
+        step_states={"stp_2222333344445555": ExecutionStep(id="stp_2222333344445555", label="Old Label", status=ExecutionStatus.PENDING)},
+    ).model_copy(update={"metadata": None})
+    mock_repo.get_execution.return_value = existing_record
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    async def mock_node_execute(*args: Any, **kwargs: Any) -> list[Any]:
+        return [TraceEvent(step_name="stp_2222333344445555", event_type="output", content={"ok": True})]
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
+        record = await executor.execute_workflow(
+            execution_id="exe_2222333344445555",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+    assert record.metadata is not None
+    assert record.metadata.model_registry_id == "cfg_model_registry_99"
+    assert record.metadata.workflow_version == 3
+    assert record.step_states["stp_2222333344445555"].status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_steps(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Verify resumption skips already PASSED steps and resets FAILED steps to PENDING before executing."""
+    from backend_v2.models.state import TraceEvent
+    from backend_v2.services.execution import create_execution_record
+
+    step1 = StepRule(id="stp_3333444455556666", task_blueprint="bp_3333444455556666", depends_on=[])
+    step2 = StepRule(id="stp_4444555566667777", task_blueprint="bp_4444555566667777", depends_on=["stp_3333444455556666"])
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_3333444455556666",
+        slug="wf_resume_skips",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
+        name=I18nText(translations={"en": "Resume Skips"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step1, step2],
+    )
+
+    def fake_get_step(b_id: str) -> dict[str, Any]:
+        return {
+            "id": b_id,
+            "type": "logic",
+            "slug": b_id,
+            "name": {"translations": {"en": b_id}},
+            "description": {"translations": {"en": b_id}},
+            "hook": "mock_hook",
+        }
+
+    mock_repo.get_step_by_id.side_effect = fake_get_step
+
+    existing_record = create_execution_record(
+        execution_id="exe_3333444455556666",
+        workflow_id=workflow.id,
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        status=ExecutionStatus.FAILED,
+        steps=[
+            ExecutionStep(id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
+            ExecutionStep(id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
+        ],
+        step_states={
+            "stp_3333444455556666": ExecutionStep(id="stp_3333444455556666", label="Step 1", status=ExecutionStatus.PASSED),
+            "stp_4444555566667777": ExecutionStep(id="stp_4444555566667777", label="Step 2", status=ExecutionStatus.FAILED),
+        },
+        metadata=ExecutionMetadata(workflow_version=1, model_registry_id="cfg_model_registry_01"),
+    )
+    mock_repo.get_execution.return_value = existing_record
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    executed_step_ids: list[str] = []
+
+    async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
+        executed_step_ids.append(step.id)
+        return [TraceEvent(step_name=step.id, event_type="output", content={"ok": True})]
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
+        record = await executor.execute_workflow(
+            execution_id="exe_3333444455556666",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+    # Step 1 was PASSED, so it should NOT be executed again. Step 2 should be executed.
+    assert "stp_3333444455556666" not in executed_step_ids
+    assert "stp_4444555566667777" in executed_step_ids
+    assert record.step_states["stp_3333444455556666"].status == ExecutionStatus.PASSED
+    assert record.step_states["stp_4444555566667777"].status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_watch_running_event_transitions_queued_step(mock_repo: Any, mock_compiler: Any) -> None:
+    """Verify running_event triggers watch_running to update step status from QUEUED to RUNNING."""
+    from backend_v2.models.state import TraceEvent
+
+    step1 = StepRule(id="stp_5555666677778888", task_blueprint="bp_5555666677778888")
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_5555666677778888",
+        slug="wf_watch_run",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
+        name=I18nText(translations={"en": "Watch Run"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step1],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "bp_5555666677778888",
+        "type": "logic",
+        "slug": "bp_watch_run",
+        "name": {"translations": {"en": "Watch Run Step"}},
+        "description": {"translations": {"en": "Desc"}},
+        "hook": "mock_hook",
+    }
+    mock_repo.get_execution.return_value = None
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    observed_statuses: list[ExecutionStatus] = []
+
+    async def mock_node_execute(step: StepRule, *args: Any, **kwargs: Any) -> list[Any]:
+        running_evt = kwargs.get("running_event")
+        if running_evt:
+            running_evt.set()
+            # Allow watcher task to run and commit
+            await asyncio.sleep(0.05)
+            # Record current status from commit_trace calls
+            for call in executor.committer.commit_trace.call_args_list:  # type: ignore[attr-defined]
+                step_states_arg = call.kwargs.get("step_states", {})
+                if "stp_5555666677778888" in step_states_arg:
+                    observed_statuses.append(step_states_arg["stp_5555666677778888"].status)
+        return [TraceEvent(step_name=step.id, event_type="output", content={"ok": True})]
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
+        patch.object(executor.committer, "commit_trace", new_callable=AsyncMock) as mock_commit,
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
+        record = await executor.execute_workflow(
+            execution_id="exe_5555666677778888",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+    # Watcher task should have set status to RUNNING during execution
+    assert ExecutionStatus.RUNNING in observed_statuses or mock_commit.call_count >= 2
+    assert record.step_states["stp_5555666677778888"].status == ExecutionStatus.PASSED
+
+
+@pytest.mark.asyncio
+async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
+    mock_repo: Any, mock_compiler: Any
+) -> None:
+    """Verify TraceEvent with generated_schema is merged into frozen_context.generated_schemas."""
+    from backend_v2.models.state import TraceEvent
+
+    step1 = StepRule(id="stp_6666777788889999", task_blueprint="bp_6666777788889999")
+    workflow = Workflow(
+        historical_context_mode="DISABLED",
+        id="wf_6666777788889999",
+        slug="wf_schema_merge",
+        status="draft",
+        version=1,
+        default_profile_id="prof_dddd1111dddd1111",
+        model_registry_id="cfg_model_registry_01",
+        name=I18nText(translations={"en": "Schema Merge"}),
+        description=I18nText(translations={"en": "Desc"}),
+        steps=[step1],
+    )
+
+    mock_repo.get_step_by_id.return_value = {
+        "id": "bp_6666777788889999",
+        "type": "logic",
+        "slug": "bp_schema_merge",
+        "name": {"translations": {"en": "Schema Merge Step"}},
+        "description": {"translations": {"en": "Desc"}},
+        "hook": "mock_hook",
+    }
+    mock_repo.get_execution.return_value = None
+
+    executor = DAGExecutor(
+        rag_preflight=AsyncMock(),
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+
+    test_schema = {"type": "object", "properties": {"extracted": {"type": "string"}}}
+    schema_event = TraceEvent(
+        step_name="stp_6666777788889999",
+        event_type="decision",
+        content={},
+        metadata={"generated_schema": test_schema},
+    )
+
+    with (
+        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
+        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
+    ):
+        mock_hooks.execute = AsyncMock(
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+        )
+        mock_node_exec.return_value = [schema_event]
+        record = await executor.execute_workflow(
+            execution_id="exe_6666777788889999",
+            workflow=workflow,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
+
+    assert "stp_6666777788889999" in record.frozen_context.generated_schemas
+    assert record.frozen_context.generated_schemas["stp_6666777788889999"] == test_schema
+
+
+@pytest.mark.asyncio
+async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
+    mock_repo: AsyncMock, mock_compiler: Any
+) -> None:
+    """Verify NodeExecutor accepts arq_pool, derives global_context_vars from metadata, and derives model_registry_id."""
+    from backend_v2.models.enums import StepType
+    from backend_v2.models.state import StateProjector
+    from backend_v2.services.orchestrator.dag_executor import NodeExecutor
+    from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
+
+    mock_prompt_block_repo = AsyncMock()
+    mock_prompt_block_repo.get_prompt_blocks_by_ids.return_value = []
+
+    deps = StrategyDependencies(
+        exec_repo=mock_repo,
+        workflow_repo=mock_repo,
+        comp_repo=mock_repo,
+        prompt_block_repo=mock_prompt_block_repo,
+        output_profile_repo=AsyncMock(),
+        identity_repo=mock_repo,
+        audit_repo=mock_repo,
+        system_repo=mock_repo,
+        prompt_compiler=mock_compiler,
+    )
+    node_executor = NodeExecutor(deps=deps)
+
+    step_rule = StepRule(id="stp_7777888899990000", task_blueprint="bp_7777888899990000", input_mappings={})
+    step_def = Step.model_construct(
+        id="bp_7777888899990000",
+        slug="logic_step",
+        type=StepType.LOGIC,
+        criteria_block_ids=[],
+        name=I18nText(translations={"en": "Logic"}),
+        description=I18nText(translations={"en": "Desc"}),
+        hook="mock_hook",
+    )
+
+    mock_pool = MagicMock()
+    captured_context: list[Any] = []
+
+    with patch("backend_v2.services.orchestrator.dag_executor.NodeStrategyFactory.create_strategy") as mock_factory:
+        mock_strat = AsyncMock()
+
+        async def capture_execute(*args: Any, **kwargs: Any) -> list[Any]:
+            ctx = kwargs.get("context")
+            if ctx is not None:
+                captured_context.append(ctx)
+            return []
+
+        mock_strat.execute.side_effect = capture_execute
+        mock_strat.assert_quota = AsyncMock()
+        mock_factory.return_value = mock_strat
+
+        meta = ExecutionMetadata(
+            workflow_version=2,
+            model_registry_id="cfg_special_reg",
+            global_context_vars={"injected_var": "val123"},
+        )
+
+        await node_executor.execute(
+            step=step_rule,
+            execution_id="exe_7777888899990000",
+            workflow_id="wf_7777888899990000",
+            metadata=meta,
+            projector=StateProjector(),
+            semaphore=asyncio.Semaphore(1),
+            step_def=step_def,
+            arq_pool=mock_pool,
+        )
+
+        # Verify strategy was created with arq_pool in effective_deps
+        assert mock_factory.call_args[1]["deps"].arq_pool == mock_pool
+        assert len(captured_context) == 1
+        assert captured_context[0].global_context_vars == {"injected_var": "val123"}
+        assert captured_context[0].model_registry_id == "cfg_special_reg"

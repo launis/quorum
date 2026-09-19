@@ -18,7 +18,7 @@ from backend_v2.database.interfaces import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAdapter
-from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
@@ -350,6 +350,38 @@ class BlueprintTransformer:
         r_tokens = int(execution.reasoning_tokens)
         t_tokens = p_tokens + c_tokens + r_tokens
         total_exec_cost = float(execution.dag_cost_usd)
+
+        # Fail-safe: If DAG cost or tokens are 0 on execution record, extract directly from execution_trace events
+        if (total_exec_cost == 0.0 or t_tokens == 0) and execution.execution_trace:
+            trace_p = 0
+            trace_c = 0
+            trace_r = 0
+            trace_t = 0
+            trace_cost = 0.0
+            for ev in execution.execution_trace:
+                if not ev.content:
+                    continue
+                try:
+                    envelope = TraceEventMetadataEnvelope.model_validate(ev.content)
+                    if envelope.step_metadata and envelope.step_metadata.token_usage:
+                        u = envelope.step_metadata.token_usage
+                        trace_p += u.prompt_tokens
+                        trace_c += u.completion_tokens
+                        trace_r += u.reasoning_tokens
+                        trace_t += u.total_tokens
+                        trace_cost += u.cost_usd
+                except ValidationError, ValueError:
+                    pass
+
+            if trace_cost > 0.0 or trace_t > 0:
+                if total_exec_cost == 0.0:
+                    total_exec_cost = trace_cost
+                if t_tokens == 0:
+                    p_tokens = trace_p
+                    c_tokens = trace_c
+                    r_tokens = trace_r
+                    t_tokens = trace_t
+
         total_exec_tokens = t_tokens
         combined_cost = total_exec_cost + execution.cumulative_synthesis_cost
         combined_tokens = total_exec_tokens + execution.cumulative_synthesis_tokens

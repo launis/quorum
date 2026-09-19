@@ -226,7 +226,6 @@ def test_workflow_model_validation_rules() -> None:
             status="active",
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
-            allowed_exports=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
             model_registry_id="sys_e26807f3bfa3454d",
             expected_inputs=[],
@@ -249,7 +248,6 @@ def test_workflow_model_validation_rules() -> None:
             status="active",
             version=1,
             default_profile_id="pro_1234567890abcdef1234567890abcdef",
-            allowed_exports=[],
             historical_context_mode=HistoricalContextMode.DISABLED,
             model_registry_id="sys_e26807f3bfa3454d",
             expected_inputs=[],
@@ -1013,7 +1011,6 @@ def test_workflow_model_registry_id_binding() -> None:
             status="active",
             version=1,
             default_profile_id="prf_1234567890abcdef",
-            allowed_exports=["pdf"],
             historical_context_mode=HistoricalContextMode.DISABLED,
             model_registry_id="invalid_id_format",
         )

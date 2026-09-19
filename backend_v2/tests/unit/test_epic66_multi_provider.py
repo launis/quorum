@@ -31,7 +31,7 @@ def test_settings_enabled_providers_with_anthropic() -> None:
         storage_backend="LOCAL",
     )
     providers = settings.enabled_providers
-    assert "google" in providers
+    assert "ai_studio" in providers
     assert "openai" in providers
     assert "anthropic" in providers
 
@@ -48,7 +48,7 @@ def test_settings_enabled_providers_without_anthropic() -> None:
         storage_backend="LOCAL",
     )
     providers = settings.enabled_providers
-    assert "google" in providers
+    assert "ai_studio" in providers
     assert "openai" in providers
     assert "anthropic" not in providers
 
@@ -99,7 +99,7 @@ def test_fetch_all_available_models_vertex_model_garden(
     mock_settings = MagicMock()
     mock_settings.vertex_location = "europe-north1"
     mock_settings.discovery_location = "us-central1"
-    mock_settings.enabled_providers = ["google"]
+    mock_settings.enabled_providers = ["vertex_ai"]
     mock_settings.use_mock_llm = False
     mock_get_settings.return_value = mock_settings
 
@@ -125,9 +125,9 @@ def test_fetch_all_available_models_vertex_model_garden(
         # Mock GenAI client for Gemini models
         mock_client_instance = MagicMock()
         with patch("google.genai.Client", return_value=mock_client_instance):
-            models = handler.fetch_all_available_models(providers=["google"])
-            assert "google" in models
-            google_models = models["google"]
+            models = handler.fetch_all_available_models(providers=["vertex_ai"])
+            assert "vertex_ai" in models
+            google_models = models["vertex_ai"]
 
             # Should validate and include all of them
             assert "vertex_ai/gemini-1.5-flash" in google_models
@@ -151,15 +151,16 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
     # 1. Test Anthropic provider type
     provider = LLMFactory.create_provider(
         provider_type="anthropic",
-        model_name="claude-3-5-sonnet",
+        model_name="anthropic/claude-3-5-sonnet",
         limits={"tpm": 1000, "rpm": 10},
     )
     assert getattr(provider, "api_key", None) == "anthropic-key"
 
-    # 2. Test LiteLLM with Claude model name
+    # 2. Test explicit API key override with litellm provider type
     provider_litellm = LLMFactory.create_provider(
         provider_type="litellm",
         model_name="anthropic/claude-3-5-sonnet",
+        api_key="anthropic-key",
         limits={"tpm": 1000, "rpm": 10},
     )
     assert getattr(provider_litellm, "api_key", None) == "anthropic-key"

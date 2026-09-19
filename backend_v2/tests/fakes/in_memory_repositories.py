@@ -286,6 +286,8 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             data_dict["version"] = 1
         if "description" not in data_dict or data_dict["description"] is None:
             data_dict["description"] = "Default description"
+        if not data_dict.get("model_registry_id"):
+            data_dict["model_registry_id"] = "cfg_model_registry_01"
         model = Workflow.model_validate(data_dict)
         self._save_isolated(wf_id, model)
         return wf_id

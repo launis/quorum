@@ -55,8 +55,8 @@ def sample_workflow() -> Workflow:
         status="active",
         version=1,
         default_profile_id="prf_1234567890abcdef",
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         expected_inputs=[],
         steps=[],
     )

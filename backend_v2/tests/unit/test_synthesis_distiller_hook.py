@@ -31,7 +31,9 @@ class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
 @patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
 async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate: MagicMock) -> None:
     """PROMISE: Prove that execution_state.evidence_quotes is strictly converted to QuoteEvidenceDTO list and limits are enforced."""
-    mock_validate.return_value = MagicMock(historical_context_mode="DISABLED", steps=[])
+    mock_validate.return_value = MagicMock(
+        historical_context_mode="DISABLED", steps=[], model_registry_id="sys_e26807f3bfa3454d"
+    )
 
     deps = HookDependencies(
         exec_repo=AsyncMock(),
@@ -106,7 +108,9 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
 @patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
 async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: MagicMock) -> None:
     """PROMISE: Prove that missing target_locale crashes the hook (anti-happy-path)."""
-    mock_validate.return_value = MagicMock(historical_context_mode="DISABLED", steps=[])
+    mock_validate.return_value = MagicMock(
+        historical_context_mode="DISABLED", steps=[], model_registry_id="sys_e26807f3bfa3454d"
+    )
     deps = HookDependencies(
         exec_repo=AsyncMock(),
         workflow_repo=AsyncMock(),

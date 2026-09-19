@@ -14,8 +14,8 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
-from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.report_artifact import (
     ReportArtifactCreateDTO,
     ReportMetadataDTO,

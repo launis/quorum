@@ -46,8 +46,8 @@ def mock_repos() -> dict[str, Any]:
             "version": 1,
             "status": "active",
             "default_profile_id": "prof_1111111111111111",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "steps": [],
         }
     )
@@ -97,8 +97,8 @@ async def test_dag_executor_mcp_concurrency_deduplication(mock_repos: dict[str, 
         version=1,
         status="active",
         default_profile_id="prof_1111111111111111",
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         steps=steps,
     )
 
@@ -201,8 +201,8 @@ async def test_dag_executor_generated_schemas_accumulation(mock_repos: dict[str,
         version=1,
         status="active",
         default_profile_id="prof_1111111111111111",
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="cfg_model_registry_01",
         steps=steps,
     )
 

@@ -28,8 +28,8 @@ VALID_WORKFLOW = {
     "version": 1,
     "is_public": True,
     "default_profile_id": "out_1234567890abcdef",
-    "allowed_exports": ["pdf"],
     "historical_context_mode": "DISABLED",
+    "model_registry_id": "cfg_model_registry_01",
     "steps": [],
 }
 

@@ -44,13 +44,12 @@ def test_workflow_create_dto_accepts_valid_payload() -> None:
         "slug": "custom-workflow",
         "name": {"translations": {"en": "Custom Workflow", "fi": "Mukautettu työnkulku"}},
         "description": {"translations": {"en": "Description", "fi": "Kuvaus"}},
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
     }
     dto = WorkflowCreateDTO.model_validate(payload)
     assert dto.slug == "custom-workflow"
     assert isinstance(dto.name, I18nText)
-    assert dto.allowed_exports == ["pdf"]
 
 
 # ==============================================================================

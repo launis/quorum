@@ -51,7 +51,7 @@ def mock_repo() -> Any:
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_0123456789abcdef0123456789ab"],
-        "model_strategy": "reasoning",
+        "cognitive_tier": "reasoning",
         "pre_hooks": [],
     }
     repo.get_step_by_id.return_value = repo.get_step.return_value
@@ -61,8 +61,8 @@ def mock_repo() -> Any:
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_dddd1111dddd1111",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "sys_e26807f3bfa3454d",
         "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
         "description": {"translations": {"en": "Desc", "fi": "Desc"}},
         "steps": [{"id": "step_1111111111111111", "task_blueprint": "task_bp"}],
@@ -82,6 +82,24 @@ def mock_repo() -> Any:
             }
         ],
     }
+    model_reg = {
+        "id": "sys_e26807f3bfa3454d",
+        "type": "model_registry",
+        "slug": "default",
+        "tier_definitions": {
+            tier: {
+                "provider": "openai",
+                "model_name": "gpt-4o-mini",
+                "tpm_limit": 100000,
+                "rpm_limit": 1000,
+                "max_tokens": 4096,
+                "temperature": 0.0,
+            }
+            for tier in ("fast", "balanced", "deep", "reasoning")
+        },
+    }
+    repo.get_model_registry.return_value = model_reg
+    repo.get_all_model_registries.return_value = [model_reg]
     return repo
 
 
@@ -118,8 +136,8 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
     # Setup basic valid workflow
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
+        model_registry_id="sys_e26807f3bfa3454d",
         id="wf_5555555555555555",
         slug="wf_test_slug",
         status="draft",
@@ -131,7 +149,10 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
     )
 
     # Execute
-    with patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy:
+    with (
+        patch("backend_v2.llm.client.LLMClient.from_strategy", new_callable=AsyncMock) as mock_strategy,
+        patch("backend_v2.llm.client.LLMClient.from_tier", new_callable=AsyncMock) as mock_tier,
+    ):
         from backend_v2.llm.client import LLMClient
 
         mock_bound_client = AsyncMock(spec=LLMClient)
@@ -146,6 +167,7 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
         )
 
         mock_strategy.return_value = mock_bound_client
+        mock_tier.return_value = mock_bound_client
 
         with (
             patch(

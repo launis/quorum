@@ -40,8 +40,8 @@ def mock_repo() -> MagicMock:
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "steps": [],
         }
     )
@@ -353,8 +353,8 @@ async def test_execute_success_path_structured_output(
         "status": "draft",
         "version": 1,
         "default_profile_id": "prf_123",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
     }
 
     mock_hook_state = MagicMock()
@@ -671,8 +671,8 @@ async def test_execute_with_role_and_persona_and_protocol(
         "status": "draft",
         "version": 1,
         "default_profile_id": "prof_123",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "steps": [
             {
                 "id": "stp_0123456789abcdef0123456789abcdef",

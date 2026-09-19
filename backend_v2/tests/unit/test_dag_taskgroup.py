@@ -20,7 +20,6 @@ def mock_repo() -> AsyncMock:
     repo.get_step_by_id.return_value = {
         "id": "stp_1234567890abcdef",
         "type": "logic",
-        "model_strategy": "logic",
         "slug": "mock",
         "name": {"translations": {"en": "mock"}},
         "description": {"translations": {"en": "mock"}},
@@ -62,7 +61,7 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
     )  # noqa: E501
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
+        model_registry_id="cfg_model_registry_01",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_4444444444444444",
         slug="wf_tg",
@@ -140,7 +139,7 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
     )  # noqa: E501
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
+        model_registry_id="cfg_model_registry_01",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_4444444444444444",
         slug="wf_tg_dep",
@@ -220,7 +219,7 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
+        model_registry_id="cfg_model_registry_01",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_4444444444444444",
         slug="wf_tg_retry",
@@ -314,11 +313,11 @@ async def test_dynamic_synthesis_model_strategy_routing(
         name="Test Workflow",
         organization_id="org_1",
         default_profile_id="prof_1",
+        model_registry_id="cfg_model_registry_01",
         slug="test-workflow",
         description="A test workflow",
         status="DRAFT",
         version=1,
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[
             StepRule.model_construct(
@@ -331,6 +330,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
         "id": "bp_0123456789abcdef01",
         "type": "standard",
         "model_strategy": "synthesis",
+        "pre_hooks": ["synthesis_distiller_hook"],
     }
 
     mock_repo.get_workflow_by_id.return_value = workflow.model_dump()
@@ -344,7 +344,9 @@ async def test_dynamic_synthesis_model_strategy_routing(
         "raw_inputs": {"dynamic_inputs": {}},
     }
 
-    mock_bp_validate.return_value = MagicMock(id="bp_0123456789abcdef01", type="standard", model_strategy="synthesis")
+    mock_bp_validate.return_value = MagicMock(
+        id="bp_0123456789abcdef01", type="standard", model_strategy="synthesis", pre_hooks=["synthesis_distiller_hook"]
+    )
 
     from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 
@@ -387,7 +389,7 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
+        model_registry_id="cfg_model_registry_01",
         historical_context_mode=HistoricalContextMode.DISABLED,
         id="wf_1111222233334444",
         slug="wf_progress_test",

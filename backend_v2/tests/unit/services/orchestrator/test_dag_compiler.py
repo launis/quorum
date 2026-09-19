@@ -50,8 +50,8 @@ def test_validate_workflow_missing_dep() -> None:
     ]
     with pytest.raises(ValidationError):
         Workflow(
-            allowed_exports=["pdf"],
             historical_context_mode="DISABLED",
+            model_registry_id="cfg_model_registry_01",
             id="wf_0000000000000001",
             slug="test-workflow",
             name="wf",

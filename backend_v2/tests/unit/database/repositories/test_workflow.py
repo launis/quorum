@@ -14,6 +14,7 @@ from backend_v2.models.dtos.studio import (
     WorkflowCreateDTO,
     WorkflowUpdateDTO,
 )
+from backend_v2.models.enums import CognitiveTier
 
 
 @pytest.fixture
@@ -46,8 +47,8 @@ def valid_workflow_doc() -> dict:
         "status": "published",
         "version": 1,
         "default_profile_id": "prf_1234567890abcdef",
-        "allowed_exports": ["pdf", "raw_json"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "steps": [],
     }
 
@@ -59,7 +60,7 @@ def valid_step_doc() -> dict:
         "id": "stp_1234567890abcdef",
         "slug": "step_one",
         "name": {"translations": {"en": "Step 1", "fi": "Vaihe 1"}},
-        "model_strategy": "fast",
+        "cognitive_tier": "fast",
         "criteria_block_ids": ["blk_1234567890abcdef"],
         "extraction_protocol_block_id": "blk_1234567890abcdef",
     }
@@ -114,8 +115,8 @@ async def test_workflow_lifecycle_and_versioning(
         name=I18nText(translations=valid_workflow_doc["name"]["translations"]),
         description=I18nText(translations=valid_workflow_doc["description"]["translations"]),
         default_profile_id=valid_workflow_doc["default_profile_id"],
-        allowed_exports=valid_workflow_doc["allowed_exports"],
         historical_context_mode=valid_workflow_doc["historical_context_mode"],
+        model_registry_id="cfg_model_registry_01",
         steps=[],
     )
     assert await repo.create_workflow(wf_dto) == "wf_1234567890abcdef"
@@ -181,7 +182,7 @@ async def test_step_crud_and_query(repo: WorkflowRepositoryImpl, mock_driver: As
     step_dto = StepCreateDTO(
         slug=valid_step_doc["slug"],
         name=I18nText(translations=valid_step_doc["name"]["translations"]),
-        model_strategy=valid_step_doc["model_strategy"],
+        cognitive_tier=CognitiveTier(valid_step_doc["cognitive_tier"]),
         criteria_block_ids=valid_step_doc["criteria_block_ids"],
         extraction_protocol_block_id=valid_step_doc["extraction_protocol_block_id"],
     )

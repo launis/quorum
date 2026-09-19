@@ -35,7 +35,6 @@ from backend_v2.models.v2_core import (
     Role,
     Step,
     SystemConfigMCPGateways,
-    SystemConfigModelRegistry,
 )
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
@@ -375,10 +374,9 @@ async def test_all_15_fake_repositories_and_facade() -> None:
 
     # 10. System
     sys_repo = InMemorySystemRepository()
-    assert (await sys_repo.get_model_registry()).id == "sys_1234567890abcdef1234567890abcdef"
-    await sys_repo.update_model_registry(
-        SystemConfigModelRegistry(id="sys_1234567890abcdef1234567890abcdef", models={})
-    )
+    reg = await sys_repo.get_model_registry("sys_1234567890abcdef1234567890abcdef")
+    assert reg.id == "sys_1234567890abcdef1234567890abcdef"
+    await sys_repo.update_model_registry(reg.model_copy(update={"name": "Updated Registry"}))
     assert (await sys_repo.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
     await sys_repo.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
     settings_dto = SystemSettingsDTO(environment="production")
@@ -609,8 +607,9 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert len(await unified.get_claims()) == 1
     await unified.clear_knowledge_base()
 
-    assert (await unified.get_model_registry()).id == "sys_1234567890abcdef1234567890abcdef"
-    await unified.update_model_registry(SystemConfigModelRegistry(id="sys_1234567890abcdef1234567890abcdef", models={}))
+    u_reg = await unified.get_model_registry("sys_1234567890abcdef1234567890abcdef")
+    assert u_reg.id == "sys_1234567890abcdef1234567890abcdef"
+    await unified.update_model_registry(u_reg.model_copy(update={"name": "U Reg"}))
     assert (await unified.get_mcp_gateways()).id == "sys_abcdef1234567890abcdef1234567890"
     await unified.update_mcp_gateways(SystemConfigMCPGateways(id="sys_abcdef1234567890abcdef1234567890", tools=[]))
     assert await unified.get_system_settings() is None

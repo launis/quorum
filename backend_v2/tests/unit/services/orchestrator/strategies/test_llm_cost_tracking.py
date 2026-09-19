@@ -53,8 +53,8 @@ def mock_repo() -> MagicMock:
             "status": "draft",
             "version": 1,
             "default_profile_id": "prof",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "steps": [],
         }
     )

@@ -155,8 +155,8 @@ def test_build_title_map_with_blocks_and_steps() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_1111111111111111",
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_1111111111111111")],
         expected_inputs=[
             ExpectedInput(
@@ -196,8 +196,8 @@ def test_build_title_map_missing_blueprint_raises() -> None:
         status="draft",
         version=1,
         default_profile_id="prof_1111111111111111",
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         steps=[StepRule(id="sr_1111111111111111", task_blueprint="sp_2222222222222222")],
     )
 

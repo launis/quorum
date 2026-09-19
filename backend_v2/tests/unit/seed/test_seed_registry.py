@@ -35,6 +35,8 @@ def test_system_config_discriminator_mcp_gateways() -> None:
 
 def test_system_config_discriminator_model_registry() -> None:
     """Tests the discriminator correctly resolves SystemConfigModelRegistry."""
+    from backend_v2.models.enums import CognitiveTier
+
     adapter = STANDARD_REGISTRY["system_config"]["model"]
     profile = ModelProfile(
         model_name="gpt-4o",
@@ -43,12 +45,14 @@ def test_system_config_discriminator_model_registry() -> None:
     data = {
         "id": "cfg_0123456789abcdef",
         "type": "model_registry",
-        "models": {"primary": profile.model_dump(mode="json")},
+        "tier_definitions": {
+            tier.value: profile.model_dump(mode="json") for tier in CognitiveTier
+        },
     }
     result = adapter.validate_python(data)
     assert isinstance(result, SystemConfigModelRegistry)
     assert result.type == "model_registry"
-    assert "primary" in result.models
+    assert CognitiveTier.FAST in result.tier_definitions
 
 
 def test_system_config_discriminator_missing_type_fails() -> None:

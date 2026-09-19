@@ -49,7 +49,7 @@ def test_step_rbac_save_member_forbidden(client_member: Any) -> None:
         "name": {"translations": {"en": "new", "fi": "new"}},
         "description": {"translations": {"en": "desc", "fi": "desc"}},
         "type": "llm",
-        "model_strategy": "fast",
+        "cognitive_tier": "fast",
         "role_block_id": None,
         "extraction_protocol_block_id": "blk_573802341db9d68c",
         "criteria_block_ids": ["blk_1111111111111111"],

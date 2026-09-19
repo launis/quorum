@@ -326,8 +326,8 @@ def test_ast_no_include_mandate_parameter() -> None:
 
 
 def test_ast_output_profile_directives_use_str_not_i18n() -> None:
-    """AST Guardrail: OutputProfile directives in v2_core.py must use str | None, never I18nText."""
-    tree = _load_ast("backend_v2/models/v2_core.py")
+    """AST Guardrail: OutputProfile directives in output_profile.py must use str | None, never I18nText."""
+    tree = _load_ast("backend_v2/models/domain/output_profile.py")
     directive_fields = {
         "tone_instruction",
         "executive_summary_directive",

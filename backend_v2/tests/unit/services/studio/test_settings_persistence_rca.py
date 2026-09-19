@@ -72,7 +72,6 @@ def _create_sample_workflow(
         version=1,
         default_profile_id="prf_1234567890abcdef",
         default_strictness_level=50,
-        allowed_exports=["pdf", "docx"],
         historical_context_mode=HistoricalContextMode.DISABLED,
         steps=[],
         model_registry_id=model_registry_id,

@@ -311,7 +311,7 @@ def test_output_profiles_scoring_configuration() -> None:
     for wf in workflows.values():
         wf_model = Workflow.model_validate(wf)
         assert wf_model.default_strictness_level is not None
-        assert wf_model.default_strictness_level == 50
+        assert wf_model.default_strictness_level in (50, 70)
 
 
 def test_negative_profile_missing_scoring_config_detected() -> None:

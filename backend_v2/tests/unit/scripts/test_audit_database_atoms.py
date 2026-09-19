@@ -301,22 +301,22 @@ def test_audit_steps_referential_integrity() -> None:
     """Test detection of missing strategies, orphan criteria_block_ids, and orphan protocol_block_ids."""
     known_block_ids = {"blk_matrix_01", "blk_protocol_01"}
 
-    # 1. Missing model_strategy
+    # 1. Missing cognitive_tier
     step1 = {
         "id": "stp_001",
         "type": "llm",
-        "model_strategy": None,
+        "cognitive_tier": None,
         "criteria_block_ids": ["blk_matrix_01"],
         "extraction_protocol_block_id": "blk_protocol_01",
     }
     issues1, _ = audit_steps([step1], known_block_ids)
-    assert any(i.issue_type == "MISSING_MODEL_STRATEGY" for i in issues1)
+    assert any(i.issue_type == "MISSING_COGNITIVE_TIER" for i in issues1)
 
     # 2. Orphan criteria block
     step2 = {
         "id": "stp_002",
         "type": "llm",
-        "model_strategy": "fast",
+        "cognitive_tier": "fast",
         "criteria_block_ids": ["blk_unknown_matrix"],
         "extraction_protocol_block_id": "blk_protocol_01",
     }
@@ -327,7 +327,7 @@ def test_audit_steps_referential_integrity() -> None:
     step3 = {
         "id": "stp_003",
         "type": "llm",
-        "model_strategy": "fast",
+        "cognitive_tier": "fast",
         "criteria_block_ids": ["blk_matrix_01"],
         "extraction_protocol_block_id": "blk_unknown_protocol",
     }

@@ -40,7 +40,7 @@ def mock_repo() -> AsyncMock:
         return {
             "id": "stp_1234567890abcdef",
             "type": "llm",
-            "model_strategy": "fast",
+            "cognitive_tier": "fast",
             "slug": "mock",
             "criteria_block_ids": ["blk_1234567890abcdef"],
             "extraction_protocol_block_id": "blk_1234567890abcdef",
@@ -95,12 +95,12 @@ def mock_repo() -> AsyncMock:
     }
     repo.get_workflow.return_value = _create_workflow(1).model_dump(mode="json")
     repo.get_workflow_by_id.return_value = repo.get_workflow.return_value
-    repo.get_model_registry.return_value = {
-        "id": "sys_1111222233334444",
+    model_reg = {
+        "id": "sys_e26807f3bfa3454d",
         "type": "model_registry",
         "slug": "default",
-        "models": {
-            "fast": {
+        "tier_definitions": {
+            tier: {
                 "provider": "openai",
                 "model_name": "gpt-4o-mini",
                 "tpm_limit": 100000,
@@ -108,8 +108,11 @@ def mock_repo() -> AsyncMock:
                 "max_tokens": 4096,
                 "temperature": 0.0,
             }
+            for tier in ("fast", "balanced", "deep", "reasoning")
         },
     }
+    repo.get_model_registry.return_value = model_reg
+    repo.get_all_model_registries.return_value = [model_reg]
     return repo
 
 
@@ -128,8 +131,8 @@ def mock_compiler() -> MagicMock:
 
 def _create_workflow(num_steps: int) -> Workflow:
     return Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="sys_e26807f3bfa3454d",
         id="wf_0000000000000000",
         slug="wf_fuzz",
         status="draft",

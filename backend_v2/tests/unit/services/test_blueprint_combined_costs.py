@@ -65,8 +65,8 @@ def mock_blueprint_repos() -> AsyncMock:
         version=1,
         name=I18nText(translations={"en": "Test Workflow", "fi": "Testi työnkulku"}),
         default_profile_id=_PROFILE_ID,
-        allowed_exports=["pdf"],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         default_strictness_level=85,
         steps=[],
     )
@@ -147,7 +147,7 @@ async def test_blueprint_combined_cost_and_tokens_from_execution_record(mock_blu
 async def test_blueprint_trace_fail_safe_when_dag_cost_zero(mock_blueprint_repos: Any) -> None:
     """Verifies that when dag_cost_usd is 0.0, tokens and costs are recovered from trace metadata."""
     meta_dto = StepTraceMetadataDTO(
-        model_strategy="analytical_fast",
+        model_strategy="fast",
         physical_model="gemini-2.5-flash",
         system_fingerprint="fp_test_123",
         token_usage=TokenUsage(

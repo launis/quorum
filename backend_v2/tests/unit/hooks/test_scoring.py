@@ -160,8 +160,8 @@ class MockRepository:
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
             "default_strictness_level": 85,
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "enable_contextual_overrides": True,
             "security_penalty": 0.0,
             "post_hoc_penalty": 0.0,
@@ -261,8 +261,8 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
                 "version": 1,
                 "default_profile_id": "prof_1111111111111111",
                 "default_strictness_level": 85,
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
+                "model_registry_id": "cfg_model_registry_01",
                 "enable_contextual_overrides": True,
             }
 
@@ -637,8 +637,8 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -718,8 +718,8 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -788,8 +788,8 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -983,8 +983,8 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -1042,8 +1042,8 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -1117,8 +1117,8 @@ class MockRepoWaterfall:
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
             "default_strictness_level": 85,
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "enable_contextual_overrides": True,
         }
 
@@ -1179,8 +1179,8 @@ class MockRepoWaterfallMixed:
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
             "default_strictness_level": 85,
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "enable_contextual_overrides": True,
         }
 
@@ -1479,8 +1479,8 @@ async def test_matrix_scoring_hook_missing_profile_config_raises() -> None:
         "status": "active",
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = None
@@ -2232,8 +2232,8 @@ class MockRepoWaterfallSimulation:
             "version": 1,
             "default_profile_id": "prof_1111111111111111",
             "default_strictness_level": 85,
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "enable_contextual_overrides": True,
         }
 
@@ -2584,8 +2584,8 @@ async def test_matrix_scoring_hook_override_disabled_returns_false() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": False,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -2749,8 +2749,8 @@ async def test_matrix_scoring_hook_extractive_sensor_and_dlq() -> None:
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
     }
     mock_workflow.get_output_profile_by_id.return_value = {
@@ -3664,8 +3664,8 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
         "security_penalty": 0.15,
         "post_hoc_penalty": 0.10,
@@ -3736,8 +3736,8 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
         "version": 1,
         "default_profile_id": "prof_1111111111111111",
         "default_strictness_level": 85,
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "enable_contextual_overrides": True,
         "security_penalty": 0.30,
         "post_hoc_penalty": 0.20,

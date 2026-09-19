@@ -471,7 +471,17 @@ class DAGExecutor:
             step_states[step.id] = st
 
         if existing_record:
-            exec_record = existing_record.model_copy(update={"status": ExecutionStatus.RUNNING})
+            effective_meta = existing_record.metadata
+            if effective_meta is None:
+                effective_meta = ExecutionMetadata(
+                    workflow_version=workflow.version,
+                    model_registry_id=workflow.model_registry_id,
+                )
+            elif effective_meta.model_registry_id is None:
+                effective_meta = effective_meta.model_copy(update={"model_registry_id": workflow.model_registry_id})
+            exec_record = existing_record.model_copy(
+                update={"status": ExecutionStatus.RUNNING, "metadata": effective_meta}
+            )
             if not exec_record.steps:
                 exec_record = exec_record.model_copy(update={"steps": steps, "step_states": step_states})
             else:
@@ -495,6 +505,10 @@ class DAGExecutor:
                 steps=steps,
                 step_states=step_states,
                 output_profile_id=workflow.default_profile_id,
+                metadata=ExecutionMetadata(
+                    workflow_version=workflow.version,
+                    model_registry_id=workflow.model_registry_id,
+                ),
             )
 
         if exec_record.target_locale:
@@ -797,7 +811,10 @@ class DAGExecutor:
                                 step=step_obj,
                                 execution_id=execution_id,
                                 workflow_id=workflow.id,
-                                metadata=exec_record.metadata or ExecutionMetadata(),
+                                metadata=exec_record.metadata
+                                or ExecutionMetadata(
+                                    workflow_version=workflow.version, model_registry_id=workflow.model_registry_id
+                                ),
                                 target_locale=exec_record.target_locale,
                                 output_profile_id=exec_record.output_profile_id,
                                 organization_id=exec_record.organization_id,

@@ -75,8 +75,8 @@ async def test_simulate_workflow_success(simulation_service: StudioSimulationSer
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         expected_inputs=[
             ExpectedInput(
                 input_key="document_text",
@@ -126,8 +126,8 @@ async def test_simulate_workflow_missing_input(
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         expected_inputs=[
             ExpectedInput(
                 input_key="doc",
@@ -166,8 +166,8 @@ async def test_simulate_workflow_undeclared_dependency(
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         expected_inputs=[],
         steps=[
             StepRule(
@@ -563,7 +563,7 @@ async def test_simulate_step_success(
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
         execution_persona_block_id="blk_11111111111111111111111111111111",
@@ -630,7 +630,7 @@ async def test_simulate_step_matrix_blocks_success(
         name=I18nText(translations={"en": "Matrix Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier="fast",
         extraction_protocol_block_id="blk_22222222222222222222222222222222",
         criteria_block_ids=["blk_22222222222222222222222222222222"],
     )
@@ -665,7 +665,7 @@ async def test_simulate_step_prompt_block_not_found(
         name=I18nText(translations={"en": "Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_22222222222222222222222222222222",
         criteria_block_ids=["blk_33333333333333333333333333333333"],
@@ -721,7 +721,7 @@ async def test_studio_simulation_returns_strict_dtos(
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        model_strategy="fast",
+        cognitive_tier="fast",
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
         criteria_block_ids=["blk_11111111111111111111111111111111"],
@@ -735,8 +735,8 @@ async def test_studio_simulation_returns_strict_dtos(
         status="active",
         version=1,
         default_profile_id="pro_1234567890abcdef1234567890abcdef",
-        allowed_exports=[],
         historical_context_mode=HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         expected_inputs=[],
         steps=[],
     )

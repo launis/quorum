@@ -176,8 +176,8 @@ def mock_repo_transformer() -> Any:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "default_strictness_level": 85,
             "steps": [],
             "output_profiles": {
@@ -419,8 +419,8 @@ def mock_repo_microcot() -> Any:
             "version": 1,
             "name": {"translations": {"en": "Mock Workflow", "fi": "Mock Workflow"}},
             "default_profile_id": "prf_1234567890abcdef",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "default_strictness_level": 85,
             "steps": [],
             "output_profiles": {
@@ -579,8 +579,8 @@ def mock_repo_sdui() -> AsyncMock:
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_1234abcd1234abcd",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "default_strictness_level": 85,
             "steps": [],
         }
@@ -860,8 +860,8 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "default_strictness_level": 85,
             "steps": [
                 {
@@ -1152,8 +1152,8 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
             "status": "published",
             "version": 1,
             "default_profile_id": "prf_dddd1111dddd1111",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
+            "model_registry_id": "cfg_model_registry_01",
             "default_strictness_level": 85,
             "steps": [
                 {
@@ -1584,10 +1584,10 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
         description="Test",
         status="PUBLISHED",
         version=1,
-        allowed_exports=[],
         historical_context_mode=__import__(
             "backend_v2.models.enums", fromlist=["HistoricalContextMode"]
         ).HistoricalContextMode.DISABLED,
+        model_registry_id="cfg_model_registry_01",
         default_profile_id="prf_dddd1111dddd1111",
         steps=[StepRule(id="stp_1234abcd1234abcd", task_blueprint="sp_7f9649114d2344dc")],
     )

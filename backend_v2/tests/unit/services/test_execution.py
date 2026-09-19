@@ -552,6 +552,7 @@ async def test_render_execution_json() -> None:
         "id": "wf_1",
         "default_profile_id": "prof_1",
         "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
         "slug": "test",
         "version": 1,
         "name": {},
@@ -795,9 +796,21 @@ async def test_get_execution_export_bytes_success() -> None:
 
     repo_mock.get_execution.return_value = mock_record
 
-    from unittest.mock import patch
+    mock_atom = Mock(
+        matrix_id="m1",
+        tda_id="tda_1",
+        evaluation_reasoning="Reasoning",
+        source_quote="Quote",
+        status=ExecutionStatus.PASSED,
+        extensions={},
+    )
+    mock_report_dto = Mock(
+        results=[mock_atom],
+        hydrated_references={},
+        inner_sdui_blocks=[],
+    )
 
-    with patch.object(service, "get_report_dto", return_value=None):
+    with patch.object(service, "get_report_dto", return_value=mock_report_dto):
         bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
 
     assert filename == "execution_export_exe_123.xlsx"
@@ -893,7 +906,21 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
 
     from unittest.mock import patch
 
-    with patch.object(service, "get_report_dto", return_value=None):
+    mock_atom = Mock(
+        matrix_id="m1",
+        tda_id="tda_1",
+        evaluation_reasoning="Reasoning",
+        source_quote="Quote",
+        status=ExecutionStatus.PASSED,
+        extensions={},
+    )
+    mock_report_dto = Mock(
+        results=[mock_atom],
+        hydrated_references={},
+        inner_sdui_blocks=[],
+    )
+
+    with patch.object(service, "get_report_dto", return_value=mock_report_dto):
         bytes_out, filename = await service.get_execution_export_bytes(initiator=initiator, execution_id="exe_123")
     assert filename == "execution_export_exe_123.xlsx"
 
@@ -1781,9 +1808,6 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
     from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
     from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
     from backend_v2.models.enums import VisualIntent
-    from backend_v2.models.v2_core import (
-        ReportDataDTO,
-    )
 
     repo_mock = AsyncMock()
     prompt_block_repo = AsyncMock()
@@ -1848,7 +1872,17 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
         rule_block.model_dump(mode="json"),
     ]
 
-    mock_report_dto = Mock(spec=ReportDataDTO)
+    mock_atom = Mock(
+        matrix_id="blk_0123456789abcdef",
+        tda_id="tda_1",
+        evaluation_reasoning="Reasoning test text",
+        source_quote="test quote",
+        status=ExecutionStatus.PASSED,
+        extensions={},
+    )
+    mock_report_dto = Mock()
+    mock_report_dto.results = [mock_atom]
+    mock_report_dto.hydrated_references = {}
     mock_report_dto.overall_score = 85.0
     mock_report_dto.executive_summary = "Summary text"
     mock_report_dto.strengths = []
@@ -2669,8 +2703,21 @@ async def test_get_execution_export_bytes_excel_writer_error() -> None:
     rec.model_copy.return_value = rec
     service.exec_repo.get_execution.return_value = rec
 
+    mock_atom = Mock(
+        matrix_id="m1",
+        tda_id="tda_1",
+        evaluation_reasoning="Reasoning",
+        source_quote="Quote",
+        status=ExecutionStatus.PASSED,
+        extensions={},
+    )
+    mock_report_dto = Mock(
+        results=[mock_atom],
+        hydrated_references={},
+        inner_sdui_blocks=[],
+    )
     with (
-        patch.object(service, "get_report_dto", return_value=None),
+        patch.object(service, "get_report_dto", return_value=mock_report_dto),
         patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk full")),
     ):
         with pytest.raises(AppException) as exc_info:

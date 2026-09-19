@@ -319,4 +319,3 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.xlsx"
     assert len(excel_bytes) > 0
-
