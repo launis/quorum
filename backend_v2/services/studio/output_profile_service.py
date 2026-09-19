@@ -187,8 +187,8 @@ class StudioOutputProfileService:
         target_wf = workflows[0]
         target_wf_id = target_wf.id
         all_steps = await self.workflow_service.list_steps(initiator)
-        allowed_blocks = target_wf.get_allowed_layout_targets(all_steps)
-        matrix_block = next((b for b in allowed_blocks if not b.startswith("glb_")), None)
+        prompt_blocks = target_wf.get_allowed_prompt_block_targets(all_steps)
+        matrix_block = next(iter(prompt_blocks), None)
 
         new_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)
         target_org = SystemOrganizations.ROOT_SYSTEM if initiator.role == UserRole.ROOT else initiator.organization_id

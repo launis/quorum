@@ -328,3 +328,39 @@ async def test_resume_execution_firewall_denied() -> None:
     assert exc_info.value.status_code == 400
     assert exc_info.value.error_code == "UNRESUMABLE_STATE_ERROR"
     assert "cannot be resumed due to unresumable state" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_check_resumability_missing_step_in_step_states_returns_false() -> None:
+    """ISTQB Negative: Missing workflow step from step_states returns False."""
+    repo_mock = AsyncMock()
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+
+    record = Mock(spec=ExecutionRecord)
+    record.status = ExecutionStatus.FAILED
+    record.workflow_id = "wf_1"
+    record.metadata = {}
+    record.workflow_version = 1
+    # step_states is empty, so workflow_step_ids is not a subset
+    record.step_states = {}
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.version = 1
+    mock_wf.steps = [StepRule(id="step_0dfb0101e4714c58bb0d4b430b4b81e3", task_blueprint="b1")]
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        is_res = await service.check_resumability(record)
+
+    assert is_res is False
+

@@ -64,13 +64,7 @@ class ExecutionResumptionService:
 
         workflow = execution.Workflow.model_validate(workflow_dict)
         workflow_step_ids = {step.id for step in workflow.steps}
-        exec_step_ids = {
-            k
-            for k, s in record.step_states.items()
-            if not k.startswith("sys_")
-            and not (isinstance(s.label, str) and s.label.startswith("system.rag.preflight"))
-        }
-        if workflow_step_ids != exec_step_ids:
+        if not workflow_step_ids.issubset(record.step_states.keys()):
             return False
 
         orig_version: int | None = None

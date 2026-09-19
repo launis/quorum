@@ -117,7 +117,10 @@ async def test_create_and_clone_output_profile(
     workflow = AsyncMock()
     workflow.id = "wf_1234567890abcdef"
     workflow.steps = []
-    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_layout_targets = Mock(
+        return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value, "blk_matrix_001"}
+    )
+    workflow.get_allowed_prompt_block_targets = Mock(return_value={"blk_matrix_001"})
     mock_workflow_service.get_workflow.return_value = workflow
     mock_workflow_service.list_steps.return_value = []
     mock_workflow_service.list_workflows.return_value = [workflow]
@@ -214,3 +217,36 @@ async def test_create_output_profile_draft_raises_when_no_workflows(
     with pytest.raises(ResourceNotFoundError) as exc_info:
         await service.create_output_profile_draft(initiator)
     assert exc_info.value.error_code == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+@pytest.mark.asyncio
+async def test_create_output_profile_draft_workflow_with_no_prompt_blocks_assigns_none(
+    service: StudioOutputProfileService, mock_workflow_service: AsyncMock
+) -> None:
+    """ISTQB Negative Boundary: Workflow with only global layout targets sets initial_target_block=None."""
+    initiator = TokenData(id="test_user", role=UserRole.ADMIN, organization_id="org_1")
+
+    workflow = AsyncMock()
+    workflow.id = "wf_1234567890abcdef"
+    workflow.steps = []
+    workflow.get_allowed_layout_targets = Mock(return_value={TargetBlockType.GLOBAL_SCORE_BLOCK.value})
+    workflow.get_allowed_prompt_block_targets = Mock(return_value=set())
+    mock_workflow_service.get_workflow.return_value = workflow
+    mock_workflow_service.list_steps.return_value = []
+    mock_workflow_service.list_workflows.return_value = [workflow]
+
+    saved_profiles: dict[str, OutputProfile] = {}
+
+    async def mock_create(profile: OutputProfile) -> None:
+        saved_profiles[profile.id] = profile
+
+    service.output_profile_repo.create_output_profile.side_effect = mock_create
+
+    async def mock_get_by_id(pid: str) -> OutputProfile | None:
+        return saved_profiles.get(pid)
+
+    service.output_profile_repo.get_output_profile_by_id.side_effect = mock_get_by_id
+
+    draft = await service.create_output_profile_draft(initiator)
+    assert draft.variance_target_block is None
+
