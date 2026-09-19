@@ -61,7 +61,7 @@
       - [x] 3.7: Execute Arq Worker smoke test
     - [x] (fd8e5eea) Step 4: MAKE_BLUEPRINT_TRANSFORMER_READ_ONLY
       - [x] 4.1: Modify @[backend_v2/services/blueprint.py] — Enforce 100% read-only, zero `exec_repo` writes, replace `isinstance(dict)` patterns, preserve `profile.variance_target_block` typed extraction
-    - [x] Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
+    - [x] (0e396881) Step 5: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
       - [x] 5.1: Create @[backend_v2/services/export_service.py] (~150 lines): `export_excel`, `export_flat_csv`, backend I18nText headers
       - [x] 5.2: Refactor @[backend_v2/services/execution.py] — Purge legacy export logic and `.arb` reading
     - [ ] Step 6: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
@@ -268,12 +268,11 @@
     - Eradicated worker-to-worker auto-enqueuing (`execute_workflow_job` transitions directly to `ExecutionStatus.PASSED` with zero `render_profile_job` enqueuing).
     - Preserved sovereign cognitive tiers (`CognitiveTier.BALANCED`, `FAST`, `DEEP`) and dynamic model registry bindings.
     - Verified all 61 worker unit tests passing with 100% quality gate compliance.
-  - **Step 4** (commit `fd8e5eea`):
-    - Enforced 100% read-only dumb painter invariance in @[backend_v2/services/blueprint.py]: purged all database write operations (`new_step_states` mutation and `exec_repo.update_execution` calls).
-    - Replaced recursive dictionary search `extract_evidence_ids` with direct, typed iteration over `mcp_audit_data` items and `QuoteEvidenceDTO.verified_source_ids`.
-    - Purged token re-summing fallback loop over `execution_trace`; directly consumes `prompt_tokens`, `completion_tokens`, `reasoning_tokens`, and `dag_cost_usd`.
-    - Preserved typed resolution anchored strictly to `profile.variance_target_block`.
-    - Passed universal quality gate with 29 unit tests passing (92% coverage) and zero fatal AST errors.
+  - **Step 5** (commit `0e396881`):
+    - Extracted `ExportService` into @[backend_v2/services/export_service.py] (222 lines) implementing `export_excel` and `export_flat_csv`.
+    - Permanently eliminated the Axis 1 leak in @[backend_v2/services/execution.py] (`open("client_app_v2/lib/l10n/app_{locale}.arb")` eradicated; static SSOT header mapping enforced).
+    - Reduced `ExecutionService` by ~150 lines, delegating `get_execution_export_bytes` to `ExportService` with `@deprecated`.
+    - Created comprehensive unit test suite @[backend_v2/tests/unit/services/test_export_service.py] with 95% coverage, passing all universal quality gates.
 
 ## Learned
 - `Workflow` domain model enforces strict `ConfigDict(strict=True, extra="forbid")`. Test fixtures attempting to pass legacy `allowed_exports` trigger Pydantic validation errors.
@@ -282,10 +281,11 @@
 - `Step` requires `extraction_protocol_block_id`.
 - `ExecutionService.stream_status` authorizes the connection first via `get_execution` before entering the polling loop.
 - `QuoteEvidenceDTO` stores resolved IDs in `verified_source_ids: list[str]`, not `source_id`.
+- `I18nText` requires `translations: dict[str, str]` dictionary in Pydantic models.
+- `MatrixPromptBlock` enforces `min_length=1` on `scales`.
 
 ## Remaining
 - **Phase B: Worker & Service Decoupling (Steps 3–7)**:
-  - **Step 5**: EXTRACT_EXPORT_SERVICE_AND_ELIMINATE_ARB_LEAK
   - **Step 6**: REPORT_ARTIFACT_DOMAIN_MODEL_AND_REPOSITORY_CRUD
   - **Step 7**: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
 - **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
