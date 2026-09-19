@@ -17,15 +17,15 @@ By separating the theoretical from the physical, the system can continuously ref
 ## 2. Core Pillars of Capability-Driven Architecture
 
 The core architecture is structured across dedicated architectural pillars:
-1. **System Context & Invariants (`01_`)**
-2. **Data Seeding & Ontology (`02_`)**
-3. **Cognitive Orchestration Engine (`03_`)**
-4. **Server-Driven UI (SDUI) & Presentation (`04_`)**
-5. **Resilience & Observability (`05_`)**
-6. **Enriched Atom Graph Engine (`06_`)**
-7. **EU AI Act Compliance & Governance (`07_`)**
-8. **Matrix Theory Explanations Compendium (`08_`)**
-9. **LLM Prompt Orchestration & Matrix Evaluation Architecture (`09_`)**
+1. **System Context & Invariants (`01_`)**: Foundational constitution, universal fail-fast invariants, zero permissive typing, canonical domain imports, and fatal AST guardrail enforcement.
+2. **Data Seeding & Ontology (`02_`)**: Database schemas, seed registry, and two-phase in-memory seeder pre-flight validation.
+3. **Cognitive Orchestration Engine (`03_`)**: DAG workflow evaluation, sovereign execution subservices, pure Arq worker daemon runtimes, and Best-of-Three Flash consensus.
+4. **Server-Driven UI (SDUI) & Presentation (`04_`)**: Flat polymorphic `inner_sdui_blocks`, co-located forward-reference hydration, and Dumb Painter rendering.
+5. **Resilience & Observability (`05_`)**: Distributed circuit breaking, telemetry, and error classification.
+6. **Enriched Atom Graph Engine (`06_`)**: Topological assertion evaluation, atomic quotes, and lexical validation.
+7. **EU AI Act Compliance & Governance (`07_`)**: Regulatory transparency, audit trails, and human oversight.
+8. **Matrix Theory Explanations Compendium (`08_`)**: Conceptual grounding and evaluation matrices.
+9. **LLM Prompt Orchestration & Matrix Evaluation Architecture (`09_`)**: Four-Layer Clean Stack hierarchy and static-first caching.
 
 ## 3. The Golden Rule: Timelessness & Pure Present-Tense Description
 

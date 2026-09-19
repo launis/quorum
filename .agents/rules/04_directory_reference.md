@@ -11,7 +11,7 @@
     </rule_block>
 
     <rule_block id="strict_model_location">
-        <mandate>NEVER define Pydantic classes or local Enums organically inside service files/routers, or dump new models into monolithic `v2_core.py`. ALL SSOT data structures MUST be placed in `backend_v2/models/`: pure business models in `domain/` (raw dicts from DB hydrated in Service layer, NO ORM shapes), API payloads in `dtos/`, and static LLM instructions in `prompts/`.</mandate>
+        <mandate>NEVER define Pydantic classes or local Enums organically inside service files/routers, or re-create monolithic legacy facades (such as eradicated `v2_core.py`, permanently banned under QGR017). ALL SSOT data structures MUST be placed in `backend_v2/models/`: pure business models in `domain/` (raw dicts from DB hydrated in Service layer, NO ORM shapes), API payloads in `dtos/`, and static LLM instructions in `prompts/`.</mandate>
     </rule_block>
 
     <rule_block id="frontend_feature_isolation">
@@ -55,14 +55,14 @@
     </module>
 
     <module path="backend_v2/worker.py">
-        <responsibility>ASYNC WORKER FACADE (PILLARS 3 & 4)</responsibility>
-        <key_domains>Strangler Fig re-export facade for Arq 2026 worker entrypoints (run_worker.py)</key_domains>
+        <responsibility>ASYNC WORKER RUNTIME ENTRYPOINT (PILLARS 3 & 4)</responsibility>
+        <key_domains>Arq 2026 worker daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`)</key_domains>
     </module>
     
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py), view/ (SDUI Blocks), v2_core.py, state.py, enums.py
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py), view/ (SDUI Blocks), state.py, enums.py
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)

@@ -58,7 +58,10 @@ Upon completion of the execution DAG topological sort and final telemetry aggreg
 Worker responsibilities follow strict Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) boundaries:
 - **Execution Worker (`backend_v2/workers/execution_worker.py`):** Dedicated exclusively to Phase 1 heavy DAG computation, atom evaluations, consensus voting, and telemetry persistence.
 - **Report Worker (`backend_v2/workers/report_worker.py`):** Dedicated exclusively to Phase 2 qualitative synthesis and Phase 3 presentation compilation (SDUI JSON, PDF documents, and multi-tab Excel/CSV exports), persisting materialized `ReportArtifact` records via `generate_report_artifact_job`.
-- **Strangler Fig Worker Facade (`backend_v2/worker.py`):** Re-exports `execute_workflow_task`, `generate_report_artifact_job`, and `WorkerSettings` with complete backward compatibility for Arq worker entrypoints (`run_worker.py`).
+- **Arq Worker Daemon Entrypoint (`backend_v2/worker.py`):** Serves strictly as the pure Arq 2026 daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`). All worker coroutines are imported directly from their sovereign modules in `backend_v2.workers.*`.
+
+#### Sovereign Execution Services Subpackage (`backend_v2/services/execution/`)
+Execution services follow single responsibility partitions (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade. External service bridges (storage, blueprint, flattener, pdf generator) are decoupled and purged from the package entrypoint, ensuring that execution services interact directly with canonical external services.
 
 ### 2.8. Sensor Caching Parity & Enriched Context Caching
 The matrix sensor prompt compiler maintains $O(1)$ context cache efficiency across matrix assertion evaluations. It compiles global logic, matrix theory context, and large source documents into a static cache prefix, while dynamic, batch-specific assertion data is encapsulated in the dynamic user message. Parallel evaluation batches against the same source text achieve maximum cache hit rates.

@@ -41,7 +41,7 @@ To ensure output stability, a deterministic interceptor layer sanitizes and vali
 Every backend exception (`AppException`) logs a structured error with exact logical error codes, parameters, and forensic trace identifiers before propagating. This provides immediate forensic traceability in monitoring systems while returning safe, structured problem details representations to client interfaces.
 
 ### 2.12. Static AST Guardrail Verification
-Architectural invariants (prohibition of reflection, lazy default fallbacks, duck-typing, and multi-variable fallbacks) are statically verified across domain and service code through fatal AST guardrails during automated quality gates. Violations fail pre-test validation immediately, preventing architectural drift and ensuring that code adheres strictly to structural standards before execution.
+Architectural invariants (prohibition of reflection, lazy default fallbacks, duck-typing, multi-variable fallbacks, and eradicated facade imports like `v2_core.py` via fatal rule QGR017) are statically verified across domain and service code through fatal AST guardrails during automated quality gates. All domain models and DTOs are imported strictly from their canonical SSOT modules (`backend_v2.models.domain.*`, `backend_v2.models.dtos.*`, `backend_v2.models.view.*`). Violations fail pre-test validation immediately, preventing architectural drift and ensuring that code adheres strictly to structural standards before execution.
 
 ### 2.13. Agent Context Quarantine & Double-Entry Bookkeeping
 To prevent context amnesia and token saturation, complex agent workflows isolate planning from execution. Automated implementation plans are compiled into structured execution protocol blocks, allowing execution sessions to consume clean, validated instructions without carrying conversational history debt.
@@ -70,8 +70,8 @@ Report artifacts provide enterprise-grade tabular row delivery via `ReportRowIte
 
 #### SRP & CQRS Decomposition of Workers and Services
 Monolithic worker and execution structures are decomposed into Single Responsibility Principle (SRP) and Command Query Responsibility Segregation (CQRS) subpackages:
-- **Workers Subpackage (`backend_v2/workers/`):** Separates `execution_worker.py` (Phase 1 DAG execution) from `report_worker.py` (Phase 2 & 3 synthesis and artifact compilation) with an asynchronous Strangler Fig facade in `backend_v2/worker.py`.
-- **Execution Services Subpackage (`backend_v2/services/execution/`):** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a thin `ExecutionService` facade.
+- **Workers Subpackage (`backend_v2/workers/`):** Separates `execution_worker.py` (Phase 1 DAG execution) from `report_worker.py` (Phase 2 & 3 synthesis and artifact compilation), while `backend_v2/worker.py` serves exclusively as the pure Arq daemon runtime entrypoint (`WorkerSettings`, `startup`, `shutdown`, `health_check`).
+- **Execution Services Subpackage (`backend_v2/services/execution/`):** Decomposes execution logic into focused, single-responsibility services (`lifecycle_service.py`, `ingress_service.py`, `resumption_service.py`, `override_service.py`, `stream_service.py`, `context_service.py`) unified by a sovereign `ExecutionService` facade, with external service bridges decoupled and purged from the package entrypoint.
 - **Dedicated Export & Report Services:** `ReportService` manages full report artifact lifecycle and CRUD operations, while `ExportService` compiles multi-tab Excel and flat-file data anchored directly to backend `I18nText` SSOT.
 
 ### 2.16. Evidence Extraction Invariants, Provenance Sovereignty, & Anti-Pattern Falsification
