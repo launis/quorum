@@ -48,7 +48,6 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -110,7 +109,6 @@ async def test_dag_executor_fails_fast_on_hook_error(mock_repo: Any, mock_compil
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -175,7 +173,6 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -248,7 +245,6 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
     from backend_v2.models.v2_core import StepRule, Workflow, WorkflowInputs
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -635,7 +631,6 @@ async def test_dag_executor_cascading_dependency_failure(mock_repo: Any, mock_co
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_cascading",
@@ -714,7 +709,6 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_resume",
@@ -843,7 +837,6 @@ async def test_dag_executor_rag_preflight_failure_handling(mock_repo: Any, mock_
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_preflight_fail",
@@ -899,7 +892,6 @@ async def test_dag_executor_matrix_reducer_failure(mock_repo: Any, mock_compiler
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_matrix_fail",
@@ -961,7 +953,6 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_prog",
@@ -1034,7 +1025,6 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_mcp_audit",
@@ -1116,7 +1106,6 @@ async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
 
     step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wor_1111222233334444",
         slug="wf_mcp_audit_fail",
@@ -1256,7 +1245,6 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         input_mappings={},
     )
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_5555555555555555",
         slug="wf_test_slug",
@@ -1337,7 +1325,6 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_1111222233334444",
         slug="wf_progress_test",
@@ -1427,7 +1414,6 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
     )
 
     workflow = Workflow(
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         id="wf_2222333344445555",
         slug="wf_preflight_test",

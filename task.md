@@ -36,8 +36,8 @@
     - [x] 1.7e: Create @[backend_v2/models/dtos/report_data.py] (~80 lines): Extract `ReportDataDTO`
   - [x] 1.8: Sub-batch 7 — Refactor @[backend_v2/models/v2_core.py] into Strangler Fig Facade (<90 lines) with `__all__` re-exports
 - [ ] **Step 2: INGRESS_DECOUPLING_IN_EXECUTION_SERVICE**
-  - [ ] 2.1: Modify @[backend_v2/services/execution.py] — Decouple `start_execution` from mandatory `output_profile_id`
-  - [ ] 2.2: Modify @[backend_v2/services/orchestrator/dag_executor.py] — Delete `sys_render_*` virtual step injection
+  - [x] 2.1: Modify @[backend_v2/services/execution.py] — Decouple `start_execution` from mandatory `output_profile_id`
+  - [x] 2.2: Modify @[backend_v2/services/orchestrator/dag_executor.py] — Delete `sys_render_*` virtual step injection
   - [ ] 2.3: Execute `/tier5-session-handover` (Phase A → Phase B checkpoint)
 
 ## Phase B: Worker & Service Decoupling (Steps 3–7)

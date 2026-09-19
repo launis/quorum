@@ -581,20 +581,52 @@ class ExecutionService:
                     validation_rules=field_val_rules,
                 )
 
-        # Fail-Fast: Resolve and Validate Output Profile immediately at ingress
-        resolved_profile_id = payload.profile_id or workflow.default_profile_id
-        if not resolved_profile_id:
-            msg = f"No profile_id provided and workflow '{workflow.id}' has no default_profile_id."
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        # Resolve Output Profile at ingress (decoupled: optional for analytical run)
+        resolved_profile_id: str | None = None
+        if payload.profile_id is not None:
+            resolved_profile_id = payload.profile_id
+        elif workflow.default_profile_id is not None:
+            resolved_profile_id = workflow.default_profile_id
 
-        profile_obj = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
-        if not profile_obj:
-            msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
-        profile_model = OutputProfile.model_validate(profile_obj)
-        if profile_model.workflow_id != workflow.id:
-            msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+        if resolved_profile_id is not None:
+            profile_obj = await self.output_profile_repo.get_output_profile_by_id(resolved_profile_id)
+            if not profile_obj:
+                msg = f"Profile ID '{resolved_profile_id}' not found."
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(
+                    message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
+            profile_model = OutputProfile.model_validate(profile_obj)
+            if profile_model.workflow_id != workflow.id:
+                msg = f"Profile ID '{resolved_profile_id}' not found in workflow '{workflow.id}'."
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
+
+        # Dynamic model registry resolution and validation
+        resolved_registry_id = payload.model_registry_id or workflow.model_registry_id
+        if not resolved_registry_id:
+            msg = f"No model_registry_id provided and workflow '{workflow.id}' has no model_registry_id."
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            )
+
+        try:
+            registry_obj = await self.system_repo.get_model_registry(resolved_registry_id)
+            if not registry_obj:
+                msg = f"Model registry '{resolved_registry_id}' not found."
+                logger.error("[ExecutionService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                raise AppException(
+                    message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                )
+        except ResourceNotFoundError as e:
+            msg = f"Model registry '{resolved_registry_id}' not found."
+            logger.error("[ExecutionService] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+            raise AppException(
+                message=msg, status_code=404, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            ) from e
 
         execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
         initial_record = create_execution_record(
@@ -611,7 +643,7 @@ class ExecutionService:
                 matrix_sampling_strategy=payload.matrix_sampling_strategy,
                 workflow_version=workflow.version,
                 provider_override=payload.provider_override,
-                model_registry_id=payload.model_registry_id or workflow.model_registry_id,
+                model_registry_id=resolved_registry_id,
             ),
             created_by=initiator.id,
             organization_id=initiator.organization_id,

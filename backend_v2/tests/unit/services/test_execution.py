@@ -551,7 +551,6 @@ async def test_render_execution_json() -> None:
     repo_mock.get_workflow_by_id.return_value = {
         "id": "wf_1",
         "default_profile_id": "prof_1",
-        "allowed_exports": ["pdf"],
         "historical_context_mode": "DISABLED",
         "slug": "test",
         "version": 1,
@@ -971,11 +970,8 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
 
 
 @pytest.mark.asyncio
-async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
-    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED.
-
-    Asserts failure when neither payload nor workflow provides a profile_id.
-    """
+async def test_start_execution_succeeds_without_profile() -> None:
+    """Ingress Decoupling: start_execution succeeds when no profile_id is provided."""
     from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
 
     repo_mock = AsyncMock()
@@ -998,6 +994,7 @@ async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
     mock_wf.default_profile_id = None
     mock_wf.expected_inputs = []
     mock_wf.steps = []
+    mock_wf.model_registry_id = "sys_e26807f3bfa3454d"
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
@@ -1015,17 +1012,16 @@ async def test_start_execution_fails_fast_when_no_profile_resolvable() -> None:
     from unittest.mock import patch
 
     with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
-        with pytest.raises(AppException) as exc_info:
-            await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+        result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-    assert "no default_profile_id" in exc_info.value.message
+    assert result.workflow_id == "wf_no_prof"
+    assert result.output_profile_id is None
+    assert result.status == ExecutionStatus.PENDING
 
 
 @pytest.mark.asyncio
 async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
-    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED when profile is not found in database."""
+    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when profile is not found in database."""
     from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
 
     repo_mock = AsyncMock()
@@ -1051,6 +1047,7 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     mock_wf.default_profile_id = "prof_missing"
     mock_wf.expected_inputs = []
     mock_wf.steps = []
+    mock_wf.model_registry_id = "sys_e26807f3bfa3454d"
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
@@ -1071,9 +1068,66 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
         with pytest.raises(AppException) as exc_info:
             await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-    assert "not found in workflow" in exc_info.value.message
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
+    assert "not found" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_when_model_registry_not_found() -> None:
+    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when model registry is not found in database."""
+    from backend_v2.exceptions import ResourceNotFoundError
+    from backend_v2.models.v2_core import ExecutionCreate, Workflow, WorkflowInputs
+
+    repo_mock = AsyncMock()
+    system_repo_mock = AsyncMock()
+    system_repo_mock.get_model_registry.side_effect = ResourceNotFoundError(
+        resource_type="system_config", resource_id="sys_missing"
+    )
+
+    service = ExecutionService(
+        exec_repo=repo_mock,
+        workflow_repo=repo_mock,
+        comp_repo=repo_mock,
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=repo_mock,
+        system_repo=system_repo_mock,
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wf_1"
+    mock_wf.version = 1
+    mock_wf.default_profile_id = None
+    mock_wf.expected_inputs = []
+    mock_wf.steps = []
+    mock_wf.model_registry_id = "sys_missing"
+    mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
+
+    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+
+    payload = ExecutionCreate(
+        workflow_id="wf_1",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
+        target_locale="en",
+        profile_id=None,
+        matrix_sampling_strategy=10,
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    from unittest.mock import patch
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        with pytest.raises(AppException) as exc_info:
+            await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
+    assert "not found" in exc_info.value.message
 
 
 @pytest.mark.asyncio
@@ -1423,7 +1477,6 @@ async def test_start_execution_with_steps_and_blocks() -> None:
                 task_blueprint="stp_0123456789abcdef",
             )
         ],
-        allowed_exports=["pdf", "raw_json"],
         historical_context_mode="DISABLED",
     )
     workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
@@ -1553,7 +1606,6 @@ async def test_clear_profile_synthesis() -> None:
         "version": 1,
         "default_profile_id": "prof_1",
         "model_registry_id": "sys_e26807f3bfa3454d",
-        "allowed_exports": ["pdf", "raw_json"],
         "historical_context_mode": "DISABLED",
         "steps": [],
     }
@@ -1607,7 +1659,6 @@ async def test_render_execution_formats() -> None:
         "version": 1,
         "default_profile_id": "prof_1",
         "model_registry_id": "sys_e26807f3bfa3454d",
-        "allowed_exports": ["pdf", "raw_json"],
         "historical_context_mode": "DISABLED",
         "steps": [],
     }
@@ -1840,7 +1891,6 @@ async def test_get_workflow_ui_schema_success_and_not_found() -> None:
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -1929,7 +1979,6 @@ async def test_render_execution_html_and_unsupported_formats() -> None:
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2002,7 +2051,6 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2112,7 +2160,6 @@ async def test_render_execution_on_demand_synthesis_enqueues_job() -> None:
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2231,7 +2278,6 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2375,7 +2421,6 @@ async def test_start_execution_additional_error_branches() -> None:
                 task_blueprint="stp_0123456789abcdef",
             )
         ],
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
     )
     service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
@@ -2664,7 +2709,6 @@ async def test_check_resumability_string_version() -> None:
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         steps=[StepRule(id="stp_0123456789abcdef", task_blueprint="stp_0123456789abcdef")],
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2696,7 +2740,6 @@ async def test_render_execution_on_demand_synthesis_with_updated_at_and_vstep() 
         model_registry_id="sys_e26807f3bfa3454d",
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2749,7 +2792,6 @@ async def test_start_execution_circuit_breaker_quota_exceeded() -> None:
         name=I18nText(translations={"en": "Test WF"}),
         description=I18nText(translations={"en": "Desc"}),
         organization_id="org_quota_tripped",
-        allowed_exports=["pdf"],
         historical_context_mode="DISABLED",
         expected_inputs=[],
     )
@@ -2765,5 +2807,260 @@ async def test_start_execution_circuit_breaker_quota_exceeded() -> None:
         await service.start_execution(initiator, payload, AsyncMock())
     assert exc_info.value.status_code == 402
     assert "has exceeded its execution quota" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_when_profile_workflow_mismatch() -> None:
+    """ISTQB Negative: start_execution raises 400 VALIDATION_FAILED when profile workflow_id != workflow.id."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True
+
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id="prf_0123456789abcdef",
+        model_registry_id="sys_e26807f3bfa3454d",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        organization_id="org_1",
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+
+    mismatch_profile = OutputProfile(
+        id="prf_0123456789abcdef",
+        slug="other-profile",
+        workflow_id="wor_other_workflow",
+        name=I18nText(translations={"en": "Other Profile"}),
+        description=I18nText(translations={"en": "Desc"}),
+        target_block_order=[],
+    )
+    service.output_profile_repo.get_output_profile_by_id.return_value = mismatch_profile
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="en",
+        profile_id="prf_0123456789abcdef",
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator, payload, AsyncMock())
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_when_no_registry_id() -> None:
+    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when neither payload nor workflow has model_registry_id."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True
+    service.workflow_repo.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="en",
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    mock_wf = Mock(spec=Workflow)
+    mock_wf.id = "wor_0123456789abcdef"
+    mock_wf.version = 1
+    mock_wf.status = "ACTIVE"
+    mock_wf.default_profile_id = None
+    mock_wf.model_registry_id = None
+    mock_wf.expected_inputs = []
+    mock_wf.steps = []
+    mock_wf.organization_id = "org_1"
+    mock_wf.is_public = False
+
+    with patch("backend_v2.services.execution.Workflow.model_validate", return_value=mock_wf):
+        with pytest.raises(AppException) as exc_info:
+            await service.start_execution(initiator, payload, AsyncMock())
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
+    assert "No model_registry_id provided" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_start_execution_fails_fast_when_registry_obj_is_none() -> None:
+    """ISTQB Negative: start_execution raises 404 RESOURCE_NOT_FOUND when get_model_registry returns None."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    service.usage_service.check_quota.return_value = True
+
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=1,
+        status="ACTIVE",
+        default_profile_id=None,
+        model_registry_id="sys_e26807f3bfa3454d",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        organization_id="org_1",
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+    service.system_repo.get_model_registry.return_value = None
+
+    payload = ExecutionCreate(
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(),
+        target_locale="en",
+    )
+    initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
+
+    with pytest.raises(AppException) as exc_info:
+        await service.start_execution(initiator, payload, AsyncMock())
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == "RESOURCE_NOT_FOUND"
+
+
+@pytest.mark.asyncio
+async def test_check_resumability_version_and_quota_branches() -> None:
+    """Test check_resumability returns False on version drift and quota exceeded."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    wf = Workflow(
+        id="wor_0123456789abcdef",
+        slug="test-wf",
+        version=2,
+        status="ACTIVE",
+        default_profile_id=None,
+        model_registry_id="sys_e26807f3bfa3454d",
+        name=I18nText(translations={"en": "Test WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        organization_id="org_1",
+        historical_context_mode="DISABLED",
+        expected_inputs=[],
+    )
+    service.workflow_repo.get_workflow_by_id.return_value = wf.model_dump(mode="json")
+
+    # Case 1: Version drift (record was version 1, workflow is version 2)
+    rec_drift = Mock(spec=ExecutionRecord)
+    rec_drift.status = ExecutionStatus.FAILED
+    rec_drift.step_states = {}
+    rec_drift.metadata = None
+    rec_drift.workflow_version = 1
+    rec_drift.workflow_id = "wor_0123456789abcdef"
+    rec_drift.organization_id = "org_1"
+
+    can_resume_drift = await service.check_resumability(rec_drift)
+    assert can_resume_drift is False
+
+    # Case 2: Quota exceeded
+    rec_quota = Mock(spec=ExecutionRecord)
+    rec_quota.status = ExecutionStatus.FAILED
+    rec_quota.step_states = {}
+    rec_quota.metadata = None
+    rec_quota.workflow_version = 2
+    rec_quota.workflow_id = "wor_0123456789abcdef"
+    rec_quota.organization_id = "org_1"
+    service.usage_service.check_quota.return_value = False
+
+    can_resume_quota = await service.check_resumability(rec_quota)
+    assert can_resume_quota is False
+
+
+@pytest.mark.asyncio
+async def test_override_atom_and_reject_evidence_permission_denied() -> None:
+    """ISTQB Negative: override_atom and reject_evidence_quote raise PermissionDeniedError for non-owner non-root."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.organization_id = "org_other"
+    rec.created_by = "usr_other"
+    service.get_execution = AsyncMock(return_value=rec)  # type: ignore[assignment]
+
+    initiator = TokenData(id="usr_stranger", role=UserRole.MEMBER, organization_id="org_mine")
+
+    with pytest.raises(PermissionDeniedError):
+        await service.override_atom(initiator, "exe_1", "atom_1", Mock())
+
+    with pytest.raises(PermissionDeniedError):
+        await service.reject_evidence_quote(initiator, "exe_1", "evq_1", "invalid quote")
+
+
+@pytest.mark.asyncio
+async def test_stream_status_handles_app_exception_interrupted() -> None:
+    """Test stream_status handles AppException/OSError during polling by yielding error event."""
+    service = ExecutionService(
+        exec_repo=AsyncMock(),
+        workflow_repo=AsyncMock(),
+        comp_repo=AsyncMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=AsyncMock(),
+        system_repo=AsyncMock(),
+        usage_service=AsyncMock(),
+        executor=Mock(),
+    )
+    rec = Mock(spec=ExecutionRecord)
+    rec.organization_id = "org_test"
+    rec.created_by = "usr_owner"
+    rec.is_public = False
+
+    service.get_execution = AsyncMock(side_effect=[rec, OSError("Connection dropped")])  # type: ignore[assignment]
+
+    initiator = TokenData(id="usr_owner", role=UserRole.ADMIN, organization_id="org_test")
+    events = [event async for event in service.stream_status(initiator, "exe_test")]
+    assert len(events) == 1
+    assert "event: error" in events[0]
+    assert "SSE_STREAM_INTERRUPTED" in events[0]
+
 
 
