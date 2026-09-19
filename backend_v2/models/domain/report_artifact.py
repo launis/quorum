@@ -39,21 +39,25 @@ class ReportArtifact(V2CoreBase):
     status: Annotated[ReportStatus, Field(description="Current lifecycle compilation status.")]
     storage_paths: Annotated[
         ReportStoragePathsDTO,
-        Field(default_factory=ReportStoragePathsDTO, description="Physical storage artifact paths on disk/cloud."),
-    ]
+        Field(description="Physical storage artifact paths on disk/cloud."),
+    ] = Field(default_factory=ReportStoragePathsDTO)
     metadata: Annotated[
         ReportMetadataDTO,
-        Field(default_factory=ReportMetadataDTO, description="FinOps and generation telemetry metadata."),
-    ]
+        Field(description="FinOps and generation telemetry metadata."),
+    ] = Field(default_factory=ReportMetadataDTO)
+    custom_preface_md: Annotated[
+        str | None,
+        Field(default=None, description="Optional custom preface Markdown text."),
+    ] = None
     error_message: Annotated[
         str | None,
         Field(default=None, description="Detailed error description if report compilation failed."),
     ] = None
     created_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(UTC), description="Creation timestamp in UTC."),
-    ]
+        Field(description="Creation timestamp in UTC."),
+    ] = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: Annotated[
         datetime,
-        Field(default_factory=lambda: datetime.now(UTC), description="Last update timestamp in UTC."),
-    ]
+        Field(description="Last update timestamp in UTC."),
+    ] = Field(default_factory=lambda: datetime.now(UTC))

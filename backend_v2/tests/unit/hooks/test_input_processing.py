@@ -130,7 +130,6 @@ async def test_process_inputs_missing_language() -> None:
         return_value={
             "id": "wor_1234567890123456",
             "model_registry_id": "sys_b1c2d3e4f5a60718",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "slug": "test_workflow",
             "name": "Test Workflow",
@@ -158,7 +157,6 @@ class MockInputProcessingRepo:
         return {
             "id": "wor_1234567890abcdef12",
             "model_registry_id": "sys_b1c2d3e4f5a60718",
-            "allowed_exports": ["pdf"],
             "historical_context_mode": "DISABLED",
             "slug": "test-wf",
             "name": {"translations": {"en": "Test WF", "fi": "Test WF"}},
@@ -311,7 +309,6 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
             return {
                 "id": "wor_1234567890abcdef12",
                 "model_registry_id": "sys_b1c2d3e4f5a60718",
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "chat-wf",
                 "name": {"translations": {"en": "Chat WF", "fi": "Chat WF"}},
@@ -377,7 +374,6 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
             return {
                 "id": "wor_1234567890abcdef12",
                 "model_registry_id": "sys_b1c2d3e4f5a60718",
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "smooth-wf",
                 "name": {"translations": {"en": "Smooth WF", "fi": "Smooth WF"}},
@@ -488,7 +484,6 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
             return {
                 "id": "wor_1234567890abcdef12",
                 "model_registry_id": "sys_b1c2d3e4f5a60718",
-                "allowed_exports": ["pdf"],
                 "historical_context_mode": "DISABLED",
                 "slug": "desc-wf",
                 "name": {"translations": {"en": "WF", "fi": "WF"}},

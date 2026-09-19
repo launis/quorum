@@ -30,6 +30,7 @@ from backend_v2.database.interfaces import (
     IMatrixRepository,
     IOutputProfileRepository,
     IPromptBlockRepository,
+    IReportArtifactRepository,
     IRoleRepository,
     ISystemRepository,
     ITaskBlueprintRepository,
@@ -44,18 +45,22 @@ from backend_v2.database.repositories.components.task_blueprint import TaskBluep
 from backend_v2.database.repositories.execution import ExecutionRepositoryImpl
 from backend_v2.database.repositories.identity import IdentityRepositoryImpl
 from backend_v2.database.repositories.knowledge import KnowledgeRepositoryImpl
+from backend_v2.database.repositories.report_artifact import ReportArtifactRepositoryImpl
 from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.database.repositories.workflow import WorkflowRepositoryImpl
+from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AuthenticationError, PermissionDeniedError
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.services.auth import AuthService
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution import ExecutionService
+from backend_v2.services.export_service import ExportService
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.services.report_service import ReportService
 from backend_v2.services.studio import (
     StudioOutputProfileService,
     StudioPromptBlockService,
@@ -97,6 +102,21 @@ async def get_execution_repo(driver: DriverDep) -> IExecutionRepository:
 
 
 ExecutionRepoDep = Annotated[IExecutionRepository, Depends(get_execution_repo)]
+
+
+async def get_report_artifact_repo(driver: DriverDep) -> IReportArtifactRepository:
+    """Instantiate the report artifact repository.
+
+    Args:
+        driver: Storage driver.
+
+    Returns:
+        Report artifact repository instance.
+    """
+    return ReportArtifactRepositoryImpl(driver)
+
+
+ReportArtifactRepoDep = Annotated[IReportArtifactRepository, Depends(get_report_artifact_repo)]
 
 
 async def get_identity_repo(driver: DriverDep) -> IIdentityRepository:
@@ -434,6 +454,44 @@ async def get_execution_service(
 
 
 ExecutionServiceDep = Annotated[ExecutionService, Depends(get_execution_service)]
+
+
+async def get_export_service(
+    comp_repo: ComponentRepoDep,
+) -> ExportService:
+    """Instantiate the export service.
+
+    Args:
+        comp_repo: Component repository.
+
+    Returns:
+        Export service instance.
+    """
+    return ExportService(comp_repo=comp_repo)
+
+
+ExportServiceDep = Annotated[ExportService, Depends(get_export_service)]
+
+
+async def get_report_service(
+    driver: DriverDep,
+    comp_repo: ComponentRepoDep,
+) -> ReportService:
+    """Instantiate the report artifact service.
+
+    Args:
+        driver: Storage driver.
+        comp_repo: Component repository.
+
+    Returns:
+        Report service instance.
+    """
+    repo = UnifiedWorkflowRepository(driver)
+    export_service = ExportService(comp_repo=comp_repo)
+    return ReportService(repo=repo, export_service=export_service)
+
+
+ReportServiceDep = Annotated[ReportService, Depends(get_report_service)]
 
 
 async def get_studio_workflow_service(
