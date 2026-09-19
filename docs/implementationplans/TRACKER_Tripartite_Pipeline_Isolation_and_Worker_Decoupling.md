@@ -74,7 +74,7 @@
       - [x] 6.7: Update @[backend_v2/models/v2_core.py] — Re-export `ReportArtifact`
       - [x] 6.8: Add `EntityPrefix.REPORT = "rep"` to @[backend_v2/models/enums.py]
       - [x] 6.9: Declare `ReportStatus` with `l10n_key` in @[backend_v2/models/enums.py]
-    - [x] Step 7: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
+    - [x] (c935605e) Step 7: DECOMPOSE_EXECUTION_SERVICES_AND_CREATE_REPORT_SERVICE
       - [x] 7.1: Execute Golden Master characterization test (`--cov=backend_v2.services.execution`)
       - [x] 7.2: Execute AST boundary analysis on @[backend_v2/services/execution.py]
       - [x] 7.3: Create @[backend_v2/services/report_service.py] (~250 lines): Full report artifact lifecycle
@@ -284,7 +284,7 @@
     - Implemented `ReportArtifactRepositoryImpl` in @[backend_v2/database/repositories/report_artifact.py] targeting `report_artifacts` collection.
     - Mounted `ReportArtifactRepositoryImpl` onto `UnifiedWorkflowRepository` in @[backend_v2/database/repository.py].
     - Created 14 unit tests in @[backend_v2/tests/unit/database/repositories/test_report_artifact.py] with 100% test coverage passing all universal quality gates.
-  - **Step 7**:
+  - **Step 7** (commit `c935605e`):
     - Decomposed monolithic `execution.py` (1,307 lines) into isolated domain subservices under `backend_v2/services/execution/`:
       - `ingress_service.py` (321 lines): Execution initialization, dynamic schema resolution, workflow inputs validation.
       - `lifecycle_service.py` (158 lines): Execution retrieval, listing, cascade deletion of executions, report artifacts, and physical storage files.
