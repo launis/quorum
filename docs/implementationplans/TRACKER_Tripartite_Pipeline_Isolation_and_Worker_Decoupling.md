@@ -121,69 +121,69 @@
 
 ### Post-Implementation Gates
 
-- [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
+- [x] **[OK] Golden Master & Test Restoration Audit**: Ensure no `@pytest.mark.skip` or commented-out tests remain in modified domains.
 
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified production backend files:
-  - [ ] @[backend_v2/models/dtos/trace.py]
-  - [ ] @[backend_v2/models/domain/matrix.py]
-  - [ ] @[backend_v2/models/domain/system_config.py]
-  - [ ] @[backend_v2/models/domain/step.py]
-  - [ ] @[backend_v2/models/domain/workflow.py]
-  - [ ] @[backend_v2/models/domain/execution.py]
-  - [ ] @[backend_v2/models/domain/synthesis.py]
-  - [ ] @[backend_v2/models/domain/output_profile.py]
-  - [ ] @[backend_v2/models/domain/report_artifact.py]
-  - [ ] @[backend_v2/models/domain/__init__.py]
-  - [ ] @[backend_v2/models/dtos/atom_result.py]
-  - [ ] @[backend_v2/models/dtos/report_data.py]
-  - [ ] @[backend_v2/models/dtos/report_artifact.py]
-  - [ ] @[backend_v2/models/dtos/output_profile.py]
-  - [ ] @[backend_v2/models/dtos/studio.py]
-  - [ ] @[backend_v2/models/v2_core.py]
-  - [ ] @[backend_v2/models/enums.py]
-  - [ ] @[backend_v2/services/execution/__init__.py]
-  - [ ] @[backend_v2/services/execution/lifecycle_service.py]
-  - [ ] @[backend_v2/services/execution/ingress_service.py]
-  - [ ] @[backend_v2/services/execution/resumption_service.py]
-  - [ ] @[backend_v2/services/execution/override_service.py]
-  - [ ] @[backend_v2/services/execution/stream_service.py]
-  - [ ] @[backend_v2/services/execution/context_service.py]
-  - [ ] @[backend_v2/services/export_service.py]
-  - [ ] @[backend_v2/services/report_service.py]
-  - [ ] @[backend_v2/services/blueprint.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/services/studio/workflow_service.py]
-  - [ ] @[backend_v2/workers/__init__.py]
-  - [ ] @[backend_v2/workers/execution_worker.py]
-  - [ ] @[backend_v2/workers/report_worker.py]
-  - [ ] @[backend_v2/worker.py]
-  - [ ] @[backend_v2/database/interfaces.py]
-  - [ ] @[backend_v2/database/repositories/report_artifact.py]
-  - [ ] @[backend_v2/database/repository.py]
-  - [ ] @[backend_v2/api/routers/execution/reports.py]
-  - [ ] @[backend_v2/api/routers/execution/executions.py]
-  - [ ] @[backend_v2/api/dependencies.py]
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified production backend files:
+  - [x] @[backend_v2/models/dtos/trace.py]
+  - [x] @[backend_v2/models/domain/matrix.py]
+  - [x] @[backend_v2/models/domain/system_config.py]
+  - [x] @[backend_v2/models/domain/step.py]
+  - [x] @[backend_v2/models/domain/workflow.py]
+  - [x] @[backend_v2/models/domain/execution.py]
+  - [x] @[backend_v2/models/domain/synthesis.py]
+  - [x] @[backend_v2/models/domain/output_profile.py]
+  - [x] @[backend_v2/models/domain/report_artifact.py]
+  - [x] @[backend_v2/models/domain/__init__.py]
+  - [x] @[backend_v2/models/dtos/atom_result.py]
+  - [x] @[backend_v2/models/dtos/report_data.py]
+  - [x] @[backend_v2/models/dtos/report_artifact.py]
+  - [x] @[backend_v2/models/dtos/output_profile.py]
+  - [x] @[backend_v2/models/dtos/studio.py]
+  - [x] @[backend_v2/models/v2_core.py]
+  - [x] @[backend_v2/models/enums.py]
+  - [x] @[backend_v2/services/execution/__init__.py]
+  - [x] @[backend_v2/services/execution/lifecycle_service.py]
+  - [x] @[backend_v2/services/execution/ingress_service.py]
+  - [x] @[backend_v2/services/execution/resumption_service.py]
+  - [x] @[backend_v2/services/execution/override_service.py]
+  - [x] @[backend_v2/services/execution/stream_service.py]
+  - [x] @[backend_v2/services/execution/context_service.py]
+  - [x] @[backend_v2/services/export_service.py]
+  - [x] @[backend_v2/services/report_service.py]
+  - [x] @[backend_v2/services/blueprint.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] @[backend_v2/services/studio/workflow_service.py]
+  - [x] @[backend_v2/workers/__init__.py]
+  - [x] @[backend_v2/workers/execution_worker.py]
+  - [x] @[backend_v2/workers/report_worker.py]
+  - [x] @[backend_v2/worker.py]
+  - [x] @[backend_v2/database/interfaces.py]
+  - [x] @[backend_v2/database/repositories/report_artifact.py]
+  - [x] @[backend_v2/database/repository.py]
+  - [x] @[backend_v2/api/routers/execution/reports.py]
+  - [x] @[backend_v2/api/routers/execution/executions.py]
+  - [x] @[backend_v2/api/dependencies.py]
 
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified production Flutter files:
-  - [ ] @[client_app_v2/lib/features/studio/models/workflow.dart]
-  - [ ] @[client_app_v2/lib/features/reports/models/report_artifact.dart]
-  - [ ] @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
-  - [ ] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/execution_view.dart]
-  - [ ] @[client_app_v2/lib/l10n/app_fi.arb]
-  - [ ] @[client_app_v2/lib/l10n/app_en.arb]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified production Flutter files:
+  - [x] @[client_app_v2/lib/features/studio/models/workflow.dart]
+  - [x] @[client_app_v2/lib/features/reports/models/report_artifact.dart]
+  - [x] @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
+  - [x] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
+  - [x] @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/execution_view.dart]
+  - [x] @[client_app_v2/lib/l10n/app_fi.arb]
+  - [x] @[client_app_v2/lib/l10n/app_en.arb]
 
-- [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain after v2_core.py decomposition, worker.py extraction, and execution.py subpackage creation.
+- [x] **[OK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain after v2_core.py decomposition, worker.py extraction, and execution.py subpackage creation.
 
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic via `uv run pytest backend_v2/tests/ --cov=backend_v2.workers --cov=backend_v2.services.execution --cov=backend_v2.services.report_service --cov=backend_v2.services.export_service --cov-report=term-missing`.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic via `uv run pytest backend_v2/tests/ --cov=backend_v2.workers --cov=backend_v2.services.execution --cov=backend_v2.services.report_service --cov=backend_v2.services.export_service --cov-report=term-missing`.
 
 ---
 
 ### Documentation & Knowledge Item Update
 
-- [ ] **[NOK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to anchor physical implementation in `docs/architecture/` (specifically: @[docs/architecture/01_system_context_and_invariants.md], @[docs/architecture/03_cognitive_orchestration_engine.md], @[docs/architecture/04_server_driven_ui_and_presentation.md], @[docs/architecture/00_README_META_ARCHITECTURE.md]), update Knowledge Items (@[ki_tripartite_pipeline_architecture.md], @[ki_dual_axis_localization_architecture.md], @[ki_god_code_prevention.md], @[ki_desktop_pro_tool_studio_ux.md]), and synchronize @[.agents/rules/04_directory_reference.md].
+- [x] **[OK]** As-Built Architectural Sync: Run `/tier7-describe-architecture` to anchor physical implementation in `docs/architecture/` (specifically: @[docs/architecture/01_system_context_and_invariants.md], @[docs/architecture/03_cognitive_orchestration_engine.md], @[docs/architecture/04_server_driven_ui_and_presentation.md], @[docs/architecture/00_README_META_ARCHITECTURE.md]), update Knowledge Items (@[ki_tripartite_pipeline_architecture.md], @[ki_dual_axis_localization_architecture.md], @[ki_god_code_prevention.md], @[ki_desktop_pro_tool_studio_ux.md]), and synchronize @[.agents/rules/04_directory_reference.md].
 
 ---
 
