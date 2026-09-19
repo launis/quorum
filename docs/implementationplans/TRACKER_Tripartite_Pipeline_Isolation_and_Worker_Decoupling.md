@@ -25,8 +25,8 @@
 
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]
 
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md] @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]`
-  - [ ] **Phase A: God Code Decomposition & Ghost Field Purge (Steps 1–2)**
+- [x] **[OK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md] @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]`
+  - [x] **Phase A: God Code Decomposition & Ghost Field Purge (Steps 1–2)**
     - [x] Step 1: PRE_IMPLEMENTATION_CLEANUPS_CORE_MODEL_DECOMPOSITION_AND_DTO_LOCK
       - [x] 1.1: Modify @[backend_v2/models/dtos/trace.py] — Make `output_profile_id` optional (`str | None = None`)
       - [x] 1.2: Sub-batch 1 — Create @[backend_v2/models/domain/matrix.py] (~260 lines): Extract `TheoryGrounding`, `AcceptanceCriterion`, `AntiPattern`, `ContrastivePairDTO`, `TDAAssertion`, `MatrixClaim`, `MatrixRow`, `MatrixScale`
@@ -115,7 +115,7 @@
       - [x] 12.3: Update @[docs/architecture/04_server_driven_ui_and_presentation.md]
       - [x] 12.4: Update @[.agents/rules/04_directory_reference.md]
       - [x] 12.5: Verify @[docs/architecture/00_README_META_ARCHITECTURE.md]
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md] @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md] @[docs/implementationplans/TRACKER_Tripartite_Pipeline_Isolation_and_Worker_Decoupling.md]`
 
 ---
 
