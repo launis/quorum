@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR016).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR017).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -458,9 +458,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         or (
                             ("_repo" in target_lower or ".repo" in target_lower or target_lower.endswith("repo"))
                             and not (
-                                "_report" in target_lower
-                                or ".report" in target_lower
-                                or "pdfreport" in target_lower
+                                "_report" in target_lower or ".report" in target_lower or "pdfreport" in target_lower
                             )
                         )
                     )
@@ -826,6 +824,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             pass
         self.generic_visit(node)
 
+    def visit_Import(self, node: ast.Import) -> None:
+        # QGR017: Banned import from eradicated facade v2_core
+        for alias in node.names:
+            if alias.name == "backend_v2.models.v2_core" or alias.name.endswith(".v2_core") or alias.name == "v2_core":
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import of eradicated facade `{alias.name}`.",
+                    "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
+                    severity=GuardrailSeverity.FATAL,
+                )
+        self.generic_visit(node)
+
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         # QGR015: TypeGuard import ban per PEP 742 (pep742_typeis_over_typeguard)
         if node.module in ("typing", "typing_extensions"):
@@ -838,6 +849,31 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         "Use modern PEP 742 `TypeIs` from `typing` (or `typing_extensions`) instead of `TypeGuard` for narrowing.",
                         severity=GuardrailSeverity.WARNING,
                     )
+
+        # QGR017: Banned import from eradicated facade v2_core
+        if node.module:
+            if (
+                node.module == "backend_v2.models.v2_core"
+                or node.module.endswith(".v2_core")
+                or node.module == "v2_core"
+            ):
+                self._add_violation(
+                    node,
+                    "QGR017",
+                    f"Banned import from eradicated facade `{node.module}`.",
+                    "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
+                    severity=GuardrailSeverity.FATAL,
+                )
+            elif node.module == "backend_v2.models":
+                for alias in node.names:
+                    if alias.name == "v2_core":
+                        self._add_violation(
+                            node,
+                            "QGR017",
+                            f"Banned import of eradicated facade symbol `{alias.name}` from `{node.module}`.",
+                            "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
+                            severity=GuardrailSeverity.FATAL,
+                        )
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:

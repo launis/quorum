@@ -999,3 +999,62 @@ def test_qgr016_ternary_constant_branching_allowed() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 0
+
+
+# ==============================================================================
+# Partition: QGR017 Eradicated Facade Import Ban (v2_core)
+# ==============================================================================
+
+
+def test_qgr017_import_from_v2_core_fatal() -> None:
+    """QGR017: from backend_v2.models.v2_core import ... emits FATAL violation."""
+    code = "from backend_v2.models.v2_core import Step, ExecutionRecord\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.models.v2_core" in qgr017[0].message
+
+
+def test_qgr017_import_v2_core_module_fatal() -> None:
+    """QGR017: import backend_v2.models.v2_core emits FATAL violation."""
+    code = "import backend_v2.models.v2_core\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "backend_v2.models.v2_core" in qgr017[0].message
+
+
+def test_qgr017_import_symbol_from_models_fatal() -> None:
+    """QGR017: from backend_v2.models import v2_core emits FATAL violation."""
+    code = "from backend_v2.models import v2_core\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].severity == GuardrailSeverity.FATAL
+    assert "v2_core" in qgr017[0].message
+
+
+def test_qgr017_canonical_imports_allowed_false_positive_immunity() -> None:
+    """QGR017: Canonical domain and DTO imports produce zero violations."""
+    code = (
+        "from backend_v2.models.domain.step import Step\n"
+        "from backend_v2.models.domain.execution import ExecutionRecord\n"
+        "from backend_v2.models.dtos.atom_result import AtomEvaluationResultDTO\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 0
+
+
+def test_qgr017_comment_suppression_works() -> None:
+    """QGR017: Comment suppression with valid reason suppresses the violation."""
+    code = (
+        "from backend_v2.models.v2_core import Step  # noqa: QGR017 [REASON: temporary historical testing fixture]\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    qgr017 = [v for v in violations if v.rule_code == "QGR017"]
+    assert len(qgr017) == 1
+    assert qgr017[0].is_suppressed is True
+
