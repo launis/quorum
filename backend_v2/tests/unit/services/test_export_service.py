@@ -14,10 +14,10 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
-from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import ExecutionStatus, VisualIntent
+from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType
 from backend_v2.models.view.sdui import SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService, _extract_claim_rule
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryComponentRepository
@@ -28,31 +28,10 @@ def _build_sample_execution(
 ) -> ExecutionRecord:
     step_states: dict[str, ExecutionStepState] = {}
     if has_atoms:
-        atom = ScorecardAtomDTO(
-            atom_id="blk_0123456789abcdef",
-            level=1,
-            level_name="T1",
-            claim_label="Claim Label",
-            extracted_facts={},
-            exact_quotes=[],
-            internal_logic_en=ReasoningStepDTO(
-                step_1_identify_premise="Premise text",
-                step_2_scan_source="Scan text",
-                step_3_evaluate_anti_patterns="Falsification text",
-                step_4_final_conclusion="Conclusion text",
-            ),
-            status=ExecutionStatus.PASSED,
-            semantic_reasoning="Reasoning with several words here",
-            contextual_override=False,
-            structural_location=None,
-            chart_display_label="Chart Label",
-            visual_intent=VisualIntent.NEUTRAL,
-        )
         step_states["stp_0123456789abcdef"] = ExecutionStepState(
             id="stp_0123456789abcdef",
             label="Matrix Step Label",
             status=ExecutionStatus.PASSED,
-            scorecard_atoms={"blk_0123456789abcdef": atom},
         )
 
     return ExecutionRecord(
@@ -65,7 +44,7 @@ def _build_sample_execution(
     )
 
 
-def _build_sample_report_dto() -> ReportDataDTO:
+def _build_sample_report_dto(has_atoms: bool = True) -> ReportDataDTO:
     axis = MatrixScorecardRowDTO(
         block_id="blk_0123456789abcdef",
         name="Axis 1",
@@ -76,6 +55,24 @@ def _build_sample_report_dto() -> ReportDataDTO:
         is_evaluative=True,
     )
     chart = SduiRadarChartBlock(axes=[axis])
+    results: list[AtomResultDTO] = []
+    hydrated_references: dict[str, HydratedAtomDTO] = {}
+    if has_atoms:
+        results = [
+            AtomResultDTO(
+                tda_id="tda_0123456789abcdef",
+                matrix_id="blk_0123456789abcdef",
+                status=ExecutionStatus.PASSED,
+                source_quote="Verbatim quote from source document",
+                evaluation_reasoning="Reasoning with several words here",
+            )
+        ]
+        hydrated_references = {
+            "tda_0123456789abcdef": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim Label",
+            )
+        }
     return ReportDataDTO(
         workflow_id="wor_0123456789abcdef",
         execution_id="exe_0123456789abcdef",
@@ -83,7 +80,8 @@ def _build_sample_report_dto() -> ReportDataDTO:
         global_score=4.5,
         has_warning=False,
         inner_sdui_blocks=[chart],
-        results=[],
+        results=results,
+        hydrated_references=hydrated_references,
     )
 
 
@@ -219,13 +217,28 @@ async def test_export_excel_fails_no_scoreable_atoms() -> None:
 
 
 @pytest.mark.asyncio
+async def test_export_excel_fails_when_report_dto_has_no_atoms() -> None:
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
+    report_dto = _build_sample_report_dto(has_atoms=False)
+
+    with pytest.raises(AppException) as exc_info:
+        await service.export_excel(execution=exec_record, report_dto=report_dto)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Execution has no scoreable atoms" in exc_info.value.message
+
+
+@pytest.mark.asyncio
 async def test_export_excel_writer_error() -> None:
     service = ExportService()
     exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
 
     with patch("pandas.ExcelWriter", side_effect=RuntimeError("Disk failure")):
         with pytest.raises(AppException) as exc_info:
-            await service.export_excel(execution=exec_record, report_dto=None)
+            await service.export_excel(execution=exec_record, report_dto=report_dto)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
@@ -246,3 +259,64 @@ def test_export_flat_csv_success() -> None:
     assert len(csv_bytes) > 0
     csv_text = csv_bytes.decode("utf-8")
     assert "execution_id" in csv_text or "status" in csv_text
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_report_dto_results_atoms() -> None:
+    """Regression test proving failure when atoms are passed in report_dto.results.
+
+    During real runtime DAG execution, ExecutionRecord.step_states has empty scorecard_atoms={}.
+    The evaluated atoms exist exclusively as AtomResultDTOs inside report_dto.results and
+    hydrated_references. ExportService must extract raw data rows from report_dto.results
+    instead of failing with 'Execution has no scoreable atoms'.
+    """
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import ExecutionStatus
+
+    service = ExportService()
+    # Real execution has empty scorecard_atoms in step_states
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
+
+    atom_result = AtomResultDTO(
+        tda_id="tda_0123456789abcdef",
+        matrix_id="blk_0123456789abcdef",
+        status=ExecutionStatus.PASSED,
+        source_quote="Verbatim quote from source document",
+        evaluation_reasoning="Sound reasoning based on evidence.",
+    )
+    hydrated_ref = HydratedAtomDTO(
+        sdui_component="boolean_card",
+        resolved_claim="The organization follows clear strategy guidelines.",
+    )
+
+    axis = MatrixScorecardRowDTO(
+        block_id="blk_0123456789abcdef",
+        name="Strategy Matrix",
+        label_i18n=I18nText(translations={"fi": "Strategiamatriisi", "en": "Strategy Matrix"}),
+        score=4.0,
+        scale_max=5.0,
+        row_explanation="Solid strategic alignment.",
+        is_evaluative=True,
+    )
+    chart = SduiRadarChartBlock(axes=[axis])
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=4.0,
+        has_warning=False,
+        inner_sdui_blocks=[chart],
+        results=[atom_result],
+        hydrated_references={"tda_0123456789abcdef": hydrated_ref},
+    )
+
+    excel_bytes, filename = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        locale="fi",
+    )
+
+    assert filename == "execution_export_exe_0123456789abcdef.xlsx"
+    assert len(excel_bytes) > 0
+

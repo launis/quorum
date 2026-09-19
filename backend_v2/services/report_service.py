@@ -240,28 +240,28 @@ class ReportService:
     async def get_report_rows(self, report_id: str) -> list[ReportRowItemDTO]:
         """Extracts tabular evaluated metric rows for B2B pipeline integration."""
         report = await self.get_report(report_id)
-        execution_dict = await self.repo.get_execution(report.execution_id)
-        if not execution_dict:
-            raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
+        report_dto = await self.get_report_sdui(report_id)
+        hydrated_refs = report_dto.hydrated_references
 
-        execution = ExecutionRecord.model_validate(execution_dict, strict=False)
         rows: list[ReportRowItemDTO] = []
-        for _step_id, step_state in execution.step_states.items():
-            for _atom_id, atom in step_state.scorecard_atoms.items():
-                first_quote = atom.exact_quotes[0].quote if atom.exact_quotes else None
-                rows.append(
-                    ReportRowItemDTO(
-                        execution_id=execution.id,
-                        report_id=report_id,
-                        metric_key=atom.atom_id,
-                        metric_label=atom.claim_label or atom.level_name,
-                        score=float(atom.level),
-                        max_scale=5.0,
-                        weight=1.0,
-                        reasoning=atom.semantic_reasoning,
-                        quote=first_quote,
-                    )
+        for atom in report_dto.results:
+            ref = hydrated_refs.get(atom.tda_id)
+            label = atom.tda_id
+            if ref is not None:
+                label = ref.resolved_claim
+            rows.append(
+                ReportRowItemDTO(
+                    execution_id=report.execution_id,
+                    report_id=report_id,
+                    metric_key=atom.matrix_id or atom.tda_id,
+                    metric_label=label,
+                    score=1.0 if atom.status == ExecutionStatus.PASSED else 0.0,
+                    max_scale=1.0,
+                    weight=1.0,
+                    reasoning=atom.evaluation_reasoning,
+                    quote=atom.source_quote,
                 )
+            )
         return rows
 
     async def delete_report_artifact(self, report_id: str) -> None:
@@ -278,8 +278,13 @@ class ReportService:
                 if p:
                     try:
                         await self.storage.delete(p)
-                    except Exception:
-                        pass
+                    except Exception as err:
+                        logger.warning(
+                            "[ReportService] Failed deleting storage artifact '%s' for report '%s': %s",
+                            p,
+                            report_id,
+                            err,
+                        )
         await self.repo.delete_report_artifact(report_id)
 
     async def regenerate_report_artifact(self, report_id: str, arq_pool: Any) -> None:
@@ -294,11 +299,15 @@ class ReportService:
             raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
 
         execution = ExecutionRecord.model_validate(exec_dict, strict=False)
-        metrics = {
-            atom.claim_label or atom.level_name: float(atom.level)
-            for s in execution.step_states.values()
-            for atom in s.scorecard_atoms.values()
-        }
+        report_dto = await self.get_report_sdui(report_id)
+        hydrated_refs = report_dto.hydrated_references
+        metrics: dict[str, float] = {}
+        for atom in report_dto.results:
+            metric_label = atom.tda_id
+            if atom.tda_id in hydrated_refs:
+                metric_label = hydrated_refs[atom.tda_id].resolved_claim
+            status_val = 1.0 if atom.status == ExecutionStatus.PASSED else 0.0
+            metrics[metric_label] = status_val
         summary_md: str | None = None
         if report.profile_id in execution.profile_syntheses:
             synth = execution.profile_syntheses[report.profile_id]
@@ -310,7 +319,7 @@ class ReportService:
             created_at=report.created_at,
             title=report.title,
             target_audience="stakeholder",
-            overall_score=None,
+            overall_score=report_dto.global_score,
             metrics=metrics,
             executive_summary_markdown=summary_md,
             downloads=downloads,

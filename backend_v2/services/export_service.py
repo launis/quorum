@@ -109,8 +109,7 @@ class ExportService:
             logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        has_atoms = any(s.scorecard_atoms for s in execution.step_states.values()) if execution.step_states else False
-        if not has_atoms:
+        if report_dto is None or not report_dto.results:
             msg = "Strict Fail-Fast: Execution has no scoreable atoms."
             logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
@@ -118,6 +117,7 @@ class ExportService:
         h = _EXCEL_HEADERS_FI if locale.lower().startswith("fi") else _EXCEL_HEADERS_EN
 
         summary_rows: list[dict[str, Any]] = []
+        matrix_title_lookup: dict[str, str] = {}
         if report_dto and report_dto.inner_sdui_blocks:
             matrices: list[Any] = []
             for block in report_dto.inner_sdui_blocks:
@@ -133,6 +133,7 @@ class ExportService:
                         pass
             for m in matrices:
                 lbl = m.label_i18n.resolve() if m.label_i18n else m.name
+                matrix_title_lookup[m.block_id] = lbl
                 summary_rows.append(
                     {
                         h["excelHeaderMatrix"]: lbl,
@@ -149,35 +150,72 @@ class ExportService:
             blocks_by_id = {b.id: b for b in comp_list}
 
         rows: list[dict[str, Any]] = []
-        for _step_id, step_state in execution.step_states.items():
-            for atom_id, atom in step_state.scorecard_atoms.items():
-                sources_list: list[str] = []
-                if atom.exact_quotes:
-                    for q in atom.exact_quotes:
-                        sources_list.extend(q.verified_source_ids)
-                        sources_list.extend(q.unverified_aliases)
+        hydrated_refs = report_dto.hydrated_references
+        for atom in report_dto.results:
+            matrix_label = ""
+            if atom.matrix_id:
+                if atom.matrix_id in matrix_title_lookup:
+                    matrix_label = matrix_title_lookup[atom.matrix_id]
+                elif atom.matrix_id in blocks_by_id:
+                    blk = blocks_by_id[atom.matrix_id]
+                    matrix_label = blk.label.resolve()
+                else:
+                    matrix_label = atom.matrix_id
 
-                p = atom.internal_logic_en
-                rule_text = _extract_claim_rule(blocks_by_id.get(atom_id))
-                q_str = "; ".join([q.quote for q in atom.exact_quotes]) if atom.exact_quotes else ""
-                s_str = ", ".join(list(dict.fromkeys(sources_list)))
-                w_count = len(atom.semantic_reasoning.split()) if atom.semantic_reasoning else 0
+            ref = hydrated_refs.get(atom.tda_id)
+            criterion = atom.tda_id
+            if ref is not None:
+                criterion = ref.resolved_claim
 
-                rows.append(
-                    {
-                        h["excelHeaderMatrix"]: step_state.label,
-                        h["excelHeaderCriterion"]: atom.claim_label,
-                        h["excelHeaderAiRule"]: rule_text,
-                        h["excelHeaderInternalizedRule"]: p.step_1_identify_premise if p else "",
-                        h["excelHeaderResultStatus"]: 1 if atom.status == "PASS" else None,
-                        h["excelHeaderConfidence"]: None,
-                        h["excelHeaderReasoningLength"]: w_count,
-                        h["excelHeaderFoundQuotes"]: q_str,
-                        h["excelHeaderUsedSources"]: s_str,
-                        h["excelHeaderAiReasoning"]: atom.semantic_reasoning,
-                        h["excelHeaderFalsification"]: p.step_3_evaluate_anti_patterns if p else "",
-                    }
-                )
+            target_block: AnyPromptBlock | None = None
+            if atom.matrix_id:
+                target_block = blocks_by_id.get(atom.matrix_id)
+            if target_block is None:
+                target_block = blocks_by_id.get(atom.tda_id)
+            rule_text = _extract_claim_rule(target_block)
+
+            reasoning = atom.evaluation_reasoning
+            if reasoning is None:
+                reasoning = ""
+            w_count = 0
+            if reasoning:
+                w_count = len(reasoning.split())
+
+            quote_str = ""
+            if atom.source_quote is not None:
+                quote_str = atom.source_quote
+            elif ref is not None and ref.source_quote is not None:
+                quote_str = ref.source_quote
+
+            internalized_rule_val = ""
+            if "internalized_rule" in atom.extensions:
+                internalized_rule_val = atom.extensions["internalized_rule"]
+
+            confidence_val = atom.extensions.get("confidence")
+
+            source_id_val = ""
+            if "source_id" in atom.extensions:
+                source_id_val = atom.extensions["source_id"]
+
+            falsification_val = ""
+            if "falsification" in atom.extensions:
+                falsification_val = atom.extensions["falsification"]
+
+            rows.append(
+                {
+                    h["excelHeaderMatrix"]: matrix_label,
+                    h["excelHeaderCriterion"]: criterion,
+                    h["excelHeaderAiRule"]: rule_text,
+                    h["excelHeaderInternalizedRule"]: internalized_rule_val,
+                    h["excelHeaderResultStatus"]: 1 if atom.status == ExecutionStatus.PASSED else 0,
+                    h["excelHeaderConfidence"]: confidence_val,
+                    h["excelHeaderReasoningLength"]: w_count,
+                    h["excelHeaderFoundQuotes"]: quote_str,
+                    h["excelHeaderUsedSources"]: source_id_val,
+                    h["excelHeaderAiReasoning"]: reasoning,
+                    h["excelHeaderFalsification"]: falsification_val,
+                }
+            )
 
         output = io.BytesIO()
         try:

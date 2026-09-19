@@ -77,7 +77,10 @@ class ReportArtifactCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
             onTap: onSelect,
             child: Padding(
-              padding: AppSpacing.p16,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s12,
+                vertical: AppSpacing.s8,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -87,49 +90,63 @@ class ReportArtifactCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeColor,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                statusLabel,
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: badgeTextColor,
-                                  fontWeight: FontWeight.bold,
+                            Flexible(
+                              flex: 3,
+                              fit: FlexFit.loose,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: badgeColor,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  statusLabel,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: badgeTextColor,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
-                            AppSpacing.w8,
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerHigh,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                report.locale.toUpperCase(),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w600,
+                            AppSpacing.w4,
+                            Flexible(
+                              flex: 1,
+                              fit: FlexFit.loose,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerHigh,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  report.locale.toUpperCase(),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ),
-                            AppSpacing.w8,
+                            AppSpacing.w4,
                             Expanded(
+                              flex: 2,
                               child: Text(
                                 report.id,
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: colorScheme.outline,
                                   fontFamily: 'monospace',
                                 ),
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -152,7 +169,7 @@ class ReportArtifactCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  AppSpacing.w16,
+                  AppSpacing.w8,
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -160,7 +177,14 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.picture_as_pdf_outlined),
-                          iconSize: 20,
+                          iconSize: 18,
+                          style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(26, 26),
+                            maximumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           tooltip: l10n.downloadPdfTooltip,
                           mouseCursor: SystemMouseCursors.click,
                           onPressed: onDownloadPdf,
@@ -169,7 +193,14 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.table_chart_outlined),
-                          iconSize: 20,
+                          iconSize: 18,
+                          style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(26, 26),
+                            maximumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           tooltip: l10n.downloadExcelTooltip,
                           mouseCursor: SystemMouseCursors.click,
                           onPressed: onDownloadExcel,
@@ -178,7 +209,14 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status == ReportStatus.ready)
                         IconButton(
                           icon: const Icon(Icons.description_outlined),
-                          iconSize: 20,
+                          iconSize: 18,
+                          style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(26, 26),
+                            maximumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           tooltip: l10n.downloadCsvTooltip,
                           mouseCursor: SystemMouseCursors.click,
                           onPressed: onDownloadCsv,
@@ -187,7 +225,14 @@ class ReportArtifactCard extends StatelessWidget {
                           report.status != ReportStatus.generating)
                         IconButton(
                           icon: const Icon(Icons.refresh),
-                          iconSize: 20,
+                          iconSize: 18,
+                          style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(26, 26),
+                            maximumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           tooltip: l10n.regenerateReportTooltip,
                           mouseCursor: SystemMouseCursors.click,
                           onPressed: onRegenerate,
@@ -198,7 +243,14 @@ class ReportArtifactCard extends StatelessWidget {
                             Icons.delete_outline,
                             color: colorScheme.error,
                           ),
-                          iconSize: 20,
+                          iconSize: 18,
+                          style: IconButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(26, 26),
+                            maximumSize: const Size(26, 26),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           tooltip: l10n.deleteReportTooltip,
                           mouseCursor: SystemMouseCursors.click,
                           onPressed: () => _confirmDelete(context),
