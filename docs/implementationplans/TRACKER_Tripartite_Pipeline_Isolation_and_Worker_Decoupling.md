@@ -89,18 +89,18 @@
       - [x] 7.12: Wire `ReportService`, `ExportService`, `ExecutionService` in @[backend_v2/api/dependencies.py]
       - [x] 7.13: Execute `/tier5-session-handover` (Phase B → Phase C checkpoint)
   - [ ] **Phase C: REST API, Flutter UI & Documentation (Steps 8–12)**
-    - [ ] Step 8: REPORT_ARTIFACT_REST_API_ENDPOINTS
-      - [ ] 8.1: Create @[backend_v2/api/routers/execution/reports.py]: POST create, GET list, GET detail, GET sdui, GET pdf, GET excel, GET csv, GET rows, GET external, DELETE, POST regenerate
-      - [ ] 8.2: Modify @[backend_v2/api/routers/execution/executions.py] — Mount reports router
-    - [ ] Step 9: DESKTOP_PRO_TOOL_STUDIO_UX_FOR_REPORT_ARTIFACTS
-      - [ ] 9.1: Pre-read @[ki_desktop_pro_tool_studio_ux.md] mandatory contract
-      - [ ] 9.2: Create @[client_app_v2/lib/features/reports/models/report_artifact.dart]: Freezed `ReportArtifact`, `ReportArtifactSummary`
-      - [ ] 9.3: Create @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
-      - [ ] 9.4: Create @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]: Dual-Shield FormField, Modal Dismissal, Serialization-Based Dirty Checking
-      - [ ] 9.5: Create @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]: Adaptive Master Selector, 4-tab Progressive Disclosure
-      - [ ] 9.6: Modify @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Add `autoGenerateReport` checkbox
-      - [ ] 9.7: Modify @[client_app_v2/lib/features/execution/views/execution_view.dart] — Auto-trigger report on PASSED with `autoGenerateReport`
-      - [ ] 9.8: Update @[client_app_v2/lib/l10n/app_fi.arb] and @[client_app_v2/lib/l10n/app_en.arb] — Add 24 localization keys with 1:1 bilingual parity
+    - [x] (c953de3a) Step 8: REPORT_ARTIFACT_REST_API_ENDPOINTS
+      - [x] 8.1: Create @[backend_v2/api/routers/execution/reports.py]: POST create, GET list, GET detail, GET sdui, GET pdf, GET excel, GET csv, GET rows, GET external, DELETE, POST regenerate
+      - [x] 8.2: Modify @[backend_v2/api/routers/execution/executions.py] — Mount reports router
+    - [x] (e5a5273b) Step 9: DESKTOP_PRO_TOOL_STUDIO_UX_FOR_REPORT_ARTIFACTS
+      - [x] 9.1: Pre-read @[ki_desktop_pro_tool_studio_ux.md] mandatory contract
+      - [x] 9.2: Create @[client_app_v2/lib/features/reports/models/report_artifact.dart]: Freezed `ReportArtifact`, `ReportArtifactSummary`
+      - [x] 9.3: Create @[client_app_v2/lib/features/reports/views/widgets/report_artifact_card.dart]
+      - [x] 9.4: Create @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]: Dual-Shield FormField, Modal Dismissal, Serialization-Based Dirty Checking
+      - [x] 9.5: Create @[client_app_v2/lib/features/reports/views/execution_reports_view.dart]: Adaptive Master Selector, 4-tab Progressive Disclosure
+      - [x] 9.6: Modify @[client_app_v2/lib/features/execution/views/new_execution_view.dart] — Add `autoGenerateReport` checkbox
+      - [x] 9.7: Modify @[client_app_v2/lib/features/execution/views/execution_view.dart] — Auto-trigger report on PASSED with `autoGenerateReport`
+      - [x] 9.8: Update @[client_app_v2/lib/l10n/app_fi.arb] and @[client_app_v2/lib/l10n/app_en.arb] — Add 24 localization keys with 1:1 bilingual parity
     - [ ] Step 10: AUTOMATED_REGRESSION_VERIFICATION_AND_QUALITY_GATES
       - [ ] 10.1: Create test suites for workers, proxies, services, API endpoints, and REST boundary AST tests
       - [ ] 10.2: Execute full automated quality gate suite
