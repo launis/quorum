@@ -1,10 +1,9 @@
 """Dead Letter Queue (DLQ) guard hook for strict validation."""
 
 import logging
-from typing import Any
 
 from fastapi import status
-from pydantic import ConfigDict, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,

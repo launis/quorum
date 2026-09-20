@@ -131,7 +131,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
                 "DOCUMENT_TEXT": "Plain text input.",
             }
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
     )
 
     deps = HookDependencies(
@@ -191,7 +191,7 @@ async def test_process_inputs_invalid_questionnaire(monkeypatch: pytest.MonkeyPa
         inputs=ExecutionInputsDTO(
             raw_inputs={"QUESTIONNAIRE": {"not_a_questionnaire": "This should fail because no Q/A pairs exist."}}
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
     )
 
     deps = HookDependencies(
@@ -250,7 +250,7 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
         task_blueprint="test_blueprint",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"DOCUMENT_TEXT": "Raw <br> text with PII like Matti Meikäläinen."}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
 
     deps = HookDependencies(

@@ -2,8 +2,6 @@
 
 import logging
 
-from pydantic import ValidationError
-
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
     HookDependencies,

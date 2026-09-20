@@ -5,8 +5,6 @@ import logging
 import uuid
 from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
-
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
     HookDependencies,
@@ -51,10 +49,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
-    # 1. Retrieve Context Variables
-    target_locale = state.global_context_vars.target_locale
-    system_locale = state.global_context_vars.system_locale
-    language = state.global_context_vars.language
 
     # 2. Get Strategy (SSOT)
     if not state.step_id:

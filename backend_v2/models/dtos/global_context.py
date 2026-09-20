@@ -4,9 +4,9 @@ Strongly typed container for global context variables across hook pipelines,
 eliminating loose dictionaries and permissive typing.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
@@ -31,10 +31,3 @@ class GlobalContextVarsDTO(V2CoreBase):
     hydration_results: Annotated[HydrationInputSourceDTO | None, Field(default=None)] = None
     step_linguistics: Annotated[LinguisticsResultDTO | None, Field(default=None)] = None
     external_evidence: Annotated[str | None, Field(default=None)] = None
-
-    @model_validator(mode="before")
-    @classmethod
-    def _unwrap_legacy_dict(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "vars" in data and len(data) == 1 and isinstance(data["vars"], dict):
-            data = data["vars"]
-        return data

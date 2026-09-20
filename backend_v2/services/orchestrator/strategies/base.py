@@ -271,9 +271,8 @@ class NodeStrategy(ABC):
                 if isinstance(delta, dict) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
                     if isinstance(gvars_updates, dict):
-                        hook_state = hook_state.model_copy(
-                            update={"global_context_vars": hook_state.global_context_vars.model_copy(update=gvars_updates)}
-                        )
+                        updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
+                        hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
                         hook_state = hook_state.model_copy(
                             update={"global_context_vars": gvars_updates}
@@ -281,11 +280,16 @@ class NodeStrategy(ABC):
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
+                    trace_content = (
+                        gvars_updates
+                        if isinstance(gvars_updates, dict)
+                        else gvars_updates.model_dump(mode="json")
+                    )
                     emitted_events.append(
                         TraceEvent(
                             step_name=step.id,
                             event_type="decision",
-                            content=gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json"),
+                            content=trace_content,
                             metadata={"is_context_update": True},
                         )
                     )
@@ -353,9 +357,8 @@ class NodeStrategy(ABC):
                 if isinstance(delta, dict) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
                     if isinstance(gvars_updates, dict):
-                        hook_state = hook_state.model_copy(
-                            update={"global_context_vars": hook_state.global_context_vars.model_copy(update=gvars_updates)}
-                        )
+                        updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
+                        hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
                         hook_state = hook_state.model_copy(
                             update={"global_context_vars": gvars_updates}
@@ -363,11 +366,16 @@ class NodeStrategy(ABC):
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
+                    trace_content = (
+                        gvars_updates
+                        if isinstance(gvars_updates, dict)
+                        else gvars_updates.model_dump(mode="json")
+                    )
                     emitted_events.append(
                         TraceEvent(
                             step_name=step.id,
                             event_type="decision",
-                            content=gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json"),
+                            content=trace_content,
                             metadata={"is_context_update": True},
                         )
                     )

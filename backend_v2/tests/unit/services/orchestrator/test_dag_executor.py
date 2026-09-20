@@ -93,7 +93,7 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
     mock_hooks.execute.assert_called_once()
     args, _ = mock_hooks.execute.call_args
     assert args[0] == "input_processing"
-    assert args[1].global_context_vars.vars["language"] == "fi"
+    assert args[1].global_context_vars.language == "fi"
 
     # Workflow remains RUNNING for async render worker
     assert record.status == ExecutionStatus.RUNNING
@@ -309,7 +309,7 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
 
 @pytest.mark.asyncio
 async def test_node_executor_injects_synthesis_engine(mock_repo: Any, mock_compiler: Any) -> None:
-    """Verify that NodeExecutor injects SynthesisEngine when criteria block is synthesis or model_strategy is synthesis."""
+    """Verify NodeExecutor injects SynthesisEngine when criteria or strategy is synthesis."""
     import asyncio
 
     from backend_v2.models.core_base import I18nText
@@ -1248,7 +1248,7 @@ async def test_node_executor_loads_all_auxiliary_prompt_blocks(mock_repo: AsyncM
 
 @pytest.mark.asyncio
 async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock_repo: Any, mock_compiler: Any) -> None:
-    """Regression Test: step_states in DAGExecutor must resolve human-readable localized step name instead of raw rule ID."""
+    """Regression Test: step_states resolves human-readable step name instead of raw rule ID."""
     step_rule = StepRule(
         id="sr_f0a26d17cc9b48a7",
         task_blueprint="bp_11112222333344445555666677778888",
@@ -1855,7 +1855,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
 async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
     mock_repo: AsyncMock, mock_compiler: Any
 ) -> None:
-    """Verify NodeExecutor accepts arq_pool, derives global_context_vars from metadata, and derives model_registry_id."""
+    """Verify NodeExecutor accepts arq_pool and derives global_context_vars from metadata."""
     from backend_v2.models.enums import StepType
     from backend_v2.models.state import StateProjector
     from backend_v2.services.orchestrator.dag_executor import NodeExecutor

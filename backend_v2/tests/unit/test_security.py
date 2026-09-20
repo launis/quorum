@@ -28,7 +28,7 @@ def test_sanitize_text_hook_fails_fast_on_invalid_inputs(mock_repository: AsyncM
         workflow_id="wf_123",
         inputs=None,  # type: ignore[arg-type]
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -55,7 +55,7 @@ def test_sanitize_text_hook_fails_fast_on_list_inputs(mock_repository: AsyncMock
         workflow_id="wf_123",
         inputs=["invalid", "list"],  # type: ignore[arg-type]
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -87,7 +87,7 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
         workflow_id="wf_123",
         inputs=ExecutionInputsDTO(raw_inputs={"test_field": "This is a safe string."}),
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -127,7 +127,7 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
             }
         ),
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=MagicMock(),
@@ -154,7 +154,7 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
 def test_sanitize_text_hook_resolves_language_from_execution_metadata(
     mock_get_pii_service: MagicMock, mock_repository: AsyncMock
 ) -> None:
-    """Regression test: sanitize_text_hook must resolve language from metadata.target_locale when global_context_vars is empty."""
+    """Regression test: sanitize_text_hook resolves language from metadata when global_context_vars is empty."""
     mock_service = MagicMock()
     mock_service.mask_pii.return_value = "Puhdistettu teksti."
     mock_get_pii_service.return_value = mock_service

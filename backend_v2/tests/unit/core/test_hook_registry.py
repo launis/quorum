@@ -24,13 +24,13 @@ def test_hook_state_instantiation() -> None:
         workflow_id="wf_1",
         step_id="stp_1",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"g": "v"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(raw_inputs={"in": "1"}),
     )
     assert state.execution_id == "exec_1"
     assert state.metadata.workflow_version == 1
     assert state.inputs.raw_inputs == {"in": "1"}
-    assert state.global_context_vars.vars == {"g": "v"}
+    assert state.global_context_vars.language == "fi"
 
 
 def test_hook_state_rejects_invalid_inputs() -> None:

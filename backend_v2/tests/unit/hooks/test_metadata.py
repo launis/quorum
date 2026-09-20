@@ -46,7 +46,7 @@ def test_inject_step_metadata_success() -> None:
         task_blueprint="bp_step",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
-        global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": "user_admin"}),
+        global_context_vars=GlobalContextVarsDTO(initiator_id="user_admin"),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),

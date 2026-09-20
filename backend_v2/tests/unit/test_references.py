@@ -21,7 +21,7 @@ async def test_generate_bibliography_hook_success() -> None:
         workflow_id="wf1",
         step_id="step1",
         inputs=ExecutionInputsDTO(raw_inputs={"text": "This is a dummy text for testing citations."}),
-        global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": {"concepts": []}}),
+        global_context_vars=GlobalContextVarsDTO(knowledge_base={"concepts": []}),
         metadata=ExecutionMetadata(),
     )
 
@@ -64,7 +64,7 @@ async def test_generate_bibliography_hook_none_state() -> None:
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(None, deps))  # type: ignore[arg-type]
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert result.state_delta.delta is None
 
 
 @pytest.mark.asyncio
@@ -120,21 +120,21 @@ async def test_generate_bibliography_hook_invalid_context_raises() -> None:
     from collections.abc import Awaitable
     from typing import cast
 
+    from pydantic import ValidationError
+
     from backend_v2.core.hook_registry import HookResult
     from backend_v2.exceptions import AppException
 
-    state = HookState(
-        execution_id="123",
-        workflow_id="wf1",
-        inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": "not_a_dict"}),
-        metadata=ExecutionMetadata(),
-    )
     deps = MagicMock(spec=HookDependencies)
-
-    with pytest.raises(AppException) as exc:
+    with pytest.raises((AppException, ValidationError)):
+        state = HookState(
+            execution_id="123",
+            workflow_id="wf1",
+            inputs=ExecutionInputsDTO(raw_inputs={"text": "Hello"}),
+            global_context_vars=GlobalContextVarsDTO(knowledge_base="not_a_dict"),  # type: ignore[arg-type]
+            metadata=ExecutionMetadata(),
+        )
         await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
-    assert exc.value.status_code == 400
 
 
 @pytest.mark.asyncio
@@ -156,7 +156,7 @@ async def test_generate_bibliography_hook_empty_text_short_circuit() -> None:
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert result.state_delta.delta is None
 
 
 @pytest.mark.asyncio
@@ -170,7 +170,7 @@ async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -
         execution_id="123",
         workflow_id="wf1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(vars={"step_coach": {"coach_note": "Great"}}),
+        global_context_vars=GlobalContextVarsDTO(step_coach={"coach_note": "Great"}),
         metadata=ExecutionMetadata(),
     )
     deps = MagicMock(spec=HookDependencies)

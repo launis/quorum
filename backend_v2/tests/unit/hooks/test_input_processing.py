@@ -122,7 +122,7 @@ async def test_process_inputs_missing_language() -> None:
         workflow_id="w1",
         execution_id="e1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": ""}),
+        global_context_vars=GlobalContextVarsDTO(language=""),
         metadata=ExecutionMetadata(),
     )
 
@@ -209,7 +209,7 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
                 "DOCUMENT_TEXT": "Plain text input.",
             }
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
     )
 
     deps = HookDependencies(
@@ -250,7 +250,7 @@ async def test_process_inputs_workflow_not_found() -> None:
         execution_id="test_exec",
         workflow_id="not_found",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -275,7 +275,7 @@ async def test_process_inputs_missing_required_input(monkeypatch: pytest.MonkeyP
         execution_id="test_exec",
         workflow_id="wf_123",
         inputs=ExecutionInputsDTO(raw_inputs={"QUESTIONNAIRE": ""}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -334,7 +334,7 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
         execution_id="test_exec",
         workflow_id="wf_chat",
         inputs=ExecutionInputsDTO(raw_inputs={"CHAT_LOG": '{"conversation": [{"role": "user", "content": "Hello"}]}'}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -401,7 +401,7 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
         execution_id="test_exec",
         workflow_id="wf_smooth",
         inputs=ExecutionInputsDTO(raw_inputs={"DOC": "Matti Meikäläinen at test"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -449,7 +449,7 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
             },
             dynamic_inputs={"document_text": "Dynamic input document text"},
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -509,7 +509,7 @@ async def test_process_inputs_missing_english_ai_description(monkeypatch: pytest
         execution_id="test_exec",
         workflow_id="wf_nodesc",
         inputs=ExecutionInputsDTO(raw_inputs={"DOC": "Some text"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(

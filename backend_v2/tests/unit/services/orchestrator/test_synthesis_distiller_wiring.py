@@ -310,7 +310,7 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
             dynamic_inputs={"steps": [raw_step_dict]},
             target_locale="en",  # type: ignore[dict-item]
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -401,7 +401,7 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="fi"),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -620,7 +620,7 @@ async def test_synthesis_distiller_wiring_forwards_output_profile_limits() -> No
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     with patch(

@@ -42,7 +42,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
 
 
 def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
-    """PROMISE: Prevent LLM token explosion by stratifying and capping evaluations at settings.max_synthesis_evaluations."""
+    """PROMISE: Prevent LLM token explosion by capping evaluations at settings.max_synthesis_evaluations."""
     evals = [
         {
             "atom_id": f"a{i}",
@@ -65,7 +65,7 @@ def test_compress_synthesis_payload_caps_evaluations_at_40() -> None:
 
 
 def test_compress_synthesis_payload_handles_string_input() -> None:
-    """PROMISE: Test that _compress_synthesis_payload strips whitespace for plain string values and fails fast on empty."""
+    """PROMISE: Test that _compress_synthesis_payload strips whitespace and fails fast on empty."""
     import pytest
 
     from backend_v2.exceptions import AppException
@@ -446,12 +446,13 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
             dynamic_inputs={"steps": single_step},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
     result = await synthesis_distiller_hook(state, deps)
     assert result.success is True
 
-    # Case 2: list with is_synthesis_source=False, block_id starting with _, and empty payload (lines 321-323, 329, 331, 337-342)
+    # Case 2: list with is_synthesis_source=False, block_id starting with _, and empty payload
+    # Covers lines 321-323, 329, 331, 337-342
     step_false = StepOutputDTO(
         step_id="stp_0123456789abcdef02",
         block_id="blk_0123456789abcdef02",
@@ -478,7 +479,7 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
             dynamic_inputs={"steps": [single_step, step_false, step_internal, step_empty]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
     res_multi = await synthesis_distiller_hook(state_multi, deps)
     assert res_multi.success is True

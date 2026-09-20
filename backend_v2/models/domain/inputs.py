@@ -8,12 +8,12 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.analyst import Hypothesis
+from backend_v2.models.domain.validation import GuttmanAtomItemDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.domain.analyst import Hypothesis
-from backend_v2.models.domain.validation import GuttmanAtomItemDTO
 
 logger = logging.getLogger(__name__)
 

@@ -211,7 +211,6 @@ class LLMNodeStrategy(NodeStrategy):
             ConfigurationError: Triggered upon incorrect configuration schemas.
         """
         inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
-        raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
 
         if running_event:
             running_event.set()

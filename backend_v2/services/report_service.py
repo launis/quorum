@@ -46,6 +46,14 @@ class ReportService:
         export_service: ExportService | None = None,
         pdf_service: PdfReportService | None = None,
     ) -> None:
+        """Initialize ReportService with repository and presentation services.
+
+        Args:
+            repo: Unified workflow repository for report persistence.
+            storage_driver: Optional storage driver for file storage.
+            export_service: Optional export service for data conversion.
+            pdf_service: Optional PDF rendering service.
+        """
         self.repo = repo
         self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
         self.export_service: ExportService = (
@@ -199,12 +207,16 @@ class ReportService:
             )
             logger.info("[ReportService] Successfully compiled report artifact: %s", report_id)
         except Exception as exc:
-            msg = f"Artifact compilation failed for report {report_id}: {exc}"
-            logger.error("[ReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
-            await self.repo.update_report_artifact(
-                report_id,
-                ReportArtifactUpdateDTO(status=ReportStatus.FAILED, error_message=str(exc)),
-            )
+            await self._dispatch_report_compilation_dlq(report_id, exc)
+
+    async def _dispatch_report_compilation_dlq(self, report_id: str, exc: Exception) -> None:
+        """Dispatches compilation failure to artifact failure state."""
+        msg = f"Artifact compilation failed for report {report_id}: {exc}"
+        logger.error("[ReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+        await self.repo.update_report_artifact(
+            report_id,
+            ReportArtifactUpdateDTO(status=ReportStatus.FAILED, error_message=str(exc)),
+        )
 
     async def _read_artifact(self, report: ReportArtifact, path: str | None, artifact_type: str) -> bytes:
         if report.status != ReportStatus.READY or not path:
@@ -249,7 +261,7 @@ class ReportService:
 
         rows: list[ReportRowItemDTO] = []
         for atom in report_dto.results:
-            ref = hydrated_refs.get(atom.tda_id)
+            ref = hydrated_refs[atom.tda_id] if atom.tda_id in hydrated_refs else None
             label = atom.tda_id
             if ref is not None:
                 label = ref.resolved_claim
@@ -268,6 +280,10 @@ class ReportService:
             )
         return rows
 
+    def _dlq_log_absent_storage_artifact(self, path: str) -> None:
+        """Logs when a storage artifact being deleted is already absent."""
+        logger.debug("[ReportService] Storage artifact '%s' already absent during deletion.", path)
+
     async def delete_report_artifact(self, report_id: str) -> None:
         """Deletes database record and associated physical files from storage."""
         report = await self.get_report(report_id)
@@ -283,7 +299,7 @@ class ReportService:
                     try:
                         await self.storage.delete(p)
                     except FileNotFoundError:
-                        logger.debug("[ReportService] Storage artifact '%s' already absent during deletion.", p)
+                        self._dlq_log_absent_storage_artifact(p)
                     except OSError as err:
                         msg = f"Failed deleting storage artifact '{p}' for report '{report_id}': {err}"
                         logger.error(

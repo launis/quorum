@@ -5,7 +5,6 @@ import copy
 import functools
 import logging
 from pathlib import Path
-from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -20,7 +19,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
-from backend_v2.models.domain.integrity import CitationAudit, StepContext
+from backend_v2.models.domain.integrity import CitationAudit
 from backend_v2.services.orchestrator.anchor_validation_service import AnchorValidationService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings

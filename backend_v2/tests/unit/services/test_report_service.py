@@ -337,3 +337,32 @@ async def test_list_and_public_reports() -> None:
     assert public.report_id == report.id
     assert "pdf" in public.downloads
     assert "Strategic Claim" in public.metrics
+
+
+@pytest.mark.asyncio
+async def test_delete_report_artifact_oserror_raises() -> None:
+    """Verify delete_report_artifact raises AppException on storage failure."""
+    repo = AsyncMock()
+    report = _create_dummy_report()
+    repo.get_report_artifact.return_value = report
+    storage = AsyncMock()
+    storage.delete.side_effect = OSError("Disk write protected")
+
+    service = ReportService(repo=repo, storage_driver=storage)
+    with pytest.raises(AppException) as exc_info:
+        await service.delete_report_artifact(report.id)
+    assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_regenerate_report_artifact() -> None:
+    """Verify regenerate_report_artifact enqueues compilation job."""
+    repo = AsyncMock()
+    report = _create_dummy_report()
+    repo.get_report_artifact.return_value = report
+    arq = AsyncMock()
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    await service.regenerate_report_artifact(report.id, arq)
+    arq.enqueue_job.assert_awaited_once()
+

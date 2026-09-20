@@ -37,11 +37,13 @@ def test_execution_inputs_dto_strictness() -> None:
 
 def test_global_context_vars_dto_instantiation() -> None:
     """Verify GlobalContextVarsDTO instantiation and field defaults."""
-    dto = GlobalContextVarsDTO(vars={"key": "val"})
-    assert dto.vars == {"key": "val"}
+    dto = GlobalContextVarsDTO(language="fi", target_locale="fi", profile_id="prf_123")
+    assert dto.language == "fi"
+    assert dto.target_locale == "fi"
+    assert dto.profile_id == "prf_123"
 
     default_dto = GlobalContextVarsDTO()
-    assert default_dto.vars == {}
+    assert default_dto.language is None
 
 
 def test_global_context_vars_dto_strictness() -> None:
@@ -57,7 +59,7 @@ def test_hook_delta_dto_instantiation() -> None:
     assert dto.metadata_updates == {"tokens": 100}
 
     default_dto = HookDeltaDTO()
-    assert default_dto.delta == {}
+    assert default_dto.delta is None
     assert default_dto.metadata_updates is None
 
 
@@ -65,14 +67,3 @@ def test_hook_delta_dto_strictness() -> None:
     """Verify HookDeltaDTO forbids extra fields and enforces immutability."""
     with pytest.raises(ValidationError):
         HookDeltaDTO(extra_field="fail")  # type: ignore[call-arg]
-
-
-def test_hook_delta_dto_subscript_and_contains() -> None:
-    """Verify HookDeltaDTO subscripting and membership operators."""
-    dto = HookDeltaDTO(delta={"result": "ok", "count": 42})
-    assert "result" in dto
-    assert "missing" not in dto
-    assert dto["result"] == "ok"
-    assert dto["count"] == 42
-    with pytest.raises(KeyError):
-        _ = dto["missing"]

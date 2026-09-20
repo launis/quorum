@@ -25,7 +25,6 @@ from backend_v2.hooks.scoring import (
     normalize_matrix_scores_hook,
 )
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
@@ -2484,7 +2483,6 @@ async def test_matrix_scoring_hook_quote_evidence_crash() -> None:
 @pytest.mark.asyncio
 async def test_matrix_scoring_hook_empty_evaluations() -> None:
     """Test that matrix_scoring_hook handles empty evaluations list properly."""
-    pb = _build_valid_pb_dict("blk_1111111111111111", [_build_valid_scale(1, ["atom_test"])])
     state = HookState(
         inputs=ExecutionInputsDTO(raw_inputs={"results": [], "extracted_facts": {}, "execution_metadata": {}}),
         step_id="sp_empty_evals",

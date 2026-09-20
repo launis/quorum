@@ -1,8 +1,8 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
-from typing import Any
 import uuid
+from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError

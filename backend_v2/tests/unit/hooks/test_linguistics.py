@@ -132,7 +132,7 @@ async def test_detect_performative_patterns_prioritizes_user_only(
                 "language": "en",
             }
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
 
@@ -175,7 +175,7 @@ async def test_detect_performative_patterns_exact_substring(
                 "language": "en",
             }
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
 
@@ -218,7 +218,7 @@ async def test_detect_performative_patterns_morphological_inflection(
                 "language": "fi",
             }
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         metadata=ExecutionMetadata(),
     )
 
@@ -257,7 +257,7 @@ async def test_detect_performative_patterns_unanchored_discarded(
         workflow_id="wf_dyn",
         step_id="sr_dyn",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "We delve into the core technical details."}),
     )
 
@@ -299,7 +299,7 @@ async def test_detect_performative_patterns_disabled_setting(
         workflow_id="wf_dyn",
         step_id="sr_dyn",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "We delve into this matter."}),
     )
 
@@ -327,7 +327,7 @@ async def test_detect_performative_patterns_llm_exception_graceful(
         workflow_id="wf_dyn",
         step_id="sr_dyn",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         inputs=ExecutionInputsDTO(raw_inputs={"chat_log_user_only": "We delve into this matter."}),
     )
 

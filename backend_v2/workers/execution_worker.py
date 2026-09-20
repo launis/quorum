@@ -155,7 +155,8 @@ async def execute_workflow_job(
                                 list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
                             ).validate_json(blob_data)
                     except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
-                        msg = f"Failed to hydrate offloaded trace from '{updated_exec_record.execution_trace_storage_path}' for telemetry: {err}"
+                        trace_path = updated_exec_record.execution_trace_storage_path
+                        msg = f"Failed to hydrate offloaded trace from '{trace_path}' for telemetry: {err}"
                         logger.error(
                             "[ExecutionWorker] %s: %s",
                             ErrorCodes.INTERNAL_SERVER_ERROR.name,

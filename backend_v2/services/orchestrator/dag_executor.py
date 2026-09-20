@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
@@ -208,6 +208,9 @@ class NodeExecutor:
             progress_callback: Optional progress reporter callback function.
             step_def: Optional pre-loaded Step blueprint.
             global_context_vars: Optional global context variables.
+            target_locale: Target localization code for linguistic mapping.
+            output_profile_id: Optional output profile identifier.
+            organization_id: Optional organization tenant identifier.
 
         Returns:
             List of events generated during step evaluation.
@@ -271,7 +274,12 @@ class NodeExecutor:
 
             resolved_global_vars: dict[str, Any] = {}
             if global_context_vars is not None:
-                resolved_global_vars = global_context_vars
+                if isinstance(global_context_vars, GlobalContextVarsDTO):
+                    resolved_global_vars = global_context_vars.model_dump(mode="json", exclude_none=True)
+                elif isinstance(global_context_vars, (str, int, float, bool, list)):
+                    resolved_global_vars = {"value": global_context_vars}
+                else:
+                    resolved_global_vars = global_context_vars
             elif isinstance(metadata, ExecutionMetadata) and metadata.global_context_vars is not None:
                 resolved_global_vars = metadata.global_context_vars
 
@@ -507,7 +515,7 @@ class DAGExecutor:
         if exec_record.target_locale:
             set_language(exec_record.target_locale)
 
-        global_vars: dict[str, Any] = {}
+        resolved_language: str | None = None
         user_id = exec_record.created_by
         if user_id is None and exec_record.raw_inputs is not None:
             user_id = exec_record.raw_inputs.user_id
@@ -515,13 +523,19 @@ class DAGExecutor:
             user_data = await self.identity_repo.get_user(user_id)
             if user_data is not None and isinstance(user_data, User):
                 if user_data.language:
-                    global_vars["language"] = str(user_data.language)
+                    resolved_language = str(user_data.language)
 
-        if "language" not in global_vars and exec_record.raw_inputs.language:
-            global_vars["language"] = exec_record.raw_inputs.language
+        if resolved_language is None and exec_record.raw_inputs.language:
+            resolved_language = exec_record.raw_inputs.language
 
-        if "language" not in global_vars and exec_record.target_locale:
-            global_vars["language"] = exec_record.target_locale
+        if resolved_language is None and exec_record.target_locale:
+            resolved_language = exec_record.target_locale
+
+        global_context_vars = GlobalContextVarsDTO(
+            language=resolved_language,
+            target_locale=exec_record.target_locale,
+            profile_id=workflow.default_profile_id,
+        )
 
         projector = StateProjector()
         for evt in exec_record.execution_trace:
@@ -548,18 +562,30 @@ class DAGExecutor:
                     execution_id=execution_id,
                     workflow_id=workflow.id,
                     metadata=exec_record.metadata or ExecutionMetadata(),
-                    global_context_vars=GlobalContextVarsDTO(vars=global_vars),
+                    global_context_vars=global_context_vars,
                     inputs=ExecutionInputsDTO(
                         raw_inputs=inputs_dict, dynamic_inputs=exec_record.raw_inputs.dynamic_inputs
                     ),
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
                 if processed_result.success and processed_result.state_delta is not None:
-                    delta_content: dict[str, Any] = {}
+                    delta_content: Any = {}
                     if isinstance(processed_result.state_delta, HookDeltaDTO):
-                        delta_content = processed_result.state_delta.delta
-                    elif not isinstance(processed_result.state_delta, (str, int, float, bool, list)):
-                        delta_content = dict(processed_result.state_delta)
+                        delta_payload = processed_result.state_delta.delta
+                        if delta_payload is None:
+                            delta_content = {}
+                        elif isinstance(delta_payload, BaseModel):
+                            delta_content = delta_payload.model_dump(mode="json")
+                        elif isinstance(delta_payload, (str, int, float, bool, list)):
+                            delta_content = {"value": delta_payload}
+                        else:
+                            delta_content = delta_payload
+                    elif isinstance(processed_result.state_delta, BaseModel):
+                        delta_content = processed_result.state_delta.model_dump(mode="json")
+                    elif isinstance(processed_result.state_delta, (str, int, float, bool, list)):
+                        delta_content = {"value": processed_result.state_delta}
+                    else:
+                        delta_content = processed_result.state_delta
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
@@ -821,7 +847,7 @@ class DAGExecutor:
                                 context_variables=exec_record.context_variables,
                                 progress_callback=progress_callback,
                                 step_def=node_step_def,
-                                global_context_vars=global_vars,
+                                global_context_vars=global_context_vars,
                             )
                 finally:
                     watcher_task.cancel()

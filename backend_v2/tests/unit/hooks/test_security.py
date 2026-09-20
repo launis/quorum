@@ -47,7 +47,7 @@ def test_sanitize_text_hook_success_no_pii() -> None:
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "Tämä on puhdas analyysi."}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -81,7 +81,7 @@ def test_sanitize_text_hook_redacts_pii(monkeypatch: pytest.MonkeyPatch) -> None
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "Matti Meikäläinen 010190-123A"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
@@ -141,7 +141,7 @@ def test_sanitize_text_hook_mask_pii_exception_raises(monkeypatch: pytest.Monkey
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "Tekstiä"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "fi"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),

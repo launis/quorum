@@ -20,7 +20,6 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.references import (
     BibliographyResultDTO,
     ReferenceDTO,
-    ReferencesContextDTO,
     ReferencesInputsDTO,
 )
 

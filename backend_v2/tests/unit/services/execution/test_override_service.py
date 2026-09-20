@@ -1,6 +1,5 @@
 """Unit tests for ExecutionOverrideService enforcing human override, synthesis invalidation, and quote rejection."""
 
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -266,7 +265,9 @@ async def test_clear_profile_synthesis_success() -> None:
     service.storage.delete = AsyncMock()
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
-    with patch("backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage):
+    with patch(
+        "backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage
+    ):
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
@@ -304,7 +305,9 @@ async def test_clear_profile_synthesis_pdf_delete_404_ignored() -> None:
     service.storage.delete = AsyncMock(side_effect=AppException("Not found", 404))
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
-    with patch("backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage):
+    with patch(
+        "backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage
+    ):
         await service.clear_profile_synthesis(
             initiator=initiator,
             execution_id=record.id,
@@ -337,7 +340,9 @@ async def test_clear_profile_synthesis_pdf_delete_409_reraised() -> None:
     service.storage.delete = AsyncMock(side_effect=AppException("Conflict", 409))
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
-    with patch("backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage):
+    with patch(
+        "backend_v2.services.execution.override_service.storage.get_storage_driver", return_value=service.storage
+    ):
         with pytest.raises(AppException) as exc_info:
             await service.clear_profile_synthesis(
                 initiator=initiator,

@@ -47,6 +47,19 @@ class ExecutionOverrideService:
         storage_driver: FileDriver | None = None,
         get_execution_fn: Callable[..., Awaitable[ExecutionRecord]] | None = None,
     ) -> None:
+        """Initialize ExecutionOverrideService with required repositories and dependencies.
+
+        Args:
+            exec_repo: Repository for execution records.
+            workflow_repo: Repository for workflows.
+            comp_repo: Optional repository for components.
+            prompt_block_repo: Optional repository for prompt blocks.
+            output_profile_repo: Optional repository for output profiles.
+            identity_repo: Optional repository for identities.
+            system_repo: Optional repository for system configuration.
+            storage_driver: Optional file storage driver.
+            get_execution_fn: Optional callable to retrieve an execution record.
+        """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo

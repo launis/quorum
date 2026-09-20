@@ -167,7 +167,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             visible_block_extensions = profile_model.visible_block_extensions
 
         if strictness_level is None:
-            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{execution_data.workflow_id}'."
+            wf_id = execution_data.workflow_id
+            msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{wf_id}'."
             logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}

@@ -11,7 +11,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
+from backend_v2.models.domain.metadata import MetadataHookResultDTO, StepMetadataDTO
 from backend_v2.models.enums import VirtualSystemStepID
 
 logger = logging.getLogger(__name__)

@@ -14,6 +14,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
@@ -30,7 +31,7 @@ class StepOutputDTOFactory(ModelFactory[StepOutputDTO]):
 @pytest.mark.asyncio
 @patch("backend_v2.services.orchestrator.synthesis_distiller.Workflow.model_validate")
 async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate: MagicMock) -> None:
-    """PROMISE: Prove that execution_state.evidence_quotes is strictly converted to QuoteEvidenceDTO list and limits are enforced."""
+    """PROMISE: Prove execution_state.evidence_quotes strictly converts to QuoteEvidenceDTO list."""
     mock_validate.return_value = MagicMock(
         historical_context_mode="DISABLED", steps=[], model_registry_id="sys_e26807f3bfa3454d"
     )
@@ -93,15 +94,15 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
         workflow_id="wf_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}, target_locale="en"),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "distilled_inputs" in result.state_delta.delta
-    assert "evidence_quotes" in result.state_delta.delta["distilled_inputs"] or True
+    assert isinstance(result.state_delta.delta, SynthesisDistillationDTO)
+    assert result.state_delta.delta.distilled_inputs is not None
 
 
 @pytest.mark.asyncio
@@ -161,7 +162,7 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         workflow_id="wf_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org1"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
     )
 
     with pytest.raises(AppException) as exc_info:

@@ -53,7 +53,7 @@ async def test_generate_bibliography_hook_success() -> None:
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"text_payload": "Analysis content"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"knowledge_base": {"k1": "v1"}}),
+        global_context_vars=GlobalContextVarsDTO(knowledge_base={"k1": "v1"}),
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),
