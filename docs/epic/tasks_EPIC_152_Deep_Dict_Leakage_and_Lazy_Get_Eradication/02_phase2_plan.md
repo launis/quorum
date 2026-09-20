@@ -7,7 +7,7 @@
 - `[MODIFY]` @[backend_v2/models/state.py#L57-L158]
 - `[MODIFY]` @[backend_v2/models/dtos/ingress.py#L50-L68]
 - `[MODIFY]` @[backend_v2/models/dtos/hook_state.py#L20-L48]
-- `[MODIFY]` @[backend_v2/models/dtos/atom_result.py#L61-L127]
+- `[MODIFY]` @[backend_v2/models/dtos/atom_result.py#L63-L128]
 - `[MODIFY]` @[backend_v2/llm/adapters/vertex_adapter.py#L360-L440]
 - `[MODIFY]` @[backend_v2/llm/handler.py#L390-L435]
 - `[MODIFY]` @[backend_v2/services/document_extraction.py#L111-L169]
@@ -32,9 +32,9 @@
   <dod_checklist>
     <item>Closed discriminated unions IngressInputValue and DomainInputValue are defined and enforced in @[backend_v2/models/domain/inputs.py#L16-L91].</item>
     <item>Method _coerce_raw_inputs_dict is completely demolished from @[backend_v2/models/dtos/hook_state.py#L20-L48].</item>
-    <item>Method _resolve_matrix_sampling_strategy in @[backend_v2/models/domain/execution.py#L63-L105] is hardened, eliminating isinstance(data, dict) and # noqa: QGR012.</item>
+    <item>Method _resolve_matrix_sampling_strategy in @[backend_v2/models/domain/execution.py#L104-L110] is hardened, eliminating isinstance(data, dict) and # noqa: QGR012.</item>
     <item>New strongly typed DTOs InjectedTheoryManifestDTO and GeneratedSchemaManifestDTO are created with ConfigDict(strict=True, extra="forbid", frozen=True).</item>
-    <item>EvaluatedAtomDTO and EvaluationFactsDTO strictly type all atom scoring and verification facts in @[backend_v2/models/dtos/atom_result.py#L61-L127].</item>
+    <item>EvaluatedAtomDTO and EvaluationFactsDTO strictly type all atom scoring and verification facts in @[backend_v2/models/dtos/atom_result.py#L63-L128].</item>
     <item>AtomResultDTO.validate_cognitive_vs_system_state eliminates object.__setattr__ and # noqa: QGR001 in favor of Fail-Fast ValueError validation.</item>
     <item>VertexAdapter.sanitize_messages in @[backend_v2/llm/adapters/vertex_adapter.py#L360-L440] eradicates getattr, tc.get(), and # noqa: QGR001 via OpenAIToolCallDTO pre-validation.</item>
     <item>ModelGardenHandler.discover_ai_studio_models in @[backend_v2/llm/handler.py#L390-L435] eradicates getattr and # noqa: QGR001 via direct SDK model attribute access.</item>
@@ -84,7 +84,7 @@
     <backend>@[backend_v2/models/state.py#L57-L158]</backend>
     <backend>@[backend_v2/models/dtos/ingress.py#L50-L68]</backend>
     <backend>@[backend_v2/models/dtos/hook_state.py#L20-L48]</backend>
-    <backend>@[backend_v2/models/dtos/atom_result.py#L61-L127]</backend>
+    <backend>@[backend_v2/models/dtos/atom_result.py#L63-L128]</backend>
     <backend>@[backend_v2/llm/adapters/vertex_adapter.py#L360-L440]</backend>
     <backend>@[backend_v2/llm/handler.py#L390-L435]</backend>
     <backend>@[backend_v2/services/document_extraction.py#L111-L169]</backend>
@@ -99,7 +99,7 @@
   </touched_artifacts>
 
   <pre_implementation_cleanups>
-    <cleanup id="C1" target="@[backend_v2/models/dtos/atom_result.py#L61-L127]">
+    <cleanup id="C1" target="@[backend_v2/models/dtos/atom_result.py#L63-L128]">
       <description>Eradicate 4x object.__setattr__ mutations and # noqa: QGR001 comments (Lines 109, 111, 113, 121).</description>
       <remedy>Replace in-place mutation with strict Fail-Fast ValueError raises in @model_validator(mode="after").</remedy>
     </cleanup>
@@ -123,7 +123,7 @@
       <description>Eradicate duck-typing try: 'content_base64' in v except TypeError: in prevent_base64_pollution (Lines 78-81).</description>
       <remedy>Base64 exclusion from domain models is mathematically guaranteed by DomainInputValue closed union at Rust type level.</remedy>
     </cleanup>
-    <cleanup id="C7" target="@[backend_v2/models/domain/execution.py#L63-L105]">
+    <cleanup id="C7" target="@[backend_v2/models/domain/execution.py#L104-L110]">
       <description>Eradicate isinstance(data, dict) and # noqa: QGR012 in _resolve_matrix_sampling_strategy (Line 101).</description>
       <remedy>Replace mode='before' dictionary mutation with direct Field(default_factory=...) initialization.</remedy>
     </cleanup>
@@ -141,7 +141,7 @@
 | `@[backend_v2/models/domain/execution.py#L47-L176]` | `injected_theory: dict[str, Any]`, `generated_schemas: dict[str, dict[str, Any]]`, `raw_atoms: list[dict[str, Any]]`, `isinstance(data, dict)` in `_resolve_matrix_sampling_strategy` | Strongly typed frozen DTOs: `InjectedTheoryManifestDTO`, `GeneratedSchemaManifestDTO`, `list[EvaluatedAtomDTO]`; `Field(default_factory=...)` on matrix_sampling_strategy | Eliminate before-validator dictionary tampering and `# noqa: QGR012` suppression | `test_execution.py` asserting Pydantic validation with `extra="forbid"` and zero QGR012 violations |
 | `@[backend_v2/models/dtos/hook_state.py#L20-L48]` | `_coerce_raw_inputs_dict` mode="before" string-to-dict coercion; naked `raw_inputs` and `dynamic_inputs` dicts | Demolish `_coerce_raw_inputs_dict`; type `raw_inputs` and `dynamic_inputs` as `dict[str, DomainInputValue]` | Demolish legacy single-string coercion hack; caller must supply valid domain input mapping | Unit tests asserting ValidationError on malformed string raw_inputs |
 | `@[backend_v2/models/dtos/ingress.py#L50-L68]` | `resolved_inputs: Annotated[dict[str, Any], ...]` | Strongly typed `resolved_inputs: Annotated[dict[str, IngressInputValue], ...]` | Eliminate permissive dictionary values in ingress resolution | Unit tests in `test_smart_ingress_resolver.py` asserting typed IngressInputValue instances |
-| `@[backend_v2/models/dtos/atom_result.py#L61-L127]` | `object.__setattr__(self, ...)` in-place post-validation state mutations; `# noqa: QGR001` suppressions | Strict Fail-Fast in `@model_validator(mode="after")` raising `ValueError` on contradictory cognitive states; define `EvaluatedAtomDTO` and `EvaluationFactsDTO` | Eradicate in-place mutation of frozen models; eliminate all `# noqa: QGR001` suppressions | `test_atom_result.py` verifying model immutability and ValueError on contradictory states |
+| `@[backend_v2/models/dtos/atom_result.py#L63-L128]` | `object.__setattr__(self, ...)` in-place post-validation state mutations; `# noqa: QGR001` suppressions | Strict Fail-Fast in `@model_validator(mode="after")` raising `ValueError` on contradictory cognitive states; define `EvaluatedAtomDTO` and `EvaluationFactsDTO` | Eradicate in-place mutation of frozen models; eliminate all `# noqa: QGR001` suppressions | `test_atom_result.py` verifying model immutability and ValueError on contradictory states |
 | `@[backend_v2/llm/adapters/vertex_adapter.py#L360-L440]` | `getattr(tc, "id", None)`, `tc.get("id")`, `isinstance(tc, dict)`, `# noqa: QGR001`, `# noqa: QGR012` | Pre-validate tool calls into `OpenAIToolCallDTO` before sanitization loop; direct dot-notation `tc.id` | Eliminate 3-branch duck-typing ladder in `sanitize_messages` | Unit test in `test_vertex_adapter.py` verifying tool call sanitization with zero reflection |
 | `@[backend_v2/llm/handler.py#L390-L435]` | `getattr(m, "name", None) or ""` reflection and `# noqa: QGR001` suppression | Direct attribute access `m.name` on typed Google GenAI SDK model or `DiscoveredModelDTO` validation | Eliminate reflection queries and empty string fallbacks | `test_llm_handler.py` asserting clean model enumeration without QGR001 suppressions |
 | `@[backend_v2/services/document_extraction.py#L111-L169]` | `isinstance(val, dict) and "content_base64" in val` duck-typing; `# noqa: QGR012` suppression | Direct `isinstance(val, Base64Attachment)` inspection on validated `ingress.dynamic_inputs` | Eliminate ad-hoc dictionary checks; utilize typed `IngressInputValue` union | `test_document_extraction.py` validating attachment extraction without QGR012 |
@@ -170,7 +170,7 @@
     <action>- Replace EvaluatedMatrixContextDTO.raw_atoms: list[dict[str, Any]] with list[EvaluatedAtomDTO].</action>
     <action>- Refactor ExecutionCreate._resolve_matrix_sampling_strategy to eradicate isinstance(data, dict) and # noqa: QGR012 in favor of Field(default_factory=...).</action>
     <demolish>REMOVE: `_coerce_raw_inputs_dict` in @[backend_v2/models/dtos/hook_state.py#L20-L48]. REPLACE WITH: strict Pydantic V2 model validation on DomainInputValue.</demolish>
-    <demolish>REMOVE: `isinstance(data, dict)` in @[backend_v2/models/domain/execution.py#L63-L105]. REPLACE WITH: Field(default_factory=...) default initialization.</demolish>
+    <demolish>REMOVE: `isinstance(data, dict)` in @[backend_v2/models/domain/execution.py#L104-L110]. REPLACE WITH: Field(default_factory=...) default initialization.</demolish>
   </step>
 
   <step id="2.3" name="Theory &amp; Schema Manifest DTO Creation">
@@ -183,7 +183,7 @@
   </step>
 
   <step id="2.4" name="Atom Result Immutability &amp; Ingress DTO Strictness">
-    <action>Refactor @[backend_v2/models/dtos/atom_result.py#L61-L127]:</action>
+    <action>Refactor @[backend_v2/models/dtos/atom_result.py#L63-L128]:</action>
     <action>- Eradicate 4x object.__setattr__ mutations and # noqa: QGR001 suppressions from validate_cognitive_vs_system_state.</action>
     <action>- Enforce Fail-Fast raising ValueError on contradictory states (failed atoms cannot have contextual_override, is_inverse_evidence, or source_quote; passed atoms with override/inverse must have source_quote is None).</action>
     <action>- Define EvaluatedAtomDTO and EvaluationFactsDTO with ConfigDict(strict=True, extra="forbid", frozen=True).</action>

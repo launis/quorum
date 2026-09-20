@@ -6,6 +6,8 @@
 - `[MODIFY]` @[backend_v2/services/orchestrator/prompt_compiler.py]
 - `[MODIFY]` @[backend_v2/services/orchestrator/state_reducer.py]
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py]
+- `[MODIFY]` @[backend_v2/services/flattener.py]
+- `[NEW]` @[backend_v2/models/dtos/flat_record.py] (FlatExecutionRecordDTO)
 
 ```xml
 <execution_protocol>

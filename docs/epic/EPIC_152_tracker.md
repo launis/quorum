@@ -54,15 +54,20 @@
   - [x] Step 2.5: LLM Handler & Adapter Reflection Eradication
   - [x] Step 2.6: Document Extraction & Smart Ingress Hardening
 - [x] **[OK] Test Coverage Assertions:** 100% test contract pass rate (75/75 tests passed, >90% coverage on all touched domain models and resolvers, 0 fatal AST guardrail violations).
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 3: Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md] --phase=3`
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md] --phase=3`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 3.1: Two-Pass Atomizer Strict Synthesis DTO Hardening
-  - [ ] Step 3.2: Synthesis Reducers & Payload Compressor Hardening
+  - [ ] Step 3.1: Two-Pass Atomizer Empty Packet Short-Circuit & Demolition of [NO_BLOCK] Sentinel
+  - [ ] Step 3.2: Synthesis Payload Compressor & EvaluatedAtomDTO Strict Stratification
+  - [ ] Step 3.3: Domain Events SSOT & DataStarvationEvent / NodeExecutionUpdateDTO Packaging
+  - [ ] Step 3.4: Synthesis Distiller Hook & SynthesisDistillationDTO Integration
+  - [ ] Step 3.5: Matrix Reducer & Orchestrator Engines Fail-Fast Hardening
+  - [ ] Step 3.6: Background Worker Synthesis Tasks, Reducers & Variance Synthesis Hardening
+  - [ ] Step 3.7: Test Suites Modernization & Co-Located Dynamic Reflection Eradication
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
 
@@ -137,6 +142,13 @@
   - [ ] @[backend_v2/workers/synthesis_reducers.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
   - [ ] [NEW] @[backend_v2/events/domain_events.py]
+  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
+  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
+  - [ ] @[backend_v2/workers/synthesis_tasks.py]
+  - [ ] @[backend_v2/workers/variance_synthesis.py]
+  - [ ] @[backend_v2/models/dtos/synthesis.py]
   - [ ] @[backend_v2/services/orchestrator/result_projector.py]
   - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
   - [ ] [NEW] @[backend_v2/models/dtos/global_context.py]
@@ -183,8 +195,13 @@
 | Atom Result Immutability & Ingress DTO Strictness | Phase 2 | `backend_v2/models/dtos/atom_result.py`, `ingress.py`, `hook_state.py` | Phase 2, Step 2.4 |
 | LLM Handler & Adapter Reflection Eradication | Phase 2 | `vertex_adapter.py`, `handler.py`, `test_atom_result.py` | Phase 2, Step 2.5 |
 | Document Extraction & Smart Ingress Hardening | Phase 2 | `document_extraction.py`, `smart_ingress_resolver.py`, `base.py` | Phase 2, Step 2.6 |
-| Two-Pass Atomizer Strict Synthesis DTO Hardening | Phase 3 | `backend_v2/services/two_pass_atomizer.py` | Phase 3, Step 3.1 |
-| Synthesis Reducers & Payload Compressor Hardening | Phase 3 | `synthesis_reducers.py`, `synthesis_payload_compressor.py`, `domain_events.py` | Phase 3, Step 3.2 |
+| Two-Pass Atomizer Empty Packet Short-Circuit & Demolition of [NO_BLOCK] Sentinel | Phase 3 | `backend_v2/services/orchestrator/two_pass_atomizer.py` | Phase 3, Step 3.1 |
+| Synthesis Payload Compressor & EvaluatedAtomDTO Strict Stratification | Phase 3 | `synthesis_payload_compressor.py`, `atom_result.py` | Phase 3, Step 3.2 |
+| Domain Events SSOT & DataStarvationEvent / NodeExecutionUpdateDTO Packaging | Phase 3 | `backend_v2/events/domain_events.py` | Phase 3, Step 3.3 |
+| Synthesis Distiller Hook & SynthesisDistillationDTO Integration | Phase 3 | `synthesis_distiller.py`, `models/dtos/synthesis.py` | Phase 3, Step 3.4 |
+| Matrix Reducer & Orchestrator Engines Fail-Fast Hardening | Phase 3 | `matrix_reducer.py`, `synthesis_engine.py`, `tda_engine.py` | Phase 3, Step 3.5 |
+| Background Worker Synthesis Tasks, Reducers & Variance Synthesis Hardening | Phase 3 | `synthesis_tasks.py`, `synthesis_reducers.py`, `variance_synthesis.py` | Phase 3, Step 3.6 |
+| Test Suites Modernization & Dynamic Reflection Eradication | Phase 3 | `test_worker_synthesis.py`, `test_worker.py`, `test_worker_proxy.py`, `test_synthesis_distiller_wiring.py` | Phase 3, Step 3.7 |
 | Result Projector Segregation | Phase 4 | `backend_v2/services/execution/result_projector.py` | Phase 4, Step 4.1 |
 | Matrix Hook Hardening & Test Suite Creation | Phase 4 | `matrix_hook.py`, `global_context.py`, `hook_delta.py`, `test_matrix_hook.py` | Phase 4, Step 4.2 |
 | Prompt Compiler & Mapping DTO Hardening | Phase 5 | `backend_v2/services/orchestrator/prompt_compiler.py` | Phase 5, Step 5.1 |
@@ -199,23 +216,19 @@
  
 ## Achieved
 - Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Executed Tier 0 Research & Analysis on Phase 2 Plan (`02_phase2_plan.md`).
-- Executed Tier 2 Implementation of Phase 2 Plan (`02_phase2_plan.md`):
-  - Step 2.1: Defined closed discriminated unions `IngressInputValue` (allowing `Base64Attachment`) and `DomainInputValue` (excluding `Base64Attachment`) in `inputs.py`. Decoupled `WorkflowInputsIngress` and `WorkflowInputs` with `WorkflowInputsBase` to prevent MyPy invariance conflicts.
-  - Step 2.2: Hardened `execution.py` by converting `_resolve_matrix_sampling_strategy` to `@field_validator(mode="before")` with 0 `isinstance(data, dict)` checks. Demolished `_coerce_raw_inputs_dict` from `hook_state.py`.
-  - Step 2.3: Created frozen immutable DTOs `InjectedTheoryManifestDTO` and `GeneratedSchemaManifestDTO` with strict dictionary mapping methods.
-  - Step 2.4: Defined `EvaluatedAtomDTO` and `EvaluationFactsDTO` in `atom_result.py`. Replaced `object.__setattr__` with fail-fast `ValueError` validation. Typed `resolved_inputs` with `IngressInputValue` in `ingress.py`.
-  - Step 2.5: Sanitized tool calls in `vertex_adapter.py` via `OpenAIToolCallDTO` pre-validation, accessing `tc.id` with dot-notation and 0 reflection. Eliminated `getattr(m, "name", None)` in `handler.py`.
-  - Step 2.6: Processed ingress payloads in `document_extraction.py` with `isinstance(val, Base64Attachment)` and 0 duck-typing. Eliminated Python 2 comma exception syntax and typed resolved inputs in `smart_ingress_resolver.py`.
-- Universal Quality Gate verification complete: 75/75 unit tests passed, 0 fatal AST guardrail violations on Phase 2 targets.
+- Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
+- Authored Phase 3 Implementation Plan (`03_placeholder_phase3.md` / `implementation_plan.md`) covering Steps 3.1 to 3.7.
+- Verified plan boundaries and planner fidelity: 100% pass on `scripts/audit_markdown_boundaries.py` and `scripts/audit_planner_output.py`.
 
 ## Learned
-- Dynamic workflow inputs require separate `IngressInputValue` and `DomainInputValue` unions to mathematically prevent Base64 leakage into downstream domain models.
-- Subclassing models with narrowed dict value types triggers MyPy invariant container variance errors; sibling inheritance from a generic base solves this deterministically.
-- `GeneratedSchemaManifestDTO` provides dict-like mapping interfaces (`keys()`, `values()`, `items()`, `__getitem__`, `__contains__`, `__len__`) while preserving Pydantic V2 `BaseModel.__iter__` contract.
+- Exact AST node boundary verification (`ast.walk`) requires matching exact `ClassDef` / `FunctionDef` line bounds down to single lines (`#L27-L41`, `#L146-L175`, `#L25-L47`, `#L16-L41`).
+- `StepOutputDTO` in `backend_v2/models/state.py` is the sovereign SSOT model for step outputs; avoiding hallucinated DTO names (`StepOutputContentDTO`) keeps planner guardrails 100% green.
+- `SynthesisDistillationDTO` must implement standard mapping methods (`keys()`, `values()`, `items()`, `__getitem__`, `__contains__`) under `ConfigDict(strict=True, frozen=True, extra="forbid")` to ensure zero regressions across legacy hook consumers.
 
 ## Remaining
-- Execute Tier 8 Audit for Phase 2: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Red-team Phase 3 plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Execute Phase 3 via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Phases 4-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
