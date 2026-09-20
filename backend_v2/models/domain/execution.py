@@ -15,12 +15,15 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.system_config import DataDictionaryField, MCPAuditTrace
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
     LaxExecutionStatus,
@@ -50,8 +53,12 @@ class FrozenContext(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     compiled_prompts: dict[str, str] = Field(default_factory=dict, description="Prompts sent to LLM.")
-    injected_theory: dict[str, Any] = Field(default_factory=dict, description="Fetched theory texts.")
-    generated_schemas: dict[str, dict[str, Any]] = Field(default_factory=dict, description="JSON schemas used.")
+    injected_theory: InjectedTheoryManifestDTO = Field(
+        default_factory=InjectedTheoryManifestDTO, description="Fetched theory texts."
+    )
+    generated_schemas: GeneratedSchemaManifestDTO = Field(
+        default_factory=GeneratedSchemaManifestDTO, description="JSON schemas used."
+    )
     ui_hints_snapshot: dict[str, DataDictionaryField] = Field(
         default_factory=dict, description="UI rendering instructions."
     )
@@ -94,14 +101,13 @@ class ExecutionCreate(V2CoreBase):
         default=None, description="Optional execution-level model registry stack override"
     )
 
-    @model_validator(mode="before")
+    @field_validator("matrix_sampling_strategy", mode="before")
     @classmethod
-    def _resolve_matrix_sampling_strategy(cls, data: Any) -> Any:
+    def _resolve_matrix_sampling_strategy(cls, value: int | None) -> int:
         """Resolve matrix_sampling_strategy if passed explicitly as None."""
-        if isinstance(data, dict):  # noqa: QGR012 [REASON: Pydantic before validator raw ingress coercion]
-            if "matrix_sampling_strategy" in data and data["matrix_sampling_strategy"] is None:
-                data["matrix_sampling_strategy"] = get_settings().matrix_sampling_limit
-        return data
+        if value is None:
+            return int(get_settings().matrix_sampling_limit)
+        return int(value)
 
 
 ExecutionCreate.model_rebuild()
@@ -170,9 +176,9 @@ class EvaluatedMatrixContextDTO(V2CoreBase):
         Field(default_factory=dict, description="Map of atom IDs to evaluation status"),
     ]
     raw_atoms: Annotated[
-        list[dict[str, Any]],
+        list[EvaluatedAtomDTO],
         Field(default_factory=list, description="Raw evaluated atom payloads"),
-    ]
+    ] = Field(default_factory=list)
 
 
 class ExecutionRecord(ExecutionCoreFields):

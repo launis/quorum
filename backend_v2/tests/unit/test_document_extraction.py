@@ -2,10 +2,8 @@ import base64
 from unittest.mock import patch
 
 import pytest
-from fastapi import status
 
-from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
 from backend_v2.services.document_extraction import DocumentExtractionService
 
 
@@ -19,21 +17,15 @@ async def test_process_ingress_payload_empty() -> None:
     assert result.dynamic_inputs == {}
 
 
-@pytest.mark.asyncio
-async def test_process_ingress_payload_strict_hydration_failure() -> None:
-    """Test that Duck Typing is prevented and missing filename raises 422 AppException."""
-    service = DocumentExtractionService()
+def test_process_ingress_payload_strict_hydration_failure() -> None:
+    """Test that Duck Typing is prevented and missing filename raises ValidationError at boundary."""
+    from pydantic import ValidationError
 
     # Payload missing 'filename', but has 'content_base64'
-    ingress = WorkflowInputsIngress(
-        dynamic_inputs={"file_1": {"content_base64": base64.b64encode(b"dummy data").decode("utf-8")}}
-    )
-
-    with pytest.raises(AppException) as exc_info:
-        await service.process_ingress_payload(ingress)
-
-    assert exc_info.value.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    with pytest.raises(ValidationError):
+        WorkflowInputsIngress(
+            dynamic_inputs={"file_1": {"content_base64": base64.b64encode(b"dummy data").decode("utf-8")}}
+        )
 
 
 @pytest.mark.asyncio
@@ -44,11 +36,13 @@ async def test_process_ingress_payload_text_decoding() -> None:
     original_text = "Hello, strict Pydantic world!"
     b64_content = base64.b64encode(original_text.encode("utf-8")).decode("utf-8")
 
-    ingress = WorkflowInputsIngress(dynamic_inputs={"file_1": {"filename": "notes.txt", "content_base64": b64_content}})
+    ingress = WorkflowInputsIngress(
+        dynamic_inputs={"file_1": Base64Attachment(filename="notes.txt", content_base64=b64_content)}
+    )
 
     result = await service.process_ingress_payload(ingress)
 
-    # The base64 blob should be destroyed and replaced with decoded text
+    # The base64 blob should be replaced by decoded utf-8 text
     assert result.dynamic_inputs["file_1"] == original_text
 
 
@@ -61,7 +55,7 @@ async def test_process_ingress_payload_pdf_extraction() -> None:
     b64_content = base64.b64encode(b"fake pdf bytes").decode("utf-8")
 
     ingress = WorkflowInputsIngress(
-        dynamic_inputs={"file_1": {"filename": "document.pdf", "content_base64": b64_content}}
+        dynamic_inputs={"file_1": Base64Attachment(filename="document.pdf", content_base64=b64_content)}
     )
 
     with patch.object(service, "_extract_pdf_sync", return_value=("# Extracted PDF Content", None)):
@@ -96,7 +90,7 @@ def test_pdf_date_parser_formats() -> None:
 
     # Test empty/None values
     assert DocumentExtractionService.parse_pdf_date("") is None
-    assert DocumentExtractionService.parse_pdf_date(None) is None  # type: ignore[arg-type]
+    assert DocumentExtractionService.parse_pdf_date(None) is None
 
 
 @pytest.mark.asyncio
@@ -110,7 +104,9 @@ async def test_pdf_metadata_date_propagation() -> None:
     mock_pdf_extracted_date = "2026-05-26T06:45:00+03:00"
 
     ingress = WorkflowInputsIngress(
-        dynamic_inputs={"chat_log": {"filename": "keskusteluhistoria SITRA.pdf", "content_base64": b64_content}}
+        dynamic_inputs={
+            "chat_log": Base64Attachment(filename="keskusteluhistoria SITRA.pdf", content_base64=b64_content)
+        }
     )
 
     with patch.object(service, "_extract_pdf_sync", return_value=("# Chat Log Text", mock_pdf_extracted_date)):

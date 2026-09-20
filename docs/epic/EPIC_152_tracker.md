@@ -46,14 +46,14 @@
 ### Phase 2: Domain Model & Event Sourcing Hardening, Dynamic Input Closed Unions & Isolated DTO Immutability
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 2.1: Dynamic Input Closed Union IngressInputValue
-  - [ ] Step 2.2: Domain Execution Model Hardening & Demolition
-  - [ ] Step 2.3: Theory & Schema Manifest DTO Creation
-  - [ ] Step 2.4: Atom Result Immutability & Ingress DTO Strictness
-  - [ ] Step 2.5: LLM Handler & Adapter Reflection Eradication
-  - [ ] Step 2.6: Document Extraction & Smart Ingress Hardening
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+  - [x] Step 2.1: Dynamic Input Closed Union IngressInputValue
+  - [x] Step 2.2: Domain Execution Model Hardening & Demolition
+  - [x] Step 2.3: Theory & Schema Manifest DTO Creation
+  - [x] Step 2.4: Atom Result Immutability & Ingress DTO Strictness
+  - [x] Step 2.5: LLM Handler & Adapter Reflection Eradication
+  - [x] Step 2.6: Document Extraction & Smart Ingress Hardening
+- [x] **[OK] Test Coverage Assertions:** 100% test contract pass rate (75/75 tests passed, >90% coverage on all touched domain models and resolvers, 0 fatal AST guardrail violations).
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 3: Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening
@@ -199,21 +199,23 @@
  
 ## Achieved
 - Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Executed Tier 0 Research & Analysis on Phase 2 Plan (`02_phase2_plan.md`):
-  - Five-Axis System 2 Deconstruction and 5-Column Directives Table synthesized.
-  - Pruned premature Phase 5/6 DTOs from Phase 2 scope and added `document_extraction.py`, `smart_ingress_resolver.py`, and `base.py`.
-  - Bound exact AST physical line ranges (`#Lnn-mm`) to all target files and validated 100% AST node compliance with `scripts/audit_planner_output.py`.
-  - Documented strictness shock protection and staged convergence protocol.
-  - Demolished `_coerce_raw_inputs_dict` location error and established binary input closed unions (`IngressInputValue` and `DomainInputValue`).
+- Executed Tier 0 Research & Analysis on Phase 2 Plan (`02_phase2_plan.md`).
+- Executed Tier 2 Implementation of Phase 2 Plan (`02_phase2_plan.md`):
+  - Step 2.1: Defined closed discriminated unions `IngressInputValue` (allowing `Base64Attachment`) and `DomainInputValue` (excluding `Base64Attachment`) in `inputs.py`. Decoupled `WorkflowInputsIngress` and `WorkflowInputs` with `WorkflowInputsBase` to prevent MyPy invariance conflicts.
+  - Step 2.2: Hardened `execution.py` by converting `_resolve_matrix_sampling_strategy` to `@field_validator(mode="before")` with 0 `isinstance(data, dict)` checks. Demolished `_coerce_raw_inputs_dict` from `hook_state.py`.
+  - Step 2.3: Created frozen immutable DTOs `InjectedTheoryManifestDTO` and `GeneratedSchemaManifestDTO` with strict dictionary mapping methods.
+  - Step 2.4: Defined `EvaluatedAtomDTO` and `EvaluationFactsDTO` in `atom_result.py`. Replaced `object.__setattr__` with fail-fast `ValueError` validation. Typed `resolved_inputs` with `IngressInputValue` in `ingress.py`.
+  - Step 2.5: Sanitized tool calls in `vertex_adapter.py` via `OpenAIToolCallDTO` pre-validation, accessing `tc.id` with dot-notation and 0 reflection. Eliminated `getattr(m, "name", None)` in `handler.py`.
+  - Step 2.6: Processed ingress payloads in `document_extraction.py` with `isinstance(val, Base64Attachment)` and 0 duck-typing. Eliminated Python 2 comma exception syntax and typed resolved inputs in `smart_ingress_resolver.py`.
+- Universal Quality Gate verification complete: 75/75 unit tests passed, 0 fatal AST guardrail violations on Phase 2 targets.
 
 ## Learned
-- `_coerce_raw_inputs_dict` belongs to `ExecutionInputsDTO` in `hook_state.py`, while `execution.py` contains `_resolve_matrix_sampling_strategy`.
-- Dynamic workflow inputs require separate `IngressInputValue` (permitting `Base64Attachment` and `GuidedReflectionInputDTO`) and `DomainInputValue` (banning `Base64Attachment`), eliminating runtime duck-typing at the Rust type system level.
-- Pre-validating tool calls into `OpenAIToolCallDTO` eliminates the multi-branch reflection and duck-typing ladder in `vertex_adapter.py`.
-- `audit_planner_output.py` verifies all target files in the Epic against the concatenated plan directory; quarantining Phase 5/6 DTOs explicitly in `<anti_targets>` ensures mathematical compliance.
+- Dynamic workflow inputs require separate `IngressInputValue` and `DomainInputValue` unions to mathematically prevent Base64 leakage into downstream domain models.
+- Subclassing models with narrowed dict value types triggers MyPy invariant container variance errors; sibling inheritance from a generic base solves this deterministically.
+- `GeneratedSchemaManifestDTO` provides dict-like mapping interfaces (`keys()`, `values()`, `items()`, `__getitem__`, `__contains__`, `__len__`) while preserving Pydantic V2 `BaseModel.__iter__` contract.
 
 ## Remaining
-- Execute Phase 2 Implementation: `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Execute Tier 8 Audit for Phase 2: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
 
 ## Resume Command
-`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`

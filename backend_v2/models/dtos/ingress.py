@@ -6,10 +6,11 @@ and multi-channel payload validation.
 
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field
 
+from backend_v2.models.domain.inputs import IngressInputValue
 from backend_v2.models.dtos.base import BaseDTO
 
 __all__ = [
@@ -58,7 +59,7 @@ class ResolvedIngressDTO(BaseDTO):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     resolved_inputs: Annotated[
-        dict[str, Any],
+        dict[str, IngressInputValue],
         Field(description="Resolved inputs mapped strictly to target ExpectedInput keys or dynamic slots."),
     ]
     source_identity_manifest: Annotated[

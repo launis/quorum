@@ -9,6 +9,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
@@ -354,6 +355,31 @@ def test_vertex_adapter_sanitize_messages() -> None:
     assert len(sanitized) == 3
     assert not any(m.get("tool_call_id") == "orphaned_call_999" for m in sanitized)
     assert any(m.get("tool_call_id") == "call_123" for m in sanitized)
+
+
+def test_vertex_adapter_sanitizes_tool_calls_without_reflection() -> None:
+    """Test contract: sanitize_messages handles both OpenAIToolCallDTO and raw dict tool calls cleanly."""
+    adapter = VertexCacheAdapter()
+    tc_dto = OpenAIToolCallDTO(
+        id="call_typed_1", type="function", function=OpenAIFunctionCallDTO(name="search", arguments="{}")
+    )
+    messages: list[Any] = [
+        {"role": "user", "content": "Query"},
+        {
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [tc_dto, {"id": "call_dict_2", "type": "function", "function": {"name": "lookup"}}],
+        },
+        {"role": "tool", "tool_call_id": "call_typed_1", "content": "Found 1"},
+        {"role": "tool", "tool_call_id": "call_dict_2", "content": "Found 2"},
+        {"role": "tool", "tool_call_id": "call_orphan_3", "content": "Orphan"},
+    ]
+    sanitized = adapter.sanitize_messages(messages)
+    assert len(sanitized) == 4
+    tool_ids = [m.get("tool_call_id") for m in sanitized if m.get("role") == "tool"]
+    assert "call_typed_1" in tool_ids
+    assert "call_dict_2" in tool_ids
+    assert "call_orphan_3" not in tool_ids
 
 
 def test_vertex_adapter_prepare_kwargs_location_and_thinking() -> None:

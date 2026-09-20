@@ -15,16 +15,36 @@ from backend_v2.models.domain.execution import (
     FrozenContext,
     JobAcceptedDTO,
 )
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
 from backend_v2.models.enums import ExecutionStatus, LLMProvider
 
 
 def test_frozen_context_instantiation() -> None:
     fc = FrozenContext()
     assert fc.compiled_prompts == {}
-    assert fc.injected_theory == {}
-    assert fc.generated_schemas == {}
+    assert fc.injected_theory == InjectedTheoryManifestDTO()
+    assert fc.generated_schemas == GeneratedSchemaManifestDTO()
     assert fc.ui_hints_snapshot == {}
     assert fc.mcp_tool_audit == []
+
+
+def test_theory_manifest_immutability() -> None:
+    """Test contract: InjectedTheoryManifestDTO rejects in-place attribute mutations."""
+    manifest = InjectedTheoryManifestDTO(theories={"th_1": "Theory text"})
+    assert manifest.theories["th_1"] == "Theory text"
+    with pytest.raises((ValidationError, TypeError)):
+        manifest.theories = {"th_2": "New"}  # type: ignore[misc]
+
+
+def test_schema_manifest_immutability() -> None:
+    """Test contract: GeneratedSchemaManifestDTO rejects in-place attribute mutations."""
+    manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
+    assert "stp_1" in manifest
+    assert manifest["stp_1"] == {"type": "object"}
+    with pytest.raises((ValidationError, TypeError)):
+        manifest.schemas = {"stp_2": {"type": "string"}}  # type: ignore[misc]
 
 
 def test_execution_create_defaults() -> None:
@@ -100,10 +120,11 @@ def test_execution_summary_snapshot() -> None:
 def test_evaluated_matrix_context_dto() -> None:
     dto = EvaluatedMatrixContextDTO(
         evaluated_atoms={"atm_1": "PASSED"},
-        raw_atoms=[{"key": "val"}],
+        raw_atoms=[EvaluatedAtomDTO(tda_id="atm_1", status="PASSED", score=1.0)],
     )
     assert dto.evaluated_atoms == {"atm_1": "PASSED"}
     assert len(dto.raw_atoms) == 1
+    assert dto.raw_atoms[0].tda_id == "atm_1"
 
 
 def test_job_accepted_dto() -> None:

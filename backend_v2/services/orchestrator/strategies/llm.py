@@ -139,21 +139,24 @@ class LLMNodeStrategy(NodeStrategy):
             dynamic_inputs_dict = dict(hook_state.inputs)
 
         dag_results: dict[str, Any] = {}
-        combined_inputs = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
+        combined_inputs: list[Any] = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
         for step_res in combined_inputs:
-            try:
-                if "results" in step_res:
-                    for ev in step_res["results"]:
-                        if not isinstance(ev, (str, int, float, bool)) and ev is not None:
-                            a_id: str | None = None
-                            if "tda_id" in ev:
-                                a_id = ev["tda_id"]
-                            elif "atom_id" in ev:
-                                a_id = ev["atom_id"]
-                            if a_id:
-                                dag_results[a_id] = ev
-            except TypeError, KeyError:
-                pass
+            if not isinstance(step_res, (str, int, float, bool, list)) and step_res is not None:
+                try:
+                    step_dict = dict(step_res)
+                    if "results" in step_dict:
+                        for ev in step_dict["results"]:
+                            if not isinstance(ev, (str, int, float, bool, list)) and ev is not None:
+                                ev_dict = dict(ev)
+                                a_id: str | None = None
+                                if "tda_id" in ev_dict:
+                                    a_id = ev_dict["tda_id"]
+                                elif "atom_id" in ev_dict:
+                                    a_id = ev_dict["atom_id"]
+                                if a_id:
+                                    dag_results[a_id] = ev
+                except TypeError, ValueError, KeyError:
+                    pass
 
         return gvars, doc_aliases, dag_results
 

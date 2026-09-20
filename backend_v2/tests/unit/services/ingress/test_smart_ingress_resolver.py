@@ -112,14 +112,14 @@ class TestSmartIngressResolver:
         """Partition 3: Collision on slot chat_log raises 400 VALIDATION_FAILED."""
         raw_inputs = WorkflowInputsIngress(
             dynamic_inputs={
-                "keskusteluhistoria": {
-                    "filename": "keskusteluhistoria.pdf",
-                    "content_base64": "SGVsbG8=",
-                },
-                "keskusteluhistoria_user_only": {
-                    "filename": "keskusteluhistoria_user_only.md",
-                    "content_base64": "V29ybGQ=",
-                },
+                "keskusteluhistoria": Base64Attachment(
+                    filename="keskusteluhistoria.pdf",
+                    content_base64="SGVsbG8=",
+                ),
+                "keskusteluhistoria_user_only": Base64Attachment(
+                    filename="keskusteluhistoria_user_only.md",
+                    content_base64="V29ybGQ=",
+                ),
             }
         )
 
@@ -155,16 +155,14 @@ class TestSmartIngressResolver:
         [
             "",
             "   \n  \t ",
-            None,
             [],
-            {},
         ],
     )
     def test_empty_required_inputs_fail_fast(self, empty_value: object) -> None:
         """Partition 5: Empty required inputs fail fast with missing_fields."""
         raw_inputs = WorkflowInputsIngress(
             dynamic_inputs={
-                "chat_log": empty_value,
+                "chat_log": empty_value,  # type: ignore[dict-item]
             }
         )
 
@@ -174,6 +172,22 @@ class TestSmartIngressResolver:
         assert excinfo.value.status_code == 400
         assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
         assert "chat_log" in excinfo.value.details["missing_fields"]
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            None,
+            {},
+        ],
+    )
+    def test_invalid_type_inputs_rejected_at_ingress(self, invalid_value: object) -> None:
+        """Partition 5b: Non-IngressInputValue types (None, naked dict) rejected at ingress boundary."""
+        with pytest.raises(ValidationError):
+            WorkflowInputsIngress(
+                dynamic_inputs={
+                    "chat_log": invalid_value,  # type: ignore[dict-item]
+                }
+            )
 
     def test_unconstrained_dynamic_inputs_preserved(self) -> None:
         """Partition 6: Extra dynamic inputs not in expected_inputs are preserved."""

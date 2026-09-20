@@ -1,7 +1,7 @@
 """Data Transfer Objects for Atom Evaluation Results and DAG Telemetry.
 
 SSOT for ErrorDetailsDTO, HydratedAtomDTO, ExtractedValueDTO, AtomResultDTO,
-ExecutionMetricsDTO, and ExtensionMetricsDTO.
+EvaluatedAtomDTO, EvaluationFactsDTO, ExecutionMetricsDTO, and ExtensionMetricsDTO.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ from backend_v2.models.enums import (
 __all__ = [
     "AtomResultDTO",
     "ErrorDetailsDTO",
+    "EvaluatedAtomDTO",
+    "EvaluationFactsDTO",
     "ExecutionMetricsDTO",
     "ExtensionMetricsDTO",
     "ExtractedValueDTO",
@@ -106,11 +108,11 @@ class AtomResultDTO(BaseModel):
             if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
             if self.contextual_override:
-                object.__setattr__(self, "contextual_override", False)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
+                raise ValueError("contextual_override cannot be True when status is FAILED")
             if self.is_inverse_evidence:
-                object.__setattr__(self, "is_inverse_evidence", False)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
+                raise ValueError("is_inverse_evidence cannot be True when status is FAILED")
             if self.source_quote is not None:
-                object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
+                raise ValueError("source_quote must be None when status is FAILED")
 
         elif self.status == ExecutionStatus.PASSED:
             if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
@@ -118,12 +120,59 @@ class AtomResultDTO(BaseModel):
             if not self.contextual_override and not self.is_inverse_evidence and not self.source_quote:
                 raise ValueError("source_quote is mandatory unless contextual_override or is_inverse_evidence is True")
             if (self.contextual_override or self.is_inverse_evidence) and self.source_quote is not None:
-                object.__setattr__(self, "source_quote", None)  # noqa: QGR001 [REASON: Pydantic frozen model post-validation state mutation]
+                raise ValueError("source_quote must be None when contextual_override or is_inverse_evidence is True")
 
         elif self.status == ExecutionStatus.SYSTEM_ERROR and not self.error_details:
             raise ValueError("Error details are mandatory when status is SYSTEM_ERROR")
 
         return self
+
+
+class EvaluationFactsDTO(V2CoreBase):
+    """Strongly typed facts mapping table for boolean expression AST evaluation.
+
+    Attributes:
+        facts: Mapping of identifier keys to truth states or values (bool | str).
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    facts: Annotated[
+        dict[str, bool | str],
+        Field(default_factory=dict, description="Mapping of variable keys to derived evaluation states"),
+    ] = Field(default_factory=dict)
+
+
+class EvaluatedAtomDTO(V2CoreBase):
+    """Strongly typed evaluated atom representation in matrix context.
+
+    Attributes:
+        tda_id: Authoritative identifier for the atom.
+        atom_id: Optional alias identifier matching tda_id.
+        status: Status of the evaluated atom.
+        score: Computed mathematical or categorical score.
+        human_override: Optional human override status.
+        source_quote: Verbatim extracted source quote.
+        evaluation_reasoning: Cognitive reasoning text.
+        contextual_override: Whether cognitive override without quote occurred.
+        is_inverse_evidence: Whether inverse evidence (null hypothesis) was evaluated.
+        facts: Associated evaluation facts if present.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    tda_id: Annotated[str, Field(description="Authoritative Opaque ID for the atom")]
+    atom_id: Annotated[str | None, Field(default=None, description="Optional alias identifier matching tda_id")] = None
+    status: Annotated[str | None, Field(default=None, description="Evaluation status string or enum")] = None
+    score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score")] = None
+    human_override: Annotated[str | None, Field(default=None, description="Human override status")] = None
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim source quote")] = None
+    evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation")] = (
+        None
+    )
+    contextual_override: Annotated[bool, Field(default=False, description="Cognitive override flag")] = False
+    is_inverse_evidence: Annotated[bool, Field(default=False, description="Inverse evidence flag")] = False
+    facts: Annotated[EvaluationFactsDTO | None, Field(default=None, description="Evaluation facts")] = None
 
 
 class ExecutionMetricsDTO(BaseModel):

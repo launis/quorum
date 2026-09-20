@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable, MutableMapping
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
-
-from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.core.hook_registry import HookDependencies
 from backend_v2.database.interfaces import (
@@ -96,12 +94,13 @@ class ExecutionOverrideService:
                     raise e
                 else:
                     raise AppException(
-                        "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                        "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
                     ) from e
             except Exception as e:
                 raise AppException(
-                    "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                    "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
                 ) from e
+
             target_pdf_path = None
 
         await self.exec_repo.update_execution(
@@ -163,19 +162,18 @@ class ExecutionOverrideService:
         )
         record = record.model_copy(update={"step_states": new_step_states})
 
-        for _k, v in record.context_variables.items():
-            try:
-                matrix_ctx = TypeAdapter(EvaluatedMatrixContextDTO).validate_python(v)
-            except ValidationError:
-                continue
-            if atom_id in matrix_ctx.evaluated_atoms:
-                matrix_ctx.evaluated_atoms[atom_id] = payload.new_status
-                for ra in matrix_ctx.raw_atoms:
-                    if ra.get("tda_id") == atom_id or ra.get("atom_id") == atom_id:
-                        ra["human_override"] = payload.new_status
-                if isinstance(v, MutableMapping):
-                    v["evaluated_atoms"] = matrix_ctx.evaluated_atoms
-                    v["raw_atoms"] = matrix_ctx.raw_atoms
+        for k, v in record.context_variables.items():
+            if isinstance(v, EvaluatedMatrixContextDTO):
+                matrix_ctx = v
+                if atom_id in matrix_ctx.evaluated_atoms:
+                    matrix_ctx.evaluated_atoms[atom_id] = payload.new_status
+                    updated_raw_atoms = [
+                        ra.model_copy(update={"human_override": payload.new_status})
+                        if (ra.tda_id == atom_id or ra.atom_id == atom_id)
+                        else ra
+                        for ra in matrix_ctx.raw_atoms
+                    ]
+                    record.context_variables[k] = matrix_ctx.model_copy(update={"raw_atoms": updated_raw_atoms})
 
         if (
             self.comp_repo is None
@@ -185,7 +183,9 @@ class ExecutionOverrideService:
             or self.system_repo is None
         ):
             raise AppException(
-                message="Repositories required for override hook dependencies are missing", status_code=500
+                message="Repositories required for override hook dependencies are missing",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
             )
 
         deps = HookDependencies(

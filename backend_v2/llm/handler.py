@@ -338,7 +338,9 @@ class LLMHandler:
                 resp = requests.get(url, headers=headers, params=params, timeout=timeout_sec)
                 if resp.status_code != 200:
                     raise ServiceUnavailableError(
-                        message=f"Google Cloud Vertex AI locations query failed with HTTP {resp.status_code}: {resp.text}",
+                        message=(
+                            f"Google Cloud Vertex AI locations query failed with HTTP {resp.status_code}: {resp.text}"
+                        ),
                         details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "status_code": resp.status_code},
                     )
 
@@ -411,7 +413,7 @@ class LLMHandler:
             client = genai.Client(api_key=api_key)
             discovered: list[str] = []
             for m in client.models.list():
-                model_name = getattr(m, "name", None) or ""  # noqa: QGR001 [REASON: Google GenAI Model SDK name attribute inspection]
+                model_name = str(m.name) if m.name else ""
                 # Strip models/ prefix if present
                 clean_name = model_name[7:] if model_name.startswith("models/") else model_name
                 if "gemini" in clean_name.lower():
@@ -577,7 +579,10 @@ class LLMHandler:
         if norm_platform == LLMPlatformType.VERTEX_AI.value:
             if not target_location:
                 raise ConfigurationError(
-                    message="CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    message=(
+                        "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
+                        "Cannot proceed with Vertex AI Model Discovery."
+                    ),
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             vertex_models = self._fetch_vertex_models(target_location, settings)
@@ -607,7 +612,10 @@ class LLMHandler:
         if LLMPlatformType.VERTEX_AI.value in active_providers or "vertex" in active_providers:
             if not target_location:
                 raise ConfigurationError(
-                    message="CRITICAL: VERTEX_LOCATION not set in environment or settings. Cannot proceed with Vertex AI Model Discovery.",
+                    message=(
+                        "CRITICAL: VERTEX_LOCATION not set in environment or settings. "
+                        "Cannot proceed with Vertex AI Model Discovery."
+                    ),
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
             vertex_models = self._fetch_vertex_models(target_location, settings)
@@ -780,12 +788,12 @@ class LLMHandler:
                 provider=provider,
                 model_name=model_name,
                 api_key=api_key,
-                base_url=cd.get("base_url"),
+                base_url=cd["base_url"] if "base_url" in cd else None,
                 temperature=temperature,
                 tpm_limit=cd["tpm_limit"],
                 rpm_limit=cd["rpm_limit"],
                 default_max_tokens=max_tokens,
-                vertex_location=cd.get("vertex_location"),
+                vertex_location=cd["vertex_location"] if "vertex_location" in cd else None,
                 supports_grounding=cd["supports_grounding"],
                 is_active=cd["is_active"],
                 additional_params=cd["additional_params"],

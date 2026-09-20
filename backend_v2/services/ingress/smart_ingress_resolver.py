@@ -9,12 +9,10 @@ from __future__ import annotations
 import logging
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
-
-from pydantic import ValidationError
+from typing import TYPE_CHECKING
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.inputs import Base64Attachment
+from backend_v2.models.domain.inputs import Base64Attachment, IngressInputValue
 from backend_v2.models.dtos.ingress import ResolvedIngressDTO
 
 if TYPE_CHECKING:
@@ -69,11 +67,11 @@ class SmartIngressResolver:
         Raises:
             AppException: If collision is detected, matches are ambiguous, or required inputs are missing.
         """
-        resolved: dict[str, Any] = {}
+        resolved: dict[str, IngressInputValue] = {}
         manifest: dict[str, str] = {}
         slot_sources: dict[str, str] = {}
 
-        dynamic_inputs: dict[str, Any] = {}
+        dynamic_inputs: dict[str, IngressInputValue] = {}
         if raw_inputs is not None:
             dynamic_inputs = raw_inputs.dynamic_inputs
 
@@ -81,12 +79,6 @@ class SmartIngressResolver:
             source_filename: str | None = None
             if isinstance(val, Base64Attachment):
                 source_filename = val.filename
-            else:
-                try:
-                    attachment = Base64Attachment.model_validate(val)
-                    source_filename = attachment.filename
-                except ValidationError, TypeError, ValueError:
-                    source_filename = None
 
             source_name = key
             if source_filename is not None:
@@ -169,8 +161,6 @@ class SmartIngressResolver:
                     elif isinstance(v, str) and not v.strip():
                         missing_fields.append(expected.input_key)
                     elif isinstance(v, (list, tuple, set)) and len(v) == 0:
-                        missing_fields.append(expected.input_key)
-                    elif v == {}:
                         missing_fields.append(expected.input_key)
 
         if missing_fields:

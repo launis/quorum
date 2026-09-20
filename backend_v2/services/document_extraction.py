@@ -3,13 +3,13 @@
 Provides CPU-bound extraction helpers for PDF, DOCX, TXT, and conversation PDFs.
 """
 
+from __future__ import annotations
+
 import base64
-import datetime
 import logging
 
 from fastapi import status
 from fastapi.concurrency import run_in_threadpool
-from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.inputs import Base64Attachment, WorkflowInputsIngress
@@ -21,45 +21,55 @@ class DocumentExtractionService:
     """Service for handling CPU-bound document extraction tasks."""
 
     @staticmethod
-    def parse_pdf_date(pdf_date_str: str) -> str | None:
+    def parse_pdf_date(pdf_date_str: str | None) -> str | None:
         """Parses a standard PDF date string into ISO-8601 format.
 
         Standard PDF date format: D:YYYYMMDDHHmmSS[OHH'mm']
         For example: 'D:20230117123000Z' or 'D:20260526064500+03'00''
+
+        Args:
+            pdf_date_str: Raw PDF date string from metadata.
+
+        Returns:
+            ISO-8601 formatted date string or None if unparseable.
         """
-        if not pdf_date_str or not pdf_date_str.startswith("D:"):
+        if not pdf_date_str or not isinstance(pdf_date_str, str) or not pdf_date_str.startswith("D:"):
             return None
 
-        try:
-            raw = pdf_date_str[2:]
-            year = raw[0:4]
-            month = raw[4:6] if len(raw) >= 6 else "01"
-            day = raw[6:8] if len(raw) >= 8 else "01"
-            hour = raw[8:10] if len(raw) >= 10 else "00"
-            minute = raw[10:12] if len(raw) >= 12 else "00"
-            second = raw[12:14] if len(raw) >= 14 else "00"
-
-            tz_str = "Z"
-            if len(raw) > 14:
-                tz_part = raw[14:]
-                if tz_part.startswith("Z"):
-                    tz_str = "Z"
-                elif tz_part[0] in ["+", "-"]:
-                    sign = tz_part[0]
-                    tz_val = tz_part[1:].replace("'", "")
-                    if len(tz_val) >= 4:
-                        tz_str = f"{sign}{tz_val[0:2]}:{tz_val[2:4]}"
-                    elif len(tz_val) >= 2:
-                        tz_str = f"{sign}{tz_val[0:2]}:00"
-
-            iso_str = f"{year}-{month}-{day}T{hour}:{minute}:{second}{tz_str}"
-            # Validate ISO-8601 string parsing natively to ensure compatibility
-            clean_iso = iso_str.replace("Z", "+00:00")
-            datetime.datetime.fromisoformat(clean_iso)
-            return iso_str
-        except (AppException, ValueError, TypeError, IndexError) as e:
-            logger.warning("[DocumentExtractionService] Failed to parse PDF date metadata: %s (%s)", pdf_date_str, e)
+        raw = pdf_date_str[2:]
+        if len(raw) < 4 or not raw[:4].isdigit():
             return None
+
+        year = raw[0:4]
+        raw_month = raw[4:6] if len(raw) >= 6 else ""
+        month = raw_month if len(raw_month) == 2 and raw_month.isdigit() and 1 <= int(raw_month) <= 12 else "01"
+
+        raw_day = raw[6:8] if len(raw) >= 8 else ""
+        day = raw_day if len(raw_day) == 2 and raw_day.isdigit() and 1 <= int(raw_day) <= 31 else "01"
+
+        raw_hour = raw[8:10] if len(raw) >= 10 else ""
+        hour = raw_hour if len(raw_hour) == 2 and raw_hour.isdigit() and 0 <= int(raw_hour) <= 23 else "00"
+
+        raw_min = raw[10:12] if len(raw) >= 12 else ""
+        minute = raw_min if len(raw_min) == 2 and raw_min.isdigit() and 0 <= int(raw_min) <= 59 else "00"
+
+        raw_sec = raw[12:14] if len(raw) >= 14 else ""
+        second = raw_sec if len(raw_sec) == 2 and raw_sec.isdigit() and 0 <= int(raw_sec) <= 59 else "00"
+
+        tz_str = "Z"
+        if len(raw) > 14:
+            tz_part = raw[14:]
+            if tz_part.startswith("Z"):
+                tz_str = "Z"
+            elif tz_part[0] in ["+", "-"]:
+                sign = tz_part[0]
+                tz_val = tz_part[1:].replace("'", "")
+                if len(tz_val) >= 4 and tz_val[:4].isdigit():
+                    tz_str = f"{sign}{tz_val[0:2]}:{tz_val[2:4]}"
+                elif len(tz_val) >= 2 and tz_val[:2].isdigit():
+                    tz_str = f"{sign}{tz_val[0:2]}:00"
+
+        return f"{year}-{month}-{day}T{hour}:{minute}:{second}{tz_str}"
 
     @staticmethod
     def _extract_pdf_sync(file_bytes: bytes) -> tuple[str, str | None]:
@@ -109,25 +119,25 @@ class DocumentExtractionService:
             doc.close()
 
     async def process_ingress_payload(self, ingress: WorkflowInputsIngress) -> WorkflowInputsIngress:
-        """Eagerly extracts binary PDF/Text content from an ingress payload in a strictly typed manner."""
+        """Eagerly extracts binary PDF/Text content from an ingress payload in a strictly typed manner.
+
+        Args:
+            ingress: Ingress workflow inputs containing potential binary attachments.
+
+        Returns:
+            WorkflowInputsIngress with all attachments converted to extracted string content.
+
+        Raises:
+            AppException: If file extraction or decoding fails.
+        """
         extracted_dates = []
 
         # Rebuild dynamic_inputs because V2CoreBase is frozen=True
         new_dynamic_inputs = dict(ingress.dynamic_inputs)
 
         for key, val in list(ingress.dynamic_inputs.items()):
-            if isinstance(val, dict) and "content_base64" in val:  # noqa: QGR012 [REASON: Polymorphic DAG payload validation]
-                try:
-                    # STRICT PHASE 9: Fail-fast hydration instead of Duck Typing
-                    attachment = Base64Attachment.model_validate(val)
-                except ValidationError as e:
-                    logger.error("[DocumentExtractionService] Strict hydration failed for attachment in key %s", key)
-                    raise AppException(
-                        message=f"Invalid file attachment payload in key '{key}'",
-                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
-
+            if isinstance(val, Base64Attachment):
+                attachment = val
                 filename_lower = attachment.filename.lower()
                 try:
                     file_bytes = base64.b64decode(attachment.content_base64)
@@ -158,7 +168,7 @@ class DocumentExtractionService:
             valid_dates = sorted(extracted_dates, reverse=True)
 
             # Phase 1, Step 4: Inject only if not already explicitly populated by the user
-            if not new_dynamic_inputs.get("document_date"):
+            if "document_date" not in new_dynamic_inputs or not new_dynamic_inputs["document_date"]:
                 new_dynamic_inputs["document_date"] = valid_dates[0]
                 logger.info(
                     "[DocumentExtractionService] Dynamically extracted original PDF date "

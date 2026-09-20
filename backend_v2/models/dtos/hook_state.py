@@ -6,9 +6,10 @@ for HookState inputs, global context variables, and HookResult state deltas.
 
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.inputs import DomainInputValue
 
 __all__ = [
     "ExecutionInputsDTO",
@@ -22,20 +23,13 @@ class ExecutionInputsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    @field_validator("raw_inputs", mode="before")
-    @classmethod
-    def _coerce_raw_inputs_dict(cls, value: Any) -> Any:
-        if isinstance(value, str):
-            return {"inputs": value}
-        return value
-
     raw_inputs: Annotated[
-        dict[str, Any],
-        Field(description="Raw input mapping by input key or role."),
+        dict[str, DomainInputValue],
+        Field(default_factory=dict, description="Raw input mapping by input key or role."),
     ] = Field(default_factory=dict)
     dynamic_inputs: Annotated[
-        dict[str, Any],
-        Field(description="Dynamic input parameters extracted from execution context."),
+        dict[str, DomainInputValue],
+        Field(default_factory=dict, description="Dynamic input parameters extracted from execution context."),
     ] = Field(default_factory=dict)
     user_role: Annotated[
         str | None,

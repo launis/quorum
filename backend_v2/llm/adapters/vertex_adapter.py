@@ -383,23 +383,37 @@ class VertexCacheAdapter(BaseLLMAdapter):
         sanitized: list[Any] = []
 
         for msg in messages:
-            role = msg.role if isinstance(msg, LLMMessageDTO) else msg.get("role")
-            tool_calls = msg.tool_calls if isinstance(msg, LLMMessageDTO) else msg.get("tool_calls")
-            tool_call_id = msg.tool_call_id if isinstance(msg, LLMMessageDTO) else msg.get("tool_call_id")
+            role: str | None = None
+            tool_calls: Any | None = None
+            tool_call_id: str | None = None
+
+            if isinstance(msg, LLMMessageDTO):
+                role = msg.role
+                tool_calls = msg.tool_calls
+                tool_call_id = msg.tool_call_id
+            else:
+                msg_dict = dict(msg)
+                role = str(msg_dict["role"]) if "role" in msg_dict else None
+                tool_calls = msg_dict["tool_calls"] if "tool_calls" in msg_dict else None
+                tool_call_id = str(msg_dict["tool_call_id"]) if "tool_call_id" in msg_dict else None
 
             if role == "assistant" and tool_calls:
                 for tc in tool_calls:
-                    tc_id: str | None = None
                     if isinstance(tc, OpenAIToolCallDTO):
-                        tc_id = tc.id
-                    elif isinstance(tc, dict):  # noqa: QGR012 [REASON: External boundary dict inspection in sanitize_messages]
-                        raw_dict_id = tc.get("id")
-                        tc_id = str(raw_dict_id) if raw_dict_id is not None else None
+                        validated_tc = tc
                     else:
-                        raw_obj_id = getattr(tc, "id", None)  # noqa: QGR001 [REASON: External boundary object inspection in sanitize_messages]
-                        tc_id = str(raw_obj_id) if raw_obj_id is not None else None
-                    if tc_id:
-                        valid_tool_call_ids.add(tc_id)
+                        tc_dict = dict(tc)
+                        fn = tc_dict["function"] if "function" in tc_dict else None
+                        if fn is not None and not isinstance(fn, (str, int, float, bool, list)):
+                            fn_dict = dict(fn)
+                            if "arguments" not in fn_dict:
+                                tc_dict["function"] = {**fn_dict, "arguments": ""}
+                        elif "function" not in tc_dict:
+                            tc_dict["function"] = {"name": "unknown", "arguments": ""}
+                        validated_tc = OpenAIToolCallDTO.model_validate(tc_dict)
+
+                    if validated_tc.id:
+                        valid_tool_call_ids.add(validated_tc.id)
                 sanitized.append(msg)
             elif role == "tool":
                 if tool_call_id and str(tool_call_id) in valid_tool_call_ids:
