@@ -1,6 +1,5 @@
 """Unit tests for synthesis_tasks.py covering task construction and LLM execution."""
 
-from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -62,7 +61,9 @@ def _make_profile(
     if extensions:
         blocks.append(TargetBlockType.GROUPED_EXTENSIONS_BLOCK)
 
-    variance_target = "blk_0123456789abcdef01" if (extensions and XaiExtensionType.VARIANCE_VALIDATION in extensions) else None
+    variance_target = (
+        "blk_0123456789abcdef01" if (extensions and XaiExtensionType.VARIANCE_VALIDATION in extensions) else None
+    )
     return OutputProfile(
         id="pro_0123456789abcdef01",
         slug="prof_test",
@@ -107,9 +108,7 @@ async def test_create_executive_summary_task_skips_when_not_required() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    task = await create_executive_summary_task(
-        AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem
-    )
+    task = await create_executive_summary_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert task is None
 
 
@@ -121,9 +120,7 @@ async def test_create_executive_summary_task_skips_when_directive_empty() -> Non
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    task = await create_executive_summary_task(
-        AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem
-    )
+    task = await create_executive_summary_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert task is None
 
 
@@ -261,9 +258,7 @@ async def test_create_xai_highlights_task_skips_when_no_extensions() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    task = await create_xai_highlights_task(
-        AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem
-    )
+    task = await create_xai_highlights_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert task is None
 
 
@@ -280,9 +275,7 @@ async def test_create_xai_highlights_task_missing_max_items_raises() -> None:
         return await coro
 
     with pytest.raises(AppException) as exc_info:
-        await create_xai_highlights_task(
-            AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem
-        )
+        await create_xai_highlights_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert exc_info.value.status_code == 400
 
 
@@ -301,9 +294,7 @@ async def test_create_xai_highlights_task_happy_path() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    res = await create_xai_highlights_task(
-        mock_client, "sys", [], "distilled", "matrix", prof, dummy_sem
-    )
+    res = await create_xai_highlights_task(mock_client, "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert isinstance(res, XaiHighlightsResult)
     assert len(res.xai_highlights) == 1
 
@@ -316,9 +307,7 @@ async def test_create_row_explanations_task_skips_when_empty_matrices() -> None:
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    task = await create_row_explanations_task(
-        AsyncMock(), [], prof, "en", _make_execution(), None, dummy_sem
-    )
+    task = await create_row_explanations_task(AsyncMock(), [], prof, "en", _make_execution(), None, dummy_sem)
     assert task is None
 
 
@@ -370,9 +359,7 @@ async def test_create_row_explanations_task_missing_directive_returns_none() -> 
         return await coro
 
     with patch("backend_v2.workers.synthesis_tasks.LLMClient.from_tier", return_value=AsyncMock()):
-        res = await create_row_explanations_task(
-            AsyncMock(), [ctx_dto], prof, "en", _make_execution(), None, dummy_sem
-        )
+        res = await create_row_explanations_task(AsyncMock(), [ctx_dto], prof, "en", _make_execution(), None, dummy_sem)
         assert res is None
 
 
@@ -391,9 +378,7 @@ async def test_create_row_explanations_task_none_profile_returns_none() -> None:
         return await coro
 
     with patch("backend_v2.workers.synthesis_tasks.LLMClient.from_tier", return_value=AsyncMock()):
-        res = await create_row_explanations_task(
-            AsyncMock(), [ctx_dto], None, "en", _make_execution(), None, dummy_sem
-        )
+        res = await create_row_explanations_task(AsyncMock(), [ctx_dto], None, "en", _make_execution(), None, dummy_sem)
         assert res is None
 
 
@@ -405,7 +390,5 @@ async def test_create_xai_highlights_task_missing_directive_returns_none() -> No
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
-    res = await create_xai_highlights_task(
-        AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem
-    )
+    res = await create_xai_highlights_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert res is None

@@ -54,10 +54,8 @@ class StepExecutionEnvelope(V2CoreBase):
     v2_engine: bool | None = Field(default=None)
 
 
-from backend_v2.models.dtos.step_output import StepOutputDTO
-
-
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 
 class ReasoningTrace(V2CoreBase):

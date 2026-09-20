@@ -14,7 +14,6 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.synthesis import DistilledEvaluation
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
-from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
 
@@ -410,4 +409,3 @@ def test_compress_payload_invalid_evaluation_item_type() -> None:
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-

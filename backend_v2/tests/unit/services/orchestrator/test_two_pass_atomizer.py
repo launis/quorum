@@ -215,4 +215,3 @@ async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_cl
     assert drafts_res.dlq_status is None
     assert drafts_usage.total_tokens == 0
     assert mock_executor.execute_structured_task.call_count == 0
-

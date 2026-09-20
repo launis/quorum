@@ -378,17 +378,15 @@ async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
         GlobalContextVarsDTO,
         HookState,
     )
-    from backend_v2.exceptions import AppException
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import Step
+    from backend_v2.models.enums import CognitiveTier, StepType
     from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import StepOutputDTO
     from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
     from backend_v2.tests.unit.services.orchestrator.test_synthesis_distiller_wiring import (
         _build_mock_deps,
     )
-
-    from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.step import Step
-    from backend_v2.models.enums import CognitiveTier, StepType
 
     deps = _build_mock_deps()
     bp1 = Step(

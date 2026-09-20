@@ -1,11 +1,8 @@
 """Unit tests for synthesis_worker.py covering error handling, caching, validation, and full execution."""
 
-from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
@@ -22,9 +19,7 @@ from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_p
 async def test_synthesis_worker_empty_accept_language_raises() -> None:
     """Test generate_profile_synthesis_and_pdf_task raises AppException when accept_language is empty."""
     with pytest.raises(AppException) as exc_info:
-        await generate_profile_synthesis_and_pdf_task(
-            execution_id="exe_1", accept_language="", profile_id="pro_1"
-        )
+        await generate_profile_synthesis_and_pdf_task(execution_id="exe_1", accept_language="", profile_id="pro_1")
     assert exc_info.value.status_code == 400
 
 
@@ -68,9 +63,7 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
                 profile_id=prof_id,
                 redis=mock_redis,
             )
-            mock_redis.enqueue_job.assert_called_once_with(
-                "generate_pdf_job", "exe_0123456789abcdef01", "en", prof_id
-            )
+            mock_redis.enqueue_job.assert_called_once_with("generate_pdf_job", "exe_0123456789abcdef01", "en", prof_id)
 
 
 @pytest.mark.asyncio

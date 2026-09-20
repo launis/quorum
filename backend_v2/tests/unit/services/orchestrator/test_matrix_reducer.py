@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 
@@ -293,4 +292,3 @@ def test_reduce_matrix_invalid_atom_raises_app_exception() -> None:
         MatrixReducer.reduce_matrix(record)
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-

@@ -1196,11 +1196,21 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             ]
             assert len(calls_with_syntheses) == 1
             call_payload = calls_with_syntheses[0]
-            ps = call_payload.profile_syntheses if isinstance(call_payload, ExecutionUpdateDTO) else call_payload["profile_syntheses"]
+            ps = (
+                call_payload.profile_syntheses
+                if isinstance(call_payload, ExecutionUpdateDTO)
+                else call_payload["profile_syntheses"]
+            )
             saved_cache = ps["prof_1111222233334444"]
-            starvation = saved_cache.data_starvation if isinstance(saved_cache, RenderedSynthesisCache) else saved_cache["data_starvation"]
+            starvation = (
+                saved_cache.data_starvation
+                if isinstance(saved_cache, RenderedSynthesisCache)
+                else saved_cache["data_starvation"]
+            )
             ev_type = starvation.event_type if isinstance(starvation, DataStarvationEvent) else starvation["event_type"]
-            total_atoms = starvation.total_atoms if isinstance(starvation, DataStarvationEvent) else starvation["total_atoms"]
+            total_atoms = (
+                starvation.total_atoms if isinstance(starvation, DataStarvationEvent) else starvation["total_atoms"]
+            )
             assert ev_type == "starvation"
             assert total_atoms == 0
             mock_redis.enqueue_job.assert_called_once_with(

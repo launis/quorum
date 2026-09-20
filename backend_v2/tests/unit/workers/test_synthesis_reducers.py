@@ -1,7 +1,6 @@
 """Unit tests for synthesis_reducers.py covering user role extraction, starvation handling, result processing, and telemetry recovery."""
 
 from datetime import datetime, timezone
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -11,7 +10,6 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -258,9 +256,7 @@ async def test_handle_starvation_if_detected_true() -> None:
     assert detected is True
     mock_repo.update_execution.assert_called_once()
     mock_render_fn.assert_called_once()
-    mock_redis.enqueue_job.assert_called_once_with(
-        "generate_pdf_job", exec_rec.id, "en", "pro_0123456789abcdef01"
-    )
+    mock_redis.enqueue_job.assert_called_once_with("generate_pdf_job", exec_rec.id, "en", "pro_0123456789abcdef01")
 
 
 @pytest.mark.asyncio

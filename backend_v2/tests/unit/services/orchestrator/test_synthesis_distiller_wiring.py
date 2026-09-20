@@ -307,7 +307,8 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO.model_construct(
-            dynamic_inputs={"steps": [raw_step_dict]}, target_locale="en"  # type: ignore[dict-item]
+            dynamic_inputs={"steps": [raw_step_dict]},
+            target_locale="en",  # type: ignore[dict-item]
         ),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )

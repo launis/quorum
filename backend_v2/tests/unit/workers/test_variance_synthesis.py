@@ -251,9 +251,7 @@ async def test_build_variance_metrics_full_success_with_tone_and_budget() -> Non
         return await coro
 
     with patch("backend_v2.workers.variance_synthesis.LLMClient.from_tier", return_value=mock_client):
-        metrics, task = await build_variance_metrics_and_task(
-            AsyncMock(), rec, prof, "en", "reg_123", dummy_sem
-        )
+        metrics, task = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", "reg_123", dummy_sem)
         assert isinstance(metrics, ExtensionMetricsDTO)
         assert metrics.authenticity_score == 2.8
         assert metrics.performative_phrases_count == 2.0
