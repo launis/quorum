@@ -16,7 +16,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Comprehensive_AST_Guardrail_and_Static_Quality_Gate_Fortification.md] @[docs/implementationplans/TRACKER_Comprehensive_AST_Guardrail_and_Static_Quality_Gate_Fortification.md]`
   - [x] Step 1: PRE-IMPLEMENTATION TECHNICAL DEBT CLEANUP
   - [x] Step 2: EXPAND AST GUARDRAILS ENGINE (PYTHON BACKEND)
-  - [ ] Step 3: DEVELOP DART GUARDRAILS ENGINE (FLUTTER CLIENT)
+  - [x] Step 3: DEVELOP DART GUARDRAILS ENGINE (FLUTTER CLIENT)
   - [ ] Step 4: INTEGRATE QUALITY GATES INTO AUDIT SCRIPTS
   - [ ] Step 5: ISTQB UNIT TEST SUITE EXPANSION & FALSE-POSITIVE IMMUNITY
   - [ ] Step 6: KNOWLEDGE BASE SYNCHRONIZATION
@@ -66,12 +66,13 @@
 | REQ-08 | Fortify Rule QGR003 to eliminate silent exception swallowing in domain code lacking `raise` or typed DLQ dispatch | Step 2 | [x] |
 | REQ-09 | Implement Rule QGR018 banning dictionary type laundering via Pydantic `TypeAdapter(dict[...])` | Step 2 | [x] |
 | REQ-10 | Strictly maintain `BOUNDARY_EXEMPTION_FILES` contract locked to the 4 physical boundary files | Step 2 | [x] |
-| REQ-11 | Implement `scripts/_dart_guardrails.py` enforcing DGR001 (Map returns), DGR002 (SizedBox.shrink), DGR003 (hardcoded strings), and DGR004 (lint suppressions) | Step 3 | [ ] |
-| REQ-12 | Ensure 100% generated file immunity (`*.freezed.dart`, `*.g.dart`) and CLI table reporting with `--strict` escalation in `_dart_guardrails.py` | Step 3 | [ ] |
+| REQ-11 | Implement `scripts/_dart_guardrails.py` enforcing DGR001 (Map returns), DGR002 (SizedBox.shrink), DGR003 (hardcoded strings), and DGR004 (lint suppressions) | Step 3 | [x] |
+| REQ-12 | Ensure 100% generated file immunity (`*.freezed.dart`, `*.g.dart`) and CLI table reporting with `--strict` escalation in `_dart_guardrails.py` | Step 3 | [x] |
 | REQ-13 | Integrate FATAL enforcement of QGR000, QGR001, QGR002, QGR003, and QGR018 into `scripts/backend_audit_loop.py` | Step 4 | [ ] |
 | REQ-14 | Integrate `_dart_guardrails.py` automated gate into `scripts/flutter_audit_loop.py` following code generation | Step 4 | [ ] |
 | REQ-15 | Expand `backend_v2/tests/unit/scripts/test_ast_guardrails.py` with ISTQB boundary partitions for all updated Python rules and exemptions | Step 5 | [x] |
-| REQ-16 | Create comprehensive unit test suite `backend_v2/tests/unit/scripts/test_dart_guardrails.py` for Dart analyzer and generated code immunity | Step 5 | [ ] |
+| REQ-16 | Create comprehensive unit test suite `backend_v2/tests/unit/scripts/test_dart_guardrails.py` for Dart analyzer and generated code immunity | Step 5 | [x] |
+| REQ-17 | Synchronize `ki_zero_permissive_typing.md` with new guardrail rules, zero-tolerance invariants, and boundary contracts | Step 6 | [ ] |
 | REQ-17 | Synchronize `ki_zero_permissive_typing.md` with new guardrail rules, zero-tolerance invariants, and boundary contracts | Step 6 | [ ] |
 
 # Session Handover Context
