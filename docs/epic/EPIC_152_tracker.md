@@ -37,7 +37,7 @@
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
   - [x] Step 1.1: AST Guardrail QGR018 Implementation
-  - [ ] Step 1.2: Validation Hook Hardening
+  - [x] Step 1.2: Validation Hook Hardening
   - [ ] Step 1.3: Settings & Math Utilities Strictness
   - [ ] Step 1.4: Logging & Database Driver Baseline Hardening
   - [ ] Step 1.5: E2E Variance Test Harness Typed Payload Parity

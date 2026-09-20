@@ -83,23 +83,21 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     fields_to_validate: dict[str, Any] = {}
 
     # 1. Unpack raw_inputs dynamically
-    raw_sub = inputs_dict.get("raw_inputs")
-    if raw_sub is not None:
-        try:
+    if "raw_inputs" in inputs_dict:
+        raw_sub = inputs_dict["raw_inputs"]
+        if raw_sub is not None:
             fields_to_validate.update(ValidationHookPayloadDTO.model_validate(raw_sub).root)
-        except ValidationError:
-            pass
 
     # 2. Unpack inputs dynamically
-    inputs_sub = inputs_dict.get("inputs")
-    if inputs_sub is not None:
-        try:
+    if "inputs" in inputs_dict:
+        inputs_sub = inputs_dict["inputs"]
+        if inputs_sub is not None:
             fields_to_validate.update(ValidationHookPayloadDTO.model_validate(inputs_sub).root)
-        except ValidationError:
-            pass
 
     # Fallback to the root if it's a flat payload, excluding known container keys
-    if not fields_to_validate and not ("steps" in inputs_dict or "raw_inputs" in inputs_dict):
+    if not fields_to_validate and not (
+        "steps" in inputs_dict or "raw_inputs" in inputs_dict or "inputs" in inputs_dict
+    ):
         fields_to_validate = inputs_dict
 
     # Validate length for all payload texts, ignoring pure metadata and core identifiers
@@ -274,22 +272,21 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
 
     delta: dict[str, Any] = {}
     if leakage_detected:
-        try:
-            raw_warnings = inputs_source.get("_system_warnings") or []
-        except AttributeError, TypeError:
-            raw_warnings = []
-
-        try:
-            warnings_payload = SystemWarningsStateDTO.model_validate({"_system_warnings": raw_warnings})
-            existing_warnings = list(warnings_payload.system_warnings)
-        except ValidationError as e:
-            msg = "Invalid '_system_warnings' schema in state inputs."
-            logger.error("[ValidationHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg, exc_info=True)
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
-            ) from e
+        existing_warnings: list[ValidationWarningDTO] = []
+        if "_system_warnings" in payload.root:
+            val = payload.root["_system_warnings"]
+            if val is not None:
+                try:
+                    warnings_payload = SystemWarningsStateDTO.model_validate({"_system_warnings": val})
+                    existing_warnings = list(warnings_payload.system_warnings)
+                except ValidationError as e:
+                    msg = "Invalid '_system_warnings' schema in state inputs."
+                    logger.error("[ValidationHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
+                    ) from e
 
         new_warning = ValidationWarningDTO(
             type=f"{AppException.PROBLEM_BASE_URI}/language-mismatch",
@@ -336,13 +333,22 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             for atom in result:
                 try:
                     atom_dto = GuttmanAtomItemDTO.model_validate(atom)
-                    level = atom_dto.score_level
-                    current_hits = hits_by_level[level] if level in hits_by_level else 0.0
-                    hits_by_level[level] = current_hits + (1.0 if atom_dto.hit else 0.0)
-                    current_total = total_by_level[level] if level in total_by_level else 0.0
-                    total_by_level[level] = current_total + 1.0
-                except ValidationError:
-                    continue
+                except ValidationError as e:
+                    msg = f"Malformed atom payload in block '{block_id}': {e}"
+                    logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        message=msg,
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+
+                level = atom_dto.score_level
+                if level not in hits_by_level:
+                    hits_by_level[level] = 0.0
+                    total_by_level[level] = 0.0
+                if atom_dto.hit:
+                    hits_by_level[level] += 1.0
+                total_by_level[level] += 1.0
 
             if len(total_by_level) > 1:
                 sorted_levels = sorted(total_by_level.keys())
@@ -350,8 +356,12 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
                     for j in range(i + 1, len(sorted_levels)):
                         L_low = sorted_levels[i]
                         L_high = sorted_levels[j]
-                        hr_low = hits_by_level[L_low] / total_by_level[L_low] if total_by_level[L_low] > 0 else 0.0
-                        hr_high = hits_by_level[L_high] / total_by_level[L_high] if total_by_level[L_high] > 0 else 0.0
+                        hr_low = 0.0
+                        if total_by_level[L_low] > 0.0:
+                            hr_low = hits_by_level[L_low] / total_by_level[L_low]
+                        hr_high = 0.0
+                        if total_by_level[L_high] > 0.0:
+                            hr_high = hits_by_level[L_high] / total_by_level[L_high]
 
                         if hr_low < hr_high - 0.4 or (hr_low == 0.0 and hr_high == 1.0):
                             logger.warning(
