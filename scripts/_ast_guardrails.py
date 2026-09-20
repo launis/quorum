@@ -37,7 +37,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
+    except (AttributeError, io.UnsupportedOperation):
         pass
 
 
@@ -145,7 +145,7 @@ class CommentSuppressor:
                         if line_num not in self.suppressions:
                             self.suppressions[line_num] = set()
                         self.suppressions[line_num].update(rule_codes)
-        except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:
+        except (tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError):
             pass
 
     def is_suppressed(self, rule_code: str, start_line: int, end_line: int | None = None) -> bool:

@@ -1,36 +1,17 @@
-"""Flutter Audit Loop Script (Antigravity Phase 9)
+"""Flutter Audit Loop Script.
 
-**Mitä tämä skripti tekee:**
-Tämä skripti on Automatisoitu Laatuportti (Quality Gate) Flutter-käyttöliittymälle (`client_app_v2`). Se suorittaa peräkkäiset koodin puhtaanapitotoimet:
-1. `build_runner` (Valinnainen): Ajaa Dartin koodigeneraattorin, joka kääntää SDUI/Freezed/JSON -mallit automaattisesti.
-2. `dart format`: Formatoi Dart-tiedostot oikeellisen sisennyksen mukaiseksi.
-3. `dart analyze`: Analysoi lähdekoodin staattisesti varmistaakseen, ettei siinä ole kognitiivisia tai rakenteellisia virheitä (The Component Generativity Mandate).
+Automated Quality Gate for the Flutter client (`client_app_v2`).
+Executes sequential code hygiene and validation stages:
+1. `build_runner` (Optional): Runs the Dart code generator for SDUI/Freezed/JSON models.
+2. `dart format`: Formats Dart files to ensure consistent indentation and layout.
+3. `dart analyze`: Statically analyzes source code to enforce architectural invariants.
+4. `flutter test` (Optional): Executes Flutter unit tests with coverage reporting.
 
-**Ohjeet käyttöön:**
-Skripti suositellaan ajettavaksi projektin juuresta eristettynä `uv run python` -komennolla varman versionhallinnan takaamiseksi:
-
-```bash
-uv run python scripts/flutter_audit_loop.py <kohdekansio> [--build]
-```
-
-**Kopioitavia esimerkkejä:**
-
-1. Aja laatuportti pelkille komponenteille ilman raskasta generointia:
-```bash
-uv run python scripts/flutter_audit_loop.py lib/core/components/
-```
-
-2. Aja laatuportti koko frontendille ja pakota koodigeneraattori päivittämään mallit:
-```bash
-uv run python scripts/flutter_audit_loop.py client_app_v2 --build
-```
-
-3. Aja tiettyyn uuteen kansioon generointi ja laatuportti:
-```bash
-uv run python scripts/flutter_audit_loop.py lib/features/sdui/ --build
-```
+Usage:
+    uv run python scripts/flutter_audit_loop.py <target_directory> [--build] [--test]
 """
 
+import io
 import os
 import subprocess
 import sys
@@ -38,20 +19,28 @@ from pathlib import Path
 
 
 def main() -> None:
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")  # type: ignore
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except (AttributeError, io.UnsupportedOperation):
+            pass
+    if isinstance(sys.stderr, io.TextIOWrapper):
+        try:
+            sys.stderr.reconfigure(encoding="utf-8")
+        except (AttributeError, io.UnsupportedOperation):
+            pass
 
     if len(sys.argv) < 2:
-        print("Käyttö: python flutter_audit_loop.py <kohdekansio> [--build]")
+        print("Usage: python flutter_audit_loop.py <target_directory> [--build] [--test]")
         sys.exit(1)
 
     target_dir = sys.argv[1]
     run_build = "--build" in sys.argv
     run_test = "--test" in sys.argv
 
-    # Ensure correct working directory (client_app_v2)
-    current_dir = Path(os.getcwd())
+    # Ensure correct working directory (client_app_v2) and track repository root
+    current_dir = Path(os.getcwd()).resolve()
+    root_dir = current_dir if current_dir.name != "client_app_v2" else current_dir.parent
     if current_dir.name != "client_app_v2":
         client_app_dir = current_dir / "client_app_v2"
         if client_app_dir.exists():
@@ -60,7 +49,7 @@ def main() -> None:
             print("Error: Script must be run from repository root or client_app_v2 directory.")
             sys.exit(1)
 
-    print(f"\n🚀 Suoritetaan quality-loop kansiolle: {target_dir}")
+    print(f"\n🚀 Running quality loop for target: {target_dir}")
     print("--------------------------------------------------")
 
     cmd_dir = target_dir
@@ -75,48 +64,49 @@ def main() -> None:
     total_steps = 4 if run_test else 3
 
     if run_build:
-        print(f"\n⏳ 1/{total_steps}: Ajetaan koodigeneraattori (flutter gen-l10n & build_runner)...")
+        print(f"\n⏳ 1/{total_steps}: Running code generator (flutter gen-l10n & build_runner)...")
         res_l10n = subprocess.run(["flutter", "gen-l10n"], shell=True)
         if res_l10n.returncode != 0:
-            print("❌ L10N Generointi kaatui! Keskeytetään.")
+            print("❌ L10N generation failed! Aborting.")
             sys.exit(res_l10n.returncode)
 
         res = subprocess.run(["dart", "run", "build_runner", "build", "-d"], shell=True)
         if res.returncode != 0:
-            print("❌ Generaattori kaatui! Keskeytetään.")
+            print("❌ Generator failed! Aborting.")
             sys.exit(res.returncode)
-        print("✅ Generointi valmis.")
+        print("✅ Generation complete.")
     else:
-        print(f"\n⏭️ 1/{total_steps}: Ohitetaan koodigenerointi (ei --build lippua).")
+        print(f"\n⏭️ 1/{total_steps}: Skipping code generation (no --build flag).")
 
-    print(f"\n⏳ 2/{total_steps}: Formatoidaan koodi (dart format {cmd_dir})...")
+    print(f"\n⏳ 2/{total_steps}: Formatting code (dart format {cmd_dir})...")
     res = subprocess.run(["dart", "format", cmd_dir], shell=True)
     if res.returncode != 0:
-        print("❌ Formatointi epäonnistui!")
+        print("❌ Formatting failed!")
         sys.exit(res.returncode)
-    print("✅ Formatointi valmis.")
+    print("✅ Formatting complete.")
 
-    print(f"\n⏳ 3/{total_steps}: Analysoidaan koodi (dart analyze {cmd_dir})...")
+    print(f"\n⏳ 3/{total_steps}: Analyzing code (dart analyze {cmd_dir})...")
     res = subprocess.run(["dart", "analyze", cmd_dir], shell=True)
     if res.returncode != 0:
-        print("\n❌ AUDIT FAILED: Analyysi löysi koodista virheitä, korjaa ne ennen jatkamista!")
-        print("🤖 AI INSTRUCTION: Lue yllä oleva raportti ja korjaa kaatuvat staattisen analyysin virheet.")
+        print("\n❌ AUDIT FAILED: Analysis found errors in code. Fix them before proceeding!")
+        print("🤖 AI INSTRUCTION: Read the above report and resolve static analysis errors.")
         print(
-            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `c:\\src\\quorum\\.agents\\rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.\n"
+            "🚨 THE ANTI-TDD TRAP MANDATE: The architectural laws in `.agents/rules` are ABSOLUTE. Do NOT fall into the 'Test-Driven Development Trap' where you preserve legacy dict-parsing, fallback hacks, or hardcoded strings just to satisfy existing unit tests. If old tests conflict with the new rules (e.g., No-String Mandate, De-Generator, Pydantic V2), you MUST ruthlessly tear down the legacy code AND rewrite the tests. A green test suite that violates architectural sovereignty is a failed state.\n"
         )
         sys.exit(res.returncode)
-    print("✅ Analyysi valmis.")
+    print("✅ Analysis complete.")
 
     if run_test:
-        print(f"\n⏳ 4/{total_steps}: Ajetaan Flutter-yksikkötestit ja kattavuus (flutter test --coverage)...")
+        print(f"\n⏳ 4/{total_steps}: Running Flutter unit tests and coverage (flutter test --coverage)...")
         res_test = subprocess.run(["flutter", "test", "--coverage"], shell=True)
         if res_test.returncode != 0:
-            print("\n❌ AUDIT FAILED: Flutter-testit epäonnistuivat!")
+            print("\n❌ AUDIT FAILED: Flutter tests failed!")
             sys.exit(res_test.returncode)
-        print("✅ Flutter-testit läpäisty.")
+        print("✅ Flutter tests passed.")
 
-    print("\n🏆 Kaikki puhdasta! Kansio on Phase 9 vaatimusten mukainen.\n")
+    print("\n🏆 All clean! Target conforms to architectural standards.\n")
 
 
 if __name__ == "__main__":
     main()
+
