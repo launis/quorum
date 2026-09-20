@@ -42,8 +42,9 @@ def clamp_score(score: float, math_min: float, math_max: float) -> float:
 
 
 def normalize_score_to_100(score: float, math_min: float, math_max: float) -> float:
-    """Normalize any score to a proportional 0.0 - 100.0 percentage scale
-    according to absolute mathematical bounds.
+    """Normalize any score to a proportional 0.0 - 100.0 percentage scale.
+
+    Normalizes according to absolute mathematical bounds.
 
     Args:
         score: The score to normalize (computed value).

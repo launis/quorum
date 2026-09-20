@@ -2,7 +2,6 @@
 
 import logging
 import re
-from typing import Any
 
 from fastapi import status
 from pydantic import ValidationError
@@ -80,7 +79,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
     inputs_dict = payload.root
 
     # V2 Architecture: Flatten nested structures to validate actual text content
-    fields_to_validate: dict[str, Any] = {}
+    fields_to_validate = {}
 
     # 1. Unpack raw_inputs dynamically
     if "raw_inputs" in inputs_dict:
@@ -270,7 +269,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
                     value[:100],
                 )
 
-    delta: dict[str, Any] = {}
+    delta = {}
     if leakage_detected:
         existing_warnings: list[ValidationWarningDTO] = []
         if "_system_warnings" in payload.root:

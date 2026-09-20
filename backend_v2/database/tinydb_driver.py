@@ -19,7 +19,12 @@ class TinyDBDriver(StorageDriver):
     Wraps the synchronous AbstractDatabase/AbstractTable interface.
     """
 
-    def __init__(self, db_client: AbstractDatabase):
+    def __init__(self, db_client: AbstractDatabase) -> None:
+        """Initialize TinyDBDriver with an AbstractDatabase client.
+
+        Args:
+            db_client: The synchronous database client instance.
+        """
         self.db = db_client
 
     def _get_table(self, name: str) -> AbstractTable:

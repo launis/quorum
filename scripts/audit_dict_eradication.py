@@ -86,6 +86,12 @@ class DictEradicationVisitor(ast.NodeVisitor):
     """AST Visitor scanning Python files for permissive dict and reflection patterns."""
 
     def __init__(self, filepath: str, source_bytes: bytes) -> None:
+        """Initialize the visitor with target file path and source bytes.
+
+        Args:
+            filepath: Target file path to scan.
+            source_bytes: Source code content in bytes.
+        """
         self.filepath = filepath
         self.source_bytes = source_bytes
         self.filename = Path(filepath).name
@@ -470,7 +476,7 @@ def main(argv: list[str] | None = None) -> int:
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except AttributeError, io.UnsupportedOperation:
+        except (AttributeError, io.UnsupportedOperation):
             pass
 
     print("=" * 80)

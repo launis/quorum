@@ -19,7 +19,12 @@ class FirestoreDriver(StorageDriver):
     Adapts google.cloud.firestore.AsyncClient.
     """
 
-    def __init__(self, client: firestore.AsyncClient):
+    def __init__(self, client: firestore.AsyncClient) -> None:
+        """Initialize FirestoreDriver with an async Firestore client.
+
+        Args:
+            client: The async Firestore client instance.
+        """
         self.db = client
 
     def _serialize(self, data: dict[str, Any] | list | Any) -> Any:  # type: ignore
