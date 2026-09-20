@@ -1,8 +1,12 @@
 import pytest
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge, ExtractedAtom, LinkedAtomGraph
-from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+from backend_v2.models.dtos.hook_delta import MatrixProjectionResultDTO, ProjectedResultsDTO
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, XaiExtensionType
 from backend_v2.services.orchestrator.result_projector import ResultProjector
 
 
@@ -23,12 +27,12 @@ def test_result_projector_logical_deduction_crash():
         tda_id="tda_12345678", status=ExecutionStatus.PASSED, evaluation_reasoning="Passed because of X"
     )
 
-    # This should now succeed because contextual_override is mapped correctly.
-    results, refs = ResultProjector.project([node], {"tda_12345678": state})
+    projected = ResultProjector.project([node], {"tda_12345678": state})
 
-    assert len(results) == 1
-    assert results[0].contextual_override is True
-    assert results[0].source_quote is None
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 1
+    assert projected.results[0].contextual_override is True
+    assert projected.results[0].source_quote is None
 
 
 def test_result_projector_injects_matrix_id():
@@ -45,10 +49,11 @@ def test_result_projector_injects_matrix_id():
     node = LinkedAtomGraph(atom=atom, depends_on=[])
     state = AtomExecutionState(tda_id="tda_11111111", status=ExecutionStatus.PASSED, evaluation_reasoning="Reasoning")
 
-    results, refs = ResultProjector.project([node], {"tda_11111111": state}, matrix_id="blk_test123")
+    projected = ResultProjector.project([node], {"tda_11111111": state}, matrix_id="blk_test123")
 
-    assert len(results) == 1
-    assert results[0].matrix_id == "blk_test123"
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 1
+    assert projected.results[0].matrix_id == "blk_test123"
 
 
 def test_result_projector_topological_sort_with_dependencies():
@@ -80,21 +85,20 @@ def test_result_projector_topological_sort_with_dependencies():
     parent_node = LinkedAtomGraph(atom=parent_atom, depends_on=[])
     child_node = LinkedAtomGraph(atom=child_atom, depends_on=[edge])
 
-    # Pass child first in list; topological sort must order parent before child.
-    # Also omit child from states to test pending state branch.
     parent_state = AtomExecutionState(
         tda_id="tda_11112222",
         status=ExecutionStatus.PASSED,
         evaluation_reasoning="Parent verified.",
     )
-    results, refs = ResultProjector.project([child_node, parent_node], {"tda_11112222": parent_state})
+    projected = ResultProjector.project([child_node, parent_node], {"tda_11112222": parent_state})
 
-    assert len(results) == 2
-    assert results[0].tda_id == "tda_11112222"
-    assert results[0].status == ExecutionStatus.PASSED
-    assert results[1].tda_id == "tda_33334444"
-    assert results[1].status == ExecutionStatus.PENDING
-    assert results[1].evaluation_reasoning == "Pending evaluation."
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 2
+    assert projected.results[0].tda_id == "tda_11112222"
+    assert projected.results[0].status == ExecutionStatus.PASSED
+    assert projected.results[1].tda_id == "tda_33334444"
+    assert projected.results[1].status == ExecutionStatus.PENDING
+    assert projected.results[1].evaluation_reasoning == "Pending evaluation."
 
 
 def test_result_projector_system_error_and_na_cards():
@@ -133,15 +137,16 @@ def test_result_projector_system_error_and_na_cards():
         ),
     }
 
-    results, refs = ResultProjector.project([error_node, na_node], states)
+    projected = ResultProjector.project([error_node, na_node], states)
 
-    assert len(results) == 2
-    err_res = next(r for r in results if r.tda_id == "tda_e0000001")
-    assert refs["tda_e0000001"].sdui_component == SDUIComponentType.ERROR_CARD
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 2
+    err_res = next(r for r in projected.results if r.tda_id == "tda_e0000001")
+    assert projected.hydrated_references["tda_e0000001"].sdui_component == SDUIComponentType.ERROR_CARD
     assert err_res.error_details is not None
     assert err_res.error_details.error_code == "DAG_EXECUTION_ERROR"
 
-    assert refs["tda_a0000001"].sdui_component == SDUIComponentType.N_A_CARD
+    assert projected.hydrated_references["tda_a0000001"].sdui_component == SDUIComponentType.N_A_CARD
 
 
 def test_result_projector_missing_reasoning_fails_fast():
@@ -156,7 +161,6 @@ def test_result_projector_missing_reasoning_fails_fast():
         source_sequence_index=0,
     )
     node = LinkedAtomGraph(atom=atom, depends_on=[])
-    # Empty string reasoning
     state = AtomExecutionState(
         tda_id="tda_f0000001",
         status=ExecutionStatus.PASSED,
@@ -188,13 +192,14 @@ def test_result_projector_inverse_evidence_passed():
         evaluation_reasoning="No hostile statements observed in text.",
     )
 
-    results, refs = ResultProjector.project([node], {"tda_1111aaaa": state})
+    projected = ResultProjector.project([node], {"tda_1111aaaa": state})
 
-    assert len(results) == 1
-    assert results[0].status == ExecutionStatus.PASSED
-    assert results[0].source_quote is None
-    assert results[0].contextual_override is False
-    assert results[0].is_inverse_evidence is True
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 1
+    assert projected.results[0].status == ExecutionStatus.PASSED
+    assert projected.results[0].source_quote is None
+    assert projected.results[0].contextual_override is False
+    assert projected.results[0].is_inverse_evidence is True
 
 
 def test_result_projector_non_inverse_missing_quote_override():
@@ -216,13 +221,14 @@ def test_result_projector_non_inverse_missing_quote_override():
         evaluation_reasoning="Deduction verified.",
     )
 
-    results, refs = ResultProjector.project([node], {"tda_2222bbbb": state})
+    projected = ResultProjector.project([node], {"tda_2222bbbb": state})
 
-    assert len(results) == 1
-    assert results[0].status == ExecutionStatus.PASSED
-    assert results[0].source_quote is None
-    assert results[0].contextual_override is True
-    assert results[0].is_inverse_evidence is False
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 1
+    assert projected.results[0].status == ExecutionStatus.PASSED
+    assert projected.results[0].source_quote is None
+    assert projected.results[0].contextual_override is True
+    assert projected.results[0].is_inverse_evidence is False
 
 
 def test_result_projector_inverse_evidence_failed():
@@ -244,10 +250,78 @@ def test_result_projector_inverse_evidence_failed():
         evaluation_reasoning="Hostile statements were observed.",
     )
 
-    results, refs = ResultProjector.project([node], {"tda_3333cccc": state})
+    projected = ResultProjector.project([node], {"tda_3333cccc": state})
 
-    assert len(results) == 1
-    assert results[0].status == ExecutionStatus.FAILED
-    assert results[0].source_quote is None
-    assert results[0].contextual_override is False
-    assert results[0].is_inverse_evidence is False
+    assert isinstance(projected, ProjectedResultsDTO)
+    assert len(projected.results) == 1
+    assert projected.results[0].status == ExecutionStatus.FAILED
+    assert projected.results[0].source_quote is None
+    assert projected.results[0].contextual_override is False
+    assert projected.results[0].is_inverse_evidence is False
+
+
+def test_result_projector_project_matrix_results():
+    """Verifies project_matrix_results returns MatrixProjectionResultDTO with clean domain output."""
+    tda_id = "tda_44444444444444444444444444444444"
+    atom = ExtractedAtom(
+        tda_id=tda_id,
+        reasoning="Valid claim reasoning",
+        resolved_claim="Active listening displayed",
+        is_logical_deduction=False,
+        source_quote="I hear you clearly",
+        source_id="chunk_0",
+        source_sequence_index=0,
+    )
+    node = LinkedAtomGraph(atom=atom, depends_on=[])
+    state = AtomExecutionState(
+        tda_id=tda_id,
+        status=ExecutionStatus.PASSED,
+        evaluation_reasoning="Verified in chunk 0.",
+        source_quote="I hear you clearly",
+        extensions={XaiExtensionType.COACHING: "Good pacing."},
+    )
+
+    matrix_block = MatrixPromptBlock(
+        id="blk_0123456789abcdef",
+        slug="matrix_test",
+        label=I18nText(translations={"en": "Test Matrix"}),
+        description=I18nText(translations={"en": "Description"}),
+        scales=[
+            MatrixScale(
+                score=5,
+                ai_label="EXCELLENT",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Active listening displayed"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id=tda_id,
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description="Active listening displayed clearly",
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    proj_matrix = ResultProjector.project_matrix_results(
+        nodes=[node],
+        states={tda_id: state},
+        matrix_id="blk_0123456789abcdef",
+        matrix_block=matrix_block,
+        raw_score=5.0,
+        justification="Strong performance.",
+    )
+
+    assert isinstance(proj_matrix, MatrixProjectionResultDTO)
+    assert len(proj_matrix.results) == 1
+    assert proj_matrix.results[0].status == ExecutionStatus.PASSED
+    assert proj_matrix.matrix_output.raw_score == 5.0
+    assert proj_matrix.matrix_output.justification == "Strong performance."
+    assert proj_matrix.matrix_output.evaluated_atoms[tda_id] == ExecutionStatus.PASSED
+    assert XaiExtensionType.COACHING in proj_matrix.matrix_output.extensions
+    assert proj_matrix.matrix_output.extensions[XaiExtensionType.COACHING] == "Good pacing."
+    assert proj_matrix.missing_context is None

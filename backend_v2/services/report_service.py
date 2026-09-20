@@ -282,13 +282,22 @@ class ReportService:
                 if p:
                     try:
                         await self.storage.delete(p)
-                    except Exception as err:
-                        logger.warning(
-                            "[ReportService] Failed deleting storage artifact '%s' for report '%s': %s",
-                            p,
-                            report_id,
-                            err,
+                    except FileNotFoundError:
+                        logger.debug("[ReportService] Storage artifact '%s' already absent during deletion.", p)
+                    except OSError as err:
+                        msg = f"Failed deleting storage artifact '{p}' for report '{report_id}': {err}"
+                        logger.error(
+                            "[ReportService] %s: %s",
+                            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                            msg,
+                            extra={"report_id": report_id, "path": p},
+                            exc_info=True,
                         )
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "report_id": report_id},
+                        ) from err
         await self.repo.delete_report_artifact(report_id)
 
     async def regenerate_report_artifact(self, report_id: str, arq_pool: Any) -> None:

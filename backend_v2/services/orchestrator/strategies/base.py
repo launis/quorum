@@ -27,6 +27,7 @@ from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.step import Step as V2Step
+from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
 from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -267,13 +268,16 @@ class NodeStrategy(ABC):
                         )
 
                 delta = state_delta.delta
-                if "global_context_vars" in delta:
+                if isinstance(delta, dict) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
-                    new_gvars = dict(hook_state.global_context_vars.vars)
-                    new_gvars.update(gvars_updates)
-                    hook_state = hook_state.model_copy(
-                        update={"global_context_vars": GlobalContextVarsDTO(vars=new_gvars)}
-                    )
+                    if isinstance(gvars_updates, dict):
+                        hook_state = hook_state.model_copy(
+                            update={"global_context_vars": hook_state.global_context_vars.model_copy(update=gvars_updates)}
+                        )
+                    elif isinstance(gvars_updates, GlobalContextVarsDTO):
+                        hook_state = hook_state.model_copy(
+                            update={"global_context_vars": gvars_updates}
+                        )
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
@@ -281,12 +285,12 @@ class NodeStrategy(ABC):
                         TraceEvent(
                             step_name=step.id,
                             event_type="decision",
-                            content=gvars_updates,
+                            content=gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json"),
                             metadata={"is_context_update": True},
                         )
                     )
 
-                if delta:
+                if isinstance(delta, dict):
                     new_dynamic = dict(hook_state.inputs.dynamic_inputs)
                     new_raw = dict(hook_state.inputs.raw_inputs)
                     if "dynamic_inputs" in delta:
@@ -346,13 +350,16 @@ class NodeStrategy(ABC):
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
                 delta = state_delta.delta
-                if "global_context_vars" in delta:
+                if isinstance(delta, dict) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
-                    new_gvars = dict(hook_state.global_context_vars.vars)
-                    new_gvars.update(gvars_updates)
-                    hook_state = hook_state.model_copy(
-                        update={"global_context_vars": GlobalContextVarsDTO(vars=new_gvars)}
-                    )
+                    if isinstance(gvars_updates, dict):
+                        hook_state = hook_state.model_copy(
+                            update={"global_context_vars": hook_state.global_context_vars.model_copy(update=gvars_updates)}
+                        )
+                    elif isinstance(gvars_updates, GlobalContextVarsDTO):
+                        hook_state = hook_state.model_copy(
+                            update={"global_context_vars": gvars_updates}
+                        )
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
@@ -360,12 +367,12 @@ class NodeStrategy(ABC):
                         TraceEvent(
                             step_name=step.id,
                             event_type="decision",
-                            content=gvars_updates,
+                            content=gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json"),
                             metadata={"is_context_update": True},
                         )
                     )
 
-                if delta:
+                if isinstance(delta, dict):
                     new_dynamic = dict(hook_state.inputs.dynamic_inputs)
                     new_raw = dict(hook_state.inputs.raw_inputs)
                     if "dynamic_inputs" in delta:
@@ -376,6 +383,19 @@ class NodeStrategy(ABC):
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             new_dynamic[k] = v
                             new_raw[k] = v
+                    new_inputs = hook_state.inputs.model_copy(
+                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
+                    )
+                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
+                elif isinstance(delta, MatrixHookResultDTO):
+                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
+                    new_raw = dict(hook_state.inputs.raw_inputs)
+                    for pb_id, matrix_out in delta.matrix_outputs.items():
+                        new_dynamic[pb_id] = matrix_out
+                        new_raw[pb_id] = matrix_out
+                    for pb_id, missing_ctx in delta.missing_contexts.items():
+                        new_dynamic[f"{pb_id}_missing_context"] = missing_ctx
+                        new_raw[f"{pb_id}_missing_context"] = missing_ctx
                     new_inputs = hook_state.inputs.model_copy(
                         update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
                     )

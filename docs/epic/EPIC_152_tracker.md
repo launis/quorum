@@ -73,12 +73,16 @@
 
 ### Phase 4: Hook Pipeline Hardening, Result Projector Segregation & Complete Emoji Eradication
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 4.1: Result Projector Segregation
-  - [ ] Step 4.2: Matrix Hook Hardening & Test Suite Creation
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md] --phase=4`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+  - [x] Step 4.1: Result Projector Segregation & Two-Stage Separation Doctrine
+  - [x] Step 4.2: Global Context & Hook Delta DTO Hardening
+  - [x] Step 4.3: Scoring Hooks Hardening, Result Projector Integration & Universal Emoji Eradication
+  - [x] Step 4.4: Hook Consumers Global Context Dot-Notation Migration & DLQ / Interaction Hook Hardening
+  - [x] Step 4.5: Workers, Loggers & Background Services Error Swallowing & Emoji Eradication
+  - [x] Step 4.6: Comprehensive Test Suites Modernization, Hook Fixture Reflection Eradication & New Matrix Hook Suite
+- [x] **[OK] Test Coverage Assertions:** 100% test contract pass rate across all 6 validation gates (>90% coverage on all touched modules, 0 fatal AST violations, 0 emojis, clean Ruff & Mypy).
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening
@@ -151,8 +155,13 @@
   - [ ] @[backend_v2/models/dtos/synthesis.py]
   - [ ] @[backend_v2/services/orchestrator/result_projector.py]
   - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [ ] @[backend_v2/hooks/scoring/normalization_hook.py]
   - [ ] [NEW] @[backend_v2/models/dtos/global_context.py]
   - [ ] [NEW] @[backend_v2/models/dtos/hook_delta.py]
+  - [ ] @[backend_v2/services/llm_task_executor.py]
+  - [ ] @[backend_v2/workers/execution_worker.py]
+  - [ ] @[backend_v2/workers/report_worker.py]
+  - [ ] @[backend_v2/services/report_service.py]
   - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/state_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
@@ -202,8 +211,12 @@
 | Matrix Reducer & Orchestrator Engines Fail-Fast Hardening | Phase 3 | `matrix_reducer.py`, `synthesis_engine.py`, `tda_engine.py` | Phase 3, Step 3.5 |
 | Background Worker Synthesis Tasks, Reducers & Variance Synthesis Hardening | Phase 3 | `synthesis_tasks.py`, `synthesis_reducers.py`, `variance_synthesis.py` | Phase 3, Step 3.6 |
 | Test Suites Modernization & Dynamic Reflection Eradication | Phase 3 | `test_worker_synthesis.py`, `test_worker.py`, `test_worker_proxy.py`, `test_synthesis_distiller_wiring.py` | Phase 3, Step 3.7 |
-| Result Projector Segregation | Phase 4 | `backend_v2/services/execution/result_projector.py` | Phase 4, Step 4.1 |
-| Matrix Hook Hardening & Test Suite Creation | Phase 4 | `matrix_hook.py`, `global_context.py`, `hook_delta.py`, `test_matrix_hook.py` | Phase 4, Step 4.2 |
+| Result Projector Segregation & Two-Stage Separation Doctrine | Phase 4 | `backend_v2/services/orchestrator/result_projector.py`, `tda_engine.py` | Phase 4, Step 4.1 |
+| Global Context & Hook Delta DTO Hardening | Phase 4 | `global_context.py`, `hook_delta.py`, `hook_state.py` | Phase 4, Step 4.2 |
+| Scoring Hooks Hardening & Complete Emoji Eradication | Phase 4 | `matrix_hook.py`, `normalization_hook.py` | Phase 4, Step 4.3 |
+| Hook Consumers Global Context Dot-Notation Migration | Phase 4 | `validation.py`, `source_verification_hook.py`, `security.py`, `references.py`, `metadata.py`, `llm.py`, `linguistics.py`, `integrity.py`, `input_processing.py`, `hydration.py`, `interaction_hook.py`, `dlq_guard.py` | Phase 4, Step 4.4 |
+| Workers, Loggers & Background Error Swallowing Eradication | Phase 4 | `llm_task_executor.py`, `execution_worker.py`, `report_worker.py`, `report_service.py` | Phase 4, Step 4.5 |
+| Hook Test Suites Modernization & Reflection Eradication | Phase 4 | `test_matrix_hook.py`, `test_result_projector.py`, `test_validation.py`, `test_scoring.py`, `test_dlq_guard.py`, `test_metrics.py`, `test_references.py`, `test_metadata.py` | Phase 4, Step 4.6 |
 | Prompt Compiler & Mapping DTO Hardening | Phase 5 | `backend_v2/services/orchestrator/prompt_compiler.py` | Phase 5, Step 5.1 |
 | State Reducer & DAG Executor Hardening | Phase 5 | `backend_v2/services/execution/state_reducer.py`, `dag_executor.py` | Phase 5, Step 5.2 |
 | SDUI Model Modernization & UiSection Demolition | Phase 6 | `backend_v2/models/view/sdui.py`, `backend_v2/models/dtos/sdui_rules.py` | Phase 6, Step 6.1 |
@@ -217,25 +230,19 @@
 ## Achieved
 - Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`):
-  - Demolished `[NO_BLOCK]` dummy sentinel in `TwoPassAtomizer` and added zero-LLM short-circuiting on empty packet envelopes.
-  - Enforced strongly typed `list[EvaluatedAtomDTO]` stratification in `SynthesisPayloadCompressor` with `exact_quotes` and fail-fast `AppException`.
-  - Encapsulated `StepOutputDTO | list[StepOutputDTO]` into `DomainInputValue` and `ExecutionInputsDTO.dynamic_inputs`, restoring synthesis pipeline transit.
-  - Packaged `SynthesisDistillationDTO` with pure dot-notation access in `models/dtos/synthesis.py` and emitted by `synthesis_distiller.py`.
-  - Eradicated silent exception swallowing in `matrix_reducer.py`, `synthesis_engine.py`, and `tda_engine.py`.
-  - Hardened `synthesis_reducers.py`, `synthesis_tasks.py`, and `variance_synthesis.py` with direct `DataStarvationEvent` validation and zero QGR016 ternary fallbacks.
-  - Eradicated dynamic reflection (`getattr`, `hasattr`, `object.__setattr__`) across all worker and synthesis test suites.
-  - Verified 143/143 target unit tests passing, strict >=90% coverage on all touched modules, 0 fatal AST guardrail violations, and 0 supply chain violations.
+- Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
+- Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode: Result Projector segregation (`ProjectedResultsDTO`, `MatrixProjectionResultDTO`), Global Context & Hook Delta DTO hardening (`GlobalContextVarsDTO`, `HookDeltaDTO`), Scoring Hooks hardening (`matrix_hook.py`, `normalization_hook.py`), complete emoji eradication across analytical logs and payloads, hook consumers dot-notation migration across 11 hooks and 4 worker/strategy callers, error swallowing eradication in background workers, and comprehensive test suite modernization (`test_matrix_hook.py`, `test_override_service.py`).
+- All 6 Phase 4 Validation Gates passed 100% with exit code 0 and >90% coverage.
 
 ## Learned
-- `DataStarvationEvent` already exists natively in `backend_v2/models/dtos/base.py#L47-L58`; speculative creation of `backend_v2/events/domain_events.py` violates `strict_model_location` and was demolished.
-- `synthesis_worker.py` passes `{"steps": final_inputs}` where `final_inputs: list[StepOutputDTO]`. In Phase 2, `ExecutionInputsDTO.dynamic_inputs` only allowed `DomainInputValue` (which lacked `StepOutputDTO`), triggering `ValidationError` in 23 tests across worker and distiller suites. Phase 3 formally encapsulates `StepOutputDTO | list[StepOutputDTO]` into `DomainInputValue` and `ExecutionInputsDTO.dynamic_inputs`.
-- Dict-emulation methods (`__getitem__`, `keys()`, etc.) on `SynthesisDistillationDTO` violate `zero_backward_compatibility_planning_ban` and `pure_dot_notation_and_anti_reflection`; DTOs must enforce pure static dot-notation under `ConfigDict(strict=True, frozen=True, extra="forbid")`.
-- In `recover_trace_telemetry` (`synthesis_reducers.py`), `TraceEventMetadataEnvelope` defines `step_metadata: Annotated[StepTraceMetadataDTO | None, Field(alias="_step_metadata", default=None)]`. Storage trace blobs serialize this key as `_step_metadata`, so dict-level detection must verify `"_step_metadata" in ev.content or "step_metadata" in ev.content`.
+- In `override_service.py`, `record.context_variables` is a model attribute under `ExecutionCoreFields`; updating it requires `record = record.model_copy(update={"context_variables": updated_context_vars})` rather than direct attribute reassignment.
+- `EvaluatedMatrixContextDTO.raw_atoms` strictly enforces `EvaluatedAtomDTO` under `extra="forbid"`, preventing untyped or loose DTO cross-contamination.
+- `ExecutionRecord.profile_syntheses` values must conform to `RenderedSynthesisCache` with strict extra='forbid' typing, requiring valid instances in test fixtures.
+- `_ast_guardrails.py` QGR003 (exception swallowing rule) permits helper functions whose names contain `"dlq"` (or receiver containing `"dlq"`), or returning DTO/Response/Result/Failure objects, cleanly satisfying DLQ logging patterns in background workers.
 
 ## Remaining
-- Phase 4: Hook Pipeline Hardening, Result Projector Segregation & Complete Emoji Eradication (`04_placeholder_phase4.md`).
+- Phase 4 Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
 - Phases 5-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md] --phase=4`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`

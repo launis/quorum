@@ -16,6 +16,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 logger = logging.getLogger(__name__)
 
@@ -125,8 +126,11 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         matrix_keys: list[tuple[str, LightweightMatrixOutput]] = []
         for k in matrix_blocks_meta:
             if k in judge_model:
+                raw_val = judge_model[k]
+                if isinstance(raw_val, StepOutputDTO):
+                    raw_val = raw_val.payload
                 try:
-                    matrix_dto = LightweightMatrixOutput.model_validate(judge_model[k])
+                    matrix_dto = LightweightMatrixOutput.model_validate(raw_val)
                     matrix_keys.append((k, matrix_dto))
                 except ValidationError as e:
                     msg = f"Strict Fail-Fast Enforced: Invalid LightweightMatrixOutput format for '{k}': {e}"

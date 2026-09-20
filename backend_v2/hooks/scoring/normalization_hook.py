@@ -232,22 +232,27 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     return HookResult(success=True, state_delta=HookDeltaDTO())
 
 
-async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: HookDependencies) -> None:
+async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: HookDependencies) -> dict[str, Any]:
     """Decoupled Hybrid Calculation for matrix scores.
 
     Recalculates matrix scores by analyzing the atoms present in the payload.
-    Prioritizes 'human_override' values if present. Mutates payload in-place.
+    Prioritizes 'human_override' values if present. Returns updated dictionary without in-place mutation.
 
     Args:
-        payload: The state_delta dictionary to mutate.
+        payload: The state dictionary to calculate.
         profile_id: Output Profile ID defining strictness and strategy.
         deps: Hook dependencies for fetching config.
+
+    Returns:
+        New dictionary with updated matrix calculation payloads and atom counts.
 
     Raises:
         AppException: With ErrorCodes.VALIDATION_FAILED if matrix format or extensions are invalid.
     """
     if profile_id is None:
-        return
+        return dict(payload)
+
+    result_payload = dict(payload)
 
     profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
     if not profile_dict:
@@ -419,7 +424,8 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             allowed_extensions=allowed_exts,
         )
 
-        payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
+        result_payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
 
-    payload["true_atoms_count"] = total_true_atoms
-    payload["false_atoms_count"] = total_false_atoms
+    result_payload["true_atoms_count"] = total_true_atoms
+    result_payload["false_atoms_count"] = total_false_atoms
+    return result_payload

@@ -110,7 +110,7 @@ def test_sanitize_text_hook_invalid_language_payload_raises() -> None:
         step_id="step_1",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"reflection_text": "test"}),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": {"invalid": 123}}),
+        global_context_vars=GlobalContextVarsDTO.model_construct(language={"invalid": 123}),  # type: ignore[arg-type]
     )
     deps = HookDependencies(
         exec_repo=cast(Any, MockRepository()),

@@ -105,7 +105,7 @@ async def test_execute_passes_global_context_vars(logic_strategy: LogicNodeStrat
         mock_execute.assert_called_once()
         hook_name, hook_state, hook_deps = mock_execute.call_args.args
         assert hook_name == "test_hook"
-        assert hook_state.global_context_vars.vars == {"language": "fi"}
+        assert hook_state.global_context_vars.language == "fi"
 
 
 @pytest.mark.asyncio

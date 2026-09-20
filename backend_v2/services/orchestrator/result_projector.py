@@ -1,15 +1,23 @@
 """Result Projector for DAG execution.
 
 Projects the Enriched Atom Graph and execution states into the strict V2 DTO format
-required by the frontend (AtomResultDTO and HydratedAtomDTO).
+required by the frontend (AtomResultDTO and HydratedAtomDTO) and aggregates matrix
+results into MatrixProjectionResultDTO.
 """
 
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, LinkedAtomGraph
-from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+from backend_v2.models.dtos.hook_delta import (
+    MatrixProjectionResultDTO,
+    MissingContextDTO,
+    ProjectedResultsDTO,
+)
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, XaiExtensionType
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +32,7 @@ class ResultProjector:
     @staticmethod
     def project(
         nodes: list[LinkedAtomGraph], states: dict[str, AtomExecutionState], matrix_id: str | None = None
-    ) -> tuple[list[AtomResultDTO], dict[str, HydratedAtomDTO]]:
+    ) -> ProjectedResultsDTO:
         """Project execution state to frontend DTOs.
 
         Args:
@@ -33,7 +41,7 @@ class ResultProjector:
             matrix_id: Optional parent matrix ID for scoping the projected results.
 
         Returns:
-            A tuple of (results list, hydrated_references dict).
+            ProjectedResultsDTO encapsulating results list and hydrated_references dict.
 
         Raises:
             AppException: If a node has a PASSED or FAILED status but is missing mandatory reasoning.
@@ -170,4 +178,85 @@ class ResultProjector:
                 source_quote=source_quote_for_dto,
             )
 
-        return results, hydrated_references
+        return ProjectedResultsDTO(results=results, hydrated_references=hydrated_references)
+
+    @staticmethod
+    def project_matrix_results(
+        nodes: list[LinkedAtomGraph],
+        states: dict[str, AtomExecutionState],
+        matrix_id: str,
+        matrix_block: MatrixPromptBlock,
+        raw_score: float = 0.0,
+        justification: str = "",
+    ) -> MatrixProjectionResultDTO:
+        """Project atom states to domain matrix results and missing context.
+
+        Args:
+            nodes: The topological list of atom graphs.
+            states: The dictionary of execution states keyed by tda_id.
+            matrix_id: Identifier of the matrix prompt block.
+            matrix_block: Domain model of the matrix block with scale definitions.
+            raw_score: Preliminary or computed unnormalized score.
+            justification: Clean domain justification string.
+
+        Returns:
+            MatrixProjectionResultDTO with projected results, LightweightMatrixOutput, and MissingContextDTO.
+        """
+        projected = ResultProjector.project(nodes, states, matrix_id=matrix_id)
+
+        evaluated_atoms: dict[str, ExecutionStatus] = {}
+        extensions_by_type: dict[str, list[str]] = {}
+        missing_atoms: list[str] = []
+
+        atom_results_map = {r.tda_id: r for r in projected.results}
+
+        for scale in matrix_block.scales:
+            for claim in scale.claims:
+                for tda in claim.tda_assertions or []:
+                    aid = str(tda.tda_id)
+                    res = atom_results_map[aid] if aid in atom_results_map else None
+                    if res is not None:
+                        evaluated_atoms[aid] = res.status
+                        if res.status == ExecutionStatus.FAILED:
+                            missing_atoms.append(tda.concept_description)
+                        elif res.status == ExecutionStatus.SYSTEM_ERROR:
+                            missing_atoms.append(f"{tda.concept_description} (DLQ - Unscorable)")
+
+                        if res.extensions:
+                            for ext_k, ext_v in res.extensions.items():
+                                ext_str = ext_k if isinstance(ext_k, str) else str(ext_k)
+                                if ext_v:
+                                    if ext_str not in extensions_by_type:
+                                        extensions_by_type[ext_str] = []
+                                    extensions_by_type[ext_str].append(str(ext_v))
+                    else:
+                        evaluated_atoms[aid] = ExecutionStatus.PENDING
+                        missing_atoms.append(tda.concept_description)
+
+        final_extensions = {
+            XaiExtensionType(k): "\n\n".join(v)
+            for k, v in extensions_by_type.items()
+            if k in {e.value for e in XaiExtensionType}
+        }
+
+        matrix_output = LightweightMatrixOutput(
+            raw_score=raw_score,
+            normalized_score=None,
+            level_breakdown=None,
+            justification=justification,
+            evaluated_atoms=evaluated_atoms,
+            extensions=final_extensions,
+        )
+
+        missing_context = None
+        if missing_atoms:
+            missing_context = MissingContextDTO(
+                missing_atoms=missing_atoms,
+                missing_context_text="\n".join(missing_atoms),
+            )
+
+        return MatrixProjectionResultDTO(
+            results=projected.results,
+            matrix_output=matrix_output,
+            missing_context=missing_context,
+        )

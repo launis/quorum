@@ -61,26 +61,14 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
     step_id = state.step_id
     workflow_id = state.workflow_id
 
-    # Strict Validation via DTO inflation
-    gvars = state.global_context_vars.vars
-    try:
-        payload = MetadataHookPayloadDTO.model_validate(gvars)
-    except Exception as e:
-        msg = f"Failed to strictly validate global context for metadata: {e}"
-        logger.error("[MetadataHook] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
-        raise AppException(
-            message=msg,
-            status_code=400,
-            details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
-        ) from e
-
     unix_time = int(datetime.now(timezone.utc).timestamp())
+    initiator_id = state.global_context_vars.initiator_id or "system"
 
     metadata = StepMetadataDTO(
         execution_id=execution_id,
         workflow_id=workflow_id,
         step_id=step_id,
-        initiator_id=payload.sys_initiator_id,
+        initiator_id=initiator_id,
         timestamp_isot=datetime.now(timezone.utc).isoformat(),
         unix_time=unix_time,
         v2_engine=True,

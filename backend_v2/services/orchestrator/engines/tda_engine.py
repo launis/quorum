@@ -123,12 +123,12 @@ class TDAEngine(ExecutionEngine):
                     extensions={},
                 )
 
-            results, hydrated_references = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
+            projected = ResultProjector.project(nodes, states, matrix_id=request.matrix_block_id)
             if request.progress_callback:
                 await request.progress_callback(100, 100)
             return EngineExecutionResult(
-                results=results,
-                hydrated_references=hydrated_references,
+                results=projected.results,
+                hydrated_references=projected.hydrated_references,
                 usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
             )
 
@@ -201,11 +201,11 @@ class TDAEngine(ExecutionEngine):
             )
             total_usage = usage_p0 + usage_dag
 
-            results_dto, hydrated_refs = ResultProjector.project(nodes, states, request.matrix_block_id)
+            projected = ResultProjector.project(nodes, states, request.matrix_block_id)
 
             return EngineExecutionResult(
-                results=results_dto,
-                hydrated_references=hydrated_refs,
+                results=projected.results,
+                hydrated_references=projected.hydrated_references,
                 usage=total_usage,
             )
         except AppException:

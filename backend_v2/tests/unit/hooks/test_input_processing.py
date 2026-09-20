@@ -539,9 +539,10 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
                     "pairs": [{"question": "Q", "answer": "A"}],
                     "metadata": {},
                 }
-            }
+            },
+            dynamic_inputs={"document_text": "Gvars doc text"},
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"language": "en", "document_text": "Gvars doc text"}),
+        global_context_vars=GlobalContextVarsDTO(language="en"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(

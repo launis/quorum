@@ -13,6 +13,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.dag_models import GlobalOntologyMap
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
@@ -93,7 +94,7 @@ async def test_tda_engine_aggregates_token_usage_and_cost(
             TokenUsage(prompt_tokens=300, completion_tokens=60, total_tokens=360, cost_usd=0.015),
         )
     )
-    mock_projector.project.return_value = ([], {})
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
 
     shuffled_atom = FlattenedAtom(
         atom_id="tda_12345678",

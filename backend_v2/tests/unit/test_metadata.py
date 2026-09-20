@@ -2,6 +2,7 @@ from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -32,7 +33,7 @@ def test_inject_step_metadata_empty_state() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_inject_step_metadata_missing_execution_id_fails() -> None:
@@ -44,10 +45,22 @@ def test_inject_step_metadata_missing_execution_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = MagicMock(spec=HookDependencies)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
+
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "state.execution_id is strictly required" in exc_info.value.message
 
 
@@ -60,10 +73,22 @@ def test_inject_step_metadata_missing_step_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = MagicMock(spec=HookDependencies)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
+
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "state.step_id is strictly required" in exc_info.value.message
 
 
@@ -76,27 +101,50 @@ def test_inject_step_metadata_missing_workflow_id_fails() -> None:
         global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
-    deps = MagicMock(spec=HookDependencies)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
+
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "state.workflow_id is strictly required" in exc_info.value.message
 
 
 def test_inject_step_metadata_missing_global_context_vars_fails() -> None:
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="exec_1",
         workflow_id="wf_1",
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
+        global_context_vars=None,
     )
-    object.__setattr__(state, "global_context_vars", None)
-    deps = MagicMock(spec=HookDependencies)
+    deps = HookDependencies(
+        exec_repo=MagicMock(),
+        workflow_repo=MagicMock(),
+        comp_repo=MagicMock(),
+        prompt_block_repo=AsyncMock(),
+        output_profile_repo=AsyncMock(),
+        identity_repo=MagicMock(),
+        audit_repo=MagicMock(),
+        system_repo=MagicMock(),
+    )
+
     with pytest.raises(AppException) as exc_info:
         inject_step_metadata(state, deps)
+
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
     assert "state.global_context_vars is strictly required" in exc_info.value.message
 
 
@@ -107,7 +155,7 @@ def test_inject_step_metadata_custom_values() -> None:
         workflow_id="wf_999",
         step_id="step_123",
         inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": "usr_777"}),
+        global_context_vars=GlobalContextVarsDTO(initiator_id="usr_777"),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -138,29 +186,6 @@ def test_inject_step_metadata_custom_values() -> None:
 
 def test_inject_step_metadata_validation_failure() -> None:
     """Test that strict Pydantic validation fails if context vars contain invalid types."""
-    # Since strict=True, passing an integer instead of a string for initiator_id should fail
-    state = HookState(
-        execution_id="exec_1",
-        workflow_id="wf_1",
-        step_id="step_1",
-        inputs=ExecutionInputsDTO(raw_inputs={}),
-        global_context_vars=GlobalContextVarsDTO(vars={"_sys_initiator_id": 12345}),  # Int instead of str
-        metadata=ExecutionMetadata(),
-    )
-    deps = HookDependencies(
-        exec_repo=MagicMock(),
-        workflow_repo=MagicMock(),
-        comp_repo=MagicMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=MagicMock(),
-        audit_repo=MagicMock(),
-        system_repo=MagicMock(),
-    )
-
-    with pytest.raises(AppException) as exc_info:
-        inject_step_metadata(state, deps)
-
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.details["error_code"] == ErrorCodes.INVALID_OUTPUT_SCHEMA.value
-    assert "strictly validate global context" in exc_info.value.message
+    # Since strict=True, passing an integer instead of a string for initiator_id fails at construction
+    with pytest.raises(ValidationError):
+        GlobalContextVarsDTO(initiator_id=12345)  # type: ignore[arg-type]

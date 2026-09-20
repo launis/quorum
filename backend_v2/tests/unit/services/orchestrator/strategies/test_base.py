@@ -105,7 +105,7 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
         state_delta=HookDeltaDTO(
             metadata_updates={"matrix_sampling_strategy": 5},
             delta={
-                "global_context_vars": {"ext_var": "val1"},
+                "global_context_vars": {"target_locale": "en"},
                 "extra_input": "data1",
             },
         ),
@@ -118,17 +118,18 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
         execution_id="e1",
         workflow_id="w1",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"g_init": "1"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(dynamic_inputs={"in": "1"}),
     )
 
     res_state, res_events = await dummy_strategy.run_pre_hooks(step_obj, step_rule, hook_state, MagicMock())
     assert res_state.metadata.matrix_sampling_strategy == 5
-    assert res_state.global_context_vars.vars == {"g_init": "1", "ext_var": "val1"}
+    assert res_state.global_context_vars.language == "fi"
+    assert res_state.global_context_vars.target_locale == "en"
     assert res_state.inputs.dynamic_inputs == {"in": "1", "extra_input": "data1"}
     assert len(res_events) == 1
     assert res_events[0].step_name == "node_1"
-    assert res_events[0].content == {"ext_var": "val1"}
+    assert res_events[0].content == {"target_locale": "en"}
 
 
 @pytest.mark.asyncio
@@ -190,7 +191,7 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
         state_delta=HookDeltaDTO(
             metadata_updates={"matrix_sampling_strategy": 5},
             delta={
-                "global_context_vars": {"post_var": "val2"},
+                "global_context_vars": {"target_locale": "en"},
                 "post_input": "data2",
             },
         ),
@@ -203,17 +204,18 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
         execution_id="e1",
         workflow_id="w1",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"g_init": "1"}),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(dynamic_inputs={"in": "1"}),
     )
 
     res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, step_rule, hook_state, MagicMock())
     assert res_state.metadata.matrix_sampling_strategy == 5
-    assert res_state.global_context_vars.vars == {"g_init": "1", "post_var": "val2"}
+    assert res_state.global_context_vars.language == "fi"
+    assert res_state.global_context_vars.target_locale == "en"
     assert res_state.inputs.dynamic_inputs == {"in": "1", "post_input": "data2"}
     assert len(res_events) == 1
     assert res_events[0].step_name == "node_1"
-    assert res_events[0].content == {"post_var": "val2"}
+    assert res_events[0].content == {"target_locale": "en"}
 
 
 @pytest.mark.asyncio

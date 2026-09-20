@@ -8,8 +8,12 @@ from typing import Annotated
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.domain.analyst import Hypothesis
+from backend_v2.models.domain.validation import GuttmanAtomItemDTO
 
 logger = logging.getLogger(__name__)
 
@@ -30,13 +34,43 @@ class Base64Attachment(V2CoreBase):
     content_type: Annotated[str | None, Field(default=None, description="Optional MIME type")] = None
 
 
+class DLQAtomSchema(V2CoreBase):
+    """Strict schema for DLQ validation."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    atom_id: Annotated[str | None, Field(default=None)] = None
+    tda_id: Annotated[str | None, Field(default=None)] = None
+    status: Annotated[str | None, Field(default=None)] = None
+
+
 type IngressInputValue = Annotated[
     Base64Attachment | GuidedReflectionInputDTO | str | int | float | bool | list[str],
     Field(description="Strict closed union of allowed ingress workflow input values"),
 ]
 
 type DomainInputValue = Annotated[
-    StepOutputDTO | list[StepOutputDTO] | GuidedReflectionInputDTO | str | int | float | bool | list[str],
+    StepOutputDTO
+    | list[StepOutputDTO]
+    | AtomResultDTO
+    | list[AtomResultDTO]
+    | DLQAtomSchema
+    | list[DLQAtomSchema]
+    | HydratedAtomDTO
+    | dict[str, HydratedAtomDTO]
+    | LightweightMatrixOutput
+    | dict[str, float]
+    | dict[str, str]
+    | GuttmanAtomItemDTO
+    | list[GuttmanAtomItemDTO]
+    | Hypothesis
+    | list[Hypothesis]
+    | GuidedReflectionInputDTO
+    | str
+    | int
+    | float
+    | bool
+    | list[str],
     Field(description="Strict closed union of extracted domain inputs (Base64Attachment strictly excluded)"),
 ]
 

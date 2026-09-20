@@ -55,13 +55,8 @@ async def _fetch_historical_context(
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
-    user_id = None
-    if "user_id" in state.global_context_vars.vars:
-        user_id = state.global_context_vars.vars["user_id"]
-
-    org_id = None
-    if "organization_id" in state.global_context_vars.vars:
-        org_id = state.global_context_vars.vars["organization_id"]
+    user_id = state.global_context_vars.initiator_id
+    org_id = state.global_context_vars.organization_id
 
     if not (user_id or org_id):
         return ""
@@ -217,8 +212,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     raw_locale = None
     if state.inputs and state.inputs.target_locale:
         raw_locale = state.inputs.target_locale
-    elif state.global_context_vars and "language" in state.global_context_vars.vars:
-        raw_locale = state.global_context_vars.vars["language"]
+    elif state.global_context_vars and state.global_context_vars.language:
+        raw_locale = state.global_context_vars.language
 
     if not raw_locale or not str(raw_locale).strip():
         msg = "Strict Fail-Fast Enforced: 'target_locale' must be a non-empty string."

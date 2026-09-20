@@ -54,7 +54,7 @@ def test_dlq_guard_success_no_dlqs(dummy_deps: HookDependencies) -> None:
     assert isinstance(result, HookResult)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_dlq_guard_success_under_threshold(dummy_deps: HookDependencies) -> None:
@@ -80,7 +80,7 @@ def test_dlq_guard_success_under_threshold(dummy_deps: HookDependencies) -> None
     assert isinstance(result, HookResult)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_dlq_guard_fails_over_threshold(dummy_deps: HookDependencies) -> None:
@@ -114,11 +114,10 @@ def test_dlq_guard_missing_inputs_bypasses(dummy_deps: HookDependencies) -> None
     state = HookState(
         execution_id="exec_123",
         workflow_id="wor_123",
-        inputs=ExecutionInputsDTO(),
+        inputs=ExecutionInputsDTO(raw_inputs={}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )
-    object.__setattr__(state, "inputs", None)
     result = dlq_strict_mode_guard_hook(state, dummy_deps)
     assert result.success is True
 
@@ -153,7 +152,7 @@ def test_dlq_guard_evaluations_atom_malformed_raises(dummy_deps: HookDependencie
     state = HookState(
         execution_id="exec_123",
         workflow_id="wor_123",
-        inputs=ExecutionInputsDTO(raw_inputs={"evaluations": [{"atom_id": 12345, "extra": "invalid"}]}),
+        inputs=ExecutionInputsDTO(raw_inputs={"evaluations": ["invalid_atom_not_dict"]}),
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
     )

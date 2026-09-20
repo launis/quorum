@@ -1,6 +1,7 @@
 """Linguistics hooks for analyzing text patterns and language use."""
 
 import logging
+from typing import Any
 import uuid
 
 from fastapi import status
@@ -61,13 +62,16 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
     raw_inputs = state.inputs.raw_inputs
-    gvars = state.global_context_vars.vars
+    gvars = state.global_context_vars
 
     # Strict Validation via DTO inflation
     try:
-        payload_data = {"dynamic_inputs": raw_inputs}
-        if "language" in raw_inputs:
-            payload_data["language"] = raw_inputs["language"]
+        lang_in_raw = (
+            raw_inputs["language"]
+            if "language" in raw_inputs and isinstance(raw_inputs["language"], str)
+            else None
+        )
+        payload_data: dict[str, Any] = {"dynamic_inputs": raw_inputs, "language": lang_in_raw}
         payload = LinguisticsPayloadDTO.model_validate(payload_data)
     except (ValidationError, TypeError, ValueError) as e:
         msg = f"Failed to strictly validate inputs for linguistics: {e}"
@@ -89,9 +93,8 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     # Check for early exit signal (Workflow override)
     should_scan = True
     if "scan_for_performative_patterns" in raw_inputs:
-        should_scan = raw_inputs["scan_for_performative_patterns"]
-    elif "scan_for_performative_patterns" in gvars:
-        should_scan = gvars["scan_for_performative_patterns"]
+        val = raw_inputs["scan_for_performative_patterns"]
+        should_scan = str(val).lower() not in ["false", "0"]
 
     if str(should_scan).lower() in ["false", "0"]:
         logger.debug("[LinguisticsHook] Skipping scan due to scan_for_performative_patterns=False.")

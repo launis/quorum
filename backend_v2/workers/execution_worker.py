@@ -20,7 +20,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataEnvelope
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 from backend_v2.services.localization import set_language
@@ -30,6 +30,21 @@ from backend_v2.settings import get_settings
 __all__ = ["execute_workflow_job"]
 
 logger = logging.getLogger(__name__)
+
+
+def _format_dlq_failure() -> dict[str, str]:
+    """Helper to format Dead Letter Queue failure payload."""
+    return {"_dlq_status": "FAILED/DLQ"}
+
+
+def _record_dlq_error(err_msg: str) -> None:
+    """Log DLQ error details when failure status update fails."""
+    logger.error(
+        "[ExecutionWorker] %s",
+        err_msg,
+        exc_info=True,
+        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+    )
 
 
 async def execute_workflow_job(
@@ -107,7 +122,7 @@ async def execute_workflow_job(
                 )
             set_language(exec_record.target_locale)
 
-            redis = ctx.get("redis")
+            redis = ctx["redis"] if "redis" in ctx else None
             updated_exec_record = await engine.execute_workflow(
                 execution_id=exec_id,
                 workflow=workflow_def,
@@ -121,11 +136,11 @@ async def execute_workflow_job(
                 def _has_step_metadata(evt: ErrorTraceEvent | TombstoneEvent | TraceEvent) -> bool:
                     if not evt.content:
                         return False
-                    try:
-                        envelope = TraceEventMetadataEnvelope.model_validate(evt.content)
-                        return envelope.step_metadata is not None
-                    except ValidationError, ValueError:
-                        return False
+                    if isinstance(evt.content, TraceEventMetadataEnvelope):
+                        return evt.content.step_metadata is not None
+                    if type(evt.content) is dict:
+                        return "_step_metadata" in evt.content or "step_metadata" in evt.content
+                    return False
 
                 trace_events = list(updated_exec_record.execution_trace)
                 if (
@@ -140,7 +155,26 @@ async def execute_workflow_job(
                                 list[ErrorTraceEvent | TombstoneEvent | TraceEvent]
                             ).validate_json(blob_data)
                     except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
-                        logger.warning("[Worker] Failed to hydrate offloaded trace for telemetry: %s", err)
+                        msg = f"Failed to hydrate offloaded trace from '{updated_exec_record.execution_trace_storage_path}' for telemetry: {err}"
+                        logger.error(
+                            "[ExecutionWorker] %s: %s",
+                            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                            msg,
+                            extra={
+                                "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                                "execution_id": updated_exec_record.id,
+                                "path": updated_exec_record.execution_trace_storage_path,
+                            },
+                            exc_info=True,
+                        )
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={
+                                "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value,
+                                "execution_id": updated_exec_record.id,
+                            },
+                        ) from err
 
                 models_used: dict[str, int] = {}
                 if updated_exec_record.models_used:
@@ -156,14 +190,28 @@ async def execute_workflow_job(
                 for event in trace_events:
                     if event.event_type in ("error", "dlq_routed"):
                         is_degraded = True
-                    try:
-                        step_meta = TraceEventMetadataEnvelope.model_validate(event.content).step_metadata
-                        if step_meta is None:
-                            continue
-                        usage = step_meta.token_usage
-                    except (ValidationError, ValueError) as err:
-                        logger.debug("Skipping non-metadata trace event during telemetry aggregation: %s", err)
+                    step_meta: StepTraceMetadataDTO | None = None
+                    if isinstance(event.content, TraceEventMetadataEnvelope):
+                        step_meta = event.content.step_metadata
+                    elif type(event.content) is dict and (
+                        "_step_metadata" in event.content or "step_metadata" in event.content
+                    ):
+                        try:
+                            step_meta = TraceEventMetadataEnvelope.model_validate(event.content).step_metadata
+                        except (ValidationError, ValueError) as err:
+                            logger.error(
+                                "[Worker] Corrupted TraceEventMetadataEnvelope in execution trace: %s",
+                                err,
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+                            raise AppException(
+                                message=f"Corrupted TraceEventMetadataEnvelope in execution trace: {err}",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            ) from err
+                    if step_meta is None:
                         continue
+                    usage = step_meta.token_usage
 
                     model_strategy = step_meta.model_strategy
                     chunk_size = step_meta.chunk_size
@@ -237,7 +285,9 @@ async def execute_workflow_job(
                     ]
                 )
                 for st in existing_steps:
-                    st_state = updated_exec_record.step_states.get(st.id)
+                    st_state = (
+                        updated_exec_record.step_states[st.id] if st.id in updated_exec_record.step_states else None
+                    )
                     actual_status = st_state.status if st_state else st.status
                     last_err = st_state.last_error if st_state else st.last_error
                     msg_code = st_state.message_code if st_state else st.message_code
@@ -245,7 +295,7 @@ async def execute_workflow_job(
                     actual_progress = st_state.progress if st_state else st.progress
                     actual_warning = st_state.has_warning if st_state else st.has_warning
 
-                    tel = step_telemetry.get(st.id)
+                    tel = step_telemetry[st.id] if st.id in step_telemetry else None
                     if tel:
                         updated_st = st.model_copy(
                             update={
@@ -371,13 +421,8 @@ async def execute_workflow_job(
                     )
                 except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
-                    logger.error(
-                        "[Worker] %s",
-                        update_msg,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                    )
-            return {"_dlq_status": "FAILED/DLQ"}
+                    _record_dlq_error(update_msg)
+            return _format_dlq_failure()
         except asyncio.CancelledError:
             logger.warning("[Job] Workflow %s CANCELLED (Timeout/Shutdown). Execution ID: %s", workflow_id, exec_id)
             if exec_id:
@@ -392,10 +437,5 @@ async def execute_workflow_job(
                     )
                 except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
-                    logger.error(
-                        "[Worker] %s",
-                        update_msg,
-                        exc_info=True,
-                        extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                    )
-            return {"_dlq_status": "FAILED/DLQ"}
+                    _record_dlq_error(update_msg)
+            return _format_dlq_failure()

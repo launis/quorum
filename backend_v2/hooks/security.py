@@ -59,8 +59,8 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     threats_summary: list[str] = []
 
     i18n_inputs = {}
-    if state.global_context_vars and "language" in state.global_context_vars.vars:
-        i18n_inputs["language"] = state.global_context_vars.vars["language"]
+    if state.global_context_vars and state.global_context_vars.language:
+        i18n_inputs["language"] = state.global_context_vars.language
     elif state.inputs and state.inputs.target_locale:
         i18n_inputs["language"] = state.inputs.target_locale
 

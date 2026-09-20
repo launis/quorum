@@ -35,22 +35,9 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    hydration_source: HydrationInputSourceDTO | None = None
+    hydration_source: HydrationInputSourceDTO | None = state.global_context_vars.hydration_results
 
-    gvars = state.global_context_vars.vars
-
-    for _key, result in gvars.items():
-        try:
-            # Strict validation attempts to parse the result into the DTO sieve directly
-            candidate = HydrationInputSourceDTO.model_validate(result)
-            if candidate.is_valid_source():
-                hydration_source = candidate
-                break
-        except ValidationError:
-            # Ignore unrelated state payloads
-            continue
-
-    if not hydration_source:
+    if not hydration_source or not hydration_source.is_valid_source():
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
         return HookResult(success=True, state_delta=HookDeltaDTO())
 

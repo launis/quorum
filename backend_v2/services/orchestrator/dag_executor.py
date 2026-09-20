@@ -528,7 +528,7 @@ class DAGExecutor:
             projector.apply_delta(evt)
 
         if not exec_record.execution_trace:
-            inputs_dict = exec_record.raw_inputs.model_dump(mode="json")
+            inputs_dict = exec_record.raw_inputs.model_dump(mode="json", exclude_none=True)
             input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=inputs_dict)
             exec_record.execution_trace.append(input_event)
             projector.apply_delta(input_event)

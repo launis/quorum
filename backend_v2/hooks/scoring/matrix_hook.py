@@ -1,13 +1,13 @@
 """Matrix scoring and atom evaluation hook module."""
 
+import json
 import logging
 from enum import Enum
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from backend_v2.core.hook_registry import (
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookResult,
@@ -15,7 +15,6 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.hooks.scoring.normalization_hook import recalculate
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
@@ -24,14 +23,17 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.atom_result import AtomResultDTO, EvaluationFactsDTO
+from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import (
     ExecutionStatus,
+    LaxXaiExtensionType,
     XaiExtensionType,
 )
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
+from backend_v2.utils.scoring import get_scoring_engine
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +124,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # If no matrix blocks exist, then waterfall scoring natively skips without demanding evaluations
         if not matrix_blocks:
             logger.debug("[ScoringHook] Step '%s' contains no matrix blocks. Skipping waterfall scoring.", blueprint_id)
-            return HookResult(success=True, state_delta=HookDeltaDTO())
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
         if not state.execution_id or not deps.exec_repo:
             msg = "Strict Fail-Fast Enforced: Missing execution_id or exec_repo in matrix_scoring_hook."
@@ -151,7 +153,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # Dynamic Orchestration & Scoring Resolution (Phase 1, Step 1: Anti-Duct-Tape)
         strictness_level = workflow.default_strictness_level
         visible_block_extensions = []
-        locale = execution_data.target_locale
 
         profile_id = execution_data.output_profile_id
         if profile_id:
@@ -251,49 +252,54 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         dlq_evals = 0
         infra_dlqs = 0
         total_evals = len(evaluations)
+        validated_evaluations: list[AtomResultDTO] = []
         for ev in evaluations:
-            is_infra = False
-            is_val = False
-            try:
-                ev_dto_check = AtomResultDTO.model_validate(ev) if not isinstance(ev, AtomResultDTO) else ev
-                if str(ev_dto_check.status) == "DLQ" or ev_dto_check.status == ExecutionStatus.SYSTEM_ERROR:
-                    is_val = True
-            except ValidationError as err:
-                # Check for infra DLQ envelope
+            if isinstance(ev, AtomResultDTO):
+                ev_dto = ev
+            elif isinstance(ev, BaseModel):
+                ev_dto = AtomResultDTO.model_validate(ev.model_dump())
+            else:
                 try:
-                    ev_dict_check = TypeAdapter(dict[str, Any]).validate_python(ev)
-                    if "_dlq_status" in ev_dict_check and ev_dict_check["_dlq_status"] == "FAILED/DLQ":
-                        is_infra = True
-                    elif "status" in ev_dict_check and str(ev_dict_check["status"]) == "DLQ":
-                        is_val = True
-                except ValidationError as dict_err:
-                    logger.warning(
-                        "[ScoringHook] Item in evaluations failed both AtomResultDTO and dict validation: %s; %s",
-                        err,
-                        dict_err,
-                    )
+                    ev_dto = AtomResultDTO.model_validate(ev)
+                except (ValidationError, TypeError, ValueError) as err:
+                    msg = f"Strict Fail-Fast Enforced: Evaluation item malformed: {err}"
+                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from err
 
-            if is_infra or is_val:
+            validated_evaluations.append(ev_dto)
+            if ev_dto.status in (ExecutionStatus.SYSTEM_ERROR, "DLQ"):
                 dlq_evals += 1
-            if is_infra:
                 infra_dlqs += 1
 
-        # Get merged facts dictionary from dynamic MergedFactsDTO context
-        merged_facts_raw = {}
+        # Get merged facts dictionary from dynamic EvaluationFactsDTO context
+        merged_facts: dict[str, bool | str] = {}
         if "extracted_facts" in content_payload:
-            merged_facts_raw = content_payload["extracted_facts"]
-        try:
-            merged_facts = (
-                merged_facts_raw.model_dump(mode="json")
-                if isinstance(merged_facts_raw, BaseModel)
-                else TypeAdapter(dict[str, Any]).validate_python(merged_facts_raw)
-            )
-        except ValidationError as e:
-            msg = f"Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model: {e}"
-            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
-            ) from e
+            facts_val = content_payload["extracted_facts"]
+            if isinstance(facts_val, EvaluationFactsDTO):
+                merged_facts = facts_val.facts
+            elif isinstance(facts_val, BaseModel):
+                merged_facts = EvaluationFactsDTO.model_validate({"facts": facts_val.model_dump()}).facts
+            elif isinstance(facts_val, str):
+                try:
+                    parsed = json.loads(facts_val)
+                    merged_facts = EvaluationFactsDTO.model_validate({"facts": parsed}).facts
+                except (json.JSONDecodeError, ValueError, ValidationError) as err:
+                    msg = f"Strict Fail-Fast Enforced: extracted_facts must be a dictionary (invalid JSON: {facts_val})"
+                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from err
+            else:
+                try:
+                    merged_facts = EvaluationFactsDTO.model_validate({"facts": facts_val}).facts
+                except (ValidationError, TypeError, ValueError) as err:
+                    msg = f"Strict Fail-Fast Enforced: extracted_facts must be a dictionary or model: {facts_val}"
+                    logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    ) from err
 
         for pb_id, pb_model in matrix_blocks:
             scales = pb_model.scales
@@ -305,7 +311,6 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             for scale in scales:
                 s_val = float(scale.score)
-                s_name = scale.name.resolve(locale) if scale.name else str(scale.score)
                 block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0, "dlqs": 0}
 
                 claims = scale.claims
@@ -330,48 +335,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             else:
                                 # Fallback or cognitive track: look up chunk evaluations by atom_id
                                 final_state = "FALSE"
-                                for ev in evaluations:
-                                    # Skip Infra-DLQ items to prevent ValidationErrors
-                                    is_ev_infra_dlq = False
-                                    try:
-                                        ev_dict_tmp = (
-                                            ev.model_dump(mode="json")
-                                            if isinstance(ev, BaseModel)
-                                            else TypeAdapter(dict[str, Any]).validate_python(ev)
-                                        )
-                                        is_ev_infra_dlq = (
-                                            "_dlq_status" in ev_dict_tmp and ev_dict_tmp["_dlq_status"] == "FAILED/DLQ"
-                                        )
-                                    except ValidationError as e:
-                                        logger.warning(
-                                            "[ScoringHook] Evaluation item failed dict validation for "
-                                            "infra DLQ check: %s",
-                                            e,
-                                        )
-
-                                    if is_ev_infra_dlq:
-                                        continue
-
-                                    val_context = {}
-                                    if isinstance(state.global_context_vars, GlobalContextVarsDTO):
-                                        val_context = state.global_context_vars.vars
-                                    elif state.global_context_vars is not None:
-                                        val_context = state.global_context_vars
-
-                                    try:
-                                        ev_dto = (
-                                            ev
-                                            if isinstance(ev, AtomResultDTO)
-                                            else AtomResultDTO.model_validate(ev, strict=True, context=val_context)
-                                        )
-                                    except ValidationError as e:
-                                        logger.error("[ScoringHook] Invalid AtomResultDTO: %s", e)
-                                        raise AppException(
-                                            message=f"Strict Fail-Fast: Invalid AtomResultDTO: {e}",
-                                            status_code=500,
-                                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                                        ) from e
-
+                                for ev_dto in validated_evaluations:
                                     if ev_dto.tda_id == aid:
                                         if ev_dto.matrix_id is not None and ev_dto.matrix_id != pb_id:
                                             continue
@@ -383,9 +347,9 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
                                         status_str = ev_dto.status.name
 
-                                        if status_str == "DLQ":
+                                        if status_str == "DLQ" or ev_dto.status == ExecutionStatus.SYSTEM_ERROR:
                                             final_state = "DLQ"
-                                        elif status_str == "PASSED":
+                                        elif status_str == "PASSED" or ev_dto.status == ExecutionStatus.PASSED:
                                             if is_inverse:
                                                 final_state = "TRUE"
                                             elif ev_dto.contextual_override:
@@ -398,29 +362,21 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 and effective_override
                                                 and ev_dto.contextual_override
                                                 and status_str != "FAILED"
+                                                and ev_dto.status != ExecutionStatus.FAILED
                                             ):
                                                 final_state = "TRUE"
                                             else:
                                                 final_state = "FALSE"
 
                                         if ev_dto.source_quote:
-                                            eq_dto = QuoteEvidenceDTO.model_validate(
-                                                {
-                                                    "quote": ev_dto.source_quote,
-                                                    "source_alias": [],
-                                                },
-                                                context=val_context,
-                                            ).model_dump(mode="json")
-
-                                            atom_quotes_by_block[pb_id].append(
-                                                {
-                                                    "level": s_val,
-                                                    "level_name": s_name,
-                                                    "quote": eq_dto,
-                                                }
+                                            eq_dto = QuoteEvidenceDTO(
+                                                quote=ev_dto.source_quote,
+                                                verified_source_ids=[],
                                             )
+                                            atom_quotes_by_block[pb_id].append(eq_dto)
                                         elif (ev_dto.contextual_override and effective_override) or (
-                                            is_inverse and status_str == "PASSED"
+                                            is_inverse
+                                            and (status_str == "PASSED" or ev_dto.status == ExecutionStatus.PASSED)
                                         ):
                                             loc = "Unknown location"
                                             rsn = "No reasoning provided"
@@ -429,26 +385,27 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                                 and ev_dto.evaluation_reasoning.strip()
                                             ):
                                                 rsn = ev_dto.evaluation_reasoning
-                                            atom_quotes_by_block[pb_id].append(f"\U0001f4cd {loc}: {rsn}")
+                                            atom_quotes_by_block[pb_id].append(
+                                                QuoteEvidenceDTO(
+                                                    quote=f"[OVERRIDE] {loc}: {rsn}",
+                                                    verified_source_ids=[],
+                                                )
+                                            )
 
                                         extensions_dict = ev_dto.extensions
                                         if extensions_dict:
-                                            allowed_exts = {
+                                            visible_ext_set = {
                                                 e.value if isinstance(e, Enum) else str(e)
                                                 for e in visible_block_extensions
                                             }
                                             for ext_k, ext_v in extensions_dict.items():
                                                 ext_key_str = ext_k.value if isinstance(ext_k, Enum) else str(ext_k)
-                                                if ext_key_str in allowed_exts and ext_v:
-                                                    prefix = (
-                                                        "\U0001f4a1"
-                                                        if ext_key_str == "coaching"
-                                                        else "\u26a0\ufe0f"
-                                                        if ext_key_str == "falsification"
-                                                        else "\U0001f6e0\ufe0f"
-                                                    )
+                                                if ext_key_str in visible_ext_set and ext_v:
                                                     atom_quotes_by_block[pb_id].append(
-                                                        f"{prefix} {ext_key_str.upper()}: {ext_v}"
+                                                        QuoteEvidenceDTO(
+                                                            quote=f"[{ext_key_str.upper()}]: {ext_v}",
+                                                            verified_source_ids=[],
+                                                        )
                                                     )
                                                     if ext_key_str not in matrix_extensions_by_block[pb_id]:
                                                         matrix_extensions_by_block[pb_id][ext_key_str] = []
@@ -461,7 +418,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.SYSTEM_ERROR
                                 block_scale_stats[pb_id][s_val]["total"] += 1
                                 block_scale_stats[pb_id][s_val]["dlqs"] += 1
-                                missing_atoms_by_block[pb_id].append(f"- {text} (DLQ - Unscorable)")
+                                missing_atoms_by_block[pb_id].append(f"{text} (DLQ - Unscorable)")
                             elif final_state == "TRUE":
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
@@ -469,42 +426,93 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             else:
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.FAILED
                                 block_scale_stats[pb_id][s_val]["total"] += 1
-                                missing_atoms_by_block[pb_id].append(f"- {text}")
+                                missing_atoms_by_block[pb_id].append(text)
 
-        # 3. Hybrid Calculation
-        new_payload = content_payload.copy()
+        # 3. Calculation via UnifiedScoringEngine
+        matrix_outputs: dict[str, LightweightMatrixOutput] = {}
+        missing_contexts: dict[str, str] = {}
+        atom_quotes: dict[str, list[QuoteEvidenceDTO]] = {}
 
-        if "atom_quotes" not in new_payload:
-            new_payload["atom_quotes"] = {}
-        for pb_id, quotes in atom_quotes_by_block.items():
-            if quotes:
-                new_payload["atom_quotes"][pb_id] = quotes
+        for pb_id, pb_model in matrix_blocks:
+            raw_stats = block_scale_stats[pb_id]
+            scale_values = [float(s.score) for s in pb_model.scales]
+            math_min = min(scale_values)
+            math_max = max(scale_values)
 
-        # Inject dummy matrices so recalculate() can discover and compute them
-        for pb_id, evaluated_atoms in evaluated_atoms_by_block.items():
-            exts_for_block = matrix_extensions_by_block[pb_id]
-            final_exts = {XaiExtensionType(k): "\n\n".join(v) for k, v in exts_for_block.items()}
-            dummy = LightweightMatrixOutput(
-                raw_score=0.0,
+            global_total = sum(d["total"] for d in raw_stats.values())
+            global_dlqs = sum(d["dlqs"] for d in raw_stats.values())
+
+            is_indeterminate = global_total > 0 and (global_dlqs / global_total) > 0.10
+
+            if is_indeterminate:
+                raw_score = math_min
+                formatted_breakdown = None
+                xai_log = None
+                justification = (
+                    f"[INDETERMINATE] Matrix score invalidated because the DLQ ratio "
+                    f"({global_dlqs / global_total:.2%}) exceeded the 10.00% threshold."
+                )
+            else:
+                engine = get_scoring_engine()
+                stats = {
+                    float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v["dlqs"])
+                    for k, v in raw_stats.items()
+                }
+                scoring_result = engine.calculate(
+                    stats=stats,
+                    math_min=math_min,
+                    math_max=math_max,
+                    strictness_level=strictness_level,
+                )
+                raw_score = scoring_result.score
+                xai_log = scoring_result.xai_log
+                formatted_breakdown = scoring_result.breakdown
+                justification = "Calculated via UnifiedScoringEngine."
+
+            block_allowed_extensions: list[LaxXaiExtensionType] | None = None
+            if pb_model.output_extensions:
+                block_allowed_extensions = []
+                for ext_str in pb_model.output_extensions:
+                    try:
+                        block_allowed_extensions.append(LaxXaiExtensionType(ext_str))
+                    except ValueError as e:
+                        msg = f"Strict Fail-Fast Enforced: Unsupported LaxXaiExtensionType '{ext_str}' in '{pb_id}'"
+                        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                        ) from e
+
+            final_exts = {
+                XaiExtensionType(k): "\n\n".join(v)
+                for k, v in matrix_extensions_by_block[pb_id].items()
+                if k in {e.value for e in XaiExtensionType}
+            }
+
+            matrix_output = LightweightMatrixOutput(
+                raw_score=raw_score,
                 normalized_score=None,
-                level_breakdown=None,
-                justification="[INITIALIZING]",
-                evaluated_atoms=evaluated_atoms,
+                level_breakdown=formatted_breakdown,
+                justification=justification,
+                xai_log=xai_log,
+                evaluated_atoms=evaluated_atoms_by_block[pb_id],
                 extensions=final_exts,
+                allowed_extensions=block_allowed_extensions,
             )
-            new_payload[pb_id] = dummy.model_dump(mode="json", exclude_none=True)
+            matrix_outputs[pb_id] = matrix_output
 
-            if pb_id in missing_atoms_by_block and missing_atoms_by_block[pb_id]:
-                new_payload[f"{pb_id}_missing_context"] = "\n".join(missing_atoms_by_block[pb_id])
+            if missing_atoms_by_block[pb_id]:
+                missing_contexts[pb_id] = "\n".join(missing_atoms_by_block[pb_id])
 
-        # 4. Decoupled Hybrid Calculation
-        await recalculate(
-            payload=new_payload,
-            profile_id=profile_id,
-            deps=deps,
+            if atom_quotes_by_block[pb_id]:
+                atom_quotes[pb_id] = atom_quotes_by_block[pb_id]
+
+        matrix_hook_result = MatrixHookResultDTO(
+            matrix_outputs=matrix_outputs,
+            missing_contexts=missing_contexts,
+            atom_quotes=atom_quotes,
         )
 
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta=new_payload))
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=matrix_hook_result))
 
     except Exception as e:
         if isinstance(e, AppException):

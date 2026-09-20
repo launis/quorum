@@ -721,6 +721,7 @@ async def test_override_atom_success() -> None:
     )
 
     with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
+        mock_recalc.return_value = {}
         await service.override_atom(
             initiator=initiator,
             execution_id="exe_1234567890abcdef",

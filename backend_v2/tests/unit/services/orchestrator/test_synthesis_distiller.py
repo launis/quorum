@@ -249,7 +249,7 @@ async def test_build_historical_context_all_branches() -> None:
         execution_id="ex_0000000000000000",
         workflow_id="wf_1111111111111111",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"user_id": "u1", "organization_id": "org1"}),
+        global_context_vars=GlobalContextVarsDTO(initiator_id="u1", organization_id="org1"),
         inputs=ExecutionInputsDTO(),
     )
 

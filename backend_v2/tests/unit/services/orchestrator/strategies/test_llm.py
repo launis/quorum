@@ -6,6 +6,7 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 
@@ -755,7 +756,8 @@ async def test_execute_synthesis_engine_path(
     context = MagicMock()
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
+    context.global_context_vars = GlobalContextVarsDTO()
+    context.context_variables = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -1240,7 +1242,7 @@ def test_configure_llm_context_hook_success() -> None:
         workflow_id="wf1",
         step_id="step1",
         inputs=ExecutionInputsDTO(),
-        global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step1": "fast"}}),
+        global_context_vars=GlobalContextVarsDTO(),
         metadata=ExecutionMetadata(),
     )
     deps = HookDependencies(
@@ -2063,7 +2065,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.dtos.engine import EngineExecutionResult
-    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
     from backend_v2.models.state import StepOutputDTO
 
     step = MagicMock()
@@ -2154,14 +2156,14 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = ExecutionInputsDTO(
         dynamic_inputs={
-            "inputs": {
-                "chat_log": "Strategic question.",
-                "product_text": "Executive recommendation deliverable.",
-            },
             "steps": projector.snapshot,
-        }
+        },
+        raw_inputs={
+            "chat_log": "Strategic question.",
+            "product_text": "Executive recommendation deliverable.",
+        },
     )
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state.global_context_vars = GlobalContextVarsDTO()
 
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
@@ -2208,7 +2210,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.domain.step import ExpectedInput
     from backend_v2.models.dtos.engine import EngineExecutionResult
-    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
     from backend_v2.models.state import StepOutputDTO
 
     projector = MagicMock()
@@ -2292,14 +2294,14 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
     mock_hook_state = MagicMock()
     mock_hook_state.inputs = ExecutionInputsDTO(
         dynamic_inputs={
-            "inputs": {
-                "chat_log": "Strategic question.",
-                "product_text": "Executive recommendation deliverable.",
-            },
             "steps": projector.snapshot,
-        }
+        },
+        raw_inputs={
+            "chat_log": "Strategic question.",
+            "product_text": "Executive recommendation deliverable.",
+        },
     )
-    mock_hook_state.global_context_vars = {}
+    mock_hook_state.global_context_vars = GlobalContextVarsDTO()
 
     # Case A: step maps ONLY product_text -> chat_log is strictly excluded
     step_a = MagicMock()
@@ -2549,7 +2551,10 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
 def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNodeStrategy) -> None:
     """Test _extract_step_context_metadata with typed DTO and atom_id extraction."""
     from backend_v2.core.hook_registry import HookState
+    from backend_v2.models.dtos.atom_result import AtomResultDTO
     from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
     hook_state = HookState(
         execution_id="exec_1",
@@ -2557,21 +2562,32 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "step_1": {
-                    "results": [
-                        {"atom_id": "atm_1"},
-                        {"tda_id": "atm_2"},
-                    ]
-                }
+                "step_1": [
+                    AtomResultDTO(
+                        tda_id="atm_1",
+                        status=ExecutionStatus.PASSED,
+                        evaluation_reasoning="Reasoning 1",
+                        source_quote="Quote 1",
+                    ),
+                    AtomResultDTO(
+                        tda_id="atm_2",
+                        status=ExecutionStatus.PASSED,
+                        evaluation_reasoning="Reasoning 2",
+                        source_quote="Quote 2",
+                    ),
+                ]
             },
             dynamic_inputs={},
         ),
-        global_context_vars=GlobalContextVarsDTO(
-            vars={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_a": []}}}
-        ),
+        global_context_vars=GlobalContextVarsDTO(),
     )
-    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state)
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        context_variables={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_a": []}}},
+    )
+    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state, context)
     assert doc_aliases == ["doc_a"]
     assert "atm_1" in dag_results
     assert "atm_2" in dag_results
-    assert "__GLOBAL_ATOM_BLACKBOARD__" in gvars

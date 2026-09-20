@@ -8,6 +8,8 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
@@ -196,17 +198,17 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             mock_link.return_value = MagicMock()
             mock_execute_graph.return_value = MagicMock()
 
-            mock_project.return_value = (
-                [
-                    {
-                        "tda_id": "blk_0123456789abcdef0123456789ab",
-                        "status": ExecutionStatus.PASSED,
-                        "contextual_override": True,
-                        "source_quote": None,
-                        "evaluation_reasoning": "Because",
-                    }
+            mock_project.return_value = ProjectedResultsDTO(
+                results=[
+                    AtomResultDTO(
+                        tda_id="blk_0123456789abcdef0123456789ab",
+                        status=ExecutionStatus.PASSED,
+                        contextual_override=True,
+                        source_quote=None,
+                        evaluation_reasoning="Because",
+                    )
                 ],
-                {},
+                hydrated_references={},
             )
 
             mock_hook_state = MagicMock()

@@ -72,6 +72,7 @@ class StateInputWrapper(V2CoreBase):
     inputs: ExecutionInputsDTO | dict[str, Any] | None = None
     raw_inputs: ExecutionInputsDTO | dict[str, Any] | None = None
     passivity_detected: bool | None = None
+    evaluative_matrices: Annotated[dict[str, float] | None, Field(default=None, alias="_evaluative_matrices")] = None
 
 
 def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[ScoringPayloadWrapper]:
@@ -132,6 +133,9 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e
+
+    if hydrated_state.evaluative_matrices:
+        payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": hydrated_state.evaluative_matrices}))
 
     # Add explicitly injected top-level inputs
     for extra_inputs in [hydrated_state.inputs, hydrated_state.raw_inputs]:

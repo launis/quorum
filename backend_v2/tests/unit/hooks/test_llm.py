@@ -19,7 +19,7 @@ def test_configure_llm_context_hook_no_state() -> None:
     result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))  # type: ignore[arg-type]
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_configure_llm_context_hook_no_step_id() -> None:
@@ -130,6 +130,7 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
         "supports_grounding": True,
         "temperature": 0.5,
     }
+    mock_settings.default_model_strategy = "deep"
     mock_settings.model_registry = {
         "id": "sys_abcdef0123456789abcdef0123456789",
         "slug": "sys_reg",
@@ -144,7 +145,7 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
         step_id="step_1",
         inputs=ExecutionInputsDTO(raw_inputs={}),
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(vars={"workflow_model_mapping": {"step_1": "deep"}}),
+        global_context_vars=GlobalContextVarsDTO(),
     )
     deps = MagicMock(spec=HookDependencies)
 

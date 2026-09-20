@@ -5,6 +5,8 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
@@ -68,14 +70,8 @@ class LogicNodeStrategy(NodeStrategy):
         # 1. State Extraction
         # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
         # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "inputs"}
-
-        raw_inputs_payload = {d.block_id: d.payload for d in projector.snapshot if d.step_id == "raw_inputs"}
-
         current_state: dict[str, Any] = {
-            "steps": projector.snapshot,
-            "inputs": inputs_payload,
-            "raw_inputs": raw_inputs_payload,
+            "steps": projector.snapshot if isinstance(projector.snapshot, list) else [],
         }
 
         blueprint_id = step.task_blueprint
@@ -130,13 +126,18 @@ class LogicNodeStrategy(NodeStrategy):
         )
 
         state_data = dict(current_state)
+        initial_gvars = (
+            GlobalContextVarsDTO.model_validate(context.global_context_vars)
+            if context.global_context_vars
+            else GlobalContextVarsDTO()
+        )
         hook_state = HookState(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars=GlobalContextVarsDTO(vars=context.global_context_vars),
+            global_context_vars=initial_gvars,
             inputs=ExecutionInputsDTO(dynamic_inputs=state_data),
         )
 
@@ -148,8 +149,15 @@ class LogicNodeStrategy(NodeStrategy):
         # hook_registry.execute inherently handles sync/async routing.
         main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
 
-        if main_res.success and main_res.state_delta:
-            delta_dict = main_res.state_delta.delta
+        if main_res.success and main_res.state_delta and main_res.state_delta.delta:
+            delta_val = main_res.state_delta.delta
+            delta_dict: dict[str, Any] = (
+                delta_val.model_dump(mode="json")
+                if isinstance(delta_val, BaseModel)
+                else dict(delta_val)
+                if isinstance(delta_val, dict)
+                else {}
+            )
             state_data = merge_dynamic_inputs(state_data, delta_dict)
             hook_state = hook_state.model_copy(update={"inputs": ExecutionInputsDTO(dynamic_inputs=state_data)})
         elif not main_res.success:
@@ -162,11 +170,9 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             )
         # 4. Post-Hooks
-        safe_context: dict[str, Any] = {**hook_state.global_context_vars.vars, "steps": projector.snapshot}
-
         post_hook_state = hook_state.model_copy(
             update={
-                "global_context_vars": GlobalContextVarsDTO(vars=safe_context),
+                "global_context_vars": hook_state.global_context_vars,
                 "inputs": ExecutionInputsDTO(
                     dynamic_inputs=state_data,
                     raw_inputs=state_data,
@@ -186,7 +192,16 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=post_hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs = dict(main_res.state_delta.delta) if main_res.state_delta else {}
+        final_outputs: dict[str, Any] = {}
+        if main_res.state_delta and main_res.state_delta.delta:
+            delta_val = main_res.state_delta.delta
+            final_outputs = (
+                delta_val.model_dump(mode="json")
+                if isinstance(delta_val, BaseModel)
+                else dict(delta_val)
+                if isinstance(delta_val, dict)
+                else {}
+            )
         meta = final_outputs.setdefault("_step_metadata", {})
         meta["task_blueprint"] = blueprint_id
 

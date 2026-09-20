@@ -39,12 +39,8 @@ def test_gather_rag_context_empty() -> None:
 
 def test_gather_rag_context_valid() -> None:
     global_vars = GlobalContextVarsDTO(
-        vars={
-            "step_context": {
-                "precedents": "Previous cases.",
-                "knowledge_items": [{"term": "AI", "definition": "Artificial Intelligence"}],
-            }
-        }
+        step_coach={"precedents": "Previous cases."},
+        knowledge_base={"AI": "Artificial Intelligence"},
     )
     result = _gather_rag_context(global_vars)
     assert "Previous cases." in result
@@ -64,7 +60,7 @@ def test_enforce_hypothesis_linking_hook_bypass() -> None:
     result = cast(HookResult, enforce_hypothesis_linking_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_enforce_hypothesis_linking_hook_valid() -> None:
@@ -90,7 +86,7 @@ def test_enforce_hypothesis_linking_hook_valid() -> None:
     result = cast(HookResult, enforce_hypothesis_linking_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 def test_enforce_hypothesis_linking_hook_duplicate_id() -> None:

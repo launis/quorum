@@ -103,7 +103,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
 
         raw_inputs = state.inputs.raw_inputs
         try:
-            parsed_inputs = ReferencesInputsDTO(root=raw_inputs)
+            parsed_inputs = ReferencesInputsDTO.model_validate({"root": raw_inputs})
             if parsed_inputs.root:
                 for val in parsed_inputs.root.values():
                     text = str(val) if val else ""
@@ -121,25 +121,14 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
             logger.error("[ReferenceHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        gvars = state.global_context_vars.vars
-        try:
-            parsed_context = ReferencesContextDTO.model_validate(gvars)
-        except ValidationError as e:
-            logger.error("[ReferenceHook] %s: Invalid context schema: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, e)
-            raise AppException(
-                message=f"Invalid context schema: {e}",
-                status_code=400,
-                details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
-            ) from e
-
-        if parsed_context.step_coach:
-            text_dump += json.dumps(parsed_context.step_coach, ensure_ascii=False)
+        if state.global_context_vars.step_coach:
+            text_dump += json.dumps(state.global_context_vars.step_coach, ensure_ascii=False)
 
         if not text_dump.strip():
             logger.warning("[ReferenceHook] No text to scan.")
             return HookResult(success=True, state_delta=HookDeltaDTO())
 
-        knowledge_base = parsed_context.knowledge_base
+        knowledge_base = state.global_context_vars.knowledge_base
 
         # 3. Generate References
         # This might raise REFERENCES_GENERATION_FAILED (AppException)
@@ -151,7 +140,7 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         logger.debug("[ReferenceHook] Generated %s references.", len(generated_references))
         delta: dict[str, Any] = {"bibliography_result": result_dto.model_dump(mode="json")}
 
-        if "knowledge_base" not in gvars:
+        if state.global_context_vars.knowledge_base is None:
             delta["knowledge_base"] = knowledge_base
 
         return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))

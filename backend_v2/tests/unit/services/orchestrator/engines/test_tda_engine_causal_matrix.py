@@ -19,6 +19,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, CausalEdge
 from backend_v2.models.dtos.engine import EngineExecutionRequest, FlattenedAtom
+from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -132,8 +133,8 @@ async def test_istqb_partition_1_happy_path_clean_short_circuit(
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
-    mock_projector.project.return_value = (
-        [
+    mock_projector.project.return_value = ProjectedResultsDTO(
+        results=[
             AtomResultDTO(
                 tda_id=parent_id,
                 status=ExecutionStatus.FAILED,
@@ -149,7 +150,7 @@ async def test_istqb_partition_1_happy_path_clean_short_circuit(
                 short_circuit_reason_tda_ids=[parent_id],
             ),
         ],
-        {},
+        hydrated_references={},
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
@@ -233,8 +234,8 @@ async def test_istqb_partition_2_phantom_edge_isolation(
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
-    mock_projector.project.return_value = (
-        [
+    mock_projector.project.return_value = ProjectedResultsDTO(
+        results=[
             AtomResultDTO(
                 tda_id=child_id,
                 status=ExecutionStatus.SYSTEM_ERROR,
@@ -247,7 +248,7 @@ async def test_istqb_partition_2_phantom_edge_isolation(
                 short_circuit_reason_tda_ids=[],
             ),
         ],
-        {},
+        hydrated_references={},
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
@@ -339,8 +340,8 @@ async def test_istqb_partition_3_cyclic_graph_isolation(
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
-    mock_projector.project.return_value = (
-        [
+    mock_projector.project.return_value = ProjectedResultsDTO(
+        results=[
             AtomResultDTO(
                 tda_id=id_a,
                 status=ExecutionStatus.SYSTEM_ERROR,
@@ -372,7 +373,7 @@ async def test_istqb_partition_3_cyclic_graph_isolation(
                 short_circuit_reason_tda_ids=[],
             ),
         ],
-        {},
+        hydrated_references={},
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
@@ -432,7 +433,7 @@ async def test_istqb_partition_4_data_starvation_propagates_depends_on(
         }
     )
 
-    mock_projector.project.return_value = ([], {})
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
     result = await engine.execute(req)
@@ -523,8 +524,8 @@ async def test_istqb_partition_5_multi_parent_conflicting_dependencies(
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
 
-    mock_projector.project.return_value = (
-        [
+    mock_projector.project.return_value = ProjectedResultsDTO(
+        results=[
             AtomResultDTO(
                 tda_id=id_a,
                 status=ExecutionStatus.PASSED,
@@ -548,7 +549,7 @@ async def test_istqb_partition_5_multi_parent_conflicting_dependencies(
                 short_circuit_reason_tda_ids=[id_b],
             ),
         ],
-        {},
+        hydrated_references={},
     )
 
     engine = TDAEngine(prompt_compiler=mock_compiler)

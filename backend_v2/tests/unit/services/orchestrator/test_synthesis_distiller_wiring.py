@@ -142,7 +142,7 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
             dynamic_inputs={"steps": [step1, step2, step3]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     with patch(
@@ -410,9 +410,8 @@ async def test_synthesis_distiller_wiring_state_delta_purges_legacy_language_key
     assert result.state_delta is not None
 
     # Zero Backwards Compatibility validation (the_no_legacy_mandate)
-    assert "target_locale" in result.state_delta
-    assert result.state_delta["target_locale"] == "fi"
-    assert "language" not in result.state_delta
+    assert isinstance(result.state_delta.delta, SynthesisDistillationDTO)
+    assert result.state_delta.delta.target_locale == "fi"
 
 
 @pytest.mark.asyncio
@@ -432,15 +431,16 @@ async def test_synthesis_distiller_wiring_string_payload_distills_successfully()
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "plain string scalar payload" in result.state_delta["distilled_inputs"]
-    assert '<source id="DOC-0"' in result.state_delta["distilled_inputs"]
+    assert isinstance(result.state_delta.delta, SynthesisDistillationDTO)
+    assert "plain string scalar payload" in result.state_delta.delta.distilled_inputs
+    assert '<source id="DOC-0"' in result.state_delta.delta.distilled_inputs
 
 
 @pytest.mark.asyncio
@@ -481,14 +481,15 @@ async def test_synthesis_distiller_wiring_filters_empty_and_metadata_blocks() ->
             dynamic_inputs={"steps": [step_valid, step_empty_dict, step_meta, step_none]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    distilled = result.state_delta["distilled_inputs"]
+    assert isinstance(result.state_delta.delta, SynthesisDistillationDTO)
+    distilled = result.state_delta.delta.distilled_inputs
 
     # Only stp_valid should be registered as a source block
     assert "valid cognitive content" in distilled
@@ -571,14 +572,15 @@ async def test_synthesis_distiller_wiring_filters_non_synthesis_source_steps() -
             dynamic_inputs={"steps": [step_excluded, step_included]},
             target_locale="en",
         ),
-        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+        global_context_vars=GlobalContextVarsDTO(organization_id="org_0123456789abcdef01"),
     )
 
     result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
     assert result.success is True
     assert result.state_delta is not None
-    distilled = result.state_delta["distilled_inputs"]
+    assert isinstance(result.state_delta.delta, SynthesisDistillationDTO)
+    distilled = result.state_delta.delta.distilled_inputs
 
     assert "Specialist distilled analysis" in distilled
     assert "Raw ingested document text" not in distilled

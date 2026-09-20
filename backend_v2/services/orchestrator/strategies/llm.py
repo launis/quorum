@@ -41,6 +41,7 @@ from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
@@ -90,18 +91,20 @@ class LLMNodeStrategy(NodeStrategy):
     def _extract_step_context_metadata(
         self,
         hook_state: HookState,
+        context: StrategyContext | None = None,
     ) -> tuple[dict[str, Any], list[str], dict[str, Any]]:
         """Extract global vars, document aliases, and DAG input results from HookState.
 
         Args:
             hook_state: Ingress hook state holding inputs and context variables.
+            context: Strategy configuration parameters holding context_variables.
 
         Returns:
             Tuple of (gvars, doc_aliases, dag_results).
         """
         gvars: dict[str, Any] = {}
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            gvars = hook_state.global_context_vars.vars
+            gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
         elif (
             not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
             and hook_state.global_context_vars is not None
@@ -114,7 +117,14 @@ class LLMNodeStrategy(NodeStrategy):
             if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
                 try:
                     blackboard = dict(bb_val)
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
+                    pass
+        elif context is not None and "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
+            bb_val = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+            if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
+                try:
+                    blackboard = dict(bb_val)
+                except (TypeError, ValueError):
                     pass
 
         atoms_by_input: dict[str, Any] = {}
@@ -123,7 +133,7 @@ class LLMNodeStrategy(NodeStrategy):
             if not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
                 try:
                     atoms_by_input = dict(atoms_val)
-                except TypeError, ValueError:
+                except (TypeError, ValueError):
                     pass
 
         doc_aliases: list[str] = ["N/A"]
@@ -141,21 +151,31 @@ class LLMNodeStrategy(NodeStrategy):
         dag_results: dict[str, Any] = {}
         combined_inputs: list[Any] = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
         for step_res in combined_inputs:
-            if not isinstance(step_res, (str, int, float, bool, list)) and step_res is not None:
+            if isinstance(step_res, list):
+                for item in step_res:
+                    if isinstance(item, AtomResultDTO):
+                        dag_results[item.tda_id] = item
+                    elif isinstance(item, dict):
+                        a_id = item.get("tda_id") or item.get("atom_id")
+                        if a_id:
+                            dag_results[a_id] = item
+            elif isinstance(step_res, AtomResultDTO):
+                dag_results[step_res.tda_id] = step_res
+            elif not isinstance(step_res, (str, int, float, bool, list)) and step_res is not None:
                 try:
                     step_dict = dict(step_res)
                     if "results" in step_dict:
                         for ev in step_dict["results"]:
                             if not isinstance(ev, (str, int, float, bool, list)) and ev is not None:
                                 ev_dict = dict(ev)
-                                a_id: str | None = None
+                                extracted_a_id: str | None = None
                                 if "tda_id" in ev_dict:
-                                    a_id = ev_dict["tda_id"]
+                                    extracted_a_id = ev_dict["tda_id"]
                                 elif "atom_id" in ev_dict:
-                                    a_id = ev_dict["atom_id"]
-                                if a_id:
-                                    dag_results[a_id] = ev
-                except TypeError, ValueError, KeyError:
+                                    extracted_a_id = ev_dict["atom_id"]
+                                if extracted_a_id:
+                                    dag_results[extracted_a_id] = ev
+                except (TypeError, ValueError, KeyError):
                     pass
 
         return gvars, doc_aliases, dag_results
@@ -206,9 +226,7 @@ class LLMNodeStrategy(NodeStrategy):
             step_outputs=projector.snapshot,
         )
         current_state: dict[str, Any] = {
-            "steps": projector.snapshot,
-            "inputs": inputs_unwrapped,
-            "raw_inputs": raw_inputs_payload,
+            "steps": projector.snapshot if isinstance(projector.snapshot, list) else [],
         }
 
         pre_events: list[TraceEvent] = []
@@ -258,23 +276,34 @@ class LLMNodeStrategy(NodeStrategy):
 
         state_data = current_state
 
+        if isinstance(context.global_context_vars, GlobalContextVarsDTO):
+            initial_gvars = context.global_context_vars
+        elif isinstance(context.global_context_vars, dict) and context.global_context_vars:
+            known_fields = GlobalContextVarsDTO.model_fields.keys()
+            filtered_vars = {k: v for k, v in context.global_context_vars.items() if k in known_fields}
+            initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
+        else:
+            initial_gvars = GlobalContextVarsDTO()
+        safe_raw_inputs = inputs_unwrapped if isinstance(inputs_unwrapped, dict) else {}
         hook_state = HookState(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars=GlobalContextVarsDTO(vars=context.global_context_vars),
-            inputs=ExecutionInputsDTO(dynamic_inputs=state_data, raw_inputs=inputs_unwrapped),
+            global_context_vars=initial_gvars,
+            inputs=ExecutionInputsDTO(dynamic_inputs=state_data, raw_inputs=safe_raw_inputs),
         )
 
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             state_data = dict(hook_state.inputs.dynamic_inputs)
+            if "inputs" not in state_data and hook_state.inputs.raw_inputs:
+                state_data["inputs"] = hook_state.inputs.raw_inputs
         elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
             try:
                 state_data = dict(hook_state.inputs)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 state_data = {}
         else:
             state_data = {}
@@ -469,14 +498,14 @@ class LLMNodeStrategy(NodeStrategy):
 
         prompt_gvars: dict[str, Any] | None = None
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            prompt_gvars = hook_state.global_context_vars.vars
+            prompt_gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
         elif (
             not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
             and hook_state.global_context_vars is not None
         ):
             try:
                 prompt_gvars = dict(hook_state.global_context_vars)
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 prompt_gvars = None
 
         prompt_payload = PromptFactory.build(
@@ -708,7 +737,7 @@ class LLMNodeStrategy(NodeStrategy):
 
             if is_synthesis_step:
                 target_locale = context.target_locale
-                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state)
+                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state, context)
                 expected_sdui_type = "grid"
                 if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
                     expected_sdui_type = step.expected_sdui_type
@@ -747,7 +776,7 @@ class LLMNodeStrategy(NodeStrategy):
                 )
             elif matrix_block is None:
                 target_locale = context.target_locale
-                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state)
+                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state, context)
                 expected_sdui_type = "grid"
                 if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
                     expected_sdui_type = step.expected_sdui_type
@@ -817,12 +846,12 @@ class LLMNodeStrategy(NodeStrategy):
                 else:
                     try:
                         final_dict = dict(engine_result.synthesis_output)
-                    except ValueError, TypeError:
+                    except (ValueError, TypeError):
                         final_dict = {"output": engine_result.synthesis_output}
             else:
                 final_dict = {
-                    "results": [r.model_dump() for r in engine_result.results],
-                    "hydrated_references": {k: v.model_dump() for k, v in engine_result.hydrated_references.items()},
+                    "results": engine_result.results,
+                    "hydrated_references": engine_result.hydrated_references,
                 }
 
             latency_ms = int((time.time() - telemetry_start_time) * 1000)
@@ -831,17 +860,6 @@ class LLMNodeStrategy(NodeStrategy):
             else:
                 usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
             all_prompt_contexts: list[dict[str, Any]] = []
-            post_gvars: dict[str, Any] = {}
-            if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-                post_gvars = hook_state.global_context_vars.vars
-            elif (
-                not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-                and hook_state.global_context_vars is not None
-            ):
-                post_gvars = dict(hook_state.global_context_vars)
-
-            safe_context: dict[str, Any] = {**post_gvars, "steps": projector.snapshot}
-
             post_target_locale: str | None = None
             post_user_role: Any | None = None
             if isinstance(hook_state.inputs, ExecutionInputsDTO):
@@ -850,7 +868,7 @@ class LLMNodeStrategy(NodeStrategy):
 
             post_hook_state = hook_state.model_copy(
                 update={
-                    "global_context_vars": GlobalContextVarsDTO(vars=safe_context),
+                    "global_context_vars": hook_state.global_context_vars,
                     "inputs": ExecutionInputsDTO(
                         dynamic_inputs=final_dict,
                         raw_inputs=final_dict,

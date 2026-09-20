@@ -8,6 +8,8 @@
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py]
 - `[MODIFY]` @[backend_v2/services/flattener.py]
 - `[NEW]` @[backend_v2/models/dtos/flat_record.py] (FlatExecutionRecordDTO)
+- `[NEW]` ContextVariablesDTO
+- `[NEW]` NodeExecutionUpdateDTO
 
 ```xml
 <execution_protocol>

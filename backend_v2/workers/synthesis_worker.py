@@ -207,7 +207,7 @@ async def generate_profile_synthesis_and_pdf_task(
             execution_id=execution_id,
             workflow_id=execution.workflow_id,
             metadata=hook_metadata,
-            global_context_vars=GlobalContextVarsDTO(vars={"language": accept_language, "profile_id": profile_id}),
+            global_context_vars=GlobalContextVarsDTO(language=accept_language, profile_id=profile_id),
             inputs=ExecutionInputsDTO(target_locale=accept_language, dynamic_inputs={"steps": final_inputs}),
         )
         hook_deps = HookDependencies(

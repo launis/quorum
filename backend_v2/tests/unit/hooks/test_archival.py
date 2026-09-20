@@ -22,7 +22,7 @@ async def test_retrieve_precedent_hook_none_state() -> None:
     result = await retrieve_precedent_hook(None, deps)  # type: ignore[arg-type]
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio

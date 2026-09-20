@@ -112,7 +112,7 @@ def test_verify_output_language_allows_english_when_target_en() -> None:
     result = cast(HookResult, verify_output_language(state, deps))
 
     assert result.state_delta is not None
-    assert "_system_warnings" not in result.state_delta.delta
+    assert not result.state_delta.delta or "_system_warnings" not in result.state_delta.delta
 
 
 def test_verify_structure_fails_fast_on_empty_raw_inputs() -> None:
@@ -300,17 +300,15 @@ def test_verify_anomaly_empty_inputs_returns_success() -> None:
 
 
 def test_verify_structure_invalid_payload_source_raises() -> None:
-    # Set raw_inputs to invalid type via mocking to trigger ValidationError in model_validate
     mock_inputs = MagicMock()
     mock_inputs.raw_inputs = 12345  # Not a dict
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="exec-1",
         workflow_id="wf-1",
         metadata=ExecutionMetadata(),
         global_context_vars=GlobalContextVarsDTO(),
-        inputs=ExecutionInputsDTO(),
+        inputs=mock_inputs,
     )
-    object.__setattr__(state, "inputs", mock_inputs)
     deps = HookDependencies(
         exec_repo=MagicMock(),
         workflow_repo=MagicMock(),
@@ -359,7 +357,7 @@ def test_verify_output_language_invalid_system_warnings_raises() -> None:
 def test_verify_anomaly_invalid_atom_type() -> None:
     from backend_v2.hooks.validation import verify_anomaly
 
-    inputs = ExecutionInputsDTO(
+    inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
             "block_1": [
                 "not_a_valid_dict_or_atom",
@@ -394,7 +392,7 @@ def test_validation_hook_rejects_malformed_dto() -> None:
     """Test contract: Invalid evaluation item missing mandatory score attribute raises AppException."""
     from backend_v2.hooks.validation import verify_anomaly
 
-    inputs = ExecutionInputsDTO(
+    inputs = ExecutionInputsDTO.model_construct(
         raw_inputs={
             "block_1": [
                 {"hit": True},  # Missing mandatory score_level
@@ -453,7 +451,7 @@ def test_verify_output_language_none_state_returns_success() -> None:
     )
     result = cast(HookResult, verify_output_language(None, deps))
     assert result.success is True
-    assert result.state_delta is None or result.state_delta.delta == {}
+    assert result.state_delta is None or not result.state_delta.delta
 
 
 def test_verify_output_language_missing_target_locale_raises() -> None:
@@ -550,7 +548,7 @@ def test_verify_anomaly_passes_when_no_inversion() -> None:
 
     result = cast(HookResult, verify_anomaly(state, deps))
     assert result.success is True
-    assert result.state_delta is None or "llm_anomaly_retry_requested" not in result.state_delta.delta
+    assert result.state_delta is None or not result.state_delta.delta or "llm_anomaly_retry_requested" not in result.state_delta.delta
 
 
 def test_verify_anomaly_none_state() -> None:

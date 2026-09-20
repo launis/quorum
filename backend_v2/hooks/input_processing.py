@@ -64,7 +64,6 @@ def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
     """
     raw_inputs: Mapping[str, object] = state.inputs.raw_inputs
     dynamic_inputs: Mapping[str, object] = state.inputs.dynamic_inputs
-    gvars: Mapping[str, object] = state.global_context_vars.vars
 
     # 1. Check raw_inputs
     for k, v in raw_inputs.items():
@@ -76,10 +75,11 @@ def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
         if k.lower() == key_lower:
             return v
 
-    # 3. Check global_context_vars
-    for k, v in gvars.items():
-        if k.lower() == key_lower:
-            return v
+    # 3. Check global_context_vars typed fields
+    if key_lower == "language" and state.global_context_vars.language is not None:
+        return state.global_context_vars.language
+    if key_lower == "target_locale" and state.global_context_vars.target_locale is not None:
+        return state.global_context_vars.target_locale
 
     return None
 
@@ -284,22 +284,17 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     expected_inputs = workflow.expected_inputs
     output_dict: dict[str, str] = {}
 
-    gvars = state.global_context_vars.vars
-    # Phase 1, Step 1.1b: Explicit resolution for language without QGR016 ternary fallback
-    language_raw: object | None = None
-    if "language" in gvars:
-        language_raw = gvars["language"]
-    elif state.inputs and state.inputs.target_locale:
-        language_raw = state.inputs.target_locale
+    language = state.global_context_vars.language
+    if not language and state.inputs and state.inputs.target_locale:
+        language = state.inputs.target_locale
 
-    if not language_raw:
+    if not language:
         logger.error("Missing language in global context.")
         raise AppException(
             message="System Configuration Error: Missing mandatory 'language' in global_context_vars.",
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
-    language = str(language_raw)
 
     for expected_input in expected_inputs:
         key = expected_input.input_key
@@ -315,7 +310,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 resolved_text = _process_questionnaire(raw_val, key, expected_input)
                 is_questionnaire = True
             # Phase 1, Step 1.2: Correct parenthesized exception tuple syntax
-            except ValidationError, TypeError:
+            except (ValidationError, TypeError):
                 is_questionnaire = False
 
         if not is_questionnaire:

@@ -87,34 +87,22 @@ async def _gather_source_texts(execution_id: str, deps: HookDependencies) -> lis
     return source_texts
 
 
-def _gather_rag_context(global_vars: GlobalContextVarsDTO | dict[str, Any]) -> str:
+def _gather_rag_context(global_vars: GlobalContextVarsDTO) -> str:
     """Extract context precedents and knowledge items from global variables.
 
     Args:
-        global_vars: The global context dictionary or DTO from the HookState.
+        global_vars: The global context DTO from the HookState.
 
     Returns:
         A formatted string of RAG context.
-
-    Raises:
-        AppException: If the step_context structure is invalid.
     """
     rag_text = ""
-    gdict = global_vars.vars if isinstance(global_vars, GlobalContextVarsDTO) else global_vars
-    if "step_context" in gdict:
-        try:
-            step_ctx = StepContext.model_validate(gdict["step_context"])
-            if step_ctx.precedents:
-                rag_text += f"{step_ctx.precedents}\n"
-            for item in step_ctx.knowledge_items:
-                rag_text += f"[{item.term}]: {item.definition}\n"
-        except ValidationError as e:
-            logger.error("Validation failed for step_context: %s", e)
-            raise AppException(
-                message="Data Integrity Violation: Invalid step_context structure.",
-                status_code=500,
-                details={"error_code": ErrorCodes.STATE_INTEGRITY_ERROR.name},
-            ) from e
+    if global_vars.knowledge_base:
+        for k, v in global_vars.knowledge_base.items():
+            rag_text += f"[{k}]: {v}\n"
+    if global_vars.step_coach:
+        for k, v in global_vars.step_coach.items():
+            rag_text += f"[{k}]: {v}\n"
     return rag_text
 
 
@@ -249,8 +237,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
         delta = copy.deepcopy(inputs_source)
         return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
 
-    gvars = state.global_context_vars.vars
-    system_locale = gvars["system_locale"] if "system_locale" in gvars else None
+    system_locale = state.global_context_vars.system_locale
     from backend_v2.settings import get_lexical_fuzz_threshold
 
     threshold = get_lexical_fuzz_threshold(system_locale)

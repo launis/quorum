@@ -188,8 +188,10 @@ def _resolve_target_locale(state: HookState, payload: ValidationHookPayloadDTO) 
         return str(payload.root["target_locale"])
     if "language" in payload.root and payload.root["language"]:
         return str(payload.root["language"])
-    if state.global_context_vars and "language" in state.global_context_vars.vars:
-        return str(state.global_context_vars.vars["language"])
+    if state.global_context_vars and state.global_context_vars.target_locale:
+        return state.global_context_vars.target_locale
+    if state.global_context_vars and state.global_context_vars.language:
+        return state.global_context_vars.language
     return None
 
 

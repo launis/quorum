@@ -249,7 +249,7 @@ async def test_atom_flattening_no_task_blueprint(base_hook_state: HookState) -> 
     result = await process_matrix_flattening(state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio
@@ -290,7 +290,7 @@ async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> Non
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio
@@ -312,7 +312,7 @@ async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState,
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio
@@ -358,7 +358,7 @@ async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookSt
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio

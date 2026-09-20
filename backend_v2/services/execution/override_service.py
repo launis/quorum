@@ -84,7 +84,7 @@ class ExecutionOverrideService:
 
         if profile_id == default_pid and execution_rec.pdf_report_path:
             try:
-                await storage.get_storage_driver().delete(execution_rec.pdf_report_path)
+                await self.storage.delete(execution_rec.pdf_report_path)
             except AppException as e:
                 if e.status_code == 404:
                     logger.warning(
@@ -94,11 +94,15 @@ class ExecutionOverrideService:
                     raise e
                 else:
                     raise AppException(
-                        "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                        message="Failed to delete old PDF blob",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                     ) from e
             except Exception as e:
                 raise AppException(
-                    "Failed to delete old PDF blob", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR}
+                    message="Failed to delete old PDF blob",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
                 ) from e
 
             target_pdf_path = None
@@ -162,7 +166,8 @@ class ExecutionOverrideService:
         )
         record = record.model_copy(update={"step_states": new_step_states})
 
-        for k, v in record.context_variables.items():
+        updated_context_vars = dict(record.context_variables)
+        for k, v in updated_context_vars.items():
             if isinstance(v, EvaluatedMatrixContextDTO):
                 matrix_ctx = v
                 if atom_id in matrix_ctx.evaluated_atoms:
@@ -173,7 +178,8 @@ class ExecutionOverrideService:
                         else ra
                         for ra in matrix_ctx.raw_atoms
                     ]
-                    record.context_variables[k] = matrix_ctx.model_copy(update={"raw_atoms": updated_raw_atoms})
+                    updated_context_vars[k] = matrix_ctx.model_copy(update={"raw_atoms": updated_raw_atoms})
+        record = record.model_copy(update={"context_variables": updated_context_vars})
 
         if (
             self.comp_repo is None
@@ -185,7 +191,7 @@ class ExecutionOverrideService:
             raise AppException(
                 message="Repositories required for override hook dependencies are missing",
                 status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         deps = HookDependencies(
@@ -198,7 +204,8 @@ class ExecutionOverrideService:
             audit_repo=None,
             system_repo=self.system_repo,
         )
-        await scoring.recalculate(record.context_variables, record.active_profile_id, deps)
+        recalculated_vars = await scoring.recalculate(record.context_variables, record.active_profile_id, deps)
+        record = record.model_copy(update={"context_variables": recalculated_vars})
         await self.exec_repo.update_execution(
             execution_id, ExecutionUpdateDTO(step_states=record.step_states, context_variables=record.context_variables)
         )

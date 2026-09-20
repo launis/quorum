@@ -4,9 +4,14 @@ Provides strict Pydantic V2 validation schemas for the linguistics hooks
 to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protocols.
 """
 
-from typing import Annotated
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+if TYPE_CHECKING:
+    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 
 type DynamicScalar = str | int | float | bool | None
 type DynamicInputNode = DynamicScalar | list[DynamicScalar] | dict[str, DynamicScalar | list[DynamicScalar]]
@@ -98,16 +103,21 @@ class LinguisticsPayloadDTO(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
-    def extract_language(self, global_vars: dict[str, DynamicInputValue]) -> str:
+    def extract_language(self, global_vars: GlobalContextVarsDTO | dict[str, Any] | None = None) -> str:
         """Determines language safely without dict.get() fallbacks.
 
         Args:
-            global_vars: Dictionary of global variables.
+            global_vars: Optional GlobalContextVarsDTO or legacy dict of global variables.
 
         Returns:
             The extracted language code.
         """
-        if "language" in global_vars and global_vars["language"]:
+        if global_vars is not None and not isinstance(global_vars, dict):
+            if global_vars.language:
+                return str(global_vars.language).split("-")[0].lower()
+            if global_vars.target_locale:
+                return str(global_vars.target_locale).split("-")[0].lower()
+        elif isinstance(global_vars, dict) and "language" in global_vars and global_vars["language"]:
             return str(global_vars["language"]).split("-")[0].lower()
 
         if self.language:

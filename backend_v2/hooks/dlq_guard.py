@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict
+from pydantic import ConfigDict, ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -14,17 +14,11 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.inputs import DLQAtomSchema
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.enums import ExecutionStatus
 
 logger = logging.getLogger(__name__)
-
-
-class DLQAtomSchema(BaseModel):
-    """Strict schema for DLQ validation."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    atom_id: str | None = None
-    status: str | None = None
 
 
 @hook_registry.register(name="dlq_strict_mode_guard")
@@ -46,16 +40,16 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
     """
     logger.info("[DLQGuard] Inspecting DLQ ratios...")
 
-    if not state.inputs:
+    if not state.inputs or not state.inputs.raw_inputs:
         logger.info("[DLQGuard] State inputs missing. Bypassing guard.")
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    content_payload: dict[str, Any] = state.inputs.raw_inputs
-    if "evaluations" not in content_payload:
+    raw_inputs = state.inputs.raw_inputs
+    if "evaluations" not in raw_inputs:
         logger.info("[DLQGuard] No evaluations found or empty. Bypassing guard.")
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    evaluations = content_payload["evaluations"]
+    evaluations = raw_inputs["evaluations"]
     if not isinstance(evaluations, list):
         msg = "Strict Fail-Fast: 'evaluations' must be a list."
         logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -69,18 +63,25 @@ def dlq_strict_mode_guard_hook(state: HookState, deps: HookDependencies) -> Hook
     total_atoms: int = len(evaluations)
 
     for ev_raw in evaluations:
-        try:
-            ev = DLQAtomSchema.model_validate(ev_raw)
-            if ev.status == "DLQ":
+        if isinstance(ev_raw, AtomResultDTO):
+            if ev_raw.status == ExecutionStatus.SYSTEM_ERROR:
                 dlq_count += 1
-        except Exception as e:
-            msg = f"Strict Fail-Fast: Evaluation atom malformed: {e}"
-            logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(
-                message=msg,
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
+        elif isinstance(ev_raw, DLQAtomSchema):
+            if ev_raw.status == "DLQ":
+                dlq_count += 1
+        else:
+            try:
+                ev = DLQAtomSchema.model_validate(ev_raw)
+                if ev.status == "DLQ":
+                    dlq_count += 1
+            except (ValidationError, TypeError, ValueError) as e:
+                msg = f"Strict Fail-Fast: Evaluation atom malformed: {e}"
+                logger.error("[DLQGuard] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
     if total_atoms > 0:
         ratio: float = dlq_count / total_atoms

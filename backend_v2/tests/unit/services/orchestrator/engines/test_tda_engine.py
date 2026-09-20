@@ -13,6 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
+from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -99,7 +100,7 @@ async def test_tda_engine_execute_success(
         return {"state": "done"}, TokenUsage(prompt_tokens=20, completion_tokens=10, total_tokens=30)
 
     mock_dag_executor_instance.execute_graph.side_effect = mock_execute_graph
-    mock_projector.project.return_value = ([], {})
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
     result = await engine.execute(engine_request)
@@ -220,7 +221,7 @@ async def test_tda_engine_data_starvation_circuit_breaker_with_shuffled_atoms(
         }
     )
 
-    mock_projector.project.return_value = ([], {})
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
 
     engine = TDAEngine(prompt_compiler=mock_compiler)
     result = await engine.execute(req)

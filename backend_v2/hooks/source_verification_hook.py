@@ -172,8 +172,8 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         state.inputs.target_locale
         if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale
         else (
-            state.global_context_vars.vars["language"]
-            if state.global_context_vars and "language" in state.global_context_vars.vars
+            state.global_context_vars.language
+            if state.global_context_vars and state.global_context_vars.language
             else "en"
         )
     )

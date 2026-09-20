@@ -49,49 +49,28 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     logger.debug("[LLMHook] Running configure_llm_context_hook...")
 
     if not state:
-        return HookResult(success=True, state_delta=HookDeltaDTO())
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
     # 1. Retrieve Context Variables
-    # If no context, nothing to configure, but unusual.
-    ctx = state.global_context_vars.vars
+    target_locale = state.global_context_vars.target_locale
+    system_locale = state.global_context_vars.system_locale
+    language = state.global_context_vars.language
 
     # 2. Get Strategy (SSOT)
-    # We no longer rely on 'step.config' (which violated SSOT).
-    # Instead, we look up the target strategy from the workflow's default_model_mapping,
-    # or fallback to the system's global default.
     if not state.step_id:
         msg = "state.step_id is strictly required for LLM context configuration."
         logger.error("[LLMHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     step_id = state.step_id
-
-    # Since hooks don't easily have 'repository' injected via parameters,
-    # we can try to find workflow mapping in state or resolve using registry singleton in real time.
-    # However, to avoid expensive DB calls in pre-hooks, we use the System Config's default strategy.
-
     settings = get_settings()
 
-    # We resolve the strategy. If a workflow default_model_mapping was injected into ctx, we could use it.
-    # But for strict SSOT, we just use the system default unless explicitly overridden in the execution context.
     if not settings.default_model_strategy:
         msg = "settings.default_model_strategy is strictly required but missing."
         logger.error("[LLMHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
 
     model_strategy = settings.default_model_strategy
-
-    # Future SSOT enhancement: If we need step-specific overrides, the Engine should pass the
-    # Workflow's 'default_model_mapping' dictionary into 'state.context_variables'
-    # so we can do: model_strategy = ctx.get("workflow_model_mapping", {}).get(step_id, model_strategy)
-
-    if "workflow_model_mapping" in ctx:
-        try:
-            mapping = TypeAdapter(dict[str, str]).validate_python(ctx["workflow_model_mapping"])
-            if step_id in mapping:
-                model_strategy = mapping[step_id]
-        except ValidationError:
-            pass
 
     # 3. Resolve Provider & Model via SSOT Strategy Factory
     try:

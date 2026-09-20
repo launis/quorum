@@ -255,7 +255,7 @@ class LLMTaskExecutor:
                             else "No reason provided"
                         )
                         logger.info(
-                            "💡 [QUALITY] LLM applied Contextual Override.",
+                            "[QUALITY] LLM applied Contextual Override.",
                             extra={
                                 "reason": override_reason,
                                 "schema": response_model.__name__,

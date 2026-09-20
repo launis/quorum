@@ -4,12 +4,14 @@ Enforces strict Pydantic V2 immutable DTOs (frozen=True, extra="forbid", strict=
 for HookState inputs, global context variables, and HookResult state deltas.
 """
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import DomainInputValue
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO as GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_delta import HookDeltaDTO as HookDeltaDTO
 
 __all__ = [
     "ExecutionInputsDTO",
@@ -39,37 +41,3 @@ class ExecutionInputsDTO(V2CoreBase):
         str | None,
         Field(default=None, description="Target locale code for input localization."),
     ] = None
-
-
-class GlobalContextVarsDTO(V2CoreBase):
-    """Strictly typed global context variables container."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    vars: Annotated[
-        dict[str, Any],
-        Field(description="Global context variables dictionary."),
-    ] = Field(default_factory=dict)
-
-
-class HookDeltaDTO(V2CoreBase):
-    """Strict state delta container returned by hooks for state reduction."""
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    delta: Annotated[
-        dict[str, Any],
-        Field(description="State delta payload to merge into execution context."),
-    ] = Field(default_factory=dict)
-    metadata_updates: Annotated[
-        dict[str, Any] | None,
-        Field(default=None, description="Optional metadata updates to merge into ExecutionMetadata."),
-    ] = None
-
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access for delta payload mapping."""
-        return self.delta[key]
-
-    def __contains__(self, key: object) -> bool:
-        """Allow membership checks against delta payload."""
-        return key in self.delta

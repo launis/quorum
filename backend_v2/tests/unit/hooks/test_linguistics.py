@@ -87,7 +87,7 @@ async def test_detect_performative_patterns_empty_state() -> None:
     result = await detect_performative_patterns(None, deps)  # type: ignore[arg-type]
     assert result.success
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert not result.state_delta.delta
 
 
 @pytest.mark.asyncio
