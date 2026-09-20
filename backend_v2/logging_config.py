@@ -5,6 +5,9 @@ import logging
 import os
 import re
 import sys
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.settings import get_settings
 
@@ -266,6 +269,17 @@ def setup_logging(log_level: int = logging.INFO) -> None:
     logging.info(f"Logging configured. Writing to: {log_file_path}")
 
 
+class StructuredLogContextDTO(BaseModel):
+    """Strongly typed structured logging context DTO."""
+
+    execution_id: str = "SYSTEM"
+    context_id: str = "SYSTEM"
+    error_code: str | None = None
+    details: dict[str, Any] | None = None
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+
 class JSONFormatter(logging.Formatter):
     """JSON Formatter for Production Logging."""
 
@@ -278,23 +292,57 @@ class JSONFormatter(logging.Formatter):
         Returns:
             A JSON-formatted string of the log data.
         """
-        log_record = {
+        record_dict = record.__dict__
+        if "context_dto" in record_dict and isinstance(record_dict["context_dto"], StructuredLogContextDTO):
+            context = record_dict["context_dto"]
+        else:
+            exec_id = "SYSTEM"
+            if "execution_id" in record_dict:
+                raw_exec = record_dict["execution_id"]
+                if isinstance(raw_exec, str):
+                    exec_id = raw_exec
+
+            ctx_id = "SYSTEM"
+            if "context_id" in record_dict:
+                raw_ctx = record_dict["context_id"]
+                if isinstance(raw_ctx, str):
+                    ctx_id = raw_ctx
+
+            err_code = None
+            if "error_code" in record_dict:
+                raw_err = record_dict["error_code"]
+                if isinstance(raw_err, str):
+                    err_code = raw_err
+
+            details_dict = None
+            if "details" in record_dict:
+                raw_details = record_dict["details"]
+                if type(raw_details) is dict:
+                    details_dict = raw_details
+
+            context = StructuredLogContextDTO(
+                execution_id=exec_id,
+                context_id=ctx_id,
+                error_code=err_code,
+                details=details_dict,
+            )
+
+        log_record: dict[str, Any] = {
             "timestamp": self.formatTime(record, self.datefmt),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
-            "execution_id": getattr(record, "execution_id", "SYSTEM"),
-            "context_id": getattr(record, "context_id", "SYSTEM"),
+            "execution_id": context.execution_id,
+            "context_id": context.context_id,
         }
 
         if record.exc_info:
             log_record["exc_info"] = self.formatException(record.exc_info)
 
-        # Merge 'extra' context (e.g. error_code, details)
-        if hasattr(record, "error_code"):
-            log_record["error_code"] = record.error_code
-        if hasattr(record, "details"):
-            log_record["details"] = record.details
+        if context.error_code is not None:
+            log_record["error_code"] = context.error_code
+        if context.details is not None:
+            log_record["details"] = context.details
 
         return json.dumps(log_record)
 
@@ -310,30 +358,28 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
         exc: The raised exception object.
         message: Contextual message prefix for the log output.
     """
-    error_code = "INTERNAL_ERROR"
-    details = None
-
-    # 1. Try to extract from AppException (duck typing)
-    if hasattr(exc, "error_code"):
+    if isinstance(exc, AppException):
         error_code = exc.error_code
-    elif hasattr(exc, "details"):
-        # FastAPI HTTPException doesn't have error_code but might have detail
-        pass
-    else:
-        # 2. Fallback: Derive from Class Name
-        class_name = exc.__class__.__name__
-        # CameCase -> SNAKE_CASE
-        error_code = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).upper()
-
-    # 3. Extract Details
-    if hasattr(exc, "details"):
         details = exc.details
-    elif hasattr(exc, "detail"):
-        details = exc.detail
+    else:
+        class_name = exc.__class__.__name__
+        error_code = re.sub(r"(?<!^)(?=[A-Z])", "_", class_name).upper()
+        details = None
 
-    extra = {"error_code": error_code.name if hasattr(error_code, "name") else str(error_code)}
+    details_val = None
     if details:
-        extra["details"] = details
+        details_val = details
+
+    context = StructuredLogContextDTO(
+        execution_id="SYSTEM",
+        context_id="SYSTEM",
+        error_code=error_code,
+        details=details_val,
+    )
+
+    extra: dict[str, Any] = {"error_code": context.error_code, "context_dto": context}
+    if context.details:
+        extra["details"] = context.details
 
     # Pass details cleanly to the logger avoiding f-string template injection issues
     logger.error("[App] %s: %s", message, str(exc), exc_info=True, extra=extra)

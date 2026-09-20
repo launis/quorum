@@ -5,6 +5,7 @@ import uuid
 from typing import Any
 
 from google.cloud import firestore  # type: ignore[attr-defined]
+from pydantic import BaseModel
 
 from backend_v2.database.driver import Filter, StorageDriver
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -46,7 +47,7 @@ class FirestoreDriver(StorageDriver):
         """
         from datetime import datetime
 
-        if hasattr(data, "model_dump"):
+        if isinstance(data, BaseModel):
             return self._serialize(data.model_dump())
 
         if isinstance(data, datetime):

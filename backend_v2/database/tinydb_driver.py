@@ -4,6 +4,7 @@ import logging
 import uuid
 from typing import Any
 
+from pydantic import BaseModel
 from tinydb import Query
 
 from backend_v2.database.driver import Filter, StorageDriver
@@ -36,7 +37,7 @@ class TinyDBDriver(StorageDriver):
         """
         from datetime import datetime
 
-        if hasattr(data, "model_dump"):
+        if isinstance(data, BaseModel):
             return self._serialize(data.model_dump())
 
         if isinstance(data, datetime):
