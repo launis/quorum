@@ -3,12 +3,13 @@
 Automated Quality Gate for the Flutter client (`client_app_v2`).
 Executes sequential code hygiene and validation stages:
 1. `build_runner` (Optional): Runs the Dart code generator for SDUI/Freezed/JSON models.
-2. `dart format`: Formats Dart files to ensure consistent indentation and layout.
-3. `dart analyze`: Statically analyzes source code to enforce architectural invariants.
-4. `flutter test` (Optional): Executes Flutter unit tests with coverage reporting.
+2. `_dart_guardrails.py`: Enforces Dart static guardrails (DGR001-DGR004) with generated file immunity.
+3. `dart format`: Formats Dart files to ensure consistent indentation and layout.
+4. `dart analyze`: Statically analyzes source code to enforce architectural invariants.
+5. `flutter test` (Optional): Executes Flutter unit tests with coverage reporting.
 
 Usage:
-    uv run python scripts/flutter_audit_loop.py <target_directory> [--build] [--test]
+    uv run python scripts/flutter_audit_loop.py <target_directory> [--build] [--test] [--strict]
 """
 
 import io
@@ -22,21 +23,22 @@ def main() -> None:
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except (AttributeError, io.UnsupportedOperation):
+        except AttributeError, io.UnsupportedOperation:
             pass
     if isinstance(sys.stderr, io.TextIOWrapper):
         try:
             sys.stderr.reconfigure(encoding="utf-8")
-        except (AttributeError, io.UnsupportedOperation):
+        except AttributeError, io.UnsupportedOperation:
             pass
 
     if len(sys.argv) < 2:
-        print("Usage: python flutter_audit_loop.py <target_directory> [--build] [--test]")
+        print("Usage: python flutter_audit_loop.py <target_directory> [--build] [--test] [--strict]")
         sys.exit(1)
 
     target_dir = sys.argv[1]
     run_build = "--build" in sys.argv
     run_test = "--test" in sys.argv
+    run_strict = "--strict" in sys.argv
 
     # Ensure correct working directory (client_app_v2) and track repository root
     current_dir = Path(os.getcwd()).resolve()
@@ -61,7 +63,7 @@ def main() -> None:
     if not cmd_dir:
         cmd_dir = "."
 
-    total_steps = 4 if run_test else 3
+    total_steps = 5 if run_test else 4
 
     if run_build:
         print(f"\n⏳ 1/{total_steps}: Running code generator (flutter gen-l10n & build_runner)...")
@@ -78,14 +80,26 @@ def main() -> None:
     else:
         print(f"\n⏭️ 1/{total_steps}: Skipping code generation (no --build flag).")
 
-    print(f"\n⏳ 2/{total_steps}: Formatting code (dart format {cmd_dir})...")
+    print(f"\n⏳ 2/{total_steps}: Checking Dart Codebase Guardrails (scripts/_dart_guardrails.py)...")
+    dart_guardrails_script = root_dir / "scripts" / "_dart_guardrails.py"
+    target_scan_dir = root_dir / "client_app_v2" / "lib"
+    guardrail_cmd = [sys.executable, str(dart_guardrails_script), str(target_scan_dir)]
+    if run_strict:
+        guardrail_cmd.append("--strict")
+    res_guardrail = subprocess.run(guardrail_cmd)
+    if res_guardrail.returncode != 0:
+        print("\n❌ AUDIT FAILED: Fatal Dart guardrail violations detected!")
+        sys.exit(res_guardrail.returncode)
+    print("✅ Dart Guardrails passed.")
+
+    print(f"\n⏳ 3/{total_steps}: Formatting code (dart format {cmd_dir})...")
     res = subprocess.run(["dart", "format", cmd_dir], shell=True)
     if res.returncode != 0:
         print("❌ Formatting failed!")
         sys.exit(res.returncode)
     print("✅ Formatting complete.")
 
-    print(f"\n⏳ 3/{total_steps}: Analyzing code (dart analyze {cmd_dir})...")
+    print(f"\n⏳ 4/{total_steps}: Analyzing code (dart analyze {cmd_dir})...")
     res = subprocess.run(["dart", "analyze", cmd_dir], shell=True)
     if res.returncode != 0:
         print("\n❌ AUDIT FAILED: Analysis found errors in code. Fix them before proceeding!")
@@ -97,7 +111,7 @@ def main() -> None:
     print("✅ Analysis complete.")
 
     if run_test:
-        print(f"\n⏳ 4/{total_steps}: Running Flutter unit tests and coverage (flutter test --coverage)...")
+        print(f"\n⏳ 5/{total_steps}: Running Flutter unit tests and coverage (flutter test --coverage)...")
         res_test = subprocess.run(["flutter", "test", "--coverage"], shell=True)
         if res_test.returncode != 0:
             print("\n❌ AUDIT FAILED: Flutter tests failed!")
@@ -109,4 +123,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
