@@ -113,6 +113,21 @@ class BatchEvaluationResponse(BaseModel):
     results: list[BooleanEvaluationResult]
 
 
+def _record_dlq_recovery_failure(error: Exception, call_idx: int) -> None:
+    """Record a failure during targeted recovery in extractive sensor service.
+
+    Args:
+        error: The exception encountered during recovery execution.
+        call_idx: The ensemble call index.
+    """
+    logger = logging.getLogger(__name__)
+    logger.warning(
+        "Transient error or failure in targeted recovery call for missing aliases (call %d): %s",
+        call_idx,
+        error,
+    )
+
+
 class ExtractiveSensorService:
     """TDD-testable service for deterministic pre-flight extraction rules.
 
@@ -558,11 +573,11 @@ class ExtractiveSensorService:
                                     client=client,
                                     messages=recovery_prompt,
                                     response_model=BatchEvaluationResponse,
-                                    validation_context={
-                                        "sub_task": f"extractive_sensor_recovery_call_{call_idx}",
-                                        "execution_id": execution_id,
-                                        "step_id": step_id,
-                                    },
+                                    validation_context=SensorValidationContextDTO(
+                                        sub_task=f"extractive_sensor_recovery_call_{call_idx}",
+                                        execution_id=execution_id,
+                                        step_id=step_id,
+                                    ),
                                 )
                                 usage = usage + recovery_usage
                                 for eval_result in recovery_result.results:
@@ -609,10 +624,7 @@ class ExtractiveSensorService:
                                 TimeoutError,
                                 RuntimeError,
                             ) as rec_err:
-                                logger.warning(
-                                    "Transient error or failure in targeted recovery call for missing aliases: %s",
-                                    rec_err,
-                                )
+                                _record_dlq_recovery_failure(rec_err, call_idx)
 
                     return call_results, usage
                 except Exception as e:

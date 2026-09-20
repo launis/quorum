@@ -38,10 +38,6 @@ class MCPFunctionDefinitionDTO(V2CoreBase):
     parameters: Annotated[dict[str, Any], Field(description="JSON schema parameter definitions")]
     strict: Annotated[bool, Field(default=True, description="Whether schema enforces strict adherence")] = True
 
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access for serialization."""
-        return getattr(self, key)
-
 
 class MCPToolDeclarationDTO(V2CoreBase):
     """OpenAI-compatible function tool declaration for MCP."""
@@ -50,7 +46,3 @@ class MCPToolDeclarationDTO(V2CoreBase):
 
     type: Annotated[str, Field(default="function", description="Tool declaration type")] = "function"
     function: Annotated[MCPFunctionDefinitionDTO, Field(description="Function definition")]
-
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access for serialization."""
-        return getattr(self, key)

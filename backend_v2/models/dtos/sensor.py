@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
@@ -19,22 +19,3 @@ class SensorValidationContextDTO(V2CoreBase):
     sub_task: Annotated[str, Field(description="Subtask identifier or category")]
     execution_id: Annotated[str | None, Field(default=None, description="Parent execution ID")] = None
     step_id: Annotated[str | None, Field(default=None, description="Current step ID")] = None
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Allow dict-like get method for backwards compatibility."""
-        try:
-            return self[key]
-        except KeyError:
-            return default
-
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access."""
-        if hasattr(self, key):
-            val = getattr(self, key)
-            if val is not None:
-                return val
-        raise KeyError(key)
-
-    def __contains__(self, key: object) -> bool:
-        """Allow membership checks."""
-        return isinstance(key, str) and hasattr(self, key) and getattr(self, key) is not None

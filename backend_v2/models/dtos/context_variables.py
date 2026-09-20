@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Annotated, Any, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
@@ -83,32 +84,46 @@ class ContextVariablesDTO(V2CoreBase):
             res["evaluated_matrices"] = self.evaluated_matrices
         return res
 
-    @model_validator(mode="before")
     @classmethod
-    def _normalize_dunder_keys(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            known: dict[str, Any] = {}
-            variables: dict[str, Any] = dict(data.get("variables", {}))
-            for k, v in data.items():
-                if k == "variables":
-                    continue
-                if k in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
-                    known["global_atom_blackboard"] = v
-                elif k in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
-                    known["matrix_reducer_output"] = v
-                elif k in ("report_context", "step_detector", "evaluated_matrices"):
-                    known[k] = v
-                else:
-                    variables[k] = v
-            return {**known, "variables": variables}
-        return data
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any] | None) -> Self:
+    def from_dict(cls, data: Mapping[str, Any] | None) -> Self:
         """Hydrate ContextVariablesDTO from a dictionary."""
         if not data:
             return cls()
-        return cls.model_validate(data)
+        global_atom_blackboard: Any = None
+        matrix_reducer_output: Any = None
+        report_context: Any = None
+        step_detector: Any = None
+        evaluated_matrices: Any = None
+        variables: dict[str, Any] = {}
+
+        if "variables" in data and isinstance(data["variables"], Mapping):
+            for vk, vv in data["variables"].items():
+                variables[vk] = vv
+
+        for k, v in data.items():
+            if k == "variables":
+                continue
+            if k in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
+                global_atom_blackboard = v
+            elif k in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
+                matrix_reducer_output = v
+            elif k == "report_context":
+                report_context = v
+            elif k == "step_detector":
+                step_detector = v
+            elif k == "evaluated_matrices":
+                evaluated_matrices = v
+            else:
+                variables[k] = v
+
+        return cls(
+            global_atom_blackboard=global_atom_blackboard,
+            matrix_reducer_output=matrix_reducer_output,
+            report_context=report_context,
+            step_detector=step_detector,
+            evaluated_matrices=evaluated_matrices,
+            variables=variables,
+        )
 
     def __getitem__(self, key: str) -> Any:
         """Allow subscript access for backward-compatible blackboard lookups."""
@@ -141,10 +156,3 @@ class ContextVariablesDTO(V2CoreBase):
         if key == "evaluated_matrices" and self.evaluated_matrices is not None:
             return True
         return key in self.variables
-
-    def get(self, key: str, default: Any = None) -> Any:
-        """Safe getter method."""
-        try:
-            return self[key]
-        except KeyError:
-            return default

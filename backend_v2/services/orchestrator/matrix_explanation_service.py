@@ -72,10 +72,9 @@ class MatrixExplanationService:
             if isinstance(dto.payload, (str, int, float, bool, list)) or dto.payload is None:
                 continue
 
-            try:
-                results_list = dto.payload.get("results")
-            except AttributeError, TypeError:
-                continue
+            results_list: Any = None
+            if isinstance(dto.payload, Mapping) and "results" in dto.payload:
+                results_list = dto.payload["results"]
 
             if not isinstance(results_list, list):
                 continue
@@ -90,12 +89,17 @@ class MatrixExplanationService:
                         if len(cleaned) >= 15:
                             global_quotes_map.setdefault(atom_res.tda_id, []).append(cleaned[:max_quote_len])
                 except (ValidationError, ValueError) as e:
-                    logger.warning(
-                        "[MatrixExplanationService] %s: Skipping malformed atom result",
-                        ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
-                        extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
+                    logger.error(
+                        "[MatrixExplanationService] %s: Malformed atom result in results list: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        e,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
                     )
-                    continue
+                    raise AppException(
+                        message=f"Malformed atom result in results list: {e}",
+                        status_code=422,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
 
         for step_dto_obj in available_dtos:
             payload = step_dto_obj.payload
@@ -111,27 +115,29 @@ class MatrixExplanationService:
             if isinstance(payload, (str, int, float, bool, list)) or payload is None:
                 continue
 
-            try:
-                payload_to_validate = dict(payload)
-            except ValueError, TypeError:
+            if not isinstance(payload, Mapping):
                 continue
 
+            payload_to_validate = dict(payload)
             payload_to_validate.pop("results", None)
             raw_level_breakdown = payload_to_validate.pop("level_breakdown", None)
 
             # Strict Pydantic parsing probe boundary
-            # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
-            # heterogeneous polymorphic step payloads for LightweightMatrixOutput shape
             try:
                 lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
             except (ValidationError, ValueError) as e:
-                logger.warning(
-                    "[MatrixExplanationService] %s: Skipping invalid matrix payload for block %s",
-                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                logger.error(
+                    "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
                     block_id,
-                    extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
+                    e,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
                 )
-                continue
+                raise AppException(
+                    message=f"Invalid matrix payload for block {block_id}: {e}",
+                    status_code=422,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
             # Precompute claim labels and scale scores localized to target_locale
             tda_to_claim: dict[str, str] = {}
@@ -140,10 +146,7 @@ class MatrixExplanationService:
                 for scale in pb.scales:
                     if scale.claims:
                         for claim in scale.claims:
-                            try:
-                                claim_text = claim.label.resolve(target_locale)
-                            except KeyError, AttributeError:
-                                claim_text = ""
+                            claim_text = claim.label.resolve(target_locale)
                             if claim_text and claim.tda_assertions:
                                 for tda in claim.tda_assertions:
                                     tda_to_claim[tda.tda_id] = claim_text
@@ -222,19 +225,22 @@ class MatrixExplanationService:
                         )
                     breakdowns = []
                     for lvl, raw_stats in raw_level_breakdown.items():
-                        # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
-                        # untrusted level stats dictionary
                         try:
                             stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
                             breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
                         except (ValidationError, ValueError) as e:
-                            logger.warning(
-                                "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
-                                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                            logger.error(
+                                "[MatrixExplanationService] %s: Malformed level stats for level %s: %s",
+                                ErrorCodes.VALIDATION_FAILED.name,
                                 lvl,
-                                extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
+                                e,
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
                             )
-                            continue
+                            raise AppException(
+                                message=f"Malformed level stats for level {lvl}: {e}",
+                                status_code=422,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from e
                     if breakdowns:
                         distribution_str = f"[DISTRIBUTION CONTEXT: {', '.join(breakdowns)}]"
 

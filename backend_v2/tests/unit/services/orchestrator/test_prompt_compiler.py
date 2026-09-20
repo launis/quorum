@@ -849,3 +849,99 @@ def test_extract_value_from_state_complex_types() -> None:
     assert "world" in compiler._extract_value_from_state("nested.nested_model.field_a", state)
     assert compiler._extract_value_from_state("number", state) == "99"
     assert compiler._extract_value_from_state("flag", state) == "True"
+
+
+def test_prompt_compiler_expected_inputs_validation_branches() -> None:
+    """Test expected_inputs handling with non-ExpectedInput items and empty input_keys."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import ExpectedInput
+
+    compiler = PromptCompiler()
+    expected_inputs = [
+        "not_an_expected_input",
+        ExpectedInput.model_construct(
+            input_key="",
+            label=I18nText(translations={"en": "Empty", "fi": "Tyhjä"}),
+            description=I18nText(translations={"en": "Desc", "fi": "Kuv"}),
+            required=False,
+            input_modes=["text"],
+        ),
+    ]
+    xml = compiler.build_xml_context(
+        input_mappings={},
+        state_data={},
+        target_locale="en",
+        expected_inputs=expected_inputs,
+    )
+    assert xml == ""
+
+
+def test_extract_value_from_llm_context_data_dto() -> None:
+    """Test _extract_value_from_state with LLMContextDataDTO branches."""
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.dtos.prompt import LLMContextDataDTO
+    from backend_v2.models.execution_core import ExecutionMetadata
+
+    compiler = PromptCompiler()
+    dto = LLMContextDataDTO(
+        inputs={"doc1": "Document One Content", "plain": "Plain Value"},
+        raw_inputs={"raw_doc": "Raw Doc Content", "plain_raw": "Plain Raw"},
+        metadata=ExecutionMetadata(workflow_version=42),
+    )
+
+    # 1. inputs.path in inputs
+    assert compiler._extract_value_from_state("inputs.doc1", dto) == "Document One Content"
+
+    # 2. inputs.path in raw_inputs
+    assert compiler._extract_value_from_state("inputs.raw_doc", dto) == "Raw Doc Content"
+
+    # 3. inputs.path missing -> raises AppException
+    with pytest.raises(AppException):
+        compiler._extract_value_from_state("inputs.nonexistent", dto)
+
+    # 4. direct clean_path in inputs
+    assert compiler._extract_value_from_state("plain", dto) == "Plain Value"
+
+    # 5. direct clean_path in raw_inputs
+    assert compiler._extract_value_from_state("plain_raw", dto) == "Plain Raw"
+
+    # 6. dot notation fallback on LLMContextDataDTO
+    assert compiler._extract_value_from_state("metadata.workflow_version", dto) == "42"
+
+
+def test_extract_value_from_execution_inputs_dto() -> None:
+    """Test _extract_value_from_state with ExecutionInputsDTO branches."""
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+
+    compiler = PromptCompiler()
+    exec_inputs = ExecutionInputsDTO(
+        raw_inputs={"chat": "Chat transcript"},
+        dynamic_inputs={"summary": "Summary text"},
+    )
+
+    # 1. inputs.key in raw_inputs
+    assert compiler._extract_value_from_state("inputs.chat", exec_inputs) == "Chat transcript"
+
+    # 2. inputs.key in dynamic_inputs
+    assert compiler._extract_value_from_state("inputs.summary", exec_inputs) == "Summary text"
+
+    # 3. inputs.key missing -> raises AppException
+    with pytest.raises(AppException):
+        compiler._extract_value_from_state("inputs.missing_key", exec_inputs)
+
+
+def test_format_value_for_xml_branches() -> None:
+    """Test _extract_value_from_state formatting branches for scalar in dict and lists."""
+    compiler = PromptCompiler()
+
+    # Dict where value is not a Mapping (line 419)
+    res_scalar_in_dict = compiler._extract_value_from_state("data", {"data": {"SIMPLE_SECTION": "simple text value"}})
+    assert "<SIMPLE_SECTION>" in res_scalar_in_dict
+    assert "simple text value" in res_scalar_in_dict
+    assert "</SIMPLE_SECTION>" in res_scalar_in_dict
+
+    # Non-str, non-mapping value (line 423)
+    res_list = compiler._extract_value_from_state("items", {"items": ["item1", "item2"]})
+    assert "item1" in res_list
+    assert "item2" in res_list

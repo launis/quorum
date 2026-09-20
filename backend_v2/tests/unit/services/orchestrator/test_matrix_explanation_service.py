@@ -4,6 +4,9 @@ Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
+import pytest
+
+from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -127,7 +130,10 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
 
 
 def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
-    """Test that matrices with empty quote lists are INCLUDED with a fallback justification to prevent Fail-Fast crash in blueprint.py."""
+    """Test that matrices with empty quote lists are INCLUDED with a fallback justification.
+
+    Prevents Fail-Fast crash in blueprint.py.
+    """
     block_id = "blk_333333333333333333333333"
     dtos = [
         StepOutputDTO(
@@ -142,6 +148,7 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
                         "status": "PASSED",
                         "evaluation_reasoning": "Reason",
                         "source_quote": None,
+                        "contextual_override": True,
                         "depends_on_tda_ids": [],
                         "short_circuit_reason_tda_ids": [],
                     }
@@ -709,8 +716,8 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
     assert "Suomalainen Kriteeri" not in res_en[0].justification
 
 
-def test_assemble_matrices_to_explain_corrupt_level_stats_graceful_handling() -> None:
-    """Verify malformed level stats are logged and skipped without crashing."""
+def test_assemble_matrices_to_explain_corrupt_level_stats_raises() -> None:
+    """Verify malformed level stats trigger Fail-Fast AppException."""
     block_id = "blk_bbbbbbbbbbbbbbbbbbbbbbbb"
 
     dtos = [
@@ -733,13 +740,11 @@ def test_assemble_matrices_to_explain_corrupt_level_stats_graceful_handling() ->
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
 
-    result = MatrixExplanationService.assemble_matrices_to_explain(
-        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
-    )
-
-    assert len(result) == 1
-    justification = result[0].justification
-    assert "[DISTRIBUTION CONTEXT: Level 1: 3/3 hits, Level 3: 1/2 hits]" in justification
+    with pytest.raises(AppException) as exc_info:
+        MatrixExplanationService.assemble_matrices_to_explain(
+            dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+    assert exc_info.value.status_code == 422
 
 
 def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() -> None:
@@ -828,3 +833,166 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
     # Verify unmet count is capped at 1
     unmet_count = justification.count("- Claim ")
     assert unmet_count == 1
+
+
+def test_assemble_matrices_to_explain_malformed_atom_result_raises() -> None:
+    """Test that malformed atom results raise AppException(VALIDATION_FAILED)."""
+    block_id = "blk_333333333333333333333333"
+    dtos = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 78.5,
+                "results": [
+                    {"invalid_field": "corrupted"}
+                ],
+                "evaluated_atoms": {},
+            },
+        ),
+    ]
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
+
+    with pytest.raises(AppException):
+        MatrixExplanationService.assemble_matrices_to_explain(
+            dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+
+
+def test_assemble_matrices_to_explain_invalid_matrix_payload_raises() -> None:
+    """Test that invalid matrix payload raises AppException(VALIDATION_FAILED)."""
+    block_id = "blk_333333333333333333333333"
+    dtos = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": "not_a_valid_float_score",
+                "results": [],
+            },
+        ),
+    ]
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
+
+    with pytest.raises(AppException):
+        MatrixExplanationService.assemble_matrices_to_explain(
+            dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+
+
+def test_assemble_matrices_to_explain_atom_missing_from_claim_map_raises() -> None:
+    """Test that evaluated atom not declared in matrix block raises AppException."""
+    block_id = "blk_333333333333333333333333"
+    dtos = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 50.0,
+                "results": [],
+                "evaluated_atoms": {"tda_undeclared00000000000000000000": ExecutionStatus.PASSED},
+            },
+        ),
+    ]
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
+
+    with pytest.raises(AppException):
+        MatrixExplanationService.assemble_matrices_to_explain(
+            dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+
+
+def test_assemble_matrices_to_explain_raw_level_breakdown_variations() -> None:
+    """Test level breakdown non-mapping validation and valid level distribution formatting."""
+    block_id = "blk_333333333333333333333333"
+
+    # 1. Non-mapping raw_level_breakdown raises AppException
+    dtos_invalid = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 70.0,
+                "results": [],
+                "evaluated_atoms": {},
+                "level_breakdown": "not_a_mapping",
+            },
+        ),
+    ]
+    blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
+
+    with pytest.raises(AppException):
+        MatrixExplanationService.assemble_matrices_to_explain(
+            dtos_invalid, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+        )
+
+    # 2. Valid mapping includes distribution context
+    dtos_valid = [
+        StepOutputDTO(
+            step_id="step1",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 70.0,
+                "results": [],
+                "evaluated_atoms": {},
+                "level_breakdown": {
+                    "1": {"hits": 2, "total": 3},
+                    "2": {"hits": 1, "total": 2},
+                },
+            },
+        ),
+    ]
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos_valid, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(result) == 1
+    assert "[DISTRIBUTION CONTEXT: Level 1: 2/3 hits, Level 2: 1/2 hits]" in result[0].justification
+
+
+def test_assemble_matrices_to_explain_payload_skips() -> None:
+    """Test skipping of non-matrix blocks, missing blocks, scalar payloads, and non-dict atoms."""
+    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+
+    block_id = "blk_333333333333333333333333"
+    instruction_block = SystemRulePromptBlock.model_construct(
+        id="blk_444444444444444444444444",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+    )
+    matrix_block = _create_matrix_block(block_id=block_id)
+    blocks_by_id = {
+        block_id: matrix_block,
+        "blk_444444444444444444444444": instruction_block,
+    }
+
+    dtos = [
+        # Scalar payload
+        StepOutputDTO(step_id="s1", block_id=block_id, data_type="matrix", payload="scalar_string"),
+        # None payload
+        StepOutputDTO(step_id="s2", block_id=block_id, data_type="matrix", payload=None),
+        # Unknown block_id
+        StepOutputDTO(step_id="s3", block_id="blk_unknown0000000000000000000", data_type="matrix", payload={}),
+        # Non-matrix block category (system_rule)
+        StepOutputDTO(step_id="s4", block_id="blk_444444444444444444444444", data_type="text", payload={}),
+        # Results containing None and scalar atoms
+        StepOutputDTO(
+            step_id="s5",
+            block_id=block_id,
+            data_type="matrix",
+            payload={
+                "normalized_score": 85.0,
+                "results": [None, "invalid_scalar_atom"],
+                "evaluated_atoms": {},
+            },
+        ),
+    ]
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(result) == 1
+    assert result[0].real_matrix_id == block_id

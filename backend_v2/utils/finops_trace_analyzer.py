@@ -202,6 +202,7 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
 
 
 def main() -> None:
+    """Execute CLI entrypoint for FinOps trace analysis."""
     parser = argparse.ArgumentParser(description="FinOps Trace Analyzer")
     parser.add_argument("--monitor", type=str, help="Path to monitor_state.json")
     parser.add_argument("--finalize", type=str, help="Execution ID")
@@ -220,14 +221,14 @@ def main() -> None:
                 execution_id = state.execution_id
 
         telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
-        res = analyze_monitor_state(args.monitor, telemetry_file)
-        print(json.dumps(res.model_dump(mode="json"), indent=2))
+        monitor_res = analyze_monitor_state(args.monitor, telemetry_file)
+        print(json.dumps(monitor_res.model_dump(mode="json"), indent=2))
     elif args.finalize:
         execution_id = args.finalize
         trace_file = args.trace_file or f"data/files/executions/{execution_id}/execution_trace.json"
         telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
-        res = finalize_execution(trace_file, telemetry_file)
-        print(json.dumps(res.model_dump(mode="json"), indent=2))
+        finalize_res = finalize_execution(trace_file, telemetry_file)
+        print(json.dumps(finalize_res.model_dump(mode="json"), indent=2))
 
 
 if __name__ == "__main__":

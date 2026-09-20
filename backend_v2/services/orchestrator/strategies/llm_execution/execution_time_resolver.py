@@ -91,7 +91,8 @@ class ExecutionTimeResolver:
                         parsed = ExecutionTimeResolver._parse_datetime(llm_context_data.inputs[key])
                         if parsed:
                             logger.info(
-                                "[ExecutionTimeResolver] Client-supplied document date found in LLMContextDataDTO.inputs."
+                                "[ExecutionTimeResolver] Client-supplied document date found in "
+                                "LLMContextDataDTO.inputs."
                             )
                             return parsed
             if llm_context_data.raw_inputs:
@@ -100,7 +101,8 @@ class ExecutionTimeResolver:
                         parsed = ExecutionTimeResolver._parse_datetime(llm_context_data.raw_inputs[key])
                         if parsed:
                             logger.info(
-                                "[ExecutionTimeResolver] Client-supplied document date found in LLMContextDataDTO.raw_inputs."
+                                "[ExecutionTimeResolver] Client-supplied document date found in "
+                                "LLMContextDataDTO.raw_inputs."
                             )
                             return parsed
 

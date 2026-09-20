@@ -265,7 +265,11 @@ class StrippedBaseTDAExtraction(BaseModel):
         description=DESC_CONTEXTUAL_OVERRIDE,
     )
     semantic_reasoning: str = Field(
-        description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
+        description=(
+            "Write an extensive analytical reasoning trace explaining your decision-making process. "
+            "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
+            "JSON string to structure your analysis."
+        ),
     )
 
 
@@ -275,7 +279,11 @@ class StrippedBaseMatrixXAI(BaseModel):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     semantic_reasoning: str = Field(
-        description="Write an extensive analytical reasoning trace explaining your decision-making process. You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this JSON string to structure your analysis.",
+        description=(
+            "Write an extensive analytical reasoning trace explaining your decision-making process. "
+            "You MUST use Markdown formatting (e.g. bolding, bullet points, headers) INSIDE this "
+            "JSON string to structure your analysis."
+        ),
     )
 
 
@@ -283,11 +291,6 @@ class GlobalMatricesBase(V2CoreBase):
     """Base model for global matrices evaluations container supporting typed index access."""
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
-
-    def __getitem__(self, key: str) -> Any:
-        """Allow subscript access to global matrix evaluations by matrix_id."""
-        return getattr(self, key)
-
 
 
 @register_sdui_schema("markdown")
@@ -308,6 +311,7 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
+        """Build the static MarkdownBlock response model."""
         return MarkdownBlock
 
 
@@ -329,6 +333,7 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
+        """Build the static HeroInsightBlock response model."""
         return HeroInsightBlock
 
 
@@ -350,7 +355,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         max_evaluations: int | None = None,
         dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
-
+        """Build dynamic column grid response model."""
         step_strict_class: type[BaseModel] = StepDTOStrict
         step_semantic_class: type[BaseModel] = StepDTOSemantic
 
@@ -423,7 +428,10 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
                 atom_id: str = Field(
                     ...,
-                    description="The EXACT system identifier. MUST exactly match one of the short aliases provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1').",
+                    description=(
+                        "The EXACT system identifier. MUST exactly match one of the short aliases "
+                        "provided in <BLIND_ATOMS_TO_EVALUATE> (e.g. 'a0', 'a1')."
+                    ),
                     json_schema_extra={"pattern": AliasEngine.ALIAS_REGEX_PATTERN},
                 )
 
@@ -444,7 +452,11 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                 list[atom_resp_type],
                 Field(
                     ...,
-                    description="List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in <BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. Do NOT hallucinate, invent, or evaluate any unlisted concepts.",
+                    description=(
+                        "List of atomic evaluations. You MUST evaluate ONLY the exact atoms explicitly listed in "
+                        "<BLIND_ATOMS_TO_EVALUATE>. You MUST include the exact 'atom_id' for each evaluation. "
+                        "Do NOT hallucinate, invent, or evaluate any unlisted concepts."
+                    ),
                 ),
             )
 
@@ -516,7 +528,10 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 CoercedBool,
                                 Field(
                                     ...,
-                                    description=f"Boolean flag for '{ext}'. MUST be the native JSON boolean type (true/false) without quotes. Do NOT output a string.",
+                                    description=(
+                                        f"Boolean flag for '{ext}'. MUST be the native JSON boolean type "
+                                        "(true/false) without quotes. Do NOT output a string."
+                                    ),
                                 ),
                             )
                         else:
@@ -554,7 +569,10 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                     GlobalMatricesModel,
                     Field(
                         ...,
-                        description="Global matrix evaluations that apply to the entire response or document as a whole. You MUST evaluate all global matrices here.",
+                        description=(
+                            "Global matrix evaluations that apply to the entire response or document as a whole. "
+                            "You MUST evaluate all global matrices here."
+                        ),
                     ),
                 )
 
@@ -632,7 +650,10 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                             CoercedBool,
                             Field(
                                 ...,
-                                description=f"Boolean flag for '{ext}'. MUST be the native JSON boolean type (true/false) without quotes. Do NOT output a string.",
+                                description=(
+                                    f"Boolean flag for '{ext}'. MUST be the native JSON boolean type "
+                                    "(true/false) without quotes. Do NOT output a string."
+                                ),
                             ),
                         )
                     else:

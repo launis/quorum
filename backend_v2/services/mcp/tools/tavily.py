@@ -1,3 +1,5 @@
+"""MCP tool implementation for Tavily web search."""
+
 import logging
 import time
 import uuid
@@ -7,6 +9,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseTool
+from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
 from backend_v2.services.mcp.tavily_search_client import tavily_search
 
 logger = logging.getLogger(__name__)
@@ -14,14 +17,12 @@ logger = logging.getLogger(__name__)
 TAVILY_TOOL_ID = "mcp_tavily_search"
 
 
-from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
-
-
 class TavilyTool(BaseTool):
     """MCP tool for executing Tavily web searches."""
 
     @property
     def tool_id(self) -> str:
+        """Return the canonical tool identifier."""
         return TAVILY_TOOL_ID
 
     @property
@@ -45,7 +46,9 @@ class TavilyTool(BaseTool):
                         },
                         "reasoning": {
                             "type": "string",
-                            "description": "Why you believe this search is mathematically necessary. Must be 1-2 sentences.",
+                            "description": (
+                                "Why you believe this search is mathematically necessary. Must be 1-2 sentences."
+                            ),
                         },
                     },
                     "required": ["query", "reasoning"],

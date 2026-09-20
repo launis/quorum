@@ -222,7 +222,10 @@ class SourceDocumentPacker:
                 else:
                     logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload))
                     raise AppException(
-                        message=f"Inputs payload validation failed: expected Mapping or ExecutionInputsDTO, got {type(inputs_payload)}",
+                        message=(
+                            "Inputs payload validation failed: expected Mapping or ExecutionInputsDTO, "
+                            f"got {type(inputs_payload)}"
+                        ),
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )

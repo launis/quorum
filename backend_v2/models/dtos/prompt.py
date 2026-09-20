@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field
@@ -10,8 +11,6 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import DomainInputValue, IngressInputValue
 from backend_v2.models.execution_core import ExecutionMetadata
-
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 
 __all__ = [
     "LLMContextDataDTO",

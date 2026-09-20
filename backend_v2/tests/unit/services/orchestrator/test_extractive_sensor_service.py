@@ -918,10 +918,10 @@ async def test_evaluate_atom_boolean_batch_telemetry_attribution_propagation() -
 
         assert executor.execute_structured_task.called
         call_kwargs = executor.execute_structured_task.call_args.kwargs
-        val_ctx = call_kwargs.get("validation_context", {})
-        assert val_ctx.get("execution_id") == "exe_test1234567890"
-        assert val_ctx.get("step_id") == "stp_step1234567890"
-        assert "extractive_sensor_bo3_call_" in val_ctx.get("sub_task", "")
+        val_ctx = call_kwargs["validation_context"]
+        assert val_ctx.execution_id == "exe_test1234567890"
+        assert val_ctx.step_id == "stp_step1234567890"
+        assert "extractive_sensor_bo3_call_" in val_ctx.sub_task
 
 
 @pytest.mark.asyncio
@@ -999,7 +999,7 @@ async def test_evaluate_atom_boolean_batch_missing_alias_targeted_recovery() -> 
     assert usage.total_tokens == 175
     assert executor.execute_structured_task.call_count == 2
     recovery_kwargs = executor.execute_structured_task.call_args_list[1].kwargs
-    assert "extractive_sensor_recovery_call_0" in recovery_kwargs["validation_context"]["sub_task"]
+    assert "extractive_sensor_recovery_call_0" in recovery_kwargs["validation_context"].sub_task
 
 
 @pytest.mark.asyncio

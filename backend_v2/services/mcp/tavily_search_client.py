@@ -41,6 +41,30 @@ def _sanitize_text(text: str) -> str:
     return cleaned
 
 
+def _record_dlq_search_result(
+    results: list[TavilySearchResultDTO],
+    query: str,
+    status: SearchStatus,
+) -> None:
+    """Record a search failure to results list as a typed DLQ status DTO.
+
+    Args:
+        results: Target list collecting search result DTOs.
+        query: Query string that encountered the error.
+        status: DLQ error or timeout status.
+    """
+    results.append(
+        TavilySearchResultDTO(
+            query=query,
+            answer="",
+            source_urls=[],
+            raw_content="",
+            duration_ms=0,
+            status=status,
+        )
+    )
+
+
 async def tavily_search(query: str) -> TavilySearchResult:
     """Execute a Tavily AI Search and return structured results.
 
@@ -288,37 +312,31 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
                 if e.error_code == ErrorCodes.VALIDATION_FAILED.value:
                     status = SearchStatus.DLQ_ERROR
                     logger.error(
-                        f"[BatchTavily] {ErrorCodes.VALIDATION_FAILED.name}: Structural validation failed for query '{norm_query}'",
+                        "[BatchTavily] %s: Structural validation failed for query '%s'",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        norm_query,
                         extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "query": norm_query},
                     )
                 else:
                     status = SearchStatus.DLQ_TIMEOUT
                     logger.error(
-                        f"[BatchTavily] {ErrorCodes.FETCH_FAILED.name}: Transient network errors exhausted for query '{norm_query}'",
+                        "[BatchTavily] %s: Transient network errors exhausted for query '%s'",
+                        ErrorCodes.FETCH_FAILED.name,
+                        norm_query,
                         extra={"error_code": ErrorCodes.FETCH_FAILED.value, "query": norm_query},
                     )
 
-                results.append(
-                    TavilySearchResultDTO(
-                        query=norm_query, answer="", source_urls=[], raw_content="", duration_ms=0, status=status
-                    )
-                )
+                _record_dlq_search_result(results, norm_query, status)
             except (OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
                 logger.error(
-                    f"[BatchTavily] {ErrorCodes.INTERNAL_SERVER_ERROR.name}: Unexpected error for query '{norm_query}': {e}",
+                    "[BatchTavily] %s: Unexpected error for query '%s': %s",
+                    ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                    norm_query,
+                    e,
                     extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "query": norm_query},
                     exc_info=True,
                 )
-                results.append(
-                    TavilySearchResultDTO(
-                        query=norm_query,
-                        answer="",
-                        source_urls=[],
-                        raw_content="",
-                        duration_ms=0,
-                        status=SearchStatus.DLQ_ERROR,
-                    )
-                )
+                _record_dlq_search_result(results, norm_query, SearchStatus.DLQ_ERROR)
 
     # Step 3.2: TaskGroup bounded concurrency
     async with asyncio.TaskGroup() as tg:

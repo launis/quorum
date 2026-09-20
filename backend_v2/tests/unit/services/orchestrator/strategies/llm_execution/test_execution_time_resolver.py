@@ -4,6 +4,9 @@ import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.prompt import LLMContextDataDTO
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.llm_execution.execution_time_resolver import (
     ExecutionTimeResolver,
 )
@@ -197,4 +200,69 @@ def test_resolve_unparseable_date_falls_back() -> None:
         "timestamp": "invalid-top-timestamp",
     }
     resolved = ExecutionTimeResolver.resolve(llm_context_data=context)
+    assert resolved is None
+
+
+def test_resolve_execution_inputs_dto_dynamic_inputs() -> None:
+    """Test resolving document date from ExecutionInputsDTO dynamic_inputs."""
+    inputs = ExecutionInputsDTO(dynamic_inputs={"document_date": "2026-05-20T10:00:00Z"})
+    resolved = ExecutionTimeResolver.resolve(inputs=inputs)
+    assert resolved is not None
+    assert resolved.year == 2026
+    assert resolved.month == 5
+    assert resolved.day == 20
+
+
+def test_resolve_execution_inputs_dto_raw_inputs() -> None:
+    """Test resolving document date from ExecutionInputsDTO raw_inputs."""
+    inputs = ExecutionInputsDTO(raw_inputs={"input_file_date": "2026-06-15T12:00:00Z"})
+    resolved = ExecutionTimeResolver.resolve(inputs=inputs)
+    assert resolved is not None
+    assert resolved.year == 2026
+    assert resolved.month == 6
+    assert resolved.day == 15
+
+
+def test_resolve_llm_context_data_dto_execution_time() -> None:
+    """Test resolving execution_time directly from LLMContextDataDTO."""
+    now = datetime.datetime.now(datetime.timezone.utc)
+    context_data = LLMContextDataDTO(execution_time=now)
+    resolved = ExecutionTimeResolver.resolve(llm_context_data=context_data)
+    assert resolved == now
+
+
+def test_resolve_llm_context_data_dto_inputs() -> None:
+    """Test resolving document_date from LLMContextDataDTO inputs."""
+    context_data = LLMContextDataDTO(inputs={"document_date": "2026-07-21T08:00:00Z"})
+    resolved = ExecutionTimeResolver.resolve(llm_context_data=context_data)
+    assert resolved is not None
+    assert resolved.year == 2026
+    assert resolved.month == 7
+    assert resolved.day == 21
+
+
+def test_resolve_llm_context_data_dto_raw_inputs() -> None:
+    """Test resolving last_modified from LLMContextDataDTO raw_inputs."""
+    context_data = LLMContextDataDTO(raw_inputs={"last_modified": "2026-08-10T14:30:00Z"})
+    resolved = ExecutionTimeResolver.resolve(llm_context_data=context_data)
+    assert resolved is not None
+    assert resolved.year == 2026
+    assert resolved.month == 8
+    assert resolved.day == 10
+
+
+def test_resolve_legacy_dict_inputs() -> None:
+    """Test resolving document_date from legacy dict inputs."""
+    context = {"inputs": {"document_date": "2026-09-05T09:00:00Z"}}
+    resolved = ExecutionTimeResolver.resolve(llm_context_data=context)
+    assert resolved is not None
+    assert resolved.year == 2026
+    assert resolved.month == 9
+    assert resolved.day == 5
+
+
+def test_resolve_with_execution_metadata() -> None:
+    """Test passing ExecutionMetadata instance."""
+    metadata = ExecutionMetadata(workflow_version=1)
+    resolved = ExecutionTimeResolver.resolve(metadata=metadata)
     assert resolved is None
