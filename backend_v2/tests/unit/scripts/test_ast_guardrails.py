@@ -1194,3 +1194,10 @@ def test_boundary_exemption_files_preserved() -> None:
         assert all(v.severity == GuardrailSeverity.WARNING for v in violations)
         assert not any(v.severity == GuardrailSeverity.FATAL for v in violations)
 
+
+def test_ast_guardrails_python3_tuple_exceptions() -> None:
+    """Verify that Python AST guardrail engine executes without comma syntax errors."""
+    code = "try:\n    pass\nexcept (AttributeError, io.UnsupportedOperation):\n    raise\n"
+    violations = _scan_snippet(code)
+    assert len(violations) == 0
+

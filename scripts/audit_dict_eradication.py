@@ -5,6 +5,9 @@ Statically analyzes backend Python files to mathematically verify:
 2. Exactly 0 isinstance(..., dict) checks in domain and service layers.
 3. Exactly 0 unauthorized/unjustified # noqa: QGR suppressions.
 4. Exactly 0 imports or references to legacy dict_utils.
+5. Exactly 0 syntax/AST parse errors across the scanned scope.
+6. Exactly 0 unexempt .get() calls in domain, service, hook, and worker layers.
+7. Exactly 0 dynamic reflection calls (getattr, hasattr, setattr) in domain layers.
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ import io
 import re
 import sys
 import tokenize
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -53,12 +57,15 @@ class AuditViolation:
 
 @dataclass
 class DictEradicationReport:
-    """Aggregated audit report across all four mathematical metrics."""
+    """Aggregated audit report across all mathematical metrics."""
 
     naked_dict_annotations: int = 0
     service_duck_typing: int = 0
     unauthorized_suppressions: int = 0
     dict_utils_references: int = 0
+    syntax_parse_errors: int = 0
+    banned_get_calls: int = 0
+    reflection_calls: int = 0
     violations: list[AuditViolation] = field(default_factory=list)
 
     @property
@@ -69,11 +76,14 @@ class DictEradicationReport:
             + self.service_duck_typing
             + self.unauthorized_suppressions
             + self.dict_utils_references
+            + self.syntax_parse_errors
+            + self.banned_get_calls
+            + self.reflection_calls
         )
 
 
 class DictEradicationVisitor(ast.NodeVisitor):
-    """AST Visitor scanning Python files for permissive dict patterns."""
+    """AST Visitor scanning Python files for permissive dict and reflection patterns."""
 
     def __init__(self, filepath: str, source_bytes: bytes) -> None:
         self.filepath = filepath
@@ -82,7 +92,8 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.is_exempt = self.filename in LOCKED_PHYSICAL_DRIVERS
         self.is_test = "tests" in Path(filepath).parts
         self.is_domain_or_service = any(
-            p in Path(filepath).parts for p in ("services", "models", "hooks", "orchestrator", "api", "database")
+            p in Path(filepath).parts
+            for p in ("services", "models", "hooks", "orchestrator", "api", "database", "workers")
         )
         self.violations: list[AuditViolation] = []
 
@@ -184,8 +195,9 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-        """Inspects isinstance calls for dict checks in domain and service layers."""
+        """Inspects isinstance calls, reflection, and banned .get() lookups."""
         if not self.is_exempt and not self.is_test and self.is_domain_or_service:
+            # 1. Banned isinstance duck-typing
             if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
                 target_type = node.args[1]
                 is_dict = False
@@ -209,6 +221,82 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             message=f"Banned isinstance(..., dict) duck-typing: `{ast.unparse(node)}`",
                         )
                     )
+
+            # 2. Banned dynamic reflection
+            if isinstance(node.func, ast.Name) and node.func.id in {"getattr", "hasattr", "setattr", "vars"}:
+                self.violations.append(
+                    AuditViolation(
+                        filepath=self.filepath,
+                        line=node.lineno,
+                        metric="reflection_calls",
+                        message=f"Banned dynamic reflection call `{node.func.id}`: `{ast.unparse(node)}`",
+                    )
+                )
+
+            # 3. Banned .get() lookups on internal state / variables
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
+                if len(node.args) == 0 and not any(
+                    kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
+                ):
+                    pass
+                else:
+                    exempt = False
+                    receiver = node.func.value
+                    match receiver:
+                        case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
+                            exempt = True
+                        case ast.Attribute(attr="headers") | ast.Name(id="headers"):
+                            exempt = True
+                        case (
+                            ast.Name(
+                                id="client"
+                                | "http"
+                                | "requests"
+                                | "session"
+                                | "httpx"
+                                | "driver"
+                                | "_LABEL_MAP"
+                                | "LABEL_MAP"
+                                | "_VALUE_MAP"
+                                | "_NAME_MAP"
+                                | "_L10N_MAP"
+                                | "L10N_MAP"
+                            )
+                            | ast.Attribute(
+                                attr="client"
+                                | "http"
+                                | "requests"
+                                | "session"
+                                | "httpx"
+                                | "driver"
+                                | "_LABEL_MAP"
+                                | "LABEL_MAP"
+                                | "_VALUE_MAP"
+                                | "_NAME_MAP"
+                                | "_L10N_MAP"
+                                | "L10N_MAP"
+                            )
+                        ):
+                            exempt = True
+                        case _:
+                            exempt = False
+
+                    if not exempt:
+                        for kw in node.keywords:
+                            if kw.arg in {"params", "headers", "timeout", "auth", "cookies"}:
+                                exempt = True
+                                break
+
+                    if not exempt:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="banned_get_calls",
+                                message=f"Banned .get() lookup on internal state/variable: `{ast.unparse(node)}`",
+                            )
+                        )
+
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
@@ -227,7 +315,13 @@ class DictEradicationVisitor(ast.NodeVisitor):
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         """Inspects from imports for dict_utils references."""
+        has_dict_utils = False
         if node.module and "dict_utils" in node.module:
+            has_dict_utils = True
+        elif any("dict_utils" in alias.name for alias in node.names):
+            has_dict_utils = True
+
+        if has_dict_utils:
             self.violations.append(
                 AuditViolation(
                     filepath=self.filepath,
@@ -282,33 +376,64 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
                                         message=f"Trivial/placeholder reason for # noqa suppression: `{raw_reason}`",
                                     )
                                 )
-    except Exception:
-        pass
+    except (tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError) as e:
+        violations.append(
+            AuditViolation(
+                filepath=filepath,
+                line=1,
+                metric="syntax_parse_error",
+                message=f"Failed to tokenize file comments: {e}",
+            )
+        )
     return violations
 
 
-def audit_dict_eradication(target_dir: Path | str = "backend_v2") -> DictEradicationReport:
-    """Executes the complete multi-layer dict eradication audit on target directory.
+def audit_dict_eradication(
+    targets: Path | str | Sequence[Path | str] = "backend_v2",
+) -> DictEradicationReport:
+    """Executes the complete multi-layer dict eradication audit on target directory or files.
 
     Args:
-        target_dir: Directory to audit (defaults to backend_v2).
+        targets: Directory or sequence of files/directories to audit.
 
     Returns:
         DictEradicationReport containing metrics and discovered violations.
     """
     report = DictEradicationReport()
-    target_path = Path(target_dir)
 
-    if not target_path.exists():
-        return report
+    target_list: list[Path] = []
+    if isinstance(targets, (str, Path)):
+        p = Path(targets)
+        if p.is_dir():
+            target_list.extend(sorted(p.rglob("*.py")))
+        elif p.is_file():
+            target_list.append(p)
+        elif not p.exists():
+            return report
+    else:
+        for t in targets:
+            p = Path(t)
+            if p.is_dir():
+                target_list.extend(sorted(p.rglob("*.py")))
+            elif p.is_file():
+                target_list.append(p)
 
-    py_files = sorted(target_path.rglob("*.py"))
-    for file_path in py_files:
+    for file_path in target_list:
         try:
             source_bytes = file_path.read_bytes()
             source_text = source_bytes.decode("utf-8")
             tree = ast.parse(source_text, filename=str(file_path))
-        except Exception:
+        except (SyntaxError, IndentationError, UnicodeDecodeError) as e:
+            report.syntax_parse_errors += 1
+            line_no = e.lineno if isinstance(e, (SyntaxError, IndentationError)) and e.lineno is not None else 1
+            report.violations.append(
+                AuditViolation(
+                    filepath=str(file_path),
+                    line=line_no,
+                    metric="syntax_parse_error",
+                    message=f"Failed to parse AST: {e}",
+                )
+            )
             continue
 
         visitor = DictEradicationVisitor(str(file_path), source_bytes)
@@ -321,31 +446,48 @@ def audit_dict_eradication(target_dir: Path | str = "backend_v2") -> DictEradica
                 report.service_duck_typing += 1
             elif v.metric == "dict_utils_references":
                 report.dict_utils_references += 1
+            elif v.metric == "banned_get_calls":
+                report.banned_get_calls += 1
+            elif v.metric == "reflection_calls":
+                report.reflection_calls += 1
+            elif v.metric == "syntax_parse_error":
+                report.syntax_parse_errors += 1
             report.violations.append(v)
 
         comment_violations = audit_file_comments(str(file_path), source_bytes)
         for cv in comment_violations:
-            report.unauthorized_suppressions += 1
+            if cv.metric == "syntax_parse_error":
+                report.syntax_parse_errors += 1
+            else:
+                report.unauthorized_suppressions += 1
             report.violations.append(cv)
 
     return report
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     """CLI entry point for deterministic AST dict eradication audit."""
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8")
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except AttributeError, io.UnsupportedOperation:
+            pass
 
     print("=" * 80)
     print("  QUORUM DETERMINISTIC AST DICT ERADICATION AUDITOR")
     print("=" * 80)
 
-    report = audit_dict_eradication("backend_v2")
+    args = argv if argv is not None else sys.argv[1:]
+    target = args if args else "backend_v2"
+    report = audit_dict_eradication(target)
 
     print(f"1. Naked Dict Annotations (dict[str, Any]):  {report.naked_dict_annotations}")
     print(f"2. Service Layer Duck-Typing (isinstance):   {report.service_duck_typing}")
     print(f"3. Unauthorized # noqa Suppressions:         {report.unauthorized_suppressions}")
     print(f"4. Legacy dict_utils References:             {report.dict_utils_references}")
+    print(f"5. Syntax/AST Parse Errors:                  {report.syntax_parse_errors}")
+    print(f"6. Banned Internal .get() Calls:             {report.banned_get_calls}")
+    print(f"7. Dynamic Reflection Calls:                 {report.reflection_calls}")
     print("-" * 80)
     print(f"TOTAL VIOLATIONS:                            {report.total_violations}")
     print("=" * 80)
@@ -366,7 +508,7 @@ def main() -> int:
             print()
         return 1
 
-    print("\n[PASSED] 100% Mathematical Zero Violations across all 4 metrics.")
+    print("\n[PASSED] 100% Mathematical Zero Violations across all metrics.")
     return 0
 
 

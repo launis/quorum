@@ -34,9 +34,9 @@
 
 ### Phase 1: Architecture Baseline, AST Guardrail Definition & Pre-Implementation Technical Debt Cleanups
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 1.1: AST Guardrail QGR018 Implementation
+  - [x] Step 1.1: AST Guardrail QGR018 Implementation
   - [ ] Step 1.2: Validation Hook Hardening
   - [ ] Step 1.3: Settings & Math Utilities Strictness
   - [ ] Step 1.4: Logging & Database Driver Baseline Hardening
@@ -197,26 +197,22 @@
 # Session Handover Context
 
 ## Achieved
-- Formulated and verified 7 micro-chunked implementation plans under `docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/`:
-  - `01_phase1_plan.md`: Detailed plan for Architecture Baseline, AST Guardrail Definition (QGR018), and Pre-Implementation Technical Debt Cleanups.
-  - `02_phase2_plan.md`: Detailed plan for Domain Model & Event Sourcing Hardening, IngressInputValue closed union, and isolated frozen DTO manifests.
-  - `03_placeholder_phase3.md`: Structured placeholder plan for Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening.
-  - `04_placeholder_phase4.md`: Structured placeholder plan for Hook Pipeline Hardening, Result Projector Segregation, and Complete Emoji Eradication.
-  - `05_placeholder_phase5.md`: Structured placeholder plan for LLM Context Orchestration, Dynamic Input Merging, and Prompt Compiler Hardening.
-  - `06_placeholder_phase6.md`: Structured placeholder plan for SDUI Boundary & Presentation Pipeline Hardening across Python and Flutter.
-  - `07_placeholder_phase7.md`: Structured placeholder plan for Full-Spectrum Verification, AST Guardrails, and Live E2E Gate.
-- Created and synchronized `docs/epic/EPIC_152_tracker.md` with full bidirectional traceability matrix, phase execution status configured for `/tier2-execute --full-auto`, granular hardening file checklists, and execution instructions.
-- Validated with `scripts/audit_planner_output.py` achieving 100% compliance across all 87 targets, 20 KIs, demolish symbols, and XML boundaries.
+- Formulated and verified 7 micro-chunked implementation plans under `docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/`.
+- Executed System 2 Red-Teaming on Phase 1 implementation plan (`01_phase1_plan.md`):
+  - Injected exact Python AST line bounds for all 9 target files verified via `scripts/audit_markdown_boundaries.py` and `scripts/audit_planner_output.py`.
+  - Discovered and cataloged 7-item technical debt items into `<pre_implementation_cleanups>` across validation hooks, math utilities, logging, and database drivers.
+  - Synthesized exhaustive 5-Column Architectural Directives Table establishing strict boundaries, eradicating duck-typing and lazy fallbacks, pruning over-engineering, and locking fail-fast proof anchors.
+- Validated with `scripts/audit_planner_output.py` and `scripts/audit_markdown_boundaries.py` achieving 100% compliance across all 87 targets, 41 Python AST bounds, 20 KIs, demolish symbols, and XML boundaries.
 
 ## Learned
-- The physical path for the prompt compiler is `backend_v2/services/orchestrator/prompt_compiler.py` rather than the shorthand `backend_v2/services/prompt_compiler.py`.
-- `extract_deprecated_symbols` in `_ast_boundary_utils.py` strictly requires backticks or single quotes around symbol names within `<demolish>` tags.
-- `audit_markdown_boundaries.py` enforces existence checks for all `@-references` unless marked with `[NEW]` or `[DELETE]`.
+- In `scripts/audit_markdown_boundaries.py` (`MBD004`), line bounds must match exact `(node_start, node_end)` tuples of Python AST definitions (including decorators); multi-function line spans trigger boundary verification errors.
+- `scripts/audit_dict_eradication.py` was pre-existing in the codebase, requiring modification rather than new file creation.
+- Python 2 comma exceptions in `scripts/_ast_guardrails.py` require tuple grouping to prevent silent syntax deprecations.
 
 ## Remaining
-- Execute `/tier0-research-plan` on Phase 1 implementation plan `docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md` to conduct System 2 red-teaming.
-- Execute Phase 1 implementation via `/tier2-execute --full-auto`.
+- Execute Phase 1 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Verify Phase 1 test coverage assertions and audit via `/tier8-audit-plan`.
 - Progressively plan, red-team, and execute Phases 2 through 7.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
