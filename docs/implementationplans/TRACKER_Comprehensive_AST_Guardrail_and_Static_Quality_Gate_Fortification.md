@@ -15,7 +15,7 @@
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_Comprehensive_AST_Guardrail_and_Static_Quality_Gate_Fortification.md]
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_Comprehensive_AST_Guardrail_and_Static_Quality_Gate_Fortification.md] @[docs/implementationplans/TRACKER_Comprehensive_AST_Guardrail_and_Static_Quality_Gate_Fortification.md]`
   - [x] Step 1: PRE-IMPLEMENTATION TECHNICAL DEBT CLEANUP
-  - [ ] Step 2: EXPAND AST GUARDRAILS ENGINE (PYTHON BACKEND)
+  - [x] Step 2: EXPAND AST GUARDRAILS ENGINE (PYTHON BACKEND)
   - [ ] Step 3: DEVELOP DART GUARDRAILS ENGINE (FLUTTER CLIENT)
   - [ ] Step 4: INTEGRATE QUALITY GATES INTO AUDIT SCRIPTS
   - [ ] Step 5: ISTQB UNIT TEST SUITE EXPANSION & FALSE-POSITIVE IMMUNITY
@@ -60,17 +60,17 @@
 | REQ-02 | Replace dynamic `hasattr` reflection in `flutter_audit_loop.py` with concrete `isinstance(sys.stdout, io.TextIOWrapper)` type narrowing | Step 1 | [x] |
 | REQ-03 | Translate Finnish console strings in `flutter_audit_loop.py` to professional English, normalize relative paths, and remove legacy phase references | Step 1 | [x] |
 | REQ-04 | Resolve workspace root path before `os.chdir` in `flutter_audit_loop.py` for deterministic helper script execution | Step 1 | [x] |
-| REQ-05 | Implement Rule QGR000 in `CommentSuppressor` to emit FATAL violations on `# noqa: QGR*` comment suppressions in domain code | Step 2 | [ ] |
-| REQ-06 | Expand Rule QGR001 to ban `vars()`, `__dict__`, and `operator.attrgetter` in domain code and test files | Step 2 | [ ] |
-| REQ-07 | Fortify Rule QGR002 to eliminate 1-argument and 2-argument dictionary `.get()` lookups with strict client/ContextVar exemptions | Step 2 | [ ] |
-| REQ-08 | Fortify Rule QGR003 to eliminate silent exception swallowing in domain code lacking `raise` or typed DLQ dispatch | Step 2 | [ ] |
-| REQ-09 | Implement Rule QGR018 banning dictionary type laundering via Pydantic `TypeAdapter(dict[...])` | Step 2 | [ ] |
-| REQ-10 | Strictly maintain `BOUNDARY_EXEMPTION_FILES` contract locked to the 4 physical boundary files | Step 2 | [ ] |
+| REQ-05 | Implement Rule QGR000 in `CommentSuppressor` to emit FATAL violations on `# noqa: QGR*` comment suppressions in domain code | Step 2 | [x] |
+| REQ-06 | Expand Rule QGR001 to ban `vars()`, `__dict__`, and `operator.attrgetter` in domain code and test files | Step 2 | [x] |
+| REQ-07 | Fortify Rule QGR002 to eliminate 1-argument and 2-argument dictionary `.get()` lookups with strict client/ContextVar exemptions | Step 2 | [x] |
+| REQ-08 | Fortify Rule QGR003 to eliminate silent exception swallowing in domain code lacking `raise` or typed DLQ dispatch | Step 2 | [x] |
+| REQ-09 | Implement Rule QGR018 banning dictionary type laundering via Pydantic `TypeAdapter(dict[...])` | Step 2 | [x] |
+| REQ-10 | Strictly maintain `BOUNDARY_EXEMPTION_FILES` contract locked to the 4 physical boundary files | Step 2 | [x] |
 | REQ-11 | Implement `scripts/_dart_guardrails.py` enforcing DGR001 (Map returns), DGR002 (SizedBox.shrink), DGR003 (hardcoded strings), and DGR004 (lint suppressions) | Step 3 | [ ] |
 | REQ-12 | Ensure 100% generated file immunity (`*.freezed.dart`, `*.g.dart`) and CLI table reporting with `--strict` escalation in `_dart_guardrails.py` | Step 3 | [ ] |
 | REQ-13 | Integrate FATAL enforcement of QGR000, QGR001, QGR002, QGR003, and QGR018 into `scripts/backend_audit_loop.py` | Step 4 | [ ] |
 | REQ-14 | Integrate `_dart_guardrails.py` automated gate into `scripts/flutter_audit_loop.py` following code generation | Step 4 | [ ] |
-| REQ-15 | Expand `backend_v2/tests/unit/scripts/test_ast_guardrails.py` with ISTQB boundary partitions for all updated Python rules and exemptions | Step 5 | [ ] |
+| REQ-15 | Expand `backend_v2/tests/unit/scripts/test_ast_guardrails.py` with ISTQB boundary partitions for all updated Python rules and exemptions | Step 5 | [x] |
 | REQ-16 | Create comprehensive unit test suite `backend_v2/tests/unit/scripts/test_dart_guardrails.py` for Dart analyzer and generated code immunity | Step 5 | [ ] |
 | REQ-17 | Synchronize `ki_zero_permissive_typing.md` with new guardrail rules, zero-tolerance invariants, and boundary contracts | Step 6 | [ ] |
 

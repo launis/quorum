@@ -143,6 +143,46 @@ def test_qgr001_object_setattr_detection() -> None:
     assert "object.__setattr__" in unsuppressed[0].message
 
 
+def test_qgr001_vars_detection() -> None:
+    code = "d = vars(obj)\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert "vars()" in unsuppressed[0].message
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr001_dict_attribute_detection() -> None:
+    code = "d = obj.__dict__\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert ".__dict__" in unsuppressed[0].message
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr001_attrgetter_detection() -> None:
+    code = "getter = operator.attrgetter('name')\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert "attrgetter" in unsuppressed[0].message
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr001_test_file_warning_severity() -> None:
+    code = "val = getattr(obj, 'attr', None)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR001"
+    assert unsuppressed[0].severity == GuardrailSeverity.WARNING
+
+
+
 # ==============================================================================
 # Partition 8: QGR002 Lazy .get(key, default) Fallback
 # ==============================================================================
@@ -155,6 +195,37 @@ def test_qgr002_get_default_detection() -> None:
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR002"
     assert ".get(key, default)" in unsuppressed[0].message
+
+
+def test_qgr002_single_arg_get_detection() -> None:
+    code = "val = data.get('key')\n"
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR002"
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr002_client_get_network_exempt() -> None:
+    code = "resp = client.get('https://api.example.com', headers={'Auth': 'Bearer'})\n"
+    violations = _scan_snippet(code)
+    qgr002 = [v for v in violations if v.rule_code == "QGR002"]
+    assert len(qgr002) == 0
+
+
+def test_qgr002_zero_arg_contextvar_get_exempt() -> None:
+    code = "resp = _last_response_var.get()\n"
+    violations = _scan_snippet(code)
+    qgr002 = [v for v in violations if v.rule_code == "QGR002"]
+    assert len(qgr002) == 0
+
+
+def test_qgr002_request_kwargs_exempt() -> None:
+    code = "res = session.get(url, params={'q': 'test'})\n"
+    violations = _scan_snippet(code)
+    qgr002 = [v for v in violations if v.rule_code == "QGR002"]
+    assert len(qgr002) == 0
+
 
 
 # ==============================================================================
@@ -199,6 +270,33 @@ except:
     unsuppressed = [v for v in violations if not v.is_suppressed]
     assert len(unsuppressed) == 1
     assert unsuppressed[0].rule_code == "QGR003"
+
+
+def test_qgr003_typed_exception_swallowing_fatal() -> None:
+    code = """
+try:
+    do_something()
+except (ValidationError, TypeError):
+    return []
+"""
+    violations = _scan_snippet(code)
+    unsuppressed = [v for v in violations if not v.is_suppressed]
+    assert len(unsuppressed) == 1
+    assert unsuppressed[0].rule_code == "QGR003"
+    assert unsuppressed[0].severity == GuardrailSeverity.FATAL
+
+
+def test_qgr003_dlq_push_exempt() -> None:
+    code = """
+try:
+    do_something()
+except Exception as e:
+    dlq_service.push(e)
+"""
+    violations = _scan_snippet(code)
+    qgr003 = [v for v in violations if v.rule_code == "QGR003"]
+    assert len(qgr003) == 0
+
 
 
 # ==============================================================================
@@ -469,7 +567,7 @@ class TestFixtureModel(BaseModel):
 
 def test_inline_suppression_single_line_with_valid_reason() -> None:
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Third-party LiteLLM model attribute]\n"
-    violations = _scan_snippet(code)
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].is_suppressed is True
@@ -477,7 +575,7 @@ def test_inline_suppression_single_line_with_valid_reason() -> None:
 
 def test_inline_suppression_missing_reason_fails_fatal() -> None:
     code = "val = getattr(obj, 'attr', None)  # noqa: QGR001\n"
-    violations = _scan_snippet(code)
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 2
     # First violation is QGR000 FATAL for missing reason
     qgr000 = next(v for v in violations if v.rule_code == "QGR000")
@@ -491,7 +589,7 @@ def test_inline_suppression_missing_reason_fails_fatal() -> None:
 def test_inline_suppression_placeholder_reason_fails_fatal() -> None:
     for placeholder in ["test", "n/a", "ok", "todo", "short"]:
         code = f"val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: {placeholder}]\n"
-        violations = _scan_snippet(code)
+        violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
         qgr000 = next((v for v in violations if v.rule_code == "QGR000"), None)
         assert qgr000 is not None, f"Expected QGR000 for placeholder '{placeholder}'"
         assert qgr000.severity == GuardrailSeverity.FATAL
@@ -505,7 +603,7 @@ val = getattr(
     None,
 )  # noqa: QGR001 [REASON: Dynamic model attribute access required]
 """
-    violations = _scan_snippet(code)
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR001"
     assert violations[0].is_suppressed is True
@@ -521,7 +619,7 @@ except (
 ):  # noqa: QGR003 [REASON: Outer crash boundary for background worker]
     return {}
 """
-    violations = _scan_snippet(code)
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/sample.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR003"
     assert violations[0].is_suppressed is True
@@ -537,10 +635,21 @@ raise AppException("raw")  # noqa: QGR009 [REASON: Legacy translation bridge err
 t = datetime.now()  # noqa: QGR010 [REASON: Local timezone formatting]
 val = getattr(obj, "attr", None)  # noqa [REASON: Bare noqa wildcard rule suppression]
 """
-    violations = _scan_snippet(code, filepath="backend_v2/services/worker.py")
+    violations = _scan_snippet(code, filepath="scripts/worker_script.py")
     assert len(violations) == 6
     for v in violations:
         assert v.is_suppressed is True
+
+
+def test_qgr000_domain_suppression_fatal() -> None:
+    """QGR000: Any # noqa: QGR* suppression in domain code emits FATAL QGR000 regardless of reason."""
+    code = "val = getattr(obj, 'attr', None)  # noqa: QGR001 [REASON: Legitimate reason for third party]\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    qgr000 = [v for v in violations if v.rule_code == "QGR000"]
+    assert len(qgr000) == 1
+    assert qgr000[0].severity == GuardrailSeverity.FATAL
+    assert "strictly prohibited in domain code" in qgr000[0].message
+
 
 
 def test_valid_except_exception_with_raise() -> None:
@@ -739,7 +848,7 @@ def test_qgr012_allows_isinstance_non_dict() -> None:
 
 def test_qgr012_allows_valid_inline_suppression() -> None:
     code = "if isinstance(payload, dict):  # noqa: QGR012 [REASON: Polymorphic DAG payload handling]\n    pass\n"
-    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/execution.py")
     assert len(violations) == 1
     assert violations[0].rule_code == "QGR012"
     assert violations[0].is_suppressed is True
@@ -977,7 +1086,7 @@ def test_qgr016_boundary_exempt_file_warning() -> None:
 def test_qgr016_comment_suppression_works() -> None:
     """QGR016: Inline comment suppression # noqa: QGR016 suppresses the violation."""
     code = "x = val or 'default'  # noqa: QGR016 [REASON: legacy compatibility boundary]\n"
-    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    violations = _scan_snippet(code, filepath="backend_v2/database/drivers/tinydb_driver.py")
     qgr016 = [v for v in violations if v.rule_code == "QGR016"]
     assert len(qgr016) == 1
     assert qgr016[0].is_suppressed is True
@@ -1051,7 +1160,37 @@ def test_qgr017_canonical_imports_allowed_false_positive_immunity() -> None:
 def test_qgr017_comment_suppression_works() -> None:
     """QGR017: Comment suppression with valid reason suppresses the violation."""
     code = "from backend_v2.models.v2_core import Step  # noqa: QGR017 [REASON: temporary historical testing fixture]\n"
-    violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
+    violations = _scan_snippet(code, filepath="backend_v2/tests/fakes/foo.py")
     qgr017 = [v for v in violations if v.rule_code == "QGR017"]
     assert len(qgr017) == 1
     assert qgr017[0].is_suppressed is True
+
+
+# ==============================================================================
+# Partition: QGR018 TypeAdapter Dictionary Laundering Ban & Boundary Exemptions
+# ==============================================================================
+
+
+def test_qgr018_typeadapter_dict_laundering_fatal() -> None:
+    code = "adapter = TypeAdapter(dict[str, Any])\n"
+    violations = _scan_snippet(code)
+    qgr018 = [v for v in violations if v.rule_code == "QGR018"]
+    assert len(qgr018) == 1
+    assert qgr018[0].severity == GuardrailSeverity.FATAL
+    assert "TypeAdapter" in qgr018[0].message
+
+
+def test_qgr018_typeadapter_dto_allowed() -> None:
+    code = "adapter = TypeAdapter(WorkflowResponseDTO)\n"
+    violations = _scan_snippet(code)
+    qgr018 = [v for v in violations if v.rule_code == "QGR018"]
+    assert len(qgr018) == 0
+
+
+def test_boundary_exemption_files_preserved() -> None:
+    code = "val = getattr(obj, 'k', None)\nval2 = data.get('k', 'def')\n"
+    for exempt_file in ["tinydb_driver.py", "firestore_driver.py", "provider.py", "logging_config.py"]:
+        violations = _scan_snippet(code, filepath=f"backend_v2/database/drivers/{exempt_file}")
+        assert all(v.severity == GuardrailSeverity.WARNING for v in violations)
+        assert not any(v.severity == GuardrailSeverity.FATAL for v in violations)
+

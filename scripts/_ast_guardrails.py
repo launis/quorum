@@ -37,7 +37,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
 
 
@@ -87,6 +87,25 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
 }
 
 
+def _is_dict_type_node(node: ast.AST) -> bool:
+    """Checks if an AST node represents a dictionary type or container/union with a dictionary."""
+    match node:
+        case ast.Name(id="dict" | "Dict"):
+            return True
+        case ast.Subscript(value=ast.Name(id="dict" | "Dict")):
+            return True
+        case ast.Subscript(value=ast.Name(id="list" | "List"), slice=inner):
+            return _is_dict_type_node(inner)
+        case ast.BinOp(left=left, op=ast.BitOr(), right=right):
+            return _is_dict_type_node(left) or _is_dict_type_node(right)
+        case ast.Subscript(value=ast.Name(id="Union"), slice=slice_node):
+            if isinstance(slice_node, ast.Tuple):
+                return any(_is_dict_type_node(elt) for elt in slice_node.elts)
+            return _is_dict_type_node(slice_node)
+        case _:
+            return False
+
+
 class CommentSuppressor:
     """Parses inline comment suppressions (# noqa: QGRxxx [REASON: ...]) across physical source lines."""
 
@@ -94,6 +113,11 @@ class CommentSuppressor:
         self.filepath = filepath
         self.suppressions: dict[int, set[str]] = {}
         self.invalid_suppressions: list[GuardrailViolation] = []
+        path_parts = set(filepath.replace("\\", "/").strip("/").split("/"))
+        self._is_domain_code = not (
+            "tests" in path_parts or "scripts" in path_parts or Path(filepath).name.startswith("test_")
+        )
+        self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
         self._parse_comments(source_bytes)
 
     def _parse_comments(self, source_bytes: bytes) -> None:
@@ -119,6 +143,27 @@ class CommentSuppressor:
 
                         qgr_rules = [r for r in rule_codes if r.startswith("QGR") or r == "*"]
                         if qgr_rules:
+                            if self._is_domain_code and not self._is_boundary_exempt:
+                                self.invalid_suppressions.append(
+                                    GuardrailViolation(
+                                        filepath=self.filepath,
+                                        lineno=line_num,
+                                        col_offset=col_offset,
+                                        rule_code="QGR000",
+                                        message=(
+                                            "QGR comment suppressions are strictly prohibited in domain code. "
+                                            "Resolve the underlying architectural violation instead of suppressing it."
+                                        ),
+                                        remediation=(
+                                            "Remove the '# noqa' suppression comment and refactor the code to comply with "
+                                            "architectural invariants (strict Pydantic V2 models, TaskGroup, or in-memory fakes)."
+                                        ),
+                                        severity=GuardrailSeverity.FATAL,
+                                        is_suppressed=False,
+                                    )
+                                )
+                                continue
+
                             cleaned_reason = raw_reason.strip() if raw_reason else ""
                             if (
                                 not cleaned_reason
@@ -145,7 +190,7 @@ class CommentSuppressor:
                         if line_num not in self.suppressions:
                             self.suppressions[line_num] = set()
                         self.suppressions[line_num].update(rule_codes)
-        except (tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError):
+        except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:
             pass
 
     def is_suppressed(self, rule_code: str, start_line: int, end_line: int | None = None) -> bool:
@@ -221,8 +266,25 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             )
         )
 
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        # QGR001: Attribute access to .__dict__
+        if node.attr == "__dict__":
+            qgr001_sev = (
+                GuardrailSeverity.FATAL
+                if (self._is_domain_code and not self._is_boundary_exempt)
+                else GuardrailSeverity.WARNING
+            )
+            self._add_violation(
+                node,
+                "QGR001",
+                "Banned dynamic `.__dict__` access detected.",
+                "Use typed Pydantic `.model_dump()` or direct attribute dot-notation instead of accessing `.__dict__` directly.",
+                severity=qgr001_sev,
+            )
+        self.generic_visit(node)
+
     def visit_Call(self, node: ast.Call) -> None:
-        # QGR001: getattr / hasattr / setattr reflection duck-typing and frozen mutations
+        # QGR001: getattr / hasattr / setattr reflection duck-typing, vars, attrgetter, and frozen mutations
         qgr001_sev = (
             GuardrailSeverity.FATAL
             if (self._is_domain_code and not self._is_boundary_exempt)
@@ -237,6 +299,22 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Use strict Pydantic V2 schema modeling, typed DTO fields, or class hierarchy properties instead of reflection.",
                     severity=qgr001_sev,
                 )
+            case ast.Name(id="vars"):
+                self._add_violation(
+                    node,
+                    "QGR001",
+                    "Banned `vars()` reflection call in domain code.",
+                    "Use explicit Pydantic `.model_dump()` or typed property access instead of dynamic `vars()` reflection.",
+                    severity=qgr001_sev,
+                )
+            case ast.Name(id="attrgetter") | ast.Attribute(value=ast.Name(id="operator"), attr="attrgetter"):
+                self._add_violation(
+                    node,
+                    "QGR001",
+                    "Banned `operator.attrgetter` dynamic reflection call.",
+                    "Use static lambda expressions or direct property access instead of dynamic attrgetter reflection.",
+                    severity=qgr001_sev,
+                )
             case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
                 self._add_violation(
                     node,
@@ -248,46 +326,80 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             case _:
                 pass
 
-        # QGR002: 2-argument .get(key, default) fallback in domain code
-        if isinstance(node.func, ast.Attribute) and node.func.attr == "get" and len(node.args) >= 2:
-            # Exemptions: os.environ, headers, _LABEL_MAP, LABEL_MAP, database driver calls (self.driver.get / driver.get)
-            exempt = False
-            match node.func.value:
-                case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
-                    exempt = True
-                case ast.Attribute(attr="headers") | ast.Name(id="headers"):
-                    exempt = True
-                case (
-                    ast.Name(
-                        id="_LABEL_MAP" | "LABEL_MAP" | "_VALUE_MAP" | "_NAME_MAP" | "_L10N_MAP" | "L10N_MAP" | "driver"
-                    )
-                    | ast.Attribute(
-                        attr="_LABEL_MAP"
-                        | "LABEL_MAP"
-                        | "_VALUE_MAP"
-                        | "_NAME_MAP"
-                        | "_L10N_MAP"
-                        | "L10N_MAP"
-                        | "driver"
-                    )
-                ):
-                    exempt = True
-                case _:
-                    exempt = False
+        # QGR002: 1-argument and 2-argument .get(key) / .get(key, default) fallback in domain code
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
+            # 3. Standard Library Exclusion: 0-argument .get() (specifically ContextVar .get()) is exempt
+            if len(node.args) == 0 and not any(
+                kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
+            ):
+                pass
+            else:
+                # 1. Receiver Exclusion: Exempt legitimate network and storage clients
+                exempt = False
+                receiver = node.func.value
+                match receiver:
+                    case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
+                        exempt = True
+                    case ast.Attribute(attr="headers") | ast.Name(id="headers"):
+                        exempt = True
+                    case (
+                        ast.Name(
+                            id="client"
+                            | "http"
+                            | "requests"
+                            | "session"
+                            | "httpx"
+                            | "driver"
+                            | "_LABEL_MAP"
+                            | "LABEL_MAP"
+                            | "_VALUE_MAP"
+                            | "_NAME_MAP"
+                            | "_L10N_MAP"
+                            | "L10N_MAP"
+                        )
+                        | ast.Attribute(
+                            attr="client"
+                            | "http"
+                            | "requests"
+                            | "session"
+                            | "httpx"
+                            | "driver"
+                            | "_LABEL_MAP"
+                            | "LABEL_MAP"
+                            | "_VALUE_MAP"
+                            | "_NAME_MAP"
+                            | "_L10N_MAP"
+                            | "L10N_MAP"
+                        )
+                    ):
+                        exempt = True
+                    case _:
+                        exempt = False
 
-            if not exempt:
-                qgr002_sev = (
-                    GuardrailSeverity.FATAL
-                    if (self._is_domain_code and not self._is_boundary_exempt)
-                    else GuardrailSeverity.WARNING
-                )
-                self._add_violation(
-                    node,
-                    "QGR002",
-                    "Banned lazy fallback call: `.get(key, default)` in domain code.",
-                    "Use strict Pydantic model validation with default schema fields or direct DTO property access instead of lazy fallbacks.",
-                    severity=qgr002_sev,
-                )
+                # 2. Signature Exclusion: Exempt calls containing network keyword arguments
+                if not exempt:
+                    for kw in node.keywords:
+                        if kw.arg in {"params", "headers", "timeout", "auth", "cookies"}:
+                            exempt = True
+                            break
+
+                if not exempt:
+                    qgr002_sev = (
+                        GuardrailSeverity.FATAL
+                        if (self._is_domain_code and not self._is_boundary_exempt)
+                        else GuardrailSeverity.WARNING
+                    )
+                    if len(node.args) >= 2:
+                        msg = "Banned lazy fallback call: `.get(key, default)` in domain code."
+                    else:
+                        msg = "Banned dictionary lookup call: `.get(key)` in domain code."
+                    self._add_violation(
+                        node,
+                        "QGR002",
+                        msg,
+                        "Use strict Pydantic model validation with default schema fields or direct DTO property access instead of lazy fallbacks or dictionary `.get()` calls.",
+                        severity=qgr002_sev,
+                    )
 
         # QGR006: asyncio.gather() calls
         match node.func:
@@ -478,10 +590,34 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             case _:
                 pass
 
+        # QGR018: Dictionary type laundering via Pydantic TypeAdapter
+        is_type_adapter = False
+        match node.func:
+            case ast.Name(id="TypeAdapter") | ast.Attribute(attr="TypeAdapter"):
+                is_type_adapter = True
+            case _:
+                is_type_adapter = False
+
+        if is_type_adapter and node.args:
+            first_arg = node.args[0]
+            if _is_dict_type_node(first_arg):
+                qgr018_sev = (
+                    GuardrailSeverity.FATAL
+                    if (self._is_domain_code and not self._is_boundary_exempt)
+                    else GuardrailSeverity.WARNING
+                )
+                self._add_violation(
+                    node,
+                    "QGR018",
+                    "Banned type laundering: `TypeAdapter` instantiated with dictionary type.",
+                    "Instantiate `TypeAdapter` with strongly typed Pydantic V2 DTOs or domain models instead of naked dictionaries.",
+                    severity=qgr018_sev,
+                )
+
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
-        # QGR003: Broad except Exception handlers lacking ast.Raise
+        # QGR003: Exception swallowing and broad except Exception handlers lacking ast.Raise
         is_broad = False
         if node.type is None:
             is_broad = True
@@ -493,23 +629,63 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     is_broad = True
                     break
 
-        if is_broad:
-            has_raise = False
-            for stmt in node.body:
-                for sub_node in ast.walk(stmt):
-                    if isinstance(sub_node, ast.Raise):
-                        has_raise = True
-                        break
-                if has_raise:
-                    break
+        has_raise = False
+        has_dlq_or_typed_dispatch = False
+        for sub_node in ast.walk(node):
+            if isinstance(sub_node, ast.Raise):
+                has_raise = True
+                break
+            elif isinstance(sub_node, ast.Call):
+                func = sub_node.func
+                call_name = ""
+                if isinstance(func, ast.Name):
+                    call_name = func.id
+                elif isinstance(func, ast.Attribute):
+                    call_name = func.attr
+                    if isinstance(func.value, ast.Name) and "dlq" in func.value.id.lower():
+                        has_dlq_or_typed_dispatch = True
+                    elif isinstance(func.value, ast.Attribute) and "dlq" in func.value.attr.lower():
+                        has_dlq_or_typed_dispatch = True
+                if "dlq" in call_name.lower():
+                    has_dlq_or_typed_dispatch = True
 
-            if not has_raise:
+        for stmt in node.body:
+            match stmt:
+                case ast.Return(value=ast.Call(func=ret_func)):
+                    ret_name = (
+                        ret_func.id
+                        if isinstance(ret_func, ast.Name)
+                        else (ret_func.attr if isinstance(ret_func, ast.Attribute) else "")
+                    )
+                    if ret_name.endswith(("DTO", "Result", "Response", "Failure")):
+                        has_dlq_or_typed_dispatch = True
+                case _:
+                    pass
+
+        # In domain code outside boundary exemption, all handlers (broad and typed) must have raise or DLQ dispatch
+        if self._is_domain_code and not self._is_boundary_exempt:
+            if not has_raise and not has_dlq_or_typed_dispatch:
+                msg = (
+                    "Broad `except Exception:` handler lacking `raise` or typed DLQ dispatch detected in domain code."
+                    if is_broad
+                    else "Exception handler lacking `raise` or typed failure dispatch detected in domain code."
+                )
                 self._add_violation(
                     node,
                     "QGR003",
-                    "Broad `except Exception:` handler lacking `raise` detected.",
-                    "Catch specific exception types (e.g. (OSError, UnicodeDecodeError)) or re-raise typed AppException inside handlers.",
+                    msg,
+                    "Catch specific exception types and re-raise a typed `AppException`, dispatch to dead-letter queue, or return a typed failure result DTO instead of swallowing exceptions.",
+                    severity=GuardrailSeverity.FATAL,
                 )
+        elif is_broad and not has_raise and not has_dlq_or_typed_dispatch:
+            # In non-domain or boundary exempt code, broad handlers lacking raise emit WARNING
+            self._add_violation(
+                node,
+                "QGR003",
+                "Broad `except Exception:` handler lacking `raise` detected.",
+                "Catch specific exception types (e.g. (OSError, UnicodeDecodeError)) or re-raise typed AppException inside handlers.",
+                severity=GuardrailSeverity.WARNING,
+            )
 
         self.generic_visit(node)
 
