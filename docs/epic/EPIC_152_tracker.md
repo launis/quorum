@@ -112,7 +112,7 @@
 - [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md] --phase=7`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 7.1: Codebase-Wide AST Guardrail Sweep
+  - [ ] Step 7.1: Codebase-Wide AST Guardrail Sweep & Primitive Obsession Eradication (Nested Dicts -> Typed DTOs)
   - [ ] Step 7.2: Live End-to-End Variance Test Run
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
@@ -223,7 +223,7 @@
 | SDUI Model Modernization & UiSection Demolition | Phase 6 | `backend_v2/models/view/sdui.py`, `backend_v2/models/dtos/sdui_rules.py` | Phase 6, Step 6.1 |
 | Legacy Render Service & SDUI Mapper Hardening | Phase 6 | `legacy_render_service.py`, `sdui_mapper_service.py`, `test_legacy_render_service.py` | Phase 6, Step 6.2 |
 | Client App Reports & Execution Client Parity | Phase 6 | `reports_client.dart`, `execution_client.dart` | Phase 6, Step 6.3 |
-| Codebase-Wide AST Guardrail Sweep | Phase 7 | `scripts/audit_dict_eradication.py` | Phase 7, Step 7.1 |
+| Codebase-Wide AST Guardrail Sweep & Primitive Obsession Eradication | Phase 7 | `scripts/audit_dict_eradication.py`, `_ast_guardrails.py`, `lightweight_matrix.py` | Phase 7, Step 7.1 |
 | Live End-to-End Variance Test Run | Phase 7 | `scripts/run_e2e_variance_test.py` | Phase 7, Step 7.2 |
 
 # Session Handover Context

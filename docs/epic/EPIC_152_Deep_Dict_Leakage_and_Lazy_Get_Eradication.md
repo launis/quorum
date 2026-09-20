@@ -1182,6 +1182,7 @@ Mathematically verify zero dictionary leakage violations and zero dynamic reflec
    - Run `@[scripts/_ast_guardrails.py]` across `backend_v2` and `scripts`.
    - Mathematically verify:
      - Exactly 0 naked `dict[str, Any]` annotations in non-exempt files.
+     - Exactly 0 Primitive Obsession nested dictionary annotations (`dict[..., dict[...]]` regardless of inner key or value type) across all domain models, DTOs, services, hooks, SDUI adapters, workers, and utility signatures codebase-wide; specifically and exhaustively, migrate `level_breakdown: dict[str, dict[str, int]] | None = None` in `LightweightMatrixOutput` and `breakdown: dict[str, dict[str, int]]` in `ScoringResultDTO` to strictly typed `dict[str, LevelStatsDTO]`, migrate all SDUI adapter `AESTHETICS_RULES` to typed `AdapterAestheticsDTO`, and enforce static dot-notation access across all consumers with exactly 0 dictionary subscripting.
      - Exactly 0 service-layer `isinstance(..., dict)` checks.
      - Exactly 0 unauthorized `# noqa: QGR` suppressions across all 95+ backend and script files.
      - Exactly 0 `getattr()`, `hasattr()`, or `object.__setattr__()` calls across domain models, DTOs, services, workers, drivers, scripts, and test suites (specifically and exhaustively: the 213 reflection instances).
@@ -1209,6 +1210,7 @@ Mathematically verify zero dictionary leakage violations and zero dynamic reflec
 
 ### 4.1 Definition of Done (DoD)
 - [ ] Exactly 0 naked `dict[str, Any]` annotations remain in service, hook, orchestrator, and worker public signatures.
+- [ ] Exactly 0 Primitive Obsession nested dictionary annotations (`dict[..., dict[...]]` regardless of inner key or value types) remain across the entire codebase; all structured metrics, scale performance breakdowns, and adapter aesthetic configurations are strictly typed via dedicated Pydantic V2 DTOs (specifically including `LightweightMatrixOutput.level_breakdown` and `ScoringResultDTO.breakdown` as `dict[str, LevelStatsDTO]`), with zero inner primitive dictionaries and zero dictionary subscripting across consumers.
 - [ ] Exactly 0 `.get("key", default)` fallback calls remain in `hooks/` and `services/orchestrator/`.
 - [ ] Exactly 0 silent `except ...: pass` or `except ...: continue` exception swallowing blocks exist in the codebase.
 - [ ] Exactly 0 unraised exception log statements (`logger.warning` / `logger.error` without re-raise, DLQ status, or wrapping in `AppException`) remain in background workers, orchestrator engines, services, hooks, or audit scripts.

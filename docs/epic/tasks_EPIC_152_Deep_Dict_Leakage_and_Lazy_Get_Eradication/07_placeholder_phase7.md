@@ -4,19 +4,22 @@
 **Source:** @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] Phase 7: Full-Spectrum Verification, AST Guardrails & Live E2E Gate
 **Target Files:**
 - `[MODIFY]` @[scripts/audit_dict_eradication.py]
+- `[MODIFY]` @[scripts/_ast_guardrails.py]
 - `[MODIFY]` @[scripts/run_e2e_variance_test.py]
+- `[MODIFY]` @[backend_v2/models/dtos/lightweight_matrix.py]
 
 ```xml
 <execution_protocol>
   <step id="0" name="STRATEGIC ALIGNMENT CHECK">
     <action>Look backward: Verify that Phases 1 through 6 completed all structural refactoring and DTO hardening.</action>
-    <action>Look forward: Verify that zero dictionary leakages or lazy .get() calls remain anywhere in the production execution pipeline.</action>
+    <action>Look forward: Verify that zero dictionary leakages, lazy .get() calls, or Primitive Obsession nested dictionary antipatterns remain anywhere in the production execution pipeline.</action>
     <constraint>If alignment is broken, STOP and request Course Correction.</constraint>
     <directive>EPIC &amp; TRACKER SYNC MANDATE: If this plan is mutated during Tier 0 analysis, you MUST simultaneously open the parent Epic document @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] and synchronize architectural corrections back into the Epic. If a Tracker document exists (@[docs/epic/EPIC_152_tracker.md]), you MUST update its # Session Handover Context and set Resume Command to /tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md] (ALWAYS passing BOTH the plan file and the tracker file).</directive>
   </step>
 
   <dod_checklist>
-    <item>AST audit script @[scripts/audit_dict_eradication.py] reports zero violations across all production packages.</item>
+    <item>AST audit script @[scripts/audit_dict_eradication.py] reports zero violations across all production packages, including exactly 0 naked dict annotations and 0 Primitive Obsession nested dictionary annotations (`dict[..., dict[...]]` regardless of key or value types) across models, DTOs, services, workers, and adapters.</item>
+    <item>LightweightMatrixOutput.level_breakdown and ScoringResultDTO.breakdown in @[backend_v2/models/dtos/lightweight_matrix.py] are migrated from `dict[str, dict[str, int]]` to strongly typed `dict[str, LevelStatsDTO]`, with dot-notation access (.hits, .total) across all consumers and exactly 0 dictionary subscripting.</item>
     <item>End-to-end variance verification suite @[scripts/run_e2e_variance_test.py] passes 100%.</item>
     <item>Telemetry and monitoring summaries DiscoveredModelDTO, FinOpsMonitorSummaryDTO, and FinOpsFinalizeSummaryDTO verified.</item>
   </dod_checklist>
@@ -53,12 +56,16 @@
 
   <touched_artifacts>
     <backend>@[scripts/audit_dict_eradication.py]</backend>
+    <backend>@[scripts/_ast_guardrails.py]</backend>
     <backend>@[scripts/run_e2e_variance_test.py]</backend>
+    <backend>@[backend_v2/models/dtos/lightweight_matrix.py]</backend>
   </touched_artifacts>
 
-  <step id="7.1" name="Codebase-Wide AST Guardrail Sweep">
-    <action>Execute @[scripts/audit_dict_eradication.py] across entire backend_v2 directory.</action>
-    <action>Verify zero QGR018 violations.</action>
+  <step id="7.1" name="Codebase-Wide AST Guardrail Sweep &amp; Primitive Obsession Eradication">
+    <action>Execute @[scripts/audit_dict_eradication.py] across entire backend_v2 directory with codebase-wide nested dictionary Primitive Obsession detection.</action>
+    <action>Migrate LightweightMatrixOutput.level_breakdown and ScoringResultDTO.breakdown to strictly typed dict[str, LevelStatsDTO].</action>
+    <action>Refactor consumers (MatrixExplanationService, scoring hooks, adapters) to static dot-notation (.hits, .total), eliminating dict subscripting.</action>
+    <action>Verify zero QGR018, QGR001, and Primitive Obsession nested dictionary violations across all modules.</action>
   </step>
 
   <step id="7.2" name="Live End-to-End Variance Test Run">

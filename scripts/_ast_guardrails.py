@@ -2,6 +2,7 @@
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
+Enforces zero permissive typing (QGR018) and Primitive Obsession eradication in conjunction with scripts/audit_dict_eradication.py.
 """
 
 from __future__ import annotations

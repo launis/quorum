@@ -8,6 +8,7 @@ Statically analyzes backend Python files to mathematically verify:
 5. Exactly 0 syntax/AST parse errors across the scanned scope.
 6. Exactly 0 unexempt .get() calls in domain, service, hook, and worker layers.
 7. Exactly 0 dynamic reflection calls (getattr, hasattr, setattr) in domain layers.
+8. Exactly 0 Primitive Obsession nested dictionary annotations (dict[..., dict[...]]).
 """
 
 from __future__ import annotations
@@ -66,6 +67,7 @@ class DictEradicationReport:
     syntax_parse_errors: int = 0
     banned_get_calls: int = 0
     reflection_calls: int = 0
+    primitive_obsession_nested_dicts: int = 0
     violations: list[AuditViolation] = field(default_factory=list)
 
     @property
@@ -79,6 +81,7 @@ class DictEradicationReport:
             + self.syntax_parse_errors
             + self.banned_get_calls
             + self.reflection_calls
+            + self.primitive_obsession_nested_dicts
         )
 
 
@@ -104,100 +107,202 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.violations: list[AuditViolation] = []
 
     def _is_naked_dict_subscript(self, node: ast.AST) -> bool:
-        """Checks whether an AST node is a subscript of dict[str, Any] or dict[str, object]."""
-        if not isinstance(node, ast.Subscript):
-            return False
-
-        # Check if subscript value is dict or Dict
-        is_dict_type = False
-        match node.value:
-            case ast.Name(id="dict" | "Dict"):
-                is_dict_type = True
-            case ast.Attribute(attr="dict" | "Dict"):
-                is_dict_type = True
-            case _:
+        """Checks whether an AST node contains a subscript of dict[..., Any/object]."""
+        for target in ast.walk(node):
+            if isinstance(target, ast.Subscript):
                 is_dict_type = False
-
-        if not is_dict_type:
-            return False
-
-        # Inspect slice
-        match node.slice:
-            case ast.Tuple(elts=elements) if len(elements) == 2:
-                val_type = elements[1]
-                match val_type:
-                    case ast.Name(id="Any" | "object"):
-                        return True
-                    case ast.Attribute(attr="Any" | "object"):
-                        return True
+                match target.value:
+                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                        is_dict_type = True
                     case _:
-                        return False
-            case _:
-                return False
+                        is_dict_type = False
+
+                if is_dict_type:
+                    match target.slice:
+                        case ast.Tuple(elts=elements) if len(elements) == 2:
+                            val_type = elements[1]
+                            match val_type:
+                                case ast.Name(id="Any" | "object") | ast.Attribute(attr="Any" | "object"):
+                                    return True
+                                case _:
+                                    pass
+                        case ast.Name(id="Any" | "object") | ast.Attribute(attr="Any" | "object"):
+                            return True
+                        case _:
+                            pass
+        return False
+
+    def _find_nested_dict_subscript(self, node: ast.AST | None) -> ast.Subscript | None:
+        """Finds any nested dictionary annotation like dict[..., dict[...]] in the AST node."""
+        if node is None:
+            return None
+        for sub in ast.walk(node):
+            if isinstance(sub, ast.Subscript):
+                is_outer_dict = False
+                match sub.value:
+                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                        is_outer_dict = True
+                    case _:
+                        pass
+                if is_outer_dict:
+                    match sub.slice:
+                        case ast.Tuple(elts=elements) if len(elements) == 2:
+                            val_type = elements[1]
+                            for inner in ast.walk(val_type):
+                                if isinstance(inner, ast.Subscript):
+                                    match inner.value:
+                                        case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                                            return sub
+                                        case _:
+                                            pass
+                        case _:
+                            pass
+        return None
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        """Inspects variable type annotations for naked dicts."""
-        if not self.is_exempt and not self.is_test and self._is_naked_dict_subscript(node.annotation):
-            self.violations.append(
-                AuditViolation(
-                    filepath=self.filepath,
-                    line=node.lineno,
-                    metric="naked_dict_annotations",
-                    message=f"Naked dict annotation found: `{ast.unparse(node.annotation)}`",
+        """Inspects variable type annotations for naked dicts and primitive obsession nested dicts."""
+        if not self.is_exempt and not self.is_test:
+            if self._is_naked_dict_subscript(node.annotation):
+                self.violations.append(
+                    AuditViolation(
+                        filepath=self.filepath,
+                        line=node.lineno,
+                        metric="naked_dict_annotations",
+                        message=f"Naked dict annotation found: `{ast.unparse(node.annotation)}`",
+                    )
                 )
-            )
+            if self._find_nested_dict_subscript(node.annotation) is not None:
+                self.violations.append(
+                    AuditViolation(
+                        filepath=self.filepath,
+                        line=node.lineno,
+                        metric="primitive_obsession_nested_dicts",
+                        message=(
+                            f"Primitive Obsession nested dict annotation found: `{ast.unparse(node.annotation)}`. "
+                            "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                        ),
+                    )
+                )
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         """Inspects function parameter and return type annotations."""
         if not self.is_exempt and not self.is_test:
-            if node.returns is not None and self._is_naked_dict_subscript(node.returns):
-                self.violations.append(
-                    AuditViolation(
-                        filepath=self.filepath,
-                        line=node.lineno,
-                        metric="naked_dict_annotations",
-                        message=f"Naked dict return type annotation in `{node.name}`: `{ast.unparse(node.returns)}`",
-                    )
-                )
-
-            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
-            for arg in all_args:
-                if arg.annotation is not None and self._is_naked_dict_subscript(arg.annotation):
+            if node.returns is not None:
+                if self._is_naked_dict_subscript(node.returns):
                     self.violations.append(
                         AuditViolation(
                             filepath=self.filepath,
-                            line=arg.lineno,
+                            line=node.lineno,
                             metric="naked_dict_annotations",
-                            message=f"Naked dict argument annotation for `{arg.arg}` in `{node.name}`: `{ast.unparse(arg.annotation)}`",
+                            message=(
+                                f"Naked dict return type annotation in `{node.name}`: "
+                                f"`{ast.unparse(node.returns)}`"
+                            ),
                         )
                     )
+                if self._find_nested_dict_subscript(node.returns) is not None:
+                    self.violations.append(
+                        AuditViolation(
+                            filepath=self.filepath,
+                            line=node.lineno,
+                            metric="primitive_obsession_nested_dicts",
+                            message=(
+                                f"Primitive Obsession nested dict return type in `{node.name}`: "
+                                f"`{ast.unparse(node.returns)}`. "
+                                "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                            ),
+                        )
+                    )
+
+            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+            for arg in all_args:
+                if arg.annotation is not None:
+                    if self._is_naked_dict_subscript(arg.annotation):
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=arg.lineno,
+                                metric="naked_dict_annotations",
+                                message=(
+                                    f"Naked dict argument annotation for `{arg.arg}` in `{node.name}`: "
+                                    f"`{ast.unparse(arg.annotation)}`"
+                                ),
+                            )
+                        )
+                    if self._find_nested_dict_subscript(arg.annotation) is not None:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=arg.lineno,
+                                metric="primitive_obsession_nested_dicts",
+                                message=(
+                                    f"Primitive Obsession nested dict argument for `{arg.arg}` in `{node.name}`: "
+                                    f"`{ast.unparse(arg.annotation)}`. "
+                                    "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                                ),
+                            )
+                        )
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
         """Inspects async function parameter and return type annotations."""
         if not self.is_exempt and not self.is_test:
-            if node.returns is not None and self._is_naked_dict_subscript(node.returns):
-                self.violations.append(
-                    AuditViolation(
-                        filepath=self.filepath,
-                        line=node.lineno,
-                        metric="naked_dict_annotations",
-                        message=f"Naked dict return type annotation in async `{node.name}`: `{ast.unparse(node.returns)}`",
-                    )
-                )
-
-            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
-            for arg in all_args:
-                if arg.annotation is not None and self._is_naked_dict_subscript(arg.annotation):
+            if node.returns is not None:
+                if self._is_naked_dict_subscript(node.returns):
                     self.violations.append(
                         AuditViolation(
                             filepath=self.filepath,
-                            line=arg.lineno,
+                            line=node.lineno,
                             metric="naked_dict_annotations",
-                            message=f"Naked dict argument annotation for `{arg.arg}` in async `{node.name}`: `{ast.unparse(arg.annotation)}`",
+                            message=(
+                                f"Naked dict return type annotation in async `{node.name}`: "
+                                f"`{ast.unparse(node.returns)}`"
+                            ),
                         )
                     )
+                if self._find_nested_dict_subscript(node.returns) is not None:
+                    self.violations.append(
+                        AuditViolation(
+                            filepath=self.filepath,
+                            line=node.lineno,
+                            metric="primitive_obsession_nested_dicts",
+                            message=(
+                                f"Primitive Obsession nested dict return type in async `{node.name}`: "
+                                f"`{ast.unparse(node.returns)}`. "
+                                "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                            ),
+                        )
+                    )
+
+            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+            for arg in all_args:
+                if arg.annotation is not None:
+                    if self._is_naked_dict_subscript(arg.annotation):
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=arg.lineno,
+                                metric="naked_dict_annotations",
+                                message=(
+                                    f"Naked dict argument annotation for `{arg.arg}` in async `{node.name}`: "
+                                    f"`{ast.unparse(arg.annotation)}`"
+                                ),
+                            )
+                        )
+                    if self._find_nested_dict_subscript(arg.annotation) is not None:
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=arg.lineno,
+                                metric="primitive_obsession_nested_dicts",
+                                message=(
+                                    f"Primitive Obsession nested dict argument for `{arg.arg}` in async `{node.name}`: "
+                                    f"`{ast.unparse(arg.annotation)}`. "
+                                    "Encapsulate inner dictionary in a typed Pydantic V2 DTO."
+                                ),
+                            )
+                        )
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
@@ -448,6 +553,8 @@ def audit_dict_eradication(
         for v in visitor.violations:
             if v.metric == "naked_dict_annotations":
                 report.naked_dict_annotations += 1
+            elif v.metric == "primitive_obsession_nested_dicts":
+                report.primitive_obsession_nested_dicts += 1
             elif v.metric == "service_duck_typing":
                 report.service_duck_typing += 1
             elif v.metric == "dict_utils_references":
@@ -487,15 +594,16 @@ def main(argv: list[str] | None = None) -> int:
     target = args if args else "backend_v2"
     report = audit_dict_eradication(target)
 
-    print(f"1. Naked Dict Annotations (dict[str, Any]):  {report.naked_dict_annotations}")
-    print(f"2. Service Layer Duck-Typing (isinstance):   {report.service_duck_typing}")
-    print(f"3. Unauthorized # noqa Suppressions:         {report.unauthorized_suppressions}")
-    print(f"4. Legacy dict_utils References:             {report.dict_utils_references}")
-    print(f"5. Syntax/AST Parse Errors:                  {report.syntax_parse_errors}")
-    print(f"6. Banned Internal .get() Calls:             {report.banned_get_calls}")
-    print(f"7. Dynamic Reflection Calls:                 {report.reflection_calls}")
+    print(f"1. Naked Dict Annotations (dict[str, Any]):     {report.naked_dict_annotations}")
+    print(f"2. Primitive Obsession (Nested dict[..., dict]): {report.primitive_obsession_nested_dicts}")
+    print(f"3. Service Layer Duck-Typing (isinstance):      {report.service_duck_typing}")
+    print(f"4. Unauthorized # noqa Suppressions:            {report.unauthorized_suppressions}")
+    print(f"5. Legacy dict_utils References:                {report.dict_utils_references}")
+    print(f"6. Syntax/AST Parse Errors:                     {report.syntax_parse_errors}")
+    print(f"7. Banned Internal .get() Calls:                {report.banned_get_calls}")
+    print(f"8. Dynamic Reflection Calls:                    {report.reflection_calls}")
     print("-" * 80)
-    print(f"TOTAL VIOLATIONS:                            {report.total_violations}")
+    print(f"TOTAL VIOLATIONS:                               {report.total_violations}")
     print("=" * 80)
 
     if report.total_violations > 0:
