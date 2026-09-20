@@ -83,7 +83,7 @@
   - [x] Step 4.5: Workers, Loggers & Background Services Error Swallowing & Emoji Eradication
   - [x] Step 4.6: Comprehensive Test Suites Modernization, Hook Fixture Reflection Eradication & New Matrix Hook Suite
 - [x] **[OK] Test Coverage Assertions:** 100% test contract pass rate across all 6 validation gates (>90% coverage on all touched modules, 0 fatal AST violations, 0 emojis, clean Ruff & Mypy).
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+- [ ] **[NOK] Audit:** Tier 8 Audit completed with verdict **FAILED (Remediation Required)**. See @[red_team_audit_04_placeholder_phase4.md]. Blockers: 5 F841 unused variables in global check, 8 D107/E501 docstring/line-length errors, test regressions in `test_hook_state.py`, `test_hook_registry.py`, `test_dag_executor.py`, NoneType TraceEvent in `dag_executor.py`, and QGR012 in `global_context.py`.
 
 ### Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md]
@@ -232,17 +232,23 @@
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
 - Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode: Result Projector segregation (`ProjectedResultsDTO`, `MatrixProjectionResultDTO`), Global Context & Hook Delta DTO hardening (`GlobalContextVarsDTO`, `HookDeltaDTO`), Scoring Hooks hardening (`matrix_hook.py`, `normalization_hook.py`), complete emoji eradication across analytical logs and payloads, hook consumers dot-notation migration across 11 hooks and 4 worker/strategy callers, error swallowing eradication in background workers, and comprehensive test suite modernization (`test_matrix_hook.py`, `test_override_service.py`).
-- All 6 Phase 4 Validation Gates passed 100% with exit code 0 and >90% coverage.
+- All 6 Phase 4 local validation gates passed 100% with exit code 0 and >90% coverage.
+- Completed Tier 8 post-implementation audit of Phase 4 (@[red_team_audit_04_placeholder_phase4.md]). Identified 5 specific remediation items required to pass the global quality gate.
 
 ## Learned
 - In `override_service.py`, `record.context_variables` is a model attribute under `ExecutionCoreFields`; updating it requires `record = record.model_copy(update={"context_variables": updated_context_vars})` rather than direct attribute reassignment.
 - `EvaluatedMatrixContextDTO.raw_atoms` strictly enforces `EvaluatedAtomDTO` under `extra="forbid"`, preventing untyped or loose DTO cross-contamination.
 - `ExecutionRecord.profile_syntheses` values must conform to `RenderedSynthesisCache` with strict extra='forbid' typing, requiring valid instances in test fixtures.
 - `_ast_guardrails.py` QGR003 (exception swallowing rule) permits helper functions whose names contain `"dlq"` (or receiver containing `"dlq"`), or returning DTO/Response/Result/Failure objects, cleanly satisfying DLQ logging patterns in background workers.
+- The Global Completion Gate (`backend_audit_loop.py backend_v2/ --test`) runs `ruff check --fix` across all files; local target-only gates are insufficient to catch unused variables and docstring/line-length violations across touched files.
+- When refactoring DTOs like `GlobalContextVarsDTO` and `HookDeltaDTO`, legacy unit tests outside the target boundary (e.g. `test_hook_state.py`, `test_hook_registry.py`, `test_dag_executor.py`) must be synchronized per the `anti_tdd_trap` mandate.
+- In `dag_executor.py`, `HookDeltaDTO.delta` defaulting to `None` causes `TraceEvent(content=delta_content)` to fail Pydantic validation if not defaulted to `{}`.
 
 ## Remaining
-- Phase 4 Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
-- Phases 5-7 execution and post-implementation hardening gates.
+- Phase 4 Remediation: Execute `/tier2-execute` to fix the 5 audit items and achieve 100% clean global audit loop.
+- Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening.
+- Phases 6-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier2-execute @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+
