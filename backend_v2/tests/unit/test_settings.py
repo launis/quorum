@@ -100,7 +100,6 @@ def test_settings_properties_and_computed_fields() -> None:
 
     assert settings.active_backend == StorageBackend.FIRESTORE
     assert settings.is_cloud_storage is True
-    assert settings.model_strategies == {}
     assert settings.log_format == "json"
     assert settings.allow_mock_tokens is False
     assert settings.schema_max_chunk_records == settings.llm_max_chunk_size + 5

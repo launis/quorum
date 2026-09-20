@@ -206,8 +206,8 @@ def resolve_dot_notation(state: Any, path: str) -> Any:
                 case collections.abc.Sequence() if not isinstance(curr, (str, bytes)):
                     curr = curr[int(part)]
                 case BaseModel():
-                    if part in curr.model_fields:
-                        curr = curr.__dict__[part]
+                    if part in type(curr).model_fields:
+                        curr = object.__getattribute__(curr, part)
                     else:
                         raise KeyError(part)
                 case _:

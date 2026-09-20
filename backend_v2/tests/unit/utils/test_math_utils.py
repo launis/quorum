@@ -1,4 +1,5 @@
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import AppException, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
@@ -123,3 +124,22 @@ def test_resolve_dot_notation_invalid_list_index() -> None:
 def test_resolve_dot_notation_empty_path() -> None:
     state = {"a": 1}
     assert resolve_dot_notation(state, "") == state
+
+
+def test_math_utils_resolve_dot_notation_base_model_without_dict() -> None:
+    """Test contract 4: BaseModel instance queried via dot-notation path resolves attribute via object.__getattribute__ with zero __dict__ reflection."""
+
+    class SampleModel(BaseModel):
+        name: str
+        score: float
+
+        model_config = ConfigDict(extra="forbid", strict=True)
+
+    model = SampleModel(name="Alpha", score=95.5)
+    assert resolve_dot_notation(model, "name") == "Alpha"
+    assert resolve_dot_notation(model, "score") == 95.5
+
+    with pytest.raises(MissingInputMappingError) as exc_info:
+        resolve_dot_notation(model, "missing_field")
+    assert "Failed at 'missing_field': KeyError" in exc_info.value.details["reason"]
+

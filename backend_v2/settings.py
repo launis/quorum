@@ -614,18 +614,6 @@ class Settings(BaseSettings):
         """
         return self.active_backend == StorageBackend.FIRESTORE
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def model_strategies(self) -> dict[str, Any]:
-        """Returns empty dict by default.
-
-        Strategies MUST be loaded from 'system_config' table in database.
-
-        Returns:
-            A map of dynamically fetched LLM settings.
-        """
-        return {}
-
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"),
         env_ignore_empty=True,
