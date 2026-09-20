@@ -6,7 +6,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -112,32 +112,70 @@ async def build_variance_metrics_and_task(
             if not isinstance(event, TraceEvent):
                 continue
             if event.event_type == "decision" and performative_phrases_count is None:
-                try:
-                    dec_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
-                    if "step_linguistics" in dec_content:
-                        ling_out = LinguisticsResultDTO.model_validate(dec_content["step_linguistics"], strict=False)
+                if type(event.content) is dict and "step_linguistics" in event.content:
+                    try:
+                        raw_ling = event.content["step_linguistics"]
+                        ling_out = (
+                            raw_ling
+                            if isinstance(raw_ling, LinguisticsResultDTO)
+                            else LinguisticsResultDTO.model_validate(raw_ling, strict=False)
+                        )
                         patterns = ling_out.performative_patterns
                         if isinstance(patterns, list):
                             performative_phrases_count = len(patterns)
                         if ling_out.total_word_count is not None:
                             total_word_count = int(ling_out.total_word_count)
-                except ValidationError, TypeError, ValueError:
-                    pass
+                    except (ValidationError, TypeError, ValueError) as err:
+                        logger.error(
+                            "[variance_synthesis] Failed to validate step_linguistics: %s",
+                            err,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                        raise AppException(
+                            message=f"Corrupted step_linguistics in execution trace: {err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        ) from err
 
             if event.event_type == "output" and authenticity_score is None:
-                try:
-                    out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
-                    if target_block_id in out_content:
-                        det_out = LightweightMatrixOutput.model_validate(out_content[target_block_id], strict=False)
+                if isinstance(event.content, LightweightMatrixOutput):
+                    if event.content.raw_score is not None:
+                        authenticity_score = float(event.content.raw_score)
+                elif type(event.content) is dict and target_block_id in event.content:
+                    try:
+                        raw_mat = event.content[target_block_id]
+                        det_out = (
+                            raw_mat
+                            if isinstance(raw_mat, LightweightMatrixOutput)
+                            else LightweightMatrixOutput.model_validate(raw_mat, strict=False)
+                        )
                         if det_out.raw_score is not None:
                             authenticity_score = float(det_out.raw_score)
-                except ValidationError, TypeError, ValueError:
-                    pass
+                    except (ValidationError, TypeError, ValueError) as err:
+                        logger.error(
+                            "[variance_synthesis] Failed to validate LightweightMatrixOutput for %s: %s",
+                            target_block_id,
+                            err,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                        raise AppException(
+                            message=f"Corrupted LightweightMatrixOutput for {target_block_id}: {err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        ) from err
 
             if authenticity_score is not None and performative_phrases_count is not None:
                 break
 
     if authenticity_score is None or performative_phrases_count is None:
+        logger.warning(
+            "[variance_synthesis] OutputProfile '%s' requires variance validation, "
+            "but metrics could not be extracted: authenticity_score=%s, performative_phrases_count=%s. "
+            "Skipping variance synthesis task.",
+            active_profile_dto.id,
+            authenticity_score,
+            performative_phrases_count,
+        )
         return None, None
 
     variance_res = variance_engine.calculate_mechanical_cognitive_variance(
@@ -149,17 +187,24 @@ async def build_variance_metrics_and_task(
     if total_word_count is not None and total_word_count > 0:
         jargon_density = round((performative_phrases_count / max(1, total_word_count)) * 100.0, 2)
 
+    int_word_count = None
+    if total_word_count is not None:
+        int_word_count = int(total_word_count)
+
     ext_metrics = ExtensionMetricsDTO(
         authenticity_score=float(authenticity_score),
         performative_phrases_count=float(performative_phrases_count),
         variance_score=float(variance_res.variance_score),
         alignment_verdict=str(variance_res.alignment_verdict),
         jargon_density=float(jargon_density),
-        total_word_count=int(total_word_count) if total_word_count is not None else None,
+        total_word_count=int_word_count,
     )
 
-    var_provider = execution.metadata.provider_override if execution.metadata else None
-    var_reg_id = execution.metadata.model_registry_id if execution.metadata else None
+    var_provider = None
+    var_reg_id = None
+    if execution.metadata:
+        var_provider = execution.metadata.provider_override
+        var_reg_id = execution.metadata.model_registry_id
     if not var_reg_id:
         var_reg_id = workflow_registry_id
 

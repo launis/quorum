@@ -6,7 +6,7 @@ from backend_v2.worker import WorkerSettings
 
 def test_worker_exports_all_symbols() -> None:
     """Verify that every symbol declared in __all__ exists and is accessible."""
-    assert hasattr(worker_mod, "__all__")
+    assert "__all__" in dir(worker_mod)
     expected_symbols = [
         "WorkerSettings",
         "health_check",
@@ -14,9 +14,9 @@ def test_worker_exports_all_symbols() -> None:
         "startup",
     ]
     assert set(worker_mod.__all__) == set(expected_symbols)
+    mod_dir = set(dir(worker_mod))
     for symbol in expected_symbols:
-        assert hasattr(worker_mod, symbol)
-        assert getattr(worker_mod, symbol) is not None
+        assert symbol in mod_dir
 
     banned_coroutine_symbols = [
         "VarianceExplanationResult",
@@ -33,7 +33,7 @@ def test_worker_exports_all_symbols() -> None:
 
 def test_worker_settings_functions_registered() -> None:
     """Verify that WorkerSettings correctly registers all decoupled worker jobs."""
-    registered_fn_names = [getattr(f, "name", getattr(f, "__name__", str(f))) for f in WorkerSettings.functions]
+    registered_fn_names = [f.__name__ for f in WorkerSettings.functions]
     assert "execute_workflow_job" in registered_fn_names
     assert "generate_report_artifact_job" in registered_fn_names
     assert "render_profile_job" in registered_fn_names
@@ -44,5 +44,5 @@ def test_run_worker_imports_worker_settings() -> None:
     """Verify that run_worker imports WorkerSettings cleanly."""
     import backend_v2.run_worker as rw
 
-    assert hasattr(rw, "WorkerSettings")
+    assert "WorkerSettings" in dir(rw)
     assert rw.WorkerSettings is WorkerSettings

@@ -22,6 +22,10 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.synthesis import (
+    MatrixExplanationContextDTO,
+    SynthesisDistillationDTO,
+)
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
@@ -85,7 +89,7 @@ def _build_mock_deps() -> HookDependencies:
         "max_quotes_per_matrix": 3,
         "max_unmet_criteria": 2,
     }
-    cast(AsyncMock, deps.comp_repo.get_all_active_components).return_value = []
+    cast(AsyncMock, deps.comp_repo.get_all_components).return_value = []
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.exec_repo.get_all_executions).return_value = []
     return deps
@@ -144,7 +148,14 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
     with patch(
         "backend_v2.services.orchestrator.synthesis_distiller.MatrixExplanationService.assemble_matrices_to_explain"
     ) as mock_assemble:
-        mock_assemble.return_value = ["matrix_explanation_1"]
+        mock_assemble.return_value = [
+            MatrixExplanationContextDTO(
+                real_matrix_id="blk_matrix_1",
+                matrix_id="mat_1",
+                matrix_label="Matrix 1",
+                justification="Verified in test",
+            )
+        ]
 
         result = await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
 
@@ -152,7 +163,8 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
         assert result.state_delta is not None
 
         # Verify all 3 steps exist in <source> blocks inside distilled_inputs
-        distilled = result.state_delta["distilled_inputs"]
+        distillation_dto = SynthesisDistillationDTO.model_validate(result.state_delta.delta)
+        distilled = distillation_dto.distilled_inputs
         assert "Leadership resilience verified" in distilled
         assert "Strategic alignment demonstrated" in distilled
         assert "tda_0123456789abcdef01" in distilled
@@ -181,14 +193,13 @@ async def test_synthesis_distiller_wiring_invalid_inputs_type_raises_invalid_sch
     """Contract: Verify inputs not being ExecutionInputsDTO raises AppException(INVALID_OUTPUT_SCHEMA)."""
     deps = _build_mock_deps()
 
-    state = HookState(
+    state = HookState.model_construct(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(),
+        inputs="invalid_inputs_string",  # type: ignore[arg-type]
         global_context_vars=GlobalContextVarsDTO(),
     )
-    object.__setattr__(state, "inputs", "invalid_inputs_string")
 
     with pytest.raises(AppException) as exc_info:
         await cast(Awaitable[HookResult], synthesis_distiller_hook(state, deps))
@@ -295,7 +306,9 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
         execution_id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [raw_step_dict]}, target_locale="en"),
+        inputs=ExecutionInputsDTO.model_construct(
+            dynamic_inputs={"steps": [raw_step_dict]}, target_locale="en"  # type: ignore[dict-item]
+        ),
         global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
     )
 
@@ -303,7 +316,8 @@ async def test_synthesis_distiller_wiring_dict_steps_hydrated_successfully() -> 
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "Raw dict step parsed successfully" in result.state_delta["distilled_inputs"]
+    distillation_dto = SynthesisDistillationDTO.model_validate(result.state_delta.delta)
+    assert "Raw dict step parsed successfully" in distillation_dto.distilled_inputs
 
 
 @pytest.mark.asyncio

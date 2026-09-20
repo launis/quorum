@@ -8,10 +8,11 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -71,9 +72,7 @@ class SynthesisPayloadCompressor:
         elif isinstance(v, list):
             v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
 
-        try:
-            validated_payload: dict[str, Any] | list[Any] = TypeAdapter(dict[str, Any] | list[Any]).validate_python(v)
-        except ValidationError as val_err:
+        if not (type(v) is dict or isinstance(v, list)):
             logger.error(
                 "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
                 ErrorCodes.VALIDATION_FAILED.name,
@@ -82,12 +81,16 @@ class SynthesisPayloadCompressor:
                 message="Payload must be a dict, list, string, or scalar for compression.",
                 status_code=400,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from val_err
+            )
+
+        validated_payload: dict[str, Any] | list[Any] = v
 
         clean_v = copy.deepcopy(validated_payload)
         settings = get_settings()
 
-        def _prune_and_stratify_evaluations(evals: list[dict[str, Any]], limit: int) -> list[dict[str, Any]]:
+        def _prune_and_stratify_evaluations(
+            evals: list[EvaluatedAtomDTO] | list[dict[str, Any]], limit: int
+        ) -> list[EvaluatedAtomDTO] | list[dict[str, Any]]:
             """Prune and stratify evaluations with deterministic prioritized stratification.
 
             When limit == 0: Unbounded mode (forward all without truncation).
@@ -100,19 +103,38 @@ class SynthesisPayloadCompressor:
             if limit == 0 or len(evals) <= limit:
                 return evals
 
-            deficits: list[dict[str, Any]] = []
-            strengths: list[dict[str, Any]] = []
+            deficits: list[Any] = []
+            strengths: list[Any] = []
 
             for item in evals:
-                status = item.get("status")
+                if isinstance(item, EvaluatedAtomDTO):
+                    status = item.status
+                elif type(item) is dict:
+                    status = item["status"] if "status" in item else None
+                else:
+                    logger.error(
+                        "[SynthesisPayloadCompressor] %s: Invalid evaluation item type: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        type(item),
+                    )
+                    raise AppException(
+                        message=f"Invalid evaluation item type: {type(item)}",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
                 if status in ("FAILED", "UNMET", "NON_COMPLIANT"):
                     deficits.append(item)
                 else:
                     strengths.append(item)
 
-            def sort_key(item: dict[str, Any]) -> tuple[int, str]:
-                quotes = item.get("exact_quotes") or []
-                atom_id = str(item.get("atom_id") or "")
+            def sort_key(item: EvaluatedAtomDTO | dict[str, Any]) -> tuple[int, str]:
+                if isinstance(item, EvaluatedAtomDTO):
+                    quotes = item.exact_quotes
+                    atom_id = item.atom_id or item.tda_id
+                else:
+                    quotes = item["exact_quotes"] if "exact_quotes" in item else []
+                    atom_id = str(item["atom_id"]) if "atom_id" in item else ""
                 return (-len(quotes), atom_id)
 
             deficits.sort(key=sort_key)
@@ -134,7 +156,13 @@ class SynthesisPayloadCompressor:
                 selected_strengths = strengths[:strength_budget]
 
             selected = selected_deficits + selected_strengths
-            selected.sort(key=lambda x: str(x.get("atom_id") or ""))
+
+            def get_atom_id(x: EvaluatedAtomDTO | dict[str, Any]) -> str:
+                if isinstance(x, EvaluatedAtomDTO):
+                    return str(x.atom_id or x.tda_id)
+                return str(x["atom_id"]) if "atom_id" in x else ""
+
+            selected.sort(key=get_atom_id)
 
             logger.warning(
                 "Token Shield: Prioritized stratification applied",
@@ -182,17 +210,40 @@ class SynthesisPayloadCompressor:
                         for ev in results_data:
                             if isinstance(ev, (str, int, float, bool)) or ev is None:
                                 logger.error(
-                                    "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary.",
+                                    "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                                     ErrorCodes.VALIDATION_FAILED.name,
                                 )
                                 raise AppException(
-                                    message="Evaluation item must be a dictionary.",
+                                    message="Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                                     status_code=400,
                                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                 )
 
-                            if "exact_quotes" in ev:
-                                if not (ev.get("atom_id") or ev.get("tda_id")):
+                            if isinstance(ev, EvaluatedAtomDTO):
+                                atom_id = ev.atom_id or ev.tda_id
+                                valid_quotes = [
+                                    q.strip()
+                                    for q in ev.exact_quotes
+                                    if q.strip()
+                                    and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
+                                    and not (q.strip().startswith("[") and q.strip().endswith("]"))
+                                ]
+                                if valid_quotes:
+                                    sanitized_ev = DistilledEvaluation(
+                                        atom_id=atom_id,
+                                        exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
+                                        semantic_reasoning=(
+                                            str(ev.evaluation_reasoning)[: settings.max_synthesis_reasoning_length]
+                                            if ev.evaluation_reasoning
+                                            else None
+                                        ),
+                                    )
+                                    dumped = sanitized_ev.model_dump(mode="json")
+                                    if ev.status:
+                                        dumped["status"] = ev.status
+                                    lite_evals.append(dumped)
+                            elif type(ev) is dict and "exact_quotes" in ev:
+                                if "atom_id" not in ev or not ev["atom_id"]:
                                     logger.error(
                                         "[SynthesisPayloadCompressor] %s: "
                                         "Missing mandatory field in evaluation: atom_id",
@@ -206,7 +257,7 @@ class SynthesisPayloadCompressor:
 
                                 try:
                                     lite_ev_dict = {
-                                        "atom_id": ev.get("atom_id") or ev.get("tda_id"),
+                                        "atom_id": ev["atom_id"],
                                         "exact_quotes": ev["exact_quotes"],
                                     }
                                     if "semantic_reasoning" in ev:
@@ -268,7 +319,7 @@ class SynthesisPayloadCompressor:
                                     if "status" in ev and "status" not in dumped:
                                         dumped["status"] = ev["status"]
                                     lite_evals.append(dumped)
-                            else:
+                            elif type(ev) is dict:
                                 normalized = _normalize_result_item(ev)
                                 if normalized:
                                     lite_evals.append(normalized)
@@ -288,8 +339,17 @@ class SynthesisPayloadCompressor:
 
                     for _, val in list(obj.items()):
                         _strip_heavy_keys(val)
-                except AttributeError, TypeError:
-                    pass
+                except (AttributeError, TypeError) as e:
+                    logger.error(
+                        "[SynthesisPayloadCompressor] %s: Key stripping failed: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        str(e),
+                    )
+                    raise AppException(
+                        message=f"Key stripping failed: {str(e)}",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
 
         _strip_heavy_keys(clean_v)
         return json.dumps(clean_v, ensure_ascii=False, indent=2)

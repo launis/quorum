@@ -20,6 +20,7 @@ from backend_v2.models.dtos.synthesis import (
     MatrixExplanationContextList,
     MatrixExplanationsResult,
     MatrixSectionSynthesesResult,
+    SynthesisDistillationDTO,
     XaiHighlightsResult,
 )
 from backend_v2.models.enums import (
@@ -124,15 +125,15 @@ async def create_matrix_sections_tasks(
     distilled_inputs: str,
     matrix_context: str,
     active_profile_dto: OutputProfile | None,
-    distilled_data: dict[str, Any],
+    distilled_data: SynthesisDistillationDTO,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> list[tuple[str, Any]]:
     """Build and execute matrix synthesis group structured tasks."""
     if not active_profile_dto or not active_profile_dto.requires_group_synthesis:
         return []
 
-    language = distilled_data["language"] if "language" in distilled_data else "en"
-    title_map: dict[str, str] = distilled_data["title_map"] if "title_map" in distilled_data else {}
+    language = distilled_data.target_locale
+    title_map: dict[str, str] = distilled_data.title_map
     tasks_results: list[tuple[str, Any]] = []
 
     for grp in active_profile_dto.matrix_synthesis_groups:
@@ -168,7 +169,9 @@ async def create_matrix_sections_tasks(
             for tb in grp.target_blocks:
                 if tb.lower() in title_map:
                     target_titles.append(title_map[tb.lower()])
-        target_str = f' targets="{", ".join(target_titles)}"' if target_titles else ""
+        target_str = ""
+        if target_titles:
+            target_str = f' targets="{", ".join(target_titles)}"'
 
         grp_dynamic_parts = list(base_dynamic_parts)
         if active_profile_dto.matrix_graph_length_constraint:
@@ -233,7 +236,9 @@ async def create_xai_highlights_task(
     if active_profile_dto.visible_block_extensions:
         wf_exts.extend(active_profile_dto.visible_block_extensions)
     wf_exts = list(dict.fromkeys(wf_exts))
-    req_exts = ", ".join(str(e) for e in wf_exts) if wf_exts else "none"
+    req_exts = "none"
+    if wf_exts:
+        req_exts = ", ".join(str(e) for e in wf_exts)
 
     if not active_profile_dto.xai_synthesis_directive or not active_profile_dto.xai_synthesis_directive.strip():
         logger.warning(
@@ -286,8 +291,11 @@ async def create_row_explanations_task(
     if not matrices_to_explain or (active_profile_dto is not None and not active_profile_dto.requires_row_explanations):
         return None
 
-    row_provider_override = execution.metadata.provider_override if execution.metadata else None
-    row_reg_id = execution.metadata.model_registry_id if execution.metadata else None
+    row_provider_override = None
+    row_reg_id = None
+    if execution.metadata:
+        row_provider_override = execution.metadata.provider_override
+        row_reg_id = execution.metadata.model_registry_id
     if not row_reg_id:
         row_reg_id = workflow_registry_id
 
@@ -327,11 +335,11 @@ async def create_row_explanations_task(
         )
     row_dynamic_ctx = "\n\n".join(row_dynamic_parts)
 
-    matrices_json = (
-        MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode("utf-8")
-        if matrices_to_explain
-        else ""
-    )
+    matrices_json = ""
+    if matrices_to_explain:
+        matrices_json = MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode(
+            "utf-8"
+        )
     row_user_content = (
         f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>\n\nMATRICES TO EXPLAIN:\n{matrices_json}"
     )

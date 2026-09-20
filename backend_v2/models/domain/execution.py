@@ -193,6 +193,8 @@ class ExecutionRecord(ExecutionCoreFields):
         execution_trace_storage_path: str | None = Field(default=None)
         context_variables: dict[str, Any] = Field(default_factory=dict)
         context_variables_storage_path: str | None = Field(default=None)
+        progress: int | None = Field(default=None)
+        status_message: str | None = Field(default=None)
 
     id: str = Field(pattern=OPAQUE_STRIPE_ID_REGEX, description="Execution ID, usually a uuid")
     workflow_id: str = Field(description="Workflow ID")

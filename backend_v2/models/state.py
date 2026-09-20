@@ -54,17 +54,7 @@ class StepExecutionEnvelope(V2CoreBase):
     v2_engine: bool | None = Field(default=None)
 
 
-class StepOutputDTO(V2CoreBase):
-    """Strict execution trace payload format."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    step_id: str = Field(description="The opaque DAG Step ID.")
-    block_id: str = Field(description="The opaque PromptBlock ID.")
-    data_type: Literal["text", "matrix", "unknown"] = Field(
-        description="Inferred or explicitly parsed data type (e.g. matrix, text)."
-    )
-    payload: Any = Field(description="The actual data payload.")
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 
 from backend_v2.models.domain.usage import TokenUsage

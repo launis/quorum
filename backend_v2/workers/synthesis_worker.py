@@ -29,6 +29,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.synthesis import (
     MatrixExplanationContextDTO,
     MatrixExplanationContextList,
+    SynthesisDistillationDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import (
@@ -134,7 +135,9 @@ async def generate_profile_synthesis_and_pdf_task(
             exec_record_local = await repo.get_execution(execution_id, hydrate=False)
             if exec_record_local:
                 exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-                old_state = exec_record_local.step_states.get(v_step_id)
+                old_state: ExecutionStep | None = None
+                if v_step_id in exec_record_local.step_states:
+                    old_state = exec_record_local.step_states[v_step_id]
                 if old_state:
                     updated_state = old_state.model_copy(update={"label": msg, "status": ExecutionStatus.RUNNING})
                 else:
@@ -224,22 +227,17 @@ async def generate_profile_synthesis_and_pdf_task(
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
-        distilled_data = hook_result.state_delta.delta
-        if "distilled_inputs" not in distilled_data:
+        try:
+            distilled_dto = SynthesisDistillationDTO.model_validate(hook_result.state_delta.delta)
+        except ValidationError as e:
             raise AppException(
-                message="Fail-Fast: distilled_inputs missing from state_delta.",
+                message=f"Fail-Fast: distilled_inputs missing from state_delta: {e}",
                 status_code=500,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+            ) from e
 
-        distilled_inputs = distilled_data["distilled_inputs"]
-        raw_matrices = []
-        if "matrices_to_explain" in distilled_data:
-            raw_matrices = distilled_data["matrices_to_explain"]
-        matrices_to_explain: list[MatrixExplanationContextDTO] = [
-            m if isinstance(m, MatrixExplanationContextDTO) else MatrixExplanationContextDTO.model_validate(m)
-            for m in raw_matrices
-        ]
+        distilled_inputs = distilled_dto.distilled_inputs
+        matrices_to_explain: list[MatrixExplanationContextDTO] = list(distilled_dto.matrices_to_explain)
 
         is_synthesis_expected = True
         if active_profile_dto is not None:
@@ -265,8 +263,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 f"<tone_instruction>{active_profile_dto.tone_instruction.strip()}</tone_instruction>"
             )
 
-        synthesis_provider = execution.metadata.provider_override if execution.metadata else None
-        synthesis_reg_id = execution.metadata.model_registry_id if execution.metadata else None
+        synthesis_provider = None
+        synthesis_reg_id = None
+        if execution.metadata:
+            synthesis_provider = execution.metadata.provider_override
+            synthesis_reg_id = execution.metadata.model_registry_id
         if not synthesis_reg_id:
             synthesis_reg_id = workflow_def.model_registry_id
 
@@ -277,12 +278,14 @@ async def generate_profile_synthesis_and_pdf_task(
             registry_id=synthesis_reg_id,
         )
 
-        matrices_json = (
-            MatrixExplanationContextList.dump_json(matrices_to_explain, indent=2, exclude_none=True).decode("utf-8")
-            if matrices_to_explain
-            else ""
-        )
-        matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{matrices_json}" if matrices_json else ""
+        matrices_json = ""
+        if matrices_to_explain:
+            matrices_json = MatrixExplanationContextList.dump_json(
+                matrices_to_explain, indent=2, exclude_none=True
+            ).decode("utf-8")
+        matrix_context = ""
+        if matrices_json:
+            matrix_context = f"\n\nMATRICES TO EXPLAIN:\n{matrices_json}"
         sys_prompt = (
             f"{SYNTHESIS_SYSTEM_PROMPT}\n\n"
             f"{SYNTHESIS_SDUI_MANDATES}\n\n"
@@ -323,7 +326,7 @@ async def generate_profile_synthesis_and_pdf_task(
                         distilled_inputs=distilled_inputs,
                         matrix_context=matrix_context,
                         active_profile_dto=active_profile_dto,
-                        distilled_data=distilled_data,
+                        distilled_data=distilled_dto,
                         sem_runner=_run_with_sem,
                     )
                 )
@@ -363,15 +366,20 @@ async def generate_profile_synthesis_and_pdf_task(
 
             t_var_wrapper = tg.create_task(_var_runner())
 
-        t_matrix_sections = t_matrix_task.result() if is_synthesis_expected else []
+        t_matrix_sections = []
+        if is_synthesis_expected:
+            t_matrix_sections = t_matrix_task.result()
         ext_metrics, t_variance_result = t_var_wrapper.result()
 
         synth_cost = 0.0
         synth_tokens = 0
         sec_dict = {}
 
+        exec_summary_res = None
+        if t_exec_summary is not None:
+            exec_summary_res = t_exec_summary.result()
         exec_dto, exec_blocks, c1, tok1 = process_executive_summary_result(
-            t_exec_summary.result() if t_exec_summary else None,
+            exec_summary_res,
             active_profile_dto,
         )
         if exec_blocks:
@@ -384,15 +392,21 @@ async def generate_profile_synthesis_and_pdf_task(
         synth_cost += c2
         synth_tokens += tok2
 
+        xai_res = None
+        if t_xai is not None:
+            xai_res = t_xai.result()
         xai_highlights_list, c3, tok3 = process_xai_highlights_result(
-            t_xai.result() if t_xai else None,
+            xai_res,
             active_profile_dto,
         )
         synth_cost += c3
         synth_tokens += tok3
 
+        row_res = None
+        if t_row is not None:
+            row_res = t_row.result()
         cache_row_explanations, c4, tok4 = process_row_explanations_result(
-            t_row.result() if t_row else None,
+            row_res,
             matrices_to_explain,
             active_profile_dto,
         )
@@ -408,8 +422,11 @@ async def generate_profile_synthesis_and_pdf_task(
                 synth_cost += usage.cost_usd
                 synth_tokens += usage.total_tokens
 
-        user_role_val: str | None = exec_dto.user_role if exec_dto else None
-        user_role_just: str | None = exec_dto.user_role_justification if exec_dto else None
+        user_role_val: str | None = None
+        user_role_just: str | None = None
+        if exec_dto is not None:
+            user_role_val = exec_dto.user_role
+            user_role_just = exec_dto.user_role_justification
         if active_profile_dto and active_profile_dto.user_role_target_block:
             user_role_val, user_role_just = extract_user_role_from_trace(
                 execution=execution,
@@ -418,19 +435,27 @@ async def generate_profile_synthesis_and_pdf_task(
                 default_justification=user_role_just,
             )
 
+        cited_sources: list[str] = []
+        if exec_dto is not None and exec_dto.cited_sources:
+            cited_sources = list(exec_dto.cited_sources)
+
         cache = RenderedSynthesisCache(
             section_syntheses=sec_dict,
             row_explanations=cache_row_explanations,
             variance_explanation=variance_expl,
-            cited_sources=list(exec_dto.cited_sources) if exec_dto and exec_dto.cited_sources else [],
+            cited_sources=cited_sources,
             xai_highlights=xai_highlights_list,
             user_role=user_role_val,
             user_role_justification=user_role_just,
             extension_metrics=ext_metrics,
         )
 
-        current_syntheses = dict(execution.profile_syntheses) if execution.profile_syntheses is not None else {}
-        pid = profile_id if profile_id is not None else "default"
+        current_syntheses: dict[str, Any] = {}
+        if execution.profile_syntheses is not None:
+            current_syntheses = dict(execution.profile_syntheses)
+        pid = "default"
+        if profile_id is not None:
+            pid = profile_id
         current_syntheses[pid] = cache
 
         prev_tokens = execution.cumulative_synthesis_tokens

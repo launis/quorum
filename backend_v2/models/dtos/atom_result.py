@@ -166,6 +166,9 @@ class EvaluatedAtomDTO(V2CoreBase):
     status: Annotated[str | None, Field(default=None, description="Evaluation status string or enum")] = None
     score: Annotated[float | int | None, Field(default=None, description="Atom evaluation score")] = None
     human_override: Annotated[str | None, Field(default=None, description="Human override status")] = None
+    exact_quotes: Annotated[
+        list[str], Field(default_factory=list, description="Verbatim extracted source quotes")
+    ] = Field(default_factory=list)
     source_quote: Annotated[str | None, Field(default=None, description="Verbatim source quote")] = None
     evaluation_reasoning: Annotated[str | None, Field(default=None, description="Cognitive reasoning explanation")] = (
         None

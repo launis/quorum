@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ type IngressInputValue = Annotated[
 ]
 
 type DomainInputValue = Annotated[
-    GuidedReflectionInputDTO | str | int | float | bool | list[str],
+    StepOutputDTO | list[StepOutputDTO] | GuidedReflectionInputDTO | str | int | float | bool | list[str],
     Field(description="Strict closed union of extracted domain inputs (Base64Attachment strictly excluded)"),
 ]
 

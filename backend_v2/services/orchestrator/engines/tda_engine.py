@@ -89,8 +89,14 @@ class TDAEngine(ExecutionEngine):
                     atoms_map = raw_blackboard["atoms_by_input"]
                 if is_starved_flag or not atoms_map:
                     is_starved = True
-            except (TypeError, KeyError):  # fmt: skip
-                pass
+            except (TypeError, KeyError) as err:
+                msg = f"Corrupted __GLOBAL_ATOM_BLACKBOARD__ in context_variables: {err}"
+                logger.error("[TDAEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from err
 
         if is_starved:
             logger.info(

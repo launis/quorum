@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -16,6 +17,7 @@ from backend_v2.models.dtos.synthesis import (
     SynthesisSectionDTO,
     XaiHighlightsResult,
 )
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
@@ -29,13 +31,18 @@ def _find_profile_syntheses(calls: list[Any], exec_id: str = "exec_1234567812345
         args, _kwargs = call
         if len(args) >= 2 and args[0] == exec_id:
             payload = args[1]
-            ps = getattr(payload, "profile_syntheses", None) or (
-                payload.get("profile_syntheses") if isinstance(payload, dict) else None
-            )
-            if ps is not None and isinstance(ps, dict):
+            ps: dict[str, Any] | None = None
+            if isinstance(payload, ExecutionUpdateDTO):
+                ps = payload.profile_syntheses
+            elif isinstance(payload, dict) and "profile_syntheses" in payload:
+                ps = payload["profile_syntheses"]
+            if ps is not None:
                 res: dict[str, Any] = {}
                 for k, v in ps.items():
-                    res[str(k)] = v.model_dump(mode="json") if hasattr(v, "model_dump") else v
+                    if isinstance(v, BaseModel):
+                        res[str(k)] = v.model_dump(mode="json")
+                    elif isinstance(v, dict):
+                        res[str(k)] = v
                 return res
     return None
 

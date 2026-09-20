@@ -52,11 +52,10 @@ class TwoPassAtomizer:
 
         packets: list[tuple[str, str, list[str]]] = []
         if not block_keys:
-            packets.append(("[NO_BLOCK]", "[NO_BLOCK]", []))
-        else:
-            for i in range(0, len(block_keys), packet_size):
-                packet_keys = block_keys[i : i + packet_size]
-                packets.append((packet_keys[0], packet_keys[-1], packet_keys))
+            return []
+        for i in range(0, len(block_keys), packet_size):
+            packet_keys = block_keys[i : i + packet_size]
+            packets.append((packet_keys[0], packet_keys[-1], packet_keys))
         return packets
 
     async def execute_phase_0(
@@ -82,6 +81,8 @@ class TwoPassAtomizer:
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         packets = self._calculate_packets(hydrated_text)
+        if not packets:
+            return GlobalOntologyMap(entities=[], macro_rules=[]), total_usage
 
         encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
@@ -167,7 +168,10 @@ class TwoPassAtomizer:
         ontology_json = ontology.model_dump_json()
         system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
 
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         packets = self._calculate_packets(hydrated_text)
+        if not packets:
+            return [], total_usage
 
         encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
@@ -183,7 +187,6 @@ class TwoPassAtomizer:
         )
 
         all_atoms = []
-        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
             async with asyncio.TaskGroup() as tg:
@@ -261,16 +264,11 @@ class TwoPassAtomizer:
                             f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!"
                         )
 
-                    try:
-                        resolved = alias_engine.resolve_alias(clean_id)
-                        if resolved != clean_id:
-                            exact_quote = resolved
-                    except AppException as exc:
-                        logger.warning(
-                            "AliasEngine hallucination detected for %s: %s",
-                            tda_id,
-                            exc.message,
-                        )
+                    exact_quote = None
+                    if clean_id in alias_engine.alias_map:
+                        exact_quote = alias_engine.alias_map[clean_id]
+                    else:
+                        logger.warning("AliasEngine hallucination detected for %s: %s", tda_id, clean_id)
 
                     if not exact_quote:
                         logger.warning(
@@ -315,7 +313,10 @@ class TwoPassAtomizer:
         ontology_json = ontology.model_dump_json()
         system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
 
+        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         packets = self._calculate_packets(hydrated_text)
+        if not packets:
+            return DraftAtomList(atoms=[], dlq_status=None), total_usage
 
         encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
@@ -331,7 +332,6 @@ class TwoPassAtomizer:
         )
 
         all_atoms = []
-        total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         has_dlq = False
         try:
             sem = semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
@@ -441,16 +441,10 @@ class TwoPassAtomizer:
                     continue
 
                 exact_quote = None
-                try:
-                    resolved = alias_engine.resolve_alias(clean_id)
-                    if resolved != clean_id:
-                        exact_quote = resolved
-                except AppException as exc:
-                    logger.warning(
-                        "AliasEngine hallucination detected for %s: %s",
-                        clean_id,
-                        exc.message,
-                    )
+                if clean_id in alias_engine.alias_map:
+                    exact_quote = alias_engine.alias_map[clean_id]
+                else:
+                    logger.warning("AliasEngine hallucination detected for %s: %s", clean_id, clean_id)
 
                 if not exact_quote:
                     logger.warning("corrupted_atom_dropped", extra={"reason": "hallucinated_block_id_not_found"})
@@ -485,7 +479,12 @@ class TwoPassAtomizer:
                 client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
             )
         except (ValidationError, AppException, OSError, RuntimeError, ValueError, RetryError) as e:
-            logger.error("DLQ Worker Failed: %s", e, exc_info=True)
-            return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ"), TokenUsage(
-                prompt_tokens=0, completion_tokens=0, total_tokens=0
-            )
+            return self._dispatch_dlq_failure(e)
+
+    @staticmethod
+    def _dispatch_dlq_failure(exc: Exception) -> tuple[DraftAtomList, TokenUsage]:
+        """Dispatch unhandled chunk worker failure to typed DLQ result."""
+        logger.error("DLQ Worker Failed: %s", exc, exc_info=True)
+        return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ"), TokenUsage(
+            prompt_tokens=0, completion_tokens=0, total_tokens=0
+        )

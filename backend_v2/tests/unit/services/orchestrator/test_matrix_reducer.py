@@ -7,7 +7,9 @@ import pytest
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.matrix_reducer import MatrixReducer
 
 
@@ -53,48 +55,40 @@ def test_reduce_matrix() -> None:
     Uses MagicMock to simulate ExecutionRecord → step_states → scorecard_atoms,
     mirroring the real ScorecardAtomDTO interface.
     """
-    # Build mock atoms
-    atom_passed = MagicMock()
-    atom_passed.status = "PASSED"
-    atom_passed.extracted_facts = {}
-    atom_passed.exact_quotes = []
-    atom_passed.semantic_reasoning = "Passed without data"
+    # Build typed atoms
+    atom_passed = AtomResultDTO(
+        tda_id="tda_11111111111111111111111111111111",
+        status=ExecutionStatus.PASSED,
+        source_quote="Passed quote",
+        evaluation_reasoning="Passed without data",
+    )
 
-    atom_failed = MagicMock()
-    atom_failed.status = "FAILED"
-    atom_failed.extracted_facts = {}
-    atom_failed.exact_quotes = [QuoteEvidenceDTO(quote="A failed claim quote", verified_source_ids=["src_1"])]
-    atom_failed.semantic_reasoning = "Failed completely"
+    atom_failed = AtomResultDTO(
+        tda_id="tda_22222222222222222222222222222222",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Failed completely",
+    )
 
-    atom_pass_with_data = MagicMock()
-    atom_pass_with_data.status = "PASSED"
-    atom_pass_with_data.extracted_facts = {"revenue": "1M EUR"}
-    atom_pass_with_data.exact_quotes = []
-    atom_pass_with_data.semantic_reasoning = "Passed with extracted data"
+    atom_pass_with_data = AtomResultDTO(
+        tda_id="tda_33333333333333333333333333333333",
+        status=ExecutionStatus.PASSED,
+        source_quote="Data quote",
+        extracted_data=ExtractedValueDTO(value="1M", unit="EUR"),
+        evaluation_reasoning="Passed with extracted data",
+    )
 
-    atom_unstarted = MagicMock()
-    atom_unstarted.status = None
-    atom_unstarted.extracted_facts = {}
-    atom_unstarted.exact_quotes = []
-    atom_unstarted.semantic_reasoning = "Unstarted atom"
+    atom_unstarted = AtomResultDTO(
+        tda_id="tda_00000000000000000000000000000000",
+        status=ExecutionStatus.PENDING,
+        evaluation_reasoning="Unstarted atom",
+    )
 
-    # Build mock step state
-    step_state = MagicMock()
-    step_state.scorecard_atoms = {
-        "tda_00000000000000000000000000000000": atom_unstarted,
-        "tda_11111111111111111111111111111111": atom_passed,
-        "tda_22222222222222222222222222222222": atom_failed,
-        "tda_33333333333333333333333333333333": atom_pass_with_data,
-    }
-
-    # Build mock ExecutionRecord where record.steps has empty scorecard_atoms (matching real runtime)
+    # Build mock ExecutionRecord
     record = MagicMock()
     record.id = "exe_12345678901234567890123456789012"
     record.duration_ms = 100
-    empty_step_record = MagicMock()
-    empty_step_record.scorecard_atoms = {}
-    record.steps = [empty_step_record]
-    record.step_states = {"step_1": step_state}
+    record.steps = []
+    record.step_states = {}
 
     # Populate execution_trace with various event types
     class MockOutputModel(BaseModel):
@@ -106,7 +100,19 @@ def test_reduce_matrix() -> None:
     evt_primitive = MagicMock(event_type="output", content="plain string")
     evt_none = MagicMock(event_type="output", content=None)
     evt_error_items = MagicMock(event_type="output", content={"bad_item": "non_dict_val"})
-    record.execution_trace = [evt_output_dict, evt_output_model, evt_input, evt_primitive, evt_none, evt_error_items]
+    evt_atoms = MagicMock(
+        event_type="output",
+        content={"results": [atom_unstarted, atom_passed, atom_failed, atom_pass_with_data]},
+    )
+    record.execution_trace = [
+        evt_output_dict,
+        evt_output_model,
+        evt_input,
+        evt_primitive,
+        evt_none,
+        evt_error_items,
+        evt_atoms,
+    ]
 
     reduced = MatrixReducer.reduce_matrix(record)
 
@@ -121,8 +127,10 @@ def test_reduce_matrix() -> None:
     assert "tda_00000000000000000000000000000000" not in tda_ids
 
     # Verify source_quote extraction
+    passed_data_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_33333333333333333333333333333333")
+    assert passed_data_atom.source_quote == "Data quote"
     failed_atom = next(a for a in reduced.reduced_atoms if a.tda_id == "tda_22222222222222222222222222222222")
-    assert failed_atom.source_quote == "A failed claim quote"
+    assert failed_atom.source_quote is None
 
     assert reduced.execution_id == "exe_12345678901234567890123456789012"
     assert reduced.global_metrics["total_atoms"] == 4
@@ -205,3 +213,84 @@ def test_reduce_matrix_from_execution_trace_runtime_parity() -> None:
     reduced_ids = {a.tda_id for a in reduced.reduced_atoms}
     assert "tda_22222222222222222222222222222222" in reduced_ids
     assert "tda_33333333333333333333333333333333" in reduced_ids
+
+
+def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
+    """Test reduce_matrix extracting atoms from StepOutputDTO instances in trace."""
+    from backend_v2.models.state import StepOutputDTO
+
+    atom_with_meta = AtomResultDTO(
+        tda_id="tda_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Failed with metadata",
+        matrix_id="mat_governance",
+        extensions={"domain": "compliance"},
+    )
+    duplicate_atom = AtomResultDTO(
+        tda_id="tda_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        status=ExecutionStatus.FAILED,
+        evaluation_reasoning="Duplicate atom",
+    )
+    atom_in_list = AtomResultDTO(
+        tda_id="tda_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        status=ExecutionStatus.PASSED,
+        source_quote="Direct list quote",
+        extracted_data=ExtractedValueDTO(value="42", unit="pts"),
+        evaluation_reasoning="Passed in direct list payload",
+    )
+
+    record = MagicMock()
+    record.id = "exe_11111111111111111111111111111111"
+    record.duration_ms = 300
+    record.step_states = {}
+    record.steps = []
+
+    evt_dto_dict = MagicMock(
+        event_type="output",
+        step_name="step_gov",
+        content=StepOutputDTO(
+            step_id="stp_1",
+            block_id="blk_1",
+            data_type="matrix",
+            payload={"results": [atom_with_meta.model_dump(), duplicate_atom.model_dump()]},
+        ),
+    )
+    evt_dto_list = MagicMock(
+        event_type="output",
+        step_name="step_list",
+        content=StepOutputDTO(
+            step_id="stp_2",
+            block_id="blk_2",
+            data_type="matrix",
+            payload=[atom_in_list.model_dump()],
+        ),
+    )
+    record.execution_trace = [evt_dto_dict, evt_dto_list]
+
+    reduced = MatrixReducer.reduce_matrix(record)
+    assert reduced.global_metrics["total_atoms"] == 2
+    assert any(m["matrix_id"] == "mat_governance" for m in reduced.evaluated_matrices)
+    assert len(reduced.reduced_atoms) == 2
+
+
+def test_reduce_matrix_invalid_atom_raises_app_exception() -> None:
+    """Test reduce_matrix raises AppException(ErrorCodes.VALIDATION_FAILED) on malformed atom results."""
+    from backend_v2.exceptions import AppException
+
+    record = MagicMock()
+    record.id = "exe_22222222222222222222222222222222"
+    record.duration_ms = 100
+    record.step_states = {}
+    record.steps = []
+
+    evt_corrupted = MagicMock(
+        event_type="output",
+        content={"results": [{"invalid_atom_structure": 123}]},
+    )
+    record.execution_trace = [evt_corrupted]
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixReducer.reduce_matrix(record)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+

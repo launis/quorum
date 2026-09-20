@@ -13,6 +13,8 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.synthesis import DistilledEvaluation
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
 
@@ -337,3 +339,75 @@ def test_compress_payload_nested_list_of_results() -> None:
     res_dict = json.loads(res_str)
     assert "hydrated_references" not in res_dict["step_output"][0]
     assert len(res_dict["step_output"][0]["results"]) == 1
+
+
+def test_compress_payload_with_evaluated_atom_dtos() -> None:
+    """PROMISE: Prove that EvaluatedAtomDTO objects are properly sanitized, stratified, and compressed."""
+    dto1 = EvaluatedAtomDTO(
+        tda_id="tda_failed_1",
+        atom_id="tda_failed_1",
+        status="FAILED",
+        exact_quotes=["Failed evidence quote 1"],
+        evaluation_reasoning="Reasoning for failure",
+    )
+    dto2 = EvaluatedAtomDTO(
+        tda_id="tda_passed_1",
+        atom_id="tda_passed_1",
+        status="PASSED",
+        exact_quotes=["Passed evidence quote 1"],
+        evaluation_reasoning="Reasoning for pass",
+    )
+    payload = {"results": [dto1, dto2]}
+
+    res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    res_dict = json.loads(res_str)
+    assert len(res_dict["results"]) == 2
+    atom_ids = [r["atom_id"] for r in res_dict["results"]]
+    assert "tda_failed_1" in atom_ids
+    assert "tda_passed_1" in atom_ids
+
+
+def test_compress_payload_stratification_dynamic_spillover_small_strengths() -> None:
+    """PROMISE: Prove dynamic spillover when strengths partition is smaller than allocated budget."""
+    deficits = [
+        EvaluatedAtomDTO(
+            tda_id=f"tda_def_{i:02d}",
+            atom_id=f"tda_def_{i:02d}",
+            status="FAILED",
+            exact_quotes=[f"Quote def {i}"],
+            evaluation_reasoning="Deficit reasoning",
+        )
+        for i in range(15)
+    ]
+    strengths = [
+        EvaluatedAtomDTO(
+            tda_id="tda_str_01",
+            atom_id="tda_str_01",
+            status="PASSED",
+            exact_quotes=["Quote str 1"],
+            evaluation_reasoning="Strength reasoning",
+        )
+    ]
+    payload = {"results": deficits + strengths}
+
+    # Limit = 10 (deficit_budget = 7, strength_budget = 3, but strengths has only 1, so deficits gets 9)
+    with patch(
+        "backend_v2.services.orchestrator.synthesis_payload_compressor.get_settings",
+        return_value=Settings(max_synthesis_evaluations=10),
+    ):
+        res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+        res_dict = json.loads(res_str)
+        assert len(res_dict["results"]) == 10
+        # 1 strength and 9 deficits
+        assert any(r["atom_id"] == "tda_str_01" for r in res_dict["results"])
+        retained_deficits = [r for r in res_dict["results"] if r["atom_id"] != "tda_str_01"]
+        assert len(retained_deficits) == 9
+
+
+def test_compress_payload_invalid_evaluation_item_type() -> None:
+    """PROMISE: Prove that non-dict non-EvaluatedAtomDTO items in results raise AppException."""
+    payload = {"results": ["not_a_valid_evaluation_item"]}
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+

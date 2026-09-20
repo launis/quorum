@@ -26,6 +26,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
@@ -54,15 +55,13 @@ async def _fetch_historical_context(
     if mode == HistoricalContextMode.DISABLED:
         return ""
 
-    try:
+    user_id = None
+    if "user_id" in state.global_context_vars.vars:
         user_id = state.global_context_vars.vars["user_id"]
-    except KeyError:
-        user_id = None
 
-    try:
+    org_id = None
+    if "organization_id" in state.global_context_vars.vars:
         org_id = state.global_context_vars.vars["organization_id"]
-    except KeyError:
-        org_id = None
 
     if not (user_id or org_id):
         return ""
@@ -111,7 +110,9 @@ async def _fetch_historical_context(
 
     historical_parts = []
     for past_e, past_md in reversed(valid_past):
-        dt_str = past_e.completed_at.strftime("%Y-%m-%d") if past_e.completed_at else "Unknown Date"
+        dt_str = "Unknown Date"
+        if past_e.completed_at:
+            dt_str = past_e.completed_at.strftime("%Y-%m-%d")
         historical_parts.append(f"--- Execution Date: {dt_str} ---\n{past_md}")
 
     return "<HistoricalContext>\n" + "\n\n".join(historical_parts) + "\n</HistoricalContext>\n\n"
@@ -150,12 +151,7 @@ def _build_title_map(
     if workflow_data.steps:
         step_def_map = {s.id: s for s in all_steps}
         for step in workflow_data.steps:
-            try:
-                target_step = step_def_map[step.task_blueprint]
-            except KeyError:
-                target_step = None
-
-            if not target_step:
+            if step.task_blueprint not in step_def_map:
                 msg = (
                     f"Data integrity failure: StepRule '{step.id}' "
                     f"references missing Step (TaskBlueprint) '{step.task_blueprint}'."
@@ -166,6 +162,7 @@ def _build_title_map(
                     status_code=400,
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
+            target_step = step_def_map[step.task_blueprint]
 
             title_map[str(step.id).lower()] = target_step.name.resolve(target_locale)
 
@@ -217,15 +214,12 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-    raw_locale = (
-        state.inputs.target_locale
-        if state.inputs and state.inputs.target_locale
-        else (
-            state.global_context_vars.vars["language"]
-            if state.global_context_vars and "language" in state.global_context_vars.vars
-            else None
-        )
-    )
+    raw_locale = None
+    if state.inputs and state.inputs.target_locale:
+        raw_locale = state.inputs.target_locale
+    elif state.global_context_vars and "language" in state.global_context_vars.vars:
+        raw_locale = state.global_context_vars.vars["language"]
+
     if not raw_locale or not str(raw_locale).strip():
         msg = "Strict Fail-Fast Enforced: 'target_locale' must be a non-empty string."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -233,16 +227,32 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     target_locale = str(raw_locale).strip().lower()
 
     available_dtos: list[StepOutputDTO] = []
-    steps_list = inputs.dynamic_inputs.get("steps")
-    if isinstance(steps_list, list):
-        for item in steps_list:
+    steps_data = inputs.dynamic_inputs["steps"]
+    if isinstance(steps_data, StepOutputDTO):
+        available_dtos.append(steps_data)
+    elif isinstance(steps_data, list):
+        for item in steps_data:
             if isinstance(item, StepOutputDTO):
                 available_dtos.append(item)
             else:
                 try:
                     available_dtos.append(StepOutputDTO.model_validate(item))
-                except ValidationError, TypeError, ValueError:
-                    pass
+                except (ValidationError, TypeError, ValueError) as err:
+                    msg = f"Invalid StepOutputDTO item in dynamic_inputs['steps']: {err}"
+                    logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from err
+    else:
+        msg = f"Unexpected type for dynamic_inputs['steps']: {type(steps_data)}"
+        logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=500,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
     # Phase 2, Milestone 1.6: Fetch workflow and execution for context resolution
     raw_workflow_data = await deps.workflow_repo.get_workflow_by_id(state.workflow_id)
@@ -256,9 +266,13 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
     workflow_data = Workflow.model_validate(raw_workflow_data)
 
     raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
-    execution_data = ExecutionRecord.model_validate(raw_exec_data) if raw_exec_data else None
+    execution_data: ExecutionRecord | None = None
+    if raw_exec_data:
+        execution_data = ExecutionRecord.model_validate(raw_exec_data)
 
-    output_profile_id = execution_data.output_profile_id if execution_data else None
+    output_profile_id: str | None = None
+    if execution_data:
+        output_profile_id = execution_data.output_profile_id
     if not output_profile_id:
         msg = f"Execution {state.execution_id} missing mandatory output_profile_id."
         logger.error("[SynthesisDistiller] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
@@ -319,7 +333,9 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         if not step_dto_obj.payload and step_dto_obj.payload is not False and step_dto_obj.payload != 0:
             continue
 
-        matched_rule = step_rules_map.get(step_dto_obj.step_id)
+        matched_rule: StepRule | None = None
+        if step_dto_obj.step_id in step_rules_map:
+            matched_rule = step_rules_map[step_dto_obj.step_id]
         if matched_rule is not None and not matched_rule.is_synthesis_source:
             logger.debug(
                 "[SynthesisDistiller] Skipping non-synthesis source step %s (rule %s)",
@@ -363,19 +379,19 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         max_unmet_criteria=output_profile.max_unmet_criteria,
     )
 
+    distillation_dto = SynthesisDistillationDTO(
+        distilled_inputs="\n\n".join(consolidated_distilled_parts),
+        historical_context=historical_context_text,
+        title_map=title_map,
+        matrices_to_explain=matrices_to_explain,
+        source_alias_map=alias_engine.alias_map,
+        output_profile_id=output_profile_id,
+        target_locale=target_locale,
+        alias_registry=alias_engine.alias_map,
+        max_extensions=output_profile.max_extension_items,
+    )
+
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(
-            delta={
-                "distilled_inputs": "\n\n".join(consolidated_distilled_parts),
-                "historical_context": historical_context_text,
-                "title_map": title_map,
-                "matrices_to_explain": matrices_to_explain,
-                "source_alias_map": alias_engine.alias_map,
-                "output_profile_id": output_profile_id,
-                "target_locale": target_locale,
-                "alias_registry": alias_engine.alias_map,
-                "max_extensions": output_profile.max_extension_items,
-            }
-        ),
+        state_delta=HookDeltaDTO(delta=distillation_dto.model_dump(mode="json")),
     )

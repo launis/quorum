@@ -9,7 +9,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
-from backend_v2.exceptions import ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -62,17 +62,34 @@ def extract_user_role_from_trace(
     if execution.execution_trace:
         for event in execution.execution_trace:
             if event.event_type == "output":
-                try:
-                    out_content = TypeAdapter(dict[str, Any]).validate_python(event.content)
-                    if role_target_block_id in out_content:
-                        role_mat_out = LightweightMatrixOutput.model_validate(
-                            out_content[role_target_block_id], strict=False
-                        )
-                        if role_mat_out.raw_score is not None:
-                            role_raw_score = float(role_mat_out.raw_score)
-                            break
-                except ValidationError, TypeError, ValueError:
-                    pass
+                if isinstance(event.content, LightweightMatrixOutput):
+                    if event.content.raw_score is not None:
+                        role_raw_score = float(event.content.raw_score)
+                        break
+                elif type(event.content) is dict and role_target_block_id in event.content:
+                    raw_val = event.content[role_target_block_id]
+                    if isinstance(raw_val, LightweightMatrixOutput):
+                        role_mat_out = raw_val
+                    elif type(raw_val) is dict:
+                        try:
+                            role_mat_out = LightweightMatrixOutput.model_validate(raw_val, strict=False)
+                        except (ValidationError, TypeError, ValueError) as err:
+                            logger.error(
+                                "[synthesis_reducers] Corrupted LightweightMatrixOutput in trace for %s: %s",
+                                role_target_block_id,
+                                err,
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            )
+                            raise AppException(
+                                message=f"Corrupted LightweightMatrixOutput in trace for {role_target_block_id}: {err}",
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            ) from err
+                    else:
+                        continue
+                    if role_mat_out.raw_score is not None:
+                        role_raw_score = float(role_mat_out.raw_score)
+                        break
     if role_raw_score is not None:
         clamped_score = max(1, min(5, int(round(role_raw_score))))
         _role_score_map: dict[int, RoleClassification] = {
@@ -99,7 +116,9 @@ def process_executive_summary_result(
     if not result_tuple:
         return None, [], 0.0, 0
     exec_res, usage = result_tuple
-    exec_dto = exec_res if isinstance(exec_res, ExecutiveSummarySectionResult) else None
+    exec_dto: ExecutiveSummarySectionResult | None = None
+    if isinstance(exec_res, ExecutiveSummarySectionResult):
+        exec_dto = exec_res
     blocks: list[AnySduiBlock] = []
     if exec_dto and exec_dto.executive_summary:
         summary_blocks = exec_dto.executive_summary
@@ -114,8 +133,11 @@ def process_executive_summary_result(
             exec_dto = exec_dto.model_copy(update={"executive_summary": summary_blocks})
         blocks = cast(list[AnySduiBlock], summary_blocks)
 
-    cost = usage.cost_usd if usage else 0.0
-    tokens = usage.total_tokens if usage else 0
+    cost = 0.0
+    tokens = 0
+    if usage is not None:
+        cost = usage.cost_usd
+        tokens = usage.total_tokens
     return exec_dto, blocks, cost, tokens
 
 
@@ -162,8 +184,11 @@ def process_xai_highlights_result(
                 else item
                 for item in highlights
             ]
-    cost = usage.cost_usd if usage else 0.0
-    tokens = usage.total_tokens if usage else 0
+    cost = 0.0
+    tokens = 0
+    if usage is not None:
+        cost = usage.cost_usd
+        tokens = usage.total_tokens
     return highlights, cost, tokens
 
 
@@ -201,8 +226,11 @@ def process_row_explanations_result(
                 expl = enforce_sentence_boundary_budget(expl, active_profile_dto.row_explanation_length_constraint)
         cache_explanations[real_id] = expl
 
-    cost = usage.cost_usd if usage else 0.0
-    tokens = usage.total_tokens if usage else 0
+    cost = 0.0
+    tokens = 0
+    if usage is not None:
+        cost = usage.cost_usd
+        tokens = usage.total_tokens
     return cache_explanations, cost, tokens
 
 
@@ -218,13 +246,26 @@ async def handle_starvation_if_detected(
     starvation_detected = False
     for trace_evt in execution.execution_trace:
         if trace_evt.event_type == "output":
-            try:
-                t_content = TypeAdapter(dict[str, Any]).validate_python(trace_evt.content)
-                if t_content.get("event_type") == "starvation":
-                    starvation_detected = True
-                    break
-            except ValidationError, ValueError, TypeError, KeyError:
-                continue
+            if isinstance(trace_evt.content, DataStarvationEvent):
+                starvation_detected = True
+                break
+            if type(trace_evt.content) is dict and "event_type" in trace_evt.content:
+                if trace_evt.content["event_type"] == "starvation":
+                    try:
+                        DataStarvationEvent.model_validate(trace_evt.content)
+                        starvation_detected = True
+                        break
+                    except (ValidationError, ValueError, TypeError) as err:
+                        logger.error(
+                            "[synthesis_reducers] Corrupted DataStarvationEvent in trace: %s",
+                            err,
+                            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
+                        raise AppException(
+                            message=f"Corrupted DataStarvationEvent in execution trace: {err}",
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                        ) from err
 
     if not starvation_detected:
         return False
@@ -244,7 +285,9 @@ async def handle_starvation_if_detected(
     current_syntheses: dict[str, Any] = {}
     if execution.profile_syntheses is not None:
         current_syntheses = dict(execution.profile_syntheses)
-    starvation_pid = profile_id if profile_id is not None else "default"
+    starvation_pid = "default"
+    if profile_id is not None:
+        starvation_pid = profile_id
     current_syntheses[starvation_pid] = cache
     await repo.update_execution(execution.id, ExecutionUpdateDTO(profile_syntheses=current_syntheses))
     await update_render_status_fn("Compiling output documents...")
@@ -273,8 +316,8 @@ async def recover_trace_telemetry(
                 p, c, cac, r, cost = 0, 0, 0, 0, 0.0
                 for ev in stored_trace:
                     if ev.content:
-                        try:
-                            env = TraceEventMetadataEnvelope.model_validate(ev.content)
+                        if isinstance(ev.content, TraceEventMetadataEnvelope):
+                            env = ev.content
                             if env.step_metadata and env.step_metadata.token_usage:
                                 u = env.step_metadata.token_usage
                                 p += u.prompt_tokens
@@ -282,14 +325,44 @@ async def recover_trace_telemetry(
                                 cac += u.cached_tokens
                                 r += u.reasoning_tokens
                                 cost += u.cost_usd
-                        except ValidationError, ValueError:
-                            pass
+                        elif type(ev.content) is dict and (
+                            "_step_metadata" in ev.content or "step_metadata" in ev.content
+                        ):
+                            try:
+                                env = TraceEventMetadataEnvelope.model_validate(ev.content)
+                                if env.step_metadata and env.step_metadata.token_usage:
+                                    u = env.step_metadata.token_usage
+                                    p += u.prompt_tokens
+                                    c += u.completion_tokens
+                                    cac += u.cached_tokens
+                                    r += u.reasoning_tokens
+                                    cost += u.cost_usd
+                            except (ValidationError, ValueError) as err:
+                                logger.error(
+                                    "[Task] Corrupted TraceEventMetadataEnvelope in storage blob: %s",
+                                    err,
+                                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                )
+                                raise AppException(
+                                    message=f"Corrupted TraceEventMetadataEnvelope in execution trace: {err}",
+                                    status_code=500,
+                                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                                ) from err
                 if cost > 0.0:
                     final_cost = cost
                 if p > 0 or c > 0:
                     rec_p, rec_c, rec_cac, rec_r = p, c, cac, r
         except (OSError, UnicodeDecodeError, ValidationError, ValueError, KeyError) as err:
-            logger.warning("[Task] Failed to recover DAG telemetry from storage blob: %s", err)
+            logger.error(
+                "[Task] Failed to recover DAG telemetry from storage blob: %s",
+                err,
+                extra={"error_code": ErrorCodes.DATA_CORRUPTION.value},
+            )
+            raise AppException(
+                message=f"Failed to recover DAG telemetry from storage blob for execution {execution.id}: {err}",
+                status_code=500,
+                details={"error_code": ErrorCodes.DATA_CORRUPTION},
+            ) from err
 
     return final_cost, rec_p, rec_c, rec_cac, rec_r
 
@@ -351,9 +424,15 @@ async def handle_synthesis_failure_state(
                 step_states=fail_step_states,
             ),
         )
-    except OSError, ValidationError, ValueError, KeyError:
+    except (OSError, ValidationError, ValueError, KeyError) as err:
         logger.error(
-            "[Task] Failed to update execution failure status",
+            "[Task] Failed to update execution failure status: %s",
+            err,
             exc_info=True,
             extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         )
+        raise AppException(
+            message=f"Failed to update execution failure status for execution {execution_id}: {err}",
+            status_code=500,
+            details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+        ) from err

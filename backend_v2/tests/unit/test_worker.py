@@ -9,6 +9,9 @@ from pydantic import ValidationError
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
@@ -844,7 +847,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                                     "justification": "Evidence verified.",
                                 }
                             ],
-                            "language": "fi",
+                            "target_locale": "fi",
                             "title_map": {"blk_1111222233334444": "Kohdematriisi"},
                         }
                     ),
@@ -1188,24 +1191,16 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             calls_with_syntheses = [
                 call[0][1]
                 for call in mock_repo.update_execution.call_args_list
-                if (hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None)
+                if (isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None)
                 or (isinstance(call[0][1], dict) and "profile_syntheses" in call[0][1])
             ]
             assert len(calls_with_syntheses) == 1
             call_payload = calls_with_syntheses[0]
-            ps = getattr(call_payload, "profile_syntheses", None) or call_payload.get("profile_syntheses")
+            ps = call_payload.profile_syntheses if isinstance(call_payload, ExecutionUpdateDTO) else call_payload["profile_syntheses"]
             saved_cache = ps["prof_1111222233334444"]
-            starvation = getattr(saved_cache, "data_starvation", None) or (
-                saved_cache.get("data_starvation") if isinstance(saved_cache, dict) else None
-            )
-            ev_type = getattr(starvation, "event_type", None) or (
-                starvation.get("event_type") if isinstance(starvation, dict) else None
-            )
-            total_atoms = (
-                getattr(starvation, "total_atoms", None)
-                if getattr(starvation, "total_atoms", None) is not None
-                else (starvation.get("total_atoms") if isinstance(starvation, dict) else None)
-            )
+            starvation = saved_cache.data_starvation if isinstance(saved_cache, RenderedSynthesisCache) else saved_cache["data_starvation"]
+            ev_type = starvation.event_type if isinstance(starvation, DataStarvationEvent) else starvation["event_type"]
+            total_atoms = starvation.total_atoms if isinstance(starvation, DataStarvationEvent) else starvation["total_atoms"]
             assert ev_type == "starvation"
             assert total_atoms == 0
             mock_redis.enqueue_job.assert_called_once_with(
@@ -1415,7 +1410,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     update_calls = [
         call[0][1]
         for call in mock_repo.update_execution.call_args_list
-        if hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None
+        if isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None
     ]
     assert len(update_calls) == 1
     call_payload = update_calls[0]
@@ -1522,7 +1517,7 @@ async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_f
     update_calls = [
         call[0][1]
         for call in mock_repo.update_execution.call_args_list
-        if hasattr(call[0][1], "profile_syntheses") and call[0][1].profile_syntheses is not None
+        if isinstance(call[0][1], ExecutionUpdateDTO) and call[0][1].profile_syntheses is not None
     ]
     assert len(update_calls) == 1
     call_payload = update_calls[0]
@@ -1606,7 +1601,7 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
                         delta={
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [],
-                            "language": "fi",
+                            "target_locale": "fi",
                             "title_map": {},
                         }
                     ),
@@ -1652,7 +1647,7 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
                         delta={
                             "distilled_inputs": "Sample analytical summary data.",
                             "matrices_to_explain": [],
-                            "language": "fi",
+                            "target_locale": "fi",
                             "title_map": {},
                         }
                     ),
@@ -1707,7 +1702,7 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
                                     "justification": "Evidence verified.",
                                 }
                             ],
-                            "language": "fi",
+                            "target_locale": "fi",
                             "title_map": {},
                         }
                     ),
@@ -1825,7 +1820,7 @@ async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_
                                     "justification": "Evidence verified.",
                                 }
                             ],
-                            "language": "fi",
+                            "target_locale": "fi",
                             "title_map": {},
                         }
                     ),

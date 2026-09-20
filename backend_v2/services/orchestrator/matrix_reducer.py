@@ -3,20 +3,19 @@
 import logging
 from typing import Any, Literal
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.matrix import TDAAssertion
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.state import StepOutputDTO
 
 logger = logging.getLogger(__name__)
 
 State = Literal["PASSED", "FAILED", "DLQ"]
-_dict_adapter: TypeAdapter[dict[str, Any]] = TypeAdapter(dict[str, Any])
 
 
 class MatrixReducer:
@@ -82,10 +81,12 @@ class MatrixReducer:
             case "ALL_MUST_COMPLY":
                 return cls.reduce_all_must_comply(states)
             case _:
+                msg = f"Unknown aggregation mode: {assertion.aggregation_mode}"
+                logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
-                    message=f"Unknown aggregation mode: {assertion.aggregation_mode}",
+                    message=msg,
                     status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
     @staticmethod
@@ -93,11 +94,10 @@ class MatrixReducer:
         """Filters out PASSED atoms to save Context Window space for Synthesis LLM.
 
         Primary extraction reads evaluated atoms from ExecutionRecord.execution_trace
-        events with event_type="output" and "results" list. Falls back to inspecting
-        record.step_states scorecard_atoms for backward compatibility with mock fixtures.
+        events with event_type="output" and "results" list.
 
         Args:
-            record: The modern ExecutionRecord containing execution_trace and step_states.
+            record: The modern ExecutionRecord containing execution_trace.
 
         Returns:
             A token-compressed LightweightMatrixDTO for the synthesis phase.
@@ -110,25 +110,46 @@ class MatrixReducer:
 
         # 1. Primary: Extract evaluated atoms and extensions from execution_trace (real DAG runtime)
         for evt in record.execution_trace:
-            if evt.event_type != "output":
-                continue
-            try:
-                raw_content = evt.content.model_dump() if isinstance(evt.content, BaseModel) else evt.content
-                content = _dict_adapter.validate_python(raw_content)
-            except ValidationError:
+            if evt.event_type != "output" or evt.content is None:
                 continue
 
-            # Check if this output event contains evaluated atom results
-            results = content.get("results")
-            if isinstance(results, list):
-                for raw in results:
+            results_list: list[Any] | None = None
+            if isinstance(evt.content, StepOutputDTO):
+                if type(evt.content.payload) is dict and "results" in evt.content.payload:
+                    res = evt.content.payload["results"]
+                    if isinstance(res, list):
+                        results_list = res
+                elif isinstance(evt.content.payload, list):
+                    results_list = evt.content.payload
+            elif type(evt.content) is dict:
+                if "results" in evt.content and isinstance(evt.content["results"], list):
+                    results_list = evt.content["results"]
+                # Extract step-level extensions
+                for val in evt.content.values():
+                    if type(val) is dict and "extensions" in val and isinstance(val["extensions"], list):
+                        raw_extensions.extend(val["extensions"])
+            elif isinstance(evt.content, BaseModel):
+                dumped = evt.content.model_dump()
+                if "results" in dumped and isinstance(dumped["results"], list):
+                    results_list = dumped["results"]
+                for val in dumped.values():
+                    if type(val) is dict and "extensions" in val and isinstance(val["extensions"], list):
+                        raw_extensions.extend(val["extensions"])
+
+            if results_list is not None:
+                for raw in results_list:
                     try:
                         atom = (
                             raw if isinstance(raw, AtomResultDTO) else AtomResultDTO.model_validate(raw, strict=False)
                         )
                     except ValidationError as e:
-                        logger.warning("[MatrixReducer] Failed to validate AtomResultDTO from trace: %s", e)
-                        continue
+                        msg = f"Failed to validate AtomResultDTO from execution trace: {e}"
+                        logger.error("[MatrixReducer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from e
 
                     if atom.tda_id in seen_tda_ids:
                         continue
@@ -143,8 +164,11 @@ class MatrixReducer:
                     if atom.extensions:
                         raw_extensions.append(atom.extensions)
 
-                    # Token-compression cascade: Drop boolean PASSED atoms
+                    # Token-compression cascade: Drop unstarted/pending atoms and boolean PASSED atoms
                     # to save context window, unless they have extracted quantitative data
+                    if atom.status in (ExecutionStatus.PENDING, ExecutionStatus.QUEUED, ExecutionStatus.RUNNING):
+                        continue
+
                     has_extracted_data = atom.extracted_data is not None
                     if atom.status == ExecutionStatus.PASSED and not has_extracted_data:
                         continue
@@ -160,50 +184,6 @@ class MatrixReducer:
                             reasoning=atom.evaluation_reasoning,
                             source_quote=atom.source_quote,
                             extracted_data=extracted_data_dict,
-                        )
-                    )
-
-            # Extract step-level extensions
-            for _, val in content.items():
-                try:
-                    val_dict = _dict_adapter.validate_python(val)
-                    exts = val_dict.get("extensions")
-                    if isinstance(exts, list):
-                        raw_extensions.extend(exts)
-                except ValidationError:
-                    pass
-
-        # 2. Fallback: If no atoms in execution_trace, inspect step_states (mock test fixtures)
-        if total_atoms == 0 and record.step_states:
-            for step_state in record.step_states.values():
-                for atom_id, sc_atom in step_state.scorecard_atoms.items():
-                    total_atoms += 1
-                    if not sc_atom.status:
-                        continue
-
-                    has_extracted_data = bool(sc_atom.extracted_facts)
-                    if sc_atom.status == ExecutionStatus.PASSED and not has_extracted_data:
-                        continue
-
-                    source_quote: str | None = None
-                    if sc_atom.exact_quotes:
-                        first_quote = sc_atom.exact_quotes[0]
-                        if isinstance(first_quote, QuoteEvidenceDTO):
-                            source_quote = first_quote.quote
-                        elif isinstance(first_quote, str):
-                            source_quote = first_quote
-
-                    extracted_data: dict[str, Any] | None = None
-                    if sc_atom.extracted_facts:
-                        extracted_data = sc_atom.extracted_facts
-
-                    reduced_atoms.append(
-                        ReducedAtomDTO(
-                            tda_id=atom_id,
-                            status=sc_atom.status,
-                            reasoning=sc_atom.semantic_reasoning,
-                            source_quote=source_quote,
-                            extracted_data=extracted_data,
                         )
                     )
 

@@ -84,6 +84,49 @@ class MatrixExplanationContextDTO(V2CoreBase):
 MatrixExplanationContextList = TypeAdapter(list[MatrixExplanationContextDTO])
 
 
+class SynthesisDistillationDTO(V2CoreBase):
+    """Strongly typed distillation payload emitted by synthesis_distiller_hook.
+
+    Attributes:
+        distilled_inputs: Complete concatenated and formatted source inputs.
+        historical_context: Optional historical context from prior executions.
+        title_map: Mapping of block/step IDs to localized display titles.
+        matrices_to_explain: Evaluated matrix contexts requiring qualitative explanation.
+        source_alias_map: Mapping of raw IDs to semantic aliases.
+        output_profile_id: Optional presentation output profile identifier.
+        target_locale: Target localization language code.
+        alias_registry: Full alias registry mapping.
+        max_extensions: Maximum qualitative behavioral extensions allowed.
+    """
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    distilled_inputs: Annotated[str, Field(description="Complete concatenated and formatted source inputs")]
+    historical_context: Annotated[
+        str | None, Field(default=None, description="Optional historical context from prior executions")
+    ] = None
+    title_map: Annotated[
+        dict[str, str], Field(default_factory=dict, description="Mapping of block/step IDs to localized display titles")
+    ] = Field(default_factory=dict)
+    matrices_to_explain: Annotated[
+        list[MatrixExplanationContextDTO],
+        Field(default_factory=list, description="Evaluated matrix contexts requiring qualitative explanation"),
+    ] = Field(default_factory=list)
+    source_alias_map: Annotated[
+        dict[str, str], Field(default_factory=dict, description="Mapping of raw IDs to semantic aliases")
+    ] = Field(default_factory=dict)
+    output_profile_id: Annotated[
+        str | None, Field(default=None, description="Optional presentation output profile identifier")
+    ] = None
+    target_locale: Annotated[str, Field(default="en", description="Target localization language code")] = "en"
+    alias_registry: Annotated[
+        dict[str, str], Field(default_factory=dict, description="Full alias registry mapping")
+    ] = Field(default_factory=dict)
+    max_extensions: Annotated[
+        int, Field(default=5, description="Maximum qualitative behavioral extensions allowed")
+    ] = 5
+
+
 class SynthesisRowExplanationDTO(V2CoreBase):
     """DTO providing a short context explanation for a specific matrix mapping row.
 

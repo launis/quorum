@@ -181,5 +181,38 @@ def test_calculate_packets_empty(mock_executor):
     """Test _calculate_packets with text without block IDs."""
     atomizer = TwoPassAtomizer(executor=mock_executor)
     packets = atomizer._calculate_packets("Simple text without any brackets")
-    assert len(packets) == 1
-    assert packets[0] == ("[NO_BLOCK]", "[NO_BLOCK]", [])
+    assert packets == []
+    packets_blank = atomizer._calculate_packets("")
+    assert packets_blank == []
+
+
+@pytest.mark.asyncio
+async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_client, settings_mock):
+    """PROMISE: Zero LLM calls dispatched and empty models returned on text lacking block markers."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    ontology_empty = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    # Phase 0
+    ont_res, ont_usage = await atomizer.execute_phase_0(client=mock_client, hydrated_text="Text without brackets")
+    assert ont_res.entities == []
+    assert ont_res.macro_rules == []
+    assert ont_usage.total_tokens == 0
+    assert mock_executor.execute_structured_task.call_count == 0
+
+    # Phase 1
+    atoms_res, atoms_usage = await atomizer.execute_phase_1(
+        client=mock_client, hydrated_text="Text without brackets", ontology=ontology_empty
+    )
+    assert atoms_res == []
+    assert atoms_usage.total_tokens == 0
+    assert mock_executor.execute_structured_task.call_count == 0
+
+    # Phase 1 drafts
+    drafts_res, drafts_usage = await atomizer.execute_phase_1_drafts(
+        client=mock_client, hydrated_text="Text without brackets", ontology=ontology_empty
+    )
+    assert drafts_res.atoms == []
+    assert drafts_res.dlq_status is None
+    assert drafts_usage.total_tokens == 0
+    assert mock_executor.execute_structured_task.call_count == 0
+

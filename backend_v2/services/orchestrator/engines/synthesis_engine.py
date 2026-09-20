@@ -11,8 +11,8 @@ from pydantic import ValidationError
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
-from backend_v2.models.dtos.trace import DataStarvationEvent
 from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -51,12 +51,9 @@ class SynthesisEngine:
         Raises:
             AppException: If blackboard is missing, validation fails, or LLM errors occur.
         """
-        # Extract and validate GlobalAtomBlackboard (Dependency Fail-Fast)
-        raw_blackboard = (
-            request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-            if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables
-            else None
-        )
+        raw_blackboard = None
+        if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
+            raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
         if raw_blackboard is None:
             logger.error(
                 "preflight_blackboard_missing",
@@ -75,29 +72,31 @@ class SynthesisEngine:
             total_atoms = len(all_atom_ids)
             settings = get_settings()
 
-            matrix_reducer_output = (
-                request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
-                if "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables
-                else None
-            )
+            matrix_reducer_output = None
+            if "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables:
+                matrix_reducer_output = request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
             has_matrix_evidence = False
             if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
                 try:
-                    reduced_atoms = (
-                        matrix_reducer_output["reduced_atoms"] if "reduced_atoms" in matrix_reducer_output else []
-                    )
-                    evaluated_matrices = (
-                        matrix_reducer_output["evaluated_matrices"]
-                        if "evaluated_matrices" in matrix_reducer_output
-                        else []
-                    )
-                    raw_extensions = (
-                        matrix_reducer_output["raw_extensions"] if "raw_extensions" in matrix_reducer_output else {}
-                    )
+                    reduced_atoms = []
+                    if "reduced_atoms" in matrix_reducer_output:
+                        reduced_atoms = matrix_reducer_output["reduced_atoms"]
+                    evaluated_matrices = []
+                    if "evaluated_matrices" in matrix_reducer_output:
+                        evaluated_matrices = matrix_reducer_output["evaluated_matrices"]
+                    raw_extensions = {}
+                    if "raw_extensions" in matrix_reducer_output:
+                        raw_extensions = matrix_reducer_output["raw_extensions"]
                     if reduced_atoms or evaluated_matrices or raw_extensions:
                         has_matrix_evidence = True
-                except TypeError, KeyError:
-                    pass
+                except (TypeError, KeyError) as err:
+                    msg = f"Corrupted __MATRIX_REDUCER_OUTPUT__: {err}"
+                    logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from err
 
             is_starved = False
             starvation_reason = ""
@@ -148,8 +147,14 @@ class SynthesisEngine:
                     if "raw_extensions" in matrix_reducer_output and matrix_reducer_output["raw_extensions"]:
                         extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
                         raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
-                except TypeError, KeyError:
-                    pass
+                except (TypeError, KeyError) as err:
+                    msg = f"Corrupted raw_extensions in __MATRIX_REDUCER_OUTPUT__: {err}"
+                    logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from err
 
             raw_blackboard_markdown = blackboard.to_markdown_synthesis_injection()
             protected_user_payload = TemplateProcessor.encapsulate_payload(raw_blackboard_markdown)

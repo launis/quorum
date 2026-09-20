@@ -123,13 +123,19 @@ def test_compress_synthesis_payload_compresses_anchors() -> None:
 
 def test_build_title_map_with_blocks_and_steps() -> None:
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.prompt_blocks import SystemRulePromptBlock
+    from backend_v2.models.domain.prompt_blocks import PromptBlock, SystemRulePromptBlock
     from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
     from backend_v2.models.domain.workflow import Workflow
-    from backend_v2.models.enums import BlockDataType, HistoricalContextMode, PromptBlockCategory
+    from backend_v2.models.enums import (
+        BlockDataType,
+        CognitiveTier,
+        HistoricalContextMode,
+        PromptBlockCategory,
+        StepType,
+    )
     from backend_v2.services.orchestrator.synthesis_distiller import _build_title_map
 
-    blocks_by_id = {
+    blocks_by_id: dict[str, PromptBlock] = {
         "blk_1234567890abcdef": SystemRulePromptBlock(
             id="blk_1234567890abcdef",
             slug="test_block",
@@ -144,8 +150,8 @@ def test_build_title_map_with_blocks_and_steps() -> None:
         id="sp_1111111111111111",
         slug="step_one",
         name=I18nText(translations={"en": "Step Blueprint Name"}),
-        cognitive_tier="fast",
-        type="logic",
+        cognitive_tier=CognitiveTier.FAST,
+        type=StepType.LOGIC,
         hook="text_consolidation_hook",
     )
 
@@ -268,12 +274,14 @@ async def test_build_historical_context_all_branches() -> None:
         workflow_id="wf_1111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
         completed_at=datetime.now(timezone.utc),
         target_locale="en",
         metadata=ExecutionMetadata(),
         profile_syntheses={
             "prof_1": RenderedSynthesisCache(
-                section_syntheses={"sec1": [ParagraphBlock(text="Past synthesis 1")]},
+                section_syntheses={"sec1": [ParagraphBlock(text="Past synthesis 1", exact_quotes=[], citations=[])]},
             )
         },
     )
@@ -282,6 +290,8 @@ async def test_build_historical_context_all_branches() -> None:
         workflow_id="wf_1111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
         target_locale="en",
         metadata=ExecutionMetadata(),
     )
@@ -290,6 +300,8 @@ async def test_build_historical_context_all_branches() -> None:
         workflow_id="wf_1111111111111111",
         output_profile_id="prof_1",
         status=ExecutionStatus.FAILED,
+        progress=0,
+        status_message="Failed",
         target_locale="en",
         metadata=ExecutionMetadata(),
     )
@@ -300,6 +312,178 @@ async def test_build_historical_context_all_branches() -> None:
     res = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
     assert "<HistoricalContext>" in res
     assert "Past synthesis 1" in res
+
+    # 4. Past execs with missing profile, empty sections, or empty blocks
+    past_exec_wrong_profile = ExecutionRecord(
+        id="ex_3333333333333333",
+        workflow_id="wf_1111111111111111",
+        output_profile_id="prof_2",
+        status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        profile_syntheses={
+            "prof_2": RenderedSynthesisCache(
+                section_syntheses={"sec1": [ParagraphBlock(text="Wrong prof", exact_quotes=[], citations=[])]},
+            )
+        },
+    )
+    past_exec_empty_sections = ExecutionRecord(
+        id="ex_4444444444444444",
+        workflow_id="wf_1111111111111111",
+        output_profile_id="prof_1",
+        status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        profile_syntheses={
+            "prof_1": RenderedSynthesisCache(
+                section_syntheses={},
+            )
+        },
+    )
+    past_exec_empty_blocks = ExecutionRecord(
+        id="ex_5555555555555555",
+        workflow_id="wf_1111111111111111",
+        output_profile_id="prof_1",
+        status=ExecutionStatus.PASSED,
+        progress=100,
+        status_message="Completed",
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        profile_syntheses={
+            "prof_1": RenderedSynthesisCache(
+                section_syntheses={"sec1": []},
+            )
+        },
+    )
+    cast_repo.get_all_executions.return_value = [
+        past_exec_wrong_profile,
+        past_exec_empty_sections,
+        past_exec_empty_blocks,
+    ]
+    res_empty = await _fetch_historical_context(HistoricalContextMode.SLIDING_WINDOW_3, deps, state, "prof_1")
+    assert res_empty == ""
+
+
+@pytest.mark.asyncio
+async def test_synthesis_distiller_step_inputs_and_rules_branches() -> None:
+    from typing import cast
+    from unittest.mock import AsyncMock
+
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookState,
+    )
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.state import StepOutputDTO
+    from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+    from backend_v2.tests.unit.services.orchestrator.test_synthesis_distiller_wiring import (
+        _build_mock_deps,
+    )
+
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.step import Step
+    from backend_v2.models.enums import CognitiveTier, StepType
+
+    deps = _build_mock_deps()
+    bp1 = Step(
+        id="bp_0123456789abcdef01",
+        slug="step_bp1",
+        name=I18nText(translations={"en": "Blueprint 1"}),
+        cognitive_tier=CognitiveTier.FAST,
+        type=StepType.LOGIC,
+        hook="text_consolidation_hook",
+    )
+    bp2 = Step(
+        id="bp_0123456789abcdef02",
+        slug="step_bp2",
+        name=I18nText(translations={"en": "Blueprint 2"}),
+        cognitive_tier=CognitiveTier.FAST,
+        type=StepType.LOGIC,
+        hook="text_consolidation_hook",
+    )
+    cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = [bp1, bp2]
+    cast(AsyncMock, deps.workflow_repo.get_workflow_by_id).return_value = {
+        "id": "wor_0123456789abcdef01",
+        "slug": "test_workflow",
+        "name": {"translations": {"en": "Test Workflow"}},
+        "description": {"translations": {"en": "Test Description"}},
+        "status": "active",
+        "version": 1,
+        "organization_id": "org_0123456789abcdef01",
+        "default_profile_id": "pro_0123456789abcdef01",
+        "steps": [
+            {
+                "id": "stp_0123456789abcdef01",
+                "task_blueprint": "bp_0123456789abcdef01",
+                "is_synthesis_source": True,
+            },
+            {
+                "id": "stp_0123456789abcdef02",
+                "task_blueprint": "bp_0123456789abcdef02",
+                "is_synthesis_source": False,
+            },
+        ],
+        "historical_context_mode": "DISABLED",
+        "model_registry_id": "cfg_model_registry_01",
+    }
+
+    # Case 1: single StepOutputDTO in steps_data (line 233)
+    single_step = StepOutputDTO(
+        step_id="stp_0123456789abcdef01",
+        block_id="blk_0123456789abcdef01",
+        data_type="text",
+        payload="Single step text payload",
+    )
+    state = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            dynamic_inputs={"steps": single_step},
+            target_locale="en",
+        ),
+        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+    )
+    result = await synthesis_distiller_hook(state, deps)
+    assert result.success is True
+
+    # Case 2: list with is_synthesis_source=False, block_id starting with _, and empty payload (lines 321-323, 329, 331, 337-342)
+    step_false = StepOutputDTO(
+        step_id="stp_0123456789abcdef02",
+        block_id="blk_0123456789abcdef02",
+        data_type="text",
+        payload="Should be skipped as non-synthesis source",
+    )
+    step_internal = StepOutputDTO(
+        step_id="stp_0123456789abcdef03",
+        block_id="_internal_block",
+        data_type="text",
+        payload="Should be skipped due to underscore",
+    )
+    step_empty = StepOutputDTO(
+        step_id="stp_0123456789abcdef04",
+        block_id="blk_0123456789abcdef04",
+        data_type="text",
+        payload=None,
+    )
+    state_multi = HookState(
+        execution_id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            dynamic_inputs={"steps": [single_step, step_false, step_internal, step_empty]},
+            target_locale="en",
+        ),
+        global_context_vars=GlobalContextVarsDTO(vars={"organization_id": "org_0123456789abcdef01"}),
+    )
+    res_multi = await synthesis_distiller_hook(state_multi, deps)
+    assert res_multi.success is True
 
 
 # Import all wiring test functions so backend_audit_loop discovers and runs them
