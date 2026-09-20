@@ -53,6 +53,11 @@ from scripts._ast_guardrails import (
     scan_files_for_guardrails,
 )
 
+__all__ = [
+    "main",
+    "run_tests_with_strict_coverage",
+]
+
 # Force pure Python Protobuf implementation to prevent duplicate descriptor pool crashes in Python 3.14+
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
@@ -60,11 +65,20 @@ os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
 
 
 def run_tests_with_strict_coverage(target: str) -> None:
+    """Execute pytest unit tests and enforce strict 90% TDD line coverage.
+
+    Resolves matching unit test files corresponding to target source files or directories,
+    invokes pytest with coverage instrumentation, and verifies line coverage meets or exceeds
+    the required 90% threshold.
+
+    Args:
+        target: File path or directory path to test with coverage.
+    """
     print("🚀 Verifying Strict 90% TDD Coverage...")
 
     target_clean = target.replace("\\", "/")
@@ -174,7 +188,10 @@ def run_tests_with_strict_coverage(target: str) -> None:
                         break
 
             if not test_path:
-                test_path = "backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0]
+                if parts[0] == "scripts":
+                    test_path = "backend_v2/tests/unit/scripts/" + candidates[0]
+                else:
+                    test_path = "backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0]
 
         # 1. Run Pytest and collect coverage data (no fail-under crash yet)
         cmd = [
@@ -248,6 +265,12 @@ def run_tests_with_strict_coverage(target: str) -> None:
 
 
 def main() -> None:
+    """Main CLI entrypoint executing the sequential backend quality gate pipeline.
+
+    Parses command line arguments and runs the six-stage validation sequence:
+    Ruff lint, Ruff format, MyPy strict type checking, AST guardrail validation,
+    Jinja template validation, and Seed dry-run verification.
+    """
     targets: list[str] = []
     run_openapi = False
     run_test = False

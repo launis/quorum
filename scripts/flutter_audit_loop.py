@@ -18,17 +18,24 @@ import subprocess
 import sys
 from pathlib import Path
 
+__all__ = ["main"]
+
 
 def main() -> None:
+    """Main CLI entrypoint executing the sequential Flutter quality gate pipeline.
+
+    Parses CLI flags and executes optional code generation, Dart static guardrail
+    validation (_dart_guardrails.py), dart format, dart analyze, and optional flutter test.
+    """
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except (AttributeError, io.UnsupportedOperation):
+        except AttributeError, io.UnsupportedOperation:
             pass
     if isinstance(sys.stderr, io.TextIOWrapper):
         try:
             sys.stderr.reconfigure(encoding="utf-8")
-        except (AttributeError, io.UnsupportedOperation):
+        except AttributeError, io.UnsupportedOperation:
             pass
 
     if len(sys.argv) < 2:

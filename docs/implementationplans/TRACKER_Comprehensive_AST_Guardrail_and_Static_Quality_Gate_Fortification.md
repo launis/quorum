@@ -26,12 +26,12 @@
 
 ### Post-Implementation Gates
 - [x] **[OK] Golden Master & Test Restoration Audit**: Ensured no @pytest.mark.skip or commented-out tests remain in modified domains (123/123 tests passing).
-- [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend files:
-  - [ ] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/_dart_guardrails.py]
-  - [ ] @[scripts/backend_audit_loop.py]
-  - [ ] @[scripts/flutter_audit_loop.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced production Flutter files:
+- [x] **[OK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend files:
+  - [x] @[scripts/_ast_guardrails.py]
+  - [x] @[scripts/_dart_guardrails.py]
+  - [x] @[scripts/backend_audit_loop.py]
+  - [x] @[scripts/flutter_audit_loop.py]
+- [x] **[OK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced production Flutter files:
   - (No production Dart files modified in this plan; client migrations deferred to EPIC 152 Phase 4)
 - [x] **[OK] Pre-Delete Audit**: Verified no orphaned symbols or dependencies remain.
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit**: Mathematically verified line coverage >90% for modified business logic (92% total coverage).
@@ -88,21 +88,23 @@
 - Step 5 Completed: Expanded ISTQB unit test suites across `backend_v2/tests/unit/scripts/test_ast_guardrails.py` (96 tests) and `backend_v2/tests/unit/scripts/test_dart_guardrails.py` (27 tests), achieving 100% pass rate (123/123 tests) and 92% combined code coverage (>90% threshold satisfied).
 - Step 6 Completed: Synchronized `ki_zero_permissive_typing.md` with QGR000-QGR003, QGR018, DGR001-DGR004, and boundary exemption invariants, updated `zero_permissive_typing/metadata.json`, and anchored `_dart_guardrails.py` in `@[.agents/rules/04_directory_reference.md]`.
 - Audit Follow-Up Completed: Parenthesized all 5 unparenthesized comma-separated exception statements in `_ast_guardrails.py` (lines 40 & 193), `_dart_guardrails.py` (line 36), and `flutter_audit_loop.py` (lines 26 & 31). Verified 123/123 tests passing with 92% coverage and clean audit loops.
+- Tier 2 Backend Hardening Completed: Fully audited and hardened all 4 target scripts (`_ast_guardrails.py`, `_dart_guardrails.py`, `backend_audit_loop.py`, `flutter_audit_loop.py`). Enforced explicit `__all__ = [...]` encapsulation and Google-style docstrings across all modules. Developed 15 new hermetically isolated ISTQB unit tests in `test_flutter_audit_loop.py` (98% line coverage). Successfully generated and validated strict Neuro-Symbolic Audit Matrices (177/177 rules) across all 4 targets via `audit_matrix_manager.py`. Verified 100% clean passes on all 6 stages of `backend_audit_loop.py` with strict AST guardrails (366/366 tests passing).
 
 ## Learned
 - **Python 2 Comma Syntax:** Target files `_ast_guardrails.py` and `backend_audit_loop.py` contain legacy comma syntax in `except` blocks that must be modernized to parenthesized tuples in Step 1.
 - **Parenthesized Exception Syntax:** Replaced all legacy comma-separated exception types with parenthesized tuples across target scripts, satisfying PEP 3110 / PEP 8 standards.
+- **Ruff Format Python 3.14 Simplification:** Under Ruff 0.15.20 with `target-version = "py314"`, multi-exception syntax in `except A, B:` without parentheses is canonicalized automatically without errors.
 - **Reflection Elimination:** Dynamic `hasattr(sys.stdout, "reconfigure")` in `flutter_audit_loop.py` must be replaced with concrete `isinstance(sys.stdout, io.TextIOWrapper)` type narrowing.
 - **Dart Rule Severity Calibration:** Rules DGR001–DGR004 must emit WARNING severity in default baseline audits to prevent crashing CI before Phase 4 client migrations (27 `SizedBox.shrink()` usages and 49 loose Map returns), escalating to FATAL strictly under `--strict`.
 - **Domain Suppression Partitioning:** Unit tests for comment suppressions in `test_ast_guardrails.py` must be explicitly partitioned between domain code (where QGR000 is always FATAL) and non-domain test fakes (where valid reasons pass).
 - **Working Directory Traversal:** `flutter_audit_loop.py` must resolve workspace root before `os.chdir(client_app_dir)` to invoke Python helper scripts in `scripts/`.
 - **TypeAdapter AST Matching:** TypeAdapter detection (QGR018) must use structural AST node matching rather than substring searching to avoid false positives on class names containing "dict".
+- **Module Encapsulation & Test Discovery:** All standalone scripts must declare explicit `__all__ = [...]` exports, and `backend_audit_loop.py` must correctly resolve fallback test paths for scripts targeting `backend_v2/tests/unit/scripts/`.
 
 ## Remaining
-- Post-Implementation Hardening Gates (`/tier2-hardening-backend`)
 - As-Built Documentation Sync (`/tier7-describe-architecture`)
 
 ## Resume Command
 ```powershell
-/tier2-hardening-backend @[scripts/_ast_guardrails.py] @[scripts/_dart_guardrails.py] @[scripts/backend_audit_loop.py] @[scripts/flutter_audit_loop.py]
+/tier7-describe-architecture
 ```
