@@ -1,9 +1,9 @@
 """Unit tests for TinyDBDriver."""
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock
-import uuid
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -66,7 +66,10 @@ def test_tinydb_driver_apply_filter() -> None:
     assert driver._apply_filter(doc, Filter(field="name", operator="in", value=["item1", "item2"])) is True
     assert driver._apply_filter(doc, Filter(field="tags", operator="array-contains", value="alpha")) is True
     assert driver._apply_filter(doc, Filter(field="tags", operator="array-contains", value="gamma")) is False
-    assert driver._apply_filter({"tags": "not_a_list"}, Filter(field="tags", operator="array-contains", value="alpha")) is False
+    assert (
+        driver._apply_filter({"tags": "not_a_list"}, Filter(field="tags", operator="array-contains", value="alpha"))
+        is False
+    )
     assert driver._apply_filter(doc, Filter(field="missing", operator=">", value=10)) is False
 
 

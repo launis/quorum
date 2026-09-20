@@ -182,7 +182,6 @@ def test_qgr001_test_file_warning_severity() -> None:
     assert unsuppressed[0].severity == GuardrailSeverity.WARNING
 
 
-
 # ==============================================================================
 # Partition 8: QGR002 Lazy .get(key, default) Fallback
 # ==============================================================================
@@ -225,7 +224,6 @@ def test_qgr002_request_kwargs_exempt() -> None:
     violations = _scan_snippet(code)
     qgr002 = [v for v in violations if v.rule_code == "QGR002"]
     assert len(qgr002) == 0
-
 
 
 # ==============================================================================
@@ -296,7 +294,6 @@ except Exception as e:
     violations = _scan_snippet(code)
     qgr003 = [v for v in violations if v.rule_code == "QGR003"]
     assert len(qgr003) == 0
-
 
 
 # ==============================================================================
@@ -649,7 +646,6 @@ def test_qgr000_domain_suppression_fatal() -> None:
     assert len(qgr000) == 1
     assert qgr000[0].severity == GuardrailSeverity.FATAL
     assert "strictly prohibited in domain code" in qgr000[0].message
-
 
 
 def test_valid_except_exception_with_raise() -> None:
@@ -1200,4 +1196,3 @@ def test_ast_guardrails_python3_tuple_exceptions() -> None:
     code = "try:\n    pass\nexcept (AttributeError, io.UnsupportedOperation):\n    raise\n"
     violations = _scan_snippet(code)
     assert len(violations) == 0
-

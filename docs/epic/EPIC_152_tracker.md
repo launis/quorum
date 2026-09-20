@@ -41,18 +41,18 @@
   - [x] Step 1.3: Settings & Math Utilities Strictness
   - [x] Step 1.4: Logging & Database Driver Baseline Hardening
   - [x] Step 1.5: E2E Variance Test Harness Typed Payload Parity
-- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 2: Domain Model & Event Sourcing Hardening, Dynamic Input Closed Unions & Isolated DTO Immutability
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
   - [ ] Step 2.1: Dynamic Input Closed Union IngressInputValue
   - [ ] Step 2.2: Domain Execution Model Hardening & Demolition
   - [ ] Step 2.3: Theory & Schema Manifest DTO Creation
-  - [ ] Step 2.4: Atom Result & Ingress DTO Strictness
-  - [ ] Step 2.5: LLM Handler & Adapter Serialization Alignment
+  - [ ] Step 2.4: Atom Result Immutability & Ingress DTO Strictness
+  - [ ] Step 2.5: LLM Handler & Adapter Reflection Eradication
+  - [ ] Step 2.6: Document Extraction & Smart Ingress Hardening
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 
@@ -180,8 +180,9 @@
 | Dynamic Input Closed Union IngressInputValue | Phase 2 | `backend_v2/models/domain/inputs.py` | Phase 2, Step 2.1 |
 | Domain Execution Model Hardening & Demolition | Phase 2 | `backend_v2/models/domain/execution.py` | Phase 2, Step 2.2 |
 | Theory & Schema Manifest DTO Creation | Phase 2 | `theory_manifest.py`, `schema_manifest.py` | Phase 2, Step 2.3 |
-| Atom Result & Ingress DTO Strictness | Phase 2 | `backend_v2/models/dtos/atom_result.py`, `ingress.py`, `hook_state.py` | Phase 2, Step 2.4 |
-| LLM Handler & Adapter Serialization Alignment | Phase 2 | `vertex_adapter.py`, `handler.py`, `test_atom_result.py` | Phase 2, Step 2.5 |
+| Atom Result Immutability & Ingress DTO Strictness | Phase 2 | `backend_v2/models/dtos/atom_result.py`, `ingress.py`, `hook_state.py` | Phase 2, Step 2.4 |
+| LLM Handler & Adapter Reflection Eradication | Phase 2 | `vertex_adapter.py`, `handler.py`, `test_atom_result.py` | Phase 2, Step 2.5 |
+| Document Extraction & Smart Ingress Hardening | Phase 2 | `document_extraction.py`, `smart_ingress_resolver.py`, `base.py` | Phase 2, Step 2.6 |
 | Two-Pass Atomizer Strict Synthesis DTO Hardening | Phase 3 | `backend_v2/services/two_pass_atomizer.py` | Phase 3, Step 3.1 |
 | Synthesis Reducers & Payload Compressor Hardening | Phase 3 | `synthesis_reducers.py`, `synthesis_payload_compressor.py`, `domain_events.py` | Phase 3, Step 3.2 |
 | Result Projector Segregation | Phase 4 | `backend_v2/services/execution/result_projector.py` | Phase 4, Step 4.1 |
@@ -195,29 +196,24 @@
 | Live End-to-End Variance Test Run | Phase 7 | `scripts/run_e2e_variance_test.py` | Phase 7, Step 7.2 |
 
 # Session Handover Context
-
+ 
 ## Achieved
-- Completed Phase 1 execution of EPIC 152 in Continuous Full-Auto Mode:
-  - Step 1.1: Self-hardened `scripts/audit_dict_eradication.py` against malformed syntax crashes and implemented QGR018 AST rule in `scripts/_ast_guardrails.py` (Test Contracts 1 & 2 verified, 91% coverage).
-  - Step 1.2: Refactored `backend_v2/hooks/validation.py` to eradicate `.get("raw_inputs")`, `.get("inputs")`, `inputs_source.get("_system_warnings")`, and silent `except ValidationError: pass` in favor of Fail-Fast validation with typed `AppException(VALIDATION_FAILED)` (Test Contract 3 verified, 94% coverage, 20 unit tests).
-  - Step 1.3: Deleted dead computed property `model_strategies` in `backend_v2/settings.py` and refactored `backend_v2/utils/math_utils.py` to eradicate `__dict__` reflection using `object.__getattribute__` and `type(curr).model_fields` (Test Contract 4 verified, 99% coverage).
-  - Step 1.4: Defined `StructuredLogContextDTO` in `backend_v2/logging_config.py` with `ConfigDict(strict=True, extra="forbid", frozen=True)` and type narrowing via `isinstance(exc, AppException)`. Replaced `hasattr(data, "model_dump")` with `isinstance(data, BaseModel)` in `backend_v2/database/tinydb_driver.py` and `backend_v2/database/firestore_driver.py` (Test Contracts 5 & 6 verified, 92-100% coverage, 26 unit tests).
-  - Step 1.5: Modernized `scripts/run_e2e_variance_test.py` (`_match_input_key`) to eliminate `hasattr(label_val, "get")` and `hasattr(translations_dict, "values")` by parsing expected inputs with `ExpectedInput.model_validate(item)` and typed dot-notation access (38 unit tests passing).
-- Remediated all 3 audit findings from Phase 1 Red Team Audit:
-  - Finding 1: Eradicated naked `dict[str, Any]` local variable annotations in `backend_v2/hooks/validation.py` (0 violations in `audit_dict_eradication.py`, 100% backend audit loop pass).
-  - Finding 2: Replaced unparenthesized Python 2 comma exception syntax with Python 3 tuple syntax in `scripts/_ast_guardrails.py` (L40, L193) and `scripts/audit_dict_eradication.py` (L479).
-  - Finding 3: Resolved PEP 257 docstring warnings in `firestore_driver.py`, `tinydb_driver.py`, `math_utils.py` (D205 blank line), and `audit_dict_eradication.py`.
-  - Line Bounds Synchronization: Synchronized `backend_v2/utils/math_utils.py#L190-L221` line bounds across `01_phase1_plan.md`, achieving 100% PASS on `scripts/audit_planner_output.py`.
-  - All 206 unit tests passed across all Phase 1 test suites.
+- Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
+- Executed Tier 0 Research & Analysis on Phase 2 Plan (`02_phase2_plan.md`):
+  - Five-Axis System 2 Deconstruction and 5-Column Directives Table synthesized.
+  - Pruned premature Phase 5/6 DTOs from Phase 2 scope and added `document_extraction.py`, `smart_ingress_resolver.py`, and `base.py`.
+  - Bound exact AST physical line ranges (`#Lnn-mm`) to all target files and validated 100% AST node compliance with `scripts/audit_planner_output.py`.
+  - Documented strictness shock protection and staged convergence protocol.
+  - Demolished `_coerce_raw_inputs_dict` location error and established binary input closed unions (`IngressInputValue` and `DomainInputValue`).
 
 ## Learned
-- `scripts/audit_dict_eradication.py` statically flags any explicit `dict[str, Any]` type annotation on local variables; local dictionary accumulators in hooks must be typed via domain DTOs or unannotated local variables to pass the naked dict audit.
-- Unparenthesized comma exception syntax (`except E1, E2:`) from Python 2 parses into a Tuple in Python 3 AST, but fails modern code cleanliness standards and must be wrapped in explicit parentheses `except (E1, E2):`.
-- Adding docstrings and formatting blank lines in utility files shifts physical AST line numbers, which requires synchronizing line bounds in implementation plans so `scripts/audit_planner_output.py` can verify AST nodes with zero drift.
+- `_coerce_raw_inputs_dict` belongs to `ExecutionInputsDTO` in `hook_state.py`, while `execution.py` contains `_resolve_matrix_sampling_strategy`.
+- Dynamic workflow inputs require separate `IngressInputValue` (permitting `Base64Attachment` and `GuidedReflectionInputDTO`) and `DomainInputValue` (banning `Base64Attachment`), eliminating runtime duck-typing at the Rust type system level.
+- Pre-validating tool calls into `OpenAIToolCallDTO` eliminates the multi-branch reflection and duck-typing ladder in `vertex_adapter.py`.
+- `audit_planner_output.py` verifies all target files in the Epic against the concatenated plan directory; quarantining Phase 5/6 DTOs explicitly in `<anti_targets>` ensures mathematical compliance.
 
 ## Remaining
-- Execute Tier 8 Red Team Audit on Phase 1: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
-- Proceed to Phase 2: Domain Model & Event Sourcing Hardening, Dynamic Input Closed Unions & Isolated DTO Immutability (`02_phase2_plan.md`).
+- Execute Phase 2 Implementation: `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/02_phase2_plan.md] @[docs/epic/EPIC_152_tracker.md]`

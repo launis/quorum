@@ -2,13 +2,11 @@
 
 import json
 import logging
-import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pydantic import ConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.logging_config import (

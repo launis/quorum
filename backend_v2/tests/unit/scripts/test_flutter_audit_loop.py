@@ -123,9 +123,7 @@ def test_cli_build_flag_triggers_l10n_and_build_runner(mock_sub: MagicMock, tmp_
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_build_l10n_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_build_l10n_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify failure during l10n generation exits immediately."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
@@ -141,9 +139,7 @@ def test_cli_build_l10n_failure_triggers_exit(
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_build_runner_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_build_runner_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify failure during build_runner generation exits immediately."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
@@ -183,9 +179,7 @@ def test_cli_strict_flag_propagates_to_dart_guardrails(mock_sub: MagicMock, tmp_
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_guardrail_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_guardrail_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify fatal guardrail violations trigger script exit."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
@@ -206,9 +200,7 @@ def test_cli_guardrail_failure_triggers_exit(
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_format_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_format_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify dart format failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
@@ -227,9 +219,7 @@ def test_cli_format_failure_triggers_exit(
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_analyze_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_analyze_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify dart analyze failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()
@@ -263,9 +253,7 @@ def test_cli_test_flag_executes_flutter_test(mock_sub: MagicMock, tmp_path: Path
 
 @patch("sys.exit")
 @patch("subprocess.run")
-def test_cli_flutter_test_failure_triggers_exit(
-    mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path
-) -> None:
+def test_cli_flutter_test_failure_triggers_exit(mock_sub: MagicMock, mock_exit: MagicMock, tmp_path: Path) -> None:
     """Verify flutter test failure triggers exit."""
     client_app = tmp_path / "client_app_v2"
     client_app.mkdir()

@@ -103,8 +103,7 @@ def test_audit_dict_eradication_detects_banned_get_lookup(tmp_path: Path) -> Non
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "lookup_service.py"
     target_file.write_text(
-        "def get_val(state_dict: object) -> None:\n"
-        "    state_dict.get('field')\n",
+        "def get_val(state_dict: object) -> None:\n    state_dict.get('field')\n",
         encoding="utf-8",
     )
 
@@ -163,8 +162,7 @@ def test_audit_dict_eradication_detects_unauthorized_suppressions(tmp_path: Path
     service_dir.mkdir(parents=True, exist_ok=True)
     target_file = service_dir / "suppression_file.py"
     target_file.write_text(
-        "x = 1  # noqa: QGR001\n"
-        "y = 2  # noqa: QGR002 [REASON: todo]\n",
+        "x = 1  # noqa: QGR001\ny = 2  # noqa: QGR002 [REASON: todo]\n",
         encoding="utf-8",
     )
 

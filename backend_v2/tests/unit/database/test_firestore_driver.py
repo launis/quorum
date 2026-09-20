@@ -1,9 +1,9 @@
 """Unit tests for FirestoreDriver."""
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-import uuid
 
 import pytest
 from pydantic import BaseModel, ConfigDict
