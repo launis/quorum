@@ -33,7 +33,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except AttributeError, io.UnsupportedOperation:
+    except (AttributeError, io.UnsupportedOperation):
         pass
 
 

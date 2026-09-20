@@ -23,12 +23,12 @@ def main() -> None:
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except AttributeError, io.UnsupportedOperation:
+        except (AttributeError, io.UnsupportedOperation):
             pass
     if isinstance(sys.stderr, io.TextIOWrapper):
         try:
             sys.stderr.reconfigure(encoding="utf-8")
-        except AttributeError, io.UnsupportedOperation:
+        except (AttributeError, io.UnsupportedOperation):
             pass
 
     if len(sys.argv) < 2:
