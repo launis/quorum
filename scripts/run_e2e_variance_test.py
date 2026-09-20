@@ -153,12 +153,14 @@ def _match_input_key(
     if not cand_norm:
         return None
 
+    typed_expected_inputs = [
+        item if isinstance(item, ExpectedInput) else ExpectedInput.model_validate(item)
+        for item in expected_inputs
+    ]
+
     tier1_matches: set[str] = set()
-    for item in expected_inputs:
-        if isinstance(item, ExpectedInput):
-            key = item.input_key
-        else:
-            key = str(item.get("input_key", ""))
+    for typed_item in typed_expected_inputs:
+        key = typed_item.input_key
         if cand_norm == _normalize_token(key):
             tier1_matches.add(key)
 
@@ -169,19 +171,9 @@ def _match_input_key(
         raise ValueError(msg)
 
     tier2_matches: set[str] = set()
-    for item in expected_inputs:
-        if isinstance(item, ExpectedInput):
-            key = item.input_key
-            raw_translations: list[str] = list(item.label.translations.values())
-        else:
-            key = str(item.get("input_key", ""))
-            raw_translations = []
-            if "label" in item:
-                label_val = item["label"]
-                if hasattr(label_val, "get"):
-                    translations_dict = label_val.get("translations", {})
-                    if hasattr(translations_dict, "values"):
-                        raw_translations = [str(v) for v in translations_dict.values()]
+    for typed_item in typed_expected_inputs:
+        key = typed_item.input_key
+        raw_translations: list[str] = list(typed_item.label.translations.values())
 
         for raw_trans in raw_translations:
             trans_norm = _normalize_token(raw_trans)

@@ -254,6 +254,16 @@ class TestLoadInputsAndKeyMatching:
         assert _match_input_key("", sample_expected_inputs) is None
         assert _match_input_key("   ", sample_expected_inputs) is None
 
+    def test_match_input_key_dict_payload_validated_as_expected_input(
+        self,
+        sample_expected_inputs: list[ExpectedInput],
+    ) -> None:
+        """Verify that dictionary payloads passed to _match_input_key are parsed via ExpectedInput.model_validate."""
+        dict_expected_inputs = [item.model_dump(mode="json") for item in sample_expected_inputs]
+        assert _match_input_key("chat_log", dict_expected_inputs) == "chat_log"
+        assert _match_input_key("keskusteluhistoria", dict_expected_inputs) == "chat_log"
+        assert _match_input_key("final_product", dict_expected_inputs) == "product_text"
+
     def test_load_inputs_from_path_directory_success(
         self,
         tmp_path: Path,

@@ -35,13 +35,13 @@
 ### Phase 1: Architecture Baseline, AST Guardrail Definition & Pre-Implementation Technical Debt Cleanups
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
   - [x] Step 1.1: AST Guardrail QGR018 Implementation
   - [x] Step 1.2: Validation Hook Hardening
   - [x] Step 1.3: Settings & Math Utilities Strictness
   - [x] Step 1.4: Logging & Database Driver Baseline Hardening
-  - [ ] Step 1.5: E2E Variance Test Harness Typed Payload Parity
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 1.5: E2E Variance Test Harness Typed Payload Parity
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 2: Domain Model & Event Sourcing Hardening, Dynamic Input Closed Unions & Isolated DTO Immutability
@@ -197,22 +197,24 @@
 # Session Handover Context
 
 ## Achieved
-- Formulated and verified 7 micro-chunked implementation plans under `docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/`.
-- Executed System 2 Red-Teaming on Phase 1 implementation plan (`01_phase1_plan.md`):
-  - Injected exact Python AST line bounds for all 9 target files verified via `scripts/audit_markdown_boundaries.py` and `scripts/audit_planner_output.py`.
-  - Discovered and cataloged 7-item technical debt items into `<pre_implementation_cleanups>` across validation hooks, math utilities, logging, and database drivers.
-  - Synthesized exhaustive 5-Column Architectural Directives Table establishing strict boundaries, eradicating duck-typing and lazy fallbacks, pruning over-engineering, and locking fail-fast proof anchors.
-- Validated with `scripts/audit_planner_output.py` and `scripts/audit_markdown_boundaries.py` achieving 100% compliance across all 87 targets, 41 Python AST bounds, 20 KIs, demolish symbols, and XML boundaries.
+- Completed Phase 1 execution of EPIC 152 in Continuous Full-Auto Mode:
+  - Step 1.1: Self-hardened `scripts/audit_dict_eradication.py` against malformed syntax crashes and modernized exception tuple parsing in `scripts/_ast_guardrails.py` under Python 3.14 (Test Contracts 1 & 2 verified, 91% coverage).
+  - Step 1.2: Refactored `backend_v2/hooks/validation.py` to eradicate `.get("raw_inputs")`, `.get("inputs")`, `inputs_source.get("_system_warnings")`, and silent `except ValidationError: pass` in favor of Fail-Fast validation with typed `AppException(VALIDATION_FAILED)` (Test Contract 3 verified, 94% coverage, 20 unit tests).
+  - Step 1.3: Deleted dead computed property `model_strategies` in `backend_v2/settings.py` and refactored `backend_v2/utils/math_utils.py` to eradicate `__dict__` reflection using `object.__getattribute__` and `type(curr).model_fields` (Test Contract 4 verified, 99% coverage).
+  - Step 1.4: Defined `StructuredLogContextDTO` in `backend_v2/logging_config.py` with `ConfigDict(strict=True, extra="forbid", frozen=True)` and type narrowing via `isinstance(exc, AppException)`. Replaced `hasattr(data, "model_dump")` with `isinstance(data, BaseModel)` in `backend_v2/database/tinydb_driver.py` and `backend_v2/database/firestore_driver.py` (Test Contracts 5 & 6 verified, 92-100% coverage, 26 unit tests).
+  - Step 1.5: Modernized `scripts/run_e2e_variance_test.py` (`_match_input_key`) to eliminate `hasattr(label_val, "get")` and `hasattr(translations_dict, "values")` by parsing expected inputs with `ExpectedInput.model_validate(item)` and typed dot-notation access (38 unit tests passing).
+- Executed all Phase 1 test coverage assertions (195 tests passing across 7 test suites, 0 failures, 100% Universal Quality Gate compliance).
+- Validated with `scripts/audit_planner_output.py` achieving 100% compliance across all 87 targets, 41 Python AST bounds, 20 KIs, demolish symbols, and XML boundaries.
 
 ## Learned
 - In `scripts/audit_markdown_boundaries.py` (`MBD004`), line bounds must match exact `(node_start, node_end)` tuples of Python AST definitions (including decorators); multi-function line spans trigger boundary verification errors.
-- `scripts/audit_dict_eradication.py` was pre-existing in the codebase, requiring modification rather than new file creation.
-- Python 2 comma exceptions in `scripts/_ast_guardrails.py` require tuple grouping to prevent silent syntax deprecations.
+- `Settings.log_file_path` is a computed property without a setter; when unit testing custom log paths, monkeypatching the class property on `Settings` is required.
+- In Pydantic V2.11+, accessing `.model_fields` on instances triggers `PydanticDeprecatedSince211`; accessing `type(instance).model_fields` satisfies modern strictness without deprecation warnings.
+- Normalizing input collections eagerly via `ExpectedInput.model_validate` before multi-tier matching eliminates nested duck-typing checks across the entire search loop.
 
 ## Remaining
-- Execute Phase 1 implementation via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
-- Verify Phase 1 test coverage assertions and audit via `/tier8-audit-plan`.
-- Progressively plan, red-team, and execute Phases 2 through 7.
+- Perform Phase 1 plan audit via `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Proceed to Phase 2: Domain Model & Event Sourcing Hardening, Dynamic Input Closed Unions & Isolated DTO Immutability (`02_phase2_plan.md`).
 
 ## Resume Command
-`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/01_phase1_plan.md] @[docs/epic/EPIC_152_tracker.md]`
