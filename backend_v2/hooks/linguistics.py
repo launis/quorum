@@ -67,9 +67,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
     # Strict Validation via DTO inflation
     try:
         lang_in_raw = (
-            raw_inputs["language"]
-            if "language" in raw_inputs and isinstance(raw_inputs["language"], str)
-            else None
+            raw_inputs["language"] if "language" in raw_inputs and isinstance(raw_inputs["language"], str) else None
         )
         payload_data: dict[str, Any] = {"dynamic_inputs": raw_inputs, "language": lang_in_raw}
         payload = LinguisticsPayloadDTO.model_validate(payload_data)

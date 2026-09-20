@@ -84,7 +84,7 @@
   - [x] Step 4.6: Comprehensive Test Suites Modernization, Hook Fixture Reflection Eradication & New Matrix Hook Suite
 - [x] **[OK] Test Coverage Assertions:** 100% test contract pass rate across all 6 validation gates (>90% coverage on all touched modules, 0 fatal AST violations, 0 emojis, clean Ruff & Mypy).
 - [x] **[OK] Remediation:** Remediated all 5 Tier 8 audit defects (0 F841 unused variables, 0 D107/E501 errors, zero legacy .vars in test suites, safe TraceEvent delta defaulting, and QGR012 eradicated). All 278 unit tests passing with >90% coverage and 0 fatal AST violations.
-- [ ] **[NOK] Audit:** Ready for Tier 8 Audit re-verification (`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`).
+- [x] **[OK] Audit:** Completed Tier 8 Audit re-verification (`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`). 100% mathematical pass rate, 0 fatal AST violations, 0 emojis, and full traceability certified in `red_team_audit_04_placeholder_phase4.md`.
 
 ### Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md]
@@ -233,8 +233,8 @@
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
 - Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode: Result Projector segregation (`ProjectedResultsDTO`, `MatrixProjectionResultDTO`), Global Context & Hook Delta DTO hardening (`GlobalContextVarsDTO`, `HookDeltaDTO`), Scoring Hooks hardening (`matrix_hook.py`, `normalization_hook.py`), complete emoji eradication across analytical logs and payloads, hook consumers dot-notation migration across 11 hooks and 4 worker/strategy callers, error swallowing eradication in background workers, and comprehensive test suite modernization (`test_matrix_hook.py`, `test_override_service.py`).
-- Completed Phase 4 Tier 8 Audit Remediation: resolved all 5 defects from `red_team_audit_04_placeholder_phase4.md` (eradicated AST QGR012 from `global_context.py`, removed F841 unused variables, fixed D107/E501 line-length and docstring errors, synchronized legacy `vars={...}` unit tests to typed DTO arguments, protected `TraceEvent` content against NoneType in `dag_executor.py`, and eliminated all fatal AST guardrail violations in `report_service.py`).
-- All 278 unit tests passed with exit code 0 and >90% coverage.
+- Completed Phase 4 Tier 8 Audit Remediation & Re-Verification: certified 100% mathematical pass rate in `red_team_audit_04_placeholder_phase4.md` (92% coverage on `normalization_hook.py`, 93% on `matrix_hook.py`, 95% on `result_projector.py`, 90% on `tda_engine.py`, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
+- All 88 tests in touched test files and 81 tests in `test_scoring.py` pass cleanly.
 
 ## Learned
 - In `override_service.py`, `record.context_variables` is a model attribute under `ExecutionCoreFields`; updating it requires `record = record.model_copy(update={"context_variables": updated_context_vars})` rather than direct attribute reassignment.
@@ -244,12 +244,12 @@
 - The Global Completion Gate (`backend_audit_loop.py backend_v2/ --test`) runs `ruff check --fix` across all files; local target-only gates are insufficient to catch unused variables and docstring/line-length violations across touched files.
 - When refactoring DTOs like `GlobalContextVarsDTO` and `HookDeltaDTO`, legacy unit tests outside the target boundary (e.g. `test_hook_state.py`, `test_hook_registry.py`, `test_dag_executor.py`) must be synchronized per the `anti_tdd_trap` mandate.
 - In `dag_executor.py`, `HookDeltaDTO.delta` defaulting to `None` causes `TraceEvent(content=delta_content)` to fail Pydantic validation if not defaulted to `{}`.
+- In `normalization_hook.py`, wrapping `Workflow.model_validate(workflow_dict)` inside `try...except ValidationError` ensures that invalid or incomplete workflow mock dictionaries raise RFC 7807 `AppException(VALIDATION_FAILED)` with structured error logging.
 
 ## Remaining
-- Phase 4 Tier 8 Audit: Run `/tier8-audit-plan` to re-certify Phase 4.
 - Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening.
 - Phases 6-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/04_placeholder_phase4.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md] --phase=5`
 

@@ -49,7 +49,6 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     if not state:
         return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
 
-
     # 2. Get Strategy (SSOT)
     if not state.step_id:
         msg = "state.step_id is strictly required for LLM context configuration."

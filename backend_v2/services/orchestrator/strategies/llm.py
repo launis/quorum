@@ -117,14 +117,14 @@ class LLMNodeStrategy(NodeStrategy):
             if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
                 try:
                     blackboard = dict(bb_val)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     pass
         elif context is not None and "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
             bb_val = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
             if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
                 try:
                     blackboard = dict(bb_val)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     pass
 
         atoms_by_input: dict[str, Any] = {}
@@ -133,7 +133,7 @@ class LLMNodeStrategy(NodeStrategy):
             if not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
                 try:
                     atoms_by_input = dict(atoms_val)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     pass
 
         doc_aliases: list[str] = ["N/A"]
@@ -175,7 +175,7 @@ class LLMNodeStrategy(NodeStrategy):
                                     extracted_a_id = ev_dict["atom_id"]
                                 if extracted_a_id:
                                     dag_results[extracted_a_id] = ev
-                except (TypeError, ValueError, KeyError):
+                except TypeError, ValueError, KeyError:
                     pass
 
         return gvars, doc_aliases, dag_results
@@ -302,7 +302,7 @@ class LLMNodeStrategy(NodeStrategy):
         elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
             try:
                 state_data = dict(hook_state.inputs)
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 state_data = {}
         else:
             state_data = {}
@@ -504,7 +504,7 @@ class LLMNodeStrategy(NodeStrategy):
         ):
             try:
                 prompt_gvars = dict(hook_state.global_context_vars)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 prompt_gvars = None
 
         prompt_payload = PromptFactory.build(
@@ -845,7 +845,7 @@ class LLMNodeStrategy(NodeStrategy):
                 else:
                     try:
                         final_dict = dict(engine_result.synthesis_output)
-                    except (ValueError, TypeError):
+                    except ValueError, TypeError:
                         final_dict = {"output": engine_result.synthesis_output}
             else:
                 final_dict = {

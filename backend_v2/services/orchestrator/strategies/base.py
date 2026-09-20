@@ -274,16 +274,12 @@ class NodeStrategy(ABC):
                         updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
                         hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
-                        hook_state = hook_state.model_copy(
-                            update={"global_context_vars": gvars_updates}
-                        )
+                        hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
                     trace_content = (
-                        gvars_updates
-                        if isinstance(gvars_updates, dict)
-                        else gvars_updates.model_dump(mode="json")
+                        gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json")
                     )
                     emitted_events.append(
                         TraceEvent(
@@ -360,16 +356,12 @@ class NodeStrategy(ABC):
                         updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
                         hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
-                        hook_state = hook_state.model_copy(
-                            update={"global_context_vars": gvars_updates}
-                        )
+                        hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
 
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
                     trace_content = (
-                        gvars_updates
-                        if isinstance(gvars_updates, dict)
-                        else gvars_updates.model_dump(mode="json")
+                        gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json")
                     )
                     emitted_events.append(
                         TraceEvent(

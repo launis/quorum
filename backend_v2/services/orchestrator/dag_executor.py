@@ -184,7 +184,7 @@ class NodeExecutor:
         context_variables: dict[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
-        global_context_vars: dict[str, Any] | None = None,
+        global_context_vars: GlobalContextVarsDTO | dict[str, Any] | None = None,
         target_locale: str = "en",
         output_profile_id: str | None = None,
         organization_id: str | None = None,

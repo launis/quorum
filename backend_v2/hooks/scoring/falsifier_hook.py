@@ -135,7 +135,9 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
             ) from e
 
     if hydrated_state.evaluative_matrices:
-        payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": hydrated_state.evaluative_matrices}))
+        payloads.append(
+            ScoringPayloadWrapper.model_validate({"_evaluative_matrices": hydrated_state.evaluative_matrices})
+        )
 
     # Add explicitly injected top-level inputs
     for extra_inputs in [hydrated_state.inputs, hydrated_state.raw_inputs]:

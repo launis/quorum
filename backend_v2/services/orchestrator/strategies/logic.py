@@ -151,13 +151,12 @@ class LogicNodeStrategy(NodeStrategy):
 
         if main_res.success and main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
-            delta_dict: dict[str, Any] = (
-                delta_val.model_dump(mode="json")
-                if isinstance(delta_val, BaseModel)
-                else dict(delta_val)
-                if isinstance(delta_val, dict)
-                else {}
-            )
+            if isinstance(delta_val, BaseModel):
+                delta_dict: dict[str, Any] = delta_val.model_dump(mode="json")
+            elif type(delta_val) is dict:
+                delta_dict = dict(delta_val)
+            else:
+                delta_dict = {}
             state_data = merge_dynamic_inputs(state_data, delta_dict)
             hook_state = hook_state.model_copy(update={"inputs": ExecutionInputsDTO(dynamic_inputs=state_data)})
         elif not main_res.success:
@@ -195,13 +194,12 @@ class LogicNodeStrategy(NodeStrategy):
         final_outputs: dict[str, Any] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
-            final_outputs = (
-                delta_val.model_dump(mode="json")
-                if isinstance(delta_val, BaseModel)
-                else dict(delta_val)
-                if isinstance(delta_val, dict)
-                else {}
-            )
+            if isinstance(delta_val, BaseModel):
+                final_outputs = delta_val.model_dump(mode="json")
+            elif type(delta_val) is dict:
+                final_outputs = dict(delta_val)
+            else:
+                final_outputs = {}
         meta = final_outputs.setdefault("_step_metadata", {})
         meta["task_blueprint"] = blueprint_id
 

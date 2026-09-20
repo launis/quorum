@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -92,11 +92,11 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
         updates_made = False
         new_payload = content_payload.copy()
 
-        eval_map_raw = new_payload["_evaluative_matrices"] if "_evaluative_matrices" in new_payload else {}
-        try:
-            eval_map = TypeAdapter(dict[str, float]).validate_python(eval_map_raw)
-        except ValidationError:
-            eval_map = {}
+        eval_map: dict[str, float] = {}
+        if "_evaluative_matrices" in new_payload:
+            raw_eval = new_payload["_evaluative_matrices"]
+            if type(raw_eval) is dict:
+                eval_map = {str(k): float(v) for k, v in raw_eval.items() if isinstance(v, (int, float))}
         new_payload["_evaluative_matrices"] = eval_map
 
         for pb_id in prompt_block_ids:
@@ -278,17 +278,17 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         )
 
-    workflow_model = Workflow.model_validate(workflow_dict, strict=False)
-    strictness_level = workflow_model.default_strictness_level
-
-    if strictness_level is None:
-        msg = f"Strict Fail-Fast Enforced: Missing mandatory scoring configuration in workflow '{workflow_model.id}'."
+    try:
+        workflow_model = Workflow.model_validate(workflow_dict, strict=False)
+    except ValidationError as exc:
+        msg = f"Strict Fail-Fast Enforced: Invalid workflow model for profile '{profile_id}': {exc}"
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
             message=msg,
             status_code=400,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-        )
+        ) from exc
+    strictness_level = workflow_model.default_strictness_level
 
     total_true_atoms = 0
     total_false_atoms = 0

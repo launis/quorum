@@ -365,4 +365,3 @@ async def test_regenerate_report_artifact() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     await service.regenerate_report_artifact(report.id, arq)
     arq.enqueue_job.assert_awaited_once()
-

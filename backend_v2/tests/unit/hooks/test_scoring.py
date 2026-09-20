@@ -4295,3 +4295,98 @@ async def test_matrix_scoring_hook_direct_output_profile_id_resolution() -> None
 
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_normalize_matrix_scores_evaluative_matrices_and_branches() -> None:
+    """Test normalize_matrix_scores_hook with pre-populated _evaluative_matrices and non-numeric raw score."""
+    from backend_v2.hooks.scoring.normalization_hook import normalize_matrix_scores_hook
+
+    pb_dict = _build_valid_pb_dict(
+        "blk_1234567890123456",
+        scales=[
+            {"score": 1.0, "ai_label": "L1", "claims": []},
+            {"score": 5.0, "ai_label": "L5", "claims": []},
+        ],
+    )
+    pb_dict["is_evaluative"] = True
+    matrix_dto = LightweightMatrixOutput(
+        raw_score=3.0,
+        normalized_score=None,
+        justification="Evaluation text",
+        evaluated_atoms={},
+        extensions={},
+    )
+    mock_workflow = AsyncMock()
+    mock_workflow.get_prompt_block_by_id.return_value = pb_dict
+    mock_workflow.get_step_by_id.return_value = _build_valid_step_dict(["blk_1234567890123456"])
+    state = HookState(
+        execution_id="exe_1111222233334444",
+        workflow_id="wor_1234567890123456",
+        step_id="stp_1234567890123456",
+        task_blueprint="stp_1234567890123456",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "blk_1234567890123456": matrix_dto.model_dump(mode="json"),
+                "_evaluative_matrices": {"blk_other12345678": 50.0},
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, mock_workflow),
+        workflow_repo=cast(Any, mock_workflow),
+        comp_repo=cast(Any, mock_workflow),
+        prompt_block_repo=cast(Any, mock_workflow),
+        output_profile_repo=cast(Any, mock_workflow),
+        identity_repo=cast(Any, mock_workflow),
+        audit_repo=cast(Any, mock_workflow),
+        system_repo=cast(Any, mock_workflow),
+    )
+    result = await normalize_matrix_scores_hook(state, deps)
+    assert result.success is True
+
+
+@pytest.mark.asyncio
+async def test_recalculate_missing_strictness_and_branches() -> None:
+    """Test recalculate missing default_strictness_level and branch skips."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    mock_profile_repo = AsyncMock()
+    mock_profile_repo.get_output_profile_by_id.return_value = {
+        "id": "prf_1111222233334444",
+        "slug": "prof_test",
+        "name": {"translations": {"en": "Prof", "fi": "Prof"}},
+        "workflow_id": "wor_1111222233334444",
+        "target_block_order": [],
+        "visible_block_extensions": [],
+    }
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wor_1111222233334444",
+        "slug": "wf_test",
+        "name": {"translations": {"en": "Workflow", "fi": "Workflow"}},
+        "description": {"translations": {"en": "Desc", "fi": "Desc"}},
+        "status": "active",
+        "version": 1,
+        "model_registry_id": "cfg_model_registry_01",
+        "historical_context_mode": "DISABLED",
+        "default_profile_id": "prf_1111222233334444",
+        "default_strictness_level": None,
+        "steps": [],
+    }
+    deps = HookDependencies(
+        exec_repo=cast(Any, AsyncMock()),
+        workflow_repo=cast(Any, mock_workflow_repo),
+        comp_repo=cast(Any, AsyncMock()),
+        prompt_block_repo=cast(Any, AsyncMock()),
+        output_profile_repo=cast(Any, mock_profile_repo),
+        identity_repo=cast(Any, AsyncMock()),
+        audit_repo=cast(Any, AsyncMock()),
+        system_repo=cast(Any, AsyncMock()),
+    )
+
+    with pytest.raises(AppException) as exc:
+        await recalculate({"blk_1111222233334444": {}}, "prf_1111222233334444", deps)
+    assert exc.value.error_code == "VALIDATION_FAILED"

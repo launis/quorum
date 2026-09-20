@@ -40,9 +40,7 @@ def test_hydrate_global_inputs_empty_updates() -> None:
         workflow_id="wor_456",
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(raw_inputs={"existing": "data"}),
-        global_context_vars=GlobalContextVarsDTO(
-            hydration_results=HydrationInputSourceDTO(inputs={})
-        ),
+        global_context_vars=GlobalContextVarsDTO(hydration_results=HydrationInputSourceDTO(inputs={})),
     )
     deps = MagicMock(spec=HookDependencies)
 

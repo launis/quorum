@@ -310,7 +310,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
                 resolved_text = _process_questionnaire(raw_val, key, expected_input)
                 is_questionnaire = True
             # Phase 1, Step 1.2: Correct parenthesized exception tuple syntax
-            except (ValidationError, TypeError):
+            except ValidationError, TypeError:
                 is_questionnaire = False
 
         if not is_questionnaire:

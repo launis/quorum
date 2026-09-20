@@ -515,4 +515,3 @@ async def test_clear_profile_synthesis_profile_not_in_syntheses() -> None:
         profile_id="prf_non_existent",
     )
     assert exec_repo.update_execution.called
-

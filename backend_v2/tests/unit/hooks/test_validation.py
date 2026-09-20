@@ -548,7 +548,11 @@ def test_verify_anomaly_passes_when_no_inversion() -> None:
 
     result = cast(HookResult, verify_anomaly(state, deps))
     assert result.success is True
-    assert result.state_delta is None or not result.state_delta.delta or "llm_anomaly_retry_requested" not in result.state_delta.delta
+    assert (
+        result.state_delta is None
+        or not result.state_delta.delta
+        or "llm_anomaly_retry_requested" not in result.state_delta.delta
+    )
 
 
 def test_verify_anomaly_none_state() -> None:
