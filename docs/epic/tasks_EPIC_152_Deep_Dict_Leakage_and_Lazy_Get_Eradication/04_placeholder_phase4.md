@@ -7,6 +7,7 @@
 - `[MODIFY]` @[backend_v2/hooks/scoring/matrix_hook.py]
 - `[NEW]` @[backend_v2/models/dtos/global_context.py]
 - `[NEW]` @[backend_v2/models/dtos/hook_delta.py]
+- `[NEW]` NodeExecutionUpdateDTO
 - `[NEW]` @[backend_v2/tests/unit/hooks/test_matrix_hook.py]
 
 ```xml

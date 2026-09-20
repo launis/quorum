@@ -1,6 +1,6 @@
 # Phase 3: Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening
 
-**Overview:** Hardening the boundary between Phase 1 matrix evaluation and Phase 2 synthesis reporting. Eradicate dummy packet generation and the `[NO_BLOCK]` sentinel in `TwoPassAtomizer`, enforce strongly typed `list[EvaluatedAtomDTO]` stratification in `SynthesisPayloadCompressor`, establish `DataStarvationEvent` and `NodeExecutionUpdateDTO` in `backend_v2/events/domain_events.py`, package `SynthesisDistillationDTO` in `SynthesisDistiller`, eliminate silent exception swallowing across orchestrator engines (`synthesis_engine.py`, `tda_engine.py`), and eradicate 100% of dynamic reflection (`getattr`, `hasattr`, `object.__setattr__`) across worker and synthesis test suites.
+**Overview:** Hardening the boundary between Phase 1 matrix evaluation and Phase 2 synthesis reporting. Eradicate dummy packet generation and the `[NO_BLOCK]` sentinel in `TwoPassAtomizer`, enforce strongly typed `list[EvaluatedAtomDTO]` stratification in `SynthesisPayloadCompressor`, lock `DataStarvationEvent` in `backend_v2/models/dtos/base.py`, extend `DomainInputValue` and `ExecutionInputsDTO` in `backend_v2/models/dtos/hook_state.py` and `backend_v2/models/domain/inputs.py` to encapsulate `StepOutputDTO`, package `SynthesisDistillationDTO` in `backend_v2/models/dtos/synthesis.py` (with pure dot notation access and zero dict mapping methods), eliminate silent exception swallowing across orchestrator engines (`synthesis_engine.py`, `tda_engine.py`), and eradicate 100% of dynamic reflection (`getattr`, `hasattr`, `object.__setattr__`) across worker and synthesis test suites.
 **Source:** @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] Phase 3: Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening
 **Target Files:**
 - `[MODIFY]` @[backend_v2/services/orchestrator/two_pass_atomizer.py#L35-L491]
@@ -12,7 +12,9 @@
 - `[MODIFY]` @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L234]
 - `[MODIFY]` @[backend_v2/workers/synthesis_tasks.py#L120-L205]
 - `[MODIFY]` @[backend_v2/workers/variance_synthesis.py#L48-L222]
-- `[NEW]` @[backend_v2/events/domain_events.py]
+- `[MODIFY]` @[backend_v2/models/dtos/base.py#L47-L58]
+- `[MODIFY]` @[backend_v2/models/dtos/hook_state.py#L21-L41]
+- `[MODIFY]` @[backend_v2/models/domain/inputs.py#L82-L98]
 - `[MODIFY]` @[backend_v2/models/dtos/synthesis.py#L27-L41]
 - `[MODIFY]` @[backend_v2/models/dtos/atom_result.py#L146-L175]
 - `[MODIFY]` @[backend_v2/tests/unit/test_worker_synthesis.py#L27-L40]
@@ -35,8 +37,9 @@
     <item>TwoPassAtomizer._calculate_packets in @[backend_v2/services/orchestrator/two_pass_atomizer.py#L35-L491] returns empty list [] when not block_keys, completely demolishing the NO_BLOCK dummy sentinel.</item>
     <item>TwoPassAtomizer.execute_phase_0, execute_phase_1, and execute_phase_1_drafts short-circuit immediately on empty packets with zero LLM API calls, returning empty models and zero TokenUsage.</item>
     <item>SynthesisPayloadCompressor.compress_synthesis_payload and inner _prune_and_stratify_evaluations in @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L295] accept list[EvaluatedAtomDTO], access item.status, item.exact_quotes, item.atom_id, and eradicate silent except (AttributeError, TypeError): pass on line 291.</item>
-    <item>[NEW] @[backend_v2/events/domain_events.py] defines DataStarvationEvent and NodeExecutionUpdateDTO under ConfigDict(strict=True, frozen=True, extra="forbid").</item>
-    <item>SynthesisDistillationDTO is defined in @[backend_v2/models/dtos/synthesis.py#L27-L41] and emitted by synthesis_distiller_hook in @[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381] as a strongly typed, frozen DTO with zero naked dicts.</item>
+    <item>DataStarvationEvent in @[backend_v2/models/dtos/base.py#L47-L58] is locked with event_type: Literal["starvation"] = "starvation" under ConfigDict(strict=True, frozen=True, extra="forbid"), eradicating speculative events/ directory creation.</item>
+    <item>DomainInputValue in @[backend_v2/models/domain/inputs.py#L82-L98] and ExecutionInputsDTO in @[backend_v2/models/dtos/hook_state.py#L21-L41] encapsulate StepOutputDTO | list[StepOutputDTO], restoring typed pipeline transit between synthesis worker and distiller hook.</item>
+    <item>SynthesisDistillationDTO is defined in @[backend_v2/models/dtos/synthesis.py#L27-L41] and emitted by synthesis_distiller_hook in @[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381] as a strongly typed, frozen DTO with pure dot notation access and zero dict mapping methods.</item>
     <item>MatrixReducer.reduce_matrix in @[backend_v2/services/orchestrator/matrix_reducer.py#L22-L228] and SynthesisEngine in @[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L240] / TDAEngine in @[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L234] eliminate silent exception swallowing (except (TypeError, KeyError): pass) in favor of Fail-Fast validation.</item>
     <item>SynthesisReducers.handle_starvation_if_detected in @[backend_v2/workers/synthesis_reducers.py#L54-L91] validates DataStarvationEvent directly, eliminating TypeAdapter(dict[str, Any]) and Python 2 comma syntax.</item>
     <item>VarianceSynthesis.build_variance_metrics_and_task in @[backend_v2/workers/variance_synthesis.py#L48-L222] extracts metrics using LinguisticsResultDTO and LightweightMatrixOutput without QGR016 banned ternaries or silent (None, None) fallbacks.</item>
@@ -88,7 +91,9 @@
     <backend>@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L234]</backend>
     <backend>@[backend_v2/workers/synthesis_tasks.py#L120-L205]</backend>
     <backend>@[backend_v2/workers/variance_synthesis.py#L48-L222]</backend>
-    <backend>[NEW] @[backend_v2/events/domain_events.py]</backend>
+    <backend>@[backend_v2/models/dtos/base.py#L47-L58]</backend>
+    <backend>@[backend_v2/models/dtos/hook_state.py#L21-L41]</backend>
+    <backend>@[backend_v2/models/domain/inputs.py#L82-L98]</backend>
     <backend>@[backend_v2/models/dtos/synthesis.py#L27-L41]</backend>
     <backend>@[backend_v2/models/dtos/atom_result.py#L146-L175]</backend>
     <backend>@[backend_v2/tests/unit/test_worker_synthesis.py#L27-L40]</backend>
@@ -128,19 +133,27 @@
       <description>Eradicate distilled_data: dict[str, Any] (Line 127) and QGR016 banned ternaries (Lines 134, 135, 289, 290, 331).</description>
       <remedy>Type distilled_data as SynthesisDistillationDTO and access language and title_map via static dot notation.</remedy>
     </cleanup>
-    <cleanup id="C8" target="@[backend_v2/tests/unit/test_worker_synthesis.py#L27-L40]">
+    <cleanup id="C8" target="@[backend_v2/models/domain/inputs.py#L82-L98]">
+      <description>Encapsulate StepOutputDTO | list[StepOutputDTO] in DomainInputValue and ExecutionInputsDTO to restore synthesis pipeline transit.</description>
+      <remedy>Add StepOutputDTO to DomainInputValue closed union and dynamic_inputs container in hook_state.py.</remedy>
+    </cleanup>
+    <cleanup id="C9" target="@[backend_v2/services/orchestrator/matrix_reducer.py#L22-L228]">
+      <description>Eradicate fallback chain to step_states.scorecard_atoms for mock test fixtures (Lines 176-209) and _dict_adapter.</description>
+      <remedy>Extract evaluated atoms strictly from ExecutionRecord.execution_trace output events and fail-fast if absent.</remedy>
+    </cleanup>
+    <cleanup id="C10" target="@[backend_v2/tests/unit/test_worker_synthesis.py#L27-L40]">
       <description>Eradicate getattr(payload, 'profile_syntheses', None) (Line 32) and hasattr(v, 'model_dump') (Line 38).</description>
       <remedy>Assert directly on typed ExecutionUpdateDTO and RenderedSynthesisCache using static dot notation and isinstance(v, BaseModel).</remedy>
     </cleanup>
-    <cleanup id="C9" target="@[backend_v2/tests/unit/test_worker.py#L1155-L1213]">
+    <cleanup id="C11" target="@[backend_v2/tests/unit/test_worker.py#L1155-L1213]">
       <description>Eradicate 8x getattr/hasattr/get fallback chains (Lines 1191-1207, 1418, 1525).</description>
       <remedy>Assert directly against typed ExecutionUpdateDTO.profile_syntheses and saved_cache.data_starvation fields.</remedy>
     </cleanup>
-    <cleanup id="C10" target="@[backend_v2/tests/unit/test_worker_proxy.py#L7-L31]">
+    <cleanup id="C12" target="@[backend_v2/tests/unit/test_worker_proxy.py#L7-L31]">
       <description>Eradicate hasattr/getattr inspection of module symbols (Lines 9, 18, 19, 36, 47).</description>
       <remedy>Inspect f.__name__ on WorkerSettings.functions and use direct identity assertion rw.WorkerSettings is WorkerSettings.</remedy>
     </cleanup>
-    <cleanup id="C11" target="@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py#L94-L164]">
+    <cleanup id="C13" target="@[backend_v2/tests/unit/services/orchestrator/test_synthesis_distiller_wiring.py#L94-L164]">
       <description>Eradicate object.__setattr__(state, 'inputs', 'invalid_inputs_string') (Line 191) and state_delta['distilled_inputs'] subscripting.</description>
       <remedy>Construct invalid HookState directly via typed constructor and access typed SynthesisDistillationDTO properties.</remedy>
     </cleanup>
@@ -151,10 +164,10 @@
 | :--- | :--- | :--- | :--- | :--- |
 | `@[backend_v2/services/orchestrator/two_pass_atomizer.py#L35-L491]` (`_calculate_packets`, `execute_phase_0`, `execute_phase_1`, `execute_phase_1_drafts`) | `packets.append(("[NO_BLOCK]", "[NO_BLOCK]", []))` dummy packet generation forcing LLM execution on unformatted inputs | Return empty list `[]` when `not block_keys`; short-circuit immediately in `execute_phase_0`, `execute_phase_1`, and `execute_phase_1_drafts` returning empty models and zero `TokenUsage` | Demolish `[NO_BLOCK]` sentinel completely from codebase | Unit test in `test_two_pass_atomizer.py` verifying `_calculate_packets("") == []` and zero LLM calls dispatched |
 | `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L295]` (`compress_synthesis_payload`, `_prune_and_stratify_evaluations`, `_strip_heavy_keys`) | `evals: list[dict[str, Any]]`, `item.get("status")`, `item.get("exact_quotes") or []`, `ev.get("atom_id") or ev.get("tda_id")`, and `except (AttributeError, TypeError): pass` (Line 291) | Accept `list[EvaluatedAtomDTO]`, access `item.status`, `item.exact_quotes`, `item.atom_id` via static dot notation; Fail-Fast raising `AppException(ErrorCodes.VALIDATION_FAILED)` on invalid objects | Demolish dictionary `.get()` fallback lookups, key guessing, and silent error swallowing | Unit tests in `test_synthesis_payload_compressor.py` asserting typed stratification and `AppException` on invalid objects |
-| `@[backend_v2/events/domain_events.py]` [NEW] | Loose dictionary event passing and ad-hoc event bags | Define `DataStarvationEvent` with `event_type: Literal["starvation"] = "starvation"` and `NodeExecutionUpdateDTO` under `ConfigDict(strict=True, frozen=True, extra="forbid")` | Eradicate untyped event payload instantiation | Unit test verifying Pydantic V2 validation rejection of unauthorized keys with `extra="forbid"` |
-| `@[backend_v2/models/dtos/synthesis.py#L27-L41]` | Returning naked dictionary `delta` in synthesis hook state | Define `SynthesisDistillationDTO` with fields `distilled_inputs`, `historical_context`, `title_map`, `matrices_to_explain`, `source_alias_map`, `output_profile_id`, `target_locale`, `language`, `alias_registry`, `max_extensions` under `ConfigDict(strict=True, frozen=True, extra="forbid")`, with mapping helpers | Demolish raw dict delta construction in `synthesis_distiller.py` | Unit test in `test_synthesis_distiller_wiring.py` asserting `SynthesisDistillationDTO` payload integrity |
-| `@[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381]` (`synthesis_distiller_hook`) | `inputs.dynamic_inputs.get("steps")`, `except (ValidationError, TypeError, ValueError): pass` (Line 244), raw dictionary `delta` construction (Lines 368-380) | Direct typed step traversal via `inputs.dynamic_inputs`; Fail-Fast `raise AppException(ErrorCodes.VALIDATION_FAILED)` on invalid steps; return `HookDeltaDTO(delta=SynthesisDistillationDTO(...).model_dump())` and typed `SynthesisDistillationDTO` | Delete silent exception suppression and untyped dictionary construction | Unit tests in `test_synthesis_distiller_wiring.py` passing with zero reflection |
-| `@[backend_v2/services/orchestrator/matrix_reducer.py#L22-L228]` (`reduce_matrix`) | `_dict_adapter = TypeAdapter(dict[str, Any])`, `raw_content = evt.content.model_dump()`, and `content.get("results")` dictionary laundering | Direct typed inspection of `StepOutputDTO` or `AtomResultDTO` from `evt.content`; direct access `evt.content.results` | Delete `_dict_adapter` and `.get("results")` lookups | Unit tests in `test_matrix_reducer.py` asserting typed atom extraction without dict adapters |
+| `@[backend_v2/models/dtos/base.py#L47-L58]` &amp; `@[backend_v2/models/dtos/hook_state.py#L21-L41]` | Loose dictionary event passing, speculative `events/` folder creation, and missing `StepOutputDTO` in `DomainInputValue` | Lock `DataStarvationEvent` in `base.py` under `ConfigDict(strict=True, frozen=True, extra="forbid")`; encapsulate `StepOutputDTO | list[StepOutputDTO]` in `DomainInputValue` and `ExecutionInputsDTO.dynamic_inputs` | Prune speculative `backend_v2/events/` directory creation and backward compatibility re-export shims | Unit test verifying Pydantic V2 validation rejection of unauthorized keys with `extra="forbid"` and acceptance of `StepOutputDTO` |
+| `@[backend_v2/models/dtos/synthesis.py#L27-L41]` | Dict mapping methods (`__getitem__`, `__contains__`, `keys()`, `values()`) mimicking raw dictionaries on DTO models | Define `SynthesisDistillationDTO` with fields `distilled_inputs`, `historical_context`, `title_map`, `matrices_to_explain`, `source_alias_map`, `output_profile_id`, `target_locale`, `language`, `alias_registry`, `max_extensions` under `ConfigDict(strict=True, frozen=True, extra="forbid")` with pure dot notation access | Demolish dict subscripting methods and raw dict delta construction in `synthesis_distiller.py` | Unit test in `test_synthesis_distiller_wiring.py` asserting `SynthesisDistillationDTO` payload integrity and type safety |
+| `@[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381]` (`synthesis_distiller_hook`) | `inputs.dynamic_inputs.get("steps")`, `except (ValidationError, TypeError, ValueError): pass` (Line 244), raw dictionary `delta` construction (Lines 368-380) | Direct typed step traversal via `inputs.dynamic_inputs["steps"]`; Fail-Fast `raise AppException(ErrorCodes.VALIDATION_FAILED)` on invalid steps; return `HookDeltaDTO(delta=SynthesisDistillationDTO(...).model_dump(mode="json"))` and typed `SynthesisDistillationDTO` | Delete silent exception suppression and untyped dictionary construction | Unit tests in `test_synthesis_distiller_wiring.py` passing with zero reflection |
+| `@[backend_v2/services/orchestrator/matrix_reducer.py#L22-L228]` (`reduce_matrix`) | `_dict_adapter = TypeAdapter(dict[str, Any])`, `raw_content = evt.content.model_dump()`, `content.get("results")` dictionary laundering, and fallback to `step_states.scorecard_atoms` | Direct typed inspection of `StepOutputDTO` or `AtomResultDTO` from `evt.content`; direct access `evt.content.results`; Fail-Fast if trace output absent | Delete `_dict_adapter`, `.get("results")` lookups, and mock fixture fallback loop | Unit tests in `test_matrix_reducer.py` asserting typed atom extraction without dict adapters |
 | `@[backend_v2/services/orchestrator/engines/synthesis_engine.py#L27-L240]` (`execute`) | `except (TypeError, KeyError): pass` (Lines 99, 151) | Direct typed inspection of `GlobalAtomBlackboard` and `matrix_reducer_output`; Fail-Fast `raise AppException(ErrorCodes.VALIDATION_FAILED)` on malformed payloads; unconditionally emit `DataStarvationEvent` when `total_atoms <= settings.synthesis_starvation_threshold` | Eradicate silent exception catching | Unit test asserting `DataStarvationEvent` emission when `total_atoms == 0` and Fail-Fast on corrupted request |
 | `@[backend_v2/services/orchestrator/engines/tda_engine.py#L29-L234]` (`execute`) | `except (TypeError, KeyError): pass` (Line 92) | Inspect blackboard via typed models; Fail-Fast `raise AppException(ErrorCodes.VALIDATION_FAILED)` | Eradicate silent exception catching | Unit test asserting Fail-Fast on corrupted blackboard |
 | `@[backend_v2/workers/synthesis_reducers.py#L54-L91]` (`extract_user_role_from_trace`, `handle_starvation_if_detected`, `handle_synthesis_failure_state`, `recover_trace_telemetry`) | `TypeAdapter(dict[str, Any]).validate_python` (Lines 66, 222), `t_content.get("event_type") == "starvation"`, silent `except: pass` (Lines 74, 285), and Python 2 comma syntax `except OSError, ValidationError, ValueError, KeyError:` (Line 354) | Inspect `DataStarvationEvent` directly via `TypeAdapter(DataStarvationEvent).validate_python` or `isinstance(trace_evt.content, DataStarvationEvent)`; PEP 3110 exception syntax; Fail-Fast structured error logging | Eradicate `TypeAdapter(dict[str, Any])` and comma exception syntax | Unit tests in `test_worker.py` asserting 100% deterministic starvation short-circuiting |
@@ -182,19 +195,21 @@
     <demolish>REMOVE: `except (AttributeError, TypeError): pass` in @[backend_v2/services/orchestrator/synthesis_payload_compressor.py#L22-L295]. REPLACE WITH: Fail-Fast AppException(ErrorCodes.VALIDATION_FAILED).</demolish>
   </step>
 
-  <step id="3.3" name="Domain Events SSOT &amp; DataStarvationEvent / NodeExecutionUpdateDTO Packaging">
-    <action>Create [NEW] @[backend_v2/events/domain_events.py]:</action>
-    <action>- Define DataStarvationEvent inheriting from V2CoreBase with event_type: Literal["starvation"] = "starvation", total_atoms: int, reason: str, ConfigDict(strict=True, frozen=True, extra="forbid").</action>
-    <action>- Define NodeExecutionUpdateDTO inheriting from V2CoreBase with status, step_states, error, execution_trace, context_variables, frozen_context, steps, ConfigDict(strict=True, frozen=True, extra="forbid").</action>
-    <action>- Re-export DataStarvationEvent in @[backend_v2/models/dtos/base.py] for backward compatibility.</action>
+  <step id="3.3" name="Domain Events SSOT &amp; DataStarvationEvent / Dynamic Inputs Packaging">
+    <action>Harden DataStarvationEvent in @[backend_v2/models/dtos/base.py#L47-L58]:</action>
+    <action>- Lock ConfigDict(strict=True, frozen=True, extra="forbid") with explicit event_type: Literal["starvation"] = "starvation", total_atoms: int, reason: str.</action>
+    <action>- Prune speculative backend_v2/events/ directory creation in accordance with strict_model_location in 04_directory_reference.md.</action>
+    <action>Harden DomainInputValue and ExecutionInputsDTO in @[backend_v2/models/domain/inputs.py#L82-L98] and @[backend_v2/models/dtos/hook_state.py#L21-L41]:</action>
+    <action>- Extend DomainInputValue closed union to encapsulate StepOutputDTO | list[StepOutputDTO].</action>
+    <action>- Update ExecutionInputsDTO.dynamic_inputs to accept dict[str, DomainInputValue | StepOutputDTO | list[StepOutputDTO]], restoring typed pipeline transit between synthesis worker and distiller hook.</action>
   </step>
 
   <step id="3.4" name="Synthesis Distiller Hook &amp; SynthesisDistillationDTO Integration">
     <action>Define SynthesisDistillationDTO in @[backend_v2/models/dtos/synthesis.py#L27-L41]:</action>
     <action>- Model fields: distilled_inputs: str, historical_context: str | None = None, title_map: dict[str, str] = Field(default_factory=dict), matrices_to_explain: list[MatrixExplanationContextDTO] = Field(default_factory=list), source_alias_map: dict[str, str] = Field(default_factory=dict), output_profile_id: str | None = None, target_locale: str = "en", language: str = "en", alias_registry: dict[str, str] = Field(default_factory=dict), max_extensions: int = 5, ConfigDict(strict=True, frozen=True, extra="forbid").</action>
-    <action>- Implement __getitem__, __contains__, keys(), values(), items() mapping methods for zero-regression compatibility.</action>
+    <action>- Strict pure dot-notation access: Ban __getitem__, __contains__, keys(), values(), items() mapping methods in accordance with zero_backward_compatibility_planning_ban and pure_dot_notation_and_anti_reflection.</action>
     <action>Refactor @[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381]:</action>
-    <action>- Replace inputs.dynamic_inputs.get("steps") with typed traversal.</action>
+    <action>- Replace inputs.dynamic_inputs.get("steps") with typed traversal inputs.dynamic_inputs["steps"].</action>
     <action>- Eradicate except (ValidationError, TypeError, ValueError): pass on line 244; raise structured AppException(ErrorCodes.VALIDATION_FAILED).</action>
     <action>- Return HookResult(success=True, state_delta=HookDeltaDTO(delta=SynthesisDistillationDTO(...).model_dump(mode="json"))).</action>
     <demolish>REMOVE: raw dictionary delta construction in @[backend_v2/services/orchestrator/synthesis_distiller.py#L179-L381]. REPLACE WITH: typed SynthesisDistillationDTO packaging.</demolish>

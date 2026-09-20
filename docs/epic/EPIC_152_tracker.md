@@ -59,11 +59,11 @@
 ### Phase 3: Phase 1 to Phase 2 Boundary & Synthesis DTO Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md] --phase=3`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
   - [ ] Step 3.1: Two-Pass Atomizer Empty Packet Short-Circuit & Demolition of [NO_BLOCK] Sentinel
   - [ ] Step 3.2: Synthesis Payload Compressor & EvaluatedAtomDTO Strict Stratification
-  - [ ] Step 3.3: Domain Events SSOT & DataStarvationEvent / NodeExecutionUpdateDTO Packaging
+  - [ ] Step 3.3: Ingestion Domain Value SSOT & DataStarvationEvent Packaging
   - [ ] Step 3.4: Synthesis Distiller Hook & SynthesisDistillationDTO Integration
   - [ ] Step 3.5: Matrix Reducer & Orchestrator Engines Fail-Fast Hardening
   - [ ] Step 3.6: Background Worker Synthesis Tasks, Reducers & Variance Synthesis Hardening
@@ -197,7 +197,7 @@
 | Document Extraction & Smart Ingress Hardening | Phase 2 | `document_extraction.py`, `smart_ingress_resolver.py`, `base.py` | Phase 2, Step 2.6 |
 | Two-Pass Atomizer Empty Packet Short-Circuit & Demolition of [NO_BLOCK] Sentinel | Phase 3 | `backend_v2/services/orchestrator/two_pass_atomizer.py` | Phase 3, Step 3.1 |
 | Synthesis Payload Compressor & EvaluatedAtomDTO Strict Stratification | Phase 3 | `synthesis_payload_compressor.py`, `atom_result.py` | Phase 3, Step 3.2 |
-| Domain Events SSOT & DataStarvationEvent / NodeExecutionUpdateDTO Packaging | Phase 3 | `backend_v2/events/domain_events.py` | Phase 3, Step 3.3 |
+| Ingestion Domain Value SSOT & DataStarvationEvent Packaging | Phase 3 | `backend_v2/models/dtos/base.py`, `backend_v2/models/domain/inputs.py`, `backend_v2/models/dtos/hook_state.py` | Phase 3, Step 3.3 |
 | Synthesis Distiller Hook & SynthesisDistillationDTO Integration | Phase 3 | `synthesis_distiller.py`, `models/dtos/synthesis.py` | Phase 3, Step 3.4 |
 | Matrix Reducer & Orchestrator Engines Fail-Fast Hardening | Phase 3 | `matrix_reducer.py`, `synthesis_engine.py`, `tda_engine.py` | Phase 3, Step 3.5 |
 | Background Worker Synthesis Tasks, Reducers & Variance Synthesis Hardening | Phase 3 | `synthesis_tasks.py`, `synthesis_reducers.py`, `variance_synthesis.py` | Phase 3, Step 3.6 |
@@ -217,18 +217,19 @@
 ## Achieved
 - Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Authored Phase 3 Implementation Plan (`03_placeholder_phase3.md` / `implementation_plan.md`) covering Steps 3.1 to 3.7.
-- Verified plan boundaries and planner fidelity: 100% pass on `scripts/audit_markdown_boundaries.py` and `scripts/audit_planner_output.py`.
+- Authored and red-teamed Phase 3 Implementation Plan (`03_placeholder_phase3.md`) covering Steps 3.1 to 3.7 with complete Five-Axis System 2 Deconstruction.
+- Verified plan boundaries, AST line node spans, and planner fidelity: 100% pass on `scripts/audit_markdown_boundaries.py` and `scripts/audit_planner_output.py`.
 
 ## Learned
-- Exact AST node boundary verification (`ast.walk`) requires matching exact `ClassDef` / `FunctionDef` line bounds down to single lines (`#L27-L41`, `#L146-L175`, `#L25-L47`, `#L16-L41`).
-- `StepOutputDTO` in `backend_v2/models/state.py` is the sovereign SSOT model for step outputs; avoiding hallucinated DTO names (`StepOutputContentDTO`) keeps planner guardrails 100% green.
-- `SynthesisDistillationDTO` must implement standard mapping methods (`keys()`, `values()`, `items()`, `__getitem__`, `__contains__`) under `ConfigDict(strict=True, frozen=True, extra="forbid")` to ensure zero regressions across legacy hook consumers.
+- `DataStarvationEvent` already exists natively in `backend_v2/models/dtos/base.py#L47-L58`; speculative creation of `backend_v2/events/domain_events.py` violates `strict_model_location` and was demolished.
+- `synthesis_worker.py` passes `{"steps": final_inputs}` where `final_inputs: list[StepOutputDTO]`. In Phase 2, `ExecutionInputsDTO.dynamic_inputs` only allowed `DomainInputValue` (which lacked `StepOutputDTO`), triggering `ValidationError` in 23 tests across worker and distiller suites. Phase 3 formally encapsulates `StepOutputDTO | list[StepOutputDTO]` into `DomainInputValue` and `ExecutionInputsDTO.dynamic_inputs`.
+- Dict-emulation methods (`__getitem__`, `keys()`, etc.) on `SynthesisDistillationDTO` violate `zero_backward_compatibility_planning_ban` and `pure_dot_notation_and_anti_reflection`; DTOs must enforce pure static dot-notation under `ConfigDict(strict=True, frozen=True, extra="forbid")`.
+- `audit_markdown_boundaries.py` validates `MBD004` against exact Python AST `ClassDef` / `FunctionDef` node line spans (`base.py#L47-L58`, `hook_state.py#L21-L41`, `inputs.py#L82-L98`).
 
 ## Remaining
-- Red-team Phase 3 plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`.
 - Execute Phase 3 via `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`.
+- Audit Phase 3 via `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`.
 - Phases 4-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/03_placeholder_phase3.md] @[docs/epic/EPIC_152_tracker.md]`
