@@ -78,7 +78,7 @@ In accordance with `touched_scope_tech_debt_mandate`, an exhaustive 7-item techn
 1. **Dynamic `.__dict__` Access in `math_utils.py` (Line 210):**
    In `@[backend_v2/utils/math_utils.py]`, `resolve_dot_notation` accesses `curr.__dict__[part]` on `BaseModel` instances. This was flagged as a fatal violation by AST guardrail `QGR001`. *Remediation injected into Phase 1:* Replace `curr.__dict__[part]` with `object.__getattribute__(curr, part)` to achieve 100% compliance with `QGR001`.
 2. **Python 2 Comma Syntax in `scripts/_ast_guardrails.py`:**
-   Lines 40 and 148 contain `except AttributeError, io.UnsupportedOperation:` and `except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:`. *Remediation injected into Phase 1:* Update to standard Python 3 tuple syntax `except (AttributeError, io.UnsupportedOperation):`.
+   Lines 40 and 193 contain `except AttributeError, io.UnsupportedOperation:` and `except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:`. *Remediation injected into Phase 1:* Update to standard Python 3 tuple syntax `except (AttributeError, io.UnsupportedOperation):`.
 3. **AST Linter Parsing Bypasses in `audit_dict_eradication.py`:**
    Lines 285 and 311 contain `except Exception: pass` and `except Exception: continue`. *Remediation injected into Phase 1:* Self-harden the script to terminate with exit code 1 on file parse failures.
 4. **Dead Computed Property in `settings.py`:**

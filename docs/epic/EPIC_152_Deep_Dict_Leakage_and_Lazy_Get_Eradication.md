@@ -102,6 +102,9 @@ While high-level ingress routers enforce strict Pydantic V2 validation, deeper i
 | **V14: Hook State Mutation & System-Wide Emoji Contamination** | 6 files | 14 instances | `matrix_hook.py`, `normalization_hook.py`, `result_projector.py`, `report_template.jinja2`, `dashboard_pdf.html`, `llm_task_executor.py` | FATAL |
 | **TOTAL** | **95+ files** | **568 total instances** | **Global Backend Service, Hook, Worker, SDUI, Domain, Boundary Driver, Script, Test, and Frontend Client layers** | **FATAL SYSTEM BOUNDARY** |
 
+> [!NOTE]
+> Violation counts are baselined from the initial AST audit snapshot. Executing agents MUST run `audit_dict_eradication.py` and `_ast_guardrails.py` at each Gate to verify the live count and account for any pre-resolved targets.
+
 ---
 
 ## 2. Architectural Impact & Compliance Matrix
@@ -196,6 +199,10 @@ While high-level ingress routers enforce strict Pydantic V2 validation, deeper i
 | `@[backend_v2/services/mcp/tools/tavily.py]` | `declaration -> dict[str, Any]` (Line 25) | REMOVE | Defined `[NEW]` strongly typed frozen Pydantic model `MCPToolDeclarationDTO` |
 | `@[backend_v2/services/studio/simulation_service.py]` | `mock_inputs: dict[str, Any]` (Line 339) | REMOVE | Strongly typed `ExecutionInputsDTO` |
 | `@[backend_v2/services/studio/workflow_service.py]` | `new_mappings: dict[str, Any] = {}` (Line 361) | REMOVE | Strongly typed `dict[str, str]` input mappings container |
+| `@[backend_v2/services/orchestrator/dag_executor.py]` | `context_variables: dict[str, Any]`, `update_data: dict[str, Any]`, `global_context_vars: dict[str, Any]`, `resolved_global_vars: dict[str, Any]`, `resolved_context_vars: dict[str, Any]`, `global_vars: dict[str, Any]`, `delta_content: dict[str, Any]`, `step_generated_schemas: dict[str, Any]`, `updates: dict[str, Any]`, `fc_updates: dict[str, Any]` (Lines 87, 105, 184, 187, 272, 282, 510, 558, 832, 874, 878) | REMOVE | Strongly typed DTO parameters and containers: `GlobalContextVarsDTO`, `ContextVariablesDTO`, `StepOutputContentDTO`, `NodeExecutionUpdateDTO`, `GeneratedSchemaManifestDTO` |
+| `@[backend_v2/services/orchestrator/strategies/base.py]` | `NodeExecutionRequest.global_context_vars: dict[str, Any]` (Line 70) and `context_variables: dict[str, Any]` (Line 71) | REMOVE | Strongly typed `global_context_vars: GlobalContextVarsDTO` and `context_variables: ContextVariablesDTO` |
+| `@[backend_v2/services/orchestrator/strategies/logic.py]` | `current_state: dict[str, Any]` (Line 75) and `safe_context: dict[str, Any]` (Line 165) | REMOVE | Defined `[NEW]` strongly typed frozen Pydantic models `LogicNodeStateDTO` and `LogicEvaluationContextDTO` |
+| `@[backend_v2/services/orchestrator/extractive_sensor_service.py]` | `validation_context: dict[str, Any] = {` (Line 486) | REMOVE | Defined `[NEW]` strongly typed frozen Pydantic model `SensorValidationContextDTO` / direct `EngineExecutionRequest` |
 | `@[backend_v2/services/pii_analyzer.py]` | `self._nlp_models: dict[str, Any] = {}` (Line 21) | REMOVE | Strictly typed engine dictionary `self._nlp_models: dict[str, Language]` with SpaCy typing |
 | `@[backend_v2/models/dtos/atom_result.py]` | `object.__setattr__(self, "contextual_override", False)` in-place mutations under `# noqa: QGR001` (Lines 108–121) | REMOVE | Enforce 100% Fail-Fast in `@model_validator(mode="after")` raising `ValidationError` on contradictory states without in-place mutation or `mode="before"` duct-tape |
 | `@[backend_v2/llm/adapters/vertex_adapter.py]` | `getattr(tc, "id", None)`, `isinstance(tc, dict)`, `tc.get("id")`, and `# noqa: QGR001` (Lines 393–400) | REMOVE | Input normalization via `TypeAdapter(OpenAIToolCallDTO).validate_python(tc)` and direct dot-notation `tc.id` |
@@ -248,6 +255,10 @@ While high-level ingress routers enforce strict Pydantic V2 validation, deeper i
 - Defined [NEW] `FinOpsFinalizeSummaryDTO`: Frozen telemetry summary model for execution finalization.
 - Defined [NEW] `TavilySearchRequestDTO`: Strictly typed request model for Tavily search client.
 - Defined [NEW] `MCPToolDeclarationDTO`: Strictly typed tool declaration model for MCP tool registration.
+- Defined [NEW] `SensorValidationContextDTO`: Strongly typed validation context model for extractive sensor validation.
+- Defined [NEW] `LogicNodeStateDTO` & `LogicEvaluationContextDTO`: Strictly typed execution context models for logic strategy execution.
+- Defined [NEW] `ContextVariablesDTO`: Strongly typed step-level context variables container replacing untyped dictionaries in DAG and node strategies.
+- Defined [NEW] `NodeExecutionUpdateDTO`: Strongly typed model update container for DAG step execution state changes.
 - Defined [NEW] `PromptMappingDTO`: Strongly typed prompt mapping container for prompt compiler adapter.
 - Defined [NEW] `LLMContextDataDTO`: Strongly typed context container for prompt factory.
 - Defined [NEW] `SynthesisDistillationDTO`: Strongly typed container for synthesis task distillation.
@@ -292,6 +303,9 @@ While high-level ingress routers enforce strict Pydantic V2 validation, deeper i
 | `@[backend_v2/workers/execution_worker.py]` (Line 142) & `@[backend_v2/workers/report_worker.py]` (Line 252) | `logger.warning` without re-raise on trace hydration and Python 2 `except E1, E2:` syntax defect | Explicit DLQ classification and Fail-Fast raising `AppException(ErrorCodes.INTERNAL_SERVER_ERROR)` with RFC 7807 logging | Eradicate unraised warning bypasses and Python 2 syntax defects | Unit tests asserting explicit exception propagation on storage failures |
 | `@[backend_v2/services/orchestrator/engines/synthesis_engine.py]` & `@[backend_v2/services/orchestrator/engines/tda_engine.py]` | `except (TypeError, KeyError): pass` in blackboard and reducer inspections | Direct inspection of `GlobalAtomBlackboard` and `EngineExecutionRequest`; raise `AppException(ErrorCodes.VALIDATION_FAILED)` | Eradicate manual dictionary indexing loops and defensive pass blocks | Unit tests proving 100% Fail-Fast error propagation across engine execution boundaries |
 | `@[backend_v2/services/orchestrator/strategies/llm.py]` (Lines 117, 126, 155, 604) | `except (TypeError, ValueError): pass`, `except (AttributeError, TypeError): pass` | Direct dot-notation attribute access and Fail-Fast raising `AppException(ErrorCodes.VALIDATION_FAILED)` | Eliminate defensive conversion loops and silent pass blocks | Unit tests asserting Fail-Fast on corrupted LLM context inputs |
+| `@[backend_v2/services/orchestrator/dag_executor.py]` (Lines 87, 105, 184, 187, 272, 282, 510, 558, 832, 874, 878) | Naked `dict[str, Any]` parameters and local update dictionaries, unchecked `{**spread}` merging | Strongly typed `ContextVariablesDTO`, `GlobalContextVarsDTO`, `StepOutputContentDTO`, `NodeExecutionUpdateDTO` | Eliminate arbitrary dictionary key assignments and raw map unpacking in step execution | Unit tests in `test_dag_executor.py` asserting strongly typed context flow and zero dict annotations |
+| `@[backend_v2/services/orchestrator/strategies/base.py]` & `@[backend_v2/services/orchestrator/strategies/logic.py]` | Naked `dict[str, Any]` in `NodeExecutionRequest`, `current_state`, and `safe_context` dictionary spread | Strongly typed `GlobalContextVarsDTO`, `ContextVariablesDTO`, `LogicNodeStateDTO`, and `LogicEvaluationContextDTO` | Eliminate loose dictionary spreads and unvalidated node state mapping | Unit tests in `test_logic_strategy.py` asserting typed context evaluation |
+| `@[backend_v2/services/orchestrator/extractive_sensor_service.py]` (Line 486) | Naked `validation_context: dict[str, Any] = {` | Strongly typed `SensorValidationContextDTO` or direct `EngineExecutionRequest` | Eliminate unvalidated validation dictionary creation | Unit tests asserting strongly typed sensor validation request payloads |
 | `@[backend_v2/services/orchestrator/context_router.py]` (Line 87) | `except TypeError, KeyError: pass` and duck typing on trace event | Direct inspection of `LightweightMatrixOutput` and Fail-Fast raising `AppException(ErrorCodes.VALIDATION_FAILED)` | Eliminate defensive suppression and raw dictionary key checking | Unit tests asserting Fail-Fast on missing trace properties |
 | `@[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]` (Line 310) | `except TypeError, ValueError: text_content = ""` lazy empty string fallback | Strongly typed serialization and Fail-Fast raising `AppException(ErrorCodes.VALIDATION_FAILED)` | Eliminate silent fallback to empty string on payload serialization failure | Unit tests verifying Fail-Fast on malformed step payloads |
 | `@[backend_v2/services/orchestrator/prompt_compiler.py]` (Lines 389, 399, 405) | `except AttributeError, TypeError:` fallback to `json.dumps()` | Direct typed XML assembly and Fail-Fast raising `AppException(ErrorCodes.VALIDATION_FAILED)` | Eliminate defensive fallback to JSON string dumping | Unit tests asserting exact XML serialization without exception suppression |
@@ -543,6 +557,9 @@ graph TD
 > **Gate A Scope & Execution Boundary**
 > Gate A hardens the architectural baseline, self-hardens audit tooling, cleans technical debt in touched files, establishes closed dynamic input unions (`IngressInputValue` and `DomainInputValue`), locks isolated Phase 2 DTO immutability, and eliminates dynamic reflection in domain models.
 > 
+> **Pre-Flight State Reconciliation Mandate:**
+> Prior to attempting remediation on any target file within this Gate, the executing agent MUST run `grep_search` to verify whether the target violation or anti-pattern is physically present in the live codebase. If an item has already been resolved by prior commits, mark it as `[PRE-RESOLVED]` in the phase tracking and skip modifying that file to avoid zero-diff commits or context budget waste.
+> 
 > **Gate A Quality Gate Command:**
 > ```bash
 > uv run python scripts/backend_audit_loop.py backend_v2/models --test
@@ -586,7 +603,7 @@ Establish mathematical AST baselines, extend the eradication audit script, and e
    - Eradicate unraised exception logging and comma exceptions in `@[backend_v2/workers/execution_worker.py]` (Lines 127, 142) and `@[backend_v2/workers/report_worker.py]` (Line 252).
    - Eradicate unraised exception logging in `@[backend_v2/utils/llm_debug_logger.py]` (Lines 126, 195, 242) and re-raise structured `AppException(ErrorCodes.INTERNAL_SERVER_ERROR)`.
    - Clean up silent exception swallowing in utility scripts: `@[scripts/audit_rules_staleness.py]` (Line 20) and `@[scripts/matrix_hardening_loop.py]` (Line 183).
-   - Eradicate Python 2 comma exceptions `except AttributeError, io.UnsupportedOperation:` (Line 40) and `except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:` (Line 148) in `@[scripts/_ast_guardrails.py]`.
+   - Eradicate Python 2 comma exceptions `except AttributeError, io.UnsupportedOperation:` (Line 40) and `except tokenize.TokenError, IndentationError, UnicodeDecodeError, SyntaxError:` (Line 193) in `@[scripts/_ast_guardrails.py]`.
    - Eradicate legacy Python 2 comma exception `except ValidationError, TypeError, ValueError:` and initialize typed containers in `@[backend_v2/services/ingress/smart_ingress_resolver.py]` (Lines 72, 76, 88).
    - Eradicate duck-typing `hasattr` checks in `@[scripts/run_e2e_variance_test.py]` (Lines 180–184: `hasattr(label_val, "get")` and `hasattr(..., "values")`) in favor of direct validation via `ExpectedInput.model_validate(item)`.
    - Eradicate `hasattr(data, "model_dump")` in `@[backend_v2/database/tinydb_driver.py]` (Line 39) and `@[backend_v2/database/firestore_driver.py]` (Line 49) in favor of explicit `isinstance(data, BaseModel)`.
@@ -679,6 +696,9 @@ Harden core domain entities in `models/domain/` and `models/state.py` to elimina
 > **Gate B Scope & Execution Boundary**
 > Gate B hardens the entire computation, hook execution, and orchestration layer. It bridges Domain Inputs (Part A) to downstream SDUI presentation (Part C). It encompasses Phase 3 (Synthesis Boundaries & Starvation Event Detection), Phase 4 (Hook Pipelines, Result Projector Segregation & Complete Emoji Eradication), and Phase 5 (LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening).
 > 
+> **Pre-Flight State Reconciliation Mandate:**
+> Prior to attempting remediation on any target file within this Gate, the executing agent MUST run `grep_search` to verify whether the target violation or anti-pattern is physically present in the live codebase. If an item has already been resolved by prior commits, mark it as `[PRE-RESOLVED]` in the phase tracking and skip modifying that file to avoid zero-diff commits or context budget waste.
+> 
 > **Gate B Quality Gate Command:**
 > ```bash
 > uv run pytest backend_v2/tests/unit/hooks/ backend_v2/tests/unit/services/orchestrator/ backend_v2/tests/unit/workers/ -v
@@ -695,6 +715,7 @@ Harden core domain entities in `models/domain/` and `models/state.py` to elimina
 > - Eradicate hardcoded emojis from hooks and loggers in favor of semantic identifiers.
 > - Migrate 11 hook consumers to typed GlobalContextVarsDTO and replace loose delta in HookDeltaDTO.
 > - Modernize state_reducer.py with typed merge_execution_inputs and prompt_compiler.py with direct dot-notation traversal.
+> - Eradicate naked dict[str, Any] in dag_executor.py, strategies/base.py, strategies/logic.py, and extractive_sensor_service.py.
 > 
 > **Gate B Handover Protocol:**
 > Immediately upon successful commit, execute `/tier5-session-handover` to checkpoint session state before launching Gate C.
@@ -894,10 +915,28 @@ Eradicate dictionary laundering in prompt compilation, replace duck-typing state
    - Modify `@[backend_v2/services/orchestrator/state_reducer.py]`:
      - Eradicate `merge_dynamic_inputs()` and the 3 `# noqa: QGR012` suppressions.
      - Implement `merge_execution_inputs(base: ExecutionInputsDTO, delta: ExecutionInputsDTO) -> ExecutionInputsDTO` using `.model_copy(update=...)`.
-5. **Strategies & DAG Executor Refactoring:**
-   - Modify `@[backend_v2/services/orchestrator/strategies/llm.py]` and `@[backend_v2/services/orchestrator/dag_executor.py]`:
+5. **Strategies, Extractive Sensor & DAG Executor Refactoring:**
+   - Modify `@[backend_v2/services/orchestrator/dag_executor.py]`:
+     - Eradicate 8+ naked `dict[str, Any]` instances across method parameters and local update states:
+       - `context_variables: dict[str, Any] | None` (Lines 87, 184) -> strongly typed `ContextVariablesDTO | None`.
+       - `global_context_vars: dict[str, Any] | None` (Line 187) -> strongly typed `GlobalContextVarsDTO | None`.
+       - `update_data: dict[str, Any]` (Line 105) -> strongly typed `NodeExecutionUpdateDTO`.
+       - `resolved_global_vars: dict[str, Any]` (Line 272) and `global_vars: dict[str, Any]` (Line 510) -> strongly typed `GlobalContextVarsDTO`.
+       - `resolved_context_vars: dict[str, Any]` (Line 282) -> strongly typed `ContextVariablesDTO`.
+       - `delta_content: dict[str, Any]` (Line 558) -> strongly typed `StepOutputContentDTO`.
+       - `step_generated_schemas: dict[str, Any]` (Line 832) -> `GeneratedSchemaManifestDTO`.
+       - `updates: dict[str, Any]` (Line 874) and `fc_updates: dict[str, Any]` (Line 878) -> strongly typed state updates.
+     - Eradicate unchecked `{**spread}` dictionary merging in node execution preparation.
+   - Modify `@[backend_v2/services/orchestrator/strategies/base.py]`:
+     - Replace naked `dict[str, Any]` in `NodeExecutionRequest` (Lines 70, 71: `global_context_vars` and `context_variables`) with strongly typed `GlobalContextVarsDTO` and `ContextVariablesDTO`.
+   - Modify `@[backend_v2/services/orchestrator/strategies/logic.py]`:
+     - Replace naked `current_state: dict[str, Any]` (Line 75) with `LogicNodeStateDTO`.
+     - Replace naked `safe_context: dict[str, Any]` and dictionary spread `{**hook_state.global_context_vars.vars, ...}` (Line 165) with `LogicEvaluationContextDTO`.
+   - Modify `@[backend_v2/services/orchestrator/strategies/llm.py]`:
      - Eradicate duck-typing unpacking of `hook_state.inputs` and `global_vars`.
-     - Eradicate `except (TypeError, ValueError): pass` and `except (AttributeError, TypeError): pass` in `strategies/llm.py` (Lines 117, 126, 155, 604); raise structured `AppException(ErrorCodes.VALIDATION_FAILED)`.
+     - Eradicate `except (TypeError, ValueError): pass` and `except (AttributeError, TypeError): pass` (Lines 117, 126, 155, 604); raise structured `AppException(ErrorCodes.VALIDATION_FAILED)`.
+   - Modify `@[backend_v2/services/orchestrator/extractive_sensor_service.py]`:
+     - Eradicate naked `validation_context: dict[str, Any]` (Line 486); replace with strongly typed `SensorValidationContextDTO` or direct `EngineExecutionRequest`.
 6. **Orchestrator Helper & Factory Exception Hardening:**
    - Modify `@[backend_v2/services/orchestrator/context_router.py]`:
      - Eradicate `except TypeError, KeyError: pass` (Line 87) and duck typing on trace event.
@@ -945,6 +984,7 @@ Eradicate dictionary laundering in prompt compilation, replace duck-typing state
 - Zero `model_dump()` dictionary conversions during prompt variable extraction.
 - Zero duck-typing in state reduction.
 - Zero silent exception swallowing across orchestrator strategies and helper factories.
+- Strongly typed `dag_executor.py`, `strategies/base.py`, `strategies/logic.py`, and `extractive_sensor_service.py` with zero naked dicts.
 - Strictly typed DTO models for Ingress resolution, FinOps summaries, and MCP tool declarations.
 - Eradication of dynamic `create_model` field name synthesis; static models with typed collections.
 - Exactly zero dynamic reflection calls (`getattr`, `hasattr`) across orchestrator, schema reproduction, and LLM context test suites.
@@ -957,6 +997,9 @@ Eradicate dictionary laundering in prompt compilation, replace duck-typing state
 > [!IMPORTANT]
 > **Gate C Scope & Execution Boundary**
 > Gate C hardens the Server-Driven UI (SDUI) presentation pipeline, presentation adapters, render services, and Flutter API client boundaries. It eliminates `UiSection` completely (Complexity Slayer 30% Deletion), enforces strongly typed Freezed client models, removes hardcoded emojis from templates and client localization, and executes the **Phase 6 Step 9: Global `BaseDTO` and `BaseResponseDTO` Immutability Lockdown (`frozen=True`) Convergence Gate**.
+> 
+> **Pre-Flight State Reconciliation Mandate:**
+> Prior to attempting remediation on any target file within this Gate, the executing agent MUST run `grep_search` to verify whether the target violation or anti-pattern is physically present in the live codebase. If an item has already been resolved by prior commits, mark it as `[PRE-RESOLVED]` in the phase tracking and skip modifying that file to avoid zero-diff commits or context budget waste.
 > 
 > **Gate C Quality Gate Commands:**
 > ```bash
@@ -1103,6 +1146,9 @@ Eradicate dictionary leakage, type laundering via `model_dump()`, permissive `An
 > [!IMPORTANT]
 > **Gate D Scope & Execution Boundary**
 > Gate D mathematically verifies zero dictionary leakage violations and zero reflection anti-patterns across all backend, script, and test files via AST guardrails (verifying that all 156 test reflections were eradicated across Phases 2–6), confirms 1:1 SDUI semantic parity, and executes the live Real-LLM E2E execution verification gate (Phase 7).
+> 
+> **Pre-Flight State Reconciliation Mandate:**
+> Prior to attempting remediation on any target file within this Gate, the executing agent MUST run `grep_search` to verify whether the target violation or anti-pattern is physically present in the live codebase. If an item has already been resolved by prior commits, mark it as `[PRE-RESOLVED]` in the phase tracking and skip modifying that file to avoid zero-diff commits or context budget waste.
 > 
 > **Gate D Quality Gate Commands:**
 > ```bash
