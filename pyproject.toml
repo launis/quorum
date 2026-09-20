@@ -103,7 +103,6 @@ convention = "google"
 "backend_v2/tests/unit/test_seed_architectural_guardrails.py" = ["E501"]
 "scripts/backend_audit_loop.py" = ["E501", "D415"]
 "scripts/flutter_audit_loop.py" = ["E501", "D415"]
-"tests/unit/services/orchestrator/test_chunk_worker_validation.py" = ["E501"]
 "tools/check_trace_size.py" = ["E501"]
 "backend_v2/services/mcp/mcp_tool_loop.py" = ["E501"]
 "backend_v2/services/orchestrator/extractive_sensor_service.py" = ["E501"]
@@ -123,7 +122,7 @@ python_version = "3.14"
 plugins = ["pydantic.mypy"]
 ignore_missing_imports = true
 check_untyped_defs = true
-exclude = ["docs/", "scratch/", "tmp/", "client_app_v2/", "tools/", "tests/", "backend_v2/tests/"]
+exclude = ["docs/", "scratch/", "tmp/", "client_app_v2/", "tools/", "backend_v2/tests/"]
 
 [[tool.mypy.overrides]]
 module = [

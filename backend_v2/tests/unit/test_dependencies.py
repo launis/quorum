@@ -68,7 +68,6 @@ async def test_get_current_user_from_header_token_query() -> None:
     mock_auth_service.verify_token.assert_called_once_with("query_token_123")
 
 
-
 @pytest.mark.asyncio
 async def test_get_studio_simulation_service(mock_repo: Any) -> None:
     """Test get_studio_simulation_service injection."""
@@ -242,4 +241,3 @@ async def test_service_factory_dependencies() -> None:
         output_profile_repo=mock_output_profile_repo,
     )
     assert exec_service is not None
-

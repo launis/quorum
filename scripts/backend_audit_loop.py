@@ -206,11 +206,15 @@ def run_tests_with_strict_coverage(target: str) -> None:
                     test_path = str(test_file).replace("\\", "/")
                 else:
                     test_path = "backend_v2/tests/unit/" + "/".join(parts[1:])
+            elif parts[0] == "scripts":
+                test_path = "backend_v2/tests/unit/scripts"
+            elif parts[0] == "tests":
+                test_path = "backend_v2/tests/" + "/".join(parts[1:])
             else:
                 if parts == ["."]:
                     test_path = "backend_v2/tests/"
                 else:
-                    test_path = "tests/" + "/".join(parts)
+                    test_path = "backend_v2/tests/" + "/".join(parts)
 
         test_paths_list = test_path.split()
         args = test_paths_list + [

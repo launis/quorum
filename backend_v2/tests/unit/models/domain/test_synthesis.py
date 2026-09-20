@@ -135,7 +135,6 @@ def test_base_tda_extraction_override_validation() -> None:
         )
 
 
-
 def test_matrix_synthesis_group_cardinality() -> None:
     from backend_v2.models.core_base import I18nText
     from backend_v2.models.domain.synthesis import MatrixSynthesisGroup
@@ -203,4 +202,3 @@ def test_matrix_synthesis_group_cardinality() -> None:
         view_type=PresetView.TEXT_ONLY,
     )
     assert len(gt.target_blocks) == 1
-

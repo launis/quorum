@@ -1050,11 +1050,8 @@ def test_qgr017_canonical_imports_allowed_false_positive_immunity() -> None:
 
 def test_qgr017_comment_suppression_works() -> None:
     """QGR017: Comment suppression with valid reason suppresses the violation."""
-    code = (
-        "from backend_v2.models.v2_core import Step  # noqa: QGR017 [REASON: temporary historical testing fixture]\n"
-    )
+    code = "from backend_v2.models.v2_core import Step  # noqa: QGR017 [REASON: temporary historical testing fixture]\n"
     violations = _scan_snippet(code, filepath="backend_v2/services/foo.py")
     qgr017 = [v for v in violations if v.rule_code == "QGR017"]
     assert len(qgr017) == 1
     assert qgr017[0].is_suppressed is True
-

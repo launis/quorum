@@ -1996,7 +1996,9 @@ async def test_get_sdui_view_branches() -> None:
         mock_view = Mock()
         mock_view.model_copy.return_value = mock_view
         mock_view.model_dump.return_value = {"title": "Synthetic Overview Title", "components": []}
-        with patch("backend_v2.services.sdui_mapper_service.SduiMapperService.map_report_to_sdui", return_value=mock_view):
+        with patch(
+            "backend_v2.services.sdui_mapper_service.SduiMapperService.map_report_to_sdui", return_value=mock_view
+        ):
             view_dict = await service.get_sdui_view(initiator, "exe_0123456789abcdef")
             assert view_dict["title"] == "Synthetic Overview Title"
 
@@ -2147,7 +2149,9 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
         patch(
             "backend_v2.services.blueprint.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
         ),
-        patch("backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+        patch(
+            "backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"
+        ),
     ):
         pdf_bytes, mime, filename = await service.render_execution(
             initiator=initiator,
@@ -2168,7 +2172,9 @@ async def test_render_execution_pdf_pregenerated_and_fresh_saved() -> None:
         patch(
             "backend_v2.services.blueprint.BlueprintTransformer.build_report_dto", return_value=Mock(spec=ReportDataDTO)
         ),
-        patch("backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"),
+        patch(
+            "backend_v2.services.pdf_generator.PdfReportService.generate_execution_pdf", return_value=b"%PDF-1.4 fresh"
+        ),
     ):
         with pytest.raises(AppException) as exc_info:
             await service.render_execution(

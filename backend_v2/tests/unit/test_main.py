@@ -346,4 +346,3 @@ async def test_lifespan_workflow_detection(tmp_path: Path) -> None:
     ):
         async with lifespan(test_app):
             pass
-

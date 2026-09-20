@@ -58,4 +58,3 @@ def test_workflow_schema_response_dto_serialization_roundtrip() -> None:
     reconstituted = WorkflowSchemaResponseDTO.model_validate(dumped)
     assert len(reconstituted.expected_inputs) == 1
     assert reconstituted.expected_inputs[0].input_key == "assignment_brief"
-

@@ -61,5 +61,3 @@ def test_hydrated_atom_dto() -> None:
     assert hydrated.sdui_component == "boolean_card"
     assert hydrated.resolved_claim == "Resolved Claim Text"
     assert hydrated.source_quote == "Verbatim Quote"
-
-

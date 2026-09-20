@@ -127,7 +127,6 @@ def test_output_profile_matrix_group_ids_unique() -> None:
         OutputProfile.model_validate(data)
 
 
-
 def test_output_profile_synthesis_properties() -> None:
     data = _make_base_profile(
         target_block_order=[TargetBlockType.EXECUTIVE_SUMMARY_BLOCK],

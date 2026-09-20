@@ -59,7 +59,6 @@ def test_tda_assertion_valid() -> None:
     assert len(tda.depends_on) == 1
 
 
-
 def test_tda_assertion_inverse_evidence_requires_exists() -> None:
     with pytest.raises(ValueError, match="strictly requires 'EXISTS' aggregation mode"):
         TDAAssertion(
@@ -180,4 +179,3 @@ def test_tda_assertion_extractive_sensor_validation() -> None:
         logical_expression="fact1",
     )
     assert tda.evaluation_track == "EXTRACTIVE_SENSOR"
-
