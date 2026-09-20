@@ -184,11 +184,10 @@ class ExecutionRoute extends GoRouteData with $ExecutionRoute {
   final bool autoGenerateReport;
 
   @override
-  Widget build(BuildContext context, GoRouterState state) =>
-      ExecutionView(
-        executionId: executionId,
-        autoGenerateReport: autoGenerateReport,
-      );
+  Widget build(BuildContext context, GoRouterState state) => ExecutionView(
+    executionId: executionId,
+    autoGenerateReport: autoGenerateReport,
+  );
 }
 
 class ExecutionReportRoute extends GoRouteData with $ExecutionReportRoute {

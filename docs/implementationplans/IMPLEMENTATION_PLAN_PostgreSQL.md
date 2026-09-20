@@ -1,5 +1,8 @@
 > **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Tuleva PostgreSQL 17+ & SQLAlchemy 2.0 -migraatiosuunnitelma)**
 > **ARKITEHTUURIPERIAATE: "All-in-PostgreSQL" (Single-Engine Sovereign Storage Architecture)**
+> **LINKITYS JA RAJAUS SUHTEESSA EPIC 152:EEN (Scrap vs. Refactor):**
+> 1. **Täydellinen poisto (Scrap)**: Tämän suunnitelman toteutus poistaa ja korvaa kokonaan `TinyDBDriver`-ajurin (`backend_v2/database/tinydb_driver.py`), tiedostotietokantakääreen (`backend_v2/database/wrapper.py`), `db_v2.json`-tiedoston ja tiedostolukituksen (`db_v2.json.lock`). Tämän vuoksi EPIC 152:ssa tiedostolukituskoodiin ei tehdä lainkaan rakenteellisia rinnakkaisuus- tai asynkronointikorjauksia (estetään kuolevan koodin ylikorjaus).
+> 2. **DTO-mallien suora hyödyntäminen (Invest & Re-Use)**: EPIC 152:ssa puhdistetut, tiukasti tyypitetyt Pydantic V2 DTO -mallit (`ExecutionRecord`, `ExecutionInputsDTO`, `EvaluatedAtomDTO`, `HookDeltaDTO`, `ReportDataDTO`) siirtyvät **sellaisenaan 1:1** PostgreSQL-migraatioon muodostaen `JSONB`- ja `BYTEA`-tallennuskenttien pysyvän sovellustason validointipohjan.
 
 ---
 
@@ -203,17 +206,23 @@ if __name__ == "__main__":
 2. **Arq Worker Sessioeristys (Unit-of-Work)**:
    - Pitkät LLM DAG -evaluoinnit (15–60 s) **eivät saa pitää auki PostgreSQL-istuntoa tai transaktiota**.
    - Työntekijä noutaa tiedot lyhyellä istunnolla $\rightarrow$ vapauttaa yhteyden pooliin $\rightarrow$ ajaa rinnakkaiset LLM-kutsut $\rightarrow$ avaa uuden istunnon lopputuloksen tallentamiseksi.
+3. **Asynkroninen Rinnakkaisuus & Tapahtumasilmukan Lukkiutumisen Esto (Event Loop Starvation)**:
+   - **Natiivi `asyncpg` / `asyncio`-ajuri ja transaktiotason rivilukitus (`SELECT ... FOR UPDATE`)**: PostgreSQL-ajuri on 100 % asynkroninen verkkoajuri. TinyDB:n vaatimat synkroniset OS-tiedostolukitukset (`msvcrt.locking`, `fcntl.flock`), `time.sleep(0.02)` -odotussilmukat ja globaalit tiedostokirjoituslukot (`db_v2.json.lock`) poistuvat lopullisesti. Rinnakkaiset DAG-työnkulut eivät enää kilpaile samasta tiedostolukosta, mikä eliminoi `TimeoutError`- ja `PermissionError`-kaatumiset sekä `RUNNING`-tilaan jumiutuvat orvot ajot. Transaktioissa käytetään rivitason lukitusta (`SELECT ... FOR UPDATE`), jolloin vain muokattava ajotietue lukitaan lyhytaikaisesti ilman koko tietokannan tai muiden ajojen blokkaamista.
+   - **Korutiinien `asyncio.to_thread` -kielto**: Orkestroijan (`dag_executor.py`) asynkronisia korutiineja (`commit_trace`) **EI KOSKAAN** kääritä `asyncio.to_thread`-kutsuihin (tämä aiheuttaa `RuntimeError: no running event loop` tai jättää korutiinin ajamatta). Transaktiot ja tallennukset ajetaan puhtaasti natiiveina `async/await`-kutsuina tapahtumasilmukalla `_commit_lock = asyncio.Lock()` suojaamana.
+   - **CPU-sidonnaisen reduktion eristys**: Jos suoritetaan raskasta CPU-laskentaa (kuten `MatrixReducer.reduce_matrix` sadoille atomeille ennen synteesiä), vain tämä puhtaasti synkroninen laskentalogiikka eristetään ajettavaksi taustasäikeessä muuttumattoman tilavedoksen (`snapshot = exec_record.model_copy()`) yli: `await asyncio.to_thread(MatrixReducer.reduce_matrix, snapshot)`.
 
 ---
 
 ### **🔴 Red Team Audit: All-in-PostgreSQL -mallin Vahvistus & Haasteet**
 
-| Aiempi Riski (Ulkoinen Storage) | Miten "All-in-PostgreSQL" ratkaisee tämän? | Tila |
+| Aiempi Riski (Ulkoinen Storage / TinyDB) | Miten "All-in-PostgreSQL" ratkaisee tämän? | Tila |
 | :--- | :--- | :--- |
 | **1. "Orphaned Files" (Orvot tiedostot)** | Ulkoista varastoa ei ole. `executions` poistaminen ajaa tietokantatasolla `ON DELETE CASCADE`:n `report_artifacts`- ja `report_binaries`-tauluihin. Kaikki binaarit tuhoutuvat mikrosekunnissa ilman erillisiä siivous-croneja. | **100 % TAKLATTU** |
 | **2. Split-Brain GDPR -poistot** | Yksi SQL-komento (`DELETE FROM users WHERE id = ...` tai `DELETE FROM executions WHERE id = ...`) poistaa käyttäjän koko datan transaktionaalisesti. Ei riskiä siitä, että kanta tyhjenee mutta tiedostot jäävät pilveen. | **100 % TAKLATTU** |
 | **3. Signed URL Abuse & Turvallisuus** | Tiedostoja ei jaeta julkisten Signed URL -osoitteiden kautta. Kaikki liikenne kulkee FastAPI:n autentikoidun `/api/v2/reports/{id}/pdf` -reitin läpi, jolloin tenant-eristys ja RBAC pätevät aina. | **100 % TAKLATTU** |
 | **4. UUIDv7 -tietovuoto & ID-sopimukset** | Säilytetään Quorumin viralliset Opaque Stripe ID:t (`exe_...`, `rep_...`). UUIDv7 upotetaan heksasuffiksiksi, jolloin B-Tree-indeksihyöty säilyy täysin ilman, että API-sopimuksia rikotaan. | **100 % TAKLATTU** |
+| **5. Tapahtumasilmukan lukkiutuminen & Tiedostolukituskilpa (Lock Starvation & Race Condition)** | TinyDB:n synkroniset levynkirjoitukset, `time.sleep(0.02)` -odotussilmukat ja `msvcrt`-tiedostolukitukset poistuvat. PostgreSQL käyttää täysin asynkronista yhteysallasta (`asyncpg` / `asyncio`), MVCC:tä ja rivitason lukitusta (`SELECT ... FOR UPDATE`). Samanaikaiset DAG-ajot eivät enää kilpaile tiedostolukosta eivätkä aiheuta `TimeoutError`/`PermissionError`-kaatumisia, I/O ei estä `asyncio.TaskGroup`-ajoja eikä SSE-telemetriaa, eivätkä ajot jää orpoina `RUNNING`-tilaan ilman DLQ-reititystä. | **100 % TAKLATTU** |
+| **6. Kuolevan tiedostokoodin ylikorjaus & Hukkatyö (Sunk Cost Engineering)** | EPIC 152:ssa ei yritetä refaktoroida `TinyDBDriverin` tai `wrapper.py`:n tiedostolukituksia, vaan ne on karsittu (Scrap). EPIC 152 korjaa ajurista ainoastaan puhtaan `isinstance(data, BaseModel)` -tyyppiturvallisuuden, ja keskittää paukut DTO-malleihin (`models/dtos/`), jotka siirtyvät sellaisenaan PostgreSQL-malliin. | **100 % TAKLATTU** |
 
 #### **Uusi Tunnistettu Riski: Database Bloat (Kannan paisuminen) & Sen Esto**
 - **Riski**: Jos 100 000 PDF-tiedostoa (n. 100 GB) tallennetaan suoraan tauluriville, tavalliset taulukyselyt hidastuvat ja tietokannan RAM-muisti (`shared_buffers`) täyttyy tarpeettomasta binaaridatasta.

@@ -34,23 +34,23 @@ class MockReportsClient implements ReportsClient {
 }
 
 void main() {
-  test('calling createReport imperatively via ref.read must succeed without disposed Ref StateError', () async {
-    final container = ProviderContainer(
-      overrides: [
-        reportsClientProvider.overrideWithValue(MockReportsClient()),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'calling createReport imperatively via ref.read must succeed without disposed Ref StateError',
+    () async {
+      final container = ProviderContainer(
+        overrides: [
+          reportsClientProvider.overrideWithValue(MockReportsClient()),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    // Calling createReport imperatively without an active UI widget watcher
-    final summary = await container
-        .read(reportArtifactActionsProvider.notifier)
-        .createReport(
-          executionId: 'exe_test',
-          profileId: 'prf_test',
-        );
+      // Calling createReport imperatively without an active UI widget watcher
+      final summary = await container
+          .read(reportArtifactActionsProvider.notifier)
+          .createReport(executionId: 'exe_test', profileId: 'prf_test');
 
-    expect(summary, isNotNull);
-    expect(summary!.id, 'rep_1234567890abcdef');
-  });
+      expect(summary, isNotNull);
+      expect(summary!.id, 'rep_1234567890abcdef');
+    },
+  );
 }
