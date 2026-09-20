@@ -23,7 +23,7 @@ def test_llm_hallucination_validation_error_repro():
     result = StrictDynamicSchema(**llm_alias_payload)
 
     # 5. Verify the backend successfully translated it back to the ID
-    assert getattr(result, "blk_2cbe96bffde04571", None) == "DATA_CHECKED_AND_SECURED"
+    assert result.blk_2cbe96bffde04571 == "DATA_CHECKED_AND_SECURED"
 
     # 6. Verify that an older hallucination attempting to use an extra key still crashes
     with pytest.raises(ValidationError) as exc_info:

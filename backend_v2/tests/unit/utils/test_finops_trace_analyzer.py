@@ -12,9 +12,9 @@ def test_analyze_monitor_state_empty(tmp_path: Path) -> None:
     telemetry_file = tmp_path / "llm_telemetry.jsonl"
 
     res = analyze_monitor_state(str(state_file), str(telemetry_file))
-    assert res["total_duration_ms"] == 0
-    assert res["total_calls"] == 0
-    assert res["alerts"] == []
+    assert res.total_duration_ms == 0
+    assert res.total_calls == 0
+    assert res.alerts == []
 
 
 def test_analyze_monitor_state_with_records(tmp_path: Path) -> None:
@@ -29,9 +29,9 @@ def test_analyze_monitor_state_with_records(tmp_path: Path) -> None:
     telemetry_file.write_text("\n".join(json.dumps(r) for r in records) + "\n")
 
     res = analyze_monitor_state(str(state_file), str(telemetry_file))
-    assert res["total_duration_ms"] == 400
-    assert res["total_calls"] == 2
-    assert "Prompt Purity Violation (Cache Miss Detected)" in res["alerts"]
+    assert res.total_duration_ms == 400
+    assert res.total_calls == 2
+    assert "Prompt Purity Violation (Cache Miss Detected)" in res.alerts
 
 
 def test_finalize_execution_with_trace_and_telemetry(tmp_path: Path) -> None:
@@ -53,11 +53,11 @@ def test_finalize_execution_with_trace_and_telemetry(tmp_path: Path) -> None:
     telemetry_file.write_text("\n".join(json.dumps(r) for r in records) + "\n")
 
     res = finalize_execution(str(trace_file), str(telemetry_file))
-    assert res["healing_cost_events"] == 1
-    assert any("Pipeline Duplication Alert" in w for w in res["structural_warnings"])
-    assert any("Double Work Alert" in w for w in res["hashing_warnings"])
-    assert any("Duplicate MCP Trace" in w for w in res["mcp_warnings"])
-    assert res["usd_cost"] > 0
+    assert res.healing_cost_events == 1
+    assert any("Pipeline Duplication Alert" in w for w in res.structural_warnings)
+    assert any("Double Work Alert" in w for w in res.hashing_warnings)
+    assert any("Duplicate MCP Trace" in w for w in res.mcp_warnings)
+    assert res.usd_cost > 0
 
 
 def test_main_cli_monitor(tmp_path: Path) -> None:

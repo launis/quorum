@@ -3,6 +3,7 @@ from typing import Any
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseTool
+from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
 
 
 class ToolDispatcher:
@@ -16,7 +17,7 @@ class ToolDispatcher:
         """
         self._registry: dict[str, BaseTool] = {tool.tool_id: tool for tool in tools}
 
-    def get_declarations(self, allowed_tools: list[str]) -> list[dict[str, Any]]:
+    def get_declarations(self, allowed_tools: list[str]) -> list[MCPToolDeclarationDTO | dict[str, Any]]:
         """Get the OpenAI schema declarations for the specified tools.
 
         Args:

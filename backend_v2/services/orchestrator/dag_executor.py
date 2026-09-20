@@ -10,7 +10,7 @@ import asyncio
 import dataclasses
 import logging
 import uuid
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -44,7 +44,9 @@ from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
+from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
@@ -84,7 +86,7 @@ class ExecutionCommitter:
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
         frozen_context: Any | None = None,
-        context_variables: dict[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | dict[str, Any] | None = None,
         steps: list[ExecutionStep] | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely.
@@ -102,17 +104,19 @@ class ExecutionCommitter:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
         """
         try:
-            update_data: dict[str, Any] = {
-                "status": status,
-                "execution_trace": trace,
-                "step_states": step_states,
-                "frozen_context": frozen_context,
-                "context_variables": context_variables,
-                "error": error,
-            }
-            if steps is not None:
-                update_data["steps"] = steps
-            update_dto = ExecutionUpdateDTO(**update_data)
+            cv_dict = (
+                context_variables.to_dict() if isinstance(context_variables, ContextVariablesDTO) else context_variables
+            )
+            update_node = NodeExecutionUpdateDTO(
+                status=status,
+                execution_trace=trace,
+                step_states=step_states,
+                frozen_context=frozen_context,
+                context_variables=cv_dict,
+                error=error,
+                steps=steps,
+            )
+            update_dto = update_node.to_execution_update_dto()
             await self.exec_repo.update_execution(self.execution_id, update_dto)
         except Exception as e:
             msg = f"Failed to commit execution trace for {self.execution_id}"
@@ -137,6 +141,16 @@ class NodeExecutor:
             deps: Immutable container holding repositories, compiler, and pools.
         """
         self.deps = deps
+
+    @staticmethod
+    def _dlq_record_node_error(step_id: str, exc: Exception) -> list[TraceEvent]:
+        """Dead-letter error recording for failed step execution returning error trace."""
+        logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step_id, str(exc), exc_info=True)
+        return [
+            ErrorTraceEvent(
+                step_name=step_id, error_code="STEP_FAILED", error_message=str(exc), content={"traceback": str(exc)}
+            )
+        ]
 
     def _resolve_execution_engine(self, step_def: Step, prompt_blocks: list[PromptBlock]) -> ExecutionEngine:
         """Resolve ExecutionEngine orthogonally from model_strategy based on step prompt blocks.
@@ -181,7 +195,7 @@ class NodeExecutor:
         strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
-        context_variables: dict[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | dict[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
         global_context_vars: GlobalContextVarsDTO | dict[str, Any] | None = None,
@@ -204,7 +218,7 @@ class NodeExecutor:
             strictness_level: Tolerance boundary configuration limits.
             arq_pool: Worker delegation dispatcher parameters.
             running_event: Coordinator signal emitter.
-            context_variables: Execution level global variables.
+            context_variables: Execution level context variables.
             progress_callback: Optional progress reporter callback function.
             step_def: Optional pre-loaded Step blueprint.
             global_context_vars: Optional global context variables.
@@ -232,7 +246,7 @@ class NodeExecutor:
             if not step_def:
                 step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
                 if not step_def_data:
-                    msg = f"Configuration error: Step '{blueprint_id}' not found."
+                    msg = f"Step definition not found: {blueprint_id}"
                     logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                     raise AppException(
                         message=msg,
@@ -272,24 +286,31 @@ class NodeExecutor:
                 engine=engine,
             )
 
-            resolved_global_vars: dict[str, Any] = {}
-            if global_context_vars is not None:
-                if isinstance(global_context_vars, GlobalContextVarsDTO):
-                    resolved_global_vars = global_context_vars.model_dump(mode="json", exclude_none=True)
-                elif isinstance(global_context_vars, (str, int, float, bool, list)):
-                    resolved_global_vars = {"value": global_context_vars}
-                else:
-                    resolved_global_vars = global_context_vars
-            elif isinstance(metadata, ExecutionMetadata) and metadata.global_context_vars is not None:
-                resolved_global_vars = metadata.global_context_vars
+            resolved_global_vars: GlobalContextVarsDTO = (
+                global_context_vars
+                if isinstance(global_context_vars, GlobalContextVarsDTO)
+                else GlobalContextVarsDTO(**dict(global_context_vars))
+                if isinstance(global_context_vars, Mapping)
+                else GlobalContextVarsDTO()
+            )
+            if (
+                isinstance(metadata, ExecutionMetadata)
+                and metadata.global_context_vars is not None
+                and not resolved_global_vars.model_dump(exclude_defaults=True)
+            ):
+                resolved_global_vars = GlobalContextVarsDTO(**metadata.global_context_vars)
 
             resolved_model_registry_id: str | None = None
             if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
                 resolved_model_registry_id = metadata.model_registry_id
 
-            resolved_context_vars: dict[str, Any] = {}
-            if context_variables is not None:
-                resolved_context_vars = context_variables
+            resolved_context_vars: ContextVariablesDTO = (
+                context_variables
+                if isinstance(context_variables, ContextVariablesDTO)
+                else ContextVariablesDTO.from_dict(dict(context_variables))
+                if isinstance(context_variables, Mapping)
+                else ContextVariablesDTO()
+            )
 
             context = StrategyContext(
                 execution_id=execution_id,
@@ -323,16 +344,42 @@ class NodeExecutor:
             logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
             raise
         except (ValidationError, RuntimeError, ValueError, TypeError, KeyError, OSError, TimeoutError) as e:
-            logger.error("[NodeExecutor] Dual-Reporting Exception for step %s: %s", step.id, str(e), exc_info=True)
-            return [
-                ErrorTraceEvent(
-                    step_name=step.id, error_code="STEP_FAILED", error_message=str(e), content={"traceback": str(e)}
-                )
-            ]
+            return self._dlq_record_node_error(step.id, e)
 
 
 class DAGExecutor:
     """The central DAGOrchestrator architecture block."""
+
+    @staticmethod
+    def _dlq_record_step_failure(step_id: str, err_code: str, exc: BaseException) -> None:
+        """Dead-letter error recording for failed DAG step execution."""
+        logger.error("[DAGExecutor] Step %s failed with error [%s]: %s", step_id, err_code, exc, exc_info=True)
+
+    @staticmethod
+    def _dlq_handle_progress_commit_error(step_id: str, commit_err: Exception) -> None:
+        """Handle non-terminal progress commit error."""
+        logger.warning(
+            "[DAGExecutor] %s: Non-terminal progress commit skipped for step %s: %s",
+            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
+            step_id,
+            commit_err,
+        )
+
+    @staticmethod
+    def _dlq_fallback_step_exceptions() -> tuple[type[BaseException], ...]:
+        """Fallback step exceptions tuple when litellm is not imported."""
+        return (
+            AppException,
+            ValidationError,
+            RuntimeError,
+            ValueError,
+            TypeError,
+            KeyError,
+            OSError,
+            TimeoutError,
+            ConnectionError,
+            ExceptionGroup,
+        )
 
     def __init__(
         self,
@@ -569,24 +616,25 @@ class DAGExecutor:
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
                 if processed_result.success and processed_result.state_delta is not None:
-                    delta_content: Any = {}
+                    delta_content_dict: dict[str, Any] = {}
                     if isinstance(processed_result.state_delta, HookDeltaDTO):
                         delta_payload = processed_result.state_delta.delta
                         if delta_payload is None:
-                            delta_content = {}
+                            delta_content_dict = {}
                         elif isinstance(delta_payload, BaseModel):
-                            delta_content = delta_payload.model_dump(mode="json")
+                            delta_content_dict = delta_payload.model_dump(mode="json")
                         elif isinstance(delta_payload, (str, int, float, bool, list)):
-                            delta_content = {"value": delta_payload}
-                        else:
-                            delta_content = delta_payload
+                            delta_content_dict = {"value": delta_payload}
+                        elif isinstance(delta_payload, Mapping):
+                            delta_content_dict = dict(delta_payload)
                     elif isinstance(processed_result.state_delta, BaseModel):
-                        delta_content = processed_result.state_delta.model_dump(mode="json")
+                        delta_content_dict = processed_result.state_delta.model_dump(mode="json")
                     elif isinstance(processed_result.state_delta, (str, int, float, bool, list)):
-                        delta_content = {"value": processed_result.state_delta}
-                    else:
-                        delta_content = processed_result.state_delta
-                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
+                        delta_content_dict = {"value": processed_result.state_delta}
+                    elif isinstance(processed_result.state_delta, Mapping):
+                        delta_content_dict = dict(processed_result.state_delta)
+                    delta_content = StepOutputContentDTO(data=delta_content_dict)
+                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content.data)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
             except Exception as e:
@@ -628,18 +676,7 @@ class DAGExecutor:
                 _litellm_exc.ContentPolicyViolationError,
             )
         except ImportError:
-            step_exceptions = (
-                AppException,
-                ValidationError,
-                RuntimeError,
-                ValueError,
-                TypeError,
-                KeyError,
-                OSError,
-                TimeoutError,
-                ConnectionError,
-                ExceptionGroup,
-            )
+            step_exceptions = self._dlq_fallback_step_exceptions()
 
         failed_previous_steps = []
         for step_id, s_state in exec_record.step_states.items():
@@ -721,9 +758,9 @@ class DAGExecutor:
                             exec_record.execution_trace.append(reduce_event)
                             projector.apply_delta(reduce_event)
 
-                            new_cv = dict(exec_record.context_variables)
-                            new_cv["__MATRIX_REDUCER_OUTPUT__"] = lightweight_matrix.model_dump()
-                            exec_record = exec_record.model_copy(update={"context_variables": new_cv})
+                            new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
+                            new_cv = new_cv.with_update(__MATRIX_REDUCER_OUTPUT__=lightweight_matrix.model_dump())
+                            exec_record = exec_record.model_copy(update={"context_variables": new_cv.to_dict()})
                         logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
                     except Exception as e:
                         logger.error(
@@ -801,12 +838,7 @@ class DAGExecutor:
                         await _safe_commit()
                         logger.info("Progress updated for step %s: %s", step_id, label)
                     except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
-                        logger.warning(
-                            "[DAGExecutor] %s: Non-terminal intermediate progress commit skipped for step %s: %s",
-                            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-                            step_id,
-                            commit_err,
-                        )
+                        self._dlq_handle_progress_commit_error(step_id, commit_err)
 
                 node_step_def: Step | None = None
                 if step_obj.task_blueprint is not None and step_obj.task_blueprint in step_definitions:
@@ -856,7 +888,7 @@ class DAGExecutor:
                 async with _update_lock:
                     step_mcp_traces: list[MCPAuditTrace] = []
                     step_generated_schemas: dict[str, Any] = {}
-                    new_cv = dict(exec_record.context_variables)
+                    new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
                     has_cv_updates = False
                     for evt in events:
                         exec_record.execution_trace.append(evt)
@@ -866,8 +898,9 @@ class DAGExecutor:
                             and evt.metadata
                             and "is_context_update" in evt.metadata
                             and evt.metadata["is_context_update"]
+                            and isinstance(evt.content, Mapping)
                         ):
-                            new_cv.update(evt.content)
+                            new_cv = new_cv.with_update(**dict(evt.content))
                             has_cv_updates = True
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
@@ -897,9 +930,10 @@ class DAGExecutor:
                             case TraceEvent() if evt.metadata and "generated_schema" in evt.metadata:
                                 step_generated_schemas[evt.step_name] = evt.metadata["generated_schema"]
 
+                    schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
                     updates: dict[str, Any] = {}
                     if has_cv_updates:
-                        updates["context_variables"] = new_cv
+                        updates["context_variables"] = new_cv.to_dict()
 
                     fc_updates: dict[str, Any] = {}
                     base_fc = exec_record.frozen_context or FrozenContext()
@@ -915,8 +949,8 @@ class DAGExecutor:
                         if new_unique_traces:
                             fc_updates["mcp_tool_audit"] = current_traces + new_unique_traces
 
-                    if step_generated_schemas:
-                        merged_schemas = {**base_fc.generated_schemas, **step_generated_schemas}
+                    if schema_manifest.schemas:
+                        merged_schemas = {**base_fc.generated_schemas, **schema_manifest.schemas}
                         fc_updates["generated_schemas"] = merged_schemas
 
                     if fc_updates:
@@ -987,16 +1021,17 @@ class DAGExecutor:
                         else s
                         for s in exec_record.steps
                     ]
-                    error_evt = TraceEvent(
+                    error_evt = ErrorTraceEvent(
                         step_name=step_id,
-                        event_type="error",
+                        error_code=err_code,
+                        error_message=str(e),
                         content={"error_code": err_code, "message": str(e)},
                     )
                     exec_record.execution_trace.append(error_evt)
                     projector.apply_delta(error_evt)
                     exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
-                logger.error("[DAGExecutor] Step %s failed with error: %s", step_id, str(e), exc_info=True)
+                self._dlq_record_step_failure(step_id, err_code, e)
             finally:
                 step_events[step_id].set()
 
@@ -1060,12 +1095,7 @@ class DAGExecutor:
                     try:
                         await _safe_commit()
                     except (OSError, AppException, TimeoutError, ConnectionError) as commit_err:
-                        logger.warning(
-                            "[DAGExecutor] %s: Non-terminal preflight progress commit skipped for step %s: %s",
-                            ErrorCodes.PROGRESS_UPDATE_FAILED.name,
-                            virtual_step_id,
-                            commit_err,
-                        )
+                        self._dlq_handle_progress_commit_error(virtual_step_id, commit_err)
 
                 try:
                     blackboard_payload = await self.rag_preflight.execute(
@@ -1086,10 +1116,14 @@ class DAGExecutor:
                             else s
                             for s in exec_record.steps
                         ]
-                        new_cv = dict(exec_record.context_variables)
-                        new_cv["__GLOBAL_ATOM_BLACKBOARD__"] = blackboard_payload
+                        new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
+                        new_cv = new_cv.with_update(__GLOBAL_ATOM_BLACKBOARD__=blackboard_payload)
                         exec_record = exec_record.model_copy(
-                            update={"step_states": new_states, "steps": new_steps, "context_variables": new_cv}
+                            update={
+                                "step_states": new_states,
+                                "steps": new_steps,
+                                "context_variables": new_cv.to_dict(),
+                            }
                         )
                     await _safe_commit()
                 except Exception as e:

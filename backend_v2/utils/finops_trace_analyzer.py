@@ -10,6 +10,8 @@ from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from backend_v2.models.dtos.finops import FinOpsFinalizeSummaryDTO, FinOpsMonitorSummaryDTO
+
 
 class MonitorState(BaseModel):
     """Schema for monitor state tracking."""
@@ -56,7 +58,7 @@ class TraceStepRecord(BaseModel):
     mcp_traces: Annotated[list[TraceMcp], Field(default_factory=list)] = Field(default_factory=list)
 
 
-def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> dict[str, Any]:
+def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> FinOpsMonitorSummaryDTO:
     """Mode A: Monitor LLM telemetry for FinOps metrics.
 
     Args:
@@ -64,7 +66,7 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> dic
         telemetry_file_path: Path to the LLM telemetry JSONL file.
 
     Returns:
-        A dictionary containing the total duration, total calls, and any FinOps alerts.
+        A FinOpsMonitorSummaryDTO containing total duration, total calls, and alerts.
     """
     state_file = Path(state_file_path)
     telemetry_file = Path(telemetry_file_path)
@@ -110,10 +112,14 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> dic
     if miss_found:
         alerts.append("Prompt Purity Violation (Cache Miss Detected)")
 
-    return {"total_duration_ms": total_duration, "total_calls": total_calls, "alerts": alerts}
+    return FinOpsMonitorSummaryDTO(
+        total_duration_ms=total_duration,
+        total_calls=total_calls,
+        alerts=alerts,
+    )
 
 
-def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> dict[str, Any]:
+def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOpsFinalizeSummaryDTO:
     """Mode B: Finalize execution and detect structural redundancy.
 
     Args:
@@ -121,8 +127,8 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> dict[s
         telemetry_file_path: Path to the LLM telemetry JSONL file.
 
     Returns:
-        A dictionary containing structural warnings, MCP warnings, hashing warnings,
-        healing cost events, and the total USD cost.
+        A FinOpsFinalizeSummaryDTO containing structural warnings, MCP warnings,
+        hashing warnings, healing cost events, and total USD cost.
     """
     trace_file = Path(trace_file_path)
     telemetry_file = Path(telemetry_file_path)
@@ -186,13 +192,13 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> dict[s
                 else:
                     total_usd += tokens * 0.000001
 
-    return {
-        "healing_cost_events": healing_cost_events,
-        "structural_warnings": structural_warnings,
-        "hashing_warnings": hashing_warnings,
-        "mcp_warnings": mcp_warnings,
-        "usd_cost": total_usd,
-    }
+    return FinOpsFinalizeSummaryDTO(
+        healing_cost_events=healing_cost_events,
+        structural_warnings=structural_warnings,
+        hashing_warnings=hashing_warnings,
+        mcp_warnings=mcp_warnings,
+        usd_cost=total_usd,
+    )
 
 
 def main() -> None:
@@ -215,13 +221,13 @@ def main() -> None:
 
         telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         res = analyze_monitor_state(args.monitor, telemetry_file)
-        print(json.dumps(res, indent=2))
+        print(json.dumps(res.model_dump(mode="json"), indent=2))
     elif args.finalize:
         execution_id = args.finalize
         trace_file = args.trace_file or f"data/files/executions/{execution_id}/execution_trace.json"
         telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         res = finalize_execution(trace_file, telemetry_file)
-        print(json.dumps(res, indent=2))
+        print(json.dumps(res.model_dump(mode="json"), indent=2))
 
 
 if __name__ == "__main__":

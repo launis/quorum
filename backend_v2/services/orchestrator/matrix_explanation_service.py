@@ -5,6 +5,7 @@ synthesis distiller to prevent God Code and maintain Single Responsibility.
 """
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import ValidationError
@@ -207,25 +208,33 @@ class MatrixExplanationService:
                 )[:effective_max_unmet]
 
                 distribution_str = ""
-                if raw_level_breakdown and not isinstance(raw_level_breakdown, (str, int, float, bool, list)):
+                if raw_level_breakdown:
+                    if not isinstance(raw_level_breakdown, Mapping):
+                        logger.error(
+                            "[MatrixExplanationService] %s: raw_level_breakdown is not a mapping: %s",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            type(raw_level_breakdown).__name__,
+                        )
+                        raise AppException(
+                            message=f"raw_level_breakdown must be a mapping, got {type(raw_level_breakdown).__name__}",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
                     breakdowns = []
-                    try:
-                        for lvl, raw_stats in raw_level_breakdown.items():
-                            # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
-                            # untrusted level stats dictionary
-                            try:
-                                stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
-                                breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
-                            except (ValidationError, ValueError) as e:
-                                logger.warning(
-                                    "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
-                                    ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
-                                    lvl,
-                                    extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
-                                )
-                                continue
-                    except AttributeError, TypeError:
-                        pass
+                    for lvl, raw_stats in raw_level_breakdown.items():
+                        # REVIEWED EXCEPTION to the_duct_tape_ban: probe boundary validating
+                        # untrusted level stats dictionary
+                        try:
+                            stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
+                            breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
+                        except (ValidationError, ValueError) as e:
+                            logger.warning(
+                                "[MatrixExplanationService] %s: Skipping malformed level stats for level %s",
+                                ErrorCodes.INVALID_OUTPUT_SCHEMA.name,
+                                lvl,
+                                extra={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.name, "details": str(e)},
+                            )
+                            continue
                     if breakdowns:
                         distribution_str = f"[DISTRIBUTION CONTEXT: {', '.join(breakdowns)}]"
 

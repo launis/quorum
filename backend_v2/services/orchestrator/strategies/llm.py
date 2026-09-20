@@ -11,7 +11,7 @@ import inspect
 import json
 import logging
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
@@ -43,6 +43,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
+from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
@@ -88,6 +89,11 @@ class LLMNodeStrategy(NodeStrategy):
         super().__init__(deps=deps)
         self._engine = engine
 
+    @staticmethod
+    def _dlq_handle_debug_log_error(exc: Exception) -> None:
+        """Handle debug prompt logging failures in development gracefully."""
+        logger.warning("[LLMStrategy] Failed to write debug prompt log: %s", exc)
+
     def _extract_step_context_metadata(
         self,
         hook_state: HookState,
@@ -114,27 +120,24 @@ class LLMNodeStrategy(NodeStrategy):
         blackboard: dict[str, Any] = {}
         if "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
             bb_val = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
-            if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
-                try:
-                    blackboard = dict(bb_val)
-                except TypeError, ValueError:
-                    pass
+            if isinstance(bb_val, Mapping):
+                blackboard = dict(bb_val)
+            elif not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
+                blackboard = dict(bb_val)
         elif context is not None and "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
             bb_val = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-            if not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
-                try:
-                    blackboard = dict(bb_val)
-                except TypeError, ValueError:
-                    pass
+            if isinstance(bb_val, Mapping):
+                blackboard = dict(bb_val)
+            elif not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
+                blackboard = dict(bb_val)
 
         atoms_by_input: dict[str, Any] = {}
         if "atoms_by_input" in blackboard:
             atoms_val = blackboard["atoms_by_input"]
-            if not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
-                try:
-                    atoms_by_input = dict(atoms_val)
-                except TypeError, ValueError:
-                    pass
+            if isinstance(atoms_val, Mapping):
+                atoms_by_input = dict(atoms_val)
+            elif not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
+                atoms_by_input = dict(atoms_val)
 
         doc_aliases: list[str] = ["N/A"]
         if atoms_by_input:
@@ -145,7 +148,7 @@ class LLMNodeStrategy(NodeStrategy):
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             raw_inputs_dict = hook_state.inputs.raw_inputs
             dynamic_inputs_dict = hook_state.inputs.dynamic_inputs
-        elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
+        elif isinstance(hook_state.inputs, Mapping):
             dynamic_inputs_dict = dict(hook_state.inputs)
 
         dag_results: dict[str, Any] = {}
@@ -155,28 +158,21 @@ class LLMNodeStrategy(NodeStrategy):
                 for item in step_res:
                     if isinstance(item, AtomResultDTO):
                         dag_results[item.tda_id] = item
-                    elif isinstance(item, dict):
-                        a_id = item.get("tda_id") or item.get("atom_id")
+                    elif isinstance(item, Mapping):
+                        a_id = item["tda_id"] if "tda_id" in item else (item["atom_id"] if "atom_id" in item else None)
                         if a_id:
                             dag_results[a_id] = item
             elif isinstance(step_res, AtomResultDTO):
                 dag_results[step_res.tda_id] = step_res
-            elif not isinstance(step_res, (str, int, float, bool, list)) and step_res is not None:
-                try:
-                    step_dict = dict(step_res)
-                    if "results" in step_dict:
-                        for ev in step_dict["results"]:
-                            if not isinstance(ev, (str, int, float, bool, list)) and ev is not None:
-                                ev_dict = dict(ev)
-                                extracted_a_id: str | None = None
-                                if "tda_id" in ev_dict:
-                                    extracted_a_id = ev_dict["tda_id"]
-                                elif "atom_id" in ev_dict:
-                                    extracted_a_id = ev_dict["atom_id"]
-                                if extracted_a_id:
-                                    dag_results[extracted_a_id] = ev
-                except TypeError, ValueError, KeyError:
-                    pass
+            elif isinstance(step_res, Mapping):
+                if "results" in step_res and isinstance(step_res["results"], list):
+                    for ev in step_res["results"]:
+                        if isinstance(ev, Mapping):
+                            extracted_a_id = (
+                                ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
+                            )
+                            if extracted_a_id:
+                                dag_results[extracted_a_id] = ev
 
         return gvars, doc_aliases, dag_results
 
@@ -277,13 +273,13 @@ class LLMNodeStrategy(NodeStrategy):
 
         if isinstance(context.global_context_vars, GlobalContextVarsDTO):
             initial_gvars = context.global_context_vars
-        elif isinstance(context.global_context_vars, dict) and context.global_context_vars:
+        elif isinstance(context.global_context_vars, Mapping) and context.global_context_vars:
             known_fields = GlobalContextVarsDTO.model_fields.keys()
             filtered_vars = {k: v for k, v in context.global_context_vars.items() if k in known_fields}
             initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
         else:
             initial_gvars = GlobalContextVarsDTO()
-        safe_raw_inputs = inputs_unwrapped if isinstance(inputs_unwrapped, dict) else {}
+        safe_raw_inputs = dict(inputs_unwrapped) if isinstance(inputs_unwrapped, Mapping) else {}
         hook_state = HookState(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
@@ -299,11 +295,8 @@ class LLMNodeStrategy(NodeStrategy):
             state_data = dict(hook_state.inputs.dynamic_inputs)
             if "inputs" not in state_data and hook_state.inputs.raw_inputs:
                 state_data["inputs"] = hook_state.inputs.raw_inputs
-        elif not isinstance(hook_state.inputs, (str, int, float, bool, list)) and hook_state.inputs is not None:
-            try:
-                state_data = dict(hook_state.inputs)
-            except ValueError, TypeError:
-                state_data = {}
+        elif isinstance(hook_state.inputs, Mapping):
+            state_data = dict(hook_state.inputs)
         else:
             state_data = {}
 
@@ -389,7 +382,7 @@ class LLMNodeStrategy(NodeStrategy):
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
-        input_mappings = dict(step.input_mappings)
+        input_mappings: PromptMappingDTO | dict[str, str] = PromptMappingDTO(mappings=dict(step.input_mappings))
 
         workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
         workflow_def = cast(dict[str, Any], workflow_def_raw)
@@ -495,17 +488,11 @@ class LLMNodeStrategy(NodeStrategy):
         # prompt_compiler.build_xml_context() will register source doc aliases via .register().
         alias_engine = AliasEngine()
 
-        prompt_gvars: dict[str, Any] | None = None
+        prompt_gvars: GlobalContextVarsDTO | None = None
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
-            prompt_gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
-        elif (
-            not isinstance(hook_state.global_context_vars, (str, int, float, bool, list))
-            and hook_state.global_context_vars is not None
-        ):
-            try:
-                prompt_gvars = dict(hook_state.global_context_vars)
-            except TypeError, ValueError:
-                prompt_gvars = None
+            prompt_gvars = hook_state.global_context_vars
+        elif isinstance(hook_state.global_context_vars, Mapping):
+            prompt_gvars = GlobalContextVarsDTO.model_validate(dict(hook_state.global_context_vars))
 
         prompt_payload = PromptFactory.build(
             compiler=self.compiler,
@@ -540,7 +527,7 @@ class LLMNodeStrategy(NodeStrategy):
                     expected_schema_name=f"Step_{step.id}_Response",
                 )
             except (OSError, ValueError, TypeError) as e:
-                logger.warning("[LLMStrategy] Failed to write debug prompt log: %s", e)
+                self._dlq_handle_debug_log_error(e)
 
         if output_profile:
             exec_params = ["\n<execution_parameters>"]
@@ -556,7 +543,11 @@ class LLMNodeStrategy(NodeStrategy):
                     )
                     exec_params.append(f"  <matrix_synthesis_groups>{groups_json}</matrix_synthesis_groups>")
                 except (ValueError, TypeError) as e:
-                    logger.warning("Failed to serialize matrix_synthesis_groups for prompt injection: %s", e)
+                    logger.error("Failed to serialize matrix_synthesis_groups for prompt injection: %s", e)
+                    raise AppException(
+                        ErrorCodes.VALIDATION_FAILED,
+                        details={"reason": f"Failed to serialize matrix_synthesis_groups: {e}"},
+                    ) from e
             exec_params.append("</execution_parameters>")
 
             if len(exec_params) > 2:
@@ -623,17 +614,14 @@ class LLMNodeStrategy(NodeStrategy):
 
                 source_docs = []
                 inputs_dict = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
-                if not isinstance(inputs_dict, (str, int, float, bool, list)) and inputs_dict is not None:
-                    try:
-                        for k, text_content in inputs_dict.items():
-                            if isinstance(text_content, str):
-                                display_name = str(manifest[k]) if k in manifest else k
-                                doc_ctx = SourceDocumentContext(
-                                    opaque_id=k, text_content=text_content, display_name=display_name
-                                )
-                                source_docs.append(doc_ctx.model_dump(mode="json"))
-                    except AttributeError, TypeError:
-                        pass
+                if isinstance(inputs_dict, Mapping):
+                    for k, text_content in inputs_dict.items():
+                        if isinstance(text_content, str):
+                            display_name = str(manifest[k]) if k in manifest else k
+                            doc_ctx = SourceDocumentContext(
+                                opaque_id=k, text_content=text_content, display_name=display_name
+                            )
+                            source_docs.append(doc_ctx.model_dump(mode="json"))
             except Exception as e:
                 logger.error(
                     "[LLMStrategy] %s: Failed to construct source documents context from execution record '%s'",
@@ -840,13 +828,10 @@ class LLMNodeStrategy(NodeStrategy):
             if engine_result.synthesis_output is not None:
                 if isinstance(engine_result.synthesis_output, BaseModel):
                     final_dict = engine_result.synthesis_output.model_dump()
-                elif isinstance(engine_result.synthesis_output, (str, int, float, bool, list)):
-                    final_dict = {"output": engine_result.synthesis_output}
+                elif isinstance(engine_result.synthesis_output, Mapping):
+                    final_dict = dict(engine_result.synthesis_output)
                 else:
-                    try:
-                        final_dict = dict(engine_result.synthesis_output)
-                    except ValueError, TypeError:
-                        final_dict = {"output": engine_result.synthesis_output}
+                    final_dict = {"output": engine_result.synthesis_output}
             else:
                 final_dict = {
                     "results": engine_result.results,
@@ -885,14 +870,8 @@ class LLMNodeStrategy(NodeStrategy):
             )
             if isinstance(post_hook_state.inputs, ExecutionInputsDTO):
                 final_dict = dict(post_hook_state.inputs.dynamic_inputs)
-            elif (
-                not isinstance(post_hook_state.inputs, (str, int, float, bool, list))
-                and post_hook_state.inputs is not None
-            ):
-                try:
-                    final_dict = dict(post_hook_state.inputs)
-                except ValueError, TypeError:
-                    final_dict = {}
+            elif isinstance(post_hook_state.inputs, Mapping):
+                final_dict = dict(post_hook_state.inputs)
             else:
                 final_dict = {}
 

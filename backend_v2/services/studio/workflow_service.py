@@ -358,7 +358,7 @@ class StudioWorkflowService:
         new_steps: list[StepRule] = []
         for step_cfg in wf.steps:
             new_depends = [sr_mapping[dep] if dep in sr_mapping else dep for dep in step_cfg.depends_on]
-            new_mappings: dict[str, Any] = {}
+            new_mappings: dict[str, str] = {}
             for k, v in step_cfg.input_mappings.items():
                 if isinstance(v, str) and v.startswith("$steps."):
                     new_v = v

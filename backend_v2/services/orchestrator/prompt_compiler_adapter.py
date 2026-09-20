@@ -9,6 +9,8 @@ from pydantic import BaseModel
 
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.system_config import ChatMessageDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -76,8 +78,8 @@ class PromptCompilerAdapter:
 
     def build_xml_context(
         self,
-        input_mappings: dict[str, str],
-        state_data: dict[str, Any],
+        input_mappings: PromptMappingDTO | dict[str, str],
+        state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any],
         target_locale: str,
         expected_inputs: list[Any] | None = None,
         alias_engine: Any = None,

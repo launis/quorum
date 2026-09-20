@@ -2,8 +2,7 @@
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
-from typing import Any
+from collections.abc import Awaitable, Callable, Mapping
 
 from pydantic import BaseModel
 
@@ -18,8 +17,9 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
+from backend_v2.services.orchestrator.state_reducer import merge_execution_inputs
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 
 logger = logging.getLogger(__name__)
@@ -68,11 +68,9 @@ class LogicNodeStrategy(NodeStrategy):
         if running_event is not None:
             running_event.set()
         # 1. State Extraction
-        # Epic 43 Phase 2 Fail-Fast Parity: Re-inject 'inputs' and 'raw_inputs' DTO payloads into the root state
-        # so legacy dot-notation mappings resolve properly without Naked Dict violations.
-        current_state: dict[str, Any] = {
-            "steps": projector.snapshot if isinstance(projector.snapshot, list) else [],
-        }
+        current_state = LogicNodeStateDTO(
+            steps=projector.snapshot if isinstance(projector.snapshot, list) else [],
+        )
 
         blueprint_id = step.task_blueprint
         if not blueprint_id:
@@ -125,40 +123,52 @@ class LogicNodeStrategy(NodeStrategy):
             system_repo=self.system_repo,
         )
 
-        state_data = dict(current_state)
         initial_gvars = (
-            GlobalContextVarsDTO.model_validate(context.global_context_vars)
-            if context.global_context_vars
+            context.global_context_vars
+            if isinstance(context.global_context_vars, GlobalContextVarsDTO)
             else GlobalContextVarsDTO()
         )
-        hook_state = HookState(
+        safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
             global_context_vars=initial_gvars,
-            inputs=ExecutionInputsDTO(dynamic_inputs=state_data),
+            inputs=ExecutionInputsDTO(dynamic_inputs={"steps": current_state.steps}),
+            target_locale=context.target_locale,
+        )
+        hook_state = HookState(
+            execution_id=safe_context.execution_id,
+            workflow_id=safe_context.workflow_id,
+            step_id=safe_context.step_id,
+            task_blueprint=safe_context.task_blueprint,
+            metadata=safe_context.metadata,
+            global_context_vars=safe_context.global_context_vars,
+            inputs=safe_context.inputs,
         )
 
         # 2. Pre-Hooks
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
-        state_data = dict(hook_state.inputs.dynamic_inputs)  # Refresh state after pre-hooks
 
         # 3. Main Logic Hook Execution
+
         # hook_registry.execute inherently handles sync/async routing.
         main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
 
         if main_res.success and main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
-            if isinstance(delta_val, BaseModel):
-                delta_dict: dict[str, Any] = delta_val.model_dump(mode="json")
-            elif type(delta_val) is dict:
-                delta_dict = dict(delta_val)
-            else:
-                delta_dict = {}
-            state_data = merge_dynamic_inputs(state_data, delta_dict)
-            hook_state = hook_state.model_copy(update={"inputs": ExecutionInputsDTO(dynamic_inputs=state_data)})
+            delta_dict = (
+                delta_val.model_dump(mode="json")
+                if isinstance(delta_val, BaseModel)
+                else dict(delta_val)
+                if isinstance(delta_val, Mapping)
+                else {}
+            )
+            delta_inputs = ExecutionInputsDTO(dynamic_inputs=delta_dict)
+            hook_state = hook_state.model_copy(
+                update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
+            )
         elif not main_res.success:
             # Fail-Fast: The primary logic hook returning success=False is a hard execution error.
             msg = f"Logic hook '{logic_hook}' for step '{step.id}' returned success=False."
@@ -173,14 +183,10 @@ class LogicNodeStrategy(NodeStrategy):
             update={
                 "global_context_vars": hook_state.global_context_vars,
                 "inputs": ExecutionInputsDTO(
-                    dynamic_inputs=state_data,
-                    raw_inputs=state_data,
-                    target_locale=hook_state.inputs.target_locale
-                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else None,
-                    user_role=hook_state.inputs.user_role
-                    if isinstance(hook_state.inputs, ExecutionInputsDTO)
-                    else None,
+                    dynamic_inputs=hook_state.inputs.dynamic_inputs,
+                    raw_inputs=hook_state.inputs.dynamic_inputs,
+                    target_locale=hook_state.inputs.target_locale,
+                    user_role=hook_state.inputs.user_role,
                 ),
             }
         )
@@ -191,17 +197,14 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=post_hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs: dict[str, Any] = {}
+        final_outputs: dict[str, object] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
             if isinstance(delta_val, BaseModel):
-                final_outputs = delta_val.model_dump(mode="json")
-            elif type(delta_val) is dict:
-                final_outputs = dict(delta_val)
-            else:
-                final_outputs = {}
-        meta = final_outputs.setdefault("_step_metadata", {})
-        meta["task_blueprint"] = blueprint_id
+                final_outputs.update(delta_val.model_dump(mode="json"))
+            elif isinstance(delta_val, Mapping):
+                final_outputs.update(dict(delta_val))
+        final_outputs["_step_metadata"] = {"task_blueprint": blueprint_id}
 
         # 5. Emit Immutable Event
         return (

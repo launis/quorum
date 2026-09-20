@@ -2,10 +2,8 @@
 
 import logging
 import re
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
-
-from pydantic import BaseModel
 
 from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -13,6 +11,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.step import Step, StepRule
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.two_pass_atomizer import TwoPassAtomizer
@@ -74,15 +73,13 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
     for event in reversed(exec_record.execution_trace):
         if event.step_name == "inputs" and event.event_type == "input":
             content = event.content
-            if isinstance(content, BaseModel):
-                content = content.model_dump()
-            if not isinstance(content, (str, int, float, bool, list)) and content is not None:
-                try:
-                    inputs_payload = content.get("inputs")
-                    if not isinstance(inputs_payload, (str, int, float, bool, list)) and inputs_payload is not None:
-                        return dict(inputs_payload)
-                except AttributeError, TypeError, ValueError:
-                    pass
+            if isinstance(content, ExecutionInputsDTO):
+                return dict(content.dynamic_inputs)
+            if isinstance(content, Mapping):
+                if "inputs" in content and isinstance(content["inputs"], Mapping):
+                    return dict(content["inputs"])
+                if "dynamic_inputs" in content and isinstance(content["dynamic_inputs"], Mapping):
+                    return dict(content["dynamic_inputs"])
     return dict(exec_record.raw_inputs.dynamic_inputs)
 
 

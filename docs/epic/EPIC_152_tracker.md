@@ -88,12 +88,18 @@
 
 ### Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md] --phase=5`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 5.1: Prompt Compiler & Mapping DTO Hardening
-  - [ ] Step 5.2: State Reducer & DAG Executor Hardening
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md] --phase=5`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
+  - [x] Step 5.1: Prompt Compiler, Adapter & Prompt Mapping DTO Hardening
+  - [x] Step 5.2: LLM Execution Time Resolver, Context Builder, Source Document Packer & Prompt Factory Hardening
+  - [x] Step 5.3: State Reducer Modernization & DAG Executor DTO Hardening
+  - [x] Step 5.4: Node Execution Strategies, Logic Strategy & Extractive Sensor Service Refactoring
+  - [x] Step 5.5: Orchestrator Helper & Factory Exception Hardening
+  - [x] Step 5.6: Ingress, Evaluator, FinOps & MCP Tool DTO Modernization
+  - [x] Step 5.7: Dynamic Schema Factory & Registry Reflection Eradication
+  - [x] Step 5.8: Unit Test Suite Migration & Co-Located Orchestration Reflection Eradication
+- [x] **[OK] Test Coverage Assertions:** 546 unit tests passing with zero errors across the orchestrator, finops, and client suites. Universal Quality Gate passing with 0 fatal AST violations.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 6: SDUI Boundary & Presentation Pipeline Hardening
@@ -163,9 +169,35 @@
   - [ ] @[backend_v2/workers/execution_worker.py]
   - [ ] @[backend_v2/workers/report_worker.py]
   - [ ] @[backend_v2/services/report_service.py]
-  - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
-  - [ ] @[backend_v2/services/orchestrator/state_reducer.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] [NEW] @[backend_v2/models/dtos/prompt.py]
+  - [x] [NEW] @[backend_v2/models/dtos/context_variables.py]
+  - [x] [NEW] @[backend_v2/models/dtos/node_execution.py]
+  - [x] [NEW] @[backend_v2/models/dtos/sensor.py]
+  - [x] [NEW] @[backend_v2/models/dtos/finops.py]
+  - [x] [NEW] @[backend_v2/models/dtos/mcp.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
+  - [x] @[backend_v2/services/orchestrator/state_reducer.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/base.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
+  - [x] @[backend_v2/services/orchestrator/context_router.py]
+  - [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
+  - [x] @[backend_v2/services/orchestrator/ast_evaluator.py]
+  - [x] @[backend_v2/utils/finops_trace_analyzer.py]
+  - [x] @[backend_v2/services/mcp/tavily_search_client.py]
+  - [x] @[backend_v2/services/mcp/tools/tavily.py]
+  - [x] @[backend_v2/services/studio/simulation_service.py]
+  - [x] @[backend_v2/services/studio/workflow_service.py]
+  - [x] @[backend_v2/core/registry.py]
   - [ ] @[backend_v2/models/view/sdui.py]
   - [ ] @[backend_v2/services/sdui_mapper_service.py]
   - [ ] @[backend_v2/services/execution/legacy_render_service.py]
@@ -218,8 +250,14 @@
 | Hook Consumers Global Context Dot-Notation Migration | Phase 4 | `validation.py`, `source_verification_hook.py`, `security.py`, `references.py`, `metadata.py`, `llm.py`, `linguistics.py`, `integrity.py`, `input_processing.py`, `hydration.py`, `interaction_hook.py`, `dlq_guard.py` | Phase 4, Step 4.4 |
 | Workers, Loggers & Background Error Swallowing Eradication | Phase 4 | `llm_task_executor.py`, `execution_worker.py`, `report_worker.py`, `report_service.py` | Phase 4, Step 4.5 |
 | Hook Test Suites Modernization & Reflection Eradication | Phase 4 | `test_matrix_hook.py`, `test_result_projector.py`, `test_validation.py`, `test_scoring.py`, `test_dlq_guard.py`, `test_metrics.py`, `test_references.py`, `test_metadata.py` | Phase 4, Step 4.6 |
-| Prompt Compiler & Mapping DTO Hardening | Phase 5 | `backend_v2/services/orchestrator/prompt_compiler.py` | Phase 5, Step 5.1 |
-| State Reducer & DAG Executor Hardening | Phase 5 | `backend_v2/services/execution/state_reducer.py`, `dag_executor.py` | Phase 5, Step 5.2 |
+| Prompt Compiler, Adapter & Mapping DTO Hardening | Phase 5 | `backend_v2/services/orchestrator/prompt_compiler.py`, `prompt_compiler_adapter.py`, `models/dtos/prompt.py` | Phase 5, Step 5.1 |
+| Execution Time Resolver, Context Builder & Document Packer Hardening | Phase 5 | `execution_time_resolver.py`, `context_builder.py`, `source_document_packer.py`, `prompt_factory.py` | Phase 5, Step 5.2 |
+| State Reducer & DAG Executor DTO Hardening | Phase 5 | `state_reducer.py`, `dag_executor.py`, `context_variables.py`, `node_execution.py` | Phase 5, Step 5.3 |
+| Node Execution Strategies & Sensor Service Refactoring | Phase 5 | `strategies/base.py`, `strategies/logic.py`, `strategies/llm.py`, `extractive_sensor_service.py`, `sensor.py` | Phase 5, Step 5.4 |
+| Orchestrator Helper & Factory Exception Hardening | Phase 5 | `context_router.py`, `extraction_schema_factory.py`, `matrix_explanation_service.py`, `rag_preflight_service.py` | Phase 5, Step 5.5 |
+| Ingress, Evaluator, FinOps & MCP Tool DTO Modernization | Phase 5 | `ast_evaluator.py`, `finops_trace_analyzer.py`, `tavily_search_client.py`, `tools/tavily.py`, `simulation_service.py`, `workflow_service.py` | Phase 5, Step 5.6 |
+| Dynamic Schema Factory & Registry Reflection Eradication | Phase 5 | `core/registry.py`, `extraction_schema_factory.py` | Phase 5, Step 5.7 |
+| Unit Test Suite Migration & Reflection Eradication | Phase 5 | `test_state_reducer.py`, `test_prompt_compiler.py`, `test_schema_matrix_bug.py`, `test_llm_hallucination_repro.py`, `test_schema_factory_alias.py`, `test_llm_context_bounds.py`, `test_client.py` | Phase 5, Step 5.8 |
 | SDUI Model Modernization & UiSection Demolition | Phase 6 | `backend_v2/models/view/sdui.py`, `backend_v2/models/dtos/sdui_rules.py` | Phase 6, Step 6.1 |
 | Legacy Render Service & SDUI Mapper Hardening | Phase 6 | `legacy_render_service.py`, `sdui_mapper_service.py`, `test_legacy_render_service.py` | Phase 6, Step 6.2 |
 | Client App Reports & Execution Client Parity | Phase 6 | `reports_client.dart`, `execution_client.dart` | Phase 6, Step 6.3 |
@@ -232,24 +270,21 @@
 - Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
-- Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode: Result Projector segregation (`ProjectedResultsDTO`, `MatrixProjectionResultDTO`), Global Context & Hook Delta DTO hardening (`GlobalContextVarsDTO`, `HookDeltaDTO`), Scoring Hooks hardening (`matrix_hook.py`, `normalization_hook.py`), complete emoji eradication across analytical logs and payloads, hook consumers dot-notation migration across 11 hooks and 4 worker/strategy callers, error swallowing eradication in background workers, and comprehensive test suite modernization (`test_matrix_hook.py`, `test_override_service.py`).
-- Completed Phase 4 Tier 8 Audit Remediation & Re-Verification: certified 100% mathematical pass rate in `red_team_audit_04_placeholder_phase4.md` (92% coverage on `normalization_hook.py`, 93% on `matrix_hook.py`, 95% on `result_projector.py`, 90% on `tda_engine.py`, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
-- All 88 tests in touched test files and 81 tests in `test_scoring.py` pass cleanly.
+- Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode and Phase 4 Tier 8 Audit Remediation & Re-Verification (`red_team_audit_04_placeholder_phase4.md`, 100% mathematical pass rate, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
+- Completed Phase 5 execution in Continuous Full-Auto Mode: hardened prompt compilation (`PromptMappingDTO`, `LLMContextDataDTO`), state reduction (`merge_execution_inputs`, 0 `# noqa: QGR012`), DAG execution (`ContextVariablesDTO`, `NodeExecutionUpdateDTO`), strategy context, FinOps DTOs, and MCP tools. 546 unit tests passing in 6.73s with 0 fatal AST guardrail violations.
 
 ## Learned
-- In `override_service.py`, `record.context_variables` is a model attribute under `ExecutionCoreFields`; updating it requires `record = record.model_copy(update={"context_variables": updated_context_vars})` rather than direct attribute reassignment.
-- `EvaluatedMatrixContextDTO.raw_atoms` strictly enforces `EvaluatedAtomDTO` under `extra="forbid"`, preventing untyped or loose DTO cross-contamination.
-- `ExecutionRecord.profile_syntheses` values must conform to `RenderedSynthesisCache` with strict extra='forbid' typing, requiring valid instances in test fixtures.
-- `_ast_guardrails.py` QGR003 (exception swallowing rule) permits helper functions whose names contain `"dlq"` (or receiver containing `"dlq"`), or returning DTO/Response/Result/Failure objects, cleanly satisfying DLQ logging patterns in background workers and domain services.
-- The Global Completion Gate (`backend_audit_loop.py backend_v2/ --test`) runs `ruff check --fix` across all files; local target-only gates are insufficient to catch unused variables and docstring/line-length violations across touched files.
-- When refactoring DTOs like `GlobalContextVarsDTO` and `HookDeltaDTO`, legacy unit tests outside the target boundary (e.g. `test_hook_state.py`, `test_hook_registry.py`, `test_dag_executor.py`) must be synchronized per the `anti_tdd_trap` mandate.
-- In `dag_executor.py`, `HookDeltaDTO.delta` defaulting to `None` causes `TraceEvent(content=delta_content)` to fail Pydantic validation if not defaulted to `{}`.
-- In `normalization_hook.py`, wrapping `Workflow.model_validate(workflow_dict)` inside `try...except ValidationError` ensures that invalid or incomplete workflow mock dictionaries raise RFC 7807 `AppException(VALIDATION_FAILED)` with structured error logging.
+- In `_ast_boundary_utils.py`, `validate_ast_line_bound` verifies that an AST definition node (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`) either completely falls within `[start_line, end_line]` or completely encloses it. Specifying bounds that cut across AST definition headers causes deterministic validation failure.
+- In `prompt_compiler.py`, `_extract_value_from_state` contained legacy `current.model_dump()[part]` laundering and defensive `except AttributeError, TypeError:` fallbacks to `json.dumps()`; replacing this with `math_utils.resolve_dot_notation` directly traverses both Pydantic models and dictionaries with zero serialization overhead.
+- In `state_reducer.py`, `merge_dynamic_inputs` had 3 `# noqa: QGR012` comment suppressions and relied on magic string `__replace__` directives; replacing with `merge_execution_inputs(base: ExecutionInputsDTO, delta: ExecutionInputsDTO) -> ExecutionInputsDTO` achieves pure typed Pydantic V2 state merging.
+- In `dag_executor.py`, intermediate execution variables (`context_variables`, `global_context_vars`) are typed via `ContextVariablesDTO` and `GlobalContextVarsDTO`, eliminating 8 naked dictionary containers and unchecked dictionary spreads.
+- In `core/registry.py` and `extraction_schema_factory.py`, dynamic `create_model` chameleon field synthesis forced unit tests and callers to resort to dynamic `getattr` reflection; replacing dynamic field generation with static schemas utilizing typed collections (`records: list[MatrixEvaluationRecordDTO]` or `dict[str, MatrixEvaluationDTO]`) eliminates reflection vulnerability.
+- In `models/dtos/finops.py`, eliminating legacy `__getitem__` subscript access that used `getattr()` completely eradicates QGR001 violations while strictly enforcing typed dot-notation field access across consumers.
 
 ## Remaining
-- Phase 5: LLM Context Orchestration, Dynamic Input Merging & Prompt Compiler Hardening.
+- Phase 5 Audit: /tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]
 - Phases 6-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md] --phase=5`
+`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
 

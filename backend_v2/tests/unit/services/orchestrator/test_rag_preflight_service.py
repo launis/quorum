@@ -212,7 +212,7 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
         id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
         output_profile_id="prof_1234567890abcdef",
-        raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content, "skipped_key": None}),
+        raw_inputs=WorkflowInputs(dynamic_inputs={"doc_1": text_content, "skipped_key": "too short"}),
         target_locale="en",
         metadata=ExecutionMetadata(),
     )

@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import ast
 import logging
-from typing import Any, Literal
+from collections.abc import Mapping
+from typing import Literal
 
 from fastapi import status
 
@@ -29,14 +30,10 @@ class ASTEvaluator:
     def calculate_inverse_dlq_tolerance(total_chunks: int, dlq_chunks: int, inner_val: State) -> State:
         """Apply DLQ Tolerance instead of blind 'not DLQ = DLQ'.
 
-        If the inner value was TRUE, 'not TRUE' is always FALSE.
-        If the inner value was FALSE, 'not FALSE' is always TRUE.
-        If the inner value was DLQ, and missing chunks are < 5%, treat as proved absence (TRUE), else DLQ.
-
         Args:
-            total_chunks: Total chunk count of the associated document evaluation.
-            dlq_chunks: Total count of chunks in the DLQ.
-            inner_val: State resulting from inner evaluation node.
+            total_chunks: Number of chunks processed.
+            dlq_chunks: Number of chunks landing in DLQ.
+            inner_val: Inner boolean/DLQ string value evaluated.
 
         Returns:
             Computed state boolean representation including tolerance.
@@ -57,7 +54,7 @@ class ASTEvaluator:
     @staticmethod
     def evaluate(
         expression: str,
-        facts: dict[str, Any],
+        facts: Mapping[str, bool | str | State],
         total_chunks: int = 1,
         dlq_chunks: int = 0,
     ) -> State:
@@ -93,7 +90,7 @@ class ASTEvaluator:
         return ASTEvaluator._eval_node(tree.body, facts, total_chunks, dlq_chunks)
 
     @staticmethod
-    def _eval_node(node: ast.AST, facts: dict[str, Any], total_chunks: int, dlq_chunks: int) -> State:
+    def _eval_node(node: ast.AST, facts: Mapping[str, bool | str | State], total_chunks: int, dlq_chunks: int) -> State:
         """Internal AST evaluation step with strict whitelisting.
 
         Args:

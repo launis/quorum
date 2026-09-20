@@ -19,6 +19,7 @@ from backend_v2.models.domain.mcp import (
     TavilyApiResponseDTO,
     TavilySearchResult,
 )
+from backend_v2.models.dtos.mcp import TavilySearchRequestDTO
 from backend_v2.models.dtos.retrieval import BatchSearchQueryDTO, TavilySearchResultDTO
 from backend_v2.models.enums import SearchStatus
 from backend_v2.settings import get_settings
@@ -78,20 +79,20 @@ async def tavily_search(query: str) -> TavilySearchResult:
         logger.error("[TavilyClient] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
         raise ConfigurationError(message=msg)
 
-    payload: dict[str, Any] = {
-        "api_key": api_key,
-        "query": query,
-        "max_results": settings.tavily_max_results,
-        "include_answer": True,
-        "include_raw_content": False,
-        "search_depth": "basic",
-    }
+    request_dto = TavilySearchRequestDTO(
+        api_key=api_key,
+        query=query,
+        max_results=settings.tavily_max_results,
+        include_answer=True,
+        include_raw_content=False,
+        search_depth="basic",
+    )
 
     start_ms = int(time.monotonic() * 1000)
 
     try:
         async with httpx.AsyncClient(timeout=settings.tavily_timeout_seconds) as client:
-            response = await client.post(settings.tavily_api_url, json=payload)
+            response = await client.post(settings.tavily_api_url, json=request_dto.model_dump(mode="json"))
 
         elapsed_ms = int(time.monotonic() * 1000) - start_ms
 

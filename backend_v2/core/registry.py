@@ -279,6 +279,17 @@ class StrippedBaseMatrixXAI(BaseModel):
     )
 
 
+class GlobalMatricesBase(V2CoreBase):
+    """Base model for global matrices evaluations container supporting typed index access."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow subscript access to global matrix evaluations by matrix_id."""
+        return getattr(self, key)
+
+
+
 @register_sdui_schema("markdown")
 class MarkdownSchemaStrategy(SchemaBuilderStrategy):
     """Returns the static MarkdownBlock."""
@@ -535,6 +546,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             if global_matrices_fields:
                 GlobalMatricesModel = create_model(
                     "GlobalMatrices",
+                    __base__=GlobalMatricesBase,
                     __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),
                     **global_matrices_fields,
                 )

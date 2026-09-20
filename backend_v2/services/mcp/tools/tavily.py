@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 TAVILY_TOOL_ID = "mcp_tavily_search"
 
 
+from backend_v2.models.dtos.mcp import MCPFunctionDefinitionDTO, MCPToolDeclarationDTO
+
+
 class TavilyTool(BaseTool):
     """MCP tool for executing Tavily web searches."""
 
@@ -22,18 +25,18 @@ class TavilyTool(BaseTool):
         return TAVILY_TOOL_ID
 
     @property
-    def declaration(self) -> dict[str, Any]:
+    def declaration(self) -> MCPToolDeclarationDTO:
         """Return the OpenAI JSON Schema declaration for Tavily."""
-        return {
-            "type": "function",
-            "function": {
-                "name": TAVILY_TOOL_ID,
-                "description": (
+        return MCPToolDeclarationDTO(
+            type="function",
+            function=MCPFunctionDefinitionDTO(
+                name=TAVILY_TOOL_ID,
+                description=(
                     "Perform an explicit search on the live internet using Tavily. "
                     "Use this ONLY when the necessary facts are completely missing from the provided "
                     "context and you require up-to-date or external world knowledge."
                 ),
-                "parameters": {
+                parameters={
                     "type": "object",
                     "properties": {
                         "query": {
@@ -48,9 +51,9 @@ class TavilyTool(BaseTool):
                     "required": ["query", "reasoning"],
                     "additionalProperties": False,
                 },
-                "strict": True,
-            },
-        }
+                strict=True,
+            ),
+        )
 
     async def execute(self, **kwargs: Any) -> MCPAuditTrace:
         """Execute the Tavily search and return the MCPAuditTrace.

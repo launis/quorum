@@ -1,7 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from backend_v2.models.domain.system_config import MCPAuditTrace
+
+if TYPE_CHECKING:
+    from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
 
 
 class BaseTool(ABC):
@@ -19,7 +22,7 @@ class BaseTool(ABC):
 
     @property
     @abstractmethod
-    def declaration(self) -> dict[str, Any]:
+    def declaration(self) -> MCPToolDeclarationDTO | dict[str, Any]:
         """The tool declaration in OpenAI JSON schema format."""
         pass
 

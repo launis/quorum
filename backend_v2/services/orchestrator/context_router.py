@@ -5,6 +5,7 @@ and data culling/pruning logic matching the Phase 9 architecture standards.
 """
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, ValidationError
@@ -75,28 +76,39 @@ class ContextRouter:
             MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
-            if not isinstance(trace_event, (str, int, float, bool, list)) and trace_event is not None:
-                try:
-                    if "evaluated_atoms" not in trace_event:
-                        msg = "Missing required base field in trace_event: evaluated_atoms"
-                        logger.error(msg)
-                        raise ConfigurationError(
-                            message=msg,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
-                except TypeError, KeyError:
-                    pass
-            validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+            if isinstance(trace_event, LightweightMatrixOutput):
+                validated_trace = trace_event
+            elif isinstance(trace_event, Mapping):
+                if "evaluated_atoms" not in trace_event:
+                    msg = "Missing required base field in trace_event: evaluated_atoms"
+                    logger.error("[ContextRouter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise ConfigurationError(
+                        message=msg,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
+            else:
+                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
         except ConfigurationError:
             raise
         except ValidationError as e:
-            logger.error("Trace event validation failed during prune: %s", e, exc_info=True)
+            logger.error(
+                "[ContextRouter] %s: Trace event validation failed during prune: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                e,
+                exc_info=True,
+            )
             raise ConfigurationError(
                 message=f"Fail-Fast: Invalid trace_event format: {e}",
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
         except Exception as e:
-            logger.error("Unexpected parsing error during trace event validation: %s", e, exc_info=True)
+            logger.error(
+                "[ContextRouter] %s: Unexpected parsing error during trace event validation: %s",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                e,
+                exc_info=True,
+            )
             raise ConfigurationError(
                 message=f"Missing required base field in trace_event: {e}",
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},

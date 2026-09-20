@@ -2,11 +2,12 @@
 
 import json
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
+from backend_v2.core.hook_registry import ExecutionInputsDTO
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.step import ExpectedInput
@@ -46,7 +47,6 @@ class PriorStepOutput:
     text_content: str
 
 
-_dict_adapter: TypeAdapter[dict[str, object]] = TypeAdapter(dict[str, object])
 _step_output_adapter: TypeAdapter[StepOutputDTO] = TypeAdapter(StepOutputDTO)
 
 
@@ -214,15 +214,18 @@ class SourceDocumentPacker:
                 if clean_str:
                     sections.append(clean_str)
             else:
-                try:
-                    dict_payload = _dict_adapter.validate_python(inputs_payload)
-                except ValidationError as e:
-                    logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", e)
+                dict_payload: Mapping[str, object]
+                if isinstance(inputs_payload, ExecutionInputsDTO):
+                    dict_payload = {**inputs_payload.raw_inputs, **inputs_payload.dynamic_inputs}
+                elif isinstance(inputs_payload, Mapping):
+                    dict_payload = inputs_payload
+                else:
+                    logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload))
                     raise AppException(
-                        message=f"Inputs payload validation failed: {e}",
+                        message=f"Inputs payload validation failed: expected Mapping or ExecutionInputsDTO, got {type(inputs_payload)}",
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
+                    )
 
                 for key, value in dict_payload.items():
                     if targets is not None and targets.allowed_input_keys is not None:
@@ -285,18 +288,19 @@ class SourceDocumentPacker:
                     if isinstance(payload, str):
                         text_content = payload.strip()
                     else:
-                        step_dict_payload: dict[str, object] | None = None
-                        try:
-                            raw_data = payload.model_dump(mode="json") if isinstance(payload, BaseModel) else payload
-                            step_dict_payload = _dict_adapter.validate_python(raw_data)
+                        step_dict_payload: Mapping[str, object] | None = None
+                        if isinstance(payload, BaseModel):
+                            step_dict_payload = payload.model_dump(mode="json")
+                        elif isinstance(payload, Mapping):
+                            step_dict_payload = payload
+
+                        if step_dict_payload is not None:
                             for field in ("text", "markdown", "content"):
                                 if field in step_dict_payload:
                                     field_val = step_dict_payload[field]
                                     if isinstance(field_val, str):
                                         text_content = field_val.strip()
                                         break
-                        except ValidationError:
-                            step_dict_payload = None
 
                         if not text_content:
                             should_serialize = isinstance(payload, list)
@@ -307,8 +311,16 @@ class SourceDocumentPacker:
                                 try:
                                     data_to_dump = step_dict_payload if step_dict_payload is not None else payload
                                     text_content = json.dumps(data_to_dump, indent=2, ensure_ascii=False, default=str)
-                                except TypeError, ValueError:
-                                    text_content = ""
+                                except (TypeError, ValueError) as exc:
+                                    msg = f"Failed to serialize step payload for step {s_id}: {exc}"
+                                    logger.error(
+                                        "[SourceDocumentPacker] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg
+                                    )
+                                    raise AppException(
+                                        message=msg,
+                                        status_code=400,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "step_id": s_id},
+                                    ) from exc
 
                     if text_content:
                         prior_steps_list.append(PriorStepOutput(step_id=s_id, block_id=b_id, text_content=text_content))

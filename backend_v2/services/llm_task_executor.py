@@ -119,7 +119,7 @@ class LLMTaskExecutor:
         max_logical_retries: int | None = None,
         validator_hook: Callable[[T], Awaitable[None]] | None = None,
         mock_identity: str | None = None,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: Any | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task with Self-Healing, FinOps, and Strict Fail-Fast.
 
@@ -145,7 +145,12 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-        effective_validation_context = {**(self.default_validation_context or {}), **(validation_context or {})}
+        val_ctx_dict = (
+            validation_context.model_dump(mode="json")
+            if isinstance(validation_context, BaseModel)
+            else (validation_context or {})
+        )
+        effective_validation_context = {**(self.default_validation_context or {}), **val_ctx_dict}
 
         prompt_adapter = PromptCompilerAdapter()
 

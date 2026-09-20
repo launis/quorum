@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import re
-from typing import Annotated, Any, Self
+from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from rapidfuzz import fuzz
@@ -21,6 +21,7 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.dtos.sensor import SensorValidationContextDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompts.common import (
     DESC_ALIAS,
@@ -483,11 +484,11 @@ class ExtractiveSensorService:
         async def _single_ensemble_call(call_idx: int) -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
             async with semaphore:
                 try:
-                    validation_context: dict[str, Any] = {
-                        "sub_task": f"extractive_sensor_bo3_call_{call_idx}",
-                        "execution_id": execution_id,
-                        "step_id": step_id,
-                    }
+                    validation_context = SensorValidationContextDTO(
+                        sub_task=f"extractive_sensor_bo3_call_{call_idx}",
+                        execution_id=execution_id,
+                        step_id=step_id,
+                    )
                     result, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,

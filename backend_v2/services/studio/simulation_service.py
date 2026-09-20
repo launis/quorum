@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import string
-from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.auth import TokenData
@@ -19,6 +18,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.dag_models import ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.prompt_context import PromptContextDTO
 from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
@@ -51,6 +51,11 @@ class StudioSimulationService:
             prompt_block_service: Studio prompt block service.
         """
         self.prompt_block_service = prompt_block_service
+
+    @staticmethod
+    def _dlq_record_simulation_error(ref: str, exc: Exception) -> None:
+        """Dead-letter error recording for simulation failure."""
+        logger.warning("[StudioSimulationService] Simulation error on resource %s: %s", ref, exc)
 
     async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> WorkflowSimulationResponse:
         """Simulate workflow.
@@ -101,7 +106,7 @@ class StudioSimulationService:
                 return
 
             in_progress.add(step_id)
-            step = all_steps.get(step_id)
+            step = all_steps[step_id] if step_id in all_steps else None
             if not step:
                 # Missing reference in depends_on
                 return
@@ -117,6 +122,7 @@ class StudioSimulationService:
             for s_id in all_steps:
                 resolve_deps(s_id)
         except (AppException, ValueError, KeyError, RecursionError, RuntimeError) as e:
+            self._dlq_record_simulation_error(data.id, e)
             logger.error(
                 "[StudioSimulationService] %s: Simulation graph resolution failed (Initiator: %s, Workflow: %s): %s",
                 ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
@@ -336,7 +342,7 @@ class StudioSimulationService:
         self,
         initiator: TokenData,
         data: Step,
-        mock_inputs: dict[str, Any],
+        mock_inputs: ExecutionInputsDTO,
         target_locale: str = "en",
         context_text: str = "[SIMULATED CONTEXT DOCUMENT]",
     ) -> StepSimulationResponse:
@@ -371,6 +377,8 @@ class StudioSimulationService:
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
 
+        resolved_mock_inputs = mock_inputs.model_dump()
+
         prompt_context_msgs: list[LLMMessageDTO] = []
         dynamic_messages_aggregated: list[LLMMessageDTO] = []
         for block_ref in prompt_blocks_refs:
@@ -380,7 +388,7 @@ class StudioSimulationService:
                     initiator,
                     PromptBlockSimulationRequest(
                         block=block,
-                        mock_inputs=mock_inputs,
+                        mock_inputs=resolved_mock_inputs,
                         target_locale=target_locale,
                         context_text=context_text,
                     ),
@@ -393,7 +401,8 @@ class StudioSimulationService:
                 if sim.prompt_context:
                     prompt_context_msgs.extend(sim.prompt_context.static_messages)
                     dynamic_messages_aggregated.extend(sim.prompt_context.dynamic_messages)
-            except ResourceNotFoundError:
+            except ResourceNotFoundError as rnfe:
+                self._dlq_record_simulation_error(block_ref, rnfe)
                 errors.append(f"Missing referenced Prompt Block: {block_ref}")
                 rendered_parts.append(f"--- Prompt Block: {block_ref} [NOT FOUND] ---")
 

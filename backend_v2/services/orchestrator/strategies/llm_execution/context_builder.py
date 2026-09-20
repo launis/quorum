@@ -4,10 +4,12 @@ import copy
 import json
 import logging
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel
 
+from backend_v2.core.hook_registry import HookState
 from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -15,6 +17,8 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import resolve_dot_notation
@@ -125,16 +129,15 @@ class ContextBuilder:
             return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
         elif isinstance(obj, (str, int, float, bool)) or obj is None:
             return obj
+        elif isinstance(obj, Mapping):
+            result: dict[str, Any] = {}
+            for k, v in obj.items():
+                if k in ("shuffled_atoms", "original_text", "raw_content"):
+                    continue
+                result[k] = ContextBuilder._project_compressed(v)
+            return result
         else:
-            try:
-                result: dict[str, Any] = {}
-                for k, v in obj.items():
-                    if k in ("shuffled_atoms", "original_text", "raw_content"):
-                        continue
-                    result[k] = ContextBuilder._project_compressed(v)
-                return result
-            except AttributeError, TypeError:
-                return obj
+            return obj
 
     @staticmethod
     def _collect_rule_descriptions(criteria_blocks: list[Any]) -> list[str]:
@@ -220,18 +223,18 @@ class ContextBuilder:
     @classmethod
     def build(
         cls,
-        input_mappings: dict[str, Any],
-        state_data: dict[str, Any],
+        input_mappings: PromptMappingDTO | dict[str, Any],
+        state_data: HookState | dict[str, Any],
         output_profile: Any | None = None,
         schema_map: dict[str, str] | None = None,
         criteria_blocks: list[Any] | None = None,
         blueprint_labels: dict[str, str] | None = None,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    ) -> tuple[LLMContextDataDTO, PromptMappingDTO]:
         """Extracts values based on mappings, prunes traces, and enforces token limits.
 
         Args:
-            input_mappings: The mapping dictionary defining what to extract.
-            state_data: The state dictionary.
+            input_mappings: The mapping DTO or dictionary defining what to extract.
+            state_data: The HookState or state dictionary.
             output_profile: Optional output profile to filter matrix extensions.
             schema_map: Optional map of step IDs to 'MATRIX' or 'TEXT' to dictate parsing logic.
             criteria_blocks: Optional list of PromptBlocks for spatial slicing.
@@ -244,21 +247,28 @@ class ContextBuilder:
             TokenLimitExceededError: Triggered when token limit is violated.
             AppException: Raised if validation or context parsing fails.
         """
-        llm_context_data: dict[str, Any] = {}
-        new_input_mappings: dict[str, Any] = {}
+        extracted_raw_inputs: dict[str, Any] = {}
+        extracted_inputs: dict[str, Any] = {}
+        extracted_metadata: ExecutionMetadata | None = None
+        new_input_mappings: dict[str, str] = {}
         schema_map = schema_map or {}
 
-        if state_data:
-            try:
-                state_raw = state_data.get("raw_inputs")
-                if state_raw:
-                    dyn_inputs = state_raw.get("dynamic_inputs")
-                    if dyn_inputs:
-                        llm_context_data.setdefault("raw_inputs", {})["dynamic_inputs"] = copy.deepcopy(dyn_inputs)
-            except AttributeError, TypeError:
-                pass
+        if isinstance(state_data, HookState):
+            extracted_metadata = state_data.metadata
+            extracted_raw_inputs = dict(state_data.inputs.raw_inputs)
+            if state_data.inputs.dynamic_inputs:
+                extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_data.inputs.dynamic_inputs))
+        elif isinstance(state_data, Mapping):
+            if "metadata" in state_data and isinstance(state_data["metadata"], ExecutionMetadata):
+                extracted_metadata = state_data["metadata"]
+            if "raw_inputs" in state_data and isinstance(state_data["raw_inputs"], Mapping):
+                state_raw = state_data["raw_inputs"]
+                if "dynamic_inputs" in state_raw and isinstance(state_raw["dynamic_inputs"], Mapping):
+                    extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_raw["dynamic_inputs"]))
 
-        for _logical_name, path in input_mappings.items():
+        raw_mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
+
+        for _logical_name, path in raw_mappings.items():
             if not isinstance(path, str):
                 continue
 
@@ -307,19 +317,18 @@ class ContextBuilder:
                     return "\n".join(xml_blocks)
 
                 if clean_path == "steps":
-                    dto_list = state_data["steps"] if "steps" in state_data else []
+                    dto_list = state_data["steps"] if isinstance(state_data, Mapping) and "steps" in state_data else []
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
                     clean_path == "global_context_vars"
                     and not isinstance(resolved_value, (str, int, float, bool, list))
                     and resolved_value is not None
                 ):
-                    try:
-                        resolved_value = copy.copy(resolved_value)
-                        if "steps" in resolved_value:
-                            resolved_value["steps"] = _prune_step_dtos(resolved_value["steps"])
-                    except AttributeError, TypeError:
-                        pass
+                    if isinstance(resolved_value, Mapping) and "steps" in resolved_value:
+                        resolved_dict = dict(resolved_value)
+                        resolved_dict["steps"] = _prune_step_dtos(resolved_value["steps"])
+                        resolved_value = resolved_dict
+
                 elif clean_path.startswith("steps."):
                     parts = clean_path.split(".")
                     step_key = parts[1]
@@ -335,7 +344,7 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     step_type = schema_map[step_key]
-                    all_steps = state_data["steps"] if "steps" in state_data else []
+                    all_steps = state_data["steps"] if isinstance(state_data, Mapping) and "steps" in state_data else []
                     dtos = [d for d in all_steps if d.step_id == step_key]
 
                     if len(parts) == 2:
@@ -396,19 +405,20 @@ class ContextBuilder:
                     ) from e
 
                 if clean_path == "steps" or clean_path.startswith("steps."):
-                    llm_context_data[_logical_name] = copy.deepcopy(resolved_value)
+                    extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)
                     new_input_mappings[_logical_name] = f"${_logical_name}"
                 else:
                     parts = clean_path.split(".")
-                    curr = llm_context_data
+                    curr = extracted_inputs
                     for i, part in enumerate(parts):
                         if i == len(parts) - 1:
                             curr[part] = copy.deepcopy(resolved_value)
                         else:
                             curr = curr.setdefault(part, {})
+                    extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)
                     new_input_mappings[_logical_name] = path
             except Exception as e:
-                if isinstance(e, TokenLimitExceededError) or isinstance(e, AppException):
+                if isinstance(e, (TokenLimitExceededError, AppException)):
                     raise
                 msg = f"Failed to resolve input mapping {path}: {e}"
                 logger.error(msg, exc_info=True)
@@ -418,4 +428,11 @@ class ContextBuilder:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
-        return llm_context_data, new_input_mappings
+        return (
+            LLMContextDataDTO(
+                raw_inputs=extracted_raw_inputs or None,
+                metadata=extracted_metadata,
+                inputs=extracted_inputs or None,
+            ),
+            PromptMappingDTO(mappings=new_input_mappings),
+        )

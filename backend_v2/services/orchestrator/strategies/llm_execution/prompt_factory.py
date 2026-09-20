@@ -11,6 +11,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from pydantic import BaseModel
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.domain.prompt_blocks import (
@@ -20,6 +22,8 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
 from backend_v2.models.prompts.common import (
     GLOBAL_MANDATES_XML,
     STATIC_LINGUISTIC_PROTOCOL,
@@ -65,13 +69,13 @@ class PromptFactory:
         criteria_blocks: list[PromptBlock],
         target_locale: str,
         effective_mcp_tools: list[str] | None,
-        input_mappings: dict[str, Any],
-        llm_context_data: dict[str, Any],
+        input_mappings: PromptMappingDTO,
+        llm_context_data: LLMContextDataDTO,
         expected_inputs: list[Any] | None,
         has_shuffled_atoms: bool = False,
         execution_id: str | None = None,
         alias_engine: Any = None,
-        global_context_vars: dict[str, Any] | None = None,
+        global_context_vars: GlobalContextVarsDTO | None = None,
     ) -> PromptPayload:
         """Compiles criteria blocks and context variables into optimized static/dynamic prompts.
 
@@ -83,8 +87,8 @@ class PromptFactory:
             criteria_blocks: Criteria blocks with evaluation scales.
             target_locale: Target localization code (e.g. 'fi' or 'en').
             effective_mcp_tools: Optional active MCP tools names list.
-            input_mappings: Key-value definitions for variable substitutions.
-            llm_context_data: Comprehensive structured context map.
+            input_mappings: DTO or dict definitions for variable substitutions.
+            llm_context_data: Comprehensive structured context DTO or dict.
             expected_inputs: Elements expected to present in context evaluation.
             has_shuffled_atoms: Whether evaluation assets were randomized to mitigate LLM bias.
             execution_id: Parent execution tracking ID.
@@ -116,7 +120,12 @@ class PromptFactory:
 
         anchors_xml = ""
         if is_grounded_step:
-            anchors_payload = MechanicalAnchorsPayload.from_context(llm_context_data)
+            anchors_context = (
+                llm_context_data.model_dump(mode="json")
+                if isinstance(llm_context_data, BaseModel)
+                else llm_context_data
+            )
+            anchors_payload = MechanicalAnchorsPayload.from_context(anchors_context)
             anchors_xml = anchors_payload.to_xml()
 
         # Layer 1: Global Mandates static caching prefix
@@ -180,14 +189,16 @@ class PromptFactory:
         )
 
         source_data_content = xml_ctx
-        if global_context_vars and "external_evidence" in global_context_vars:
-            evidence_val = global_context_vars["external_evidence"]
-            if evidence_val and isinstance(evidence_val, str):
-                from backend_v2.settings import get_settings
+        evidence_val = None
+        if isinstance(global_context_vars, GlobalContextVarsDTO):
+            evidence_val = global_context_vars.external_evidence
 
-                evidence_budget = get_settings().source_evidence_max_chars
-                truncated_evidence = evidence_val[:evidence_budget].strip()
-                source_data_content = f"{source_data_content}\n\n{truncated_evidence}".strip()
+        if evidence_val and isinstance(evidence_val, str):
+            from backend_v2.settings import get_settings
+
+            evidence_budget = get_settings().source_evidence_max_chars
+            truncated_evidence = evidence_val[:evidence_budget].strip()
+            source_data_content = f"{source_data_content}\n\n{truncated_evidence}".strip()
 
         user_payload = f"{exec_params}\n<source_data>\n{source_data_content}\n</source_data>"
         if dynamic_instructions:

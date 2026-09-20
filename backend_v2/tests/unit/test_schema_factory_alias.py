@@ -30,4 +30,4 @@ def test_schema_factory_reasoning_trace_alias() -> None:
     # 'Field required' for step_1_reasoning_trace
     validated = DynamicSchema.model_validate(mock_llm_payload)
 
-    assert getattr(validated, "reasoning_trace", None) == "This is my reasoning trace."
+    assert validated.reasoning_trace == "This is my reasoning trace."

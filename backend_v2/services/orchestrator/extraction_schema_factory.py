@@ -6,18 +6,27 @@ enforcing strict validation, deterministic sorting, and Zero-Compromise pledges.
 
 from __future__ import annotations
 
+import logging
 import secrets
+from collections.abc import MutableMapping
 from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
 
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.prompts.common import DESC_CONTEXTUAL_OVERRIDE
+
+logger = logging.getLogger(__name__)
 
 
 class ExtractedFactsDTOBase(BaseModel):
     """Base class for dynamically compiled ExtractedFactsDTO, enforcing validation rules."""
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    def __getitem__(self, key: str) -> Any:
+        """Allow subscript access to extracted facts by fact key."""
+        return self.model_dump()[key]
 
     @model_validator(mode="before")
     @classmethod
@@ -30,15 +39,23 @@ class ExtractedFactsDTOBase(BaseModel):
         Returns:
             Sanitized data structure with cosmetic placeholders replaced with None.
         """
-        # Phase 1, Milestone 2: Map cosmetic placeholders to None silently
-        if not isinstance(data, (str, int, float, bool, list)) and data is not None:
-            try:
-                placeholder_set = {"none", "n/a", "", None}
-                for key, val in list(data.items()):
-                    if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                        data[key] = None
-            except AttributeError, TypeError:
-                pass
+        # Phase 1, Milestone 2: Map cosmetic placeholders to None
+        if isinstance(data, MutableMapping):
+            placeholder_set = {"none", "n/a", "", None}
+            for key, val in list(data.items()):
+                if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                    data[key] = None
+        elif data is not None and not isinstance(data, (str, int, float, bool, list)):
+            logger.error(
+                "[ExtractedFactsDTOBase] %s: Expected dictionary for canonicalise_nulls, got %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                type(data).__name__,
+            )
+            raise AppException(
+                message=f"Expected dictionary payload for dynamic extraction, got {type(data).__name__}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return data
 
 
@@ -59,15 +76,23 @@ class DynamicExtractionResponseBase(BaseModel):
             Sanitized data structure with cosmetic placeholders replaced with None for search_context_anchor.
         """
         # Phase 1, Milestone 2: Map cosmetic placeholders to None silently ONLY for search_context_anchor
-        if not isinstance(data, (str, int, float, bool, list)) and data is not None:
-            try:
-                placeholder_set = {"none", "n/a", "", None}
-                if "search_context_anchor" in data:
-                    val = data["search_context_anchor"]
-                    if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                        data["search_context_anchor"] = None
-            except AttributeError, TypeError:
-                pass
+        if isinstance(data, MutableMapping):
+            placeholder_set = {"none", "n/a", "", None}
+            if "search_context_anchor" in data:
+                val = data["search_context_anchor"]
+                if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                    data["search_context_anchor"] = None
+        elif data is not None and not isinstance(data, (str, int, float, bool, list)):
+            logger.error(
+                "[DynamicExtractionResponseBase] %s: Expected dictionary for canonicalise_nulls, got %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                type(data).__name__,
+            )
+            raise AppException(
+                message=f"Expected dictionary payload for extraction response, got {type(data).__name__}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
         return data
 
     @model_validator(mode="after")

@@ -72,7 +72,8 @@ def test_schema_matrix_bug_repro(schema_factory: SchemaFactory) -> None:
     result = DynamicSchema.model_validate(llm_output)
 
     # 5. Verify the parsed result has the global matrices structured properly
-    assert hasattr(result, "global_matrices")
+    assert result.global_matrices is not None
     matrices = result.global_matrices
-    matrix_evaluation = getattr(matrices, matrix_block_raw["id"])
+    matrix_evaluation = matrices[matrix_block_raw["id"]]
     assert matrix_evaluation.semantic_reasoning == "test reasoning for global matrix"
+

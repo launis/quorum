@@ -12,6 +12,7 @@ from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
+from backend_v2.models.state import ErrorTraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
 
@@ -186,27 +187,13 @@ async def test_context_window_exceeded_error_maps_critical(
             final_call_args = calls[-1][0]
             payload = final_call_args[1]
 
-            trace_list = (
-                payload.execution_trace if hasattr(payload, "execution_trace") else payload.get("execution_trace", [])
-            )
+            trace_list = payload.execution_trace
             error_trace = next(
-                (
-                    evt
-                    for evt in trace_list
-                    if getattr(evt, "event_type", None) == "error"
-                    or (isinstance(evt, dict) and evt.get("event_type") == "error")
-                ),
+                (evt for evt in trace_list if isinstance(evt, ErrorTraceEvent)),
                 None,
             )
             assert error_trace is not None
-            err_code = getattr(error_trace, "error_code", None) or (
-                error_trace.content.get("error_code")
-                if hasattr(error_trace, "content") and isinstance(error_trace.content, dict)
-                else error_trace.get("content", {}).get("error_code")
-                if isinstance(error_trace, dict)
-                else None
-            )
-            assert err_code == ErrorCodes.AGENT_EXECUTION_CRITICAL.name
+            assert error_trace.error_code == ErrorCodes.AGENT_EXECUTION_CRITICAL.name
 
             # Non-transient error should only be called once
             assert mock_acompletion.call_count == 1
@@ -256,27 +243,13 @@ async def test_non_context_400_error_maps_malformed(
             final_call_args = calls[-1][0]
             payload = final_call_args[1]
 
-            trace_list = (
-                payload.execution_trace if hasattr(payload, "execution_trace") else payload.get("execution_trace", [])
-            )
+            trace_list = payload.execution_trace
             error_trace = next(
-                (
-                    evt
-                    for evt in trace_list
-                    if getattr(evt, "event_type", None) == "error"
-                    or (isinstance(evt, dict) and evt.get("event_type") == "error")
-                ),
+                (evt for evt in trace_list if isinstance(evt, ErrorTraceEvent)),
                 None,
             )
             assert error_trace is not None
-            err_code = getattr(error_trace, "error_code", None) or (
-                error_trace.content.get("error_code")
-                if hasattr(error_trace, "content") and isinstance(error_trace.content, dict)
-                else error_trace.get("content", {}).get("error_code")
-                if isinstance(error_trace, dict)
-                else None
-            )
-            assert err_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name
+            assert error_trace.error_code == ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED.name
 
             # Non-transient error is retried once by the AI Critic schema validation loop
             assert mock_acompletion.call_count == 2

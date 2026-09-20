@@ -1907,7 +1907,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
         meta = ExecutionMetadata(
             workflow_version=2,
             model_registry_id="cfg_special_reg",
-            global_context_vars={"injected_var": "val123"},
+            global_context_vars={"language": "fi"},
         )
 
         await node_executor.execute(
@@ -1924,5 +1924,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
         # Verify strategy was created with arq_pool in effective_deps
         assert mock_factory.call_args[1]["deps"].arq_pool == mock_pool
         assert len(captured_context) == 1
-        assert captured_context[0].global_context_vars == {"injected_var": "val123"}
+        from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+
+        assert captured_context[0].global_context_vars == GlobalContextVarsDTO(language="fi")
         assert captured_context[0].model_registry_id == "cfg_special_reg"

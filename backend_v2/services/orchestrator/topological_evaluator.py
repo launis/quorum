@@ -40,6 +40,16 @@ class TopologicalEvaluator:
         None
     """
 
+    @staticmethod
+    def _dlq_mark_node_error(state: AtomExecutionState, exc: AppException) -> AtomExecutionState:
+        """Dead-letter error recording for failed atom evaluations within wave."""
+        return state.model_copy(
+            update={
+                "status": ExecutionStatus.SYSTEM_ERROR,
+                "evaluation_reasoning": f"EVALUATION_CRASH: {str(exc)}",
+            }
+        )
+
     async def evaluate_graph(
         self,
         nodes: list[LinkedAtomGraph],
@@ -150,12 +160,7 @@ class TopologicalEvaluator:
                             )
                 except AppException as e:
                     for node in pending_nodes:
-                        states[node.atom.tda_id] = states[node.atom.tda_id].model_copy(
-                            update={
-                                "status": ExecutionStatus.SYSTEM_ERROR,
-                                "evaluation_reasoning": f"EVALUATION_CRASH: {str(e)}",
-                            }
-                        )
+                        states[node.atom.tda_id] = self._dlq_mark_node_error(states[node.atom.tda_id], e)
 
             next_queue = []
 

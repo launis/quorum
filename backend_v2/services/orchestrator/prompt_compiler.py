@@ -12,17 +12,21 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.registry import EvidenceType, StrippedBaseMatrixXAI
 from backend_v2.core.template_processor import TemplateProcessor
-from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
+from backend_v2.utils.math_utils import resolve_dot_notation
 
 # Backward-compatible re-exports for consumers importing from prompt_compiler
 __all__ = [
@@ -194,8 +198,8 @@ class PromptCompiler:
 
     def build_xml_context(
         self,
-        input_mappings: dict[str, str],
-        state_data: dict[str, Any],
+        input_mappings: PromptMappingDTO | dict[str, str],
+        state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any],
         target_locale: str,
         expected_inputs: list[Any] | None = None,
         alias_engine: Any = None,
@@ -203,7 +207,7 @@ class PromptCompiler:
         """Build XML semantic blocks from raw input mappings for LLM context.
 
         Args:
-            input_mappings: Dict mapping logical names to value paths/keys.
+            input_mappings: DTO or dict mapping logical names to value paths/keys.
             state_data: The current workflow execution state containing values.
             target_locale: The requested output locale string.
             expected_inputs: Optional list of ExpectedInput definitions to extract ai_description.
@@ -238,7 +242,9 @@ class PromptCompiler:
                     is_endorsed_deliverable=ei.is_endorsed_deliverable,
                 )
 
-        for logical_name, source_path in input_mappings.items():
+        mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
+
+        for logical_name, source_path in mappings.items():
             value = self._extract_value_from_state(source_path, state_data)
             if value:
                 source_id_to_use = logical_name
@@ -299,12 +305,14 @@ class PromptCompiler:
 
         return compiled
 
-    def _extract_value_from_state(self, path: str, state_data: dict[str, Any]) -> str:
+    def _extract_value_from_state(
+        self, path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any] | Any
+    ) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'.
 
         Args:
             path: The dot-notation path string (e.g., '$inputs.document').
-            state_data: The current workflow execution state dictionary.
+            state_data: The current workflow execution state dictionary or DTO.
 
         Returns:
             The extracted and stringified value.
@@ -318,25 +326,48 @@ class PromptCompiler:
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         # Removing '$' prefix if present
-        if path.startswith("$"):
-            path = path[1:]
+        clean_path = path[1:] if path.startswith("$") else path
 
-        parts = path.split(".")
-        current = state_data
-
-        for part in parts:
-            if isinstance(current, BaseModel):
-                current = current.model_dump()
-            if not isinstance(current, (str, int, float, bool, list)) and current is not None:
-                try:
-                    if part in current:
-                        current = current[part]
-                        continue
-                except TypeError, KeyError:
-                    pass
-            msg = f"Path resolution failed: '{path}'. Component '{part}' is missing from state context."
+        try:
+            if isinstance(state_data, LLMContextDataDTO):
+                if clean_path.startswith("inputs."):
+                    sub_key = clean_path.split(".", 1)[1]
+                    if state_data.inputs and sub_key in state_data.inputs:
+                        current = state_data.inputs[sub_key]
+                    elif state_data.raw_inputs and sub_key in state_data.raw_inputs:
+                        current = state_data.raw_inputs[sub_key]
+                    else:
+                        raise MissingInputMappingError(
+                            path=clean_path,
+                            state_type=type(state_data).__name__,
+                            reason=f"Key '{sub_key}' missing from LLMContextDataDTO",
+                        )
+                elif state_data.inputs and clean_path in state_data.inputs:
+                    current = state_data.inputs[clean_path]
+                elif state_data.raw_inputs and clean_path in state_data.raw_inputs:
+                    current = state_data.raw_inputs[clean_path]
+                else:
+                    current = resolve_dot_notation(state_data, clean_path)
+            elif isinstance(state_data, ExecutionInputsDTO) and clean_path.startswith("inputs."):
+                sub_key = clean_path.split(".", 1)[1]
+                if sub_key in state_data.raw_inputs:
+                    current = state_data.raw_inputs[sub_key]
+                elif sub_key in state_data.dynamic_inputs:
+                    current = state_data.dynamic_inputs[sub_key]
+                else:
+                    raise MissingInputMappingError(
+                        path=clean_path,
+                        state_type=type(state_data).__name__,
+                        reason=f"Key '{sub_key}' missing from ExecutionInputsDTO",
+                    )
+            else:
+                current = resolve_dot_notation(state_data, clean_path)
+        except (MissingInputMappingError, KeyError, IndexError, AttributeError) as e:
+            msg = f"Path resolution failed: '{path}'. Component missing from state context: {e}"
             logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise AppException(
+                message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            ) from e
 
         if isinstance(current, str):
             # Already a string, return directly
@@ -348,62 +379,46 @@ class PromptCompiler:
         if isinstance(current, (int, float, bool)):
             return str(current)
 
-        if not isinstance(current, list) and current is not None:
+        if not isinstance(current, list) and current is not None and isinstance(current, Mapping):
             # Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
-            try:
-                formatted = []
-                for k, v in current.items():
-                    clean_k = str(k).upper()
-                    formatted.append(f"<{clean_k}>")
-                    if not isinstance(v, (str, int, float, bool, list)) and v is not None:
-                        try:
-                            # Attempt to access 'outputs' key directly if available
-                            target_dict = (
-                                v["outputs"]
-                                if ("outputs" in v and not isinstance(v["outputs"], (str, int, float, bool, list)))
-                                else v
-                            )
-                            for sub_k, sub_v in target_dict.items():
-                                # Prevent Context Snowballing: never inject raw Matrix arrays into subsequent LLM contexts.
-                                if sub_k == "results" and isinstance(sub_v, list):
-                                    continue
+            formatted = []
+            for k, v in current.items():
+                clean_k = str(k).upper()
+                formatted.append(f"<{clean_k}>")
+                if isinstance(v, Mapping):
+                    # Attempt to access 'outputs' key directly if available
+                    target_dict = v["outputs"] if ("outputs" in v and isinstance(v["outputs"], Mapping)) else v
+                    for sub_k, sub_v in target_dict.items():
+                        # Prevent Context Snowballing: never inject raw Matrix arrays into subsequent LLM contexts.
+                        if sub_k == "results" and isinstance(sub_v, list):
+                            continue
 
-                                if not isinstance(sub_v, (str, int, float, bool, list)) and sub_v is not None:
-                                    try:
-                                        formatted.append(f"<{str(sub_k).upper()}>")
-                                        for micro_k, micro_v in sub_v.items():
-                                            # Clean cognitive prefixes for readability
-                                            clean_key = (
-                                                str(micro_k)
-                                                .replace("step_1_", "")
-                                                .replace("step_2_", "")
-                                                .replace("step_3_", "")
-                                                .replace("step_4_", "")
-                                                .replace("_", " ")
-                                                .title()
-                                            )
-                                            formatted.append(
-                                                f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
-                                            )
-                                        formatted.append(f"</{str(sub_k).upper()}>")
-                                    except AttributeError, TypeError:
-                                        clean_sub_k = str(sub_k).title().replace(" ", "_")
-                                        formatted.append(
-                                            f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
-                                        )
-                                else:
-                                    clean_sub_k = str(sub_k).title().replace(" ", "_")
-                                    formatted.append(
-                                        f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
-                                    )
-                        except AttributeError, TypeError:
-                            formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
-                    else:
-                        formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
-                    formatted.append(f"</{clean_k}>")
-                return "\n".join(formatted)
-            except AttributeError, TypeError:
-                return json.dumps(current, indent=2, ensure_ascii=False)
+                        if isinstance(sub_v, Mapping):
+                            formatted.append(f"<{str(sub_k).upper()}>")
+                            for micro_k, micro_v in sub_v.items():
+                                # Clean cognitive prefixes for readability
+                                clean_key = (
+                                    str(micro_k)
+                                    .replace("step_1_", "")
+                                    .replace("step_2_", "")
+                                    .replace("step_3_", "")
+                                    .replace("step_4_", "")
+                                    .replace("_", " ")
+                                    .title()
+                                )
+                                formatted.append(
+                                    f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
+                                )
+                            formatted.append(f"</{str(sub_k).upper()}>")
+                        else:
+                            clean_sub_k = str(sub_k).title().replace(" ", "_")
+                            formatted.append(
+                                f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                            )
+                else:
+                    formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
+                formatted.append(f"</{clean_k}>")
+            return "\n".join(formatted)
 
         return json.dumps(current, indent=2, ensure_ascii=False)
 

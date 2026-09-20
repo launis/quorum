@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,12 +27,13 @@ from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.step import Step as V2Step
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
-from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.services.orchestrator.state_reducer import merge_dynamic_inputs
+from backend_v2.services.orchestrator.state_reducer import merge_execution_inputs
 from backend_v2.services.usage_service import UsageService
 
 __all__ = ["NodeStrategy", "StrategyContext", "StrategyDependencies"]
@@ -68,8 +69,8 @@ class StrategyContext(BaseModel):
     expected_inputs: list[ExpectedInput] | None = None
     cognitive_tier: CognitiveTier = CognitiveTier.FAST
     strictness_level: int = StrictnessAnchor.STANDARD.value
-    global_context_vars: dict[str, Any] = Field(default_factory=dict)
-    context_variables: dict[str, Any] = Field(default_factory=dict)
+    global_context_vars: GlobalContextVarsDTO = Field(default_factory=GlobalContextVarsDTO)
+    context_variables: ContextVariablesDTO = Field(default_factory=ContextVariablesDTO)
     prompt_blocks: list[PromptBlock] = Field(default_factory=list)
     model_registry_id: str | None = None
 
@@ -268,10 +269,10 @@ class NodeStrategy(ABC):
                         )
 
                 delta = state_delta.delta
-                if isinstance(delta, dict) and "global_context_vars" in delta:
+                if isinstance(delta, Mapping) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
-                    if isinstance(gvars_updates, dict):
-                        updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
+                    if isinstance(gvars_updates, Mapping):
+                        updated_gvars = hook_state.global_context_vars.model_copy(update=dict(gvars_updates))
                         hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
                         hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
@@ -279,7 +280,9 @@ class NodeStrategy(ABC):
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
                     trace_content = (
-                        gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json")
+                        dict(gvars_updates)
+                        if isinstance(gvars_updates, Mapping)
+                        else gvars_updates.model_dump(mode="json")
                     )
                     emitted_events.append(
                         TraceEvent(
@@ -290,21 +293,23 @@ class NodeStrategy(ABC):
                         )
                     )
 
-                if isinstance(delta, dict):
-                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
-                    new_raw = dict(hook_state.inputs.raw_inputs)
-                    if "dynamic_inputs" in delta:
-                        new_dynamic = merge_dynamic_inputs(new_dynamic, delta["dynamic_inputs"])
-                    if "inputs" in delta:
-                        new_raw = merge_dynamic_inputs(new_raw, delta["inputs"])
+                if isinstance(delta, Mapping):
+                    delta_dyn = (
+                        dict(delta["dynamic_inputs"])
+                        if ("dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping))
+                        else {}
+                    )
+                    delta_raw = (
+                        dict(delta["inputs"]) if ("inputs" in delta and isinstance(delta["inputs"], Mapping)) else {}
+                    )
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
-                            new_dynamic[k] = v
-                            new_raw[k] = v
-                    new_inputs = hook_state.inputs.model_copy(
-                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
+                            delta_dyn[k] = v
+                            delta_raw[k] = v
+                    delta_inputs = ExecutionInputsDTO(raw_inputs=delta_raw, dynamic_inputs=delta_dyn)
+                    hook_state = hook_state.model_copy(
+                        update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
                     )
-                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
             elif not res.success:
                 # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.
                 logger.warning(
@@ -350,10 +355,10 @@ class NodeStrategy(ABC):
                     hook_state = hook_state.model_copy(update={"metadata": new_metadata})
 
                 delta = state_delta.delta
-                if isinstance(delta, dict) and "global_context_vars" in delta:
+                if isinstance(delta, Mapping) and "global_context_vars" in delta:
                     gvars_updates = delta["global_context_vars"]
-                    if isinstance(gvars_updates, dict):
-                        updated_gvars = hook_state.global_context_vars.model_copy(update=gvars_updates)
+                    if isinstance(gvars_updates, Mapping):
+                        updated_gvars = hook_state.global_context_vars.model_copy(update=dict(gvars_updates))
                         hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
                     elif isinstance(gvars_updates, GlobalContextVarsDTO):
                         hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
@@ -361,7 +366,9 @@ class NodeStrategy(ABC):
                     # V2 Mandate: Emit an explicit event sourcing trace for context updates
                     # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
                     trace_content = (
-                        gvars_updates if isinstance(gvars_updates, dict) else gvars_updates.model_dump(mode="json")
+                        dict(gvars_updates)
+                        if isinstance(gvars_updates, Mapping)
+                        else gvars_updates.model_dump(mode="json")
                     )
                     emitted_events.append(
                         TraceEvent(
@@ -372,21 +379,23 @@ class NodeStrategy(ABC):
                         )
                     )
 
-                if isinstance(delta, dict):
-                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
-                    new_raw = dict(hook_state.inputs.raw_inputs)
-                    if "dynamic_inputs" in delta:
-                        new_dynamic = merge_dynamic_inputs(new_dynamic, delta["dynamic_inputs"])
-                    if "inputs" in delta:
-                        new_raw = merge_dynamic_inputs(new_raw, delta["inputs"])
+                if isinstance(delta, Mapping):
+                    delta_dyn = (
+                        dict(delta["dynamic_inputs"])
+                        if ("dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping))
+                        else {}
+                    )
+                    delta_raw = (
+                        dict(delta["inputs"]) if ("inputs" in delta and isinstance(delta["inputs"], Mapping)) else {}
+                    )
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
-                            new_dynamic[k] = v
-                            new_raw[k] = v
-                    new_inputs = hook_state.inputs.model_copy(
-                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
+                            delta_dyn[k] = v
+                            delta_raw[k] = v
+                    delta_inputs = ExecutionInputsDTO(raw_inputs=delta_raw, dynamic_inputs=delta_dyn)
+                    hook_state = hook_state.model_copy(
+                        update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
                     )
-                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
                 elif isinstance(delta, MatrixHookResultDTO):
                     new_dynamic = dict(hook_state.inputs.dynamic_inputs)
                     new_raw = dict(hook_state.inputs.raw_inputs)

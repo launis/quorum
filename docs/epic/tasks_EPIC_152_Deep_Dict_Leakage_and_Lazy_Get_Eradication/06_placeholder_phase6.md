@@ -6,6 +6,8 @@
 - `[MODIFY]` @[backend_v2/models/view/sdui.py]
 - `[MODIFY]` @[backend_v2/services/sdui_mapper_service.py]
 - `[MODIFY]` @[backend_v2/services/execution/legacy_render_service.py]
+- `[MODIFY]` @[backend_v2/services/flattener.py]
+- `[NEW]` @[backend_v2/models/dtos/flat_record.py] (FlatExecutionRecordDTO)
 - `[NEW]` @[backend_v2/models/dtos/sdui_rules.py]
 - `[NEW]` @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
 - `[MODIFY]` @[client_app_v2/lib/core/api/reports_client.dart]

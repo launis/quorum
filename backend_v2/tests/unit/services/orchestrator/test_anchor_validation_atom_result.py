@@ -58,7 +58,7 @@ def test_process_atom_evaluation_contextual_override_clears_quote() -> None:
         "matrix_id": "mat_1",
         "status": ExecutionStatus.PASSED,
         "extracted_data": None,
-        "source_quote": "some text",
+        "source_quote": None,
         "contextual_override": True,
         "evaluation_reasoning": "override active",
         "error_details": None,
