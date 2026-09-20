@@ -107,7 +107,7 @@
 
     <module path="scripts/">
         <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
-        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
+        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), _dart_guardrails.py (Client-Side Static Dart Guardrail Analyzer), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
