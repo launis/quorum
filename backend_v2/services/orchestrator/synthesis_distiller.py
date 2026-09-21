@@ -6,6 +6,8 @@ and prepares the matrices_to_explain list for the downstream row explanations
 LLM step.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 
@@ -185,7 +187,8 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
         title_map, and matrices_to_explain.
 
     Raises:
-        AppException: If state or metadata validation fails.
+        AppException: If state or inputs validation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.INVALID_OUTPUT_SCHEMA),
+            workflow or output profile is missing (ErrorCodes.RESOURCE_NOT_FOUND), or execution record lacks configuration (ErrorCodes.CONFIGURATION_ERROR).
     """
     logger.debug("[SynthesisDistiller] Running synthesis_distiller_hook...")
 

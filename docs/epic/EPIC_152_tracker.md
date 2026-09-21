@@ -161,8 +161,8 @@
   - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [x] @[backend_v2/workers/synthesis_reducers.py]
   - [x] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
-  - [ ] [NEW] @[backend_v2/events/domain_events.py]
-  - [ ] @[backend_v2/services/orchestrator/synthesis_distiller.py]
+  - [x] [PRUNED] @[backend_v2/events/domain_events.py] (Pruned per Phase 3 plan: DataStarvationEvent consolidated in @[backend_v2/models/dtos/base.py])
+  - [x] @[backend_v2/services/orchestrator/synthesis_distiller.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
   - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
