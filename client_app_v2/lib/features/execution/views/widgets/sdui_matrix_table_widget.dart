@@ -5,6 +5,8 @@ import 'package:client_app/shared/models/sdui_block_dto.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
+/// Renders a Server-Driven UI (SDUI) matrix table block displaying dimensions,
+/// evaluated criteria, evidence quotes, citations, and normalized scores.
 class SduiMatrixTableWidget extends StatelessWidget {
   final SduiMatrixTableBlock block;
 
@@ -75,7 +77,9 @@ class SduiMatrixTableWidget extends StatelessWidget {
                               color: Theme.of(
                                 context,
                               ).colorScheme.surfaceContainerHighest,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.s4,
+                              ),
                             ),
                             child: Text(
                               targetLabel,
@@ -489,15 +493,19 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         vertical: AppSpacing.s4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        border: Border.all(color: Colors.green.shade200),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Theme.of(context).colorScheme.tertiaryContainer,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        borderRadius: BorderRadius.circular(AppSpacing.s4),
                       ),
                       child: Text(
                         '${(ratio * 100).toStringAsFixed(1)} %',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade800,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onTertiaryContainer,
                           fontSize: 12,
                         ),
                       ),
@@ -515,15 +523,19 @@ class SduiMatrixTableWidget extends StatelessWidget {
                         vertical: AppSpacing.s4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        border: Border.all(color: Colors.blue.shade200),
-                        borderRadius: BorderRadius.circular(4),
+                        color: Theme.of(context).colorScheme.primaryContainer,
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                        ),
+                        borderRadius: BorderRadius.circular(AppSpacing.s4),
                       ),
                       child: Text(
                         scoreLabel,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue.shade800,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onPrimaryContainer,
                           fontSize: 12,
                         ),
                       ),

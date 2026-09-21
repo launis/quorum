@@ -600,4 +600,93 @@ void main() {
       expect(find.text('↳ '), findsNothing);
     },
   );
+
+  testWidgets(
+    'SduiMatrixTableWidget returns empty SizedBox when axes or visibleColumns are empty',
+    (WidgetTester tester) async {
+      const emptyAxesBlock = SduiMatrixTableBlock(
+        matrixVisibleColumns: ['label', 'score'],
+        axes: [],
+      );
+
+      const emptyColsBlock = SduiMatrixTableBlock(
+        matrixVisibleColumns: [],
+        axes: [
+          MatrixScorecardRowDto(
+            blockId: 'ax_1',
+            name: 'Empty Axis',
+            labelI18n: I18nText(translations: {'en': 'Empty Axis'}),
+            rowExplanation: 'Empty',
+            isEvaluative: false,
+            allowContextualOverride: false,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                SduiMatrixTableWidget(block: emptyAxesBlock),
+                SduiMatrixTableWidget(block: emptyColsBlock),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DataTable), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'SduiMatrixTableWidget handles missing optional row fields gracefully with fallback dashes',
+    (WidgetTester tester) async {
+      const sparseRow = MatrixScorecardRowDto(
+        blockId: 'axis_sparse',
+        name: 'Sparse Axis',
+        labelI18n: I18nText(translations: {'en': 'Sparse Axis'}),
+        rowExplanation: 'Sparse explanation',
+        isEvaluative: false,
+        allowContextualOverride: false,
+      );
+
+      final block = SduiMatrixTableBlock(
+        matrixVisibleColumns: const [
+          'label',
+          'context_target',
+          'distribution',
+          'criteria',
+          'quotes',
+          'source',
+          'normalized_score',
+          'score',
+        ],
+        axes: const [sparseRow],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SduiMatrixTableWidget(block: block),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Sparse Axis'), findsOneWidget);
+      // Fallback dash for context_target, distribution, criteria, quotes, source, normalized_score, score
+      expect(find.text('-'), findsNWidgets(7));
+    },
+  );
 }
+
