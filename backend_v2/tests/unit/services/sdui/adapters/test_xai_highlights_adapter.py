@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Unit tests for the XAI Highlights adapter."""
 
 import logging
@@ -10,13 +12,17 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.sdui_rules import XaiAestheticsRulesDTO
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import AccordionBlock, AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.xai_highlights_adapter import XaiHighlightsAdapter
+from backend_v2.services.sdui.adapters.xai_highlights_adapter import (
+    XAI_AESTHETICS_RULES,
+    XaiHighlightsAdapter,
+)
 
 
 @pytest.fixture
@@ -382,7 +388,7 @@ def test_build_missing_aesthetics_rule_raises_app_exception(
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )
-    monkeypatch.setattr(xai_highlights_adapter, "XAI_AESTHETICS_RULES", {})
+    monkeypatch.setattr(xai_highlights_adapter, "XAI_AESTHETICS_RULES", XaiAestheticsRulesDTO(rules={}))
 
     context = AdapterContext(
         execution=execution,
@@ -453,3 +459,11 @@ def test_build_all_valid_xai_extension_types_have_aesthetics_rules(locale: str) 
         assert len(blocks) == 1, f"Expected 1 block for extension {ext_type.value} in {locale}, got {len(blocks)}"
         assert isinstance(blocks[0], AccordionBlock)
         assert blocks[0].title != ""
+
+
+def test_xai_aesthetics_rules_attributes() -> None:
+    """Test that XAI_AESTHETICS_RULES adheres to strict aesthetics schema."""
+    assert XAI_AESTHETICS_RULES.model_config.get("extra") == "forbid"
+    assert "coaching" in XAI_AESTHETICS_RULES
+    assert XAI_AESTHETICS_RULES["coaching"].severity == VisualIntent.SUCCESS
+

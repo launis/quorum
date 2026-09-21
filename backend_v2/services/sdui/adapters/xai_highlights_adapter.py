@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 """XAI Highlights SDUI Adapter.
 
 Transforms extracted XAI extensions into polymorphic AnySduiBlock components
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-XAI_AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
+XAI_AESTHETICS_RULES DTO to enforce separation of presentation from logic.
 """
 
 import logging
 from typing import Literal, cast
+
+from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.sdui_rules import XaiAestheticsItemDTO, XaiAestheticsRulesDTO
@@ -66,10 +70,8 @@ class XaiHighlightsAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            KeyError: If an unmapped key is encountered in XAI_AESTHETICS_RULES.
-                This is intentional Fail-Fast behavior indicating incomplete
-                rules configuration.
-            AppException: If domain validation fails.
+            AppException: If an unmapped key is encountered in XAI_AESTHETICS_RULES
+                (ErrorCodes.CONFIGURATION_ERROR).
         """
         blocks: list[AnySduiBlock] = []
 
@@ -101,8 +103,14 @@ class XaiHighlightsAdapter:
         if not valid_highlights:
             return blocks
 
-        max_lines_per_type = profile.max_extension_items if profile.max_extension_items is not None else 3
-        num_visible_types = len(profile.visible_block_extensions) if profile.visible_block_extensions else 1
+        max_lines_per_type = 3
+        if profile.max_extension_items is not None:
+            max_lines_per_type = profile.max_extension_items
+
+        num_visible_types = 1
+        if profile.visible_block_extensions:
+            num_visible_types = len(profile.visible_block_extensions)
+
         max_total_items = max_lines_per_type * num_visible_types
 
         curated_highlights = ranked_round_robin_select(
@@ -139,7 +147,7 @@ class XaiHighlightsAdapter:
                 )
                 raise AppException(
                     message=f"Missing rule mapping for extension key: {ext_type_str}",
-                    status_code=500,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from e
 
@@ -154,7 +162,7 @@ class XaiHighlightsAdapter:
                     acc_severity.value,
                 )
 
-                max_lines = profile.max_extension_items or 3
+                max_lines = max_lines_per_type
 
                 accordion = next(
                     (b for b in global_exts if b.title == label_str),
@@ -176,5 +184,5 @@ class XaiHighlightsAdapter:
                         )
                         accordion.children.append(block)
 
-        blocks.extend(cast(list[AnySduiBlock], global_exts))
+        blocks.extend(global_exts)
         return blocks
