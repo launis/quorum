@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:client_app/core/api/reports_client.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,14 +14,39 @@ Future<List<ReportArtifactSummary>> executionReports(
   String executionId,
 ) async {
   final client = ref.watch(reportsClientProvider);
-  return await client.listReports(executionId);
+  final reports = await client.listReports(executionId);
+
+  // If any report is still compiling, self-invalidate after 2s interval
+  final isAnyCompiling = reports.any(
+    (r) =>
+        r.status == ReportStatus.generating || r.status == ReportStatus.pending,
+  );
+  if (isAnyCompiling) {
+    final timer = Timer(const Duration(seconds: 2), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  }
+
+  return reports;
 }
 
 /// Fetches the full detailed domain model for a report artifact.
 @riverpod
 Future<ReportArtifact> reportDetail(Ref ref, String reportId) async {
   final client = ref.watch(reportsClientProvider);
-  return await client.getReport(reportId);
+  final report = await client.getReport(reportId);
+
+  // If report is still compiling, self-invalidate after 2s interval
+  if (report.status == ReportStatus.generating ||
+      report.status == ReportStatus.pending) {
+    final timer = Timer(const Duration(seconds: 2), () {
+      ref.invalidateSelf();
+    });
+    ref.onDispose(timer.cancel);
+  }
+
+  return report;
 }
 
 /// Fetches the pre-compiled SDUI data tree for rendering in SduiRenderer.

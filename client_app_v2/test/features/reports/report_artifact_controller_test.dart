@@ -97,6 +97,72 @@ void main() {
       expect(result, isEmpty);
       verify(() => mockClient.getReportRows(testReportId)).called(1);
     });
+
+    test('executionReportsProvider self-invalidates when report status is generating', () async {
+      final generatingSummary = testSummary.copyWith(status: ReportStatus.generating);
+      final readySummary = testSummary.copyWith(status: ReportStatus.ready);
+
+      var callCount = 0;
+      when(() => mockClient.listReports(testExecutionId)).thenAnswer((_) async {
+        callCount++;
+        if (callCount == 1) {
+          return [generatingSummary];
+        } else {
+          return [readySummary];
+        }
+      });
+
+      final sub = container.listen(
+        executionReportsProvider(testExecutionId),
+        (previous, next) {},
+      );
+
+      final firstResult = await container.read(executionReportsProvider(testExecutionId).future);
+      expect(firstResult.first.status, equals(ReportStatus.generating));
+      expect(callCount, equals(1));
+
+      // Wait for 2s self-invalidation timer
+      await Future.delayed(const Duration(milliseconds: 2100));
+
+      final secondResult = await container.read(executionReportsProvider(testExecutionId).future);
+      expect(secondResult.first.status, equals(ReportStatus.ready));
+      expect(callCount, greaterThanOrEqualTo(2));
+
+      sub.close();
+    });
+
+    test('reportDetailProvider self-invalidates when report status is generating', () async {
+      final generatingReport = testReport.copyWith(status: ReportStatus.generating);
+      final readyReport = testReport.copyWith(status: ReportStatus.ready);
+
+      var callCount = 0;
+      when(() => mockClient.getReport(testReportId)).thenAnswer((_) async {
+        callCount++;
+        if (callCount == 1) {
+          return generatingReport;
+        } else {
+          return readyReport;
+        }
+      });
+
+      final sub = container.listen(
+        reportDetailProvider(testReportId),
+        (previous, next) {},
+      );
+
+      final firstResult = await container.read(reportDetailProvider(testReportId).future);
+      expect(firstResult.status, equals(ReportStatus.generating));
+      expect(callCount, equals(1));
+
+      // Wait for 2s self-invalidation timer
+      await Future.delayed(const Duration(milliseconds: 2100));
+
+      final secondResult = await container.read(reportDetailProvider(testReportId).future);
+      expect(secondResult.status, equals(ReportStatus.ready));
+      expect(callCount, greaterThanOrEqualTo(2));
+
+      sub.close();
+    });
   });
 
   group('ReportArtifactActions Mutations', () {

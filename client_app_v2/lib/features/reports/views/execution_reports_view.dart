@@ -434,6 +434,12 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     AppLocalizations l10n,
   ) {
     final client = ref.read(reportsClientProvider);
+    final detailAsync = ref.watch(reportDetailProvider(report.id));
+    final currentStatus = detailAsync.asData?.value.status ?? report.status;
+    final isReady = currentStatus == ReportStatus.ready;
+    final isGeneratingOrPending =
+        currentStatus == ReportStatus.generating ||
+        currentStatus == ReportStatus.pending;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -481,29 +487,39 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                           size: 18,
                         ),
                         label: const Text('PDF'),
-                        onPressed: () => _downloadPdf(report.id),
+                        onPressed: isReady
+                            ? () => _downloadPdf(report.id)
+                            : null,
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.table_chart_outlined, size: 18),
                         label: const Text('Excel'),
-                        onPressed: () => _downloadExcel(report.id),
+                        onPressed: isReady
+                            ? () => _downloadExcel(report.id)
+                            : null,
                       ),
                       OutlinedButton.icon(
                         icon: const Icon(Icons.description_outlined, size: 18),
                         label: const Text('CSV'),
-                        onPressed: () => _downloadCsv(report.id),
+                        onPressed: isReady
+                            ? () => _downloadCsv(report.id)
+                            : null,
                       ),
                       FilledButton.tonalIcon(
                         icon: const Icon(Icons.refresh, size: 18),
                         label: Text(l10n.retryReportGenerationLabel),
-                        onPressed: () {
-                          ref
-                              .read(reportArtifactActionsProvider.notifier)
-                              .regenerateReport(
-                                reportId: report.id,
-                                executionId: widget.executionId,
-                              );
-                        },
+                        onPressed: isGeneratingOrPending
+                            ? null
+                            : () {
+                                ref
+                                    .read(
+                                      reportArtifactActionsProvider.notifier,
+                                    )
+                                    .regenerateReport(
+                                      reportId: report.id,
+                                      executionId: widget.executionId,
+                                    );
+                              },
                       ),
                     ],
                   );
@@ -548,9 +564,9 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                   // Tab 1: Interactive SDUI View
                   _buildInteractiveTab(report),
                   // Tab 2: PDF Preview
-                  _buildPdfTab(report.id, client),
+                  _buildPdfTab(report, client),
                   // Tab 3: Tabular Rows
-                  _buildRowsTab(report.id),
+                  _buildRowsTab(report),
                   // Tab 4: Telemetry & Metadata
                   _buildMetadataTab(report.id),
                 ],
@@ -566,6 +582,27 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     final detailAsync = ref.watch(reportDetailProvider(reportSummary.id));
     final currentStatus =
         detailAsync.asData?.value.status ?? reportSummary.status;
+
+    if (currentStatus == ReportStatus.generating ||
+        currentStatus == ReportStatus.pending) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            AppSpacing.h16,
+            Text(
+              l10n.reportStatusGenerating,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     if (currentStatus == ReportStatus.failed) {
       final l10n = AppLocalizations.of(context)!;
@@ -667,11 +704,18 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     );
   }
 
-  Widget _buildPdfTab(String reportId, ReportsClient client) {
+  Widget _buildPdfTab(
+    ReportArtifactSummary reportSummary,
+    ReportsClient client,
+  ) {
+    final detailAsync = ref.watch(reportDetailProvider(reportSummary.id));
+    final currentStatus =
+        detailAsync.asData?.value.status ?? reportSummary.status;
+    final isReady = currentStatus == ReportStatus.ready;
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final l10n = AppLocalizations.of(context)!;
-    final pdfUrl = client.getPdfDownloadUrl(reportId);
+    final pdfUrl = client.getPdfDownloadUrl(reportSummary.id);
 
     return AppErrorBoundary(
       child: Center(
@@ -710,7 +754,9 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
                 FilledButton.icon(
                   icon: const Icon(Icons.download),
                   label: Text(l10n.downloadPdfTooltip),
-                  onPressed: () => _downloadPdf(reportId),
+                  onPressed: isReady
+                      ? () => _downloadPdf(reportSummary.id)
+                      : null,
                 ),
               ],
             ),
@@ -720,8 +766,46 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     );
   }
 
-  Widget _buildRowsTab(String reportId) {
-    final rowsAsync = ref.watch(reportRowsProvider(reportId));
+  Widget _buildRowsTab(ReportArtifactSummary reportSummary) {
+    final detailAsync = ref.watch(reportDetailProvider(reportSummary.id));
+    final currentStatus =
+        detailAsync.asData?.value.status ?? reportSummary.status;
+
+    if (currentStatus == ReportStatus.generating ||
+        currentStatus == ReportStatus.pending) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            AppSpacing.h16,
+            Text(
+              l10n.reportStatusGenerating,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (currentStatus == ReportStatus.failed) {
+      final l10n = AppLocalizations.of(context)!;
+      final theme = Theme.of(context);
+      return Center(
+        child: Text(
+          l10n.reportGenerationFailedNotice,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.error,
+          ),
+        ),
+      );
+    }
+
+    final rowsAsync = ref.watch(reportRowsProvider(reportSummary.id));
 
     return AppErrorBoundary(
       child: switch (rowsAsync) {
@@ -729,7 +813,7 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
         AsyncError(:final error, :final stackTrace) => ErrorView(
           error: error,
           stackTrace: stackTrace,
-          onRetry: () => ref.invalidate(reportRowsProvider(reportId)),
+          onRetry: () => ref.invalidate(reportRowsProvider(reportSummary.id)),
         ),
         AsyncData(:final value) =>
           value.isEmpty
