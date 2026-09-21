@@ -1,5 +1,7 @@
 """Context builder for extracting, sanitizing, and filtering LLM execution context."""
 
+from __future__ import annotations
+
 import copy
 import json
 import logging
@@ -22,6 +24,8 @@ from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
 from backend_v2.utils.math_utils import resolve_dot_notation
+
+__all__ = ["ContextBuilder"]
 
 logger = logging.getLogger(__name__)
 
@@ -164,15 +168,15 @@ class ContextBuilder:
                 case ProtocolPromptBlock(protocol_instructions=text) if text:
                     rule_descriptions.append(text)
             if isinstance(block, MatrixPromptBlock):
-                scales = block.scales or []
-                for scale in scales:
-                    claims = scale.claims or []
-                    for claim in claims:
-                        tda_assertions = claim.tda_assertions or []
-                        for tda in tda_assertions:
-                            rule_desc: str | None = tda.concept_description
-                            if rule_desc:
-                                rule_descriptions.append(rule_desc)
+                if block.scales:
+                    for scale in block.scales:
+                        if scale.claims:
+                            for claim in scale.claims:
+                                if claim.tda_assertions:
+                                    for tda in claim.tda_assertions:
+                                        rule_desc: str | None = tda.concept_description
+                                        if rule_desc:
+                                            rule_descriptions.append(rule_desc)
         return rule_descriptions
 
     @staticmethod
@@ -251,7 +255,8 @@ class ContextBuilder:
         extracted_inputs: dict[str, Any] = {}
         extracted_metadata: ExecutionMetadata | None = None
         new_input_mappings: dict[str, str] = {}
-        schema_map = schema_map or {}
+        if schema_map is None:
+            schema_map = {}
 
         if isinstance(state_data, HookState):
             extracted_metadata = state_data.metadata
@@ -317,7 +322,9 @@ class ContextBuilder:
                     return "\n".join(xml_blocks)
 
                 if clean_path == "steps":
-                    dto_list = state_data["steps"] if isinstance(state_data, Mapping) and "steps" in state_data else []
+                    dto_list: list[Any] = []
+                    if isinstance(state_data, Mapping) and "steps" in state_data:
+                        dto_list = state_data["steps"]
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
                     clean_path == "global_context_vars"
@@ -344,7 +351,9 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     step_type = schema_map[step_key]
-                    all_steps = state_data["steps"] if isinstance(state_data, Mapping) and "steps" in state_data else []
+                    all_steps: list[Any] = []
+                    if isinstance(state_data, Mapping) and "steps" in state_data:
+                        all_steps = state_data["steps"]
                     dtos = [d for d in all_steps if d.step_id == step_key]
 
                     if len(parts) == 2:
@@ -428,11 +437,19 @@ class ContextBuilder:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
+        final_raw_inputs = None
+        if extracted_raw_inputs:
+            final_raw_inputs = extracted_raw_inputs
+
+        final_inputs = None
+        if extracted_inputs:
+            final_inputs = extracted_inputs
+
         return (
             LLMContextDataDTO(
-                raw_inputs=extracted_raw_inputs or None,
+                raw_inputs=final_raw_inputs,
                 metadata=extracted_metadata,
-                inputs=extracted_inputs or None,
+                inputs=final_inputs,
             ),
             PromptMappingDTO(mappings=new_input_mappings),
         )

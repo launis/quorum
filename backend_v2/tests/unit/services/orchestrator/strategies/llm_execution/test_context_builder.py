@@ -339,3 +339,281 @@ def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
     assert len(ev["localized_anchors_found"]) == 3
     assert "shuffled_atoms" not in ev
     assert "post_quote_anchor" in ev
+
+
+def test_apply_spatial_slicing_and_rule_descriptions() -> None:
+    """Test spatial slicing when chronological markers are detected in rule blocks."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.matrix import MatrixClaim, MatrixRow, MatrixScale, TDAAssertion
+    from backend_v2.models.domain.prompt_blocks import (
+        MatrixPromptBlock,
+        PersonaPromptBlock,
+        ProtocolPromptBlock,
+        SystemRulePromptBlock,
+    )
+    from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+
+    # 1. Non-str or empty criteria
+    assert ContextBuilder.apply_spatial_slicing(123, None) == 123  # type: ignore[arg-type]
+    assert ContextBuilder.apply_spatial_slicing("Sample text", []) == "Sample text"
+
+    # 2. Blocks hierarchy
+    matrix_block = MatrixPromptBlock(
+        id="blk_0000111122223333",
+        slug="matrix_block",
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        label=I18nText(translations={"en": "Matrix"}),
+        description=I18nText(translations={"en": "Desc"}),
+        ai_description="Evaluate before phase 2 strictly",
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="LOW",
+                name=I18nText(translations={"en": "Low"}),
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id="tda_11112222333344445555666677778888",
+                                concept_description="Detailed rule concept",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    sys_block = SystemRulePromptBlock(
+        id="blk_1111222233334444",
+        slug="sys_rule",
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Rule"}),
+        description=I18nText(translations={"en": "Rule"}),
+        instruction_text="System rule text",
+    )
+
+    persona_block = PersonaPromptBlock(
+        id="blk_2222333344445555",
+        slug="persona",
+        category_id=PromptBlockCategory.EXECUTION_PERSONA,
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Persona"}),
+        description=I18nText(translations={"en": "Persona"}),
+        role_enforcement="Persona instruction",
+    )
+
+    protocol_block = ProtocolPromptBlock(
+        id="blk_3333444455556666",
+        slug="protocol",
+        category_id=PromptBlockCategory.PROTOCOL,
+        type=BlockDataType.INSTRUCTION,
+        label=I18nText(translations={"en": "Protocol"}),
+        description=I18nText(translations={"en": "Protocol"}),
+        protocol_instructions="Protocol instruction",
+    )
+
+    criteria = [matrix_block, sys_block, persona_block, protocol_block]
+    rule_descs = ContextBuilder._collect_rule_descriptions(criteria)
+    assert "Evaluate before phase 2 strictly" in rule_descs
+    assert "System rule text" in rule_descs
+    assert "Persona instruction" in rule_descs
+    assert "Protocol instruction" in rule_descs
+    assert "Detailed rule concept" in rule_descs
+
+    # 3. Test text slicing
+    doc_text = "Phase 1 content is here.\n[PHASE 2]\nPhase 2 should be sliced away."
+    sliced = ContextBuilder.apply_spatial_slicing(doc_text, criteria)
+    assert "[PHASE 2]" not in sliced
+    assert "Phase 1 content is here." in sliced
+
+
+def test_process_trace_dtos_non_matrix_and_primitive_validation() -> None:
+    """Test non-matrix trace processing and validation of primitive values in matrix block."""
+    dtos = [
+        StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text": "Hello"}),
+    ]
+
+    # Non-matrix returns compressed dict
+    non_matrix_res = ContextBuilder._process_trace_dtos(dtos, None, schema_type="TEXT")
+    assert non_matrix_res == {"b1": {"text": "Hello"}}
+
+    # Matrix with non-dict primitive payload raises AppException
+    invalid_matrix_dtos = [
+        StepOutputDTO(step_id="step1", block_id="b1", data_type="matrix", payload="not_a_dict"),
+    ]
+    with pytest.raises(AppException) as exc_info:
+        ContextBuilder._process_trace_dtos(
+            invalid_matrix_dtos,
+            None,
+            schema_type="MATRIX",
+            schema_map={"b1": "MATRIX"},
+        )
+    assert "must be a dict" in exc_info.value.message
+
+
+def test_build_missing_step_schema_fail_fast(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that missing step in schema_map triggers Fail-Fast AppException."""
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    input_mappings = {"all_steps": "$steps"}
+    state_data = {
+        "steps": [
+            StepOutputDTO(step_id="unmapped_step", block_id="b1", data_type="text", payload={}),
+        ]
+    }
+
+    with pytest.raises(AppException) as exc_info:
+        ContextBuilder.build(
+            input_mappings=input_mappings,
+            state_data=state_data,
+            schema_map={},
+        )
+    assert "Missing schema mapping for step 'unmapped_step'" in exc_info.value.message
+
+
+def test_build_step_subpaths(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test 3-part step paths: steps.step_key.block_key and invalid legacy paths."""
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    dto = StepOutputDTO(step_id="step_a", block_id="blk_x", data_type="text", payload="block content")
+    state_data = {"steps": [dto]}
+
+    # 1. Successful 3-part extraction
+    mappings = {"single_block": "$steps.step_a.blk_x"}
+    ctx, new_map = ContextBuilder.build(
+        input_mappings=mappings,
+        state_data=state_data,
+        schema_map={"step_a": "TEXT"},
+    )
+    assert ctx.inputs is not None
+    assert ctx.inputs["single_block"] == "block content"
+
+    # 2. Block not found in step
+    with pytest.raises(AppException) as exc_info:
+        ContextBuilder.build(
+            input_mappings={"missing_blk": "$steps.step_a.blk_missing"},
+            state_data=state_data,
+            schema_map={"step_a": "TEXT"},
+        )
+    assert "Block 'blk_missing' not found" in exc_info.value.message
+
+    # 3. Invalid 4-part legacy path
+    with pytest.raises(AppException) as exc_info2:
+        ContextBuilder.build(
+            input_mappings={"too_long": "$steps.step_a.blk_x.extra"},
+            state_data=state_data,
+            schema_map={"step_a": "TEXT"},
+        )
+    assert "Invalid legacy path" in exc_info2.value.message
+
+    # 4. Step missing from schema_map in steps.step_key
+    with pytest.raises(AppException) as exc_info3:
+        ContextBuilder.build(
+            input_mappings={"step_res": "$steps.unmapped_step"},
+            state_data=state_data,
+            schema_map={},
+        )
+    assert "Missing schema mapping for step 'unmapped_step'" in exc_info3.value.message
+
+
+def test_build_global_context_vars_with_steps(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test resolving global_context_vars containing steps."""
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    dto = StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"val": 42})
+    state_data = {
+        "global_context_vars": {
+            "steps": [dto],
+            "extra_var": "hello",
+        }
+    }
+
+    ctx, _ = ContextBuilder.build(
+        input_mappings={"g_vars": "$global_context_vars"},
+        state_data=state_data,
+        schema_map={"step1": "TEXT", "b1": "TEXT"},
+        blueprint_labels={"step1": "Label Step 1"},
+    )
+    assert ctx.inputs is not None
+    assert "g_vars" in ctx.inputs
+    assert '<step_result source="Label Step 1" step_id="step1">' in ctx.inputs["g_vars"]["steps"]
+
+
+def test_project_compressed_base_model_and_lists() -> None:
+    """Test _project_compressed handling of BaseModel instances, lists, and filtered keys."""
+    from pydantic import BaseModel
+
+    class InnerModel(BaseModel):
+        name: str
+        original_text: str = "filter_me"
+        raw_content: str = "filter_me_too"
+
+    model = InnerModel(name="test_item")
+    projected = ContextBuilder._project_compressed([model, "primitive", 123])
+    assert isinstance(projected, list)
+    assert projected[0]["name"] == "test_item"
+    assert "original_text" not in projected[0]
+    assert "raw_content" not in projected[0]
+    assert projected[1] == "primitive"
+    assert projected[2] == 123
+
+
+def test_build_with_dict_metadata_and_dynamic_inputs(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test build when state_data is a dict containing ExecutionMetadata and dynamic_inputs."""
+    from backend_v2.models.execution_core import ExecutionMetadata
+
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    meta = ExecutionMetadata(workflow_version=2)
+    state_data = {
+        "metadata": meta,
+        "raw_inputs": {
+            "dynamic_inputs": {"dyn_key": "dyn_val"},
+        },
+        "user_doc": "Sample doc text",
+    }
+
+    ctx, _ = ContextBuilder.build(
+        input_mappings={"doc": "$user_doc"},
+        state_data=state_data,
+    )
+    assert ctx.metadata == meta
+    assert ctx.raw_inputs is not None
+    assert ctx.raw_inputs["dynamic_inputs"]["dyn_key"] == "dyn_val"
+
+
+def test_build_matrix_pruning_with_evaluated_atoms(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that evaluated_atoms is pruned from matrix output in build."""
+    monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
+
+    mock_router = MagicMock()
+    mock_pruned = MagicMock()
+    mock_pruned.model_dump.return_value = {
+        "raw_score": 4.0,
+        "evaluated_atoms": [{"atom_id": "a1"}],
+    }
+    mock_router.route_and_prune.return_value = mock_pruned
+    monkeypatch.setattr(
+        "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.ContextRouter",
+        mock_router,
+    )
+
+    dto = StepOutputDTO(step_id="step1", block_id="blk_m", data_type="matrix", payload={"raw_score": 4.0})
+    state_data = {"steps": [dto]}
+
+    ctx, _ = ContextBuilder.build(
+        input_mappings={"matrix_step": "$steps.step1"},
+        state_data=state_data,
+        schema_map={"step1": "MATRIX", "blk_m": "MATRIX"},
+    )
+    assert ctx.inputs is not None
+    assert "matrix_step" in ctx.inputs
+    assert "evaluated_atoms" not in ctx.inputs["matrix_step"]
+
+
