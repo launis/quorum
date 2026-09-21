@@ -163,7 +163,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
     mock_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
-        "workflow_id": "wf_123",
+        "workflow_id": "wf_1234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "id": "prof_1111111111111111",
         "max_extension_items": 3,

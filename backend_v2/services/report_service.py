@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from typing import Any
 
@@ -31,7 +32,6 @@ from backend_v2.services.file_driver import FileDriver
 from backend_v2.services.localization import set_language
 from backend_v2.services.pdf_generator import PdfReportService
 from backend_v2.services.storage import get_storage_driver
-from backend_v2.workers.synthesis_worker import generate_profile_synthesis_and_pdf_task
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +47,7 @@ class ReportService:
         storage_driver: FileDriver | None = None,
         export_service: ExportService | None = None,
         pdf_service: PdfReportService | None = None,
+        synthesis_runner: Callable[..., Awaitable[None]] | None = None,
     ) -> None:
         """Initialize ReportService with repository and presentation services.
 
@@ -55,6 +56,7 @@ class ReportService:
             storage_driver: Optional storage driver for file storage.
             export_service: Optional export service for data conversion.
             pdf_service: Optional PDF rendering service.
+            synthesis_runner: Optional async callable for triggering on-demand text synthesis.
         """
         self.repo = repo
         self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
@@ -62,6 +64,7 @@ class ReportService:
             export_service if export_service is not None else ExportService(comp_repo=repo)
         )
         self.pdf_service: PdfReportService = pdf_service if pdf_service is not None else PdfReportService()
+        self.synthesis_runner = synthesis_runner
 
     async def get_report(self, report_id: str) -> ReportArtifact:
         """Retrieves single report artifact model fail-fast.
@@ -317,15 +320,28 @@ class ReportService:
             set_language(report.locale)
 
             if report.profile_id not in execution.profile_syntheses:
-                # Step 1: Enforce explicit keyword parameter bindings to avoid positional inversion
-                await generate_profile_synthesis_and_pdf_task(
-                    report.execution_id,
-                    accept_language=report.locale,
-                    profile_id=report.profile_id,
-                )
-                refreshed = await self.repo.get_execution(report.execution_id)
-                if refreshed:
-                    execution = ExecutionRecord.model_validate(refreshed, strict=False)
+                if self.synthesis_runner is not None:
+                    await self.synthesis_runner(
+                        execution_id=report.execution_id,
+                        accept_language=report.locale,
+                        profile_id=report.profile_id,
+                    )
+                    refreshed = await self.repo.get_execution(report.execution_id)
+                    if refreshed:
+                        execution = ExecutionRecord.model_validate(refreshed, strict=False)
+                else:
+                    msg = f"Profile '{report.profile_id}' has not been synthesized for execution '{report.execution_id}'."
+                    logger.error(
+                        "[ReportService] %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+                    raise AppException(
+                        message=msg,
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
 
             transformer = BlueprintTransformer(
                 self.repo, self.repo, self.repo, self.repo, self.repo, self.repo, self.repo

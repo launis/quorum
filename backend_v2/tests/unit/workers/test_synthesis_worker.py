@@ -1,6 +1,6 @@
 """Unit tests for synthesis_worker.py covering error handling, caching, validation, and full execution."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -39,7 +39,7 @@ async def test_synthesis_worker_missing_execution_returns() -> None:
 
 @pytest.mark.asyncio
 async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
-    """Test generate_profile_synthesis_and_pdf_task short-circuits to PDF generation if already synthesized."""
+    """Test generate_profile_synthesis_and_pdf_task short-circuits to report artifact generation if already synthesized."""
     prof_id = "pro_0123456789abcdef01"
     cache = RenderedSynthesisCache()
     rec = ExecutionRecord(
@@ -54,16 +54,26 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
     mock_repo = AsyncMock()
     mock_repo.get_execution.return_value = rec.model_dump(mode="json")
     mock_redis = AsyncMock()
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_0123456789abcdef01"
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo):
-            await generate_profile_synthesis_and_pdf_task(
-                execution_id="exe_0123456789abcdef01",
-                accept_language="en",
-                profile_id=prof_id,
-                redis=mock_redis,
-            )
-            mock_redis.enqueue_job.assert_called_once_with("generate_pdf_job", "exe_0123456789abcdef01", "en", prof_id)
+            with patch("backend_v2.workers.synthesis_worker.ReportService") as mock_report_service_cls:
+                mock_svc = mock_report_service_cls.return_value
+                mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+                await generate_profile_synthesis_and_pdf_task(
+                    execution_id="exe_0123456789abcdef01",
+                    accept_language="en",
+                    profile_id=prof_id,
+                    redis=mock_redis,
+                )
+                mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
+                    execution_id="exe_0123456789abcdef01",
+                    profile_id=prof_id,
+                    locale="en",
+                )
+                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
 
 
 @pytest.mark.asyncio

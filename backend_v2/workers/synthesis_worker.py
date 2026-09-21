@@ -49,6 +49,7 @@ from backend_v2.models.prompts import (
 from backend_v2.models.state import StateProjector
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
+from backend_v2.services.report_service import ReportService
 from backend_v2.settings import get_settings
 from backend_v2.workers.synthesis_reducers import (
     extract_user_role_from_trace,
@@ -131,14 +132,22 @@ async def generate_profile_synthesis_and_pdf_task(
         accept_language = resolved_lang.strip()
         v_step_id = f"sys_render_{profile_id}"
 
-        syntheses: dict[str, Any] = {}
+        syntheses: dict[str, RenderedSynthesisCache] = {}
         if execution.profile_syntheses is not None:
             syntheses = execution.profile_syntheses
         has_synthesis = profile_id in syntheses
         if has_synthesis:
-            logger.info("[Task] Synthesis already exists for profile %s. Proceeding to PDF generation.", profile_id)
+            logger.info(
+                "[Task] Synthesis already exists for profile %s. Proceeding to report artifact compilation.", profile_id
+            )
+            report_svc = ReportService(repo)
+            artifact = await report_svc.get_or_create_default_artifact(
+                execution_id=execution_id,
+                profile_id=profile_id,
+                locale=accept_language,
+            )
             if redis:
-                await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
+                await redis.enqueue_job("generate_report_artifact_job", artifact.id)
             return
 
         async def _update_render_status(msg: str) -> None:
@@ -504,8 +513,14 @@ async def generate_profile_synthesis_and_pdf_task(
         logger.info("[Task] Synthesis cached for %s (Profile: %s)", execution_id, profile_id)
 
         await _update_render_status("Compiling output documents...")
+        report_svc = ReportService(repo)
+        artifact = await report_svc.get_or_create_default_artifact(
+            execution_id=execution_id,
+            profile_id=profile_id,
+            locale=accept_language,
+        )
         if redis:
-            await redis.enqueue_job("generate_pdf_job", execution_id, accept_language, profile_id)
+            await redis.enqueue_job("generate_report_artifact_job", artifact.id)
 
     except Exception as e:
         is_validation_err = isinstance(e, ValidationError)

@@ -79,7 +79,7 @@ async def generate_report_artifact_job(ctx: Any, report_id: str) -> str | dict[s
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
-        service = report_service_mod.ReportService(repo)
+        service = report_service_mod.ReportService(repo, synthesis_runner=generate_profile_synthesis_and_pdf_task)
         await service.process_artifact_compilation(report_id)
         return f"Report Artifact Generated: {report_id}"
     except asyncio.CancelledError:

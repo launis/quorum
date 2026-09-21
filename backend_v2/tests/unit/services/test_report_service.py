@@ -13,6 +13,7 @@ from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, F
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
@@ -66,7 +67,7 @@ def _create_dummy_execution(
         frozen_context=FrozenContext(),
         source_identity_manifest={},
         step_states={"stp_1": step},
-        profile_syntheses={},
+        profile_syntheses={"prf_1234567890abcdef": RenderedSynthesisCache()},
     )
 
 
