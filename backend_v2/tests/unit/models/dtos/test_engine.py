@@ -184,3 +184,58 @@ def test_engine_execution_request_hydrated_messages_typed() -> None:
     assert len(req.hydrated_messages) == 1
     assert req.hydrated_messages[0].role == "system"
     assert req.hydrated_messages[0].content == "Hello"
+
+
+def test_engine_execution_request_extra_fields_rejected() -> None:
+    """Test that extra fields on EngineExecutionRequest trigger ValidationError."""
+    from unittest.mock import MagicMock
+
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.enums import CognitiveTier
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    context = StrategyContext(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        cognitive_tier=CognitiveTier.FAST,
+    )
+    client = MagicMock(spec=LLMClient)
+
+    with pytest.raises(ValidationError):
+        EngineExecutionRequest(
+            bound_client=client,
+            system_prompt="System",
+            step=step,
+            context=context,
+            global_source_text="Source",
+            prompt_compiler=MagicMock(),
+            disallowed_extra="bad",  # type: ignore[call-arg]
+        )
+
+
+def test_engine_execution_result_missing_required_fields() -> None:
+    """Test that missing required fields on EngineExecutionResult trigger ValidationError."""
+    with pytest.raises(ValidationError):
+        EngineExecutionResult.model_validate({"results": []})
+
+    with pytest.raises(ValidationError):
+        EngineExecutionResult.model_validate({"hydrated_references": {}})
+
+
+def test_matrix_evaluation_context_assertions_list() -> None:
+    """Test MatrixEvaluationContext with explicit matrix assertions."""
+    atom = FlattenedAtom(atom_id="atm_01", question="Question 1")
+    ctx = MatrixEvaluationContext(
+        matrix_objective="Audit compliance",
+        allow_contextual_override=True,
+        matrix_assertions=[atom],
+    )
+    assert ctx.matrix_assertions is not None
+    assert len(ctx.matrix_assertions) == 1
+    assert ctx.matrix_assertions[0].atom_id == "atm_01"
+    assert ctx.allow_contextual_override is True
+

@@ -41,6 +41,7 @@ class MatrixEvaluationContext(BaseModel):
         theory_grounding: The theory grounding applied to the matrix.
         matrix_objective: The objective of the matrix.
         allow_contextual_override: Whether contextual override is allowed.
+        matrix_assertions: Raw matrix constraints.
     """
 
     theory_grounding: Annotated[
@@ -78,32 +79,54 @@ class EngineExecutionRequest(BaseModel):
         prompt_compiler: The prompt compiler instance.
         shuffled_atoms: The explicit matrix assertions for matrix evaluations.
         matrix_block_id: Optional ID of the matrix block for namespace isolation.
+        matrix_context: Context for matrix evaluation.
     """
 
-    bound_client: LLMClient
-    compiled_schema: type[BaseModel] | None
-    hydrated_messages: list[LLMMessageDTO] | None
-    system_prompt: str
-    step: StepRule
-    context: StrategyContext
-    global_source_text: str
-    target_locale: str | None
-    semaphore: asyncio.Semaphore | None = None
-    running_event: asyncio.Event | None = None
-    progress_callback: Callable[[int, int], Awaitable[None]] | None = None
-    trace_callback: Callable[[TraceEvent], Awaitable[None]] | None = None
-    prompt_compiler: Any
-    shuffled_atoms: list[FlattenedAtom] | None = None
-    matrix_block_id: str | None = None
+    bound_client: Annotated[LLMClient, Field(description="The initialized LLM client.")]
+    compiled_schema: Annotated[
+        type[BaseModel] | None, Field(default=None, description="Forward compatibility for SynthesisEngine schema.")
+    ] = None
+    hydrated_messages: Annotated[
+        list[LLMMessageDTO] | None,
+        Field(default=None, description="Strongly typed messages for SynthesisEngine / PromptEngine."),
+    ] = None
+    system_prompt: Annotated[str, Field(description="The compiled system prompt.")]
+    step: Annotated[StepRule, Field(description="The step configuration.")]
+    context: Annotated[StrategyContext, Field(description="Immutable strategy context.")]
+    global_source_text: Annotated[str, Field(description="The full source document text.")]
+    target_locale: Annotated[str | None, Field(default=None, description="The target locale for the evaluation.")] = (
+        None
+    )
+    semaphore: Annotated[asyncio.Semaphore | None, Field(default=None, description="Concurrency limiter.")] = None
+    running_event: Annotated[asyncio.Event | None, Field(default=None, description="Cancellation trigger.")] = None
+    progress_callback: Annotated[
+        Callable[[int, int], Awaitable[None]] | None, Field(default=None, description="Progress reporting callback.")
+    ] = None
+    trace_callback: Annotated[
+        Callable[[TraceEvent], Awaitable[None]] | None,
+        Field(default=None, description="Live telemetry flush callback."),
+    ] = None
+    prompt_compiler: Annotated[Any, Field(description="The prompt compiler instance.")]
+    shuffled_atoms: Annotated[
+        list[FlattenedAtom] | None,
+        Field(default=None, description="The explicit matrix assertions for matrix evaluations."),
+    ] = None
+    matrix_block_id: Annotated[
+        str | None, Field(default=None, description="Optional ID of the matrix block for namespace isolation.")
+    ] = None
     matrix_context: Annotated[
-        MatrixEvaluationContext | None, Field(default=None, description="Context for matrix evaluation")
+        MatrixEvaluationContext | None, Field(default=None, description="Context for matrix evaluation.")
     ] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
 
     @property
     def semaphore_cm(self) -> Any:
-        """Context manager safely wrapping nullable semaphore with nullcontext."""
+        """Context manager safely wrapping nullable semaphore with nullcontext.
+
+        Returns:
+            The semaphore or a nullcontext context manager.
+        """
         import contextlib
 
         return self.semaphore if self.semaphore is not None else contextlib.nullcontext()
@@ -122,8 +145,8 @@ class EngineExecutionResult(BaseModel):
         usage: Aggregated token usage for the engine execution.
     """
 
-    results: list[AtomResultDTO]
-    hydrated_references: dict[str, HydratedAtomDTO]
+    results: Annotated[list[AtomResultDTO], Field(description="Projected atom results.")]
+    hydrated_references: Annotated[dict[str, HydratedAtomDTO], Field(description="Hydrated atom references.")]
     synthesis_output: Annotated[
         dict[str, Any] | BaseModel | None,
         Field(
@@ -131,7 +154,11 @@ class EngineExecutionResult(BaseModel):
             description="Typed structured synthesis DTO or dictionary (specifically RenderedSynthesisCache).",
         ),
     ] = None
-    trace_events: list[TraceEvent] = Field(default_factory=list)
-    usage: TokenUsage | None = None
+    trace_events: Annotated[
+        list[TraceEvent], Field(default_factory=list, description="Trace events recorded during engine execution.")
+    ] = Field(default_factory=list)
+    usage: Annotated[
+        TokenUsage | None, Field(default=None, description="Aggregated token usage for the engine execution.")
+    ] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True, strict=True, extra="forbid", frozen=True)
