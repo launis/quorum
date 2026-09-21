@@ -151,6 +151,7 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
 def test_engine_execution_request_hydrated_messages_typed() -> None:
     """Test that EngineExecutionRequest enforces list[LLMMessageDTO] | None."""
     from unittest.mock import MagicMock
+
     from backend_v2.llm.client import LLMClient
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.enums import CognitiveTier
@@ -183,4 +184,3 @@ def test_engine_execution_request_hydrated_messages_typed() -> None:
     assert len(req.hydrated_messages) == 1
     assert req.hydrated_messages[0].role == "system"
     assert req.hydrated_messages[0].content == "Hello"
-

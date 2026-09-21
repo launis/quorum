@@ -180,13 +180,10 @@ def test_parse_matrices_empty_results() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
-    eval_m = res.evaluative_matrices
-    info_m = res.informational_matrices
-    all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
-    assert not eval_m
-    assert not info_m
-    assert not all_parsed
+    assert not res.evaluative_matrices
+    assert not res.informational_matrices
+    assert not res.all_parsed_matrices
+    assert not res.step_scorecard_atoms
 
 
 def test_parse_matrices_skip_non_matrix() -> None:
@@ -204,11 +201,10 @@ def test_parse_matrices_skip_non_matrix() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
-    eval_m = res.evaluative_matrices
-    info_m = res.informational_matrices
-    all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
-    assert not eval_m
+    assert not res.evaluative_matrices
+    assert not res.informational_matrices
+    assert not res.all_parsed_matrices
+    assert not res.step_scorecard_atoms
 
 
 def test_parse_matrices_invalid_payload_fail_fast() -> None:
@@ -252,10 +248,7 @@ def test_parse_matrices_success() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
-    eval_m = res.evaluative_matrices
-    info_m = res.informational_matrices
     all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
     assert "step1_blk_1234567890abcdef1234567890abcdef" in all_parsed
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.row_explanation == "Good!"
@@ -285,10 +278,7 @@ def test_parse_matrices_na_bypass() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
-    eval_m = res.evaluative_matrices
-    info_m = res.informational_matrices
     all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.score is None
     assert matrix.normalized_score is None
@@ -322,10 +312,7 @@ def test_parse_matrices_failed_does_not_increment() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
-    eval_m = res.evaluative_matrices
-    info_m = res.informational_matrices
     all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.true_atoms == 1
     assert matrix.total_atoms == 3
@@ -374,7 +361,6 @@ def test_parse_matrices_indicator_partitions(
     eval_m = res.evaluative_matrices
     info_m = res.informational_matrices
     all_parsed = res.all_parsed_matrices
-    step_atoms = res.step_scorecard_atoms
 
     assert len(eval_m) == expected_eval_count
     assert len(info_m) == expected_info_count
@@ -479,7 +465,9 @@ def test_parse_matrix_original_display_scale() -> None:
 
 
 def test_parse_matrix_custom_display_scale_missing_bounds_fail_fast() -> None:
-    """Negative test: display_scale=CUSTOM with missing bounds on OutputProfile raises AppException(CONFIGURATION_ERROR)."""
+    """Negative test: display_scale=CUSTOM with missing bounds on OutputProfile raises
+    AppException(CONFIGURATION_ERROR).
+    """
     from backend_v2.exceptions import AppException, ErrorCodes
 
     profile = OutputProfile.model_construct(

@@ -377,6 +377,7 @@ def mock_repo_transformer() -> Any:
         created_at=datetime.now(timezone.utc),
     )
     from backend_v2.models.domain.system_config import SystemConfigMCPGateways
+
     repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
         id="sys_0000000000000001",
         type="mcp_gateways",
@@ -1929,8 +1930,6 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         mcp_audit_map=mcp_audit_map,
     )
     evaluative = res.evaluative_matrices
-    info = res.informational_matrices
-    parsed = res.all_parsed_matrices
     atoms = res.step_scorecard_atoms
 
     assert len(evaluative) == 2
@@ -3719,7 +3718,7 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
             TraceEvent(
                 step_name="meta_step",
                 event_type="output",
-                    content={"_step_metadata": {"token_usage": "not_valid"}},
+                content={"_step_metadata": {"token_usage": "not_valid"}},
             )
         ],
         metadata=ExecutionMetadata(),
@@ -3769,4 +3768,3 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     assert report is not None
     assert report.custom_preface_md == "# Custom Preface"
     assert "ref_1" in report.hydrated_references
-

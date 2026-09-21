@@ -206,4 +206,3 @@ def test_localization_service_get_translations() -> None:
 
     none_dto = LocalizationService.get_translations("non_existent_lang")
     assert none_dto is None
-
