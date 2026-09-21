@@ -1,5 +1,7 @@
 """Unit tests for the McpAuditAdapter SDUI adapter."""
 
+from __future__ import annotations
+
 import pytest
 
 from backend_v2.models.core_base import I18nText
@@ -7,9 +9,10 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.sdui_rules import McpAuditAestheticsDTO
 from backend_v2.models.view.sdui import SduiAuditTrailBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.mcp_audit_adapter import McpAuditAdapter
+from backend_v2.services.sdui.adapters.mcp_audit_adapter import MCP_AUDIT_RULES, McpAuditAdapter
 
 
 @pytest.fixture
@@ -111,3 +114,9 @@ def test_build_returns_empty_when_data_starved(sample_profile: OutputProfile, sa
     assert context.is_data_starved is True
     blocks = McpAuditAdapter.build(context)
     assert blocks == []
+
+
+def test_mcp_audit_rules() -> None:
+    """Verify MCP_AUDIT_RULES export is a valid McpAuditAestheticsDTO."""
+    assert isinstance(MCP_AUDIT_RULES, McpAuditAestheticsDTO)
+

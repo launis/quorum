@@ -2,8 +2,10 @@
 
 Transforms execution MCP audit trail into a SduiAuditTrailBlock component
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-MCP_AUDIT_RULES dictionary to enforce separation of presentation from logic.
+MCP_AUDIT_RULES DTO to enforce separation of presentation from logic.
 """
+
+from __future__ import annotations
 
 import logging
 
