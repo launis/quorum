@@ -13,6 +13,7 @@ import '../../../shared/models/sdui_block_dto.dart';
 part 'report_data_v2_dto.freezed.dart';
 part 'report_data_v2_dto.g.dart';
 
+/// SDUI presentation data transfer object for rendered execution reports.
 @Freezed(equal: false)
 abstract class ReportDataDto with _$ReportDataDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
