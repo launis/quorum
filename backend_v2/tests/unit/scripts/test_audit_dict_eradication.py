@@ -222,3 +222,41 @@ def test_audit_dict_eradication_main_many_violations(tmp_path: Path) -> None:
 
     exit_code = main([str(target_file)])
     assert exit_code == 1
+
+
+def test_audit_dict_eradication_edge_cases_and_exemptions(tmp_path: Path) -> None:
+    """Verifies helper edge cases, outer collection obsession, and get keyword exemptions."""
+    service_dir = tmp_path / "services"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    target_file = service_dir / "edge_cases.py"
+    target_file.write_text(
+        "from typing import Sequence, Set\n"
+        "s1: Sequence[dict] = []\n"
+        "s2: Set[dict] = set()\n"
+        "def run_net(downloader: object) -> None:\n"
+        "    downloader.get(timeout=10)\n",
+        encoding="utf-8",
+    )
+
+    report = audit_dict_eradication(target_file)
+    assert report.primitive_obsession_nested_dicts == 2
+    assert report.banned_get_calls == 0
+
+
+def test_audit_dict_eradication_comment_token_error(tmp_path: Path) -> None:
+    """Verifies that unclosed multi-line comments/strings trigger syntax parse errors gracefully."""
+    bad_comment_file = tmp_path / "bad_token.py"
+    bad_comment_file.write_bytes(b'"""unclosed docstring')
+
+    report = audit_dict_eradication(bad_comment_file)
+    assert report.syntax_parse_errors >= 1
+
+
+def test_audit_dict_eradication_main_clean_execution(tmp_path: Path, monkeypatch: object) -> None:
+    """Verifies main() execution with default and clean targets."""
+    clean_file = tmp_path / "clean.py"
+    clean_file.write_text("x: int = 1\n", encoding="utf-8")
+
+    exit_code = main([str(clean_file)])
+    assert exit_code == 0
+

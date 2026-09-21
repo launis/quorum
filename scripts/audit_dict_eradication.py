@@ -22,6 +22,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+__all__ = [
+    "AuditViolation",
+    "DictEradicationReport",
+    "DictEradicationVisitor",
+    "audit_dict_eradication",
+    "audit_file_comments",
+    "main",
+]
+
 # Locked physical SDK and storage driver boundaries
 LOCKED_PHYSICAL_DRIVERS: set[str] = {
     "tinydb_driver.py",
@@ -48,7 +57,14 @@ BANNED_REASON_PLACEHOLDERS: set[str] = {
 
 @dataclass
 class AuditViolation:
-    """Represents a discovered audit violation."""
+    """Represents a discovered audit violation.
+
+    Attributes:
+        filepath: Target file path where the violation was discovered.
+        line: Line number where the violation occurred.
+        metric: Metric category name.
+        message: Descriptive violation message.
+    """
 
     filepath: str
     line: int
@@ -58,7 +74,19 @@ class AuditViolation:
 
 @dataclass
 class DictEradicationReport:
-    """Aggregated audit report across all mathematical metrics."""
+    """Aggregated audit report across all mathematical metrics.
+
+    Attributes:
+        naked_dict_annotations: Count of naked dict annotations found.
+        service_duck_typing: Count of service duck typing occurrences.
+        unauthorized_suppressions: Count of unauthorized suppressions.
+        dict_utils_references: Count of legacy dict_utils references.
+        syntax_parse_errors: Count of syntax parse errors.
+        banned_get_calls: Count of banned internal get calls.
+        reflection_calls: Count of reflection calls.
+        primitive_obsession_nested_dicts: Count of primitive obsession nested dicts.
+        violations: List of discovered audit violations.
+    """
 
     naked_dict_annotations: int = 0
     service_duck_typing: int = 0
@@ -107,7 +135,14 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.violations: list[AuditViolation] = []
 
     def _is_naked_dict_subscript(self, node: ast.AST) -> bool:
-        """Checks whether an AST node contains a subscript of dict[..., Any/object]."""
+        """Checks whether an AST node contains a subscript of dict[..., Any/object].
+
+        Args:
+            node: AST node to inspect.
+
+        Returns:
+            True if a naked dict subscript is present, False otherwise.
+        """
         for target in ast.walk(node):
             if isinstance(target, ast.Subscript):
                 is_dict_type = False
@@ -133,7 +168,14 @@ class DictEradicationVisitor(ast.NodeVisitor):
         return False
 
     def _find_nested_dict_subscript(self, node: ast.AST | None) -> ast.Subscript | None:
-        """Finds any nested dictionary or primitive collection obsession annotation in the AST node."""
+        """Finds any nested dictionary or primitive collection obsession annotation in the AST node.
+
+        Args:
+            node: AST node or None to inspect.
+
+        Returns:
+            The offending Subscript node if a nested dict or collection is found, None otherwise.
+        """
         if node is None:
             return None
         for sub in ast.walk(node):
@@ -188,7 +230,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         return None
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
-        """Inspects variable type annotations for naked dicts and primitive obsession nested dicts."""
+        """Inspects variable type annotations for naked dicts and primitive obsession nested dicts.
+
+        Args:
+            node: AnnAssign node to inspect.
+        """
         if not self.is_exempt and not self.is_test:
             if self._is_naked_dict_subscript(node.annotation):
                 self.violations.append(
@@ -214,7 +260,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Inspects function parameter and return type annotations."""
+        """Inspects function parameter and return type annotations.
+
+        Args:
+            node: FunctionDef node to inspect.
+        """
         if not self.is_exempt and not self.is_test:
             if node.returns is not None:
                 if self._is_naked_dict_subscript(node.returns):
@@ -273,7 +323,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
-        """Inspects async function parameter and return type annotations."""
+        """Inspects async function parameter and return type annotations.
+
+        Args:
+            node: AsyncFunctionDef node to inspect.
+        """
         if not self.is_exempt and not self.is_test:
             if node.returns is not None:
                 if self._is_naked_dict_subscript(node.returns):
@@ -333,7 +387,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Call(self, node: ast.Call) -> None:
-        """Inspects isinstance calls, reflection, and banned .get() lookups."""
+        """Inspects isinstance calls, reflection, and banned .get() lookups.
+
+        Args:
+            node: Call node to inspect.
+        """
         if not self.is_exempt and not self.is_test and self.is_domain_or_service:
             # 1. Banned isinstance duck-typing
             if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
@@ -438,7 +496,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
-        """Inspects imports for dict_utils references."""
+        """Inspects imports for dict_utils references.
+
+        Args:
+            node: Import node to inspect.
+        """
         for alias in node.names:
             if "dict_utils" in alias.name:
                 self.violations.append(
@@ -452,7 +514,11 @@ class DictEradicationVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
-        """Inspects from imports for dict_utils references."""
+        """Inspects from imports for dict_utils references.
+
+        Args:
+            node: ImportFrom node to inspect.
+        """
         has_dict_utils = False
         if node.module and "dict_utils" in node.module:
             has_dict_utils = True
@@ -472,7 +538,15 @@ class DictEradicationVisitor(ast.NodeVisitor):
 
 
 def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolation]:
-    """Audits comments in a file to verify all # noqa: QGR suppressions have substantive reasons."""
+    """Audits comments in a file to verify all # noqa: QGR suppressions have substantive reasons.
+
+    Args:
+        filepath: Target file path of the source code.
+        source_bytes: Raw source content bytes.
+
+    Returns:
+        List of discovered comment audit violations.
+    """
     violations: list[AuditViolation] = []
     filename = Path(filepath).name
     if filename in LOCKED_PHYSICAL_DRIVERS:
@@ -606,7 +680,14 @@ def audit_dict_eradication(
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point for deterministic AST dict eradication audit."""
+    """CLI entry point for deterministic AST dict eradication audit.
+
+    Args:
+        argv: Optional command line arguments list.
+
+    Returns:
+        0 if all metrics pass with zero violations, 1 otherwise.
+    """
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")

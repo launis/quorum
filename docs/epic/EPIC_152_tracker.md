@@ -139,7 +139,7 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit:** Ensure no `@pytest.mark.skip` or commented-out tests were left behind in the modified domains.
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide search/replace of old import paths and delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend):**
-  - [ ] [NEW] @[scripts/audit_dict_eradication.py]
+  - [x] [NEW] @[scripts/audit_dict_eradication.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
   - [ ] @[backend_v2/hooks/validation.py]
@@ -347,8 +347,4 @@
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
-/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]
-
-
-
-
+/tier2-hardening-backend @[docs/epic/EPIC_152_tracker.md]
