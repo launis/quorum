@@ -141,7 +141,7 @@
 - [ ] **[NOK] Tier 2 Hardening (Backend):**
   - [x] [NEW] @[scripts/audit_dict_eradication.py]
   - [x] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [x] @[scripts/run_e2e_variance_test.py]
   - [ ] @[backend_v2/hooks/validation.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/utils/math_utils.py]

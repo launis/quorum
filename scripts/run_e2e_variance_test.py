@@ -154,8 +154,7 @@ def _match_input_key(
         return None
 
     typed_expected_inputs = [
-        item if isinstance(item, ExpectedInput) else ExpectedInput.model_validate(item)
-        for item in expected_inputs
+        item if isinstance(item, ExpectedInput) else ExpectedInput.model_validate(item) for item in expected_inputs
     ]
 
     tier1_matches: set[str] = set()
