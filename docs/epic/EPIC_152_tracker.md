@@ -175,11 +175,11 @@
   - [x] [NEW] @[backend_v2/models/dtos/global_context.py]
   - [x] [NEW] @[backend_v2/models/dtos/hook_delta.py]
   - [x] @[backend_v2/services/llm_task_executor.py]
-  - [ ] @[backend_v2/workers/execution_worker.py]
-  - [ ] @[backend_v2/workers/report_worker.py]
-  - [ ] @[backend_v2/services/report_service.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/prompt.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/context_variables.py]
+  - [x] @[backend_v2/workers/execution_worker.py]
+  - [x] @[backend_v2/workers/report_worker.py]
+  - [x] @[backend_v2/services/report_service.py]
+  - [x] [NEW] @[backend_v2/models/dtos/prompt.py]
+  - [x] [NEW] @[backend_v2/models/dtos/context_variables.py]
   - [ ] [NEW] @[backend_v2/models/dtos/node_execution.py]
   - [ ] [NEW] @[backend_v2/models/dtos/sensor.py]
   - [ ] [NEW] @[backend_v2/models/dtos/finops.py]
@@ -360,7 +360,13 @@
     29. `backend_v2/models/dtos/global_context.py` (Commit `ba1fa8ce`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 Google-style docstrings with full `Attributes:` section, all fields wrapped in PEP 593 `Annotated[..., Field(...)]`. Created unit test suite in `test_global_context.py` (6 tests, 100% coverage), 0 AST violations, audit matrix verified.
     30. `backend_v2/models/dtos/hook_delta.py` (Commit `c42bdba1`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 `Attributes:` docstrings for all 5 DTOs (`ProjectedResultsDTO`, `MissingContextDTO`, `MatrixProjectionResultDTO`, `MatrixHookResultDTO`, `HookDeltaDTO`), annotated fields. Created unit test suite in `test_hook_delta.py` (5 tests, 100% coverage), 0 AST violations, audit matrix verified.
     31. `backend_v2/services/llm_task_executor.py`: Added `from __future__ import annotations`, explicit `__all__ = ["LLMTaskExecutor"]`, eradicated 15 AST violations (QGR002 `.get()` calls, QGR003 unhandled logging exceptions via `_dispatch_dlq_telemetry_error`, QGR016 ternary and lazy `or` fallbacks), enforced RFC 7807 structured `logger.error` on all `raise AppException` and `raise AgentExecutionError` paths, expanded unit test suite in `test_llm_task_executor.py` (23 tests, 99% coverage), 0 AST violations, audit matrix verified.
-- All 31 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 7 (Completed & Committed):
+    32. `backend_v2/workers/execution_worker.py` (Commit `e5824a88`): Eradicated all 5 QGR016 lazy fallback and ternary violations, added PEP 257 Google-style docstrings with explicit `AppException` error codes, enforced RFC 7807 structured logging, 100% Quality Gate pass (12/12 tests, 94% coverage, 0 AST violations), audit matrix verified.
+    33. `backend_v2/workers/report_worker.py` (Commit `145d4bea`): Eradicated QGR016 ternary fallback, replaced broad exceptions with typed tuple, moved module imports to top-level to eliminate circular imports, 100% Quality Gate pass (12/12 tests, 97% coverage, 0 AST violations), audit matrix verified.
+    34. `backend_v2/services/report_service.py` (Commit `237b30e0`): Broke circular import with `report_worker`, hardened methods with PEP 257 Google-style docstrings, enforced RFC 7807 structured `logger.error` on all error raise points, eradicated 7 QGR016 ternary fallbacks and QGR009 untyped `AppException`, 13/13 tests passing (91% coverage, 0 AST violations), audit matrix verified.
+    35. `backend_v2/models/dtos/prompt.py`: Enforces Pydantic V2 ConfigDict(strict=True, extra="forbid", frozen=True), PEP 593 Annotated fields, explicit `__all__`, PEP 257 Google-style docstrings, 100% test coverage (4/4 tests, 0 AST violations), audit matrix verified.
+    36. `backend_v2/models/dtos/context_variables.py`: Enforces Pydantic V2 ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True), PEP 593 Annotated fields, explicit `__all__`, PEP 257 Google-style docstrings, 100% test coverage (4/4 tests, 0 AST violations), audit matrix verified.
+- All 36 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
@@ -374,14 +380,16 @@
 - Audit matrix verification strictly limits NA repeated justifications to <= 40 per pattern; use unique parameterized rule strings `f"NA for {rule_id}: Architectural mandate is not applicable to [target_stem]."`.
 - `audit_matrix_manager.py verify` strictly forbids mentioning other `.py` files in justification strings (e.g. `test_<target>.py`), requiring generalized phrasing like "the accompanying test suite for <target>".
 - In `llm_task_executor.py`, non-critical telemetry and prompt logging exceptions in domain code must dispatch via a DLQ helper (`_dispatch_dlq_telemetry_error`) to satisfy `QGR003` without swallowing exceptions.
+- Circular imports between worker modules and service modules can be broken cleanly without inline imports by importing the service module globally at the top level (e.g. `import backend_v2.services.report_service as report_service_mod`) and resolving the class dynamically at runtime (`report_service_mod.ReportService(repo)`).
+- Direct dot-notation access on default-factored Pydantic sub-DTOs (like `report.storage_paths.pdf_path`) eliminates redundant QGR016 ternary guards when the sub-DTO is guaranteed non-null.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 7):
-  - `backend_v2/workers/execution_worker.py`
-  - `backend_v2/workers/report_worker.py`
-  - `backend_v2/services/report_service.py`
-  - `backend_v2/models/dtos/prompt.py`
-  - `backend_v2/models/dtos/context_variables.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 8):
+  - `backend_v2/models/dtos/node_execution.py`
+  - `backend_v2/models/dtos/sensor.py`
+  - `backend_v2/models/dtos/finops.py`
+  - `backend_v2/models/dtos/mcp.py`
+  - `backend_v2/services/orchestrator/prompt_compiler.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
