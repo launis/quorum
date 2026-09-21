@@ -6,15 +6,31 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 
 from backend_v2.models.dtos.finops import FinOpsFinalizeSummaryDTO, FinOpsMonitorSummaryDTO
 
+__all__ = [
+    "MonitorState",
+    "TelemetryRecord",
+    "TraceMcp",
+    "TraceStepRecord",
+    "analyze_monitor_state",
+    "finalize_execution",
+    "main",
+]
+
 
 class MonitorState(BaseModel):
-    """Schema for monitor state tracking."""
+    """Schema for monitor state tracking.
+
+    Attributes:
+        telemetry_cursor: Current cursor offset in telemetry lines.
+        cursors: Specific cursor mapping per telemetry file name.
+        execution_id: Canonical execution identifier.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -24,7 +40,17 @@ class MonitorState(BaseModel):
 
 
 class TelemetryRecord(BaseModel):
-    """Schema for an individual LLM telemetry line."""
+    """Schema for an individual LLM telemetry line.
+
+    Attributes:
+        duration_ms: Processing duration in milliseconds.
+        cache_hit: Boolean flag indicating prefix cache hit.
+        total_tokens: Total token count consumed.
+        model_strategy: Name of the strategy used for invocation.
+        execution_id: Canonical execution identifier.
+        step_id: Canonical step identifier.
+        trigger_reason: Diagnostic reason for invocation.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -38,7 +64,11 @@ class TelemetryRecord(BaseModel):
 
 
 class TraceMcp(BaseModel):
-    """Schema for MCP trace entries."""
+    """Schema for MCP trace entries.
+
+    Attributes:
+        query: Search query or prompt used in tool invocation.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -46,7 +76,16 @@ class TraceMcp(BaseModel):
 
 
 class TraceStepRecord(BaseModel):
-    """Schema for trace step execution records."""
+    """Schema for trace step execution records.
+
+    Attributes:
+        step_id: Canonical step identifier.
+        error_code: Error string if execution step failed.
+        strategy: Logical strategy name.
+        schema_target: SDUI target schema name.
+        output: Heterogeneous step output payload.
+        mcp_traces: List of MCP trace interactions.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -54,7 +93,7 @@ class TraceStepRecord(BaseModel):
     error_code: Annotated[str | None, Field(default=None)] = None
     strategy: Annotated[str | None, Field(default=None)] = None
     schema_target: Annotated[str | None, Field(default=None)] = None
-    output: Annotated[Any, Field(default=None)] = None
+    output: Annotated[object | None, Field(default=None)] = None
     mcp_traces: Annotated[list[TraceMcp], Field(default_factory=list)] = Field(default_factory=list)
 
 
@@ -72,10 +111,9 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> Fin
     telemetry_file = Path(telemetry_file_path)
 
     if not state_file.exists():
-        state_file.write_text(json.dumps({"telemetry_cursor": 0}))
+        state_file.write_text(MonitorState().model_dump_json(), encoding="utf-8")
 
-    state_dict = json.loads(state_file.read_text())
-    state = MonitorState.model_validate(state_dict)
+    state = MonitorState.model_validate_json(state_file.read_text(encoding="utf-8"))
 
     if "llm_telemetry.jsonl" in state.cursors:
         cursor = state.cursors["llm_telemetry.jsonl"]
@@ -87,24 +125,22 @@ def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> Fin
     miss_found = False
 
     if telemetry_file.exists():
-        with open(telemetry_file, encoding="utf-8") as f:
-            lines = f.readlines()
+        lines = telemetry_file.read_text(encoding="utf-8").splitlines()
+        new_lines = lines[cursor:]
+        for line in new_lines:
+            if not line.strip():
+                continue
+            record = TelemetryRecord.model_validate_json(line)
+            total_duration += record.duration_ms
+            total_calls += 1
+            if not record.cache_hit:
+                miss_found = True
 
-            new_lines = lines[cursor:]
-            for line in new_lines:
-                if not line.strip():
-                    continue
-                record = TelemetryRecord.model_validate_json(line)
-                total_duration += record.duration_ms
-                total_calls += 1
-                if not record.cache_hit:
-                    miss_found = True
-
-            if state.cursors:
-                state.cursors["llm_telemetry.jsonl"] = len(lines)
-            else:
-                state.telemetry_cursor = len(lines)
-            state_file.write_text(state.model_dump_json(exclude_unset=True))
+        if state.cursors:
+            state.cursors["llm_telemetry.jsonl"] = len(lines)
+        else:
+            state.telemetry_cursor = len(lines)
+        state_file.write_text(state.model_dump_json(exclude_unset=True), encoding="utf-8")
 
     alerts: list[str] = []
     if total_calls > 20:
@@ -144,9 +180,8 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
     seen_mcps: set[str] = set()
 
     if trace_file.exists():
-        trace_raw = json.loads(trace_file.read_text())
-        for raw_step in trace_raw:
-            step = TraceStepRecord.model_validate(raw_step)
+        trace_steps = TypeAdapter(list[TraceStepRecord]).validate_json(trace_file.read_text(encoding="utf-8"))
+        for step in trace_steps:
             # 1. Healing Cost
             if step.error_code == "SchemaValidationError":
                 healing_cost_events += 1
@@ -161,9 +196,9 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
                     seen_strategies.add(combo)
 
             # 3. Payload Hashing
-            if step.output:
+            if step.output is not None:
                 payload_str = json.dumps(step.output, sort_keys=True)
-                payload_hash = hashlib.sha256(payload_str.encode()).hexdigest()
+                payload_hash = hashlib.sha256(payload_str.encode("utf-8")).hexdigest()
                 if payload_hash in seen_hashes:
                     hashing_warnings.append(
                         f"Double Work Alert: {step.step_id} produced identical payload to an earlier step."
@@ -180,17 +215,16 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
                         seen_mcps.add(trace_entry.query)
 
     if telemetry_file.exists():
-        with open(telemetry_file, encoding="utf-8") as f:
-            for line in f:
-                if not line.strip():
-                    continue
-                record = TelemetryRecord.model_validate_json(line)
-                # LiteLLM pricing calculation placeholder (using total_tokens approx)
-                tokens = record.total_tokens
-                if record.model_strategy == "reasoning":
-                    total_usd += tokens * 0.000015
-                else:
-                    total_usd += tokens * 0.000001
+        lines = telemetry_file.read_text(encoding="utf-8").splitlines()
+        for line in lines:
+            if not line.strip():
+                continue
+            record = TelemetryRecord.model_validate_json(line)
+            tokens = record.total_tokens
+            if record.model_strategy == "reasoning":
+                total_usd += tokens * 0.000015
+            else:
+                total_usd += tokens * 0.000001
 
     return FinOpsFinalizeSummaryDTO(
         healing_cost_events=healing_cost_events,
@@ -215,18 +249,27 @@ def main() -> None:
         state_file = Path(args.monitor)
         execution_id = "unknown"
         if state_file.exists():
-            state_dict = json.loads(state_file.read_text())
-            state = MonitorState.model_validate(state_dict)
+            state = MonitorState.model_validate_json(state_file.read_text(encoding="utf-8"))
             if state.execution_id:
                 execution_id = state.execution_id
 
-        telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
+        if args.telemetry_file is not None:
+            telemetry_file = args.telemetry_file
+        else:
+            telemetry_file = f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         monitor_res = analyze_monitor_state(args.monitor, telemetry_file)
         print(json.dumps(monitor_res.model_dump(mode="json"), indent=2))
     elif args.finalize:
         execution_id = args.finalize
-        trace_file = args.trace_file or f"data/files/executions/{execution_id}/execution_trace.json"
-        telemetry_file = args.telemetry_file or f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
+        if args.trace_file is not None:
+            trace_file = args.trace_file
+        else:
+            trace_file = f"data/files/executions/{execution_id}/execution_trace.json"
+
+        if args.telemetry_file is not None:
+            telemetry_file = args.telemetry_file
+        else:
+            telemetry_file = f"data/files/executions/{execution_id}/llm_telemetry.jsonl"
         finalize_res = finalize_execution(trace_file, telemetry_file)
         print(json.dumps(finalize_res.model_dump(mode="json"), indent=2))
 

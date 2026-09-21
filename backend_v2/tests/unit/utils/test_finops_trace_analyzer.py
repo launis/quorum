@@ -4,7 +4,18 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from backend_v2.utils.finops_trace_analyzer import analyze_monitor_state, finalize_execution, main
+import pytest
+from pydantic import ValidationError
+
+from backend_v2.utils.finops_trace_analyzer import (
+    MonitorState,
+    TelemetryRecord,
+    TraceMcp,
+    TraceStepRecord,
+    analyze_monitor_state,
+    finalize_execution,
+    main,
+)
 
 
 def test_analyze_monitor_state_empty(tmp_path: Path) -> None:
@@ -91,3 +102,47 @@ def test_main_cli_finalize(tmp_path: Path) -> None:
         ],
     ):
         main()
+
+
+def test_analyze_monitor_state_micro_call_spike(tmp_path: Path) -> None:
+    state_file = tmp_path / "monitor_state.json"
+    telemetry_file = tmp_path / "llm_telemetry.jsonl"
+    records = [{"duration_ms": 10, "cache_hit": True, "total_tokens": 5, "model_strategy": "fast"} for _ in range(25)]
+    telemetry_file.write_text("\n".join(json.dumps(r) for r in records) + "\n\n")
+
+    res = analyze_monitor_state(str(state_file), str(telemetry_file))
+    assert res.total_calls == 25
+    assert "Micro-call Spike (>20 calls)" in res.alerts
+
+
+def test_main_cli_defaults(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    exe_dir = tmp_path / "data" / "files" / "executions" / "exe_auto"
+    exe_dir.mkdir(parents=True)
+    (exe_dir / "llm_telemetry.jsonl").write_text("")
+    (exe_dir / "execution_trace.json").write_text("[]")
+
+    state_file = tmp_path / "monitor_state.json"
+    state_file.write_text(json.dumps({"execution_id": "exe_auto"}))
+
+    monkeypatch.chdir(tmp_path)
+
+    with patch("sys.argv", ["finops_trace_analyzer.py", "--monitor", str(state_file)]):
+        main()
+
+    with patch("sys.argv", ["finops_trace_analyzer.py", "--finalize", "exe_auto"]):
+        main()
+
+
+def test_finops_models_strictness() -> None:
+    with pytest.raises(ValidationError):
+        MonitorState.model_validate({"extra_field": 123})
+
+    with pytest.raises(ValidationError):
+        TelemetryRecord.model_validate({"extra_field": 123})
+
+    with pytest.raises(ValidationError):
+        TraceMcp.model_validate({"extra_field": 123})
+
+    with pytest.raises(ValidationError):
+        TraceStepRecord.model_validate({"extra_field": 123})
+
