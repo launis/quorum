@@ -420,3 +420,57 @@ def test_source_document_packer_context_target_filter_dto_validation() -> None:
     targets_wildcard = SourceDocumentPacker.resolve_context_targets(wildcard_mapping)
     assert targets_wildcard.wants_all_steps is True
     assert targets_wildcard.allowed_step_ids is None
+
+
+def test_source_document_packer_extended_coverage() -> None:
+    """Test ExecutionInputsDTO, BaseModel step outputs, serialization errors, and whitespace mappings."""
+    from pydantic import BaseModel, Field
+
+    from backend_v2.core.hook_registry import ExecutionInputsDTO
+    from backend_v2.exceptions import AppException
+    from backend_v2.models.state import StepOutputDTO
+
+    # 1. Whitespace and non-string mappings in resolve_context_targets
+    dirty_mapping = {"empty_val": "   ", "non_str": 999}  # type: ignore[dict-item]
+    empty_resolved = SourceDocumentPacker.resolve_context_targets(dirty_mapping)
+    assert empty_resolved.allowed_input_keys == frozenset()
+    assert empty_resolved.allowed_step_ids == frozenset()
+    assert empty_resolved.wants_all_steps is False
+
+    # 2. ExecutionInputsDTO payload in pack
+    exec_inputs = ExecutionInputsDTO(
+        raw_inputs={"raw_doc": "Raw document text"},
+        dynamic_inputs={"dynamic_brief": "Dynamic brief text"},
+    )
+    packed_exec = SourceDocumentPacker.pack(inputs_payload=exec_inputs)
+    assert "Raw document text" in packed_exec
+    assert "Dynamic brief text" in packed_exec
+
+    # 3. BaseModel payload in StepOutputDTO
+    class DummyPayload(BaseModel):
+        summary: str = Field(description="Summary")
+
+    step_output_model = StepOutputDTO(
+        step_id="step_pydantic",
+        block_id="blk_1",
+        data_type="matrix",
+        payload=DummyPayload(summary="Model summary content"),
+    )
+    packed_step = SourceDocumentPacker.pack(step_outputs=[step_output_model])
+    assert '<step_output step_id="step_pydantic">' in packed_step
+    assert "Model summary content" in packed_step
+
+    # 4. JSON serialization error in StepOutputDTO payload (circular reference)
+    bad_dict: dict[str, object] = {}
+    bad_dict["self"] = bad_dict
+
+    invalid_step = StepOutputDTO(
+        step_id="step_unserializable",
+        block_id="blk_bad",
+        data_type="matrix",
+        payload=bad_dict,
+    )
+    with pytest.raises(AppException) as exc_info:
+        SourceDocumentPacker.pack(step_outputs=[invalid_step])
+    assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
+

@@ -1,5 +1,7 @@
 """Source document packer for TDA and LLM evaluation strategies."""
 
+from __future__ import annotations
+
 import json
 import logging
 from collections.abc import Mapping, Sequence
@@ -12,6 +14,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.state import StepOutputDTO
+
+__all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]
 
 logger = logging.getLogger(__name__)
 
