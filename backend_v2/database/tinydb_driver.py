@@ -1,7 +1,9 @@
 """TinyDB Implementation of StorageDriver Protocol."""
 
+import collections.abc
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel
@@ -9,6 +11,8 @@ from tinydb import Query
 
 from backend_v2.database.driver import Filter, StorageDriver
 from backend_v2.database.wrapper import AbstractDatabase, AbstractTable
+
+__all__ = ["TinyDBDriver"]
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +32,18 @@ class TinyDBDriver(StorageDriver):
         self.db = db_client
 
     def _get_table(self, name: str) -> AbstractTable:
-        """Helper to get table instance."""
+        """Helper to get table instance.
+
+        Args:
+            name: Collection table name.
+
+        Returns:
+            AbstractTable instance.
+        """
         return self.db.table(name)
 
-    def _serialize(self, data: dict[str, Any] | list | Any) -> Any:  # type: ignore
-        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types.
+    def _serialize(self, data: Any) -> Any:
+        """Recursively convert datetime, UUID, and Pydantic objects to JSON-safe types.
 
         Args:
             data: The data structure or value to serialize.
@@ -40,8 +51,6 @@ class TinyDBDriver(StorageDriver):
         Returns:
             The serialized, JSON-safe data.
         """
-        from datetime import datetime
-
         if isinstance(data, BaseModel):
             return self._serialize(data.model_dump())
 
@@ -51,10 +60,10 @@ class TinyDBDriver(StorageDriver):
         if isinstance(data, uuid.UUID):
             return str(data)
 
-        if isinstance(data, dict):
+        if isinstance(data, collections.abc.Mapping):
             return {k: self._serialize(v) for k, v in data.items()}
 
-        if isinstance(data, list):
+        if isinstance(data, (list, collections.abc.Sequence)) and not isinstance(data, (str, bytes)):
             return [self._serialize(v) for v in data]
 
         return data
@@ -69,29 +78,32 @@ class TinyDBDriver(StorageDriver):
         Returns:
             True if the document matches the filter, False otherwise.
         """
-        val = data[f.field] if f.field in data else None
+        if f.field not in data:
+            return False
+
+        val = data[f.field]
 
         # Determine strict or loose equality? TinyDB is pythonic.
         if f.operator == "==":
-            return val == f.value  # type: ignore
-        elif f.operator == "!=":
-            return val != f.value  # type: ignore
+            return bool(val == f.value)
+        if f.operator == "!=":
+            return bool(val != f.value)
 
         if val is None:
             return False
 
         if f.operator == "<":
-            return val < f.value  # type: ignore
-        elif f.operator == "<=":
-            return val <= f.value  # type: ignore
-        elif f.operator == ">":
-            return val > f.value  # type: ignore
-        elif f.operator == ">=":
-            return val >= f.value  # type: ignore
-        elif f.operator == "in":
+            return bool(val < f.value)
+        if f.operator == "<=":
+            return bool(val <= f.value)
+        if f.operator == ">":
+            return bool(val > f.value)
+        if f.operator == ">=":
+            return bool(val >= f.value)
+        if f.operator == "in":
             return val in f.value
-        elif f.operator == "array-contains":
-            if isinstance(val, list):
+        if f.operator == "array-contains":
+            if isinstance(val, (list, collections.abc.Sequence)) and not isinstance(val, (str, bytes)):
                 return f.value in val
             return False
         return False
@@ -105,13 +117,9 @@ class TinyDBDriver(StorageDriver):
 
         Returns:
             The document data, or None if not found.
-
-        Raises:
-            AppException: If retrieval fails.
         """
-        table = self._get_table(collection)
-        # Using TinyDB Query
-        return table.get(Query().id == doc_id)
+        client = self._get_table(collection)
+        return client.get(Query().id == doc_id)
 
     async def upsert(self, collection: str, data: dict[str, Any], doc_id: str) -> str:
         """Create or Update a document.
@@ -217,8 +225,16 @@ class TinyDBDriver(StorageDriver):
 
         # 2. Sort
         if order_by:
+
+            def _extract_sort_key(doc: dict[str, Any]) -> Any:
+                if order_by in doc:
+                    val = doc[order_by]
+                    if val is not None:
+                        return val
+                return ""
+
             filtered_docs.sort(
-                key=lambda x: x[order_by] if order_by in x and x[order_by] is not None else "",  # Removed get
+                key=_extract_sort_key,
                 reverse=descending,
             )
 
