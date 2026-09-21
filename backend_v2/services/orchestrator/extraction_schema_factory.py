@@ -1,10 +1,10 @@
-"""Dynamic Pydantic model factory for EPIC 56 Decoupled TDA Architecture.
+from __future__ import annotations
+
+"""Dynamic Pydantic model factory for Decoupled TDA Architecture.
 
 Constructs exact JSON schemas for LLM structured outputs dynamically at runtime,
 enforcing strict validation, deterministic sorting, and Zero-Compromise pledges.
 """
-
-from __future__ import annotations
 
 import logging
 import secrets
@@ -16,16 +16,33 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model,
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.prompts.common import DESC_CONTEXTUAL_OVERRIDE
 
+__all__ = [
+    "DynamicExtractionResponseBase",
+    "ExtractedFactsDTOBase",
+    "create_extraction_model",
+]
+
 logger = logging.getLogger(__name__)
 
 
 class ExtractedFactsDTOBase(BaseModel):
-    """Base class for dynamically compiled ExtractedFactsDTO, enforcing validation rules."""
+    """Base class for dynamically compiled ExtractedFactsDTO, enforcing validation rules.
 
-    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+    Attributes:
+        model_config: Strict Pydantic configuration forbidding extra attributes.
+    """
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True)
 
     def __getitem__(self, key: str) -> Any:
-        """Allow subscript access to extracted facts by fact key."""
+        """Allow subscript access to extracted facts by fact key.
+
+        Args:
+            key: Fact attribute name to access.
+
+        Returns:
+            Extracted fact value.
+        """
         return self.model_dump()[key]
 
     @model_validator(mode="before")
@@ -38,8 +55,11 @@ class ExtractedFactsDTOBase(BaseModel):
 
         Returns:
             Sanitized data structure with cosmetic placeholders replaced with None.
+
+        Raises:
+            AppException: If input data is an unexpected non-dictionary container.
         """
-        # Phase 1, Milestone 2: Map cosmetic placeholders to None
+        # Map cosmetic placeholders to None
         if isinstance(data, MutableMapping):
             placeholder_set = {"none", "n/a", "", None}
             for key, val in list(data.items()):
@@ -50,6 +70,7 @@ class ExtractedFactsDTOBase(BaseModel):
                 "[ExtractedFactsDTOBase] %s: Expected dictionary for canonicalise_nulls, got %s",
                 ErrorCodes.VALIDATION_FAILED.name,
                 type(data).__name__,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message=f"Expected dictionary payload for dynamic extraction, got {type(data).__name__}",
@@ -60,7 +81,11 @@ class ExtractedFactsDTOBase(BaseModel):
 
 
 class DynamicExtractionResponseBase(BaseModel):
-    """Base class for dynamically compiled DynamicExtractionResponse, enforcing global validation rules."""
+    """Base class for dynamically compiled DynamicExtractionResponse, enforcing global validation rules.
+
+    Attributes:
+        model_config: Strict Pydantic configuration forbidding extra attributes.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
@@ -74,8 +99,11 @@ class DynamicExtractionResponseBase(BaseModel):
 
         Returns:
             Sanitized data structure with cosmetic placeholders replaced with None for search_context_anchor.
+
+        Raises:
+            AppException: If input data is an unexpected non-dictionary container.
         """
-        # Phase 1, Milestone 2: Map cosmetic placeholders to None silently ONLY for search_context_anchor
+        # Map cosmetic placeholders to None silently ONLY for search_context_anchor
         if isinstance(data, MutableMapping):
             placeholder_set = {"none", "n/a", "", None}
             if "search_context_anchor" in data:
@@ -87,6 +115,7 @@ class DynamicExtractionResponseBase(BaseModel):
                 "[DynamicExtractionResponseBase] %s: Expected dictionary for canonicalise_nulls, got %s",
                 ErrorCodes.VALIDATION_FAILED.name,
                 type(data).__name__,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message=f"Expected dictionary payload for extraction response, got {type(data).__name__}",
@@ -171,7 +200,7 @@ def create_extraction_model(
     ExtractedFactsDTO = create_model(
         extracted_facts_dto_name,
         __base__=ExtractedFactsDTOBase,
-        __config__=ConfigDict(populate_by_name=True),
+        __config__=ConfigDict(populate_by_name=True, extra="forbid", strict=True, frozen=True),
         **facts_fields,
     )
 
@@ -199,6 +228,7 @@ def create_extraction_model(
     DynamicExtractionResponse = create_model(
         response_model_name,
         __base__=DynamicExtractionResponseBase,
+        __config__=ConfigDict(extra="forbid", strict=True, frozen=True),
         **root_fields,
     )
 

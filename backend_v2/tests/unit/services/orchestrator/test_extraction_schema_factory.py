@@ -1,11 +1,16 @@
-"""Unit tests for the EPIC 56 Dynamic Pydantic DTO Factory."""
+"""Unit tests for the Dynamic Pydantic DTO Factory."""
 
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.services.orchestrator.extraction_schema_factory import create_extraction_model
+from backend_v2.exceptions import AppException
+from backend_v2.services.orchestrator.extraction_schema_factory import (
+    DynamicExtractionResponseBase,
+    ExtractedFactsDTOBase,
+    create_extraction_model,
+)
 
 
 def test_create_extraction_model_deterministic_sorting() -> None:
@@ -32,8 +37,11 @@ def test_create_extraction_model_deterministic_sorting() -> None:
 
     assert inst_1.extracted_facts.apple == "Found apple"
     assert inst_2.extracted_facts.apple == "Found apple"
-    assert list(inst_1.extracted_facts.model_fields.keys()) == ["apple", "banana", "cherry"]
-    assert list(inst_2.extracted_facts.model_fields.keys()) == ["apple", "banana", "cherry"]
+    assert inst_1.extracted_facts["apple"] == "Found apple"
+    assert list(type(inst_1.extracted_facts).model_fields.keys()) == ["apple", "banana", "cherry"]
+    assert list(type(inst_2.extracted_facts).model_fields.keys()) == ["apple", "banana", "cherry"]
+    assert inst_1.contextual_override is False
+    assert inst_1.semantic_reasoning == ""
 
 
 def test_schema_tracks() -> None:
@@ -155,3 +163,15 @@ def test_extra_forbid() -> None:
                 },
             }
         )
+
+
+def test_canonicalise_nulls_invalid_container_type() -> None:
+    """Test that invalid non-dict containers passed to canonicalise_nulls raise AppException."""
+    with pytest.raises(AppException) as exc_facts:
+        ExtractedFactsDTOBase.canonicalise_nulls({1, 2, 3})
+    assert exc_facts.value.status_code == 400
+
+    with pytest.raises(AppException) as exc_resp:
+        DynamicExtractionResponseBase.canonicalise_nulls({1, 2, 3})
+    assert exc_resp.value.status_code == 400
+
