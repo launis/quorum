@@ -866,7 +866,7 @@ Eliminate defensive `.get()` lookups, silent exception swallowing, loose diction
      - `@[backend_v2/tests/unit/hooks/test_source_verification_hook.py]`
      - `@[backend_v2/tests/unit/hooks/test_archival.py]`
      - `@[backend_v2/tests/unit/test_metadata.py]`
-     - `@[backend_v2/tests/unit/test_hooks_validation.py]`
+     - `@[backend_v2/tests/unit/hooks/test_validation.py]`
    - Construct valid immutable instances directly in test fixtures using typed constructors, completely eliminating post-init mutation on frozen hook models.
    - Add unit tests in `@[backend_v2/tests/unit/services/orchestrator/test_result_projector.py]` verifying `ProjectedResultsDTO` and `MatrixProjectionResultDTO` projection with zero emoji strings.
    - Add unit tests in `[NEW] @[backend_v2/tests/unit/hooks/test_matrix_hook.py]` verifying pure domain data generation, zero emojis, and zero in-place dictionary mutations.
@@ -1184,7 +1184,7 @@ Mathematically verify zero dictionary leakage violations and zero dynamic reflec
    - Run `@[scripts/_ast_guardrails.py]` across `backend_v2` and `scripts`.
    - Mathematically verify:
      - Exactly 0 naked `dict[str, Any]` annotations in non-exempt files.
-     - Exactly 0 Primitive Obsession nested dictionary annotations (`dict[..., dict[...]]` regardless of inner key or value type) across all domain models, DTOs, services, hooks, SDUI adapters, workers, and utility signatures codebase-wide; specifically and exhaustively, migrate `level_breakdown: dict[str, dict[str, int]] | None = None` in `LightweightMatrixOutput` and `breakdown: dict[str, dict[str, int]]` in `ScoringResultDTO` to strictly typed `dict[str, LevelStatsDTO]`, migrate all SDUI adapter `AESTHETICS_RULES` to typed `AdapterAestheticsDTO`, and enforce static dot-notation access across all consumers with exactly 0 dictionary subscripting.
+     - Exactly 0 Primitive Obsession nested dictionary annotations (`dict[..., dict[...]]` regardless of inner key or value type) across all domain models, DTOs, services, hooks, SDUI adapters, workers, and utility signatures codebase-wide; specifically and exhaustively, migrate `level_breakdown: dict[str, dict[str, int]] | None = None` in `LightweightMatrixOutput` and `breakdown: dict[str, dict[str, int]]` in `ScoringResultDTO` to strictly typed `dict[str, LevelStatsDTO]`, migrate all SDUI adapter `AESTHETICS_RULES` to typed aesthetics DTOs (specifically and exhaustively: `GlobalScoreAestheticsDTO`, `MatrixGraphsAestheticsDTO`, `MatrixSummaryAestheticsDTO`, `McpAuditAestheticsDTO`, `MetadataAestheticsDTO`, `SynthesisTextAestheticsDTO`, `WarningCardAestheticsDTO`, `XaiAestheticsRulesDTO`), and enforce static dot-notation access across all consumers with exactly 0 dictionary subscripting.
      - Exactly 0 service-layer `isinstance(..., dict)` checks.
      - Exactly 0 unauthorized `# noqa: QGR` suppressions across all 95+ backend and script files.
      - Exactly 0 `getattr()`, `hasattr()`, or `object.__setattr__()` calls across domain models, DTOs, services, workers, drivers, scripts, and test suites (specifically and exhaustively: the 213 reflection instances).

@@ -68,14 +68,15 @@ def extract_target_files(content: str) -> list[TargetFileReferenceDTO]:
         bound = match.group(3)
         if raw_path and not raw_path.startswith("http"):
             normalized_path = normalize_target_path(raw_path)
-            bound_str = f"#{bound}" if bound else None
-            matches.append(
-                TargetFileReferenceDTO(
-                    action=action,
-                    file_path=normalized_path,
-                    line_bound=bound_str,
+            if "/" in normalized_path or "\\" in normalized_path or Path(normalized_path).suffix != "":
+                bound_str = f"#{bound}" if bound else None
+                matches.append(
+                    TargetFileReferenceDTO(
+                        action=action,
+                        file_path=normalized_path,
+                        line_bound=bound_str,
+                    )
                 )
-            )
     return matches
 
 

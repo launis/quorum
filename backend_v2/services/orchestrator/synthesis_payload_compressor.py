@@ -189,9 +189,6 @@ class SynthesisPayloadCompressor:
             )
             return selected
 
-        def _normalize_result_item(item: dict[str, Any]) -> dict[str, Any]:
-            return {k: v for k, v in item.items() if k in {"output_text", "status", "atom_id"}}
-
         def _strip_heavy_keys(obj: Any) -> None:
             if isinstance(obj, list):
                 for item in obj:
@@ -333,7 +330,7 @@ class SynthesisPayloadCompressor:
                                         dumped["status"] = ev["status"]
                                     lite_evals.append(dumped)
                             elif type(ev) is dict:
-                                normalized = _normalize_result_item(ev)
+                                normalized = {k: v for k, v in ev.items() if k in {"output_text", "status", "atom_id"}}
                                 if normalized:
                                     lite_evals.append(normalized)
 
