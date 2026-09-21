@@ -151,7 +151,7 @@
   - [x] @[backend_v2/models/domain/execution.py]
   - [x] @[backend_v2/models/domain/inputs.py]
   - [x] @[backend_v2/models/state.py]
-  - [ ] @[backend_v2/models/dtos/ingress.py]
+  - [x] @[backend_v2/models/dtos/ingress.py]
   - [ ] @[backend_v2/models/dtos/hook_state.py]
   - [ ] @[backend_v2/models/dtos/atom_result.py]
   - [ ] @[backend_v2/llm/adapters/vertex_adapter.py]

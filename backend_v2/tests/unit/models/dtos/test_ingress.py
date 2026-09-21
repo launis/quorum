@@ -73,3 +73,35 @@ def test_chat_turn_anchors_response_dto_empty_turns_allowed() -> None:
     """Test that empty turns array is valid schema for dialogue absence."""
     resp = ChatTurnAnchorsResponseDTO(turns=[])
     assert resp.turns == []
+
+
+def test_resolved_ingress_dto_valid() -> None:
+    """Test valid ResolvedIngressDTO instantiation and frozen immutability."""
+    from backend_v2.models.dtos.ingress import ResolvedIngressDTO
+
+    dto = ResolvedIngressDTO(
+        resolved_inputs={"doc_text": "Sample text", "turn_count": 5},
+        source_identity_manifest={"doc_text": "sample.pdf", "turn_count": "metadata"},
+    )
+    assert dto.resolved_inputs["doc_text"] == "Sample text"
+    assert dto.resolved_inputs["turn_count"] == 5
+    assert dto.source_identity_manifest["doc_text"] == "sample.pdf"
+
+    # Immutability check
+    with pytest.raises(ValidationError):
+        dto.resolved_inputs = {}  # type: ignore[misc]
+
+
+def test_resolved_ingress_dto_extra_fields_forbidden() -> None:
+    """Negative Test: Extra fields trigger ValidationError under extra='forbid'."""
+    from backend_v2.models.dtos.ingress import ResolvedIngressDTO
+
+    with pytest.raises(ValidationError):
+        ResolvedIngressDTO.model_validate(
+            {
+                "resolved_inputs": {"key": "val"},
+                "source_identity_manifest": {"key": "source"},
+                "extra_key": "forbidden",
+            }
+        )
+
