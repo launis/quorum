@@ -1,4 +1,4 @@
-"""Studio Simulation Service."""
+"""Studio Simulation Service for workflow and prompt block runtime verification."""
 
 from __future__ import annotations
 
@@ -39,12 +39,16 @@ __all__ = ["StudioSimulationService"]
 
 
 class StudioSimulationService:
-    """Domain Service for simulating Admin Studio configurations."""
+    """Domain Service for simulating Admin Studio configurations.
+
+    Attributes:
+        prompt_block_service: Studio prompt block service for retrieving blocks.
+    """
 
     def __init__(
         self,
         prompt_block_service: StudioPromptBlockService,
-    ):
+    ) -> None:
         """Initialize the simulation service.
 
         Args:
@@ -54,11 +58,16 @@ class StudioSimulationService:
 
     @staticmethod
     def _dlq_record_simulation_error(ref: str, exc: Exception) -> None:
-        """Dead-letter error recording for simulation failure."""
+        """Record dead-letter simulation error for troubleshooting.
+
+        Args:
+            ref: Opaque identifier or reference of the entity.
+            exc: Exception encountered during simulation.
+        """
         logger.warning("[StudioSimulationService] Simulation error on resource %s: %s", ref, exc)
 
     async def simulate_workflow(self, initiator: TokenData, data: Workflow) -> WorkflowSimulationResponse:
-        """Simulate workflow.
+        """Simulate workflow execution order and validate step input mappings.
 
         Args:
             initiator: The authenticated user initiating the simulation.
@@ -66,11 +75,6 @@ class StudioSimulationService:
 
         Returns:
             A WorkflowSimulationResponse model containing validation status, errors, and topological execution order.
-
-        Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
         errors = []
         step_status = {}
@@ -89,15 +93,10 @@ class StudioSimulationService:
         all_steps = {s.id: s for s in data.steps}
 
         def resolve_deps(step_id: str) -> None:
-            """Resolve deps.
+            """Resolve step dependencies and build topological execution order.
 
             Args:
-                step_id: Parameter step_id.
-
-            Raises:
-                PermissionDeniedError: If tenant access is violated.
-                ResourceNotFoundError: If the resource is missing.
-                AppException: On other core errors.
+                step_id: The identifier of the step to resolve.
             """
             if step_id in in_progress:
                 errors.append(f"Cycle detected involving step {step_id}")
@@ -171,7 +170,7 @@ class StudioSimulationService:
     async def simulate_prompt_block(
         self, initiator: TokenData, request: PromptBlockSimulationRequest
     ) -> PromptBlockSimulationResponse:
-        """Simulate prompt block.
+        """Simulate prompt block compilation and template rendering.
 
         Args:
             initiator: The authenticated user initiating the simulation.
@@ -181,10 +180,8 @@ class StudioSimulationService:
             A PromptBlockSimulationResponse model containing the simulated render context and any evaluation errors.
 
         Raises:
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing or target score not found.
-            AppException (ErrorCodes.VALIDATION_FAILED): If the prompt block or scales
-                contain no valid claims or assertions.
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
+            AppException: If target scale score is not found (RESOURCE_NOT_FOUND)
+                or if scales contain zero claims/assertions to simulate (VALIDATION_FAILED).
         """
         errors: list[str] = []
 
@@ -196,7 +193,12 @@ class StudioSimulationService:
                     msg = (
                         f"Scale with score {request.target_scale_score} not found in prompt block '{request.block.id}'."
                     )
-                    logger.error("[StudioSimulation] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
+                    logger.error(
+                        "[StudioSimulation] %s: %s",
+                        ErrorCodes.RESOURCE_NOT_FOUND.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+                    )
                     raise AppException(
                         message=msg,
                         status_code=404,
@@ -206,7 +208,12 @@ class StudioSimulationService:
             has_assertions = any(claim.tda_assertions for scale in scales for claim in scale.claims)
             if not has_assertions:
                 msg = f"Prompt block '{request.block.id}' scales contain zero claims or assertions to simulate."
-                logger.error("[StudioSimulation] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error(
+                    "[StudioSimulation] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
                 raise AppException(
                     message=msg,
                     status_code=400,
@@ -321,7 +328,12 @@ class StudioSimulationService:
                 # Very simple loose formatting for dry-run safely
                 t = string.Formatter()
                 keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
-                clean_mocks = {k: request.mock_inputs[k] if k in request.mock_inputs else f"[{k} MOCKED]" for k in keys}
+                clean_mocks: dict[str, object] = {}
+                for k in keys:
+                    if k in request.mock_inputs:
+                        clean_mocks[k] = request.mock_inputs[k]
+                    else:
+                        clean_mocks[k] = f"[{k} MOCKED]"
                 rendered = rendered.format(**clean_mocks)
 
         prompt_context = PromptContextDTO(
@@ -346,7 +358,7 @@ class StudioSimulationService:
         target_locale: str = "en",
         context_text: str = "[SIMULATED CONTEXT DOCUMENT]",
     ) -> StepSimulationResponse:
-        """Simulate step.
+        """Simulate step execution context and prompt block compilation.
 
         Args:
             initiator: The authenticated user initiating the simulation.
@@ -357,11 +369,6 @@ class StudioSimulationService:
 
         Returns:
             A StepSimulationResponse model containing the full context payload and step-specific simulation errors.
-
-        Raises:
-            PermissionDeniedError (ErrorCodes.PERMISSION_DENIED): If tenant access is violated.
-            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
-            AppException (ErrorCodes.AGENT_EXECUTION_CRITICAL): On core errors during simulation.
         """
         errors: list[str] = []
         rendered_parts: list[str] = []
@@ -376,9 +383,6 @@ class StudioSimulationService:
             prompt_blocks_refs.append(data.execution_persona_block_id)
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
-
-        if not isinstance(mock_inputs, ExecutionInputsDTO):
-            mock_inputs = ExecutionInputsDTO.model_validate(mock_inputs)
 
         resolved_mock_inputs = mock_inputs.raw_inputs
 
