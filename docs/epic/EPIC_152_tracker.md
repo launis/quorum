@@ -170,11 +170,11 @@
   - [x] @[backend_v2/workers/variance_synthesis.py]
   - [x] @[backend_v2/models/dtos/synthesis.py]
   - [x] @[backend_v2/services/orchestrator/result_projector.py]
-  - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/normalization_hook.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/global_context.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/hook_delta.py]
-  - [ ] @[backend_v2/services/llm_task_executor.py]
+  - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [x] @[backend_v2/hooks/scoring/normalization_hook.py]
+  - [x] [NEW] @[backend_v2/models/dtos/global_context.py]
+  - [x] [NEW] @[backend_v2/models/dtos/hook_delta.py]
+  - [x] @[backend_v2/services/llm_task_executor.py]
   - [ ] @[backend_v2/workers/execution_worker.py]
   - [ ] @[backend_v2/workers/report_worker.py]
   - [ ] @[backend_v2/services/report_service.py]
@@ -322,7 +322,7 @@
 # Session Handover Context
  
 ## Achieved
-- Hardened and audited 20 total physical code targets (plus 1 architectural SSOT placeholder pruned) across four 5-file batches against Phase 9 standards, zero naked dicts, PEP 257 docstrings, 100% quality gate compliance, and verified neuro-symbolic audit matrices:
+- Hardened and audited 31 total physical code targets (plus 1 architectural SSOT placeholder pruned) across six 5-file batches against Phase 9 standards, zero naked dicts, PEP 257 docstrings, 100% quality gate compliance, and verified neuro-symbolic audit matrices:
   - Batch 1 (Completed & Committed):
     1. `backend_v2/utils/math_utils.py` (Commit `9d47d693`): Added `__all__ = [...]`, replaced literal status codes with `fastapi.status` constants, PEP 257 docstrings, translated Finnish comments to English, 100% test coverage (15/15 tests passing in `test_math_utils.py`), 0 AST violations, audit matrix verified.
     2. `backend_v2/logging_config.py` (Commit `45e53ef9`): Added `__all__ = [...]`, replaced `os.path`/`os.makedirs` with `pathlib.Path`, fixed broad `except Exception:` handlers (QGR003), narrowed `sys.stdout` to `io.TextIOWrapper` avoiding `getattr` (QGR001), replaced `record.__dict__` and `isinstance(..., dict)` with direct `object.__getattribute__` and `collections.abc.Mapping` in `JSONFormatter` (QGR012), updated `test_logging_config.py`, 92% test coverage (14/14 tests passing), 0 AST violations, audit matrix verified.
@@ -354,7 +354,13 @@
     24. `backend_v2/workers/variance_synthesis.py` (Commit `2fba9737`): Added `from __future__ import annotations`, PEP 257 Google-style docstrings with explicit `Raises: AppException` error codes. Enforced RFC 7807 structured `logger.error` on all error paths. Expanded unit tests. Verified 10 unit tests passing, 100% coverage, 0 AST violations, audit matrix verified.
     25. `backend_v2/models/dtos/synthesis.py` (Commit `50f1f4dc`): Added `from __future__ import annotations`, `__all__ = [...]` exporting all 12 public DTOs, fixed docstrings. Expanded unit test suite. Verified 12 unit tests passing, 100% coverage, 0 AST violations, audit matrix verified.
     26. `backend_v2/services/orchestrator/result_projector.py` (Commit `6cbbd863`): Added `from __future__ import annotations`, `__all__ = ["ResultProjector"]`, eradicated QGR016 `or []` and ternary fallbacks in matrix scale claim iteration. Enforced RFC 7807 structured `logger.error`. Expanded unit test suite. Verified 10 unit tests passing, 99% coverage, 0 AST violations, audit matrix verified.
-- All 26 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 6 (Completed & Committed):
+    27. `backend_v2/hooks/scoring/matrix_hook.py` (Commit `317f2cb3`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 `Attributes:` docstrings on `BlockMetaDTO` and `AtomScoringRuleDTO`, replaced `list[Any]` with `list[QuoteEvidenceDTO]`, enforced RFC 7807 structured `logger.error` before every `raise AppException`, 21/21 tests passing (94% coverage), 0 AST violations, audit matrix verified.
+    28. `backend_v2/hooks/scoring/normalization_hook.py` (Commit `a430645b`): Added `from __future__ import annotations`, explicit `__all__`, eradicated 3 QGR016 lazy fallback violations (lines 193, 347, 378), enforced RFC 7807 `logger.error` on all `raise AppException` paths, 83 tests passing (92% coverage), 0 AST violations, audit matrix verified.
+    29. `backend_v2/models/dtos/global_context.py` (Commit `ba1fa8ce`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 Google-style docstrings with full `Attributes:` section, all fields wrapped in PEP 593 `Annotated[..., Field(...)]`. Created unit test suite in `test_global_context.py` (6 tests, 100% coverage), 0 AST violations, audit matrix verified.
+    30. `backend_v2/models/dtos/hook_delta.py` (Commit `c42bdba1`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 `Attributes:` docstrings for all 5 DTOs (`ProjectedResultsDTO`, `MissingContextDTO`, `MatrixProjectionResultDTO`, `MatrixHookResultDTO`, `HookDeltaDTO`), annotated fields. Created unit test suite in `test_hook_delta.py` (5 tests, 100% coverage), 0 AST violations, audit matrix verified.
+    31. `backend_v2/services/llm_task_executor.py`: Added `from __future__ import annotations`, explicit `__all__ = ["LLMTaskExecutor"]`, eradicated 15 AST violations (QGR002 `.get()` calls, QGR003 unhandled logging exceptions via `_dispatch_dlq_telemetry_error`, QGR016 ternary and lazy `or` fallbacks), enforced RFC 7807 structured `logger.error` on all `raise AppException` and `raise AgentExecutionError` paths, expanded unit test suite in `test_llm_task_executor.py` (23 tests, 99% coverage), 0 AST violations, audit matrix verified.
+- All 31 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
@@ -367,18 +373,17 @@
 - In `TDAAssertion`, `tda_id` strictly requires regex `^tda_[a-f0-9]{32}$` (exactly 32 hex characters), whereas `ExtractedAtom` allows `{8,32}`. Test fixtures targeting matrix prompt blocks must use 32-character hex IDs.
 - Audit matrix verification strictly limits NA repeated justifications to <= 40 per pattern; use unique parameterized rule strings `f"NA for {rule_id}: Architectural mandate is not applicable to [target_stem]."`.
 - `audit_matrix_manager.py verify` strictly forbids mentioning other `.py` files in justification strings (e.g. `test_<target>.py`), requiring generalized phrasing like "the accompanying test suite for <target>".
+- In `llm_task_executor.py`, non-critical telemetry and prompt logging exceptions in domain code must dispatch via a DLQ helper (`_dispatch_dlq_telemetry_error`) to satisfy `QGR003` without swallowing exceptions.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 6):
-  - `backend_v2/hooks/scoring/matrix_hook.py`
-  - `backend_v2/hooks/scoring/normalization_hook.py`
-  - `backend_v2/models/dtos/global_context.py`
-  - `backend_v2/models/dtos/hook_delta.py`
-  - `backend_v2/services/llm_task_executor.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 7):
+  - `backend_v2/workers/execution_worker.py`
+  - `backend_v2/workers/report_worker.py`
+  - `backend_v2/services/report_service.py`
+  - `backend_v2/models/dtos/prompt.py`
+  - `backend_v2/models/dtos/context_variables.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
-
-

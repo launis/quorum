@@ -1,5 +1,7 @@
 """Centralized LLM task executor enforcing self-healing and Fail-Fast pipelines."""
 
+from __future__ import annotations
+
 import logging
 import re
 import time
@@ -28,20 +30,32 @@ from backend_v2.utils.llm_debug_logger import log_structured_task_prompt, write_
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["LLMTaskExecutor"]
+
+
+def _dispatch_dlq_telemetry_error(error: Exception, context: str) -> None:
+    """Dispatches a telemetry or debug logging failure to the DLQ logger.
+
+    Args:
+        error: The exception that occurred during telemetry logging.
+        context: The context description where the failure occurred.
+    """
+    logger.warning("Telemetry DLQ dispatch: %s failed: %s", context, error)
+
 
 def _validate_non_empty_payload(
     messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt | PromptContextDTO,
 ) -> None:
-    """Phase 1: Extract payload validation to prevent hallucinations.
+    """Validate prompt payload text to prevent hallucinations.
 
     Scans the prompt payload to ensure the user message is not empty. If the payload
-    is too short, it aborts the generation process.
+    is too short, it aborts the generation process immediately.
 
     Args:
         messages: The prompt payload to validate.
 
     Raises:
-        AppException: If the user payload text is critically short.
+        AppException: If the user payload text is critically short (ErrorCodes.VALIDATION_FAILED).
     """
     raw_list: Sequence[LLMMessageDTO | ChatMessageDTO | object]
     if isinstance(messages, (CompiledPrompt, PromptContextDTO)):
@@ -79,7 +93,12 @@ def _validate_non_empty_payload(
     if len(clean_payload_text) < settings.llm_min_payload_length:
         logger.error(
             "Fail-Fast: Task payload is suspiciously empty or short. "
-            f"Aborting to prevent hallucinations. Text: {clean_payload_text}"
+            f"Aborting to prevent hallucinations. Text: {clean_payload_text}",
+            extra={
+                "error_code": ErrorCodes.VALIDATION_FAILED.name,
+                "payload_length": len(clean_payload_text),
+                "min_length": settings.llm_min_payload_length,
+            },
         )
         raise AppException(
             message=(
@@ -96,6 +115,10 @@ class LLMTaskExecutor:
 
     Replaces raw client logic with zero-compromise Fail-Fast architecture,
     managing Self-Healing retries and strict FinOps token accumulation.
+
+    Attributes:
+        prompt_compiler: The centralized compiler used for self-healing prompts.
+        default_validation_context: Optional default context dictionary for validation.
     """
 
     def __init__(
@@ -140,17 +163,18 @@ class LLMTaskExecutor:
             A tuple containing the successfully validated model and accumulated token usage.
 
         Raises:
-            AgentExecutionError: If maximum retries are exhausted or catastrophic failure occurs.
-            AppException: If the initial prompt payload validation fails.
+            AgentExecutionError: If maximum retries are exhausted or catastrophic failure occurs (ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED, ErrorCodes.AGENT_EXECUTION_CRITICAL).
+            AppException: If the initial prompt payload validation fails (ErrorCodes.VALIDATION_FAILED).
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-        val_ctx_dict = (
-            validation_context.model_dump(mode="json")
-            if isinstance(validation_context, BaseModel)
-            else (validation_context or {})
-        )
-        effective_validation_context = {**(self.default_validation_context or {}), **val_ctx_dict}
+        effective_validation_context: dict[str, Any] = {}
+        if self.default_validation_context is not None:
+            effective_validation_context.update(self.default_validation_context)
+        if isinstance(validation_context, BaseModel):
+            effective_validation_context.update(validation_context.model_dump(mode="json"))
+        elif validation_context is not None:
+            effective_validation_context.update(validation_context)
 
         prompt_adapter = PromptCompilerAdapter()
 
@@ -187,14 +211,15 @@ class LLMTaskExecutor:
         validated_model: T | None = None
 
         for attempt in range(max_total_attempts):
-            if settings.environment == "development" and effective_validation_context:
-                exec_id_raw = effective_validation_context.get("execution_id")
-                step_id_raw = effective_validation_context.get("step_id")
-                if exec_id_raw and step_id_raw:
-                    sub_task_raw = effective_validation_context.get("sub_task")
+            if settings.environment == "development":
+                if "execution_id" in effective_validation_context and "step_id" in effective_validation_context:
+                    exec_id_raw = effective_validation_context["execution_id"]
+                    step_id_raw = effective_validation_context["step_id"]
                     sub_task_str: str | None = None
-                    if sub_task_raw is not None:
-                        sub_task_str = str(sub_task_raw)
+                    if "sub_task" in effective_validation_context:
+                        sub_task_raw = effective_validation_context["sub_task"]
+                        if sub_task_raw is not None:
+                            sub_task_str = str(sub_task_raw)
                     try:
                         await log_structured_task_prompt(
                             execution_id=str(exec_id_raw),
@@ -205,7 +230,7 @@ class LLMTaskExecutor:
                             attempt=attempt + 1,
                         )
                     except (OSError, ValueError, TypeError) as log_err:
-                        logger.warning("Structured task prompt debug logging failed: %s", log_err)
+                        _dispatch_dlq_telemetry_error(log_err, "Structured task prompt debug logging")
 
             try:
                 telemetry_start_time = time.time()
@@ -218,20 +243,28 @@ class LLMTaskExecutor:
                 duration_ms = int((time.time() - telemetry_start_time) * 1000)
 
                 try:
-                    exec_id = (
-                        str(effective_validation_context["execution_id"])
-                        if effective_validation_context and "execution_id" in effective_validation_context
-                        else "global"
-                    )
-                    step_id = (
-                        str(effective_validation_context["step_id"])
-                        if effective_validation_context and "step_id" in effective_validation_context
-                        else "unknown_step"
-                    )
-                    usage_obj = usage if isinstance(usage, TokenUsage) else TokenUsage.model_validate(usage)
-                    cache_hit = (usage_obj.cached_tokens or 0) > 0
+                    exec_id = "global"
+                    if "execution_id" in effective_validation_context:
+                        exec_id = str(effective_validation_context["execution_id"])
+
+                    step_id = "unknown_step"
+                    if "step_id" in effective_validation_context:
+                        step_id = str(effective_validation_context["step_id"])
+
+                    if isinstance(usage, TokenUsage):
+                        usage_obj = usage
+                    else:
+                        usage_obj = TokenUsage.model_validate(usage)
+
+                    cached_tokens_count = 0
+                    if usage_obj.cached_tokens is not None:
+                        cached_tokens_count = usage_obj.cached_tokens
+                    cache_hit = cached_tokens_count > 0
+
                     tokens = usage_obj.total_tokens
-                    trigger_reason = "initial" if attempt == 0 else "self_healing_retry"
+                    trigger_reason = "initial"
+                    if attempt > 0:
+                        trigger_reason = "self_healing_retry"
 
                     await write_llm_telemetry_log(
                         execution_id=exec_id,
@@ -242,7 +275,7 @@ class LLMTaskExecutor:
                         trigger_reason=trigger_reason,
                     )
                 except (OSError, ValueError, TypeError) as t_err:
-                    logger.warning(f"Telemetry logging failed: {t_err}")
+                    _dispatch_dlq_telemetry_error(t_err, "Telemetry logging")
 
                 # FinOps Accumulation
                 cumulative_usage = cumulative_usage + TokenUsage.model_validate(usage)
@@ -254,11 +287,11 @@ class LLMTaskExecutor:
                 if isinstance(validated_model, BaseModel):
                     model_dict = validated_model.model_dump(exclude_unset=False)
                     if "contextual_override" in model_dict and model_dict["contextual_override"]:
-                        override_reason = (
-                            str(model_dict["override_reason"])
-                            if "override_reason" in model_dict and model_dict["override_reason"]
-                            else "No reason provided"
-                        )
+                        override_reason = "No reason provided"
+                        if "override_reason" in model_dict:
+                            raw_override_reason = model_dict["override_reason"]
+                            if raw_override_reason:
+                                override_reason = str(raw_override_reason)
                         logger.info(
                             "[QUALITY] LLM applied Contextual Override.",
                             extra={
@@ -323,13 +356,19 @@ class LLMTaskExecutor:
                     extra={"raw_payload_dump": raw_payload, "validation_error": error_msg},
                 )
 
+                strictness_lvl_val: int | None = None
+                if "strictness_level" in effective_validation_context:
+                    raw_strict = effective_validation_context["strictness_level"]
+                    if isinstance(raw_strict, int):
+                        strictness_lvl_val = raw_strict
+                    elif isinstance(raw_strict, float):
+                        strictness_lvl_val = int(raw_strict)
+
                 correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
                     error_msg=error_msg,
                     is_logical_error=False,
                     is_eof=is_eof,
-                    strictness_level=effective_validation_context.get("strictness_level")
-                    if effective_validation_context
-                    else None,
+                    strictness_level=strictness_lvl_val,
                 )
 
                 healing_content = f"\n\n<PREVIOUS_SCHEMA_ERROR>\n{correction_prompt}\n</PREVIOUS_SCHEMA_ERROR>"
@@ -388,11 +427,14 @@ class LLMTaskExecutor:
                 previous_error_msg = error_msg
                 logical_attempts += 1
 
-                strictness_lvl = (
-                    effective_validation_context["strictness_level"]
-                    if effective_validation_context and "strictness_level" in effective_validation_context
-                    else None
-                )
+                strictness_lvl: int | None = None
+                if "strictness_level" in effective_validation_context:
+                    raw_strict_log = effective_validation_context["strictness_level"]
+                    if isinstance(raw_strict_log, int):
+                        strictness_lvl = raw_strict_log
+                    elif isinstance(raw_strict_log, float):
+                        strictness_lvl = int(raw_strict_log)
+
                 correction_prompt = self.prompt_compiler.get_schema_healing_prompt(
                     error_msg=error_msg,
                     is_logical_error=True,
@@ -400,14 +442,16 @@ class LLMTaskExecutor:
                     strictness_level=strictness_lvl,
                 )
 
-                failed_json = validated_model.model_dump_json() if validated_model else "{}"
+                failed_json = "{}"
+                if validated_model is not None:
+                    failed_json = validated_model.model_dump_json()
 
                 logger.warning(
                     f"LLM Logical Validation Failed. Error: {error_msg}",
                     extra={"failed_json_dump": failed_json, "logical_error": error_msg},
                 )
 
-                # Epic 54: Smart Coaching
+                # Smart Coaching: Anti-ellipsis and anti-bracket guidance
                 coaching_notes = []
                 if "..." in failed_json:
                     coaching_notes.append(
@@ -444,7 +488,14 @@ class LLMTaskExecutor:
                     typed_dynamic_logical.append(LLMMessageDTO(role="user", content=healing_content.strip()))
                 compiled_prompt = base_compiled_prompt.model_copy(update={"dynamic_messages": typed_dynamic_logical})
 
-        logger.error("LLM task failed to complete within retry budgets.")
+        logger.error(
+            "LLM task failed to complete within retry budgets.",
+            extra={
+                "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                "schema_attempts": schema_attempts,
+                "logical_attempts": logical_attempts,
+            },
+        )
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
     async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, Any]:
@@ -458,6 +509,6 @@ class LLMTaskExecutor:
             The raw unstructured response from the LLM.
 
         Raises:
-            AgentExecutionError: If the chat task execution fails.
+            AgentExecutionError: If the chat task execution fails (ErrorCodes.AGENT_EXECUTION_CRITICAL).
         """
         return await client.run_chat(**kwargs)
