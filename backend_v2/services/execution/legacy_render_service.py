@@ -71,18 +71,54 @@ class ExecutionLegacyRenderService:
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
-        self.export_service = export_service if export_service is not None else ExportService(comp_repo=comp_repo)
-        self.storage: FileDriver = storage_driver if storage_driver is not None else storage.get_storage_driver()
-        self._get_execution = get_execution_fn or self._default_get_execution
-        self._get_report_dto = get_report_dto_fn or self.get_report_dto
+
+        if export_service is not None:
+            self.export_service = export_service
+        else:
+            self.export_service = ExportService(comp_repo=comp_repo)
+
+        if storage_driver is not None:
+            self.storage = storage_driver
+        else:
+            self.storage = storage.get_storage_driver()
+
+        if get_execution_fn is not None:
+            self._get_execution = get_execution_fn
+        else:
+            self._get_execution = self._default_get_execution
+
+        if get_report_dto_fn is not None:
+            self._get_report_dto = get_report_dto_fn
+        else:
+            self._get_report_dto = self.get_report_dto
 
     async def _default_get_execution(self, initiator: TokenData, execution_id: str) -> ExecutionRecord:
+        """Fetch execution record by ID with full hydration.
+
+        Args:
+            initiator: Auth token data of user requesting execution.
+            execution_id: System execution identifier.
+
+        Returns:
+            Hydrated ExecutionRecord instance.
+
+        Raises:
+            ResourceNotFoundError: If execution record does not exist.
+        """
         record = await self.exec_repo.get_execution(execution_id, hydrate=True)
         if not record:
             raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
         return record
 
     def _transformer(self) -> BlueprintTransformer:
+        """Build and return a BlueprintTransformer instance using registered repositories.
+
+        Returns:
+            Configured BlueprintTransformer instance.
+
+        Raises:
+            AppException: If required repositories for BlueprintTransformer are missing.
+        """
         if (
             self.comp_repo is None
             or self.prompt_block_repo is None
@@ -90,7 +126,15 @@ class ExecutionLegacyRenderService:
             or self.identity_repo is None
             or self.system_repo is None
         ):
-            raise AppException("Repositories required for BlueprintTransformer are missing", 500)
+            logger.error(
+                "[LegacyRenderService] %s: Repositories required for BlueprintTransformer are missing",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+            )
+            raise AppException(
+                message="Repositories required for BlueprintTransformer are missing",
+                status_code=500,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+            )
         return blueprint.BlueprintTransformer(
             self.exec_repo,
             self.workflow_repo,
@@ -103,18 +147,33 @@ class ExecutionLegacyRenderService:
 
     @deprecated("Use ExportService.export_excel directly or ReportService.get_report_excel_bytes.")
     async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
-        """Generates an Excel export for the execution including Summary and Raw Data tabs."""
+        """Generate an Excel export for the execution including Summary and Raw Data tabs.
+
+        Args:
+            initiator: Auth token data of user requesting export.
+            execution_id: System execution identifier.
+
+        Returns:
+            Tuple of (raw_bytes, filename) for the generated export spreadsheet.
+
+        Raises:
+            AppException: If execution status is not PASSED, execution has no atoms, or report fetch fails.
+        """
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
         if record.status != ExecutionStatus.PASSED:
             msg = "Execution must be in PASSED state to generate export."
             logger.error("[LegacyRenderService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
-        has_atoms = any(s.scorecard_atoms for s in record.step_states.values()) if record.step_states else False
+        if record.step_states:
+            has_atoms = any(s.scorecard_atoms for s in record.step_states.values())
+        else:
+            has_atoms = False
+
         if not has_atoms:
             msg = "Execution has no scoreable atoms to export."
             logger.error("[LegacyRenderService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         report_dto: ReportDataDTO | None = None
         try:
@@ -122,14 +181,25 @@ class ExecutionLegacyRenderService:
         except Exception as e:
             logger.error("[LegacyRenderService] Could not generate report_dto: %s", e)
             raise AppException(
-                f"Report Fetch Error: {e}", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                message=f"Report Fetch Error: {e}",
+                status_code=500,
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
             ) from e
 
-        components = await self.comp_repo.get_all_components("prompt_block") if self.comp_repo else None
+        if self.comp_repo is not None:
+            components = await self.comp_repo.get_all_components("prompt_block")
+        else:
+            components = None
+
+        if record.target_locale:
+            target_locale = record.target_locale
+        else:
+            target_locale = "fi"
+
         return await self.export_service.export_excel(
             execution=record,
             report_dto=report_dto,
-            locale=record.target_locale or "fi",
+            locale=target_locale,
             components=components,
             execution_id=execution_id,
         )
@@ -141,11 +211,25 @@ class ExecutionLegacyRenderService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> ReportDataDTO:
-        """Get the headless ReportDataDTO for an execution."""
+        """Get the headless ReportDataDTO for an execution.
+
+        Args:
+            initiator: Auth token data of user requesting report.
+            execution_id: System execution identifier.
+            custom_preface_md: Optional preface markdown text override.
+            local_time_str: Optional formatted local timestamp string.
+
+        Returns:
+            Headless ReportDataDTO instance for the execution.
+
+        Raises:
+            AppException: If execution status is not PASSED.
+        """
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
         if record.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in COMPLETED state. Current status: {record.status.value}"
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error("[LegacyRenderService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
         return await self._transformer().build_report_dto(
             execution_id,
             profile_id=None,
@@ -155,7 +239,18 @@ class ExecutionLegacyRenderService:
         )
 
     async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> ReportView:
-        """Get the SDUI view components for an execution."""
+        """Get the SDUI view components for an execution.
+
+        Args:
+            initiator: Auth token data of user requesting view.
+            execution_id: System execution identifier.
+
+        Returns:
+            ReportView instance ready for client rendering.
+
+        Raises:
+            AppException: If report fetching fails or execution is not PASSED.
+        """
         dto = await self._get_report_dto(initiator, execution_id)
         mapper = sdui_mapper_service.SduiMapperService()
         view = mapper.map_report_to_sdui(dto, execution_id=execution_id)
@@ -181,7 +276,20 @@ class ExecutionLegacyRenderService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> None:
-        """Securely enqueue a PDF generation job and inject a Virtual Step into the trace."""
+        """Securely enqueue a PDF generation job and inject a Virtual Step into the trace.
+
+        Args:
+            initiator: Auth token data of user requesting PDF.
+            execution_id: System execution identifier.
+            accept_language: Target localization language code.
+            profile_id: System profile identifier.
+            arq_pool: Redis connection pool for background task dispatch.
+            custom_preface_md: Optional preface markdown text override.
+            local_time_str: Optional formatted local timestamp string.
+
+        Returns:
+            None.
+        """
         await self._get_execution(initiator=initiator, execution_id=execution_id)
         v_step_id = f"sys_render_{profile_id}"
         v_step = ExecutionStep(id=v_step_id, label=v_step_id, status=ExecutionStatus.RUNNING)
@@ -216,16 +324,41 @@ class ExecutionLegacyRenderService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> RenderExecutionResultDTO:
-        """Render an execution record to requested format."""
+        """Render an execution record to requested format.
+
+        Args:
+            initiator: Auth token data of user requesting rendering.
+            execution_id: System execution identifier.
+            format_type: Output format string ("flat", "json", "html", "pdf").
+            profile_id: System profile identifier or None.
+            accept_language: Target localization language code.
+            arq_pool: Redis connection pool for background task dispatch.
+            custom_preface_md: Optional preface markdown text override.
+            local_time_str: Optional formatted local timestamp string.
+
+        Returns:
+            RenderExecutionResultDTO with rendered payload and content type.
+
+        Raises:
+            AppException: If execution is not PASSED, format is unsupported, workflow not found, or storage fails.
+        """
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
         if record.status != ExecutionStatus.PASSED:
             msg = f"Execution is not in COMPLETED state. Current status: {record.status.value}"
-            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error("[LegacyRenderService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED})
 
         fmt = format_type.lower()
         if fmt not in ("flat", "json", "html", "pdf"):
+            logger.error(
+                "[LegacyRenderService] %s: Unsupported format: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                format_type,
+            )
             raise AppException(
-                f"Unsupported format: {format_type}", 400, {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                message=f"Unsupported format: {format_type}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
             )
 
         transformer = self._transformer()
@@ -243,17 +376,35 @@ class ExecutionLegacyRenderService:
 
         workflow_data = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
         if not workflow_data:
-            raise AppException("Workflow not found", 500, {"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error(
+                "[LegacyRenderService] %s: Workflow %s not found",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                record.workflow_id,
+            )
+            raise AppException(
+                message="Workflow not found",
+                status_code=500,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND},
+            )
 
         workflow_obj = Workflow.model_validate(workflow_data)
         default_pid = workflow_obj.default_profile_id
-        resolved_pid = profile_id if profile_id and profile_id != "default" else default_pid
+        resolved_pid: str | None
+        if profile_id and profile_id != "default":
+            resolved_pid = profile_id
+        else:
+            resolved_pid = default_pid
 
         if resolved_pid not in record.profile_syntheses:
             updated_ts = "0"
             if record.updated_at:
                 updated_ts = str(record.updated_at).replace(":", "").replace("-", "").replace(".", "").replace(" ", "_")
-            resolved_lang = accept_language if (accept_language and accept_language.strip()) else record.target_locale
+
+            if accept_language and accept_language.strip():
+                resolved_lang = accept_language
+            else:
+                resolved_lang = record.target_locale
+
             job_id = f"render_{execution_id}_{resolved_pid}_{resolved_lang}_{updated_ts}"
             await arq_pool.enqueue_job(
                 "render_profile_job",
@@ -263,11 +414,11 @@ class ExecutionLegacyRenderService:
                 accept_language=resolved_lang,
             )
             v_step_id = f"sys_render_{resolved_pid}"
-            active_message = (
-                record.step_states[v_step_id].label
-                if v_step_id in record.step_states
-                else "Valmistellaan tulostusta..."
-            )
+            if v_step_id in record.step_states:
+                active_message = record.step_states[v_step_id].label
+            else:
+                active_message = "Valmistellaan tulostusta..."
+
             return RenderExecutionResultDTO(
                 content=JobAcceptedDTO(
                     status=ExecutionStatus.PENDING, message=active_message, execution_id=execution_id
@@ -289,9 +440,18 @@ class ExecutionLegacyRenderService:
                 filename=None,
             )
 
-        target_locale = accept_language if accept_language else record.target_locale
+        if accept_language:
+            target_locale = accept_language
+        else:
+            target_locale = record.target_locale
+
         if not target_locale:
-            raise AppException("target_locale missing", 500, {"error_code": ErrorCodes.VALIDATION_FAILED.value})
+            logger.error("[LegacyRenderService] %s: target_locale missing", ErrorCodes.VALIDATION_FAILED.name)
+            raise AppException(
+                message="target_locale missing",
+                status_code=500,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+            )
 
         storage_drv = storage.get_storage_driver()
         if fmt == "pdf":
@@ -304,9 +464,15 @@ class ExecutionLegacyRenderService:
                         filename=f"execution_{execution_id}.pdf",
                     )
                 except Exception as strg_err:
-                    logger.error("[LegacyRenderService] Storage read failed: %s", strg_err)
+                    logger.error(
+                        "[LegacyRenderService] %s: Storage read failed: %s",
+                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        strg_err,
+                    )
                     raise AppException(
-                        "Failed to read PDF from storage", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                        message="Failed to read PDF from storage",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
                     ) from strg_err
 
         rep_dto = await transformer.build_report_dto(
@@ -333,9 +499,15 @@ class ExecutionLegacyRenderService:
                             execution_id, ExecutionUpdateDTO(pdf_report_path=saved_path)
                         )
                 except Exception as heal_err:
-                    logger.error("[LegacyRenderService] Storage save failed: %s", heal_err)
+                    logger.error(
+                        "[LegacyRenderService] %s: Storage save failed: %s",
+                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        heal_err,
+                    )
                     raise AppException(
-                        "Failed to save PDF to storage", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
+                        message="Failed to save PDF to storage",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
                     ) from heal_err
 
             return RenderExecutionResultDTO(
@@ -344,6 +516,13 @@ class ExecutionLegacyRenderService:
                 filename=f"execution_{execution_id}.pdf",
             )
 
+        logger.error(
+            "[LegacyRenderService] %s: Unsupported format: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            format_type,
+        )
         raise AppException(
-            f"Unsupported format: {format_type}", 400, {"error_code": ErrorCodes.VALIDATION_FAILED.value}
+            message=f"Unsupported format: {format_type}",
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED},
         )
