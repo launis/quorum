@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -195,13 +194,14 @@ class StudioWorkflowService:
         all_steps = await self.list_steps(initiator)
         step_map = {s.id: s for s in all_steps}
 
-        used_block_ids = set()
+        used_block_ids: set[str] = set()
         for step_rule in workflow.steps:
-            step = step_map.get(step_rule.task_blueprint)
-            if step and step.criteria_block_ids:
-                used_block_ids.update(step.criteria_block_ids)
+            if step_rule.task_blueprint in step_map:
+                step = step_map[step_rule.task_blueprint]
+                if step.criteria_block_ids:
+                    used_block_ids.update(step.criteria_block_ids)
 
-        extensions = set()
+        extensions: set[str] = set()
         for block_id in used_block_ids:
             try:
                 data = await self.prompt_block_repo.get_prompt_block_by_id(block_id)
@@ -209,12 +209,18 @@ class StudioWorkflowService:
                     block = PromptBlockAdapter.validate_python(data, strict=False)
                     if isinstance(block, MatrixPromptBlock) and block.output_extensions:
                         extensions.update(block.output_extensions)
-            except (AppException, ValidationError, ValueError, KeyError, TypeError, OSError) as e:
-                logger.debug(
-                    "[StudioService] Could not resolve prompt block %s for extensions: %s",
+            except Exception as e:
+                logger.error(
+                    "[StudioService] %s: Could not resolve prompt block %s for extensions: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
                     block_id,
                     str(e),
                 )
+                raise AppException(
+                    message=f"Could not resolve prompt block {block_id} for extensions: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "block_id": block_id},
+                ) from e
 
         return sorted(list(extensions))
 
@@ -381,12 +387,22 @@ class StudioWorkflowService:
         profile_mapping: dict[str, str] = {}
 
         for p_data in all_profiles:
-            try:
-                p_obj = (
-                    p_data if isinstance(p_data, OutputProfile) else OutputProfile.model_validate(p_data, strict=False)
-                )
-            except ValidationError:
-                continue
+            if isinstance(p_data, OutputProfile):
+                p_obj = p_data
+            else:
+                try:
+                    p_obj = OutputProfile.model_validate(p_data, strict=False)
+                except ValidationError as exc:
+                    logger.error(
+                        "[StudioService] %s: Corrupted output profile encountered during workflow clone: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        str(exc),
+                    )
+                    raise AppException(
+                        message=f"Corrupted output profile encountered during workflow clone: {exc}",
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from exc
 
             if p_obj.workflow_id == id:
                 new_profile_id = generate_opaque_id(EntityPrefix.OUTPUT_PROFILE)

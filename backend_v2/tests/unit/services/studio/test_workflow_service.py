@@ -768,8 +768,10 @@ async def test_get_workflow_available_extensions_handles_exception(
     mock_workflow_repo.get_all_steps.return_value = [step]
     mock_prompt_block_repo.get_prompt_block_by_id.side_effect = AppException(message="Block corrupted", status_code=500)
 
-    exts = await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
-    assert exts == []
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.get_workflow_available_extensions(admin_token, wf.id)
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 async def test_list_workflows_corrupted_record_raises_app_exception(

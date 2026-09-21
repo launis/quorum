@@ -292,6 +292,19 @@ class GlobalMatricesBase(V2CoreBase):
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
+    def __getitem__(self, item: str) -> Any:
+        """Allow subscript access for dynamic matrix extraction evaluations."""
+        try:
+            return object.__getattribute__(self, item)
+        except AttributeError as exc:
+            raise KeyError(f"Matrix evaluation for '{item}' not found in GlobalMatrices.") from exc
+
+    def __contains__(self, item: object) -> bool:
+        """Check if matrix evaluation exists."""
+        if not isinstance(item, str):
+            return False
+        return item in type(self).model_fields
+
 
 @register_sdui_schema("markdown")
 class MarkdownSchemaStrategy(SchemaBuilderStrategy):

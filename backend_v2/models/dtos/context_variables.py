@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Annotated, Any, Self
 
-from pydantic import ConfigDict, Field
+from pydantic import AliasChoices, ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
@@ -18,15 +18,23 @@ __all__ = ["ContextVariablesDTO"]
 class ContextVariablesDTO(V2CoreBase):
     """Encapsulates execution-level context variables and dynamic blackboard state."""
 
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
 
     global_atom_blackboard: Annotated[
         GlobalAtomBlackboard | dict[str, Any] | None,
-        Field(default=None, description="Global atom blackboard output"),
+        Field(
+            default=None,
+            validation_alias=AliasChoices("global_atom_blackboard", "__GLOBAL_ATOM_BLACKBOARD__"),
+            description="Global atom blackboard output",
+        ),
     ] = None
     matrix_reducer_output: Annotated[
         LightweightMatrixOutput | dict[str, Any] | None,
-        Field(default=None, description="Matrix reducer output"),
+        Field(
+            default=None,
+            validation_alias=AliasChoices("matrix_reducer_output", "__MATRIX_REDUCER_OUTPUT__"),
+            description="Matrix reducer output",
+        ),
     ] = None
     report_context: Annotated[
         dict[str, Any] | DomainInputValue | None,

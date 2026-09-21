@@ -311,3 +311,33 @@ def test_grid_schema_strategy_missing_label_raises_configuration_error() -> None
             has_shuffled_atoms=False,
             strictness_level=100,
         )
+
+
+def test_global_matrices_base_subscript_and_contains() -> None:
+    """Test GlobalMatricesBase __getitem__ and __contains__ operations."""
+    from backend_v2.core.registry import GlobalMatricesBase
+
+    class MockMatrixModel(GlobalMatricesBase):
+        mat_1: str = "evaluated"
+
+    matrices = MockMatrixModel(mat_1="evaluated")
+    assert matrices["mat_1"] == "evaluated"
+    assert "mat_1" in matrices
+    assert "mat_missing" not in matrices
+    assert 123 not in matrices
+
+    with pytest.raises(KeyError) as exc_info:
+        _ = matrices["mat_missing"]
+    assert "mat_missing" in str(exc_info.value)
+
+
+def test_stripped_base_tda_extraction_coerce_exact_quotes() -> None:
+    """Test StrippedBaseTDAExtraction exact_quotes coercion."""
+    from backend_v2.core.registry import StrippedBaseTDAExtraction
+
+    dto = StrippedBaseTDAExtraction(
+        contextual_override=False,
+        semantic_reasoning="reasoning",
+        exact_quotes=None,
+    )
+    assert dto.exact_quotes == []
