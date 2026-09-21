@@ -5,6 +5,8 @@ import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/theme/app_colors.dart';
 
+/// Renders explainable AI (XAI) telemetry, evidence quotes, semantic explanations,
+/// and remediation coaching for a matrix scorecard axis.
 class XAIAxisTelemetryGrid extends StatelessWidget {
   final MatrixScorecardRowDto axis;
   final TextDeliveryMode textDeliveryMode;
