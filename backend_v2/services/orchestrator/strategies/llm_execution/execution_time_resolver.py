@@ -31,12 +31,23 @@ class ExecutionTimeResolver:
 
     @staticmethod
     def _dlq_stat_fallback(exc: OSError) -> None:
-        """Record DLQ fallback for physical file stat errors."""
+        """Record DLQ fallback for physical file stat errors.
+
+        Args:
+            exc: The filesystem error encountered during file stat.
+        """
         logger.warning("[ExecutionTimeResolver] Failed to read physical file mtime: %s", exc)
 
     @staticmethod
     def _parse_datetime(val: Any) -> datetime.datetime | None:
-        """Parse datetime or ISO string safely without exception swallowing."""
+        """Parse datetime or ISO string safely without exception swallowing.
+
+        Args:
+            val: String or datetime instance to normalize.
+
+        Returns:
+            Parsed datetime in UTC or local timezone, or None if invalid format.
+        """
         if isinstance(val, datetime.datetime):
             return val
         if isinstance(val, str) and val and ExecutionTimeResolver._ISO_DATETIME_RE.match(val):
@@ -108,29 +119,33 @@ class ExecutionTimeResolver:
 
         # Mapping fallback for legacy / test payloads
         elif isinstance(llm_context_data, Mapping):
-            raw_inputs = llm_context_data["raw_inputs"] if "raw_inputs" in llm_context_data else None
-            dynamic_inputs = (
-                raw_inputs["dynamic_inputs"]
-                if (isinstance(raw_inputs, Mapping) and "dynamic_inputs" in raw_inputs)
-                else None
-            )
-            if isinstance(dynamic_inputs, Mapping):
-                for key in ("document_date", "input_file_date", "last_modified"):
-                    if key in dynamic_inputs:
-                        parsed = ExecutionTimeResolver._parse_datetime(dynamic_inputs[key])
-                        if parsed:
-                            logger.info(
-                                "[ExecutionTimeResolver] Client-supplied document date found in dict dynamic_inputs."
-                            )
-                            return parsed
-            inputs_dict = llm_context_data["inputs"] if "inputs" in llm_context_data else None
-            if isinstance(inputs_dict, Mapping):
-                for key in ("document_date", "input_file_date", "last_modified"):
-                    if key in inputs_dict:
-                        parsed = ExecutionTimeResolver._parse_datetime(inputs_dict[key])
-                        if parsed:
-                            logger.info("[ExecutionTimeResolver] Client-supplied document date found in dict inputs.")
-                            return parsed
+            raw_inputs = None
+            if "raw_inputs" in llm_context_data:
+                raw_inputs = llm_context_data["raw_inputs"]
+
+            if isinstance(raw_inputs, Mapping) and "dynamic_inputs" in raw_inputs:
+                dynamic_inputs = raw_inputs["dynamic_inputs"]
+                if isinstance(dynamic_inputs, Mapping):
+                    for key in ("document_date", "input_file_date", "last_modified"):
+                        if key in dynamic_inputs:
+                            parsed = ExecutionTimeResolver._parse_datetime(dynamic_inputs[key])
+                            if parsed:
+                                logger.info(
+                                    "[ExecutionTimeResolver] Client-supplied document date found in dict dynamic_inputs."
+                                )
+                                return parsed
+
+            if "inputs" in llm_context_data:
+                inputs_dict = llm_context_data["inputs"]
+                if isinstance(inputs_dict, Mapping):
+                    for key in ("document_date", "input_file_date", "last_modified"):
+                        if key in inputs_dict:
+                            parsed = ExecutionTimeResolver._parse_datetime(inputs_dict[key])
+                            if parsed:
+                                logger.info(
+                                    "[ExecutionTimeResolver] Client-supplied document date found in dict inputs."
+                                )
+                                return parsed
 
         # 2. Physical input file inspection on disk
         if execution_id:
@@ -153,28 +168,31 @@ class ExecutionTimeResolver:
             pass
 
         if isinstance(llm_context_data, Mapping):
-            ctx_metadata = llm_context_data["metadata"] if "metadata" in llm_context_data else None
-            if isinstance(ctx_metadata, Mapping):
-                for key in ("created_at", "timestamp"):
-                    if key in ctx_metadata:
-                        parsed = ExecutionTimeResolver._parse_datetime(ctx_metadata[key])
-                        if parsed:
-                            logger.info("[ExecutionTimeResolver] Using metadata timestamp.")
-                            return parsed
+            if "metadata" in llm_context_data:
+                ctx_metadata = llm_context_data["metadata"]
+                if isinstance(ctx_metadata, Mapping):
+                    for key in ("created_at", "timestamp"):
+                        if key in ctx_metadata:
+                            parsed = ExecutionTimeResolver._parse_datetime(ctx_metadata[key])
+                            if parsed:
+                                logger.info("[ExecutionTimeResolver] Using metadata timestamp.")
+                                return parsed
 
-            raw_inputs = llm_context_data["raw_inputs"] if "raw_inputs" in llm_context_data else None
-            if isinstance(raw_inputs, Mapping):
-                if "timestamp" in raw_inputs:
-                    parsed = ExecutionTimeResolver._parse_datetime(raw_inputs["timestamp"])
-                    if parsed:
-                        logger.info("[ExecutionTimeResolver] Using raw_inputs timestamp.")
-                        return parsed
-                raw_meta = raw_inputs["metadata"] if "metadata" in raw_inputs else None
-                if isinstance(raw_meta, Mapping) and "timestamp" in raw_meta:
-                    parsed = ExecutionTimeResolver._parse_datetime(raw_meta["timestamp"])
-                    if parsed:
-                        logger.info("[ExecutionTimeResolver] Using raw_inputs metadata timestamp.")
-                        return parsed
+            if "raw_inputs" in llm_context_data:
+                raw_inputs = llm_context_data["raw_inputs"]
+                if isinstance(raw_inputs, Mapping):
+                    if "timestamp" in raw_inputs:
+                        parsed = ExecutionTimeResolver._parse_datetime(raw_inputs["timestamp"])
+                        if parsed:
+                            logger.info("[ExecutionTimeResolver] Using raw_inputs timestamp.")
+                            return parsed
+                    if "metadata" in raw_inputs:
+                        raw_meta = raw_inputs["metadata"]
+                        if isinstance(raw_meta, Mapping) and "timestamp" in raw_meta:
+                            parsed = ExecutionTimeResolver._parse_datetime(raw_meta["timestamp"])
+                            if parsed:
+                                logger.info("[ExecutionTimeResolver] Using raw_inputs metadata timestamp.")
+                                return parsed
 
             for key in ("created_at", "timestamp"):
                 if key in llm_context_data:
