@@ -548,6 +548,8 @@ def test_build_mcp_tools_map_fallback_missing_locale(valid_output_profile_fixtur
 def test_printable_sources_rules_export() -> None:
     """Invariant: PRINTABLE_SOURCES_RULES is a strongly typed PrintableSourcesRulesDTO with expected rules."""
     assert isinstance(PRINTABLE_SOURCES_RULES, PrintableSourcesRulesDTO)
-    assert PRINTABLE_SOURCES_RULES.literature_source.display_name_en == "Peer-reviewed scientific literature & framework"
+    assert (
+        PRINTABLE_SOURCES_RULES.literature_source.display_name_en == "Peer-reviewed scientific literature & framework"
+    )
     assert "popper" in PRINTABLE_SOURCES_RULES.theory_evidence_map
     assert PRINTABLE_SOURCES_RULES.default_tool.display_name_en == "External Information Retrieval Gateway"

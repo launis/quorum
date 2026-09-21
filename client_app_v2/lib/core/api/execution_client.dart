@@ -74,8 +74,9 @@ class ExecutionClient {
       if (response.statusCode == 202 ||
           (data is Map<String, dynamic> &&
               data['status']?.toString().toLowerCase() == 'pending')) {
-        final msg =
-            data is Map<String, dynamic> ? data['message'] as String? : null;
+        final msg = data is Map<String, dynamic>
+            ? data['message'] as String?
+            : null;
         onProgress?.call(msg);
 
         attempts++;
