@@ -5,6 +5,8 @@ Visual rules are co-located as a module-level MATRIX_SUMMARY_RULES instance to e
 separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
 
 from backend_v2.models.core_base import I18nText
@@ -71,9 +73,9 @@ class MatrixSummaryTableAdapter:
 
         axes = list(context.parsed_matrices.values())
 
-        raw_columns = (
-            context.profile.matrix_visible_columns if context.profile.matrix_visible_columns else STANDARD_COLUMNS
-        )
+        raw_columns = STANDARD_COLUMNS
+        if context.profile.matrix_visible_columns:
+            raw_columns = context.profile.matrix_visible_columns
         visible_columns = [col for col in raw_columns if col in STANDARD_COLUMNS]
 
         col_labels: dict[str, I18nText] = {}

@@ -1,10 +1,18 @@
+from __future__ import annotations
+
 import backend_v2.models.state  # noqa: F401
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.dtos.sdui_rules import MatrixSummaryAestheticsDTO
 from backend_v2.models.view.sdui import SduiMatrixTableBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import MatrixSummaryTableAdapter
+from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import (
+    MATRIX_SUMMARY_RULES,
+    STANDARD_COLUMNS,
+    MatrixSummaryTableAdapter,
+)
+
 
 
 def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
@@ -184,3 +192,13 @@ def test_matrix_summary_table_adapter_filters_unsupported_columns() -> None:
     assert isinstance(blocks[0], SduiMatrixTableBlock)
     assert blocks[0].matrix_visible_columns == ["label", "score"]
     assert set(blocks[0].matrix_column_labels.keys()) == {"label", "score"}
+
+
+def test_matrix_summary_rules_and_columns() -> None:
+    """Verify MATRIX_SUMMARY_RULES export and STANDARD_COLUMNS integrity."""
+    assert isinstance(MATRIX_SUMMARY_RULES, MatrixSummaryAestheticsDTO)
+    assert MATRIX_SUMMARY_RULES["matrix_summary"].min_axes == 1
+    assert "label" in STANDARD_COLUMNS
+    assert "score" in STANDARD_COLUMNS
+    assert len(STANDARD_COLUMNS) == 9
+
