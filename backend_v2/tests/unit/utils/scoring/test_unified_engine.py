@@ -57,7 +57,9 @@ def test_unified_scoring_engine_basic_calculation() -> None:
     assert result.xai_log.engine_debug_trace["engine"] == "unified"
     assert result.xai_log.engine_debug_trace["strictness_level"] == 50
     assert "1.0" in result.breakdown
-    assert result.breakdown["1.0"]["hits"] == 5
+    assert isinstance(result.breakdown["1.0"], LevelStatsDTO)
+    assert result.breakdown["1.0"].hits == 5
+    assert result.breakdown["1.0"].total == 10
 
 
 def test_unified_scoring_engine_strictness_impact() -> None:

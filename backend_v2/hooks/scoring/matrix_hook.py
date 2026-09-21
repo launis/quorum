@@ -37,7 +37,17 @@ from backend_v2.utils.scoring import get_scoring_engine
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["AtomScoringRuleDTO", "matrix_scoring_hook"]
+__all__ = ["AtomScoringRuleDTO", "BlockMetaDTO", "matrix_scoring_hook"]
+
+
+class BlockMetaDTO(BaseModel):
+    """Metadata and extrema bounds for PromptBlock scoring scales."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    scales: list[float]
+    math_min: float
+    math_max: float
 
 
 class AtomScoringRuleDTO(BaseModel):
@@ -200,7 +210,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             )
 
         atom_mapping: dict[str, AtomScoringRuleDTO] = {}
-        blocks_meta: dict[str, dict[str, Any]] = {}
+        blocks_meta: dict[str, BlockMetaDTO] = {}
 
         # 1. Reverse extraction of Atom Hashes
         for pb_id, pb_model in matrix_blocks:
@@ -211,11 +221,11 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
 
-            blocks_meta[pb_id] = {"scales": []}
+            scales_list: list[float] = []
 
             for scale in scales:
                 s_val = float(scale.score)
-                blocks_meta[pb_id]["scales"].append(s_val)
+                scales_list.append(s_val)
                 claims = scale.claims
                 for claim in claims:
                     tda_assertions = claim.tda_assertions
@@ -231,7 +241,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                 allow_contextual_override=bool(pb_model.allow_contextual_override),
                             )
 
-            if not blocks_meta[pb_id]["scales"]:
+            if not scales_list:
                 msg = f"PromptBlock '{pb_id}' scales array failed to provide numeric values for waterfall bounds."
                 logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
@@ -240,10 +250,13 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
-            blocks_meta[pb_id]["math_min"] = min(blocks_meta[pb_id]["scales"])
-            blocks_meta[pb_id]["math_max"] = max(blocks_meta[pb_id]["scales"])
+            blocks_meta[pb_id] = BlockMetaDTO(
+                scales=scales_list,
+                math_min=min(scales_list),
+                math_max=max(scales_list),
+            )
 
-        block_scale_stats: dict[str, dict[float, dict[str, int]]] = {}
+        block_scale_stats: dict[str, dict[float, LevelStatsDTO]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, ExecutionStatus]] = {}
         atom_quotes_by_block: dict[str, list[Any]] = {}
@@ -312,7 +325,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
             for scale in scales:
                 s_val = float(scale.score)
-                block_scale_stats[pb_id][s_val] = {"hits": 0, "total": 0, "dlqs": 0}
+                block_scale_stats[pb_id][s_val] = LevelStatsDTO(hits=0, total=0, dlqs=0)
 
                 claims = scale.claims
                 for claim in claims:
@@ -415,18 +428,23 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                                         break
 
                             # Record the logic outcomes
+                            cur_stat = block_scale_stats[pb_id][s_val]
                             if final_state == "DLQ":
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.SYSTEM_ERROR
-                                block_scale_stats[pb_id][s_val]["total"] += 1
-                                block_scale_stats[pb_id][s_val]["dlqs"] += 1
+                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                    update={"total": cur_stat.total + 1, "dlqs": cur_stat.dlqs + 1}
+                                )
                                 missing_atoms_by_block[pb_id].append(f"{text} (DLQ - Unscorable)")
                             elif final_state == "TRUE":
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.PASSED
-                                block_scale_stats[pb_id][s_val]["total"] += 1
-                                block_scale_stats[pb_id][s_val]["hits"] += 1
+                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                    update={"total": cur_stat.total + 1, "hits": cur_stat.hits + 1}
+                                )
                             else:
                                 evaluated_atoms_by_block[pb_id][aid] = ExecutionStatus.FAILED
-                                block_scale_stats[pb_id][s_val]["total"] += 1
+                                block_scale_stats[pb_id][s_val] = cur_stat.model_copy(
+                                    update={"total": cur_stat.total + 1}
+                                )
                                 missing_atoms_by_block[pb_id].append(text)
 
         # 3. Calculation via UnifiedScoringEngine
@@ -440,8 +458,8 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             math_min = min(scale_values)
             math_max = max(scale_values)
 
-            global_total = sum(d["total"] for d in raw_stats.values())
-            global_dlqs = sum(d["dlqs"] for d in raw_stats.values())
+            global_total = sum(d.total for d in raw_stats.values())
+            global_dlqs = sum(d.dlqs for d in raw_stats.values())
 
             is_indeterminate = global_total > 0 and (global_dlqs / global_total) > 0.10
 
@@ -455,10 +473,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                 )
             else:
                 engine = get_scoring_engine()
-                stats = {
-                    float(k): LevelStatsDTO(hits=v["hits"], total=v["total"], dlqs=v["dlqs"])
-                    for k, v in raw_stats.items()
-                }
+                stats = {float(k): v for k, v in raw_stats.items()}
                 scoring_result = engine.calculate(
                     stats=stats,
                     math_min=math_min,

@@ -1,9 +1,9 @@
 """Passivity penalty scoring hook."""
 
 import logging
-from typing import Any
+from collections.abc import Mapping
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -71,7 +71,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         prompt_block_ids = step_model.criteria_block_ids
 
         # Resolve which prompt blocks are matrices (Schema-Driven Routing, strictly no duck typing)
-        matrix_blocks_meta: dict[str, dict[str, float]] = {}
+        matrix_blocks_min: dict[str, float] = {}
         for pb_id in prompt_block_ids:
             pb_data = await deps.prompt_block_repo.get_prompt_block_by_id(pb_id)
             if pb_data:
@@ -85,7 +85,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
                             message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                         )
                     scale_values = [float(s.score) for s in scales]
-                    matrix_blocks_meta[pb_id] = {"math_min": min(scale_values)}
+                    matrix_blocks_min[pb_id] = min(scale_values)
 
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Step or PromptBlock validation failed in enforce_passivity_penalty_hook: {e}"
@@ -106,9 +106,11 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     judges_to_check.append((blueprint_id, raw_inputs, True))
 
     for judge_key, judge_model_raw, _ in judges_to_check:
-        try:
-            judge_model = TypeAdapter(dict[str, Any]).validate_python(judge_model_raw)
-        except ValidationError:
+        if isinstance(judge_model_raw, BaseModel):
+            judge_model = judge_model_raw.model_dump()
+        elif isinstance(judge_model_raw, Mapping):
+            judge_model = judge_model_raw
+        else:
             continue
 
         if not judge_model:
@@ -124,7 +126,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         matrix_keys: list[tuple[str, LightweightMatrixOutput]] = []
-        for k in matrix_blocks_meta:
+        for k in matrix_blocks_min:
             if k in judge_model:
                 raw_val = judge_model[k]
                 if isinstance(raw_val, StepOutputDTO):
@@ -140,7 +142,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
                     ) from e
 
         for k, matrix_dto in matrix_keys:
-            math_min = matrix_blocks_meta[k]["math_min"]
+            math_min = matrix_blocks_min[k]
             if matrix_dto.raw_score is not None and matrix_dto.raw_score <= math_min:
                 passivity_detected = True
                 logger.warning("[ScoringHook] Passive/Low Quality detected in V2 Matrix '%s'", k)

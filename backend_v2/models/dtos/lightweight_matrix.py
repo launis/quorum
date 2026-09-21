@@ -34,6 +34,22 @@ class XAILogDto(V2CoreBase):
     engine_debug_trace: Annotated[dict[str, Any], Field(default_factory=dict)]
 
 
+class LevelStatsDTO(V2CoreBase):
+    """Strict execution stats per scale level.
+
+    Attributes:
+        hits: Number of passing criteria at this level.
+        total: Total number of criteria at this level.
+        dlqs: Number of items that hit the dead letter queue (defaults to 0).
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    hits: int | float
+    total: int | float
+    dlqs: int = 0
+
+
 class LightweightMatrixOutput(V2CoreBase):
     """Strict schema for the Lightweight Matrix Output.
 
@@ -52,7 +68,7 @@ class LightweightMatrixOutput(V2CoreBase):
 
     raw_score: float | None = None
     normalized_score: float | None = None
-    level_breakdown: dict[str, dict[str, int]] | None = None
+    level_breakdown: dict[str, LevelStatsDTO] | None = None
     justification: str = ""
     xai_log: XAILogDto | None = None
     evaluated_atoms: Annotated[dict[str, LaxExecutionStatus], Field(default_factory=dict)]
@@ -66,22 +82,6 @@ class LightweightMatrixOutput(V2CoreBase):
         if v is not None and not (0.0 <= v <= 100.0):
             raise ValueError("normalized_score must be between 0.0 and 100.0")
         return v
-
-
-class LevelStatsDTO(V2CoreBase):
-    """Strict execution stats per scale level (Phase 1, Step 1: Define DTO).
-
-    Attributes:
-        hits: Number of passing criteria at this level.
-        total: Total number of criteria at this level.
-        dlqs: Number of items that hit the dead letter queue (defaults to 0).
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-
-    hits: int | float
-    total: int | float
-    dlqs: int = 0
 
 
 class MergedFactsDTO(V2CoreBase):
@@ -107,4 +107,4 @@ class ScoringResultDTO(V2CoreBase):
 
     score: float
     xai_log: XAILogDto
-    breakdown: dict[str, dict[str, int]]
+    breakdown: dict[str, LevelStatsDTO]

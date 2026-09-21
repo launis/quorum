@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.dtos.atom_result import AtomResultDTO
-from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
@@ -120,7 +120,6 @@ class MatrixExplanationService:
 
             payload_to_validate = dict(payload)
             payload_to_validate.pop("results", None)
-            raw_level_breakdown = payload_to_validate.pop("level_breakdown", None)
 
             # Strict Pydantic parsing probe boundary
             try:
@@ -211,36 +210,10 @@ class MatrixExplanationService:
                 )[:effective_max_unmet]
 
                 distribution_str = ""
-                if raw_level_breakdown:
-                    if not isinstance(raw_level_breakdown, Mapping):
-                        logger.error(
-                            "[MatrixExplanationService] %s: raw_level_breakdown is not a mapping: %s",
-                            ErrorCodes.VALIDATION_FAILED.name,
-                            type(raw_level_breakdown).__name__,
-                        )
-                        raise AppException(
-                            message=f"raw_level_breakdown must be a mapping, got {type(raw_level_breakdown).__name__}",
-                            status_code=400,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        )
+                if lw_matrix.level_breakdown:
                     breakdowns = []
-                    for lvl, raw_stats in raw_level_breakdown.items():
-                        try:
-                            stats_dto = LevelStatsDTO.model_validate(raw_stats, strict=False)
-                            breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
-                        except (ValidationError, ValueError) as e:
-                            logger.error(
-                                "[MatrixExplanationService] %s: Malformed level stats for level %s: %s",
-                                ErrorCodes.VALIDATION_FAILED.name,
-                                lvl,
-                                e,
-                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
-                            )
-                            raise AppException(
-                                message=f"Malformed level stats for level {lvl}: {e}",
-                                status_code=422,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from e
+                    for lvl, stats_dto in lw_matrix.level_breakdown.items():
+                        breakdowns.append(f"Level {lvl}: {stats_dto.hits}/{stats_dto.total} hits")
                     if breakdowns:
                         distribution_str = f"[DISTRIBUTION CONTEXT: {', '.join(breakdowns)}]"
 
