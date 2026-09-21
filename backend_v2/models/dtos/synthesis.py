@@ -4,6 +4,8 @@ Strict Pydantic V2 definitions for the SSOT. Contains structured inputs and
 outputs of the reporting synthesis pipeline.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field, TypeAdapter
@@ -17,6 +19,21 @@ from backend_v2.models.view.sdui import (
     SduiQuoteCard,
     SduiWarningCard,
 )
+
+__all__ = [
+    "ExecutiveSummarySectionResult",
+    "LlmSduiBlock",
+    "MatrixExplanationContextDTO",
+    "MatrixExplanationContextList",
+    "MatrixExplanationsResult",
+    "MatrixSectionSynthesesResult",
+    "SynthesisDistillationDTO",
+    "SynthesisOutputDTO",
+    "SynthesisRowExplanationDTO",
+    "SynthesisSectionDTO",
+    "XaiHighlightItem",
+    "XaiHighlightsResult",
+]
 
 LlmSduiBlock = Annotated[
     ParagraphBlock | BulletListBlock | AlertBlock | SduiQuoteCard | SduiWarningCard,
@@ -248,14 +265,11 @@ class SynthesisOutputDTO(V2CoreBase):
     """Structured output expected from the Synthesis LLM.
 
     Attributes:
-        content_blocks: The fully synthesized structured SDUI content blocks.
+        user_role: Optional targeted user role for the output.
+        user_role_justification: Optional LLM justification for role mapping.
         cited_sources: List of references or citations found.
-        section_syntheses: List of synthesized sections, mapped by their Layout ID.
+        section_syntheses: List of synthesized sections, mapped by their layout ID.
         xai_highlights: The deduplicated insight items per extension category.
-        user_role: Extracted targeted user role for the output.
-        user_role_justification: LLM justification for role mapping.
-        executive_summary: High-level synthesized summary.
-        urgency_level: Estimated urgency level.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")

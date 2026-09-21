@@ -3,8 +3,13 @@ from pydantic import ValidationError
 
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
+    MatrixExplanationContextDTO,
+    MatrixExplanationContextList,
+    MatrixExplanationsResult,
     MatrixSectionSynthesesResult,
+    SynthesisDistillationDTO,
     SynthesisOutputDTO,
+    SynthesisRowExplanationDTO,
     SynthesisSectionDTO,
     XaiHighlightItem,
     XaiHighlightsResult,
@@ -153,3 +158,72 @@ def test_executive_summary_section_result_requires_executive_summary() -> None:
             cited_sources=[],
             executive_summary=[],
         )
+
+
+def test_matrix_explanation_context_strictness() -> None:
+    """Test MatrixExplanationContextDTO and TypeAdapter list validation."""
+    dto = MatrixExplanationContextDTO(
+        real_matrix_id="blk_0123456789abcdef01",
+        matrix_id="m0",
+        matrix_label="Strategic Alignment",
+        score=4.5,
+        justification="Strong alignment observed.",
+    )
+    assert dto.real_matrix_id == "blk_0123456789abcdef01"
+    assert dto.score == 4.5
+
+    # Test TypeAdapter validation
+    validated_list = MatrixExplanationContextList.validate_python([dto])
+    assert len(validated_list) == 1
+    assert validated_list[0].matrix_id == "m0"
+
+    with pytest.raises(ValidationError):
+        MatrixExplanationContextDTO(
+            real_matrix_id="blk_0123456789abcdef01",
+            matrix_id="m0",
+            matrix_label="Strategic Alignment",
+            justification="Justification",
+            extra="forbidden",
+        )  # type: ignore[call-arg]
+
+
+def test_synthesis_distillation_strictness() -> None:
+    """Test SynthesisDistillationDTO defaults, frozen immutability, and strict extra forbid."""
+    dto = SynthesisDistillationDTO(distilled_inputs="Concatenated input text.")
+    assert dto.distilled_inputs == "Concatenated input text."
+    assert dto.max_extensions == 5
+    assert dto.target_locale == "en"
+
+    with pytest.raises(ValidationError):
+        dto.distilled_inputs = "mutated"  # type: ignore[misc]
+
+    with pytest.raises(ValidationError):
+        SynthesisDistillationDTO(distilled_inputs="test", unknown_field="fail")  # type: ignore[call-arg]
+
+
+def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
+    """Test SynthesisRowExplanationDTO and MatrixExplanationsResult strict validation."""
+    row = SynthesisRowExplanationDTO(
+        matrix_id="m0",
+        row_explanation="High focus on strategic clarity.",
+        curated_quotes=["clarity quote"],
+    )
+    assert row.matrix_id == "m0"
+    assert len(row.curated_quotes) == 1
+
+    res = MatrixExplanationsResult(explanations=[row])
+    assert len(res.explanations) == 1
+
+    with pytest.raises(ValidationError):
+        SynthesisRowExplanationDTO(
+            matrix_id="m0",
+            row_explanation="Explanation",
+            extra="forbidden",
+        )  # type: ignore[call-arg]
+
+    with pytest.raises(ValidationError):
+        MatrixExplanationsResult(
+            explanations=[row],
+            extra="forbidden",
+        )  # type: ignore[call-arg]
+
