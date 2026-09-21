@@ -86,8 +86,15 @@ class ExecutionService:
         self.identity_repo, self.system_repo = identity_repo, system_repo
         self.usage_service = usage_service
         self.executor = executor
-        self.export_service = export_service if export_service is not None else ExportService(comp_repo=comp_repo)
-        self.storage: FileDriver = storage_driver if storage_driver is not None else get_storage_driver()
+        if export_service is not None:
+            self.export_service = export_service
+        else:
+            self.export_service = ExportService(comp_repo=comp_repo)
+
+        if storage_driver is not None:
+            self.storage: FileDriver = storage_driver
+        else:
+            self.storage = get_storage_driver()
 
         self._resumption = ExecutionResumptionService(
             exec_repo,
@@ -136,17 +143,42 @@ class ExecutionService:
         )
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
-        """List all execution records accessible to the initiator."""
+        """List all execution records accessible to the initiator.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+
+        Returns:
+            List of execution records belonging to user's organization.
+        """
         return await self._lifecycle.list_executions(initiator)
 
     async def get_execution(
         self, initiator: TokenData, execution_id: str, hydrate: bool = True, skip_resumability: bool = False
     ) -> ExecutionRecord:
-        """Retrieve a specific execution record by ID."""
+        """Retrieve a specific execution record by ID.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            hydrate: Whether to hydrate related workflow and step metadata.
+            skip_resumability: Whether to bypass checking resumable state.
+
+        Returns:
+            Retrieved execution record.
+        """
         return await self._lifecycle.get_execution(initiator, execution_id, hydrate, skip_resumability)
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
-        """Delete an execution record and associated storage artifacts."""
+        """Delete an execution record and associated storage artifacts.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Returns:
+            True if execution was successfully deleted.
+        """
         return await self._lifecycle.delete_execution(initiator, execution_id)
 
     async def start_execution(
@@ -156,47 +188,124 @@ class ExecutionService:
         arq_pool: ArqRedis,
         doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionRecord:
-        """Validate ingress payload and schedule a new execution run."""
+        """Validate ingress payload and schedule a new execution run.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            payload: Input parameters and target workflow for execution.
+            arq_pool: Redis worker connection pool for job queueing.
+            doc_service: Optional service for document text extraction.
+
+        Returns:
+            Newly initialized execution record.
+        """
         return await self._ingress.start_execution(initiator, payload, arq_pool, doc_service)
 
     async def get_workflow_ui_schema(self, workflow_id: str) -> WorkflowSchemaResponseDTO:
-        """Retrieve the dynamic UI schema for a specific workflow."""
+        """Retrieve the dynamic UI schema for a specific workflow.
+
+        Args:
+            workflow_id: Canonical Opaque Stripe ID of target workflow.
+
+        Returns:
+            Workflow schema response containing input definitions and rules.
+        """
         return await self._ingress.get_workflow_ui_schema(workflow_id)
 
     async def check_resumability(self, record: ExecutionRecord) -> bool:
-        """Check if an interrupted execution record can be resumed."""
+        """Check if an interrupted execution record can be resumed.
+
+        Args:
+            record: Target execution record to evaluate.
+
+        Returns:
+            True if execution state permits resumption.
+        """
         return await self._resumption.check_resumability(record)
 
     async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
-        """Resume an interrupted or paused execution run."""
+        """Resume an interrupted or paused execution run.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            arq_pool: Redis worker connection pool for job queueing.
+
+        Returns:
+            Updated execution record scheduled for resumption.
+        """
         return await self._resumption.resume_execution(initiator, execution_id, arq_pool)
 
     async def override_atom(
         self, initiator: TokenData, execution_id: str, atom_id: str, payload: HumanOverrideRequest
     ) -> None:
-        """Apply a human override decision to an evaluated atom."""
+        """Apply a human override decision to an evaluated atom.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            atom_id: Target atom identifier to override.
+            payload: Override parameters including verdict and explanation.
+        """
         await self._override.override_atom(initiator, execution_id, atom_id, payload)
 
     async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
-        """Reject a specific evidence quote on an execution record."""
+        """Reject a specific evidence quote on an execution record.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            evq_id: Unique quote evidence identifier to reject.
+            reason: Text explanation for quote rejection.
+        """
         await self._override.reject_evidence_quote(initiator, execution_id, evq_id, reason)
 
     async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
-        """Clear cached profile synthesis blocks for an execution."""
+        """Clear cached profile synthesis blocks for an execution.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            profile_id: Canonical Opaque Stripe ID of output profile.
+        """
         await self._override.clear_profile_synthesis(initiator, execution_id, profile_id)
 
     async def stream_status(self, initiator: TokenData, execution_id: str) -> AsyncGenerator[str]:
-        """Yield Server-Sent Events streaming the real-time status of an execution."""
+        """Yield Server-Sent Events streaming the real-time status of an execution.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Yields:
+            Serialized Server-Sent Events chunks reporting status updates.
+        """
         async for chunk in self._stream.stream_status(initiator, execution_id):
             yield chunk
 
     async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
-        """Retrieve the raw frozen context JSON payload for an execution."""
+        """Retrieve the raw frozen context JSON payload for an execution.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Returns:
+            Tuple of (raw bytes of frozen context JSON, suggested filename).
+        """
         return await self._context.get_frozen_context_bytes(initiator, execution_id)
 
     @deprecated("Use ExportService.export_excel directly or ReportService.get_report_excel_bytes.")
     async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
-        """Retrieve legacy export bytes for an execution."""
+        """Retrieve legacy export bytes for an execution.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Returns:
+            Tuple of (raw bytes of exported file, suggested filename).
+        """
         return await self._renderer.get_execution_export_bytes(initiator, execution_id)
 
     async def render_execution(
@@ -210,7 +319,21 @@ class ExecutionService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> RenderExecutionResultDTO:
-        """Render an execution into requested format (PDF, SDUI, HTML, etc.)."""
+        """Render an execution into requested format (PDF, SDUI, HTML, etc.).
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            format_type: Desired output format representation.
+            profile_id: Optional output profile identifier.
+            accept_language: Optional user locale preference.
+            arq_pool: Redis worker connection pool for job queueing.
+            custom_preface_md: Optional custom Markdown preface for rendering.
+            local_time_str: Optional client local timestamp string.
+
+        Returns:
+            Render result DTO containing rendered payload and metadata.
+        """
         return await self._renderer.render_execution(
             initiator,
             execution_id,
@@ -223,11 +346,27 @@ class ExecutionService:
         )
 
     async def get_report_dto(self, initiator: TokenData, execution_id: str) -> ReportDataDTO:
-        """Compile and return the complete ReportDataDTO for an execution."""
+        """Compile and return the complete ReportDataDTO for an execution.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Returns:
+            Fully compiled ReportDataDTO object.
+        """
         return await self._renderer.get_report_dto(initiator, execution_id)
 
     async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> ReportView:
-        """Generate and return the Server-Driven UI ReportView model."""
+        """Generate and return the Server-Driven UI ReportView model.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+
+        Returns:
+            Structured ReportView containing SDUI sections and blocks.
+        """
         return await self._renderer.get_sdui_view(initiator, execution_id)
 
     async def enqueue_pdf_generation(
@@ -240,7 +379,17 @@ class ExecutionService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> None:
-        """Enqueue an asynchronous background task to render execution PDF."""
+        """Enqueue an asynchronous background task to render execution PDF.
+
+        Args:
+            initiator: Authentication token data of requesting user.
+            execution_id: Canonical Opaque Stripe ID of target execution.
+            accept_language: Optional user locale preference.
+            profile_id: Output profile identifier for report layout.
+            arq_pool: Redis worker connection pool for job queueing.
+            custom_preface_md: Optional custom Markdown preface for report.
+            local_time_str: Optional client local timestamp string.
+        """
         await self._renderer.enqueue_pdf_generation(
             initiator, execution_id, accept_language, profile_id, arq_pool, custom_preface_md, local_time_str
         )
