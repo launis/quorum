@@ -14,6 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
     MatrixExplanationContextDTO,
@@ -65,7 +66,20 @@ async def create_executive_summary_task(
     active_profile_dto: OutputProfile | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> Any | None:
-    """Build and execute the executive summary structured LLM task."""
+    """Build and execute the executive summary structured LLM task.
+
+    Args:
+        client: The LLMClient instance to use for generation.
+        sys_prompt: System prompt containing foundational instructions.
+        base_dynamic_parts: Static and dynamic prompt prefixes.
+        distilled_inputs: Input document text payloads.
+        matrix_context: Compiled matrix assertions and context.
+        active_profile_dto: Active output profile configuration.
+        sem_runner: Concurrency runner executing coroutines under semaphore.
+
+    Returns:
+        A tuple of (ExecutiveSummarySectionResult, TokenUsage) if successful, or None if skipped.
+    """
     if active_profile_dto is not None and not active_profile_dto.requires_executive_synthesis:
         return None
 
@@ -128,13 +142,27 @@ async def create_matrix_sections_tasks(
     distilled_data: SynthesisDistillationDTO,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> list[tuple[str, Any]]:
-    """Build and execute matrix synthesis group structured tasks."""
+    """Build and execute matrix synthesis group structured tasks.
+
+    Args:
+        client: The LLMClient instance to execute tasks.
+        sys_prompt: System prompt with static instructions.
+        base_dynamic_parts: Dynamic prompt parts list.
+        distilled_inputs: Document inputs representation.
+        matrix_context: Formatted matrix evaluation context.
+        active_profile_dto: Active profile containing group configurations.
+        distilled_data: Distillation DTO containing locale and title map.
+        sem_runner: Concurrency runner executing coroutines under semaphore.
+
+    Returns:
+        List of tuples mapping group ID to (MatrixSectionSynthesesResult, TokenUsage).
+    """
     if not active_profile_dto or not active_profile_dto.requires_group_synthesis:
         return []
 
     language = distilled_data.target_locale
     title_map: dict[str, str] = distilled_data.title_map
-    tasks_results: list[tuple[str, Any]] = []
+    tasks_results: list[tuple[str, tuple[MatrixSectionSynthesesResult, TokenUsage]]] = []
 
     for grp in active_profile_dto.matrix_synthesis_groups:
         grp_id = grp.id
@@ -217,7 +245,24 @@ async def create_xai_highlights_task(
     active_profile_dto: OutputProfile | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> Any | None:
-    """Build and execute the XAI highlights structured task."""
+    """Build and execute the XAI highlights structured task.
+
+    Args:
+        client: The LLMClient instance to execute tasks.
+        sys_prompt: System prompt with static instructions.
+        base_dynamic_parts: Dynamic prompt parts list.
+        distilled_inputs: Document inputs representation.
+        matrix_context: Formatted matrix evaluation context.
+        active_profile_dto: Active profile containing XAI configuration.
+        sem_runner: Concurrency runner executing coroutines under semaphore.
+
+    Returns:
+        A tuple of (XaiHighlightsResult, TokenUsage) if generated, or None if skipped.
+
+    Raises:
+        AppException: If max_extension_items is missing when extensions are visible
+            (ErrorCodes.VALIDATION_FAILED).
+    """
     if not active_profile_dto or not (
         active_profile_dto.visible_block_extensions or active_profile_dto.visible_workflow_extensions
     ):
@@ -225,6 +270,10 @@ async def create_xai_highlights_task(
 
     max_ext = active_profile_dto.max_extension_items
     if max_ext is None:
+        logger.error(
+            "[synthesis_tasks] %s: max_extension_items is mandatory if extensions are visible.",
+            ErrorCodes.VALIDATION_FAILED.name,
+        )
         raise AppException(
             message="Fail-Fast: max_extension_items is mandatory if extensions are visible.",
             status_code=400,
@@ -287,7 +336,20 @@ async def create_row_explanations_task(
     workflow_registry_id: str | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> Any | None:
-    """Build and execute row explanations structured task using FAST cognitive tier."""
+    """Build and execute row explanations structured task using FAST cognitive tier.
+
+    Args:
+        repo: Repository for resolving model configurations and credentials.
+        matrices_to_explain: List of matrix explanation context DTOs.
+        active_profile_dto: Active output profile with row explanation rules.
+        accept_language: Target locale string for output translation.
+        execution: Current execution record for metadata resolution.
+        workflow_registry_id: Optional fallback model registry identifier.
+        sem_runner: Concurrency runner executing coroutines under semaphore.
+
+    Returns:
+        A tuple of (MatrixExplanationsResult, TokenUsage) if successful, or None if skipped.
+    """
     if not matrices_to_explain or (active_profile_dto is not None and not active_profile_dto.requires_row_explanations):
         return None
 

@@ -392,3 +392,70 @@ async def test_create_xai_highlights_task_missing_directive_returns_none() -> No
 
     res = await create_xai_highlights_task(AsyncMock(), "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert res is None
+
+
+@pytest.mark.asyncio
+async def test_create_executive_summary_task_none_profile_returns_none() -> None:
+    """Test create_executive_summary_task returns None when active_profile_dto is None."""
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    res = await create_executive_summary_task(AsyncMock(), "sys", [], "distilled", "matrix", None, dummy_sem)
+    assert res is None
+
+
+@pytest.mark.asyncio
+async def test_create_matrix_sections_tasks_unknown_view_type_skips() -> None:
+    """Test create_matrix_sections_tasks skips groups with unrecognized view_type."""
+    grp = MatrixSynthesisGroup(
+        id="grp_0123456789abcdef",
+        title=I18nText(translations={"en": "Unknown Group"}),
+        view_type=PresetView.METRICS_1D,
+        target_blocks=["blk_0123456789abcdef01"],
+    )
+    grp_unknown = grp.model_copy(update={"view_type": "invalid_custom_type"})
+    prof = _make_profile(requires_groups=True, groups=[grp_unknown])
+
+    distilled = SynthesisDistillationDTO(distilled_inputs="inputs")
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    results = await create_matrix_sections_tasks(
+        AsyncMock(), "sys", [], "distilled", "matrix", prof, distilled, dummy_sem
+    )
+    assert results == []
+
+
+@pytest.mark.asyncio
+async def test_create_xai_highlights_task_with_block_extensions() -> None:
+    """Test create_xai_highlights_task includes visible_block_extensions."""
+    prof = _make_profile(extensions=[XaiExtensionType.VARIANCE_VALIDATION]).model_copy(
+        update={
+            "visible_block_extensions": [XaiExtensionType.VARIANCE_VALIDATION],
+            "max_extension_items": 5,
+            "xai_synthesis_directive": "Synthesize block extensions.",
+        }
+    )
+
+    mock_client = AsyncMock()
+    mock_client.run_structured_task = AsyncMock(
+        return_value=(
+            XaiHighlightsResult(
+                xai_highlights=[
+                    XaiHighlightItem(
+                        extension_type="variance_validation",
+                        content="Synthesized highlight.",
+                    )
+                ]
+            ),
+            None,
+        )
+    )
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    res = await create_xai_highlights_task(mock_client, "sys", [], "distilled", "matrix", prof, dummy_sem)
+    assert res is not None
+
