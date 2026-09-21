@@ -22,7 +22,7 @@
 ### Phase 1: Pre-Implementation Technical Debt Cleanups & Full-Duplex Zero Permissive Typing Foundation
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
   - [ ] Step 1.0: Pre-Implementation Technical Debt Cleanups Execution
   - [ ] Step 1.1: Freezed DTO Model Generation
   - [ ] Step 1.2: API Clients & Controllers Typing Refactor
@@ -33,7 +33,7 @@
 ### Phase 2: SDUI Dumb Painter Performance & Cell Decomposition
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md]
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
   - [ ] Step 2.1: SduiMatrixTableWidget Cell Decomposition & In-Build Sorting Purge
   - [ ] Step 2.2: XAIAxisTelemetryGrid & AtomMatrixTableWidget Refactoring
   - [ ] Step 2.3: Purge SizedBox.shrink() Concealment (DGR002)
@@ -44,7 +44,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md]
 - [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --phase=3`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
   - [ ] Step 3.1: Standardized Master View Virtualization & Containment
   - [ ] Step 3.2: Banned Freezed .when() Purge & Enum Alignment
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
@@ -54,7 +54,7 @@
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md]
 - [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --phase=4`
 - [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
   - [ ] Step 4.1: HumanOverrideDialog Hardening & Test Suite
   - [ ] Step 4.2: Studio Modals & Complex Editors Hardening
   - [ ] Step 4.3: Universal Quality Gates & Static Guardrails
@@ -110,10 +110,15 @@
 
 ## Instructions for the Execution Agent
 - Enforce atomic git commits after each passing quality gate loop.
+- Seed environment command if database verification is needed: `uv run python backend_v2/seed/run_seed.py local`.
+- All target file paths must be wrapped strictly in workspace-relative `@[...]` reference syntax.
 - Never modify files outside the declared TARGET boundaries of the active plan.
 - All Flutter modifications must be verified using `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/ --build`.
 - Verify Dart guardrails via `uv run python scripts/_dart_guardrails.py` on touched files.
-- Mandatory workflow loop per phase: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`.
+- You MUST update the `/tier5-resume` or `/tier0-research-plan` (or `/tier0-create-plan` if the plan is missing) command at the bottom of this tracker before handing over the session.
+- Execution Mode: Continuous Full-Auto Mode is MANDATED by user directive (`/tier2-execute ... --full-auto`). Whenever `/tier2-execute` is invoked, execute in continuous `--full-auto` mode without pausing between steps as long as quality gates pass 100%, and trigger clean session handover when the context budget limit is reached: >8 turns, 3 atomic commits, or >5 modified files.
+- Mandatory workflow loop per phase: `[/tier0-create-plan if deferred] -> /tier0-research-plan -> /tier2-execute -> /tier8-audit-plan`. You MUST ALWAYS pass BOTH the plan and the tracker file in ALL commands.
+- Once all Phases are complete, the loop MUST continue through the Post-Implementation Gates: `/tier2-hardening-backend` -> `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`. Note: You do not need to specify `--rules` in the resume command; context rules are self-hydrating.
 
 ## Requirements Traceability Matrix
 
