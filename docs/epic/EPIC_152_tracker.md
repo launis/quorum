@@ -223,11 +223,11 @@
   - [x] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
   - [x] [NEW] @[backend_v2/models/dtos/matrix_parser.py]
   - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
-  - [ ] @[backend_v2/models/dtos/engine.py]
-  - [ ] @[backend_v2/utils/scoring/unified_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-  - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/passivity_hook.py]
+  - [x] @[backend_v2/models/dtos/engine.py]
+  - [x] @[backend_v2/utils/scoring/unified_engine.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [x] @[backend_v2/hooks/scoring/passivity_hook.py]
   - [ ] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
@@ -416,7 +416,13 @@
     79. `backend_v2/models/dtos/step_telemetry.py` (Commit `5db0a240`): Added `from __future__ import annotations`, explicit `__all__ = ["StepTelemetryEntryDTO"]`, PEP 593 `Annotated` syntax, created unit test suite `test_step_telemetry.py` with 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
     80. `backend_v2/models/dtos/matrix_parser.py` (Commit `4e5e4cd4`): Added `from __future__ import annotations`, explicit `__all__ = ["ParsedMatricesResultDTO", "ScorecardAtomCollectionDTO"]`, verified dictionary collection methods and extra-field forbidding, 100% test coverage (2/2 passed), 0 AST violations, audit matrix verified.
     81. `backend_v2/models/dtos/lightweight_matrix.py` (Commit `71df02d1`): Added `from __future__ import annotations`, explicit `__all__`, PEP 593 `Annotated` syntax across all fields of `OutputProfileConfig`, `XAILogDto`, `LevelStatsDTO`, `LightweightMatrixOutput`, and `ScoringResultDTO`, expanded unit test suite `test_lightweight_matrix.py` achieving 100% test coverage (8/8 passed), 0 AST violations, audit matrix verified.
-- All 81 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 17 (Completed & Committed):
+    82. `backend_v2/models/dtos/engine.py` (Commit `098aee0b`): Converted all fields in `MatrixEvaluationContext`, `EngineExecutionRequest`, and `EngineExecutionResult` to PEP 593 `Annotated` syntax. Expanded unit test suite `test_engine.py` with negative tests for extra fields and missing required attributes (15/15 passed, 100% coverage), 0 AST violations, audit matrix verified.
+    83. `backend_v2/utils/scoring/unified_engine.py` (Commit `96cb4524`): Added `from __future__ import annotations`, explicit `__all__ = ["UnifiedScoringEngine", "calculate_strictness_exponent"]`, explicit `Raises: AppException` contract in `calculate` docstring, verified all 16 tests in `test_unified_engine.py` passed with 100% line coverage and 0 AST violations, audit matrix verified.
+    84. `backend_v2/services/orchestrator/matrix_explanation_service.py` (Commit `d1dcd5ce`): Repositioned module docstring to the very top before imports; annotated `QuoteCandidateDTO` fields with PEP 593 `Annotated`; refactored ternaries in `effective_max_quotes`, `effective_max_unmet`, and `resolved_label` into explicit `if/else` statements. Verified all 19 tests in `test_matrix_explanation_service.py` passed with 99% line coverage and 0 AST violations, audit matrix verified.
+    85. `backend_v2/hooks/scoring/matrix_hook.py` (Commit `1c688b40`): Annotated `BlockMetaDTO` and `AtomScoringRuleDTO` with PEP 593 `Annotated` syntax. Verified all 21 tests in `test_matrix_hook.py` passed with 94% line coverage and 0 AST violations, audit matrix verified.
+    86. `backend_v2/hooks/scoring/passivity_hook.py` (Commit `d2c400eb`): Added `from __future__ import annotations`, explicit `__all__ = ["enforce_passivity_penalty_hook"]`, RFC 7807 structured `logger.error` before all 8 `AppException` raises, eliminated anonymous 3-tuple `(blueprint_id, raw_inputs, True)` in favor of 2-tuple `(blueprint_id, raw_inputs)`. Created dedicated test suite `test_passivity_hook.py` with 17 unit tests achieving 95% line coverage, 0 AST violations, audit matrix verified.
+- All 86 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - In `test_legacy_render_service.py`, `QGR014` strictly prohibits assigning `AsyncMock()` or `MagicMock()` to variable names ending with `_repo` or starting with `repo_`. Replacing mock repositories with in-memory fakes (`InMemoryExecutionRepository`, `InMemoryWorkflowRepository`) satisfies the anti-mocking architecture and guarantees realistic stateful persistence testing.
@@ -452,14 +458,25 @@
 - `AtomResultDTO` mandates `evaluation_reasoning` for cognitive statuses `FAILED` and `PASSED`, and requires `error_details` (`ErrorDetailsDTO`) for `SYSTEM_ERROR`.
 - `MatrixScorecardRowDTO.label_i18n` is a mandatory `I18nText` instance, allowing direct `.resolve()` calls without defensive None checks.
 - Excel export headers and status values must avoid ternary literal fallbacks (`QGR016`) by using explicit `if/else` statements.
+- In `passivity_hook.py`, anonymous 3-tuples `(blueprint_id, raw_inputs, True)` violate `ban_anonymous_state_tuples`; eliminating the unused third boolean flag to a standard 2-tuple `(blueprint_id, raw_inputs)` restores compliance.
+- In `passivity_hook.py`, MyPy narrows `isinstance(judge_model_raw, Mapping)` to `Mapping[Any, Any]`; reconstructing keys cleanly as `{str(k): v for k, v in judge_model_raw.items()}` ensures type-safe assignment to `judge_model: dict[str, Any]`.
+- In `test_passivity_hook.py`, test step blueprints and task IDs must strictly conform to `OPAQUE_STRIPE_ID_REGEX` with hex characters (`stp_1234567890abcdef`), avoiding non-hex characters like `blueprint`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 17):
-  - `backend_v2/models/dtos/engine.py`
-  - `backend_v2/utils/scoring/unified_engine.py`
-  - `backend_v2/services/orchestrator/matrix_explanation_service.py`
-  - `backend_v2/hooks/scoring/matrix_hook.py`
-  - `backend_v2/hooks/scoring/passivity_hook.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 18):
+  - `backend_v2/services/sdui/adapters/global_score_adapter.py`
+  - `backend_v2/services/sdui/adapters/matrix_graphs_adapter.py`
+  - `backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py`
+  - `backend_v2/services/sdui/adapters/mcp_audit_adapter.py`
+  - `backend_v2/services/sdui/adapters/metadata_adapter.py`
+- Subsequent Hardening Targets:
+  - `backend_v2/services/sdui/adapters/synthesis_text_adapter.py`
+  - `backend_v2/services/sdui/adapters/warning_card_adapter.py`
+  - `backend_v2/services/sdui/adapters/xai_highlights_adapter.py`
+  - `backend_v2/workers/execution_worker.py`
+  - `backend_v2/services/orchestrator/sliding_window_linker.py`
+  - `backend_v2/services/localization.py`
+  - `backend_v2/services/matrix_domain_parser.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
