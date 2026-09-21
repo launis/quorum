@@ -12,7 +12,10 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
-from backend_v2.services.orchestrator.matrix_explanation_service import MatrixExplanationService
+from backend_v2.services.orchestrator.matrix_explanation_service import (
+    MatrixExplanationService,
+    QuoteCandidateDTO,
+)
 
 
 def _create_matrix_block(
@@ -994,3 +997,39 @@ def test_assemble_matrices_to_explain_payload_skips() -> None:
     )
     assert len(result) == 1
     assert result[0].real_matrix_id == block_id
+
+
+def test_quote_candidate_dto_model() -> None:
+    """Test QuoteCandidateDTO model validation, immutability, and attribute access."""
+    candidate = QuoteCandidateDTO(
+        claim_label="Test Claim",
+        quote="A sufficiently long quote string for testing candidate DTO.",
+        quote_length=56,
+    )
+    assert candidate.claim_label == "Test Claim"
+    assert candidate.quote_length == 56
+
+    with pytest.raises(Exception):
+        candidate.quote = "mutated"  # type: ignore[misc]
+
+
+def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> None:
+    """Test skipping when payload is a non-mapping collection like a set."""
+    block_id = "blk_333333333333333333333333"
+    matrix_block = _create_matrix_block(block_id=block_id)
+    blocks_by_id = {block_id: matrix_block}
+
+    dtos = [
+        StepOutputDTO(
+            step_id="s_set",
+            block_id=block_id,
+            data_type="matrix",
+            payload={1, 2, 3},  # Set is not Mapping and not scalar
+        ),
+    ]
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
+    )
+    assert len(result) == 0
+

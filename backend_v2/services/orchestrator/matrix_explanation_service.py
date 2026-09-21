@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Matrix Explanation Service.
 
 Abstracts the matrix quote assembly and justification logic out of the
@@ -8,7 +10,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -23,11 +25,27 @@ from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["MatrixExplanationService"]
+__all__ = ["MatrixExplanationService", "QuoteCandidateDTO"]
+
+
+class QuoteCandidateDTO(BaseModel):
+    """Candidate evidence quote for ranked round-robin selection.
+
+    Attributes:
+        claim_label: Localized label of the associated claim.
+        quote: Evidence quote text string.
+        quote_length: Character length of the quote.
+    """
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    claim_label: str
+    quote: str
+    quote_length: int
 
 
 class MatrixExplanationService:
-    """Service to assemble matrices to explain by extracting quotes."""
+    """Service to assemble matrices to explain by extracting quotes and unmet criteria."""
 
     @staticmethod
     def assemble_matrices_to_explain(
@@ -50,6 +68,10 @@ class MatrixExplanationService:
 
         Returns:
             List of MatrixExplanationContextDTO objects.
+
+        Raises:
+            AppException: If atom results or matrix payloads are malformed, or if an evaluated TDA atom
+                is missing from the claim mapping (VALIDATION_FAILED).
         """
         matrices_to_explain_map: dict[str, MatrixExplanationContextDTO] = {}
         alias_engine = AliasEngine()
@@ -152,7 +174,7 @@ class MatrixExplanationService:
                                     tda_to_scale[tda.tda_id] = scale.score
 
             seen_matrix_quotes: set[str] = set()
-            quote_candidates: list[dict[str, Any]] = []
+            quote_candidates: list[QuoteCandidateDTO] = []
             unmet_claim_to_min_scale: dict[str, int] = {}
 
             if lw_matrix.evaluated_atoms:
@@ -160,8 +182,11 @@ class MatrixExplanationService:
                     if hit_status == ExecutionStatus.PASSED:
                         if tda_id not in tda_to_claim:
                             logger.error(
-                                "TDA atom missing from claim map during matrix explanation.",
-                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "tda_id": tda_id},
+                                "[MatrixExplanationService] %s: TDA atom '%s' missing from claim mapping in matrix '%s'",
+                                ErrorCodes.VALIDATION_FAILED.name,
+                                tda_id,
+                                block_id,
+                                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
                             )
                             raise AppException(
                                 message=f"TDA atom '{tda_id}' missing from claim mapping in matrix '{block_id}'.",
@@ -174,11 +199,11 @@ class MatrixExplanationService:
                                 if q not in seen_matrix_quotes:
                                     seen_matrix_quotes.add(q)
                                     quote_candidates.append(
-                                        {
-                                            "claim_label": claim_name,
-                                            "quote": q,
-                                            "quote_length": len(q),
-                                        }
+                                        QuoteCandidateDTO(
+                                            claim_label=claim_name,
+                                            quote=q,
+                                            quote_length=len(q),
+                                        )
                                     )
                     elif hit_status == ExecutionStatus.FAILED:
                         if tda_id in tda_to_claim and tda_id in tda_to_scale:
@@ -196,12 +221,12 @@ class MatrixExplanationService:
                 # Curate quotes via Ranked Round-Robin selection
                 selected_quote_items = ranked_round_robin_select(
                     quote_candidates,
-                    group_key=lambda item: item["claim_label"],
-                    rank_key=lambda item: item["quote_length"],
+                    group_key=lambda item: item.claim_label,
+                    rank_key=lambda item: item.quote_length,
                     max_items=effective_max_quotes,
                     reverse_rank=True,
                 )
-                selected_quotes = [item["quote"] for item in selected_quote_items]
+                selected_quotes = [item.quote for item in selected_quote_items]
 
                 # Curate unmet criteria deterministically (ascending scale score order, alphabetical tie-break)
                 sorted_unmet_claims = sorted(
