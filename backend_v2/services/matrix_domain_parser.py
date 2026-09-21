@@ -1,10 +1,13 @@
 """Matrix Domain Parser Service."""
 
+from __future__ import annotations
+
 import logging
 import re
 from collections.abc import Mapping
 from typing import Any
 
+from fastapi import status
 from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -99,7 +102,8 @@ class MatrixDomainParser:
             A ParsedMatricesResultDTO containing parsed scorecard rows and atom collections.
 
         Raises:
-            AppException: If validation or configuration constraints fail.
+            AppException: If validation or configuration constraints fail (specifically:
+                ErrorCodes.VALIDATION_FAILED, ErrorCodes.CONFIGURATION_ERROR).
         """
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
@@ -127,7 +131,9 @@ class MatrixDomainParser:
                 msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
                 logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                 raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    message=msg,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from e
 
             true_atoms = None
@@ -149,10 +155,6 @@ class MatrixDomainParser:
                     raw_score = None
                     norm_score = None
 
-            axis_name = pb_meta.label.resolve(locale) if pb_meta.label else b_id
-            if not axis_name:
-                axis_name = b_id
-
             if not pb_meta.label:
                 logger.error(
                     "[MatrixDomainParser] %s: Fail-Fast: PromptBlock '%s' is missing a required I18n label.",
@@ -161,9 +163,13 @@ class MatrixDomainParser:
                 )
                 raise AppException(
                     message=f"Fail-Fast: PromptBlock '{b_id}' is missing a required I18n label.",
-                    status_code=500,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
+            axis_name = pb_meta.label.resolve(locale)
+            if not axis_name:
+                axis_name = b_id
+
             axis_description = ""
             if pb_meta.description:
                 axis_description = pb_meta.description.resolve(locale)
@@ -176,7 +182,7 @@ class MatrixDomainParser:
                 )
                 raise AppException(
                     message=f"PromptBlock '{b_id}' missing Pydantic computed_min/max.",
-                    status_code=500,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
@@ -192,7 +198,7 @@ class MatrixDomainParser:
                 )
                 raise AppException(
                     message=f"PromptBlock '{b_id}' initialized as matrix but has no scales.",
-                    status_code=500,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
@@ -208,12 +214,15 @@ class MatrixDomainParser:
                     )
                     raise AppException(
                         message=f"Fail-Fast: MatrixScale in block '{b_id}' missing 'name'.",
-                        status_code=500,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
                 s_label = s.name.resolve(locale)
 
-                int_str = str(int(s_score)) if s_score.is_integer() else str(s_score)
+                if s_score.is_integer():
+                    int_str = str(int(s_score))
+                else:
+                    int_str = str(s_score)
                 float_str = str(s_score)
                 level_names[int_str] = s_label
                 if float_str != int_str:
@@ -242,7 +251,7 @@ class MatrixDomainParser:
                     )
                     raise AppException(
                         message=f"OutputProfile '{profile.id}' is missing custom_scale_min/max under custom scale.",
-                        status_code=500,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     )
                 display_scale_min = float(profile.custom_scale_min)
@@ -305,7 +314,10 @@ class MatrixDomainParser:
                     try:
                         f_lvl = float(lvl_key)
                         is_int = f_lvl.is_integer()
-                        c_key = str(int(f_lvl)) if is_int else str(lvl_key)
+                        if is_int:
+                            c_key = str(int(f_lvl))
+                        else:
+                            c_key = str(lvl_key)
                         hits = lvl_data.hits
                         total = lvl_data.total
                         clean_level_dict[c_key] = f"{hits}/{total}"
@@ -319,7 +331,7 @@ class MatrixDomainParser:
                         )
                         raise AppException(
                             message=(f"Fail-Fast: Invalid level key '{lvl_key}' in matrix breakdown for '{b_id}'."),
-                            status_code=500,
+                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from v_err
                 axis_level_breakdown = clean_level_dict
@@ -329,9 +341,9 @@ class MatrixDomainParser:
             synthesis_expected = profile.requires_row_explanations and has_synthesis_cache
             is_data_starved = False
             if execution and execution.profile_syntheses:
-                current_cache = (
-                    execution.profile_syntheses[profile.id] if profile.id in execution.profile_syntheses else None
-                )
+                current_cache = None
+                if profile.id in execution.profile_syntheses:
+                    current_cache = execution.profile_syntheses[profile.id]
                 if current_cache and current_cache.data_starvation is not None:
                     is_data_starved = True
 
@@ -344,7 +356,7 @@ class MatrixDomainParser:
                     logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                     raise AppException(
                         message=msg,
-                        status_code=500,
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                     )
                 final_explanation = row_explanations_cache[b_id]
@@ -371,7 +383,7 @@ class MatrixDomainParser:
                                     logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                                     raise AppException(
                                         message=msg,
-                                        status_code=500,
+                                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                     ) from val_err
                         break
@@ -389,7 +401,9 @@ class MatrixDomainParser:
 
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
-                                val_data = step_evals_map[atom_id] if atom_id in step_evals_map else None
+                                val_data = None
+                                if atom_id in step_evals_map:
+                                    val_data = step_evals_map[atom_id]
 
                                 display_label = "Kriteeri"
                                 if claim_label.strip():
@@ -438,14 +452,15 @@ class MatrixDomainParser:
 
                                     except ValidationError as e:
                                         logger.error(
-                                            "LLM output violated strictly typed schema during Display parsing "
-                                            "for atom %s",
+                                            "[MatrixDomainParser] %s: LLM output violated strictly typed schema "
+                                            "during Display parsing for atom %s",
+                                            ErrorCodes.VALIDATION_FAILED.name,
                                             atom_id,
                                             exc_info=True,
                                         )
                                         raise AppException(
                                             message=f"Strict type validation failed for atom {atom_id}",
-                                            status_code=500,
+                                            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                                         ) from e
 
@@ -490,7 +505,7 @@ class MatrixDomainParser:
 
             cleaned_explanation = MatrixDomainParser._clean_hallucinated_numbers(final_explanation)
 
-            # Implementation Plan Phase 3, Step 1: Set inner_sdui_blocks=[]
+            # Inner SDUI blocks reserved for presentation layer rendering
             inner_sdui_blocks: list[AnySduiBlock] = []
 
             # Three-Tier Deterministic Context Target Resolution
@@ -513,7 +528,7 @@ class MatrixDomainParser:
                         elif expected_inputs_map is not None and val_clean in expected_inputs_map:
                             if val_clean not in step_input_keys:
                                 step_input_keys.append(val_clean)
-                        elif expected_inputs_map is None and not val_clean.startswith("$"):
+                        elif expected_inputs_map is None and "$" not in val_clean:
                             # Harness compatibility for isolated unit tests lacking expected_inputs_map
                             if val_clean not in step_input_keys:
                                 step_input_keys.append(val_clean)

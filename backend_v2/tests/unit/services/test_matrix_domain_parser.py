@@ -1,4 +1,6 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, Literal, overload
 
 import pytest
 from pydantic import BaseModel
@@ -49,7 +51,7 @@ def get_dummy_profile(
     )
 
 
-def get_dummy_pb_5_scale() -> PromptBlock:
+def get_dummy_pb_5_scale() -> MatrixPromptBlock:
     label = I18nText(translations={"en": "test"})
     desc = I18nText(translations={"en": "test"})
     scales = [
@@ -65,6 +67,7 @@ def get_dummy_pb_5_scale() -> PromptBlock:
                             inverse_evidence=False,
                             aggregation_mode="EXISTS",
                             concept_description="test concept description",
+                            depends_on=(),
                         )
                     ],
                 )
@@ -84,13 +87,24 @@ def get_dummy_pb_5_scale() -> PromptBlock:
     )
 
 
+@overload
+def get_dummy_pb(category: Literal[PromptBlockCategory.MATRIX] = ...) -> MatrixPromptBlock: ...
+
+
+@overload
+def get_dummy_pb(category: LaxPromptBlockCategory) -> PromptBlock: ...
+
+
 def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) -> PromptBlock:
     label = I18nText(translations={"en": "test"})
     desc = I18nText(translations={"en": "test"})
     cat_enum = PromptBlockCategory(category) if isinstance(category, str) else category
     if cat_enum != PromptBlockCategory.MATRIX:
-        cls = PROMPT_BLOCK_REGISTRY.get(cat_enum, SystemRulePromptBlock)
-        return cls(  # type: ignore[call-arg]
+        if cat_enum in PROMPT_BLOCK_REGISTRY:
+            cls = PROMPT_BLOCK_REGISTRY[cat_enum]
+        else:
+            cls = SystemRulePromptBlock
+        block = cls(  # type: ignore[call-arg]
             id="blk_1234567890abcdef1234567890abcdef",
             slug="test",
             category_id=cat_enum,
@@ -98,10 +112,11 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
             label=label,
             description=desc,
         )
+        return block  # type: ignore[return-value]
     return MatrixPromptBlock(
         id="blk_1234567890abcdef1234567890abcdef",
         slug="test",
-        category_id=category,
+        category_id=PromptBlockCategory.MATRIX,
         type=BlockDataType.FLOAT,
         is_evaluative=True,
         label=label,
@@ -121,6 +136,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
                                 concept_description="test concept description",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -138,6 +154,7 @@ def get_dummy_pb(category: LaxPromptBlockCategory = PromptBlockCategory.MATRIX) 
                                 inverse_evidence=False,
                                 aggregation_mode="EXISTS",
                                 concept_description="test concept description",
+                                depends_on=(),
                             )
                         ],
                     )
@@ -513,8 +530,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
     )
 
     # 1. Missing label
-    pb_no_label = get_dummy_pb()
-    object.__setattr__(pb_no_label, "label", None)
+    pb_no_label = get_dummy_pb().model_copy(update={"label": None})
     with pytest.raises(AppException) as exc1:
         MatrixDomainParser.parse_matrices(
             results=[dto],
@@ -529,8 +545,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
     assert exc1.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
     # 2. Missing computed_min
-    pb_no_min = get_dummy_pb()
-    object.__setattr__(pb_no_min, "computed_min", None)
+    pb_no_min = get_dummy_pb().model_copy(update={"computed_min": None})
     with pytest.raises(AppException) as exc2:
         MatrixDomainParser.parse_matrices(
             results=[dto],
@@ -545,8 +560,7 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
     assert exc2.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
     # 3. Missing scales
-    pb_no_scales = get_dummy_pb()
-    object.__setattr__(pb_no_scales, "scales", [])
+    pb_no_scales = get_dummy_pb().model_copy(update={"scales": []})
     with pytest.raises(AppException) as exc3:
         MatrixDomainParser.parse_matrices(
             results=[dto],
@@ -561,9 +575,10 @@ def test_parse_matrices_missing_label_and_scales_fail_fast() -> None:
     assert exc3.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
     # 4. Scale missing name
-    pb_scale_no_name = get_dummy_pb()
-    assert pb_scale_no_name.scales is not None
-    object.__setattr__(pb_scale_no_name.scales[0], "name", None)
+    pb_dummy = get_dummy_pb()
+    assert pb_dummy.scales is not None
+    scale_no_name = pb_dummy.scales[0].model_copy(update={"name": None})
+    pb_scale_no_name = pb_dummy.model_copy(update={"scales": [scale_no_name, pb_dummy.scales[1]]})
     with pytest.raises(AppException) as exc4:
         MatrixDomainParser.parse_matrices(
             results=[dto],
@@ -1098,3 +1113,186 @@ def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
     assert row.context_target_label is not None
     assert row.context_target_label.resolve("en") == "All Inputs"
     assert row.context_target_label.resolve("fi") == "Kaikki syötteet"
+
+
+def test_parse_matrices_custom_scale_none_raw_score() -> None:
+    """Verifies that under custom scale, when raw_score is None, score_float resolves to None."""
+    profile = get_dummy_profile(
+        display_scale=DisplayScale.CUSTOM,
+        custom_scale_min=1.0,
+        custom_scale_max=10.0,
+    )
+    pb = get_dummy_pb()
+
+    payload: dict[str, Any] = {
+        "raw_score": None,
+        "normalized_score": None,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = res.all_parsed_matrices["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.score is None
+    assert row.score_display_label == "-"
+
+
+def test_parse_matrices_math_max_equals_math_min() -> None:
+    """Verifies that when computed_min equals computed_max, ui_plot_ratio resolves to 0.0."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb().model_copy(update={"computed_min": 5.0, "computed_max": 5.0})
+
+    payload = {
+        "raw_score": 5.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = res.all_parsed_matrices["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.ui_plot_ratio == 0.0
+
+
+def test_parse_matrices_invalid_level_breakdown_key_fail_fast() -> None:
+    """Verifies that non-numeric level breakdown keys fail fast with VALIDATION_FAILED."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+        "level_breakdown": {"invalid_level_key": {"hits": 1, "total": 2}},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Invalid level key" in str(exc_info.value)
+
+
+def test_parse_matrices_invalid_atom_payload_in_results_fail_fast() -> None:
+    """Verifies that invalid payloads inside results block fail fast with VALIDATION_FAILED."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+
+    dto_matrix = MockDTO(
+        step_id="step1",
+        block_id="blk_1234567890abcdef1234567890abcdef",
+        payload={"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}},
+    )
+    dto_evals = MockDTO(
+        step_id="step1",
+        block_id="results",
+        payload=[{"invalid_atom": "missing_required_fields"}],
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixDomainParser.parse_matrices(
+            results=[dto_matrix, dto_evals],
+            locale="en",
+            blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+            workflow_steps={},
+            profile=profile,
+            row_explanations_cache={},
+            workflow_ext_values=[],
+            row_curated_quotes_cache={},
+        )
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_parse_matrices_theory_grounding_and_extensions() -> None:
+    """Verifies that theory grounding citations and extension semantic reasoning are bound correctly."""
+    from backend_v2.models.domain.matrix import TheoryGrounding
+
+    profile = get_dummy_profile()
+    tg = TheoryGrounding(
+        citation_reference="Test Author 2026",
+        source_url="https://example.com/source",
+    )
+    pb = get_dummy_pb().model_copy(update={"theory_grounding": tg})
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+        "extensions": {
+            "semantic_reasoning": "Extended reasoning text.",
+            "google_citation": "https://google.com/citation",
+        },
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    row = res.all_parsed_matrices["step1_blk_1234567890abcdef1234567890abcdef"]
+    assert row.cited_source_title == "Test Author 2026"
+    assert row.cited_source_url == "https://example.com/source"
+    assert row.semantic_reasoning == "Extended reasoning text."
+
+
+def test_parse_matrices_eval_atom_concept_description_fallback() -> None:
+    """Verifies that when claim label is empty, concept_description is used as display_label."""
+    profile = get_dummy_profile()
+    pb = get_dummy_pb()
+    claim_empty = pb.scales[0].claims[0].model_copy(update={"label": None})
+    scale_empty = pb.scales[0].model_copy(update={"claims": [claim_empty]})
+    pb_empty = pb.model_copy(update={"scales": [scale_empty, pb.scales[1]]})
+
+    payload = {
+        "raw_score": 1.0,
+        "normalized_score": 100.0,
+        "evaluated_atoms": {},
+    }
+    dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
+
+    res = MatrixDomainParser.parse_matrices(
+        results=[dto],
+        locale="en",
+        blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_empty},
+        workflow_steps={},
+        profile=profile,
+        row_explanations_cache={},
+        workflow_ext_values=[],
+        row_curated_quotes_cache={},
+    )
+    atom = res.all_parsed_matrices["step1_blk_1234567890abcdef1234567890abcdef"].evaluated_atoms[0]
+    assert atom.chart_display_label == "test concept description"
+    assert atom.status == ExecutionStatus.FAILED
