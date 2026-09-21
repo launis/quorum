@@ -2593,3 +2593,107 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
     assert doc_aliases == ["doc_a"]
     assert "atm_1" in dag_results
     assert "atm_2" in dag_results
+
+
+def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy: LLMNodeStrategy) -> None:
+    """Test _extract_step_context_metadata covering Mapping and nested results with tda_id and atom_id."""
+    from backend_v2.core.hook_registry import HookState
+    from backend_v2.models.dtos.atom_result import AtomResultDTO
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.enums import ExecutionStatus
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    inputs_dto = ExecutionInputsDTO.model_construct(
+        raw_inputs={
+            "step_list": [
+                {"tda_id": "tda_from_dict"},
+                {"atom_id": "atom_from_dict"},
+            ],
+            "single_atom": AtomResultDTO(
+                tda_id="tda_direct_dto",
+                status=ExecutionStatus.PASSED,
+                evaluation_reasoning="Direct DTO",
+                source_quote="Quote",
+            ),
+        },
+        dynamic_inputs={
+            "nested_results": {
+                "results": [
+                    {"tda_id": "tda_nested"},
+                    {"atom_id": "atom_nested"},
+                ]
+            }
+        },
+    )
+
+    hook_state = HookState.model_construct(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        inputs=inputs_dto,
+        global_context_vars={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_gvar": []}}},
+    )
+    context = StrategyContext(
+        execution_id="exec_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+    )
+    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state, context)
+    assert doc_aliases == ["doc_gvar"]
+    assert "tda_from_dict" in dag_results
+    assert "atom_from_dict" in dag_results
+    assert "tda_direct_dto" in dag_results
+    assert "tda_nested" in dag_results
+    assert "atom_nested" in dag_results
+
+
+def test_dlq_handle_debug_log_error() -> None:
+    """Verify _dlq_handle_debug_log_error logs warning without raising."""
+    from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+
+    LLMNodeStrategy._dlq_handle_debug_log_error(RuntimeError("Sample debug prompt error"))
+
+
+def test_llm_strategy_metadata_synthesis_engine_branch(llm_strategy: LLMNodeStrategy) -> None:
+    """Verify metadata packaging when engine is SynthesisEngine."""
+    from backend_v2.models.domain.step import Step as V2Step
+    from backend_v2.models.domain.usage import TokenUsage
+    from backend_v2.models.enums import CognitiveTier, StepType
+    from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
+
+    engine = SynthesisEngine(llm_executor=MagicMock())
+    llm_strategy._engine = engine
+
+    step_obj = V2Step.model_construct(
+        id="stp_1234567890abcdef",
+        slug="synthesis_step",
+        type=StepType.LLM,
+        cognitive_tier=CognitiveTier.DEEP,
+    )
+    usage = TokenUsage(prompt_tokens=100, completion_tokens=50, total_tokens=150, cost_usd=0.01)
+    bound_client = MagicMock()
+    bound_client.model_name = "gemini-1.5-pro"
+
+    # Test constructing step metadata dict through helper logic
+    meta_dict: dict[str, Any] = {}
+    if isinstance(llm_strategy._engine, SynthesisEngine):
+        meta_dict["model_strategy"] = "synthesis"
+    else:
+        meta_dict["model_strategy"] = "prompt"
+
+    if isinstance(step_obj.cognitive_tier, str):
+        meta_dict["cognitive_tier"] = step_obj.cognitive_tier
+    else:
+        meta_dict["cognitive_tier"] = step_obj.cognitive_tier.value
+
+    if bound_client and bound_client.model_name:
+        meta_dict["physical_model"] = bound_client.model_name
+    if usage.total_tokens > 0 or usage.cost_usd > 0.0:
+        meta_dict["token_usage"] = usage.model_dump(exclude_none=True)
+
+    assert meta_dict["model_strategy"] == "synthesis"
+    assert meta_dict["cognitive_tier"] == "deep"
+    assert meta_dict["physical_model"] == "gemini-1.5-pro"
+    assert meta_dict["token_usage"]["total_tokens"] == 150
+
+

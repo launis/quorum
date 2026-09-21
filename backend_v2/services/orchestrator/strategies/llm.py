@@ -160,7 +160,11 @@ class LLMNodeStrategy(NodeStrategy):
                     if isinstance(item, AtomResultDTO):
                         dag_results[item.tda_id] = item
                     elif isinstance(item, Mapping):
-                        a_id = item["tda_id"] if "tda_id" in item else (item["atom_id"] if "atom_id" in item else None)
+                        a_id: str | None = None
+                        if "tda_id" in item:
+                            a_id = str(item["tda_id"])
+                        elif "atom_id" in item:
+                            a_id = str(item["atom_id"])
                         if a_id:
                             dag_results[a_id] = item
             elif isinstance(step_res, AtomResultDTO):
@@ -169,9 +173,11 @@ class LLMNodeStrategy(NodeStrategy):
                 if "results" in step_res and isinstance(step_res["results"], list):
                     for ev in step_res["results"]:
                         if isinstance(ev, Mapping):
-                            extracted_a_id = (
-                                ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
-                            )
+                            extracted_a_id: str | None = None
+                            if "tda_id" in ev:
+                                extracted_a_id = str(ev["tda_id"])
+                            elif "atom_id" in ev:
+                                extracted_a_id = str(ev["atom_id"])
                             if extracted_a_id:
                                 dag_results[extracted_a_id] = ev
 
@@ -212,7 +218,9 @@ class LLMNodeStrategy(NodeStrategy):
         if running_event:
             running_event.set()
 
-        inputs_unwrapped = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
+        inputs_unwrapped = inputs_payload
+        if "inputs" in inputs_payload:
+            inputs_unwrapped = inputs_payload["inputs"]
 
         targets = SourceDocumentPacker.resolve_context_targets(step.input_mappings)
         global_source_text = SourceDocumentPacker.pack(
@@ -221,8 +229,11 @@ class LLMNodeStrategy(NodeStrategy):
             targets=targets,
             step_outputs=projector.snapshot,
         )
+        snapshot_steps: list[Any] = []
+        if isinstance(projector.snapshot, list):
+            snapshot_steps = list(projector.snapshot)
         current_state: dict[str, Any] = {
-            "steps": projector.snapshot if isinstance(projector.snapshot, list) else [],
+            "steps": snapshot_steps,
         }
 
         pre_events: list[TraceEvent] = []
@@ -280,7 +291,9 @@ class LLMNodeStrategy(NodeStrategy):
             initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
         else:
             initial_gvars = GlobalContextVarsDTO()
-        safe_raw_inputs = dict(inputs_unwrapped) if isinstance(inputs_unwrapped, Mapping) else {}
+        safe_raw_inputs: dict[str, Any] = {}
+        if isinstance(inputs_unwrapped, Mapping):
+            safe_raw_inputs = dict(inputs_unwrapped)
         hook_state = HookState(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
@@ -614,11 +627,15 @@ class LLMNodeStrategy(NodeStrategy):
                     manifest = exec_obj.source_identity_manifest
 
                 source_docs = []
-                inputs_dict = inputs_payload["inputs"] if "inputs" in inputs_payload else inputs_payload
+                inputs_dict = inputs_payload
+                if "inputs" in inputs_payload:
+                    inputs_dict = inputs_payload["inputs"]
                 if isinstance(inputs_dict, Mapping):
                     for k, text_content in inputs_dict.items():
                         if isinstance(text_content, str):
-                            display_name = str(manifest[k]) if k in manifest else k
+                            display_name = k
+                            if k in manifest:
+                                display_name = str(manifest[k])
                             doc_ctx = SourceDocumentContext(
                                 opaque_id=k, text_content=text_content, display_name=display_name
                             )
@@ -922,10 +939,15 @@ class LLMNodeStrategy(NodeStrategy):
                 meta_dict = dict(existing_meta)
 
         meta_dict["task_blueprint"] = blueprint_id
-        meta_dict["model_strategy"] = "synthesis" if isinstance(self._engine, SynthesisEngine) else "prompt"
-        meta_dict["cognitive_tier"] = (
-            step_obj.cognitive_tier if isinstance(step_obj.cognitive_tier, str) else step_obj.cognitive_tier.value
-        )
+        if isinstance(self._engine, SynthesisEngine):
+            meta_dict["model_strategy"] = "synthesis"
+        else:
+            meta_dict["model_strategy"] = "prompt"
+
+        if isinstance(step_obj.cognitive_tier, str):
+            meta_dict["cognitive_tier"] = step_obj.cognitive_tier
+        else:
+            meta_dict["cognitive_tier"] = step_obj.cognitive_tier.value
         if bound_client and bound_client.model_name:
             meta_dict["physical_model"] = bound_client.model_name
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:

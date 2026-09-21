@@ -194,7 +194,7 @@
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
   - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
   - [ ] @[backend_v2/services/orchestrator/context_router.py]
   - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
