@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import (
@@ -29,8 +29,13 @@ __all__ = [
 ]
 
 
-class ErrorDetailsDTO(BaseModel):
-    """Standardized error details for failed atom executions."""
+class ErrorDetailsDTO(V2CoreBase):
+    """Standardized error details for failed atom executions.
+
+    Attributes:
+        error_code: Standardized error code, e.g., LLM_TIMEOUT.
+        message: Technical error message or stack trace.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
@@ -38,30 +43,55 @@ class ErrorDetailsDTO(BaseModel):
     message: Annotated[str, Field(description="Technical error message or stack trace")]
 
 
-class HydratedAtomDTO(BaseModel):
+class HydratedAtomDTO(V2CoreBase):
     """Static ontology data. Perfectly cacheable.
 
     Must not contain any dynamic execution-related data.
+
+    Attributes:
+        sdui_component: Server-Driven UI hint for frontend.
+        resolved_claim: Cleaned claim in human language.
+        source_quote: Optional verbatim original quote.
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sdui_component: Annotated[LaxSDUIComponentType, Field(description="Server-Driven UI hint for frontend.")]
     resolved_claim: Annotated[str, Field(description="Cleaned claim in human language")]
-    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")]
+    source_quote: Annotated[str | None, Field(default=None, description="Verbatim original quote")] = None
 
 
-class ExtractedValueDTO(BaseModel):
-    """Quantitative or categorical extracted value."""
+class ExtractedValueDTO(V2CoreBase):
+    """Quantitative or categorical extracted value.
+
+    Attributes:
+        value: The extracted quantitative or categorical value.
+        unit: Optional unit of measurement, e.g., 'tCO2e' or 'EUR'.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    value: str | float | int | bool
-    unit: Annotated[str | None, Field(default=None, description="Unit of measurement, e.g., 'tCO2e' or 'EUR'")]
+    value: Annotated[str | float | int | bool, Field(description="Extracted quantitative or categorical value")]
+    unit: Annotated[str | None, Field(default=None, description="Unit of measurement, e.g., 'tCO2e' or 'EUR'")] = None
 
 
-class AtomResultDTO(BaseModel):
-    """Dynamic execution data (DAG node)."""
+class AtomResultDTO(V2CoreBase):
+    """Dynamic execution data (DAG node).
+
+    Attributes:
+        tda_id: Opaque ID pointing to the hydrated_references dictionary key.
+        matrix_id: Opaque ID of the matrix block that requested this evaluation.
+        status: Evaluation execution status.
+        extracted_data: Quantitative or isolated result.
+        source_quote: Verbatim original quote from the document.
+        contextual_override: Allows cognitive override without a verbatim quote.
+        is_inverse_evidence: True if assertion evaluates absence of negative evidence.
+        evaluation_reasoning: Strictly AI cognitive reasoning, no infra errors.
+        error_details: Populated only if status is SYSTEM_ERROR.
+        extensions: Requested XAI extensions mapping.
+        depends_on_tda_ids: DAG adjacency list.
+        short_circuit_reason_tda_ids: List of short-circuit reason TDA IDs.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
@@ -69,7 +99,7 @@ class AtomResultDTO(BaseModel):
     matrix_id: Annotated[
         str | None, Field(default=None, description="Opaque ID of the matrix block that requested this evaluation")
     ] = None
-    status: LaxExecutionStatus
+    status: Annotated[LaxExecutionStatus, Field(description="Evaluation execution status")]
     extracted_data: Annotated[
         ExtractedValueDTO | None, Field(default=None, description="Quantitative or isolated result")
     ] = None
@@ -103,7 +133,14 @@ class AtomResultDTO(BaseModel):
 
     @model_validator(mode="after")
     def validate_cognitive_vs_system_state(self) -> Self:
-        """Fail-Fast validation for cognitive state consistency."""
+        """Fail-Fast validation for cognitive state consistency.
+
+        Returns:
+            The validated AtomResultDTO instance.
+
+        Raises:
+            ValueError: If cognitive or system state invariants are violated.
+        """
         if self.status == ExecutionStatus.FAILED:
             if not self.evaluation_reasoning or not self.evaluation_reasoning.strip():
                 raise ValueError(f"Reasoning is mandatory for cognitive status {self.status.value}")
@@ -152,6 +189,7 @@ class EvaluatedAtomDTO(V2CoreBase):
         status: Status of the evaluated atom.
         score: Computed mathematical or categorical score.
         human_override: Optional human override status.
+        exact_quotes: List of verbatim extracted source quotes.
         source_quote: Verbatim extracted source quote.
         evaluation_reasoning: Cognitive reasoning text.
         contextual_override: Whether cognitive override without quote occurred.
@@ -178,25 +216,45 @@ class EvaluatedAtomDTO(V2CoreBase):
     facts: Annotated[EvaluationFactsDTO | None, Field(default=None, description="Evaluation facts")] = None
 
 
-class ExecutionMetricsDTO(BaseModel):
-    """Aggregate atom-level metrics for DAG execution."""
+class ExecutionMetricsDTO(V2CoreBase):
+    """Aggregate atom-level metrics for DAG execution.
+
+    Attributes:
+        total_atoms: Total number of atoms in the execution graph.
+        evaluated: Number of atoms that were evaluated.
+        short_circuited_na: Number of atoms that were short-circuited as not applicable.
+        duration_ms: Execution duration in milliseconds for observability.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
-    total_atoms: int
-    evaluated: int
-    short_circuited_na: int
-    duration_ms: Annotated[int, Field(default=0, description="Execution duration in milliseconds for observability")]
+    total_atoms: Annotated[int, Field(ge=0, description="Total number of atoms in DAG.")]
+    evaluated: Annotated[int, Field(ge=0, description="Number of evaluated atoms.")]
+    short_circuited_na: Annotated[int, Field(ge=0, description="Number of short-circuited NA atoms.")]
+    duration_ms: Annotated[
+        int, Field(default=0, ge=0, description="Execution duration in milliseconds for observability")
+    ] = 0
 
 
 class ExtensionMetricsDTO(V2CoreBase):
-    """Pre-calculated numeric or boolean metrics for UI adapters."""
+    """Pre-calculated numeric or boolean metrics for UI adapters.
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    Attributes:
+        authenticity_score: Authenticity score between 0.0 and 1.0 or None.
+        performative_phrases_count: Count of detected performative phrases or None.
+        variance_score: Calculated variance score or None.
+        alignment_verdict: Categorical alignment verdict string or None.
+        jargon_density: Calculated jargon density float or None.
+        total_word_count: Total word count integer or None.
+    """
 
-    authenticity_score: float | None = None
-    performative_phrases_count: float | None = None
-    variance_score: float | None = None
-    alignment_verdict: str | None = None
-    jargon_density: float | None = None
-    total_word_count: int | None = None
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    authenticity_score: Annotated[float | None, Field(default=None, description="Authenticity score")] = None
+    performative_phrases_count: Annotated[
+        float | None, Field(default=None, description="Performative phrases count")
+    ] = None
+    variance_score: Annotated[float | None, Field(default=None, description="Variance score")] = None
+    alignment_verdict: Annotated[str | None, Field(default=None, description="Alignment verdict")] = None
+    jargon_density: Annotated[float | None, Field(default=None, description="Jargon density")] = None
+    total_word_count: Annotated[int | None, Field(default=None, ge=0, description="Total word count")] = None
