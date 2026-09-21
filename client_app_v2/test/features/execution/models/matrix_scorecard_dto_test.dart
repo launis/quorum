@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 
 void main() {
   group('ScorecardAtomDto', () {
@@ -208,5 +209,75 @@ void main() {
       expect(dto.allowContextualOverride, isTrue);
       expect(dto.isEvaluative, isTrue);
     });
+
+    test('atomsByLevel returns empty map when evaluatedAtoms is empty', () {
+      const dto = MatrixScorecardRowDto(
+        blockId: 'blk_empty',
+        name: 'Empty',
+        labelI18n: I18nText(translations: {'en': 'Empty'}),
+        isEvaluative: false,
+        allowContextualOverride: false,
+      );
+
+      expect(dto.atomsByLevel.isEmpty, isTrue);
+    });
+
+    test('extra unrecognized keys throw exception fail-fast', () {
+      final json = {
+        'block_id': 'blk_extra',
+        'name': 'Extra',
+        'label_i18n': {
+          'translations': {'en': 'Extra'},
+        },
+        'unrecognized_key_123': 'illegal_value',
+      };
+
+      expect(() => MatrixScorecardRowDto.fromJson(json), throwsA(anything));
+    });
+  });
+
+  group('QuoteEvidenceDto & McpAuditTraceDto', () {
+    test('QuoteEvidenceDto parses defaults and rejects extra keys', () {
+      final json = {'quote': 'Verbatim test quote'};
+      final dto = QuoteEvidenceDto.fromJson(json);
+      expect(dto.quote, 'Verbatim test quote');
+      expect(dto.verifiedSourceIds, isEmpty);
+      expect(dto.unverifiedAliases, isEmpty);
+      expect(dto.isVerified, isFalse);
+
+      final invalidJson = {
+        'quote': 'Verbatim test quote',
+        'extra_field': 'forbidden',
+      };
+      expect(
+        () => QuoteEvidenceDto.fromJson(invalidJson),
+        throwsA(anything),
+      );
+    });
+
+    test('McpAuditTraceDto parses valid trace and rejects extra keys', () {
+      final json = {
+        'tool_id': 'search_tool',
+        'step_name': 'step_1',
+        'query': 'financial data 2026',
+      };
+      final dto = McpAuditTraceDto.fromJson(json);
+      expect(dto.toolId, 'search_tool');
+      expect(dto.stepName, 'step_1');
+      expect(dto.query, 'financial data 2026');
+      expect(dto.durationMs, 0);
+
+      final invalidJson = {
+        'tool_id': 'search_tool',
+        'step_name': 'step_1',
+        'query': 'test',
+        'illegal_trace_key': 999,
+      };
+      expect(
+        () => McpAuditTraceDto.fromJson(invalidJson),
+        throwsA(anything),
+      );
+    });
   });
 }
+

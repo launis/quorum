@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/tda_state.dart';
@@ -8,6 +7,7 @@ import 'package:client_app/shared/models/sdui_block_dto.dart';
 part 'matrix_scorecard_dto.freezed.dart';
 part 'matrix_scorecard_dto.g.dart';
 
+/// Represents the four-step internal reasoning chain of an evaluated atom.
 @Freezed(equal: false)
 abstract class ReasoningStepDto with _$ReasoningStepDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -25,6 +25,7 @@ abstract class ReasoningStepDto with _$ReasoningStepDto {
       _$ReasoningStepDtoFromJson(json);
 }
 
+/// Holds verbatim evidence quote extracted from source material with provenance.
 @Freezed(equal: false)
 abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -43,6 +44,7 @@ abstract class QuoteEvidenceDto with _$QuoteEvidenceDto {
       _$QuoteEvidenceDtoFromJson(json);
 }
 
+/// Tracks human expert status overrides applied to an evaluated atom.
 @Freezed(equal: false)
 abstract class HumanOverrideDto with _$HumanOverrideDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -59,6 +61,7 @@ abstract class HumanOverrideDto with _$HumanOverrideDto {
       _$HumanOverrideDtoFromJson(json);
 }
 
+/// Encapsulates evaluation outcome and evidence for a single matrix atom.
 @Freezed(equal: false)
 abstract class ScorecardAtomDto with _$ScorecardAtomDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -85,6 +88,7 @@ abstract class ScorecardAtomDto with _$ScorecardAtomDto {
       _$ScorecardAtomDtoFromJson(json);
 }
 
+/// Captures MCP tool invocation and search trail associated with a matrix row.
 @Freezed(equal: false)
 abstract class McpAuditTraceDto with _$McpAuditTraceDto {
   @JsonSerializable(disallowUnrecognizedKeys: true)
@@ -110,6 +114,7 @@ abstract class McpAuditTraceDto with _$McpAuditTraceDto {
       _$McpAuditTraceDtoFromJson(json);
 }
 
+/// Represents a single matrix scorecard dimension row with scores and atoms.
 @Freezed(equal: false)
 abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
   const MatrixScorecardRowDto._();
