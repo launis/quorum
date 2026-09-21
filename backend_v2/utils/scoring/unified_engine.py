@@ -4,11 +4,15 @@ Replaces legacy engine branching (Waterfall, PureAverage, WeightedAverage, PureM
 with a single continuous piecewise power-curve weighted ratio scoring engine.
 """
 
+from __future__ import annotations
+
 from typing import override
 
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, ScoringResultDTO, XAILogDto
 from backend_v2.utils.math_utils import calculate_linear_ratio_score
 from backend_v2.utils.scoring.base_engine import ScoringEngineProtocol
+
+__all__ = ["UnifiedScoringEngine", "calculate_strictness_exponent"]
 
 
 def calculate_strictness_exponent(strictness_level: int) -> float:
@@ -62,6 +66,9 @@ class UnifiedScoringEngine(ScoringEngineProtocol):
 
         Returns:
             Strictly typed, immutable ScoringResultDTO containing the final score, XAI log, and breakdown.
+
+        Raises:
+            AppException: If math_min >= math_max (INVALID_OUTPUT_SCHEMA).
         """
         exponent = calculate_strictness_exponent(strictness_level)
         score = calculate_linear_ratio_score(
