@@ -1,14 +1,19 @@
 """Firestore Implementation of StorageDriver Protocol."""
 
+import collections.abc
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
+from fastapi import status
 from google.cloud import firestore  # type: ignore[attr-defined]
 from pydantic import BaseModel
 
 from backend_v2.database.driver import Filter, StorageDriver
 from backend_v2.exceptions import AppException, ErrorCodes
+
+__all__ = ["FirestoreDriver"]
 
 logger = logging.getLogger(__name__)
 
@@ -27,31 +32,15 @@ class FirestoreDriver(StorageDriver):
         """
         self.db = client
 
-    def _serialize(self, data: dict[str, Any] | list | Any) -> Any:  # type: ignore
-        """Recursively converts datetime, UUID, and Pydantic objects to JSON-safe types.
+    def _serialize(self, data: Any) -> Any:
+        """Recursively convert datetime, UUID, and Pydantic objects to JSON-safe types.
 
         Args:
             data: The data structure or value to serialize.
 
         Returns:
             The serialized data ready for Firestore.
-
-        Note: Firestore supports native Datetime, but to maintain strict parity
-        with TinyDB (JSON), we often serialize efficiently. However, Firestore querying
-        invokes backend index which works best with Native types.
-
-        DECISION: We serialize UUIDs to strings and Pydantic to dicts, but keep
-        Datetimes native?
-
-        Re-reading requirements: Parity is key.
-        If TinyDB saves ISO strings, and we query with strings, Firestore must save strings?
-        Or we convert query values?
-
-        The existing `firestore_repo.py` serialized datetimes to isoformat().
-        We will stick to that to ensure string comparison parity.
         """
-        from datetime import datetime
-
         if isinstance(data, BaseModel):
             return self._serialize(data.model_dump())
 
@@ -61,10 +50,10 @@ class FirestoreDriver(StorageDriver):
         if isinstance(data, uuid.UUID):
             return str(data)
 
-        if isinstance(data, dict):
+        if isinstance(data, collections.abc.Mapping):
             return {k: self._serialize(v) for k, v in data.items()}
 
-        if isinstance(data, list):
+        if isinstance(data, (list, collections.abc.Sequence)) and not isinstance(data, (str, bytes)):
             return [self._serialize(v) for v in data]
 
         return data
@@ -78,9 +67,6 @@ class FirestoreDriver(StorageDriver):
 
         Returns:
             The document data as a dictionary, or None if not found.
-
-        Raises:
-            AppException: If fetching fails.
         """
         doc_ref = self.db.collection(collection).document(doc_id)
         doc = await doc_ref.get()
@@ -98,9 +84,6 @@ class FirestoreDriver(StorageDriver):
 
         Returns:
             The document ID.
-
-        Raises:
-            AppException: If the upsert fails.
         """
         safe_data = self._serialize(data)
         # Ensure ID is in data for parity
@@ -133,8 +116,8 @@ class FirestoreDriver(StorageDriver):
             logger.error("Firestore update failed: %s", e, exc_info=True)
             raise AppException(
                 message=f"Firestore update failed: {e}",
-                status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def delete(self, collection: str, doc_id: str) -> bool:
@@ -157,8 +140,8 @@ class FirestoreDriver(StorageDriver):
             logger.error("Firestore delete failed: %s", e, exc_info=True)
             raise AppException(
                 message=f"Firestore delete failed: {e}",
-                status_code=500,
-                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
             ) from e
 
     async def query(
@@ -180,9 +163,6 @@ class FirestoreDriver(StorageDriver):
 
         Returns:
             A list of matching documents.
-
-        Raises:
-            AppException: If the query fails.
         """
         query: Any = self.db.collection(collection)
 
@@ -210,9 +190,6 @@ class FirestoreDriver(StorageDriver):
 
         Returns:
             The number of matching documents.
-
-        Raises:
-            AppException: If the count fails.
         """
         query: Any = self.db.collection(collection)
 
@@ -224,7 +201,7 @@ class FirestoreDriver(StorageDriver):
             aggregate_query = query.count()  # type: ignore[no-untyped-call]
             snapshots = await aggregate_query.get()
             return int(snapshots[0][0].value)
-        except Exception:
+        except AttributeError, RuntimeError, TypeError, OSError:
             logger.warning("Firestore count fallback triggered", exc_info=True)
             # Fallback for older SDKs or emulators?
             docs = query.stream()
@@ -239,9 +216,6 @@ class FirestoreDriver(StorageDriver):
 
         Args:
             collection: The Firestore collection name.
-
-        Raises:
-            AppException: If clearing the collection fails.
         """
         collection_ref = self.db.collection(collection)
         # Iterate and delete (No native truncate in Firestore)
