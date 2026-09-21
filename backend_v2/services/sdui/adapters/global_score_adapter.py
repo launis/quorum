@@ -7,8 +7,11 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from backend_v2.models.dtos.sdui_rules import GlobalScoreAestheticsDTO
 from backend_v2.models.view.sdui import AnySduiBlock, SduiScoreCardBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+
+__all__ = ["AESTHETICS_RULES", "GlobalScoreAdapter"]
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +20,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-AESTHETICS_RULES: dict[str, dict[str, str]] = {
-    "default": {
-        "visual_intent": "primary",
-    }
-}
+AESTHETICS_RULES: GlobalScoreAestheticsDTO = GlobalScoreAestheticsDTO()
 
 
 # ============================================================================

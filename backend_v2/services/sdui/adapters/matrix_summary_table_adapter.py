@@ -7,6 +7,7 @@ Visual rules are co-located as a module-level MATRIX_SUMMARY_RULES dictionary to
 import logging
 
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.dtos.sdui_rules import MatrixSummaryAestheticsDTO, MatrixSummaryRuleItemDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     SduiMatrixTableBlock,
@@ -22,9 +23,11 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-MATRIX_SUMMARY_RULES: dict[str, dict[str, int]] = {
-    "matrix_summary": {"min_axes": 1},
-}
+MATRIX_SUMMARY_RULES: MatrixSummaryAestheticsDTO = MatrixSummaryAestheticsDTO(
+    rules={
+        "matrix_summary": MatrixSummaryRuleItemDTO(min_axes=1),
+    }
+)
 
 STANDARD_COLUMNS: list[str] = [
     "label",

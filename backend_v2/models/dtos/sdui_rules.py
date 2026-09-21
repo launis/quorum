@@ -226,3 +226,225 @@ class VarianceRulesDTO(V2CoreBase):
             True if key is defined, False otherwise.
         """
         return key in self.rules
+
+
+class GlobalScoreAestheticsDTO(V2CoreBase):
+    """Visual styling configuration for GlobalScoreAdapter.
+
+    Attributes:
+        visual_intent: Primary visual intent for the scorecard.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    visual_intent: Annotated[str, Field(default="primary", description="Visual intent for global score card")] = (
+        "primary"
+    )
+
+
+class MatrixGraphMinAxesDTO(V2CoreBase):
+    """Minimum axes configuration for a specific matrix graph view type.
+
+    Attributes:
+        min_axes: Minimum axes required to render the graph view.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    min_axes: Annotated[int, Field(description="Minimum axes required to render")]
+
+
+class MatrixGraphsAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for MatrixGraphsAdapter.
+
+    Attributes:
+        rules: Mapping of view types to minimum axes requirements.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rules: Annotated[
+        dict[str, MatrixGraphMinAxesDTO], Field(description="Mapping of view types to minimum axes requirements")
+    ]
+
+    def __getitem__(self, key: str) -> MatrixGraphMinAxesDTO:
+        """Retrieve minimum axes requirements by graph view type.
+
+        Args:
+            key: Graph view type identifier string.
+
+        Returns:
+            Matched MatrixGraphMinAxesDTO.
+        """
+        return self.rules[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if graph view type is defined.
+
+        Args:
+            key: Graph view type identifier string.
+
+        Returns:
+            True if defined, False otherwise.
+        """
+        return key in self.rules
+
+
+class MatrixSummaryRuleItemDTO(V2CoreBase):
+    """Structural limits for matrix summary table rendering.
+
+    Attributes:
+        min_axes: Minimum axes required to render matrix summary table.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    min_axes: Annotated[int, Field(description="Minimum axes required to render summary table")]
+
+
+class MatrixSummaryAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for MatrixSummaryTableAdapter.
+
+    Attributes:
+        rules: Mapping of summary keys to rule items.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rules: Annotated[dict[str, MatrixSummaryRuleItemDTO], Field(description="Mapping of summary keys to rule items")]
+
+    def __getitem__(self, key: str) -> MatrixSummaryRuleItemDTO:
+        """Retrieve rule item by summary key.
+
+        Args:
+            key: Summary key identifier string.
+
+        Returns:
+            Matched MatrixSummaryRuleItemDTO.
+        """
+        return self.rules[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if summary key is defined.
+
+        Args:
+            key: Summary key identifier string.
+
+        Returns:
+            True if defined, False otherwise.
+        """
+        return key in self.rules
+
+
+class McpAuditItemDTO(V2CoreBase):
+    """Visual intent configuration for MCP audit trail blocks.
+
+    Attributes:
+        visual_intent: Visual intent for audit badge.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    visual_intent: Annotated[str, Field(default="secondary", description="Visual intent for audit badge")] = "secondary"
+
+
+class McpAuditAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for McpAuditAdapter.
+
+    Attributes:
+        default: Default audit styling item.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    default: Annotated[McpAuditItemDTO, Field(default_factory=McpAuditItemDTO, description="Default audit styling")] = (
+        Field(default_factory=McpAuditItemDTO)
+    )
+
+
+class MetadataAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for MetadataAdapter.
+
+    Attributes:
+        default_metadata: Default metadata attributes.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    default_metadata: Annotated[
+        dict[str, str], Field(default_factory=dict, description="Default metadata attributes")
+    ] = Field(default_factory=dict)
+
+
+class SynthesisTextModeDTO(V2CoreBase):
+    """Prose mode configuration for synthesis text.
+
+    Attributes:
+        mode: Formatting mode for synthesis text.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    mode: Annotated[str, Field(default="standard", description="Formatting mode for synthesis text")] = "standard"
+
+
+class SynthesisTextAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for SynthesisTextAdapter.
+
+    Attributes:
+        default_text: Default text mode configuration.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    default_text: Annotated[
+        SynthesisTextModeDTO, Field(default_factory=SynthesisTextModeDTO, description="Default text mode")
+    ] = Field(default_factory=SynthesisTextModeDTO)
+
+
+class WarningCardSeverityDTO(V2CoreBase):
+    """Severity intent configuration for a warning card event.
+
+    Attributes:
+        severity: Visual intent severity for warning alert.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    severity: Annotated[VisualIntent, Field(description="Visual intent severity for warning alert")]
+
+
+class WarningCardAestheticsDTO(V2CoreBase):
+    """Visual rules configuration for WarningCardAdapter.
+
+    Attributes:
+        rules: Mapping of starvation event types to severity.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    rules: Annotated[
+        dict[str, WarningCardSeverityDTO], Field(description="Mapping of starvation event types to severity")
+    ]
+
+    def __getitem__(self, key: str) -> WarningCardSeverityDTO:
+        """Retrieve severity styling by event type.
+
+        Args:
+            key: Starvation event type string.
+
+        Returns:
+            Matched WarningCardSeverityDTO.
+        """
+        return self.rules[key]
+
+    def __contains__(self, key: str) -> bool:
+        """Check if starvation event type is defined.
+
+        Args:
+            key: Starvation event type string.
+
+        Returns:
+            True if defined, False otherwise.
+        """
+        return key in self.rules

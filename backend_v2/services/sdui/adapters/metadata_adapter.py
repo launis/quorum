@@ -7,6 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from backend_v2.models.dtos.sdui_rules import MetadataAestheticsDTO
 from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-METADATA_RULES: dict[str, dict[str, str]] = {"default_metadata": {}}
+METADATA_RULES: MetadataAestheticsDTO = MetadataAestheticsDTO()
 
 
 # ============================================================================

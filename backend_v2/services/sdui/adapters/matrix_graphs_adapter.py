@@ -6,6 +6,7 @@ Visual rules are co-located as a module-level MATRIX_GRAPHS_RULES dictionary to 
 
 import logging
 
+from backend_v2.models.dtos.sdui_rules import MatrixGraphMinAxesDTO, MatrixGraphsAestheticsDTO
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     MarkdownBlock,
@@ -23,11 +24,13 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-MATRIX_GRAPHS_RULES: dict[str, dict[str, int]] = {
-    "radar": {"min_axes": 3},
-    "scatter": {"min_axes": 2},
-    "metrics": {"min_axes": 1},
-}
+MATRIX_GRAPHS_RULES: MatrixGraphsAestheticsDTO = MatrixGraphsAestheticsDTO(
+    rules={
+        "radar": MatrixGraphMinAxesDTO(min_axes=3),
+        "scatter": MatrixGraphMinAxesDTO(min_axes=2),
+        "metrics": MatrixGraphMinAxesDTO(min_axes=1),
+    }
+)
 
 
 # ============================================================================
@@ -88,18 +91,18 @@ class MatrixGraphsAdapter:
 
                 # Route graph block emission by deterministic view_type
                 view_type = grp.view_type
-                if view_type in ("3d_matrix", "matrix3d") and len(axes) >= 3:
+                if view_type in ("3d_matrix", "matrix3d") and len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
                     blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                elif view_type in ("2d_compare", "compare2d") and len(axes) >= 2:
+                elif view_type in ("2d_compare", "compare2d") and len(axes) >= MATRIX_GRAPHS_RULES["scatter"].min_axes:
                     blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
                 elif view_type in ("text_only", "textOnly"):
                     # Text-only synthesis group does not emit visual chart blocks
                     pass
-                elif len(axes) >= 3:
+                elif len(axes) >= MATRIX_GRAPHS_RULES["radar"].min_axes:
                     blocks.append(SduiRadarChartBlock(title=None, axes=axes))
-                elif len(axes) == 2:
+                elif len(axes) == MATRIX_GRAPHS_RULES["scatter"].min_axes:
                     blocks.append(SduiScatterPlotBlock(title=None, axes=axes[:2]))
-                elif len(axes) == 1:
+                elif len(axes) == MATRIX_GRAPHS_RULES["metrics"].min_axes:
                     blocks.append(SduiMetrics1DBlock(title=None, axes=axes[:1]))
 
         return blocks

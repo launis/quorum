@@ -8,6 +8,7 @@ WARNING_CARD_RULES dictionary to enforce separation of presentation from logic.
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.sdui_rules import WarningCardAestheticsDTO, WarningCardSeverityDTO
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import AlertBlock, AnySduiBlock
 from backend_v2.services.localization import LocalizationService
@@ -26,11 +27,11 @@ logger = logging.getLogger(__name__)
 # chains for visual property selection.
 # ============================================================================
 
-WARNING_CARD_RULES: dict[str, dict[str, VisualIntent]] = {
-    "starvation": {
-        "severity": VisualIntent.WARNING,
-    },
-}
+WARNING_CARD_RULES: WarningCardAestheticsDTO = WarningCardAestheticsDTO(
+    rules={
+        "starvation": WarningCardSeverityDTO(severity=VisualIntent.WARNING),
+    }
+)
 
 
 # ============================================================================
@@ -89,7 +90,7 @@ class WarningCardAdapter:
         blocks.append(
             AlertBlock(
                 id=f"alert_starvation_{starvation.event_type}",
-                severity=aesthetics["severity"],
+                severity=aesthetics.severity,
                 text=warning_msg,
                 exact_quotes=[],
                 citations=[],

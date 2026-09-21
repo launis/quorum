@@ -7,8 +7,11 @@ MCP_AUDIT_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from backend_v2.models.dtos.sdui_rules import McpAuditAestheticsDTO
 from backend_v2.models.view.sdui import AnySduiBlock, SduiAuditTrailBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
+
+__all__ = ["MCP_AUDIT_RULES", "McpAuditAdapter"]
 
 logger = logging.getLogger(__name__)
 
@@ -17,11 +20,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-MCP_AUDIT_RULES: dict[str, dict[str, str]] = {
-    "default": {
-        "visual_intent": "secondary",
-    }
-}
+MCP_AUDIT_RULES: McpAuditAestheticsDTO = McpAuditAestheticsDTO()
 
 
 # ============================================================================

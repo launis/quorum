@@ -7,6 +7,7 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 
 import logging
 
+from backend_v2.models.dtos.sdui_rules import SynthesisTextAestheticsDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
@@ -19,11 +20,7 @@ logger = logging.getLogger(__name__)
 # SECTION 1: AESTHETICS RULES
 # ============================================================================
 
-SYNTHESIS_TEXT_RULES: dict[str, dict[str, str]] = {
-    "default_text": {
-        "mode": "standard",
-    }
-}
+SYNTHESIS_TEXT_RULES: SynthesisTextAestheticsDTO = SynthesisTextAestheticsDTO()
 
 
 # ============================================================================
