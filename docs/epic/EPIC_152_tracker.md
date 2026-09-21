@@ -144,7 +144,7 @@
   - [x] @[scripts/run_e2e_variance_test.py]
   - [x] @[backend_v2/hooks/validation.py]
   - [x] @[backend_v2/settings.py]
-  - [ ] @[backend_v2/utils/math_utils.py]
+  - [x] @[backend_v2/utils/math_utils.py]
   - [ ] @[backend_v2/logging_config.py]
   - [ ] @[backend_v2/database/tinydb_driver.py]
   - [ ] @[backend_v2/database/firestore_driver.py]

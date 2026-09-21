@@ -8,10 +8,20 @@ import collections.abc
 import logging
 from typing import Any
 
+from fastapi import status
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+
+__all__ = [
+    "calculate_linear_ratio_score",
+    "calculate_scaled_score",
+    "clamp_score",
+    "normalize_score_to_100",
+    "resolve_dot_notation",
+    "scale_to_custom_range",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +45,7 @@ def clamp_score(score: float, math_min: float, math_max: float) -> float:
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
     return float(max(math_min, min(math_max, score)))
@@ -62,7 +72,7 @@ def normalize_score_to_100(score: float, math_min: float, math_max: float) -> fl
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
@@ -92,7 +102,7 @@ def calculate_scaled_score(score: float, number_of_options: int, math_min: float
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
@@ -123,7 +133,7 @@ def scale_to_custom_range(score: float, raw_min: float, raw_max: float, target_m
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
@@ -146,7 +156,7 @@ def calculate_linear_ratio_score(
     for non-linear curve scaling based on strictness.
 
     Args:
-        level_stats: Dictionary mapping scale_level -> {"hits": X, "total": Y}
+        level_stats: Dictionary mapping scale levels to LevelStatsDTO.
         math_min: The minimum value of the scale (e.g. 1.0).
         math_max: The maximum value of the scale (e.g. 5.0).
         exponent: Non-linear exponent to apply to the proportional fraction.
@@ -162,7 +172,7 @@ def calculate_linear_ratio_score(
         logger.error("[MathUtils] %s: %s", ErrorCodes.INVALID_OUTPUT_SCHEMA.name, msg)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INVALID_OUTPUT_SCHEMA.value},
         )
 
@@ -173,7 +183,7 @@ def calculate_linear_ratio_score(
         total = stats.total - stats.dlqs
         hits = stats.hits
 
-        # Painotettu matematiikka
+        # Weighted mathematics calculation
         achieved_weights += hits * level
         max_weights += total * level
 
@@ -188,10 +198,19 @@ def calculate_linear_ratio_score(
 
 
 def resolve_dot_notation(state: Any, path: str) -> Any:
-    """Safely resolves a dot-notation path against a state mapping, sequence, or model.
+    """Safely resolve a dot-notation path against a state mapping, sequence, or model.
 
     Uses strictly typed iterative traversal. Never uses eval, exec, dict.get, or getattr.
-    Raises MissingInputMappingError on any resolution failure.
+
+    Args:
+        state: Root state object or data structure to traverse.
+        path: Dot-separated attribute or key path string.
+
+    Returns:
+        The resolved value at the designated path.
+
+    Raises:
+        MissingInputMappingError: If any path component is missing or invalid.
     """
     if not path:
         return state

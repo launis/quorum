@@ -4,7 +4,9 @@ from pydantic import BaseModel, ConfigDict
 from backend_v2.exceptions import AppException, MissingInputMappingError
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.utils.math_utils import (
+    calculate_linear_ratio_score,
     calculate_scaled_score,
+    clamp_score,
     normalize_score_to_100,
     resolve_dot_notation,
     scale_to_custom_range,
@@ -38,15 +40,21 @@ def test_scale_to_custom_range() -> None:
         scale_to_custom_range(3.0, 5.0, 1.0, 4.0, 10.0)
 
 
-def test_clamp_score_invalid_scale() -> None:
-    from backend_v2.utils.math_utils import clamp_score
+def test_clamp_score() -> None:
+    """Test clamping within, below, and above bounds."""
+    assert clamp_score(3.0, 1.0, 5.0) == 3.0
+    assert clamp_score(0.5, 1.0, 5.0) == 1.0
+    assert clamp_score(5.5, 1.0, 5.0) == 5.0
 
+
+def test_clamp_score_invalid_scale() -> None:
+    """Test clamping with invalid mathematical scale bounds."""
     with pytest.raises(AppException):
         clamp_score(3.0, 5.0, 1.0)
 
 
 def test_calculate_linear_ratio_score() -> None:
-    from backend_v2.utils.math_utils import calculate_linear_ratio_score
+    """Test weighted average calculation across scale levels."""
 
     stats = {
         1.0: LevelStatsDTO(hits=100, total=100),
