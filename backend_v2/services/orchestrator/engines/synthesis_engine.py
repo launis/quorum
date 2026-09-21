@@ -3,6 +3,8 @@
 Implements the ExecutionEngine protocol for LLM-driven synthesis processing.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 
@@ -50,7 +52,8 @@ class SynthesisEngine:
             EngineExecutionResult containing the generated output dict.
 
         Raises:
-            AppException: If blackboard is missing, validation fails, or LLM errors occur.
+            AppException: If blackboard is missing or execution errors occur (ErrorCodes.SYNTHESIS_ENGINE_ERROR),
+                or if payload validation fails (ErrorCodes.VALIDATION_FAILED).
         """
         raw_blackboard = None
         if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
