@@ -1,7 +1,10 @@
 """Passivity penalty scoring hook."""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
+from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -45,6 +48,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
     """
     if not state:
         msg = "Strict Fail-Fast Enforced: Missing HookState in enforce_passivity_penalty_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     repository = deps.workflow_repo
@@ -52,17 +56,20 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         msg = (
             "Strict Fail-Fast Enforced: No repository provided in HookDependencies for enforce_passivity_penalty_hook."
         )
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to enforce_passivity_penalty_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
@@ -96,20 +103,21 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
     passivity_detected = False
 
-    judges_to_check = []
-    if state.inputs and state.inputs.dynamic_inputs:
+    judges_to_check: list[tuple[str, Any]] = []
+    if state.inputs.dynamic_inputs:
         raw_inputs = state.inputs.dynamic_inputs
-    elif state.inputs and state.inputs.raw_inputs:
+    elif state.inputs.raw_inputs:
         raw_inputs = state.inputs.raw_inputs
     else:
         raw_inputs = {}
-    judges_to_check.append((blueprint_id, raw_inputs, True))
+    judges_to_check.append((blueprint_id, raw_inputs))
 
-    for judge_key, judge_model_raw, _ in judges_to_check:
+    for judge_key, judge_model_raw in judges_to_check:
+        judge_model: dict[str, Any]
         if isinstance(judge_model_raw, BaseModel):
             judge_model = judge_model_raw.model_dump()
         elif isinstance(judge_model_raw, Mapping):
-            judge_model = judge_model_raw
+            judge_model = {str(k): v for k, v in judge_model_raw.items()}
         else:
             continue
 
