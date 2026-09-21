@@ -378,7 +378,13 @@
     44. `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` (Commit `fa7d93a1`): Added `from __future__ import annotations`, explicit `__all__ = ["ContextBuilder"]`, eradicated all 8 `QGR016` lazy fallback violations (`scales or []`, `claims or []`, `tda_assertions or []`, `schema_map or {}`, ternary `dto_list`, ternary `all_steps`, and `extracted_raw_inputs or None`). Expanded unit tests in `test_context_builder.py` achieving 95% line coverage (19/19 passing, 0 AST violations), audit matrix verified.
     45. `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py` (Commit `063d92d0`): Added `from __future__ import annotations`, explicit `__all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]`, full PEP 257 Google-style docstrings. Expanded unit tests in `test_source_document_packer.py` covering ExecutionInputsDTO, BaseModel payloads, circular JSON error handling, and whitespace mappings, achieving 100% line coverage (12/12 passing, 0 AST violations), audit matrix verified.
     46. `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (Commit `f43926eb`): Verified full PEP 257 Google-style docstrings and 0 AST violations. Expanded unit tests in `test_prompt_factory.py` covering `execution_time` formatting in `document_date` and `GlobalContextVarsDTO.external_evidence` injection, achieving 99% line coverage (9/9 passing, 0 AST violations), audit matrix verified.
-- All 46 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 10 (Completed & Committed):
+    47. `backend_v2/services/orchestrator/state_reducer.py` (Commit `d2dc030d`): Refactored ternary assignments for `target_locale` and `user_role` to explicit `if delta... is not None:` blocks. Added negative schema validation and boundary None handling tests in `test_state_reducer.py`. 100% test coverage (4/4 tests passed), 0 AST guardrail violations, verified via audit matrix.
+    48. `backend_v2/services/orchestrator/dag_executor.py` (Commit `48442d4f`): Refactored `context_variables` and `global_context_vars` type annotations from `dict[str, Any]` to `Mapping[str, Any]` across `ExecutionCommitter.commit_trace` and `NodeExecutor.execute_step`. Replaced chained ternary expressions for `resolved_global_vars` and `resolved_context_vars` with explicit `if/elif/else` blocks. 95% test coverage (28/28 tests passed), 0 AST guardrail violations, verified via audit matrix.
+    49. `backend_v2/services/orchestrator/strategies/base.py` (Commit `fd149b9c`): Hoisted `EngineExecutionRequest` import to top-level, eliminating inline mid-file imports. Converted all `StrategyContext` fields to PEP 593 `Annotated` syntax. Eradicated 4 `QGR016` banned ternary fallbacks in `run_pre_hooks` and `run_post_hooks`. Expanded `test_base.py` achieving 97% test coverage (13/13 tests passed), 0 AST guardrail violations, verified via audit matrix.
+    50. `backend_v2/services/orchestrator/strategies/logic.py` (Commit `d963990d`): Added explicit `__all__ = ["LogicNodeStrategy"]`. Eradicated ternary lazy fallbacks in state extraction and delta unpacking. Replaced `logger.error` with RFC 7807 structured logging and added explicit `AppException` error codes to execute docstring. Expanded `test_logic.py` with missing hook, BaseModel delta, and export tests achieving 100% test coverage (8/8 tests passed), 0 AST guardrail violations, verified via audit matrix.
+    51. `backend_v2/services/orchestrator/strategies/llm.py` (Commit `1f671034`): Eradicated all 4 AST `QGR016` ternary fallbacks in `_extract_step_context_metadata`, `execute`, and `_step_metadata` generation. Expanded `test_llm.py` covering blackboard context extraction, nested mapping results, debug logging handler, and synthesis engine metadata packaging, achieving 92% test coverage (33/33 tests passed), 0 AST guardrail violations, verified via audit matrix.
+- All 51 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
@@ -399,18 +405,21 @@
 - `MatrixScale` in `matrix.py` requires `score: int`, `ai_label: str`, and optional `name: I18nText` (forbids `label` and `description`).
 - `MatrixPromptBlock` enforces `type: Literal[BlockDataType.FLOAT, BlockDataType.INT]` (rejects `BlockDataType.CRITERIA`).
 - `json.dumps(data, default=str)` does not raise `TypeError` on arbitrary un-serializable objects because `default=str` coerces them to string; testing `json.dumps` failure requires circular object graphs (`bad_dict['self'] = bad_dict`) which trigger `ValueError`.
+- In `Step`, `type="logic"` requires `hook` to be defined at the Pydantic validator layer; testing orchestrator-level missing hook requires setting `type=StepType.LLM` with valid `criteria_block_ids` and `extraction_protocol_block_id` but `hook=None`.
+- In `HookState`, `global_context_vars` enforces strict extra="forbid"; testing custom blackboard context variables on HookState requires `HookState.model_construct(...)` or configuring `context.context_variables`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 10):
-  - `backend_v2/services/orchestrator/state_reducer.py`
-  - `backend_v2/services/orchestrator/dag_executor.py`
-  - `backend_v2/services/orchestrator/strategies/base.py`
-  - `backend_v2/services/orchestrator/strategies/logic.py`
-  - `backend_v2/services/orchestrator/strategies/llm.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 11):
+  - `backend_v2/services/orchestrator/extractive_sensor_service.py`
+  - `backend_v2/services/orchestrator/context_router.py`
+  - `backend_v2/services/orchestrator/extraction_schema_factory.py`
+  - `backend_v2/services/orchestrator/matrix_explanation_service.py`
+  - `backend_v2/services/orchestrator/rag_preflight_service.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
 
 
