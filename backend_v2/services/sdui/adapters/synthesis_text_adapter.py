@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 """Synthesis Text SDUI Adapter.
 
 Transforms synthesis markdown into SDUI visual blocks
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
+SYNTHESIS_TEXT_RULES DTO to enforce separation of presentation from logic.
 """
 
 import logging
