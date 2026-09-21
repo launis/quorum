@@ -395,7 +395,19 @@
     59. `backend_v2/services/mcp/tavily_search_client.py` (Commit `4626a0a4`): Added explicit `__all__`, `TYPE_CHECKING` guards for `LLMTaskExecutor` and `LLMClient`, RFC 7807 structured `logger.error` before all `AppException` points, eradicated `QGR016` lazy literal `or ""` in `tavily_search` and ternary fallback in `batch_tavily_search`, 17/17 tests passing (97% coverage), 0 AST violations, audit matrix verified.
     60. `backend_v2/services/mcp/tools/tavily.py` (Commit `9e0a9c02`): Added explicit `__all__ = ["TAVILY_TOOL_ID", "TavilyTool"]`, imported `translation_service` globally to fix `inline_imports_ban`, replaced 6 ternary `QGR016` unpacking fallbacks with explicit `if/else` checks, added RFC 7807 structured error logging, 100% test coverage (5/5 tests passing), 0 AST violations, audit matrix verified.
     61. `backend_v2/services/studio/simulation_service.py` (Commit `e4501827`): Added PEP 257 Google-style docstrings with Attributes, RFC 7807 structured `logger.error` with extra error_code before all `AppException` raises, replaced `clean_mocks` ternary fallback with explicit loop, eradicated defensive `isinstance(mock_inputs, ExecutionInputsDTO)` duck-typing, 97% test coverage (18/18 tests passing), 0 AST violations, audit matrix verified.
-- All 61 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 13 (Completed & Committed):
+    62. `backend_v2/services/studio/workflow_service.py` (Commit `74eb0452`): Added explicit `Raises: AppException` and `ResourceNotFoundError` contracts to docstrings, RFC 7807 structured `logger.error` format in `create_step_draft`, expanded unit tests (44/44 tests passed, 99% coverage), 0 AST violations, audit matrix verified.
+    63. `backend_v2/core/registry.py` (Commit `38d8fdeb`): Added `from __future__ import annotations`, explicit `__all__` exporting 14 public symbols, converted `TaskDefinition` fields to PEP 593 `Annotated`, eradicated all 8 AST violations (`QGR016` ternaries, `QGR005` category checks), RFC 7807 logging, expanded unit tests (17/17 passed, 91% coverage), 0 AST violations, audit matrix verified.
+    64. `backend_v2/models/view/sdui.py` (Commits `5fbd8d22` & `582a5468`): Added module docstring, explicit `__all__` exporting 50+ symbols, repositioned docstrings above `model_config` in 18 classes per PEP 257, converted bare fields to PEP 593 `Annotated` with default factory expressions for MyPy strict compliance, 100% test coverage (7/7 passed), 0 AST violations, audit matrix verified.
+    65. `backend_v2/services/sdui_mapper_service.py` (Commit `af4955c5`): Added `from __future__ import annotations`, explicit `__all__ = ["SduiMapperService"]`, PEP 257 docstrings, eradicated `QGR016` inline ternary for `status_theme`, added fallback to `report.execution_id`, expanded unit tests (6/6 passed, 100% coverage), 0 AST violations, audit matrix verified.
+    66. `backend_v2/services/execution/legacy_render_service.py` (Commit `93004564`): Fixed 8 `QGR009` violations with typed `ErrorCodes`, fixed 5 `QGR016` banned ternaries and lazy `or` operators, RFC 7807 structured logging on all exception exits, full PEP 257 docstrings with `Raises:`, 24/24 unit tests passed (95% line coverage), 0 AST violations, audit matrix verified.
+  - Batch 14 (Completed & Committed):
+    67. `backend_v2/models/dtos/sdui_rules.py` (Commit `f23d69bf`): Added `from __future__ import annotations`, explicit `__all__` exporting 21 public DTO symbols, eliminated inline ternary operators in `get_display_name` and `get_text` with explicit `if/else`, verified 100% test coverage (13/13 passed), 0 AST violations, audit matrix verified.
+    68. `backend_v2/models/dtos/render.py` (Commit `423c5f42`): Added `from __future__ import annotations`, explicit `__all__`, created unit test suite `test_render.py` covering bytes, str, DTOs, extra-field forbidding, and invalid payload fail-fast, achieving 100% test coverage (5/5 passed), 0 AST violations, audit matrix verified.
+    69. `backend_v2/models/dtos/flat_record.py` (Commit `88da76f4`): Added `from __future__ import annotations`, created unit test suite `test_flat_record.py` covering defaults, `to_csv_dict()` dictionary flattening, extra-field forbidding, and type validation fail-fast, achieving 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
+    70. `backend_v2/models/dtos/base.py` (Commit `5cc26261`): Fixed module docstring positioning before imports, complete PEP 593 `Annotated` syntax with `Field(default=None, description=..., exclude=True)` on `organization_id`, PEP 257 Google-style docstrings with Attributes on `DataStarvationEvent`, expanded `test_base.py` covering `GenericStatusResponseDTO` and `DataStarvationEvent` with negative tests, achieving 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
+    71. `backend_v2/services/sdui/adapters/printable_sources_adapter.py` (Commit `23e3ebf2`): Added `from __future__ import annotations`, eliminated all 3 `QGR016` banned ternary fallbacks in `locale` resolution, `mcp_traces` extraction, and `b_text` retrieval, achieving 94% test coverage (15/15 passed), 0 AST violations, audit matrix verified.
+- All 71 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - In `tavily.py`, unpacking tool arguments via `val if "k" in kwargs and kwargs["k"] is not None else default` violates AST rule `QGR016` (ternary literal fallback). Use explicit `if "k" in kwargs and kwargs["k"] is not None:` branching.
@@ -420,25 +432,23 @@
 - Circular imports between worker modules and service modules can be broken cleanly without inline imports by importing the service module globally at the top level (e.g. `import backend_v2.services.report_service as report_service_mod`) and resolving the class dynamically at runtime (`report_service_mod.ReportService(repo)`).
 - Direct dot-notation access on default-factored Pydantic sub-DTOs (like `report.storage_paths.pdf_path`) eliminates redundant QGR016 ternary guards when the sub-DTO is guaranteed non-null.
 - In `prompt_compiler.py`, references to "Epic" in docstrings or comments violate `internal_language_and_epic_ban` and must be purged.
-- `MatrixClaim` in `matrix.py` enforces `label: I18nText` (forbids `claim_text`).
-- `MatrixScale` in `matrix.py` requires `score: int`, `ai_label: str`, and optional `name: I18nText` (forbids `label` and `description`).
-- `MatrixPromptBlock` enforces `type: Literal[BlockDataType.FLOAT, BlockDataType.INT]` (rejects `BlockDataType.CRITERIA`).
-- `json.dumps(data, default=str)` does not raise `TypeError` on arbitrary un-serializable objects because `default=str` coerces them to string; testing `json.dumps` failure requires circular object graphs (`bad_dict['self'] = bad_dict`) which trigger `ValueError`.
-- In `Step`, `type="logic"` requires `hook` to be defined at the Pydantic validator layer; testing orchestrator-level missing hook requires setting `type=StepType.LLM` with valid `criteria_block_ids` and `extraction_protocol_block_id` but `hook=None`.
-- In `HookState`, `global_context_vars` enforces strict extra="forbid"; testing custom blackboard context variables on HookState requires `HookState.model_construct(...)` or configuring `context.context_variables`.
+- In Pydantic models, writing `field: Annotated[list[T], Field(default_factory=list)]` without a trailing `= Field(default_factory=list)` causes MyPy strict to treat `field` as a required parameter during model instantiation. Always retain `= Field(default_factory=list)` on optional list/dict fields to satisfy MyPy type-checking.
+- `JobAcceptedDTO` in `backend_v2/models/domain/execution.py` requires `status: str`, `message: str`, and `execution_id: str` (with `extra="forbid"`).
+- In `PrintableSourcesAdapter`, ternary expressions for `locale`, `mcp_traces`, and `b_text` must be rewritten as explicit `if/else` statements to satisfy `QGR016`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 13):
-  - `backend_v2/services/studio/workflow_service.py`
-  - `backend_v2/core/registry.py`
-  - `backend_v2/models/view/sdui.py`
-  - `backend_v2/services/sdui_mapper_service.py`
-  - `backend_v2/services/execution/legacy_render_service.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 15):
+  - `backend_v2/services/sdui/adapters/penalties_adapter.py`
+  - `backend_v2/services/sdui/adapters/variance_adapter.py`
+  - `backend_v2/services/execution/facade.py`
+  - `backend_v2/services/flattener.py`
+  - `backend_v2/services/export_service.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
 
 
 
