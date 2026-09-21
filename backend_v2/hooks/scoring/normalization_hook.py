@@ -1,5 +1,7 @@
 """Normalization and recalculation scoring hook module."""
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -57,6 +59,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     repository = deps.workflow_repo
     if not repository:
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for normalize_matrix_scores_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     raw_inputs = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
@@ -190,7 +193,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             matrix_dto = LightweightMatrixOutput(
                 raw_score=raw_float,
                 normalized_score=normalized_val,
-                level_breakdown=level_breakdown if level_breakdown else None,
+                level_breakdown=level_breakdown,
                 justification=justification,
                 evaluated_atoms=evaluated_atoms,
                 extensions=extensions,
@@ -344,8 +347,9 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         for scale in scales:
             s_val = float(scale.score)
             for claim in scale.claims:
-                for tda in claim.tda_assertions or []:
-                    atom_to_scale[tda.tda_id] = s_val
+                if claim.tda_assertions:
+                    for tda in claim.tda_assertions:
+                        atom_to_scale[tda.tda_id] = s_val
 
         raw_stats = {s_val: {"hits": 0, "total": 0, "dlqs": 0} for s_val in scale_values}
 
@@ -375,7 +379,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
         total_true_atoms += global_hits
         total_false_atoms += global_total - global_hits - global_dlqs
 
-        justification = existing_matrix.justification or ""
+        justification = existing_matrix.justification
 
         if is_indeterminate:
             raw_score = math_min
