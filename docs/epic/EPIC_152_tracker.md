@@ -148,7 +148,7 @@
   - [x] @[backend_v2/logging_config.py]
   - [x] @[backend_v2/database/tinydb_driver.py]
   - [x] @[backend_v2/database/firestore_driver.py]
-  - [ ] @[backend_v2/models/domain/execution.py]
+  - [x] @[backend_v2/models/domain/execution.py]
   - [ ] @[backend_v2/models/domain/inputs.py]
   - [ ] @[backend_v2/models/state.py]
   - [ ] @[backend_v2/models/dtos/ingress.py]

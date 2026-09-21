@@ -72,6 +72,13 @@ def test_execution_create_custom_and_validator() -> None:
     assert ec.matrix_sampling_strategy > 0
     assert ec.provider_override == LLMProvider.OPENAI
 
+    ec2 = ExecutionCreate(
+        workflow_id="wor_1234567890abcdef",
+        target_locale="en",
+        matrix_sampling_strategy=5,
+    )
+    assert ec2.matrix_sampling_strategy == 5
+
 
 def test_execution_create_extra_forbidden() -> None:
     with pytest.raises(ValidationError):

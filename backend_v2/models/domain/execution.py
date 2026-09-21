@@ -104,7 +104,14 @@ class ExecutionCreate(V2CoreBase):
     @field_validator("matrix_sampling_strategy", mode="before")
     @classmethod
     def _resolve_matrix_sampling_strategy(cls, value: int | None) -> int:
-        """Resolve matrix_sampling_strategy if passed explicitly as None."""
+        """Resolve matrix_sampling_strategy if passed explicitly as None.
+
+        Args:
+            value: The input sampling strategy value or None.
+
+        Returns:
+            The resolved integer matrix sampling limit.
+        """
         if value is None:
             return int(get_settings().matrix_sampling_limit)
         return int(value)
