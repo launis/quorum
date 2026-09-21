@@ -4,11 +4,15 @@ Defines immutable Pydantic V2 schema for step-level telemetry entries
 accumulated during execution trace evaluation in execution worker.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+
+__all__ = ["StepTelemetryEntryDTO"]
 
 
 class StepTelemetryEntryDTO(V2CoreBase):
