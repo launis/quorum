@@ -13,7 +13,7 @@ import datetime
 import json
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -52,12 +52,16 @@ class _InputMetaDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    label: str
-    desc: str
-    ai_desc: str | None = None
-    is_chat_history: bool
-    input_modes: list[str] = Field(default_factory=list)
-    is_endorsed_deliverable: bool = False
+    label: Annotated[str, Field(description="Localized label string")]
+    desc: Annotated[str, Field(description="Localized description string")]
+    ai_desc: Annotated[str | None, Field(default=None, description="Cognitive instruction for LLM")] = None
+    is_chat_history: Annotated[bool, Field(description="Whether the input represents multi-turn dialogue")]
+    input_modes: Annotated[list[str], Field(default_factory=list, description="Allowed input modes for this input")] = (
+        Field(default_factory=list)
+    )
+    is_endorsed_deliverable: Annotated[
+        bool, Field(default=False, description="Whether the input represents an endorsed candidate deliverable")
+    ] = False
 
     @property
     def is_assignment(self) -> bool:
@@ -215,6 +219,9 @@ class PromptCompiler:
 
         Returns:
             A single string containing XML-wrapped elements.
+
+        Raises:
+            AppException: If unmapped input reference is encountered (ErrorCodes.CONFIGURATION_ERROR).
         """
         xml_blocks = []
 
@@ -432,7 +439,7 @@ class PromptCompiler:
             A semantic prompt string commanding the LLM of the desired strictness behavior.
 
         Raises:
-            AppException: If the strictness level cannot be parsed.
+            AppException: If the strictness level cannot be parsed (ErrorCodes.VALIDATION_FAILED).
         """
         if level is None:
             return ""
@@ -440,11 +447,16 @@ class PromptCompiler:
         try:
             val = int(level)
         except (ValueError, TypeError) as e:
-            logger.error("Failed to parse strictness level %s", level, exc_info=True)
+            logger.error(
+                "[PromptCompiler] %s: Failed to parse strictness level %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                level,
+                exc_info=True,
+            )
             raise AppException(
                 message=f"Invalid strictness level: {level}",
                 status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
         # Clamp between 0 and 100
@@ -453,7 +465,7 @@ class PromptCompiler:
         return f"SCORING_STRICTNESS: {val}/100"
 
     def generate_mcp_instruction(self, allowed_tools: list[str]) -> str:
-        """Epic 13 M2: Generate dynamic instructions for active MCP tools.
+        """Generate dynamic instructions for active MCP tools.
 
         Args:
             allowed_tools: List of allowed MCP tool identifiers.
