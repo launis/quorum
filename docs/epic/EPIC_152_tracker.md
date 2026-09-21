@@ -209,7 +209,7 @@
   - [x] @[backend_v2/models/view/sdui.py]
   - [x] @[backend_v2/services/sdui_mapper_service.py]
   - [x] @[backend_v2/services/execution/legacy_render_service.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/sdui_rules.py]
+  - [x] @[backend_v2/models/dtos/sdui_rules.py]
   - [ ] [NEW] @[backend_v2/models/dtos/render.py]
   - [ ] [NEW] @[backend_v2/models/dtos/flat_record.py]
   - [ ] @[backend_v2/models/dtos/base.py]

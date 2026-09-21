@@ -4,12 +4,38 @@ Defines immutable Pydantic V2 schemas for presentation rules,
 visual intents, and aesthetic metadata used by SDUI adapters.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import VisualIntent
+
+__all__ = [
+    "GlobalScoreAestheticsDTO",
+    "MatrixGraphMinAxesDTO",
+    "MatrixGraphsAestheticsDTO",
+    "MatrixSummaryAestheticsDTO",
+    "MatrixSummaryRuleItemDTO",
+    "McpAuditAestheticsDTO",
+    "McpAuditItemDTO",
+    "MetadataAestheticsDTO",
+    "PenaltiesRulesDTO",
+    "PenaltyRuleItemDTO",
+    "PrintableSourcesRulesDTO",
+    "SourceDisplayNameDTO",
+    "SynthesisTextAestheticsDTO",
+    "SynthesisTextModeDTO",
+    "TheoryEvidenceItemDTO",
+    "VarianceRuleItemDTO",
+    "VarianceRulesDTO",
+    "WarningCardAestheticsDTO",
+    "WarningCardSeverityDTO",
+    "XaiAestheticsItemDTO",
+    "XaiAestheticsRulesDTO",
+]
 
 
 class SourceDisplayNameDTO(V2CoreBase):
@@ -34,7 +60,9 @@ class SourceDisplayNameDTO(V2CoreBase):
         Returns:
             Localized display name string.
         """
-        return self.display_name_fi if locale == "fi" else self.display_name_en
+        if locale == "fi":
+            return self.display_name_fi
+        return self.display_name_en
 
 
 class TheoryEvidenceItemDTO(V2CoreBase):
@@ -59,7 +87,9 @@ class TheoryEvidenceItemDTO(V2CoreBase):
         Returns:
             Localized framework description text.
         """
-        return self.fi if locale == "fi" else self.en
+        if locale == "fi":
+            return self.fi
+        return self.en
 
 
 class PrintableSourcesRulesDTO(V2CoreBase):
