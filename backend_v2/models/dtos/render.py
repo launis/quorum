@@ -3,6 +3,8 @@
 SSOT for rendered execution outputs across multi-channel presentation formats.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
