@@ -443,3 +443,31 @@ def test_render_execution_precompiled_excel_and_csv(
     res_csv = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=csv&profile_id=prf_001")
     assert res_csv.status_code == 200
     assert res_csv.content == b"csv-bytes"
+
+
+def test_render_execution_precompiled_with_local_time_str_hits_cache(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
+    """Test that providing local_time_str still hits the pre-compiled ReportArtifact cache."""
+    client = TestClient(app)
+    mock_report = ReportArtifactSummaryDTO(
+        id="rep_1234567890abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_001",
+        locale="fi",
+        title="Raportti",
+        status=ReportStatus.READY,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    mock_report_service.list_reports_for_execution.return_value = [mock_report]
+    mock_report_service.get_report_pdf_bytes.return_value = (b"%PDF-1.4", "cached_report.pdf")
+
+    response = client.get(
+        "/api/v2/execution/executions/exe_1234567890abcdef/render?format=pdf&profile_id=prf_001&local_time_str=2026-09-21T23%3A00%3A00"
+    )
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == 'attachment; filename="cached_report.pdf"'
+    assert response.content == b"%PDF-1.4"
+    mock_execution_service.render_execution.assert_not_called()
+

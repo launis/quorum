@@ -335,7 +335,7 @@ async def render_execution(
                 matching_report = r
                 break
 
-    if matching_report is not None and custom_preface_md is None and local_time_str is None:
+    if matching_report is not None and custom_preface_md is None:
         fmt = format.lower()
         if fmt == "pdf":
             pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
