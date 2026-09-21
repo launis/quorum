@@ -322,29 +322,37 @@
 # Session Handover Context
  
 ## Achieved
-- Completed Phase 1 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
-- Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
-- Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode and Phase 4 Tier 8 Audit Remediation & Re-Verification (`red_team_audit_04_placeholder_phase4.md`, 100% mathematical pass rate, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
-- Completed Phase 5 execution and Tier 8 Red-Team Post-Implementation Re-Audit (`red_team_audit_05_placeholder_phase5.md`).
-- Completed Phase 6 execution and Tier 8 Red-Team Post-Implementation Audit (`red_team_audit_06_placeholder_phase6.md`, 100% UNCONDITIONAL PASS).
-- Completed Phase 7 Execution of EPIC 152 in Continuous Full-Auto Mode.
-- Executed Tier 8 Red-Team Audit for Phase 7 (`red_team_audit_07_placeholder_phase7.md`) and successfully remediated all 4 identified docstring and line-length defects:
-  * Added PEP 257 compliant module docstrings to `backend_v2/models/dtos/lightweight_matrix.py` and `backend_v2/services/localization.py`.
-  * Wrapped long docstring lines (<120 chars) in `backend_v2/services/sdui/adapters/matrix_graphs_adapter.py` and `backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py`.
-  * Verified `ruff check --select D,E501` passes with 0 errors across all touched targets.
-  * Verified backend quality loop (`backend_audit_loop.py` on all 4 targets passed with strict >90% coverage and clean MyPy strict typing).
-  * Verified SDUI semantic parity (`test_sdui_semantic_parity.py` passed with 100% parity).
-  * Verified Flutter client analyzer (`flutter_audit_loop.py` passed with 0 fatal violations).
-  * Verified two-phase database seeder (`run_seed.py local` passed with 100% pre-flight in-memory validation and atomic ingress).
+- Hardened and audited 5 targets against Phase 9 standards, zero naked dicts, PEP 257 docstrings, 100% quality gate compliance, and verified neuro-symbolic audit matrices:
+  1. `scripts/audit_dict_eradication.py` (Commit `3f9dc88d`): Explicit `__all__`, typed docstrings, zero AST violations, verified audit matrix.
+  2. `scripts/_ast_guardrails.py` (Commit `7d3ff1ee`, `71c6ce0b`): Explicit `__all__`, fixed Python 3.14 multiple exception tuple syntax, BaseSettings exemption for QGR007, verified audit matrix.
+  3. `scripts/run_e2e_variance_test.py` (Commit `3aeba9d0`): Added 46 new unit tests in `test_run_e2e_variance_test.py`, 90% coverage across 84 tests, explicit `__all__`, verified audit matrix.
+  4. `backend_v2/hooks/validation.py` (Commit `2249c7cc`): Explicit `__all__`, typed docstrings, `fastapi.status` constants, 20/20 unit tests with 94% coverage, verified audit matrix.
+  5. `backend_v2/settings.py` (Commit `71c6ce0b`): Explicit `__all__`, `status.HTTP_500_INTERNAL_SERVER_ERROR`, PEP 257 docstrings with `Raises: AppException: CONFIGURATION_ERROR`, 21/21 unit tests with 99% coverage, verified audit matrix.
+- All 5 targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
-- Pre-existing AST guardrail warnings and violations in non-Phase-7 files are tracked for resolution in the Epic 152 Post-Implementation Gate: Tier 2 Hardening (Backend).
-- Module docstrings and line lengths in SDUI adapters must be strictly guarded with `ruff check --select D,E501` during phase execution.
+- In `scripts/backend_audit_loop.py`, test script discovery maps `scripts/<name>.py` to `backend_v2/tests/unit/scripts/test_<name>.py`.
+- Pydantic Settings models inheriting from `BaseSettings` require `extra="ignore"` to avoid crashing on standard OS/container environment variables.
+- Audit matrix NA category justifications must not exceed 40 occurrences per unique string; fine-grained categories (<= 25 items) ensure valid matrix verification.
 
 ## Remaining
+- Tier 2 Hardening (Backend) Remaining Targets:
+  - `backend_v2/utils/math_utils.py`
+  - `backend_v2/logging_config.py`
+  - `backend_v2/database/tinydb_driver.py`
+  - `backend_v2/database/firestore_driver.py`
+  - `backend_v2/models/domain/execution.py`
+  - `backend_v2/models/domain/inputs.py`
+  - `backend_v2/models/state.py`
+  - `backend_v2/models/dtos/ingress.py`
+  - `backend_v2/models/dtos/hook_state.py`
+  - `backend_v2/models/dtos/atom_result.py`
+  - `backend_v2/llm/adapters/vertex_adapter.py`
+  - `backend_v2/llm/handler.py`
+  - `backend_v2/models/dtos/theory_manifest.py`
+  - `backend_v2/models/dtos/schema_manifest.py`
 - Integration Checkpoint: Full-Stack Validation.
-- Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
+- Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier2-hardening-backend @[docs/epic/EPIC_152_tracker.md]
