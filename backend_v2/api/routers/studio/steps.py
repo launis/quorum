@@ -9,6 +9,7 @@ from fastapi import APIRouter
 
 from backend_v2.api.dependencies import CurrentUserDep, StudioSimulationServiceDep, StudioWorkflowServiceDep
 from backend_v2.models.domain.step import Step
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.studio import (
     StepDeleteResponse,
     StepResponseDTO,
@@ -45,7 +46,7 @@ async def simulate_step(
     return await studio_simulation_service.simulate_step(
         current_user,
         data.step,
-        data.mock_inputs,
+        ExecutionInputsDTO(raw_inputs=data.mock_inputs),
         target_locale=data.target_locale,
         context_text=data.context_text,
     )

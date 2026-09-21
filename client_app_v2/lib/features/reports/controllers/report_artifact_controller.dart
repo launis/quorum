@@ -27,8 +27,7 @@ Future<ReportArtifact> reportDetail(Ref ref, String reportId) async {
 @riverpod
 Future<ReportDataDto> reportSdui(Ref ref, String reportId) async {
   final client = ref.watch(reportsClientProvider);
-  final rawData = await client.getReportSdui(reportId);
-  return await safeIsolateRun(() => ReportDataDto.fromJson(rawData));
+  return await client.getReportSdui(reportId);
 }
 
 /// Fetches tabular B2B evidence scorecard rows.

@@ -845,9 +845,7 @@ def test_assemble_matrices_to_explain_malformed_atom_result_raises() -> None:
             data_type="matrix",
             payload={
                 "normalized_score": 78.5,
-                "results": [
-                    {"invalid_field": "corrupted"}
-                ],
+                "results": [{"invalid_field": "corrupted"}],
                 "evaluated_atoms": {},
             },
         ),

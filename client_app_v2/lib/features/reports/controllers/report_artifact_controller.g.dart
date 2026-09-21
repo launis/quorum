@@ -242,7 +242,7 @@ final class ReportSduiProvider
   }
 }
 
-String _$reportSduiHash() => r'c1c376e01dd1c46232c62ac5bbe6fdb2dc8b5160';
+String _$reportSduiHash() => r'2948f34c7fc3da9d98b1ee440a0b61e1fc6d72f9';
 
 /// Fetches the pre-compiled SDUI data tree for rendering in SduiRenderer.
 

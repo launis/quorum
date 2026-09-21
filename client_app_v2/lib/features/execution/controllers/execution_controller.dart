@@ -158,23 +158,9 @@ class ExecutionController extends _$ExecutionController {
   Future<void> _performHeavyFetch(String executionId) async {
     try {
       final client = ref.read(executionClientProvider);
-      final renderData = await client.renderExecution(executionId);
+      final reportData = await client.renderExecution(executionId);
 
       // Guard: Provider may have been disposed during the network call
-      if (!ref.mounted) return;
-
-      // Epic 14: Guard against 202 Accepted pending synthesis poll
-      if (renderData.containsKey('status') &&
-          renderData['status'].toString().toLowerCase() == 'pending') {
-        return; // Synthesis is still running, abort parsing
-      }
-
-      // We parse it in Isolate to guarantee no Jank.
-      final reportData = await safeIsolateRun(
-        () => ReportDataDto.fromJson(renderData),
-      );
-
-      // Guard: Provider may have been disposed during isolate parsing
       if (!ref.mounted) return;
 
       if (state.hasValue && state.value != null) {

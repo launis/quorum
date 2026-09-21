@@ -27,7 +27,7 @@ class BaseDTO(V2CoreBase):
     with varied serialization contexts.
     """
 
-    model_config = ConfigDict(populate_by_name=True, strict=True, extra="forbid")
+    model_config = ConfigDict(populate_by_name=True, strict=True, extra="forbid", frozen=True)
 
 
 class BaseResponseDTO(V2CoreBase):
@@ -40,7 +40,7 @@ class BaseResponseDTO(V2CoreBase):
         organization_id: Organization reference identifier excluded from client serialization.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     organization_id: Annotated[str | None, Field(exclude=True)] = None
 
@@ -57,7 +57,6 @@ class GenericStatusResponseDTO(BaseResponseDTO):
 
     status: Annotated[str, Field(default="ok", description="Operation status indicator")] = "ok"
     message: Annotated[str, Field(description="Operational outcome message")]
-
 
 
 class DataStarvationEvent(BaseDTO):

@@ -2401,17 +2401,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String reportQuoteTitle(String quote) {
-    return '💬 Excerpt from original text:\n$quote';
+    return 'Excerpt from original text:\n$quote';
   }
 
   @override
   String reportSemanticExplanationTitle(String reasoning) {
-    return '💡 AI Semantic Explanation (Contextual Override):\n$reasoning';
+    return 'AI Semantic Explanation (Contextual Override):\n$reasoning';
   }
 
   @override
   String reportFrameworkReference(String source) {
-    return '⚖️ Reference framework: $source';
+    return 'Reference framework: $source';
   }
 
   @override
@@ -2435,25 +2435,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportAnalyticalFramework2D => 'Analytical Framework (2D)';
 
   @override
-  String get reportCoachingTitle => '💡 Coaching Tip';
+  String get reportCoachingTitle => 'Coaching Tip';
 
   @override
-  String get reportFalsificationTitle => '⚖️ Devil\'s Advocate';
+  String get reportFalsificationTitle => 'Devil\'s Advocate';
 
   @override
-  String get reportMissingContextTitle => '🔍 Missing Context';
+  String get reportMissingContextTitle => 'Missing Context';
 
   @override
-  String get reportRiskFlagTitle => '⚠️ High Risk Identified';
+  String get reportRiskFlagTitle => 'High Risk Identified';
 
   @override
-  String get reportRemediationStepsTitle => '🛠️ Remediation Steps';
+  String get reportRemediationStepsTitle => 'Remediation Steps';
 
   @override
-  String get reportEmotionalSentimentTitle => '🎭 Sentiment Analysis';
+  String get reportEmotionalSentimentTitle => 'Sentiment Analysis';
 
   @override
-  String get reportTheoryLinkTitle => '📚 Theoretical Connection';
+  String get reportTheoryLinkTitle => 'Theoretical Connection';
 
   @override
   String reportConfidenceTitle(String value) {

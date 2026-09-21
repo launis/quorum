@@ -228,7 +228,10 @@ void main() {
           expect(find.text(expected2dTitle), findsOneWidget);
 
           // 16. SduiMatrixTableBlock
-          expect(find.text('Strategic Synthesis *'), findsOneWidget);
+          final expectedMatrixRow = locale.languageCode == 'fi'
+              ? 'Strateginen synteesi *'
+              : 'Strategic Synthesis *';
+          expect(find.text(expectedMatrixRow), findsOneWidget);
 
           // 17. SduiAuditTrailBlock
           expect(find.text('tavily_search'), findsOneWidget);

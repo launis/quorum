@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/controllers/report_controller.dart';
+import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 
@@ -10,18 +11,25 @@ class MockExecutionClientPending implements ExecutionClient {
   int callCount = 0;
 
   @override
-  Future<Map<String, dynamic>> renderExecution(
+  Future<ReportDataDto> renderExecution(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
+    void Function(String? message)? onProgress,
   }) async {
     callCount++;
     if (callCount == 1) {
       // First call returns pending with uppercase status
-      return {'status': 'PENDING', 'message': 'Valmistellaan tulostusta...'};
+      onProgress?.call('Valmistellaan tulostusta...');
+      return renderExecution(
+        executionId,
+        lang: lang,
+        variant: variant,
+        onProgress: onProgress,
+      );
     } else {
       // Second call returns actual data
-      return {
+      return ReportDataDto.fromJson({
         'execution_id': executionId,
         'workflow_id': 'wf_abc',
         'profile_id': 'prof_123',
@@ -33,7 +41,7 @@ class MockExecutionClientPending implements ExecutionClient {
         },
         'results': <Map<String, dynamic>>[],
         'hydrated_references': <String, dynamic>{},
-      };
+      });
     }
   }
 
@@ -68,11 +76,11 @@ class MockExecutionClientPending implements ExecutionClient {
   Future<Map<String, dynamic>> getScorecard(String executionId) async => {};
 
   @override
-  Future<Map<String, dynamic>> overrideAtom({
+  Future<GenericStatusResponseDto> overrideAtom({
     required String executionId,
     required String atomId,
     required Map<String, dynamic> payload,
-  }) async => {};
+  }) async => const GenericStatusResponseDto(message: 'ok');
 }
 
 void main() {

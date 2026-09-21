@@ -116,6 +116,3 @@ def test_map_report_to_sdui_na_outcomes() -> None:
     assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
     assert view.inner_sdui_blocks[0].short_circuit_reason_tda_ids == ["tda_1"]
     assert "Requirement not applicable for this sector" in view.inner_sdui_blocks[0].message
-
-
-

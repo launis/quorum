@@ -405,7 +405,7 @@ async def test_graceful_degradation_missing_fields(mock_repo_transformer: Any) -
     assert len(dto.inner_sdui_blocks) >= 1
     # Ensure text_only layout does NOT generate a 1d_metrics block anymore,
     # but instead gracefully outputs its text blocks (or title).
-    matrices = [b for b in dto.inner_sdui_blocks if getattr(b, "block_type", "") == "1d_metrics"]
+    matrices = [b for b in dto.inner_sdui_blocks if b.block_type == "1d_metrics"]
     assert len(matrices) == 0
 
 
@@ -992,18 +992,16 @@ async def test_blueprint_variance_validation_success(mock_repo_transformer: Any)
     alert_block = alert_blocks[-1]
 
     assert (
-        "Mechanical" in getattr(grid_block.items[0], "text", "")
-        or "Formulaic phrases" in getattr(grid_block.items[0], "text", "")
-    ) and "1" in getattr(grid_block.items[0], "text", "")
+        "Mechanical" in grid_block.items[0].text or "Formulaic phrases" in grid_block.items[0].text
+    ) and "1" in grid_block.items[0].text
     assert (
-        "Cognitive" in getattr(grid_block.items[1], "text", "")
-        or "Depth of reasoning" in getattr(grid_block.items[1], "text", "")
-    ) and "4.0" in getattr(grid_block.items[1], "text", "")
+        "Cognitive" in grid_block.items[1].text or "Depth of reasoning" in grid_block.items[1].text
+    ) and "4.0" in grid_block.items[1].text
     assert (
-        "Total Dispersion" in getattr(grid_block.items[2], "text", "")
-        or "Variance" in getattr(grid_block.items[2], "text", "")
-        or "Form-content disparity" in getattr(grid_block.items[2], "text", "")
-    ) and "1.2" in getattr(grid_block.items[2], "text", "")
+        "Total Dispersion" in grid_block.items[2].text
+        or "Variance" in grid_block.items[2].text
+        or "Form-content disparity" in grid_block.items[2].text
+    ) and "1.2" in grid_block.items[2].text
 
     assert alert_block.severity in (VisualIntent.WARNING, "warning")
     assert "MISALIGNED" in alert_block.text.upper()
@@ -1286,14 +1284,13 @@ async def test_blueprint_variance_validation_fallback_from_trace(mock_repo_trans
     alert_block = alert_blocks[-1]
 
     assert (
-        "Cognitive" in getattr(grid_block.items[1], "text", "")
-        or "Depth of reasoning" in getattr(grid_block.items[1], "text", "")
-    ) and "2.51" in getattr(grid_block.items[1], "text", "")
+        "Cognitive" in grid_block.items[1].text or "Depth of reasoning" in grid_block.items[1].text
+    ) and "2.51" in grid_block.items[1].text
     assert (
-        "Total Dispersion" in getattr(grid_block.items[2], "text", "")
-        or "Variance" in getattr(grid_block.items[2], "text", "")
-        or "Form-content disparity" in getattr(grid_block.items[2], "text", "")
-    ) and "0.09" in getattr(grid_block.items[2], "text", "")
+        "Total Dispersion" in grid_block.items[2].text
+        or "Variance" in grid_block.items[2].text
+        or "Form-content disparity" in grid_block.items[2].text
+    ) and "0.09" in grid_block.items[2].text
 
     assert alert_block.severity in (VisualIntent.INFO, "info")
     assert "ALIGNED" in alert_block.text.upper()
@@ -1626,11 +1623,29 @@ async def test_blueprint_authenticity_evaluation_fallback_trace_extraction(
 
     report_dto = await transformer.build_report_dto("exe_0000000000000097")
 
+    from backend_v2.models.view.sdui import (
+        SduiMatrixTableBlock,
+        SduiMetrics1DBlock,
+        SduiQuadrantMatrixBlock,
+        SduiRadarChartBlock,
+        SduiScatterPlotBlock,
+    )
+
     assert report_dto is not None
     assert any(
-        getattr(axis, "block_id", None) == "axis_cognitive_depth"
+        axis.block_id == "axis_cognitive_depth"
         for block in report_dto.inner_sdui_blocks
-        for axis in getattr(block, "axes", []) or []
+        if isinstance(
+            block,
+            (
+                SduiMatrixTableBlock,
+                SduiQuadrantMatrixBlock,
+                SduiScatterPlotBlock,
+                SduiRadarChartBlock,
+                SduiMetrics1DBlock,
+            ),
+        )
+        for axis in block.axes
     )
 
 

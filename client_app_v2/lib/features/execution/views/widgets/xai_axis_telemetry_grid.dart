@@ -101,12 +101,28 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
                 ),
               ),
             ),
-            child: Text(
-              l10n.reportQuoteTitle(axis.citedTextQuote!),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: theme.colorScheme.onSurface,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.format_quote,
+                    size: AppSpacing.s16,
+                    color: AppColors.intentNeutral,
+                  ),
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    l10n.reportQuoteTitle(axis.citedTextQuote!),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         if (hasExplanation)
@@ -126,23 +142,54 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
                 bottomRight: Radius.circular(AppSpacing.s8),
               ),
             ),
-            child: Text(
-              l10n.reportSemanticExplanationTitle(axis.semanticReasoning!),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontStyle: FontStyle.italic,
-                color: theme.colorScheme.onSurface,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.lightbulb_outline,
+                    size: AppSpacing.s16,
+                    color: AppColors.intentWarning,
+                  ),
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    l10n.reportSemanticExplanationTitle(
+                      axis.semanticReasoning!,
+                    ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         if (hasSourceId)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.s8),
-            child: Text(
-              l10n.reportFrameworkReference(axis.citedSourceId!),
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: AppColors.intentInfo,
-                fontWeight: FontWeight.bold,
-              ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.gavel,
+                  size: AppSpacing.s16,
+                  color: AppColors.intentInfo,
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    l10n.reportFrameworkReference(axis.citedSourceId!),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: AppColors.intentInfo,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         if (hasWebCitation)
@@ -210,6 +257,118 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: theme.colorScheme.primary,
             ),
+          ),
+        ),
+      );
+    }
+
+    if (axis.coaching != null && axis.coaching!.trim().isNotEmpty) {
+      boxes.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Icon(
+                  Icons.lightbulb_outline,
+                  size: AppSpacing.s16,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              AppSpacing.w8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.reportCoachingTitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(axis.coaching!, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (axis.falsification != null && axis.falsification!.trim().isNotEmpty) {
+      boxes.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.s2),
+                child: Icon(
+                  Icons.gavel,
+                  size: AppSpacing.s16,
+                  color: AppColors.intentWarning,
+                ),
+              ),
+              AppSpacing.w8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.reportFalsificationTitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(axis.falsification!, style: theme.textTheme.bodySmall),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (axis.remediationSteps != null &&
+        axis.remediationSteps!.trim().isNotEmpty) {
+      boxes.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: AppSpacing.s2),
+                child: Icon(
+                  Icons.build,
+                  size: AppSpacing.s16,
+                  color: AppColors.intentInfo,
+                ),
+              ),
+              AppSpacing.w8,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.reportRemediationStepsTitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      axis.remediationSteps!,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       );

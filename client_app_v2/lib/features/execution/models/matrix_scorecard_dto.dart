@@ -178,8 +178,14 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
   factory MatrixScorecardRowDto.fromJson(Map<String, dynamic> json) =>
       _$MatrixScorecardRowDtoFromJson(json);
 
-  // Smart Getter for UI grouping by level
+  static final Expando<Map<int, List<ScorecardAtomDto>>> _atomsByLevelCache =
+      Expando<Map<int, List<ScorecardAtomDto>>>();
+
+  // Smart Getter for UI grouping by level (memoized via Expando to eliminate heap churn)
   Map<int, List<ScorecardAtomDto>> get atomsByLevel {
+    final cached = _atomsByLevelCache[this];
+    if (cached != null) return cached;
+
     final Map<int, List<ScorecardAtomDto>> grouped = {};
     for (final atom in evaluatedAtoms) {
       if (!grouped.containsKey(atom.level)) {
@@ -187,6 +193,7 @@ abstract class MatrixScorecardRowDto with _$MatrixScorecardRowDto {
       }
       grouped[atom.level]!.add(atom);
     }
+    _atomsByLevelCache[this] = grouped;
     return grouped;
   }
 }

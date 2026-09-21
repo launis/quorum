@@ -115,28 +115,26 @@
             {% elif block.block_type is defined and block.block_type == 'accordion' %}
                 {% set border_color = '#1E88E5' %}
                 {% set bg_color = '#E3F2FD' %}
-                {% set title_icon = 'ℹ️' %}
+                {% set badge_text = 'INFO' %}
                 
                 {% if block.severity == 'success' %}
                     {% set border_color = '#2E7D32' %}
                     {% set bg_color = '#E8F5E9' %}
+                    {% set badge_text = 'SUCCESS' %}
                 {% elif block.severity == 'warning' %}
                     {% set border_color = '#F57C00' %}
                     {% set bg_color = '#FFF3E0' %}
+                    {% set badge_text = 'WARN' %}
                 {% elif block.severity == 'error' %}
                     {% set border_color = '#C62828' %}
                     {% set bg_color = '#FFEBEE' %}
+                    {% set badge_text = 'ERROR' %}
                 {% endif %}
-                
-                {% if block.icon_name == 'lightbulb' %}{% set title_icon = '💡' %}{% endif %}
-                {% if block.icon_name == 'balance' %}{% set title_icon = '⚖️' %}{% endif %}
-                {% if block.icon_name == 'build' %}{% set title_icon = '🛠️' %}{% endif %}
-                {% if block.icon_name == 'warning' %}{% set title_icon = '⚠️' %}{% endif %}
-                {% if block.icon_name == 'error' %}{% set title_icon = '❌' %}{% endif %}
 
                 <div class="sdui-accordion" style="border: 1px solid {{ border_color }}; background-color: {{ bg_color }}; border-radius: 8px; margin-bottom: 20px; overflow: hidden;">
                     <div style="padding: 12px 16px; font-weight: bold; font-size: 14px; color: {{ border_color }}; border-bottom: 1px solid rgba(0,0,0,0.05);">
-                        {{ title_icon }} {{ block.title }} <span style="float: right;">▼</span>
+                        <span style="display: inline-block; padding: 2px 6px; font-size: 10px; font-weight: 700; border-radius: 4px; background-color: {{ border_color }}; color: white; margin-right: 8px; vertical-align: middle;">{{ badge_text }}</span>
+                        {{ block.title }} <span style="float: right;">▼</span>
                     </div>
 
                     <div style="background-color: white; padding: 16px;">
@@ -300,7 +298,7 @@
                             {% if axis.score_display_label %}
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 {% if axis.contextual_override %}
-                                <span style="color: #f57c00; font-size: 12px; font-weight: 500;">⚠️ {{ l10n.evidence_rejected }}</span>
+                                <span style="display: inline-block; padding: 2px 6px; font-size: 11px; font-weight: 600; border-radius: 4px; background-color: #fff3e0; color: #e65100; border: 1px solid #ffe0b2;">{{ l10n.evidence_rejected }}</span>
                                 {% endif %}
                                 <div style="background-color: #e3f2fd; color: #1976D2; padding: 4px 12px; border-radius: 12px; font-weight: bold; font-size: 14px;">
                                     {{ axis.score_display_label }}

@@ -13,6 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.dtos.sdui_rules import VarianceRuleItemDTO, VarianceRulesDTO
 from backend_v2.models.enums import VisualIntent, XaiExtensionType
 from backend_v2.models.view.sdui import (
     AlertBlock,
@@ -24,7 +25,6 @@ from backend_v2.models.view.sdui import (
     SduiGridBlock,
     SduiQuadrantMatrixBlock,
 )
-from backend_v2.models.dtos.sdui_rules import VarianceRuleItemDTO, VarianceRulesDTO
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.settings import get_settings
@@ -192,10 +192,13 @@ class VarianceAdapter:
                         p.detected_phrase for p in ling_out.performative_patterns if p.detected_phrase
                     ]
                 except (ValidationError, TypeError, ValueError) as e:
-                    logger.warning(
-                        "[VarianceAdapter] Failed to parse linguistics from context_variables",
-                        extra={"error": str(e)},
-                    )
+                    msg = f"[VarianceAdapter] Failed to parse linguistics from context_variables: {e}"
+                    logger.error(msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+                    ) from e
 
         # 4. CONSTRUCT 2D AXES & SCATTER PLOT BLOCK
         axis_cog_title = LocalizationService.translate("axis_cognitive_depth_title", context.locale)

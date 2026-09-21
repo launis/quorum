@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 
+from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO as _FlatExecutionRecordDTO  # noqa: F401
+from backend_v2.models.dtos.render import RenderExecutionResultDTO as _RenderExecutionResultDTO  # noqa: F401
 from backend_v2.services.studio.prompt_block_service import StudioPromptBlockService
 from backend_v2.services.studio.workflow_service import StudioWorkflowService
 from backend_v2.settings import get_settings

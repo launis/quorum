@@ -1,6 +1,5 @@
-// ignore_for_file: invalid_annotation_target
-import 'package:freezed_annotation/freezed_annotation.dart';
 import 'dart:convert';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 
 import 'matrix_scorecard_dto.dart';

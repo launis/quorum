@@ -1,7 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/core/models/enums.dart';
+import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'execution_client.g.dart';
@@ -49,20 +53,47 @@ class ExecutionClient {
   }
 
   /// Retrieves the dynamically assembled SDUI render blueprint for an execution.
-  Future<Map<String, dynamic>> renderExecution(
+  ///
+  /// Automatically polls when synthesis is pending (HTTP 202).
+  Future<ReportDataDto> renderExecution(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
+    void Function(String? message)? onProgress,
   }) async {
-    final response = await _dio.get(
-      '/execution/executions/$executionId/render',
-      queryParameters: {'lang': lang, 'profile_id': variant},
-    );
-    return response.data as Map<String, dynamic>;
+    int attempts = 0;
+    final maxAttempts = SystemConcurrency.pollingMaxAttempts.value;
+
+    while (true) {
+      final response = await _dio.get(
+        '/execution/executions/$executionId/render',
+        queryParameters: {'lang': lang, 'profile_id': variant},
+      );
+
+      final data = response.data;
+      if (response.statusCode == 202 ||
+          (data is Map<String, dynamic> &&
+              data['status']?.toString().toLowerCase() == 'pending')) {
+        final msg =
+            data is Map<String, dynamic> ? data['message'] as String? : null;
+        onProgress?.call(msg);
+
+        attempts++;
+        if (attempts >= maxAttempts) {
+          throw AppException.network(
+            'Timeout waiting for synthesis to complete.',
+          ).copyWith(extensions: const {'error_code': 'UPSTREAM_TIMEOUT'});
+        }
+        await Future.delayed(const Duration(seconds: 2));
+        continue;
+      }
+
+      return ReportDataDto.fromJson(data as Map<String, dynamic>);
+    }
   }
 
-  /// Manually overrides an atom's score and logic (Epic 91 Phase 4).
-  Future<Map<String, dynamic>> overrideAtom({
+  /// Manually overrides an atom's score and logic.
+  Future<GenericStatusResponseDto> overrideAtom({
     required String executionId,
     required String atomId,
     required Map<String, dynamic> payload,
@@ -71,6 +102,8 @@ class ExecutionClient {
       '/execution/executions/$executionId/atoms/$atomId/override',
       data: payload,
     );
-    return response.data as Map<String, dynamic>;
+    return GenericStatusResponseDto.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 }

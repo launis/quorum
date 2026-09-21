@@ -2413,17 +2413,17 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String reportQuoteTitle(String quote) {
-    return '💬 Ote alkuperäisestä tekstistä:\n$quote';
+    return 'Ote alkuperäisestä tekstistä:\n$quote';
   }
 
   @override
   String reportSemanticExplanationTitle(String reasoning) {
-    return '💡 Tekoälyn semanttinen perustelu (Kontekstuaalinen ohitus):\n$reasoning';
+    return 'Tekoälyn semanttinen perustelu (Kontekstuaalinen ohitus):\n$reasoning';
   }
 
   @override
   String reportFrameworkReference(String source) {
-    return '⚖️ Viitekehys: $source';
+    return 'Viitekehys: $source';
   }
 
   @override
@@ -2447,25 +2447,25 @@ class AppLocalizationsFi extends AppLocalizations {
   String get reportAnalyticalFramework2D => 'Analyyttinen Viitekehys (2D)';
 
   @override
-  String get reportCoachingTitle => '💡 Arjen Vinkki';
+  String get reportCoachingTitle => 'Arjen Vinkki';
 
   @override
-  String get reportFalsificationTitle => '⚖️ Vasta-argumentti';
+  String get reportFalsificationTitle => 'Vasta-argumentti';
 
   @override
-  String get reportMissingContextTitle => '🔍 Puuttuva Konteksti';
+  String get reportMissingContextTitle => 'Puuttuva Konteksti';
 
   @override
-  String get reportRiskFlagTitle => '⚠️ Vakava Riski Havaittu';
+  String get reportRiskFlagTitle => 'Vakava Riski Havaittu';
 
   @override
-  String get reportRemediationStepsTitle => '🛠️ Korjaavat Toimenpiteet';
+  String get reportRemediationStepsTitle => 'Korjaavat Toimenpiteet';
 
   @override
-  String get reportEmotionalSentimentTitle => '🎭 Emotionaalinen Sävy';
+  String get reportEmotionalSentimentTitle => 'Emotionaalinen Sävy';
 
   @override
-  String get reportTheoryLinkTitle => '📚 Teoreettinen Yhteys';
+  String get reportTheoryLinkTitle => 'Teoreettinen Yhteys';
 
   @override
   String reportConfidenceTitle(String value) {

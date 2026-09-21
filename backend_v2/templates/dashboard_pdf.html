@@ -180,7 +180,7 @@
     {% if view.system_notification.level == 'danger' %}
     <div class="card" style="border-left: 4px solid #F44336; background-color: #FFEBEE;">
         <h2 style="color: #C62828; margin-bottom: 5px; border-bottom: none;">
-            ⚠️ {{ view.system_notification.title }}
+            {{ view.system_notification.title }}
         </h2>
         <div style="font-size: 11px; color: #B71C1C;">
             {{ view.system_notification.message }}
@@ -189,7 +189,7 @@
     {% else %}
     <div class="card" style="border-left: 4px solid #FF9800; background-color: #FFF3E0;">
         <h2 style="color: #E65100; margin-bottom: 5px; border-bottom: none;">
-            ⚠️ {{ view.system_notification.title }}
+            {{ view.system_notification.title }}
         </h2>
         <div style="font-size: 11px; color: #BF360C;">
             {{ view.system_notification.message }}

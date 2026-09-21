@@ -1,13 +1,12 @@
 """Test suite for execution router endpoints."""
 
 from collections.abc import Generator
+from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
-
-from datetime import datetime, timezone
 
 from backend_v2.api.dependencies import (
     get_arq_pool,
@@ -325,7 +324,9 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
     assert response.json()["status"] == "ok"
 
 
-def test_render_execution_flat(override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any) -> None:
+def test_render_execution_flat(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
     """Test GET /api/v2/execution/executions/{execution_id}/render returning FlatExecutionRecordDTO."""
     client = TestClient(app)
     mock_flat = FlatExecutionRecordDTO(
@@ -346,7 +347,9 @@ def test_render_execution_flat(override_dependencies: Any, mock_execution_servic
     assert response.json()["global_score"] == 90.0
 
 
-def test_render_execution_string_html(override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any) -> None:
+def test_render_execution_string_html(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
     """Test GET /api/v2/execution/executions/{execution_id}/render returning string content."""
     client = TestClient(app)
     mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(

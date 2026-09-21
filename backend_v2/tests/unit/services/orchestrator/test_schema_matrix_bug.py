@@ -76,4 +76,3 @@ def test_schema_matrix_bug_repro(schema_factory: SchemaFactory) -> None:
     matrices = result.global_matrices
     matrix_evaluation = matrices[matrix_block_raw["id"]]
     assert matrix_evaluation.semantic_reasoning == "test reasoning for global matrix"
-

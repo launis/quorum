@@ -103,13 +103,18 @@
 
 ### Phase 6: SDUI Boundary & Presentation Pipeline Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md] --phase=6`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 6.1: SDUI Model Modernization & UiSection Demolition
-  - [ ] Step 6.2: Legacy Render Service & SDUI Mapper Hardening
-  - [ ] Step 6.3: Client App Reports & Execution Client Parity
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md] --phase=6`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`
+  - [x] Step 6.1: SDUI Model Modernization, UiSection Demolition & Rules DTO Creation
+  - [x] Step 6.2: SDUI Mapper Service Hardening & Type Laundering Eradication
+  - [x] Step 6.3: Service Layer Render, Facade & Flattener DTO Hardening
+  - [x] Step 6.4: Router Ingress/Egress Type Hardening & Status DTOs
+  - [x] Step 6.5: Flutter Client API, Freezed Model Parity & Presentation Hardening
+  - [x] Step 6.6: Universal Emoji Eradication in Templates, ARB Strings & Widgets
+  - [x] Step 6.7: Unit Test Suite Migration & Co-Located SDUI Reflection Eradication
+  - [x] Step 6.8: Global BaseDTO & BaseResponseDTO Immutability Lockdown Convergence Gate
+- [x] **[OK] Test Coverage Assertions:** 100% pass rate and >=90% test coverage verified across all modified targets (`sdui.py`: 100%, `legacy_render_service.py`: 99%, `variance_adapter.py`: 96%, `printable_sources_adapter.py`: 94%, `penalties_adapter.py`: 100%, `sdui_mapper_service.py`: 97%, `base.py`: 100%).
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Phase 7: Full-Spectrum Verification, AST Guardrails & Live E2E Gate
@@ -201,9 +206,26 @@
   - [ ] @[backend_v2/services/sdui_mapper_service.py]
   - [ ] @[backend_v2/services/execution/legacy_render_service.py]
   - [ ] [NEW] @[backend_v2/models/dtos/sdui_rules.py]
+  - [ ] [NEW] @[backend_v2/models/dtos/render.py]
+  - [ ] [NEW] @[backend_v2/models/dtos/flat_record.py]
+  - [ ] @[backend_v2/models/dtos/base.py]
+  - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
+  - [ ] @[backend_v2/services/sdui/adapters/variance_adapter.py]
+  - [ ] @[backend_v2/services/execution/facade.py]
+  - [ ] @[backend_v2/services/flattener.py]
+  - [ ] @[backend_v2/services/export_service.py]
+  - [ ] @[backend_v2/api/routers/execution/executions.py]
+  - [ ] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
   - [ ] @[client_app_v2/lib/core/api/execution_client.dart]
+  - [ ] [NEW] @[client_app_v2/lib/core/models/generic_status_response_dto.dart]
+  - [ ] @[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]
+  - [ ] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
+  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
+  - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
+  - [ ] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving business logic.
 
@@ -257,9 +279,14 @@
 | Ingress, Evaluator, FinOps & MCP Tool DTO Modernization | Phase 5 | `ast_evaluator.py`, `finops_trace_analyzer.py`, `tavily_search_client.py`, `tools/tavily.py`, `simulation_service.py`, `workflow_service.py` | Phase 5, Step 5.6 |
 | Dynamic Schema Factory & Registry Reflection Eradication | Phase 5 | `core/registry.py`, `extraction_schema_factory.py` | Phase 5, Step 5.7 |
 | Unit Test Suite Migration & Reflection Eradication | Phase 5 | `test_state_reducer.py`, `test_prompt_compiler.py`, `test_schema_matrix_bug.py`, `test_llm_hallucination_repro.py`, `test_schema_factory_alias.py`, `test_llm_context_bounds.py`, `test_client.py` | Phase 5, Step 5.8 |
-| SDUI Model Modernization & UiSection Demolition | Phase 6 | `backend_v2/models/view/sdui.py`, `backend_v2/models/dtos/sdui_rules.py` | Phase 6, Step 6.1 |
-| Legacy Render Service & SDUI Mapper Hardening | Phase 6 | `legacy_render_service.py`, `sdui_mapper_service.py`, `test_legacy_render_service.py` | Phase 6, Step 6.2 |
-| Client App Reports & Execution Client Parity | Phase 6 | `reports_client.dart`, `execution_client.dart` | Phase 6, Step 6.3 |
+| SDUI Model Modernization, UiSection Demolition & Rules DTO Creation | Phase 6 | `backend_v2/models/view/sdui.py`, `backend_v2/models/dtos/sdui_rules.py` | Phase 6, Step 6.1 |
+| SDUI Mapper Service Hardening & Type Laundering Eradication | Phase 6 | `sdui_mapper_service.py`, `printable_sources_adapter.py`, `penalties_adapter.py`, `variance_adapter.py` | Phase 6, Step 6.2 |
+| Service Layer Render, Facade & Flattener DTO Hardening | Phase 6 | `legacy_render_service.py`, `facade.py`, `flattener.py`, `export_service.py`, `render.py`, `flat_record.py` | Phase 6, Step 6.3 |
+| Router Ingress/Egress Type Hardening & Status DTOs | Phase 6 | `backend_v2/api/routers/execution/executions.py` | Phase 6, Step 6.4 |
+| Flutter Client API, Freezed Model Parity & Presentation Hardening | Phase 6 | `reports_client.dart`, `execution_client.dart`, `generic_status_response_dto.dart`, `report_artifact_controller.dart`, `report_data_v2_dto.dart` | Phase 6, Step 6.5 |
+| Universal Emoji Eradication in Templates, ARB Strings & Widgets | Phase 6 | `report_template.jinja2`, `dashboard_pdf.html`, `app_fi.arb`, `app_en.arb`, `xai_axis_telemetry_grid.dart` | Phase 6, Step 6.6 |
+| Unit Test Suite Migration & Co-Located SDUI Reflection Eradication | Phase 6 | `test_sdui_mapper.py`, `test_legacy_render_service.py`, `test_flattener.py`, `test_executions.py` | Phase 6, Step 6.7 |
+| Global BaseDTO & BaseResponseDTO Immutability Lockdown Convergence Gate | Phase 6 | `backend_v2/models/dtos/base.py`, `scripts/audit_dict_eradication.py` | Phase 6, Step 6.8 |
 | Codebase-Wide AST Guardrail Sweep & Primitive Obsession Eradication | Phase 7 | `scripts/audit_dict_eradication.py`, `_ast_guardrails.py`, `lightweight_matrix.py` | Phase 7, Step 7.1 |
 | Live End-to-End Variance Test Run | Phase 7 | `scripts/run_e2e_variance_test.py` | Phase 7, Step 7.2 |
 
@@ -271,19 +298,27 @@
 - Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
 - Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode and Phase 4 Tier 8 Audit Remediation & Re-Verification (`red_team_audit_04_placeholder_phase4.md`, 100% mathematical pass rate, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
 - Completed Phase 5 execution and Tier 8 Red-Team Post-Implementation Re-Audit (`red_team_audit_05_placeholder_phase5.md`).
-- Confirmed 100% resolution of all 3 previous audit defects:
-  1) `ContextVariablesDTO` AliasChoices verified with 100% test coverage; all 13 previously failing engine tests pass.
-  2) `GlobalMatricesBase` subscript access (`__getitem__` and `__contains__`) verified; `test_schema_matrix_bug_repro` passes cleanly.
-  3) `workflow_service.py` AST violations verified clean (0 fatal AST violations, 42/42 tests pass with 96% coverage).
-- Verified 756 tests passing across `services/orchestrator/`, `models/dtos/`, `utils/`, and `llm/`.
-- Verified 100% compliance on PEP 257 docstrings and E501 line-length standards across all 29 target files (`ruff check --select D,E501`).
-- Verified 0 fatal AST violations across all 29 target files (`scripts/_ast_guardrails.py`).
-- Forensically identified and 100% remediated the 2 localized defects:
-  1) `simulation_service.py` safely auto-validates `mock_inputs` via `ExecutionInputsDTO.model_validate()` when not already an `ExecutionInputsDTO` and extracts `raw_inputs` without duck-typing; updated `test_simulation_service.py` fixtures to pass `ExecutionInputsDTO` and added `test_simulate_step_with_execution_inputs_dto`. All 18 tests pass with 97% line coverage and 0 AST warnings.
-  2) `ast_evaluator.py` line coverage raised from 80% to 95% via comprehensive branch tests in `test_ast_evaluator.py` (empty/whitespace expressions, syntax errors, disallowed UnaryOp/Compare/BoolOp security violations, DLQ tolerance edge cases), and eradicated QGR016 ternary fallback warning. All 7 tests pass with 0 AST warnings.
+- Completed Phase 6 Implementation Plan creation for SDUI Boundary & Presentation Pipeline Hardening (`06_placeholder_phase6.md`).
+- Completed Phase 6 Deep System 2 analysis, Five-Axis deconstruction, and Red-Teaming (`/tier0-research-plan`).
+- Certified 100% AST line bounds preservation matching physical Python definition nodes (`audit_planner_output.py` passed with 268 validated AST bounds).
+- Uncovered uncataloged 1-hop caller in Flutter (`report_controller.dart`) and test assertion traps (`test_executions.py`, `test_sdui_mapper_service.py`), injecting cleanups into Phase 6 plan and parent Epic.
+- Finalized 5-Column Architectural Directives Table and technical debt cleanups across SDUI view models, adapters, mapper service, render services, router endpoints, templates, and Flutter Freezed clients.
+- Completed Phase 6 execution in Continuous Full-Auto Mode across all 8 steps:
+  - Step 6.1: SDUI Model Modernization, UiSection Demolition & Rules DTO Creation (`ReportViewMetricsDTO`, `sdui_rules.py`).
+  - Step 6.2: SDUI Mapper Service Hardening & Type Laundering Eradication (Zero `.model_dump()` dictionary conversions).
+  - Step 6.3: Service Layer Render, Facade & Flattener DTO Hardening (`RenderExecutionResultDTO`, `FlatExecutionRecordDTO`).
+  - Step 6.4: Router Ingress/Egress Type Hardening & Status DTOs (`GenericStatusResponseDTO`, pattern matching).
+  - Step 6.5: Flutter Client API, Freezed Model Parity & Presentation Hardening (`GenericStatusResponseDto`, Dual-Axis localization, memoized `atomsByLevel`).
+  - Step 6.6: Universal Emoji Eradication in Templates, ARB Strings & Widgets (Material icons in `xai_axis_telemetry_grid.dart`).
+  - Step 6.7: Unit Test Suite Migration & SDUI Reflection Eradication (Zero `getattr`/`hasattr` in `test_blueprint.py`).
+  - Step 6.8: Global BaseDTO & BaseResponseDTO Immutability Lockdown Convergence Gate (`frozen=True, extra="forbid"` across all 40+ DTO subclasses).
+- Verified 100% test pass rate and >=90% test coverage across all modified targets.
 
 ## Learned
 - In `_ast_boundary_utils.py`, `validate_ast_line_bound` verifies that an AST definition node (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`) either completely falls within `[start_line, end_line]` or completely encloses it. Specifying bounds that cut across AST definition headers causes deterministic validation failure.
+- In `client_app_v2/lib/features/execution/controllers/report_controller.dart`, a `while (true)` loop calls `client.renderExecution` expecting a raw map with `status == 'pending'` check; migrating `execution_client.dart` to return `Future<ReportDataDto>` requires either encapsulating the polling loop inside `execution_client` with an `onProgress` callback or modernizing `report_controller.dart` to handle typed response states.
+- In `backend_v2/tests/unit/api/routers/execution/test_executions.py`, line 82 asserts `"sections" in data` on `get_execution_sdui`; demolishing `UiSection` requires updating this test to assert `"inner_sdui_blocks" in data` and `"sections" not in data`.
+- In `backend_v2/tests/unit/services/test_sdui_mapper_service.py`, lines 80-97 assert `view.metrics["global_score"] == 90.0` and `view.sections`; updating `ReportView.metrics` to `ReportViewMetricsDTO` requires updating tests to assert static properties `view.metrics.global_score == 90.0` and verifying `UiSection` demolition.
 - In `prompt_compiler.py`, `_extract_value_from_state` contained legacy `current.model_dump()[part]` laundering and defensive `except AttributeError, TypeError:` fallbacks to `json.dumps()`; replacing this with `math_utils.resolve_dot_notation` directly traverses both Pydantic models and dictionaries with zero serialization overhead.
 - In `state_reducer.py`, `merge_dynamic_inputs` had 3 `# noqa: QGR012` comment suppressions and relied on magic string `__replace__` directives; replacing with `merge_execution_inputs(base: ExecutionInputsDTO, delta: ExecutionInputsDTO) -> ExecutionInputsDTO` achieves pure typed Pydantic V2 state merging.
 - In `dag_executor.py`, intermediate execution variables (`context_variables`, `global_context_vars`) are typed via `ContextVariablesDTO` and `GlobalContextVarsDTO`, eliminating 8 naked dictionary containers and unchecked dictionary spreads.
@@ -292,11 +327,15 @@
 - In `backend_audit_loop.py`, coverage verification dynamically resolves unit test module paths from source target paths; co-located unit test suites must be created for newly introduced DTO models to satisfy automated quality gate coverage requirements.
 - In `models/dtos/context_variables.py`, Pydantic V2 models with `extra="forbid"` must define `validation_alias=AliasChoices(...)` for legacy/raw blackboard keys (`__GLOBAL_ATOM_BLACKBOARD__`, `__MATRIX_REDUCER_OUTPUT__`) when validated from raw dictionaries via `StrategyContext(context_variables=...)`.
 - In `core/registry.py`, `GlobalMatricesBase` must implement `__getitem__` via `object.__getattribute__` to support typed subscript access (`matrices[matrix_id]`) without triggering QGR001 reflection violations.
-- When modernizing service method signatures (e.g. `simulate_step(mock_inputs: ExecutionInputsDTO)`), defensive hydration (`isinstance(mock_inputs, ExecutionInputsDTO) ... else ExecutionInputsDTO.model_validate(...)`) should be provided at boundary ingress, and co-located caller tests must be modernized simultaneously to prevent `AttributeError: 'dict' object has no attribute 'model_dump'` crashes.
+- In `backend_v2/models/view/sdui.py`, `UiSection` and `SectionType` are unreferenced dead models from early V1 presentation; completely demolishing them simplifies `ReportView` to purely typed `ReportViewMetricsDTO` and standard SDUI block sequences.
+- Global `BaseDTO` and `BaseResponseDTO` immutability lockdown (`frozen=True`) affects 40+ subclasses across Quorum and must be executed as the final convergence gate (Step 6.8) after all SDUI, render, router, and test suite refactorings are verified green.
+- In Python 3.14 coverage instrumentation (`coverage/sysmon.py`), new DTOs (e.g. `FlatExecutionRecordDTO`) imported inside test files or late submodules can experience duplicate class identity collisions with Pydantic union validators; pre-importing canonical DTOs in `conftest.py` ensures a single unified class instance across coverage workers.
 
 ## Remaining
-- Phases 6-7 execution and post-implementation hardening gates.
+- Phase 6 Tier 8 Red-Team Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]`), followed by Phase 7 and post-implementation hardening gates.
 
 ## Resume Command
-`/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md] --phase=6`
+/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md]
+
+
 

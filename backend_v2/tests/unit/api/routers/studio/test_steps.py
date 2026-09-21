@@ -16,6 +16,7 @@ from backend_v2.api.routers.studio.steps import router
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import Step
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.studio import StepSimulationResponse, StepSimulationTraceDTO
 from backend_v2.models.enums import StepType
 
@@ -157,7 +158,7 @@ async def test_simulate_step(mock_studio_services: tuple[AsyncMock, AsyncMock], 
     mock_simulation.simulate_step.assert_awaited_once_with(
         mock_get_current_user(),
         sample_step,
-        {"raw_text": "Sample text"},
+        ExecutionInputsDTO(raw_inputs={"raw_text": "Sample text"}),
         target_locale="fi",
         context_text="Test context document",
     )

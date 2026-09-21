@@ -6,6 +6,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace
+from backend_v2.models.dtos.sdui_rules import PrintableSourcesRulesDTO
 from backend_v2.models.enums import SourcesDisplayMode
 from backend_v2.models.view.sdui import MarkdownBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -545,7 +546,8 @@ def test_build_mcp_tools_map_fallback_missing_locale(valid_output_profile_fixtur
 
 
 def test_printable_sources_rules_export() -> None:
-    """Invariant: PRINTABLE_SOURCES_RULES dictionary exists and contains expected rule mappings."""
-    assert "literature_source" in PRINTABLE_SOURCES_RULES
-    assert "theory_evidence_map" in PRINTABLE_SOURCES_RULES
-    assert "default_tool" in PRINTABLE_SOURCES_RULES
+    """Invariant: PRINTABLE_SOURCES_RULES is a strongly typed PrintableSourcesRulesDTO with expected rules."""
+    assert isinstance(PRINTABLE_SOURCES_RULES, PrintableSourcesRulesDTO)
+    assert PRINTABLE_SOURCES_RULES.literature_source.display_name_en == "Peer-reviewed scientific literature & framework"
+    assert "popper" in PRINTABLE_SOURCES_RULES.theory_evidence_map
+    assert PRINTABLE_SOURCES_RULES.default_tool.display_name_en == "External Information Retrieval Gateway"

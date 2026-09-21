@@ -106,7 +106,7 @@ final class ReportControllerProvider
   }
 }
 
-String _$reportControllerHash() => r'132e2972a7a9f438b356d1c53dce53a5ea94accf';
+String _$reportControllerHash() => r'f01368701a2baa42b2f8c2abd344cd690731dc26';
 
 /// Fetch and parse the dynamically assembled SDUI render blueprint for an execution.
 

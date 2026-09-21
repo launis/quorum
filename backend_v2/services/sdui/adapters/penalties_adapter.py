@@ -6,15 +6,14 @@ AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
 import logging
-from typing import Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.dtos.sdui_rules import PenaltiesRulesDTO, PenaltyRuleItemDTO
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
 )
-from backend_v2.models.dtos.sdui_rules import PenaltiesRulesDTO, PenaltyRuleItemDTO
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 

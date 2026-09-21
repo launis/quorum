@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -59,9 +60,9 @@ class ReportsClient {
   }
 
   /// Retrieves the pre-compiled SDUI presentation JSON tree.
-  Future<Map<String, dynamic>> getReportSdui(String reportId) async {
+  Future<ReportDataDto> getReportSdui(String reportId) async {
     final response = await _dio.get('/reports/$reportId/sdui');
-    return response.data as Map<String, dynamic>;
+    return ReportDataDto.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Retrieves tabular B2B evidence scorecard rows.

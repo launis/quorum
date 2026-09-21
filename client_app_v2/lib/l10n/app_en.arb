@@ -1124,7 +1124,7 @@
   },
   "reportCognitiveWork": "Cognitive Work (Tokens)",
   "reportTextSynthesis": "Text / Synthesis",
-  "reportQuoteTitle": "💬 Excerpt from original text:\n{quote}",
+  "reportQuoteTitle": "Excerpt from original text:\n{quote}",
   "@reportQuoteTitle": {
     "placeholders": {
       "quote": {
@@ -1132,7 +1132,7 @@
       }
     }
   },
-  "reportSemanticExplanationTitle": "💡 AI Semantic Explanation (Contextual Override):\n{reasoning}",
+  "reportSemanticExplanationTitle": "AI Semantic Explanation (Contextual Override):\n{reasoning}",
   "@reportSemanticExplanationTitle": {
     "placeholders": {
       "reasoning": {
@@ -1140,7 +1140,7 @@
       }
     }
   },
-  "reportFrameworkReference": "⚖️ Reference framework: {source}",
+  "reportFrameworkReference": "Reference framework: {source}",
   "@reportFrameworkReference": {
     "placeholders": {
       "source": {
@@ -1161,13 +1161,13 @@
   "reportComparisonView": "Comparison View",
   "reportAnalyticalFramework3D": "Analytical Framework (3D)",
   "reportAnalyticalFramework2D": "Analytical Framework (2D)",
-  "reportCoachingTitle": "💡 Coaching Tip",
-  "reportFalsificationTitle": "⚖️ Devil's Advocate",
-  "reportMissingContextTitle": "🔍 Missing Context",
-  "reportRiskFlagTitle": "⚠️ High Risk Identified",
-  "reportRemediationStepsTitle": "🛠️ Remediation Steps",
-  "reportEmotionalSentimentTitle": "🎭 Sentiment Analysis",
-  "reportTheoryLinkTitle": "📚 Theoretical Connection",
+  "reportCoachingTitle": "Coaching Tip",
+  "reportFalsificationTitle": "Devil's Advocate",
+  "reportMissingContextTitle": "Missing Context",
+  "reportRiskFlagTitle": "High Risk Identified",
+  "reportRemediationStepsTitle": "Remediation Steps",
+  "reportEmotionalSentimentTitle": "Sentiment Analysis",
+  "reportTheoryLinkTitle": "Theoretical Connection",
   "reportConfidenceTitle": "AI Confidence: {value}%",
   "@reportConfidenceTitle": {
     "placeholders": {

@@ -13,11 +13,11 @@ class SduiMatrixTableWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (block.axes.isEmpty || block.matrixVisibleColumns.isEmpty) {
-      return const SizedBox.shrink();
+      return const SizedBox();
     }
 
     final locale = Localizations.localeOf(context).languageCode;
-    final l10n = AppLocalizations.of(context);
+    final l10n = AppLocalizations.of(context)!;
     final visibleCols = block.matrixVisibleColumns;
     final labels = block.matrixColumnLabels;
 
@@ -58,7 +58,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        axis.name +
+                        axis.labelI18n.get(locale) +
                             (axis.isEvaluative ? ' *' : '') +
                             (axis.allowContextualOverride ? ' **' : ''),
                         style: const TextStyle(fontWeight: FontWeight.bold),
@@ -573,8 +573,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
           AppSpacing.h8,
           if (hasEvaluative)
             Text(
-              l10n?.matrixEvaluativeAsteriskLegend ??
-                  '* = Evaluative Matrix (Impacts global score)',
+              l10n.matrixEvaluativeAsteriskLegend,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -582,8 +581,7 @@ class SduiMatrixTableWidget extends StatelessWidget {
             ),
           if (hasOverride)
             Text(
-              l10n?.matrixOverrideAsteriskLegend ??
-                  '** = Contextual override allowed',
+              l10n.matrixOverrideAsteriskLegend,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 fontStyle: FontStyle.italic,
                 color: Theme.of(context).colorScheme.onSurfaceVariant,

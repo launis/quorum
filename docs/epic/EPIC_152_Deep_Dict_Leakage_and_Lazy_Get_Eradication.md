@@ -1081,6 +1081,8 @@ Eradicate dictionary leakage, type laundering via `model_dump()`, permissive `An
    - Modify `@[client_app_v2/lib/core/api/execution_client.dart]`:
      - Change signature: `Future<ReportDataDto> renderExecution(String executionId, {String lang = 'fi', String variant = 'default'}) async`.
      - Change signature: `Future<GenericStatusResponseDto> overrideAtom(...) async`.
+   - Modify `@[client_app_v2/lib/features/execution/controllers/report_controller.dart]`:
+     - Update polling loop to consume strongly typed `Future<ReportDataDto>` from `execution_client` without raw map parsing.
    - Modify `@[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]`:
      - Remove `// ignore_for_file: invalid_annotation_target` (Line 1).
      - Verify clean build runner generation with standard `@JsonKey` annotations.

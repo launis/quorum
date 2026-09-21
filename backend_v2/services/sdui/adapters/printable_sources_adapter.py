@@ -8,7 +8,6 @@ separation of presentation from logic.
 
 import logging
 import re
-from typing import Any
 
 from backend_v2.models.dtos.sdui_rules import (
     PrintableSourcesRulesDTO,

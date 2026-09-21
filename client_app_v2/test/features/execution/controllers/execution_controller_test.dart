@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/sse_client.dart';
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
+import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
 class MockExecutionClient implements ExecutionClient {
@@ -32,12 +34,13 @@ class MockExecutionClient implements ExecutionClient {
   }
 
   @override
-  Future<Map<String, dynamic>> renderExecution(
+  Future<ReportDataDto> renderExecution(
     String executionId, {
     String lang = 'fi',
     String variant = 'default',
+    void Function(String? message)? onProgress,
   }) async {
-    return {
+    return ReportDataDto.fromJson({
       'execution_id': executionId,
       'workflow_id': 'test_wf',
       'profile_id': 'prof_123',
@@ -49,7 +52,7 @@ class MockExecutionClient implements ExecutionClient {
       },
       'results': <dynamic>[],
       'hydrated_references': <String, dynamic>{},
-    };
+    });
   }
 
   @override
@@ -67,12 +70,12 @@ class MockExecutionClient implements ExecutionClient {
   }
 
   @override
-  Future<Map<String, dynamic>> overrideAtom({
+  Future<GenericStatusResponseDto> overrideAtom({
     required String executionId,
     required String atomId,
     required Map<String, dynamic> payload,
   }) async {
-    return {};
+    return const GenericStatusResponseDto(message: 'ok');
   }
 }
 

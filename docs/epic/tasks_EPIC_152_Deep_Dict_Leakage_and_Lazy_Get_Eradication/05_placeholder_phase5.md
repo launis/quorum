@@ -56,7 +56,7 @@
 - `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L112-L305]
 - `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py#L255-L330]
 - `[MODIFY]` @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L59-L225]
-- `[MODIFY]` @[backend_v2/services/orchestrator/state_reducer.py#L13-L58]
+- `[MODIFY]` @[backend_v2/services/orchestrator/state_reducer.py#L12-L55]
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L84-L310]
 - `[MODIFY]` @[backend_v2/services/orchestrator/strategies/base.py#L43-L77]
 - `[MODIFY]` @[backend_v2/services/orchestrator/strategies/logic.py#L28-L218]
@@ -160,7 +160,7 @@
     <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py#L112-L305]</backend>
     <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py#L255-L330]</backend>
     <backend>@[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py#L59-L225]</backend>
-    <backend>@[backend_v2/services/orchestrator/state_reducer.py#L13-L58]</backend>
+    <backend>@[backend_v2/services/orchestrator/state_reducer.py#L12-L55]</backend>
     <backend>@[backend_v2/services/orchestrator/dag_executor.py#L84-L310]</backend>
     <backend>@[backend_v2/services/orchestrator/strategies/base.py#L43-L77]</backend>
     <backend>@[backend_v2/services/orchestrator/strategies/logic.py#L28-L218]</backend>
@@ -260,7 +260,7 @@
     <cleanup id="DEBT-5.1">Remove 3 # noqa: QGR012 suppressions in @[backend_v2/services/orchestrator/state_reducer.py#L42-L54].</cleanup>
     <cleanup id="DEBT-5.2">Remove line 310 empty string fallback in @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py#L307-L312].</cleanup>
     <cleanup id="DEBT-5.3">Remove all 4 silent except AttributeError, TypeError: pass blocks in @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py#L41-L151].</cleanup>
-    <cleanup id="DEBT-5.4">Remove silent except blocks in @[backend_v2/services/orchestrator/context_router.py#L77-L88], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L35-L71], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L215-L228], @[backend_v2/services/orchestrator/rag_preflight_service.py#L77-L86], and @[backend_v2/services/orchestrator/strategies/llm.py#L117-L137,L627-L636].</cleanup>
+    <cleanup id="DEBT-5.4">Remove silent except blocks in @[backend_v2/services/orchestrator/context_router.py#L77-L88], @[backend_v2/services/orchestrator/extraction_schema_factory.py#L31-L59], @[backend_v2/services/orchestrator/matrix_explanation_service.py#L215-L228], @[backend_v2/services/orchestrator/rag_preflight_service.py#L62-L83], and @[backend_v2/services/orchestrator/strategies/llm.py#L117-L137,L627-L636].</cleanup>
     <cleanup id="DEBT-5.5">Eradicate getattr and hasattr reflection in test files: test_schema_matrix_bug.py#L75-L77, test_llm_hallucination_repro.py#L26, test_schema_factory_alias.py#L33, test_llm_context_bounds.py#L190-L208,L260-L278, and test_client.py#L138.</cleanup>
     <cleanup id="DEBT-5.6">Eradicate model_dump() dictionary laundering and fallback json.dumps() in @[backend_v2/services/orchestrator/prompt_compiler.py#L327-L407].</cleanup>
     <cleanup id="DEBT-5.7">Eradicate current_state: dict[str, Any] and naked dictionary returns in @[backend_v2/services/orchestrator/strategies/logic.py#L73-L75], @[backend_v2/services/orchestrator/ast_evaluator.py#L60], @[backend_v2/utils/finops_trace_analyzer.py#L59,L116], @[backend_v2/services/mcp/tavily_search_client.py#L81], @[backend_v2/services/mcp/tools/tavily.py#L25], @[backend_v2/services/studio/simulation_service.py#L339], and @[backend_v2/services/studio/workflow_service.py#L361].</cleanup>
