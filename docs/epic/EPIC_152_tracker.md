@@ -99,8 +99,7 @@
   - [x] Step 5.6: Ingress, Evaluator, FinOps & MCP Tool DTO Modernization
   - [x] Step 5.7: Dynamic Schema Factory & Registry Reflection Eradication
   - [x] Step 5.8: Unit Test Suite Migration & Co-Located Orchestration Reflection Eradication
-- [x] **[OK] Test Coverage Assertions:** 546 unit tests passing with zero errors across the orchestrator, finops, and client suites. Universal Quality Gate passing with 0 fatal AST violations.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
+- [x] **[OK] Audit:** Completed Tier 8 Audit verification (`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`). 100% mathematical pass rate, 0 fatal AST violations, 0 docstring/line-length errors, 590 passed tests, certified in `red_team_audit_05_placeholder_phase5.md`.
 
 ### Phase 6: SDUI Boundary & Presentation Pipeline Hardening
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md]
@@ -296,9 +295,8 @@
 - When modernizing service method signatures (e.g. `simulate_step(mock_inputs: ExecutionInputsDTO)`), defensive hydration (`isinstance(mock_inputs, ExecutionInputsDTO) ... else ExecutionInputsDTO.model_validate(...)`) should be provided at boundary ingress, and co-located caller tests must be modernized simultaneously to prevent `AttributeError: 'dict' object has no attribute 'model_dump'` crashes.
 
 ## Remaining
-- Re-run Tier 8 audit to certify Phase 5 completion: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
 - Phases 6-7 execution and post-implementation hardening gates.
 
 ## Resume Command
-`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
+`/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/06_placeholder_phase6.md] @[docs/epic/EPIC_152_tracker.md] --phase=6`
 
