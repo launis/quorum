@@ -218,11 +218,11 @@
   - [x] @[backend_v2/services/execution/facade.py]
   - [x] @[backend_v2/services/flattener.py]
   - [x] @[backend_v2/services/export_service.py]
-  - [ ] @[backend_v2/api/routers/execution/executions.py]
-  - [ ] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/matrix_parser.py]
-  - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
+  - [x] @[backend_v2/api/routers/execution/executions.py]
+  - [x] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
+  - [x] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
+  - [x] [NEW] @[backend_v2/models/dtos/matrix_parser.py]
+  - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
   - [ ] @[backend_v2/models/dtos/engine.py]
   - [ ] @[backend_v2/utils/scoring/unified_engine.py]
   - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
@@ -410,14 +410,22 @@
     73. `backend_v2/services/sdui/adapters/variance_adapter.py` (Commit `062baccd`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 docstrings with ErrorCodes (`VALIDATION_FAILED`, `CONFIGURATION_ERROR`, `INTERNAL_SERVER_ERROR`), RFC 7807 structured logging on linguistics error, replaced `jargon_count` ternary expression with explicit `if/else`, added malformed linguistics test to `test_variance_adapter.py`, 100% test coverage (10/10 tests passing), 0 AST violations, audit matrix verified.
     74. `backend_v2/services/execution/facade.py` (Commit `e0c5aed9`): Added explicit PEP 257 Google-style docstrings (`Args:`, `Returns:`, `Yields:`) for all 17 delegated methods, replaced ternary assignments for `export_service` and `storage` with explicit `if/else`, created dedicated test suite `test_facade.py` achieving 100% test coverage (19/19 tests passing, 84/84 stmts), 0 AST violations, audit matrix verified.
     75. `backend_v2/services/flattener.py` (Commit `20eed10e`): Added `from __future__ import annotations`, explicit `__all__ = ["FlatFileService"]`, PEP 257 docstring with DRY returns, explicit `is not None` guards, expanded `test_flattener.py` covering all SDUI matrix blocks and non-matrix blocks, achieving 100% test coverage (3/3 tests passing, 33/33 stmts), 0 AST violations, audit matrix verified.
-    76. `backend_v2/services/export_service.py` (Commit `774f6699`): Added `from __future__ import annotations`, explicit `__all__ = ["ExportService"]`, PEP 257 docstrings with explicit `Raises: AppException`, eradicated all `QGR016` ternary literal fallbacks in header selection, label resolution, status code, and target ID resolution, leveraged `ReportDataDTO` referential integrity for direct reference lookup, expanded `test_export_service.py` achieving 99% test coverage (11/11 tests passing, 136/137 stmts), 0 AST violations, audit matrix verified.
-- All 76 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 16 (Completed & Committed):
+    77. `backend_v2/api/routers/execution/executions.py` (Commit `e61b2f83`): Added `from __future__ import annotations` and explicit `__all__ = ["router"]`, eradicated `QGR016` lazy literal fallback (`prof_id = profile_id or "default"`) via explicit `if/else`, enforced strict `None` checks for `profile_id`, `custom_preface_md`, and `local_time_str` in `render_execution`, verified 22/22 unit tests passing with 96% coverage, 0 AST violations, audit matrix verified.
+    78. `backend_v2/tests/unit/services/execution/test_legacy_render_service.py` (Commit `b450147b`): Added `from __future__ import annotations`, resolved MyPy strict constructor errors by supplying all named arguments to `MatrixScorecardRowDTO` (including `tda_state`), eradicated `QGR014` violations by replacing unverified mock repos with `InMemoryExecutionRepository` and `InMemoryWorkflowRepository`, 24/24 unit tests passing with 95% coverage, 0 AST violations, audit matrix verified.
+    79. `backend_v2/models/dtos/step_telemetry.py` (Commit `5db0a240`): Added `from __future__ import annotations`, explicit `__all__ = ["StepTelemetryEntryDTO"]`, PEP 593 `Annotated` syntax, created unit test suite `test_step_telemetry.py` with 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
+    80. `backend_v2/models/dtos/matrix_parser.py` (Commit `4e5e4cd4`): Added `from __future__ import annotations`, explicit `__all__ = ["ParsedMatricesResultDTO", "ScorecardAtomCollectionDTO"]`, verified dictionary collection methods and extra-field forbidding, 100% test coverage (2/2 passed), 0 AST violations, audit matrix verified.
+    81. `backend_v2/models/dtos/lightweight_matrix.py` (Commit `71df02d1`): Added `from __future__ import annotations`, explicit `__all__`, PEP 593 `Annotated` syntax across all fields of `OutputProfileConfig`, `XAILogDto`, `LevelStatsDTO`, `LightweightMatrixOutput`, and `ScoringResultDTO`, expanded unit test suite `test_lightweight_matrix.py` achieving 100% test coverage (8/8 passed), 0 AST violations, audit matrix verified.
+- All 81 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
+- In `test_legacy_render_service.py`, `QGR014` strictly prohibits assigning `AsyncMock()` or `MagicMock()` to variable names ending with `_repo` or starting with `repo_`. Replacing mock repositories with in-memory fakes (`InMemoryExecutionRepository`, `InMemoryWorkflowRepository`) satisfies the anti-mocking architecture and guarantees realistic stateful persistence testing.
+- In `backend_v2/tests/fakes/in_memory_repositories.py`, `InMemoryUnitOfWork.get_model_registry` was typed with `registry_id: str | None = None` which conflicted with `ISystemRepository.get_model_registry(registry_id: str)`. Correcting the fake signature to `registry_id: str` resolves MyPy strict `[arg-type]` errors across all test consumers.
+- In `lightweight_matrix.py`, `OutputProfileConfig` and `LightweightMatrixOutput` use `LaxXaiExtensionType`, an annotated type alias over `XaiExtensionType`. Unit tests referencing specific extension enum values must access attributes directly from `XaiExtensionType` (e.g. `XaiExtensionType.CITATION`), avoiding non-existent members.
 - In `tavily.py`, unpacking tool arguments via `val if "k" in kwargs and kwargs["k"] is not None else default` violates AST rule `QGR016` (ternary literal fallback). Use explicit `if "k" in kwargs and kwargs["k"] is not None:` branching.
 - In `simulation_service.py`, duck-typing checks on strongly typed domain signatures (e.g. `if not isinstance(mock_inputs, ExecutionInputsDTO): mock_inputs = ExecutionInputsDTO.model_validate(...)`) create dead branches and violate the zero compromise pledge; domain callers must pass typed DTO instances directly.
 - In `simulation_service.py`, formatting template mocks via `{k: request.mock_inputs[k] if k in request.mock_inputs else f"[{k} MOCKED]" for k in keys}` is a ternary fallback that can be replaced with an explicit iteration loop.
-- `audit_matrix_manager.py verify` requires: strict target match between CLI `--target` and matrix `target_file`, zero duplicate PASS justifications, no NA justification repeated >40 times (use unique `{rule_id}` formatting), and strictly forbids mentioning `test_*.py` files in justification text.
+- `audit_matrix_manager.py verify` requires: strict target match between CLI `--target` and matrix `target_file`, zero duplicate PASS justifications, no NA justification repeated >40 times (use unique `{rule_id}` formatting), and strictly forbids mentioning other `.py` files in justification text.
 - In Pydantic 2.11+, accessing `model_fields` on instances (`inst.model_fields`) triggers a `PydanticDeprecatedSince211` deprecation warning. Always inspect model fields using `type(inst).model_fields` or directly from the class `MyModel.model_fields`.
 - In `matrix_explanation_service.py`, encapsulating candidate quotes for `ranked_round_robin_select` in a dedicated `QuoteCandidateDTO(BaseModel)` eliminates `list[dict[str, Any]]` and satisfies the `no_naked_dicts_in_state` mandate.
 - In `rag_preflight_service.py`, `StepRule` inherits from `V2CoreBase` with primary key `id` (`sr_...`); accessing `target_step.step_id` causes MyPy strict `[attr-defined]` failure.
@@ -446,17 +454,18 @@
 - Excel export headers and status values must avoid ternary literal fallbacks (`QGR016`) by using explicit `if/else` statements.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 16):
-  - `backend_v2/api/routers/execution/executions.py`
-  - `backend_v2/tests/unit/services/execution/test_legacy_render_service.py`
-  - `backend_v2/models/dtos/step_telemetry.py`
-  - `backend_v2/models/dtos/matrix_parser.py`
-  - `backend_v2/models/dtos/lightweight_matrix.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 17):
+  - `backend_v2/models/dtos/engine.py`
+  - `backend_v2/utils/scoring/unified_engine.py`
+  - `backend_v2/services/orchestrator/matrix_explanation_service.py`
+  - `backend_v2/hooks/scoring/matrix_hook.py`
+  - `backend_v2/hooks/scoring/passivity_hook.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
 
 
 
