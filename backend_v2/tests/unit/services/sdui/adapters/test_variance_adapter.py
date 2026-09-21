@@ -381,3 +381,36 @@ def test_build_unmapped_verdict_raises_configuration_error(monkeypatch: pytest.M
 
     assert exc_info.value.status_code == 500
     assert "Missing rule mapping for type_key" in exc_info.value.message
+
+
+def test_build_malformed_linguistics_raises_internal_server_error() -> None:
+    """Negative: malformed linguistics payload in context_variables triggers AppException."""
+    profile = _create_profile()
+    execution = _create_execution(context_vars={"step_linguistics": "invalid_primitive_string"})
+    cache = RenderedSynthesisCache(
+        extension_metrics=ExtensionMetricsDTO(
+            authenticity_score=2.5,
+            performative_phrases_count=3,
+            variance_score=1.2,
+            alignment_verdict="ALIGNED",
+        ),
+    )
+    context = AdapterContext(
+        execution=execution,
+        locale="en",
+        penalties_applied=[],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=profile,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+        parsed_matrices={},
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        VarianceAdapter.build(context)
+
+    assert exc_info.value.status_code == 500
+    assert "Failed to parse linguistics from context_variables" in exc_info.value.message
+    assert exc_info.value.details["error_code"] == "INTERNAL_SERVER_ERROR"

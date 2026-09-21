@@ -215,7 +215,7 @@
   - [x] @[backend_v2/models/dtos/base.py]
   - [x] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/variance_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/variance_adapter.py]
   - [ ] @[backend_v2/services/execution/facade.py]
   - [ ] @[backend_v2/services/flattener.py]
   - [ ] @[backend_v2/services/export_service.py]

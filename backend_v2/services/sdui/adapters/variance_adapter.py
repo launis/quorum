@@ -5,6 +5,8 @@ for Server-Driven UI rendering. Visual rules are co-located as a module-level
 AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
 
 from pydantic import ValidationError
@@ -90,7 +92,8 @@ class VarianceAdapter:
             KeyError: If an unmapped key is encountered in VARIANCE_RULES.
                 This is intentional Fail-Fast behavior indicating incomplete
                 rules configuration.
-            AppException: If domain validation fails.
+            AppException: If domain validation fails (ErrorCodes.VALIDATION_FAILED,
+                ErrorCodes.CONFIGURATION_ERROR, ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         blocks: list[AnySduiBlock] = []
 
@@ -193,7 +196,12 @@ class VarianceAdapter:
                     ]
                 except (ValidationError, TypeError, ValueError) as e:
                     msg = f"[VarianceAdapter] Failed to parse linguistics from context_variables: {e}"
-                    logger.error(msg)
+                    logger.error(
+                        "[VarianceAdapter] %s: %s",
+                        ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                        msg,
+                        exc_info=True,
+                    )
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -267,7 +275,10 @@ class VarianceAdapter:
 
         # 5. CONSTRUCT 4-METRIC SUMMARY GRID
         unit_pcs = LocalizationService.translate("unit_pcs", context.locale)
-        jargon_count = len(performative_patterns) if performative_patterns else int(performative_phrases_count)
+        if performative_patterns:
+            jargon_count = len(performative_patterns)
+        else:
+            jargon_count = int(performative_phrases_count)
         if metrics.jargon_density is not None:
             jargon_display = f"{jargon_count} ({metrics.jargon_density:.1f}/100w)"
         else:
