@@ -1,3 +1,8 @@
+"""Lightweight matrix output and scoring result DTOs.
+
+Defines schemas for matrix scoring outputs, level statistics, and XAI logs.
+"""
+
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, field_validator

@@ -1,3 +1,5 @@
+"""Localization and string formatting service for backend SDUI schemas."""
+
 import json
 import logging
 from contextvars import ContextVar

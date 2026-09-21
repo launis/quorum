@@ -160,4 +160,3 @@ def test_domain_input_value_accepts_flattened_atoms() -> None:
     )
     assert len(dto.raw_inputs["shuffled_atoms"]) == 1  # type: ignore[arg-type]
     assert dto.dynamic_inputs["atom"].atom_id == "tda_123"  # type: ignore[union-attr]
-

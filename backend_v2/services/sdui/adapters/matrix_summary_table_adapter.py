@@ -1,7 +1,8 @@
 """Matrix Summary Table SDUI Adapter.
 
 Transforms parsed matrix data into a polymorphic Matrix Table block.
-Visual rules are co-located as a module-level MATRIX_SUMMARY_RULES dictionary to enforce separation of presentation from logic.
+Visual rules are co-located as a module-level MATRIX_SUMMARY_RULES instance to enforce
+separation of presentation from logic.
 """
 
 import logging

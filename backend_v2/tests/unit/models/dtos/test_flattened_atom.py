@@ -49,7 +49,9 @@ def test_flattened_atom_coerces_lists_to_tuples() -> None:
     )
     criterion = AcceptanceCriterion(instruction="Valid quote")
     anti = AntiPattern(pattern="speculation")
-    contrastive = ContrastivePairDTO(acceptable="Valid phrase with minimum ten chars", rejected="Bad phrase with minimum ten chars")
+    contrastive = ContrastivePairDTO(
+        acceptable="Valid phrase with minimum ten chars", rejected="Bad phrase with minimum ten chars"
+    )
 
     atom = FlattenedAtom(
         atom_id="tda_123",

@@ -4507,4 +4507,3 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
     assert delta["scoring_result"]["final_score"] == 90.0
-

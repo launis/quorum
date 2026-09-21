@@ -1,7 +1,8 @@
 """Matrix Graphs SDUI Adapter.
 
 Transforms parsed matrix data into polymorphic graph blocks (Radar, Scatter, Metrics).
-Visual rules are co-located as a module-level MATRIX_GRAPHS_RULES dictionary to enforce separation of presentation from logic.
+Visual rules are co-located as a module-level MATRIX_GRAPHS_RULES instance to enforce
+separation of presentation from logic.
 """
 
 import logging
