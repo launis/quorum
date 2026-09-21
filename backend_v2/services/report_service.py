@@ -62,14 +62,37 @@ class ReportService:
         self.pdf_service: PdfReportService = pdf_service if pdf_service is not None else PdfReportService()
 
     async def get_report(self, report_id: str) -> ReportArtifact:
-        """Retrieves single report artifact model fail-fast."""
+        """Retrieves single report artifact model fail-fast.
+
+        Args:
+            report_id: Canonical ID of the report artifact to fetch.
+
+        Returns:
+            The fetched ReportArtifact domain model.
+
+        Raises:
+            ResourceNotFoundError: If report artifact does not exist in repository.
+        """
         report = await self.repo.get_report_artifact(report_id)
         if not report:
+            logger.error(
+                "[ReportService] %s: Report artifact '%s' not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                report_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "report_id": report_id},
+            )
             raise ResourceNotFoundError(resource_type="report_artifact", resource_id=report_id)
         return report
 
     async def list_reports_for_execution(self, execution_id: str) -> list[ReportArtifactSummaryDTO]:
-        """Lists all report artifacts for an execution as lightweight summaries."""
+        """Lists all report artifacts for an execution as lightweight summaries.
+
+        Args:
+            execution_id: Canonical execution ID to query reports for.
+
+        Returns:
+            List of ReportArtifactSummaryDTO objects.
+        """
         reports = await self.repo.list_report_artifacts_by_execution(execution_id)
         return [
             ReportArtifactSummaryDTO(
@@ -86,9 +109,26 @@ class ReportService:
         ]
 
     async def create_report_artifact(self, payload: ReportArtifactCreateDTO) -> ReportArtifact:
-        """Validates execution and profile preconditions, then persists a new PENDING report artifact."""
+        """Validates execution and profile preconditions, then persists a new PENDING report artifact.
+
+        Args:
+            payload: Creation DTO containing execution, profile, and locale parameters.
+
+        Returns:
+            The newly created and persisted ReportArtifact model.
+
+        Raises:
+            ResourceNotFoundError: If execution or profile does not exist.
+            ExecutionNotReadyError: If execution is not in PASSED state.
+        """
         exec_dict = await self.repo.get_execution(payload.execution_id)
         if not exec_dict:
+            logger.error(
+                "[ReportService] %s: Execution '%s' not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                payload.execution_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": payload.execution_id},
+            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=payload.execution_id)
 
         execution = ExecutionRecord.model_validate(exec_dict, strict=False)
@@ -99,6 +139,12 @@ class ReportService:
 
         profile_dict = await self.repo.get_output_profile_by_id(payload.profile_id)
         if not profile_dict:
+            logger.error(
+                "[ReportService] %s: Output profile '%s' not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                payload.profile_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "profile_id": payload.profile_id},
+            )
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=payload.profile_id)
 
         profile = OutputProfile.model_validate(profile_dict, strict=False)
@@ -123,13 +169,25 @@ class ReportService:
         return await self.repo.create_report_artifact(report)
 
     async def compile_and_persist_artifact(self, report_id: str, arq_pool: Any) -> None:
-        """Sets status to GENERATING and enqueues background artifact compilation."""
+        """Sets status to GENERATING and enqueues background artifact compilation.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+            arq_pool: Redis worker connection pool for job enqueuing.
+        """
         report = await self.get_report(report_id)
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
         await arq_pool.enqueue_job("generate_report_artifact_job", report_id=report.id)
 
     async def process_artifact_compilation(self, report_id: str) -> None:
-        """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage."""
+        """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage.
+
+        Args:
+            report_id: Canonical ID of the report artifact to compile.
+
+        Raises:
+            ResourceNotFoundError: If execution does not exist.
+        """
         report = await self.repo.get_report_artifact(report_id)
         if not report:
             logger.warning("[ReportService] Report %s missing; skipping compilation.", report_id)
@@ -139,6 +197,13 @@ class ReportService:
         try:
             exec_dict = await self.repo.get_execution(report.execution_id)
             if not exec_dict:
+                logger.error(
+                    "[ReportService] %s: Execution '%s' not found for report '%s'.",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    report.execution_id,
+                    report_id,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": report.execution_id},
+                )
                 raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
 
             execution = ExecutionRecord.model_validate(exec_dict, strict=False)
@@ -188,18 +253,19 @@ class ReportService:
                 pdf_path=pdf_path, sdui_json_path=sdui_path, excel_path=excel_path, csv_path=csv_path
             )
             total_tok = execution.prompt_tokens + execution.completion_tokens + execution.cumulative_synthesis_tokens
-            prov = (
-                execution.metadata.provider_override.value
-                if (execution.metadata and execution.metadata.provider_override)
-                else None
-            )
+            prov = None
+            if execution.metadata is not None and execution.metadata.provider_override is not None:
+                prov = execution.metadata.provider_override.value
+            model_reg_id = None
+            if execution.metadata is not None:
+                model_reg_id = execution.metadata.model_registry_id
             meta = ReportMetadataDTO(
                 cost_usd=execution.dag_cost_usd + execution.cumulative_synthesis_cost,
                 duration_ms=execution.duration_ms,
                 tokens_used=total_tok,
                 llm_model=None,
                 provider=prov,
-                model_registry_id=execution.metadata.model_registry_id if execution.metadata else None,
+                model_registry_id=model_reg_id,
             )
             await self.repo.update_report_artifact(
                 report_id,
@@ -210,7 +276,12 @@ class ReportService:
             await self._dispatch_report_compilation_dlq(report_id, exc)
 
     async def _dispatch_report_compilation_dlq(self, report_id: str, exc: Exception) -> None:
-        """Dispatches compilation failure to artifact failure state."""
+        """Dispatches compilation failure to artifact failure state.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+            exc: Caught exception causing the compilation failure.
+        """
         msg = f"Artifact compilation failed for report {report_id}: {exc}"
         logger.error("[ReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
         await self.repo.update_report_artifact(
@@ -219,59 +290,142 @@ class ReportService:
         )
 
     async def _read_artifact(self, report: ReportArtifact, path: str | None, artifact_type: str) -> bytes:
+        """Read artifact binary payload from storage driver fail-fast.
+
+        Args:
+            report: Target report artifact model.
+            path: Relative storage path to artifact file.
+            artifact_type: Description of the artifact format (e.g. 'PDF', 'SDUI').
+
+        Returns:
+            Raw binary payload of the stored artifact.
+
+        Raises:
+            AppException: With ErrorCodes.REPORT_NOT_READY if artifact is not ready,
+                or ErrorCodes.STORAGE_ACCESS_FAILED if storage driver read fails.
+        """
         if report.status != ReportStatus.READY or not path:
             msg = f"{artifact_type} artifact for report '{report.id}' is not ready (status: {report.status.value})."
+            logger.error(
+                "[ReportService] %s: %s",
+                ErrorCodes.REPORT_NOT_READY.name,
+                msg,
+                extra={"error_code": ErrorCodes.REPORT_NOT_READY.value, "report_id": report.id},
+            )
             raise AppException(message=msg, status_code=409, details={"error_code": ErrorCodes.REPORT_NOT_READY.value})
         try:
             return await self.storage.read(path)
-        except Exception as err:
-            logger.error("[ReportService] Failed reading %s at %s: %s", artifact_type, path, err)
-            raise AppException(message=f"Storage read error: {err}", status_code=500) from err
+        except (OSError, UnicodeDecodeError, ValueError) as err:
+            logger.error(
+                "[ReportService] %s: Failed reading %s at %s: %s",
+                ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                artifact_type,
+                path,
+                err,
+                extra={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value, "path": path},
+            )
+            raise AppException(
+                message=f"Storage read error: {err}",
+                status_code=500,
+                details={"error_code": ErrorCodes.STORAGE_ACCESS_FAILED.value},
+            ) from err
 
     async def get_report_sdui(self, report_id: str) -> ReportDataDTO:
-        """Streams compiled SDUI ReportDataDTO from storage driver."""
+        """Streams compiled SDUI ReportDataDTO from storage driver.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            Compiled ReportDataDTO deserialized from storage.
+
+        Raises:
+            AppException: If report is not ready or storage read fails.
+        """
         report = await self.get_report(report_id)
-        path = report.storage_paths.sdui_json_path if report.storage_paths else None
+        path = report.storage_paths.sdui_json_path
         raw_bytes = await self._read_artifact(report, path, "SDUI")
         return ReportDataDTO.model_validate_json(raw_bytes.decode("utf-8"))
 
     async def get_report_pdf_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled PDF bytes from storage driver."""
+        """Streams compiled PDF bytes from storage driver.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            Tuple of (raw PDF bytes, download filename).
+
+        Raises:
+            AppException: If report is not ready or storage read fails.
+        """
         report = await self.get_report(report_id)
-        path = report.storage_paths.pdf_path if report.storage_paths else None
+        path = report.storage_paths.pdf_path
         return await self._read_artifact(report, path, "PDF"), f"report_{report_id}.pdf"
 
     async def get_report_excel_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled Excel workbook bytes from storage driver."""
+        """Streams compiled Excel workbook bytes from storage driver.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            Tuple of (raw Excel workbook bytes, download filename).
+
+        Raises:
+            AppException: If report is not ready or storage read fails.
+        """
         report = await self.get_report(report_id)
-        path = report.storage_paths.excel_path if report.storage_paths else None
+        path = report.storage_paths.excel_path
         return await self._read_artifact(report, path, "Excel"), f"report_{report_id}.xlsx"
 
     async def get_report_csv_bytes(self, report_id: str) -> tuple[bytes, str]:
-        """Streams compiled flat CSV bytes from storage driver."""
+        """Streams compiled flat CSV bytes from storage driver.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            Tuple of (raw CSV bytes, download filename).
+
+        Raises:
+            AppException: If report is not ready or storage read fails.
+        """
         report = await self.get_report(report_id)
-        path = report.storage_paths.csv_path if report.storage_paths else None
+        path = report.storage_paths.csv_path
         return await self._read_artifact(report, path, "CSV"), f"report_{report_id}.csv"
 
     async def get_report_rows(self, report_id: str) -> list[ReportRowItemDTO]:
-        """Extracts tabular evaluated metric rows for B2B pipeline integration."""
+        """Extracts tabular evaluated metric rows for B2B pipeline integration.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            List of ReportRowItemDTO items for tabular consumption.
+        """
         report = await self.get_report(report_id)
         report_dto = await self.get_report_sdui(report_id)
         hydrated_refs = report_dto.hydrated_references
 
         rows: list[ReportRowItemDTO] = []
         for atom in report_dto.results:
-            ref = hydrated_refs[atom.tda_id] if atom.tda_id in hydrated_refs else None
+            ref = None
+            if atom.tda_id in hydrated_refs:
+                ref = hydrated_refs[atom.tda_id]
             label = atom.tda_id
             if ref is not None:
                 label = ref.resolved_claim
+            score = 0.0
+            if atom.status == ExecutionStatus.PASSED:
+                score = 1.0
             rows.append(
                 ReportRowItemDTO(
                     execution_id=report.execution_id,
                     report_id=report_id,
                     metric_key=atom.matrix_id or atom.tda_id,
                     metric_label=label,
-                    score=1.0 if atom.status == ExecutionStatus.PASSED else 0.0,
+                    score=score,
                     max_scale=1.0,
                     weight=1.0,
                     reasoning=atom.evaluation_reasoning,
@@ -281,11 +435,22 @@ class ReportService:
         return rows
 
     def _dlq_log_absent_storage_artifact(self, path: str) -> None:
-        """Logs when a storage artifact being deleted is already absent."""
+        """Logs when a storage artifact being deleted is already absent.
+
+        Args:
+            path: Storage path of the artifact.
+        """
         logger.debug("[ReportService] Storage artifact '%s' already absent during deletion.", path)
 
     async def delete_report_artifact(self, report_id: str) -> None:
-        """Deletes database record and associated physical files from storage."""
+        """Deletes database record and associated physical files from storage.
+
+        Args:
+            report_id: Canonical ID of the report artifact to delete.
+
+        Raises:
+            AppException: With ErrorCodes.STORAGE_ACCESS_FAILED if physical file deletion fails.
+        """
         report = await self.get_report(report_id)
         if report.storage_paths:
             paths = (
@@ -317,14 +482,36 @@ class ReportService:
         await self.repo.delete_report_artifact(report_id)
 
     async def regenerate_report_artifact(self, report_id: str, arq_pool: Any) -> None:
-        """Resets status to GENERATING and triggers background compilation re-run."""
+        """Resets status to GENERATING and triggers background compilation re-run.
+
+        Args:
+            report_id: Canonical ID of the report artifact to regenerate.
+            arq_pool: Redis worker connection pool for job enqueuing.
+        """
         await self.compile_and_persist_artifact(report_id, arq_pool)
 
     async def get_public_report(self, report_id: str) -> PublicReportDTO:
-        """Produces a sanitized public read-only B2B report DTO."""
+        """Produces a sanitized public read-only B2B report DTO.
+
+        Args:
+            report_id: Canonical ID of the report artifact.
+
+        Returns:
+            PublicReportDTO sanitized for external read-only access.
+
+        Raises:
+            ResourceNotFoundError: If execution does not exist.
+        """
         report = await self.get_report(report_id)
         exec_dict = await self.repo.get_execution(report.execution_id)
         if not exec_dict:
+            logger.error(
+                "[ReportService] %s: Execution '%s' not found for report '%s'.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                report.execution_id,
+                report_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": report.execution_id},
+            )
             raise ResourceNotFoundError(resource_type="execution", resource_id=report.execution_id)
 
         execution = ExecutionRecord.model_validate(exec_dict, strict=False)

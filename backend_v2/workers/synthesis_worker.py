@@ -99,7 +99,7 @@ async def generate_profile_synthesis_and_pdf_task(
         AppException: If synthesis or execution update fails with VALIDATION_FAILED,
             CONFIGURATION_ERROR, or INTERNAL_SERVER_ERROR.
     """
-    if accept_language is not None and not accept_language.strip():
+    if accept_language is None or not accept_language.strip():
         msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
         logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(

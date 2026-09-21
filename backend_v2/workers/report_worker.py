@@ -20,7 +20,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.localization import set_language
 from backend_v2.services.pdf_generator import PdfReportService
-from backend_v2.services.report_service import ReportService
+import backend_v2.services.report_service as report_service_mod
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.workers.synthesis_worker import (
@@ -79,7 +79,7 @@ async def generate_report_artifact_job(ctx: Any, report_id: str) -> str | dict[s
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
-        service = ReportService(repo)
+        service = report_service_mod.ReportService(repo)
         await service.process_artifact_compilation(report_id)
         return f"Report Artifact Generated: {report_id}"
     except asyncio.CancelledError:
