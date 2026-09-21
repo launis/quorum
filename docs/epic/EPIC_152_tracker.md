@@ -155,7 +155,7 @@
   - [x] @[backend_v2/models/dtos/hook_state.py]
   - [x] @[backend_v2/models/dtos/atom_result.py]
   - [x] @[backend_v2/llm/adapters/vertex_adapter.py]
-  - [ ] @[backend_v2/llm/handler.py]
+  - [x] @[backend_v2/llm/handler.py]
   - [ ] [NEW] @[backend_v2/models/dtos/theory_manifest.py]
   - [ ] [NEW] @[backend_v2/models/dtos/schema_manifest.py]
   - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
