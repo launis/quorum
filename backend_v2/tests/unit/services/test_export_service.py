@@ -1,5 +1,7 @@
 """Unit tests for ExportService covering Excel and flat CSV exports."""
 
+from __future__ import annotations
+
 from unittest.mock import patch
 
 import pytest
@@ -14,11 +16,11 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO, ErrorDetailsDTO, HydratedAtomDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus, LaxSDUIComponentType
-from backend_v2.models.view.sdui import SduiRadarChartBlock
+from backend_v2.models.view.sdui import ParagraphBlock, SduiRadarChartBlock
 from backend_v2.services.export_service import ExportService, _extract_claim_rule
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryComponentRepository
 
@@ -319,3 +321,130 @@ async def test_export_excel_with_report_dto_results_atoms() -> None:
 
     assert filename == "execution_export_exe_0123456789abcdef.xlsx"
     assert len(excel_bytes) > 0
+
+
+@pytest.mark.asyncio
+async def test_export_excel_with_all_extensions_and_blocks() -> None:
+    """Test Excel export with non-matrix blocks, None labels, all atom extensions, and custom ID."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED, has_atoms=False)
+
+    axis_custom = MatrixScorecardRowDTO(
+        block_id="blk_aaaaaaaaaaaaaaaa",
+        name="Custom Axis",
+        label_i18n=I18nText(translations={"en": "Custom Axis"}),
+        score=3.0,
+        scale_max=5.0,
+        row_explanation="Axis with custom label",
+        is_evaluative=True,
+    )
+    chart = SduiRadarChartBlock(axes=[axis_custom])
+    text_block = ParagraphBlock(text="Informational text")
+
+    atom_with_extensions = AtomResultDTO(
+        tda_id="tda_bbbbbbbbbbbbbbbb",
+        matrix_id="blk_aaaaaaaaaaaaaaaa",
+        status=ExecutionStatus.FAILED,
+        source_quote=None,
+        evaluation_reasoning="Failed check due to missing policy.",
+        extensions={
+            "internalized_rule": "Strict rule",
+            "confidence": "0.85",
+            "source_id": "src_custom",
+            "falsification": "Refuted claim",
+        },
+    )
+    atom_system_error = AtomResultDTO(
+        tda_id="tda_cccccccccccccccc",
+        matrix_id="blk_aaaaaaaaaaaaaaaa",
+        status=ExecutionStatus.SYSTEM_ERROR,
+        source_quote=None,
+        evaluation_reasoning=None,
+        error_details=ErrorDetailsDTO(error_code="SYSTEM_ERROR", message="System execution failure."),
+    )
+    hydrated_ref_with_quote = HydratedAtomDTO(
+        sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Resolved Claim with Quote",
+        source_quote="Quote from hydrated reference",
+    )
+
+    component_block = SystemRulePromptBlock(
+        id="blk_dddddddddddddddd",
+        slug="comp_slug",
+        label=I18nText(translations={"fi": "Komponentti", "en": "Component"}),
+        description=I18nText(translations={"fi": "D", "en": "D"}),
+        instruction_text="Component rule instruction",
+    )
+    tda_matched_block = SystemRulePromptBlock(
+        id="tda_eeeeeeeeeeeeeeee",
+        slug="tda_slug",
+        label=I18nText(translations={"fi": "TDA Block", "en": "TDA Block"}),
+        description=I18nText(translations={"fi": "D", "en": "D"}),
+        instruction_text="TDA matched instruction",
+    )
+
+    atom_with_comp_matrix = AtomResultDTO(
+        tda_id="tda_eeeeeeeeeeeeeeee",
+        matrix_id="blk_dddddddddddddddd",
+        status=ExecutionStatus.PASSED,
+        source_quote="Explicit quote",
+        evaluation_reasoning="Evaluation passed smoothly.",
+    )
+    atom_unmatched = AtomResultDTO(
+        tda_id="tda_ffffffffffffffff",
+        matrix_id="blk_0000000000000000",
+        status=ExecutionStatus.PASSED,
+        source_quote="Unknown quote",
+        evaluation_reasoning="Evaluation for unknown block.",
+    )
+
+    report_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_0123456789abcdef",
+        profile_id="prof_0123456789abcdef",
+        global_score=3.5,
+        has_warning=False,
+        inner_sdui_blocks=[text_block, chart],
+        results=[atom_with_extensions, atom_system_error, atom_with_comp_matrix, atom_unmatched],
+        hydrated_references={
+            "tda_bbbbbbbbbbbbbbbb": hydrated_ref_with_quote,
+            "tda_cccccccccccccccc": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim for system error",
+            ),
+            "tda_eeeeeeeeeeeeeeee": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim for component matrix",
+            ),
+            "tda_ffffffffffffffff": HydratedAtomDTO(
+                sdui_component=LaxSDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim for unknown block",
+            ),
+        },
+    )
+
+    excel_bytes, filename = await service.export_excel(
+        execution=exec_record,
+        report_dto=report_dto,
+        locale="en",
+        components=[component_block, tda_matched_block],
+        execution_id="exe_custom_export_123",
+    )
+
+    assert filename == "execution_export_exe_custom_export_123.xlsx"
+    assert len(excel_bytes) > 0
+
+
+def test_export_flat_csv_default_execution_id() -> None:
+    """Test flat CSV export without explicit execution_id."""
+    service = ExportService()
+    exec_record = _build_sample_execution(status=ExecutionStatus.PASSED)
+    report_dto = _build_sample_report_dto()
+
+    csv_bytes, filename = service.export_flat_csv(
+        execution=exec_record,
+        report_dto=report_dto,
+    )
+
+    assert filename == "execution_export_exe_0123456789abcdef.csv"
+    assert len(csv_bytes) > 0

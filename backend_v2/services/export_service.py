@@ -5,6 +5,8 @@ Adheres strictly to Tripartite Pipeline Architecture and Dual-Axis Localization:
 - Separates presentation export logic from core execution lifecycle.
 """
 
+from __future__ import annotations
+
 import csv
 import io
 import logging
@@ -32,6 +34,8 @@ from backend_v2.services.flattener import FlatFileService
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["ExportService"]
+
 _EXCEL_KEYS = (
     ("excelHeaderMatrix", "Matriisi", "Matrix"),
     ("excelHeaderGrade", "Arvosana", "Grade"),
@@ -54,7 +58,14 @@ _EXCEL_HEADERS_EN: dict[str, str] = {k: en for k, _, en in _EXCEL_KEYS}
 
 
 def _extract_claim_rule(block: AnyPromptBlock | None) -> str:
-    """Extracts the operational rule description from a prompt block."""
+    """Extract operational rule description from a prompt block.
+
+    Args:
+        block: Prompt block to extract operational rule from.
+
+    Returns:
+        Extracted operational rule description or empty string.
+    """
     match block:
         case MatrixPromptBlock(ai_description=desc) if desc:
             return desc
@@ -72,7 +83,7 @@ class ExportService:
     """Domain service for generating forensic Excel and flat CSV exports."""
 
     def __init__(self, comp_repo: IComponentRepository | None = None) -> None:
-        """Initializes the ExportService with an optional component repository.
+        """Initialize the ExportService with an optional component repository.
 
         Args:
             comp_repo: Optional repository for resolving prompt block component descriptions.
@@ -87,36 +98,49 @@ class ExportService:
         components: list[AnyPromptBlock] | None = None,
         execution_id: str | None = None,
     ) -> tuple[bytes, str]:
-        """Generates an Excel export for the execution including Summary and Raw Data tabs.
+        """Generate an Excel export for the execution including Summary and Raw Data tabs.
 
         Args:
-            execution: The ExecutionRecord containing evaluation data.
+            execution: ExecutionRecord containing evaluation data.
             report_dto: Optional ReportDataDTO containing presentation metrics.
             locale: Target localization code ('fi' or 'en').
             components: Optional pre-fetched prompt blocks for rule text resolution.
             execution_id: Optional explicit execution ID for the export filename.
 
         Returns:
-            A tuple of the Excel file bytes and the suggested filename.
+            Tuple of the Excel file bytes and the suggested filename.
 
         Raises:
-            AppException: If validation fails or Excel generation crashes.
+            AppException: If execution is not in PASSED state, has no scoreable atoms, or Excel generation fails (ErrorCodes.VALIDATION_FAILED, ErrorCodes.INTERNAL_SERVER_ERROR).
         """
         if execution.status != ExecutionStatus.PASSED:
             msg = "Strict Fail-Fast: Execution must be in PASSED state to export Excel."
-            logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[ExportService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         if report_dto is None or not report_dto.results:
             msg = "Strict Fail-Fast: Execution has no scoreable atoms."
-            logger.error("[ExportService] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            logger.error(
+                "[ExportService] %s: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                msg,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
-        h = _EXCEL_HEADERS_FI if locale.lower().startswith("fi") else _EXCEL_HEADERS_EN
+        if locale.lower().startswith("fi"):
+            h = _EXCEL_HEADERS_FI
+        else:
+            h = _EXCEL_HEADERS_EN
 
         summary_rows: list[dict[str, Any]] = []
         matrix_title_lookup: dict[str, str] = {}
-        if report_dto and report_dto.inner_sdui_blocks:
+        if report_dto.inner_sdui_blocks is not None:
             matrices: list[Any] = []
             for block in report_dto.inner_sdui_blocks:
                 match block:
@@ -130,7 +154,7 @@ class ExportService:
                     case _:
                         pass
             for m in matrices:
-                lbl = m.label_i18n.resolve() if m.label_i18n else m.name
+                lbl = m.label_i18n.resolve()
                 matrix_title_lookup[m.block_id] = lbl
                 summary_rows.append(
                     {
@@ -160,10 +184,8 @@ class ExportService:
                 else:
                     matrix_label = atom.matrix_id
 
-            ref = hydrated_refs[atom.tda_id] if atom.tda_id in hydrated_refs else None
-            criterion = atom.tda_id
-            if ref is not None:
-                criterion = ref.resolved_claim
+            ref = hydrated_refs[atom.tda_id]
+            criterion = ref.resolved_claim
 
             target_block: AnyPromptBlock | None = None
             if atom.matrix_id and atom.matrix_id in blocks_by_id:
@@ -182,14 +204,16 @@ class ExportService:
             quote_str = ""
             if atom.source_quote is not None:
                 quote_str = atom.source_quote
-            elif ref is not None and ref.source_quote is not None:
+            elif ref.source_quote is not None:
                 quote_str = ref.source_quote
 
             internalized_rule_val = ""
             if "internalized_rule" in atom.extensions:
                 internalized_rule_val = atom.extensions["internalized_rule"]
 
-            confidence_val = atom.extensions["confidence"] if "confidence" in atom.extensions else None
+            confidence_val = None
+            if "confidence" in atom.extensions:
+                confidence_val = atom.extensions["confidence"]
 
             source_id_val = ""
             if "source_id" in atom.extensions:
@@ -199,13 +223,18 @@ class ExportService:
             if "falsification" in atom.extensions:
                 falsification_val = atom.extensions["falsification"]
 
+            if atom.status == ExecutionStatus.PASSED:
+                result_status = 1
+            else:
+                result_status = 0
+
             rows.append(
                 {
                     h["excelHeaderMatrix"]: matrix_label,
                     h["excelHeaderCriterion"]: criterion,
                     h["excelHeaderAiRule"]: rule_text,
                     h["excelHeaderInternalizedRule"]: internalized_rule_val,
-                    h["excelHeaderResultStatus"]: 1 if atom.status == ExecutionStatus.PASSED else 0,
+                    h["excelHeaderResultStatus"]: result_status,
                     h["excelHeaderConfidence"]: confidence_val,
                     h["excelHeaderReasoningLength"]: w_count,
                     h["excelHeaderFoundQuotes"]: quote_str,
@@ -223,7 +252,13 @@ class ExportService:
                 pd.DataFrame(summary_rows).to_excel(writer, sheet_name=h["excelSheetSummary"], index=False)
                 pd.DataFrame(rows).to_excel(writer, sheet_name=h["excelSheetRawData"], index=False)
         except Exception as e:
-            logger.error("[ExportService] %s: Excel writing failed - %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, e)
+            logger.error(
+                "[ExportService] %s: Excel writing failed - %s",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                e,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
+            )
             raise AppException(
                 message="Failed to generate Excel export",
                 status_code=500,
@@ -231,7 +266,10 @@ class ExportService:
             ) from e
 
         output.seek(0)
-        target_id = execution_id if execution_id is not None else execution.id
+        if execution_id is not None:
+            target_id = execution_id
+        else:
+            target_id = execution.id
         return output.getvalue(), f"execution_export_{target_id}.xlsx"
 
     def export_flat_csv(
@@ -240,15 +278,15 @@ class ExportService:
         report_dto: ReportDataDTO | None = None,
         execution_id: str | None = None,
     ) -> tuple[bytes, str]:
-        """Generates a flat CSV export for the execution using FlatFileService.
+        """Generate a flat CSV export for the execution using FlatFileService.
 
         Args:
-            execution: The ExecutionRecord containing evaluation data.
+            execution: ExecutionRecord containing evaluation data.
             report_dto: Optional ReportDataDTO containing presentation metrics.
             execution_id: Optional explicit execution ID for the export filename.
 
         Returns:
-            A tuple of the CSV file bytes and the suggested filename.
+            Tuple of the CSV file bytes and the suggested filename.
         """
         flat_data = FlatFileService.flatten_results(execution, report_dto)
         csv_dict = flat_data.to_csv_dict()
@@ -256,5 +294,8 @@ class ExportService:
         writer = csv.DictWriter(output, fieldnames=list(csv_dict.keys()))
         writer.writeheader()
         writer.writerow(csv_dict)
-        target_id = execution_id if execution_id is not None else execution.id
+        if execution_id is not None:
+            target_id = execution_id
+        else:
+            target_id = execution.id
         return output.getvalue().encode("utf-8"), f"execution_export_{target_id}.csv"
