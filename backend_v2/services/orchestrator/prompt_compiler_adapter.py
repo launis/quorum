@@ -1,5 +1,7 @@
 """Adapter for PromptCompiler to natively support structured static/dynamic prompt segregation."""
 
+from __future__ import annotations
+
 import datetime
 import re
 from collections.abc import Sequence
@@ -15,6 +17,8 @@ from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
+__all__ = ["PromptCompilerAdapter"]
+
 
 class PromptCompilerAdapter:
     """Adapter wrapping PromptCompiler to provide structured, cache-efficient prompt segregation."""
@@ -24,11 +28,27 @@ class PromptCompilerAdapter:
         self._compiler = PromptCompiler()
 
     def resolve_i18n(self, text_obj: Any, target_locale: str) -> str:
-        """Resolve an I18n JSON object to a string based on locale fallback rules."""
+        """Resolve an I18n JSON object to a string based on locale fallback rules.
+
+        Args:
+            text_obj: Raw or structured I18n payload to resolve.
+            target_locale: Target ISO language code (e.g. 'en', 'fi').
+
+        Returns:
+            Resolved string for the target locale.
+        """
         return self._compiler.resolve_i18n(text_obj, target_locale)
 
     def compile_static_instructions(self, blocks: list[PromptBlock], target_locale: str) -> str:
-        """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt."""
+        """Compile static instruction-type V2 PromptBlocks for the Cached System Prompt.
+
+        Args:
+            blocks: List of prompt blocks to compile.
+            target_locale: Target ISO language code.
+
+        Returns:
+            Compiled static instruction string.
+        """
         return self._compiler.compile_static_instructions(blocks, target_locale)
 
     def compile_dynamic_instructions(
@@ -37,7 +57,16 @@ class PromptCompilerAdapter:
         target_locale: str,
         execution_time: datetime.datetime | str | None = None,
     ) -> str:
-        """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail."""
+        """Compile dynamic instruction-type V2 PromptBlocks for the Uncached User Tail.
+
+        Args:
+            blocks: List of prompt blocks to compile.
+            target_locale: Target ISO language code.
+            execution_time: Optional execution timestamp to inject.
+
+        Returns:
+            Compiled dynamic instruction string.
+        """
         return self._compiler.compile_dynamic_instructions(blocks, target_locale, execution_time)
 
     def build_dynamic_schema(
@@ -56,7 +85,25 @@ class PromptCompilerAdapter:
         expected_sdui_type: str = "grid",
         dag_results: dict[str, Any] | None = None,
     ) -> type[BaseModel]:
-        """Build a dynamic Pydantic V2 model for LLM Structured Outputs."""
+        """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
+
+        Args:
+            schema_name: Identifier name for generated schema class.
+            criteria: List of matrix evaluation criteria blocks.
+            has_shuffled_atoms: Whether criteria atoms are randomized.
+            target_locale: Target ISO language code.
+            strictness_level: Scoring strictness level (0-100).
+            source_document_ids: Optional list of document IDs.
+            allowed_atom_ids: Optional allowed atom ID filter.
+            allowed_dynamic_keys: Optional list of dynamic input keys.
+            allowed_mcp_prefixes: Optional MCP tool prefix filter.
+            max_evaluations: Optional limit on evaluation count.
+            expected_sdui_type: Target SDUI component presentation format.
+            dag_results: Optional upstream DAG step execution results.
+
+        Returns:
+            Dynamically constructed Pydantic V2 BaseModel class.
+        """
         return self._compiler.build_dynamic_schema(
             schema_name,
             criteria,
@@ -73,7 +120,15 @@ class PromptCompilerAdapter:
         )
 
     def build_chunk_response_schema(self, schema_name: str, item_schema: type[BaseModel]) -> type[BaseModel]:
-        """Build dynamic Pydantic V2 schema for chunked Map-Reduce execution."""
+        """Build dynamic Pydantic V2 schema for chunked Map-Reduce execution.
+
+        Args:
+            schema_name: Name identifier for the container schema.
+            item_schema: Pydantic model class for individual chunk items.
+
+        Returns:
+            Container Pydantic V2 BaseModel class.
+        """
         return self._compiler.build_chunk_response_schema(schema_name, item_schema)
 
     def build_xml_context(
@@ -84,7 +139,21 @@ class PromptCompilerAdapter:
         expected_inputs: list[Any] | None = None,
         alias_engine: Any = None,
     ) -> str:
-        """Build XML semantic blocks from raw input mappings for LLM context."""
+        """Build XML semantic blocks from raw input mappings for LLM context.
+
+        Args:
+            input_mappings: Mappings connecting prompt variables to state fields.
+            state_data: Execution state payload or context data container.
+            target_locale: Target ISO language code.
+            expected_inputs: Optional list of expected input definitions.
+            alias_engine: Optional alias engine for deterministic token replacement.
+
+        Returns:
+            Compiled XML context string.
+
+        Raises:
+            MissingInputMappingError: If required mapped keys are missing from state.
+        """
         return self._compiler.build_xml_context(
             input_mappings,
             state_data,
@@ -94,22 +163,54 @@ class PromptCompilerAdapter:
         )
 
     def calibrate_strictness(self, level: int | float | None) -> str:
-        """Convert a numeric strictness level (0-100) into a semantic directive."""
+        """Convert a numeric strictness level (0-100) into a semantic directive.
+
+        Args:
+            level: Numeric strictness level between 0 and 100.
+
+        Returns:
+            Semantic calibration directive string for the system prompt.
+        """
         return self._compiler.calibrate_strictness(level)
 
     def generate_mcp_instruction(self, allowed_tools: list[str]) -> str:
-        """Generate dynamic instructions for active MCP tools."""
+        """Generate dynamic instructions for active MCP tools.
+
+        Args:
+            allowed_tools: List of authorized tool names.
+
+        Returns:
+            Instruction string formatted for LLM system prompt.
+        """
         return self._compiler.generate_mcp_instruction(allowed_tools)
 
     def compile_chunk_payload_instruction(self, chunk_id: str, payload_text: str) -> str:
-        """Generates an isolated context block fenced explicitly into `<user_payload>`."""
+        """Generates an isolated context block fenced explicitly into `<user_payload>`.
+
+        Args:
+            chunk_id: Opaque chunk identifier.
+            payload_text: Text content to fence within payload tags.
+
+        Returns:
+            Fenced XML user payload block.
+        """
         return self._compiler.compile_chunk_payload_instruction(chunk_id, payload_text)
 
     @staticmethod
     def get_schema_healing_prompt(
         error_msg: str, is_logical_error: bool, is_eof: bool, strictness_level: int | None = None
     ) -> str:
-        """Generate a Self-Healing prompt for LLM execution recovery."""
+        """Generate a Self-Healing prompt for LLM execution recovery.
+
+        Args:
+            error_msg: Detailed error description or exception message.
+            is_logical_error: Whether failure was semantic or syntactic.
+            is_eof: Whether generation was truncated by context limit.
+            strictness_level: Optional strictness calibration level (0-100).
+
+        Returns:
+            Self-healing recovery instruction prompt.
+        """
         return PromptCompiler.get_schema_healing_prompt(
             error_msg, is_logical_error, is_eof, strictness_level=strictness_level
         )
