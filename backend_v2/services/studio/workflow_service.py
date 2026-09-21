@@ -189,6 +189,10 @@ class StudioWorkflowService:
 
         Returns:
             A list of available extensions.
+
+        Raises:
+            AppException (ErrorCodes.RESOURCE_NOT_FOUND): If a prompt block cannot be resolved.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the workflow is not found.
         """
         workflow = await self.get_workflow(initiator, id)
         all_steps = await self.list_steps(initiator)
@@ -294,7 +298,7 @@ class StudioWorkflowService:
             The created workflow draft.
 
         Raises:
-            ResourceNotFoundError: If no active model registries exist in database.
+            ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If no active model registries exist in database.
         """
         new_id = generate_opaque_id(EntityPrefix.WORKFLOW)
         active_registries = await self.system_repo.get_all_model_registries()
@@ -336,6 +340,7 @@ class StudioWorkflowService:
 
         Raises:
             ResourceNotFoundError (ErrorCodes.RESOURCE_NOT_FOUND): If the resource is missing.
+            AppException (ErrorCodes.VALIDATION_FAILED): If a corrupted output profile is encountered.
         """
         data = await self.workflow_repo.get_workflow_by_id(id)
         if not data:
@@ -591,7 +596,10 @@ class StudioWorkflowService:
                 break
 
         if not protocol_block_id:
-            logger.error("[StudioService] No protocol block found in database.")
+            logger.error(
+                "[StudioService] %s: No protocol block found in database to create step draft.",
+                ErrorCodes.STATE_INTEGRITY_ERROR.name,
+            )
             raise AppException(
                 message="No protocol block found to create step draft.",
                 status_code=500,

@@ -923,3 +923,40 @@ async def test_save_workflow_malformed_dag_raises_validation_failed(
 
     assert exc_info.value.status_code == 422
     assert exc_info.value.details["error_code"] == ErrorCodes.WORKFLOW_COMPILATION_ERROR.value
+
+
+async def test_create_workflow_draft_no_registries_raises_not_found(
+    workflow_service: StudioWorkflowService,
+    mock_system_repo: AsyncMock,
+    admin_token: TokenData,
+) -> None:
+    """Tests that creating a workflow draft when no model registries exist raises ResourceNotFoundError."""
+    mock_system_repo.get_all_model_registries.return_value = []
+    with pytest.raises(ResourceNotFoundError) as exc_info:
+        await workflow_service.create_workflow_draft(admin_token)
+
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
+
+
+async def test_clone_workflow_corrupted_profile_raises_validation_failed(
+    workflow_service: StudioWorkflowService,
+    mock_workflow_repo: AsyncMock,
+    mock_output_profile_repo: AsyncMock,
+    admin_token: TokenData,
+) -> None:
+    """Tests that cloning a workflow with a corrupted output profile raises 500 AppException with VALIDATION_FAILED."""
+    wf = _valid_workflow(wf_id="wor_aabbccddeeff0011", org_id="org_123")
+    mock_workflow_repo.get_workflow_by_id.return_value = wf
+
+    # Corrupted dictionary missing mandatory OutputProfile fields
+    mock_output_profile_repo.get_all_output_profiles.return_value = [
+        {"id": "prf_corrupted", "workflow_id": wf.id}
+    ]
+
+    with pytest.raises(AppException) as exc_info:
+        await workflow_service.clone_workflow(admin_token, wf.id)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
