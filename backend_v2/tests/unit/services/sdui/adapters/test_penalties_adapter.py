@@ -5,6 +5,8 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
@@ -136,3 +138,22 @@ def test_build_valid_penalties_returns_alert_blocks_fi(valid_output_profile_fixt
     assert blocks[1].severity == VisualIntent.WARNING
     assert "Passiivisuusrangaistus:" in blocks[1].text
     assert "Arviointidimensiossa havaittu alhaisin mahdollinen laatutaso tai passiivisuus." in blocks[1].text
+
+
+def test_build_data_starved_returns_empty(valid_output_profile_fixture: OutputProfile) -> None:
+    """Boundary: data starved context returns empty blocks even if penalties exist."""
+    starvation_event = DataStarvationEvent(total_atoms=0, reason="insufficient_tokens")
+    cache = RenderedSynthesisCache(data_starvation=starvation_event)
+    context = AdapterContext(
+        execution=None,
+        locale="en",
+        penalties_applied=["PENALTY_SECURITY:20"],
+        mcp_audit_map=None,
+        global_score=None,
+        profile=valid_output_profile_fixture,
+        profile_cache=cache,
+        user_name=None,
+        org_name=None,
+    )
+    blocks = PenaltiesAdapter.build(context)
+    assert blocks == []

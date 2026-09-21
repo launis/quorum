@@ -5,6 +5,8 @@ for Server-Driven UI rendering. Visual rules are co-located as a module-level
 AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -18,6 +20,8 @@ from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["PENALTIES_RULES", "PenaltiesAdapter"]
 
 
 # ============================================================================
@@ -76,7 +80,7 @@ class PenaltiesAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            AppException: If an unmapped penalty token is encountered in PENALTIES_RULES.
+            AppException: If an unmapped penalty token is encountered in PENALTIES_RULES (ErrorCodes.CONFIGURATION_ERROR).
         """
         blocks: list[AnySduiBlock] = []
 
@@ -107,7 +111,10 @@ class PenaltiesAdapter:
             desc = LocalizationService.translate(aesthetics.desc_key, context.locale)
 
             if pct_str is not None:
-                pct_suffix = f" (-{pct_str} %)" if context.locale == "fi" else f" (-{pct_str}%)"
+                if context.locale == "fi":
+                    pct_suffix = f" (-{pct_str} %)"
+                else:
+                    pct_suffix = f" (-{pct_str}%)"
                 header = f"{title}{pct_suffix}"
             else:
                 header = title
