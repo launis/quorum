@@ -4,6 +4,8 @@ Enforces strict Pydantic V2 immutable DTOs (frozen=True, extra="forbid", strict=
 for HookState inputs, global context variables, and HookResult state deltas.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field
@@ -21,7 +23,14 @@ __all__ = [
 
 
 class ExecutionInputsDTO(V2CoreBase):
-    """Strictly typed execution inputs container for hook pipelines."""
+    """Strictly typed execution inputs container for hook pipelines.
+
+    Attributes:
+        raw_inputs: Raw input mapping by input key or role.
+        dynamic_inputs: Dynamic input parameters extracted from execution context.
+        user_role: Optional user role identifier for role-specific processing.
+        target_locale: Target locale code for input localization.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 

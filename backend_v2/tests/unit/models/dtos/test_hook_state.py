@@ -1,3 +1,7 @@
+"""Unit tests for hook state DTOs."""
+
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 
