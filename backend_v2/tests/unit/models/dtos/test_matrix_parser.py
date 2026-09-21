@@ -1,5 +1,7 @@
 """Unit tests for ParsedMatricesResultDTO and ScorecardAtomCollectionDTO."""
 
+from __future__ import annotations
+
 import pytest
 from pydantic import ValidationError
 

@@ -4,6 +4,8 @@ Defines immutable Pydantic V2 schemas for matrix parser results
 and scorecard atom collections, eliminating anonymous tuples and nested dicts.
 """
 
+from __future__ import annotations
+
 from collections.abc import Iterator, ValuesView
 from typing import Annotated
 
@@ -11,6 +13,11 @@ from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+
+__all__ = [
+    "ParsedMatricesResultDTO",
+    "ScorecardAtomCollectionDTO",
+]
 
 
 class ScorecardAtomCollectionDTO(V2CoreBase):
