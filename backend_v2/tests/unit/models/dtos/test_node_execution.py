@@ -84,3 +84,33 @@ def test_step_output_content_dto() -> None:
     """Test StepOutputContentDTO payload encapsulation."""
     dto = StepOutputContentDTO(data={"score": 100})
     assert dto.data == {"score": 100}
+
+
+def test_node_execution_update_dto_negative_extra_forbid() -> None:
+    """Test NodeExecutionUpdateDTO rejects extra fields under extra='forbid'."""
+    with pytest.raises(ValidationError):
+        NodeExecutionUpdateDTO(
+            status=ExecutionStatus.RUNNING,
+            execution_trace=[],
+            step_states={},
+            forbidden_extra="invalid",  # type: ignore[call-arg]
+        )
+
+
+def test_logic_node_state_dto_negative_extra_forbid() -> None:
+    """Test LogicNodeStateDTO rejects extra fields under extra='forbid'."""
+    with pytest.raises(ValidationError):
+        LogicNodeStateDTO(unsupported_extra=123)  # type: ignore[call-arg]
+
+
+def test_logic_evaluation_context_dto_negative_missing_fields() -> None:
+    """Test LogicEvaluationContextDTO raises ValidationError on missing required fields."""
+    with pytest.raises(ValidationError):
+        LogicEvaluationContextDTO(execution_id="exe_1")  # type: ignore[call-arg]
+
+
+def test_step_output_content_dto_negative_extra_forbid() -> None:
+    """Test StepOutputContentDTO rejects unexpected extra fields."""
+    with pytest.raises(ValidationError):
+        StepOutputContentDTO(data={"score": 100}, unexpected_extra="bad")  # type: ignore[call-arg]
+

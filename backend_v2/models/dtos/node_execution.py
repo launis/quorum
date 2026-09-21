@@ -25,7 +25,17 @@ __all__ = [
 
 
 class NodeExecutionUpdateDTO(V2CoreBase):
-    """Encapsulates parameters for updating execution state during commit_trace."""
+    """Encapsulates parameters for updating execution state during commit_trace.
+
+    Attributes:
+        status: Target execution status.
+        execution_trace: Current trace event list.
+        step_states: Step states mapping.
+        frozen_context: Frozen context snapshot.
+        context_variables: Context variables mapping.
+        error: Error message if failed.
+        steps: Execution steps list.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -43,7 +53,11 @@ class NodeExecutionUpdateDTO(V2CoreBase):
     steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="Execution steps list")] = None
 
     def to_execution_update_dto(self) -> ExecutionUpdateDTO:
-        """Convert to ExecutionUpdateDTO for repository persistence."""
+        """Convert to ExecutionUpdateDTO for repository persistence.
+
+        Returns:
+            ExecutionUpdateDTO populated with instance fields.
+        """
         data: dict[str, Any] = {
             "status": self.status,
             "execution_trace": self.execution_trace,
@@ -54,11 +68,16 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         }
         if self.steps is not None:
             data["steps"] = self.steps
-        return ExecutionUpdateDTO(**data)
+        return ExecutionUpdateDTO.model_validate(data)
 
 
 class LogicNodeStateDTO(V2CoreBase):
-    """Encapsulates the state snapshot for logic node evaluation."""
+    """Encapsulates the state snapshot for logic node evaluation.
+
+    Attributes:
+        steps: Projector snapshot steps list.
+        dynamic_inputs: Dynamic inputs dictionary.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -73,7 +92,19 @@ class LogicNodeStateDTO(V2CoreBase):
 
 
 class LogicEvaluationContextDTO(V2CoreBase):
-    """Encapsulates execution context parameters for logic step evaluation."""
+    """Encapsulates execution context parameters for logic step evaluation.
+
+    Attributes:
+        execution_id: Execution ID.
+        workflow_id: Workflow ID.
+        step_id: Step ID.
+        task_blueprint: Blueprint ID.
+        metadata: Execution metadata.
+        global_context_vars: Global context variables.
+        inputs: Execution inputs container.
+        target_locale: Target locale code.
+        user_role: User role.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -95,7 +126,11 @@ class LogicEvaluationContextDTO(V2CoreBase):
 
 
 class StepOutputContentDTO(V2CoreBase):
-    """Encapsulates content payload for step output or input trace events."""
+    """Encapsulates content payload for step output or input trace events.
+
+    Attributes:
+        data: Structured event payload content.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
