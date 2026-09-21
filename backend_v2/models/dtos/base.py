@@ -1,10 +1,10 @@
-from __future__ import annotations
-
 """Base Data Transfer Objects for Cognitive Quorum V2.
 
 Provides standard configurations and base models for request and response validation
 across dynamic presentation and communication interfaces.
 """
+
+from __future__ import annotations
 
 from typing import Annotated, Literal
 
@@ -42,7 +42,14 @@ class BaseResponseDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    organization_id: Annotated[str | None, Field(exclude=True)] = None
+    organization_id: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Organization reference identifier excluded from client serialization",
+            exclude=True,
+        ),
+    ] = None
 
 
 class GenericStatusResponseDTO(BaseResponseDTO):
@@ -60,7 +67,13 @@ class GenericStatusResponseDTO(BaseResponseDTO):
 
 
 class DataStarvationEvent(BaseDTO):
-    """Strict domain event emitted when SynthesisEngine aborts due to atom starvation."""
+    """Strict domain event emitted when SynthesisEngine aborts due to atom starvation.
+
+    Attributes:
+        event_type: Event discriminator.
+        total_atoms: Total raw atoms extracted before synthesis.
+        reason: Reason for short-circuit.
+    """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
