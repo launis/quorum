@@ -3,6 +3,8 @@
 SSOT for flat execution record metrics consumed by export and flattener services.
 """
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from pydantic import ConfigDict, Field

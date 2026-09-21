@@ -211,7 +211,7 @@
   - [x] @[backend_v2/services/execution/legacy_render_service.py]
   - [x] @[backend_v2/models/dtos/sdui_rules.py]
   - [x] @[backend_v2/models/dtos/render.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/flat_record.py]
+  - [x] @[backend_v2/models/dtos/flat_record.py]
   - [ ] @[backend_v2/models/dtos/base.py]
   - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
