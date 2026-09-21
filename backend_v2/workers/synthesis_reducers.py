@@ -34,6 +34,7 @@ from backend_v2.models.state import (
 )
 from backend_v2.models.view.sdui import AnySduiBlock, ParagraphBlock
 from backend_v2.services.length_budget_enforcer import enforce_sentence_boundary_budget
+from backend_v2.services.report_service import ReportService
 from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 
@@ -342,7 +343,7 @@ async def handle_starvation_if_detected(
         extension_metrics=None,
         data_starvation=starvation_dto,
     )
-    current_syntheses: dict[str, Any] = {}
+    current_syntheses: dict[str, RenderedSynthesisCache] = {}
     if execution.profile_syntheses is not None:
         current_syntheses = dict(execution.profile_syntheses)
     starvation_pid = "default"
@@ -351,8 +352,14 @@ async def handle_starvation_if_detected(
     current_syntheses[starvation_pid] = cache
     await repo.update_execution(execution.id, ExecutionUpdateDTO(profile_syntheses=current_syntheses))
     await update_render_status_fn("Compiling output documents...")
+    report_svc = ReportService(repo)
+    artifact = await report_svc.get_or_create_default_artifact(
+        execution_id=execution.id,
+        profile_id=profile_id,
+        locale=accept_language,
+    )
     if redis:
-        await redis.enqueue_job("generate_pdf_job", execution.id, accept_language, profile_id)
+        await redis.enqueue_job("generate_report_artifact_job", artifact.id)
     return True
 
 

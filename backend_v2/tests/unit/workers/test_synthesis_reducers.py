@@ -1,7 +1,7 @@
 """Unit tests for synthesis_reducers.py covering user role extraction, starvation handling, result processing, and telemetry recovery."""
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
@@ -244,19 +244,29 @@ async def test_handle_starvation_if_detected_true() -> None:
     mock_repo = AsyncMock()
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_0123456789abcdef01"
 
-    detected = await handle_starvation_if_detected(
-        exec_rec,
-        "pro_0123456789abcdef01",
-        "en",
-        mock_repo,
-        mock_redis,
-        mock_render_fn,
-    )
-    assert detected is True
-    mock_repo.update_execution.assert_called_once()
-    mock_render_fn.assert_called_once()
-    mock_redis.enqueue_job.assert_called_once_with("generate_pdf_job", exec_rec.id, "en", "pro_0123456789abcdef01")
+    with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
+        mock_svc = mock_report_service_cls.return_value
+        mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+        detected = await handle_starvation_if_detected(
+            exec_rec,
+            "pro_0123456789abcdef01",
+            "en",
+            mock_repo,
+            mock_redis,
+            mock_render_fn,
+        )
+        assert detected is True
+        mock_repo.update_execution.assert_called_once()
+        mock_render_fn.assert_called_once()
+        mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
+            execution_id=exec_rec.id,
+            profile_id="pro_0123456789abcdef01",
+            locale="en",
+        )
+        mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
 
 
 @pytest.mark.asyncio
@@ -273,16 +283,27 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
     mock_repo = AsyncMock()
     mock_redis = AsyncMock()
     mock_render_fn = AsyncMock()
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_0123456789abcdef01"
 
-    detected = await handle_starvation_if_detected(
-        exec_rec,
-        "pro_0123456789abcdef01",
-        "en",
-        mock_repo,
-        mock_redis,
-        mock_render_fn,
-    )
-    assert detected is True
+    with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
+        mock_svc = mock_report_service_cls.return_value
+        mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+        detected = await handle_starvation_if_detected(
+            exec_rec,
+            "pro_0123456789abcdef01",
+            "en",
+            mock_repo,
+            mock_redis,
+            mock_render_fn,
+        )
+        assert detected is True
+        mock_svc.get_or_create_default_artifact.assert_awaited_once_with(
+            execution_id=exec_rec.id,
+            profile_id="pro_0123456789abcdef01",
+            locale="en",
+        )
+        mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
 
 
 @pytest.mark.asyncio
