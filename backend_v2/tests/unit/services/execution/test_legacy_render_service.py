@@ -22,11 +22,13 @@ from backend_v2.services.execution.legacy_render_service import ExecutionLegacyR
 
 @pytest.fixture
 def mock_initiator() -> TokenData:
+    """Fixture providing an admin token data initiator."""
     return TokenData(id="usr_001", role=UserRole.ADMIN, organization_id="org_001")
 
 
 @pytest.fixture
 def mock_execution_record() -> ExecutionRecord:
+    """Fixture providing a mock execution record with rendered synthesis cache."""
     return ExecutionRecord(
         id="exe_1234567890abcdef",
         workflow_id="wor_1234567890abcdef",
@@ -38,6 +40,7 @@ def mock_execution_record() -> ExecutionRecord:
 
 @pytest.fixture
 def mock_workflow() -> Workflow:
+    """Fixture providing a minimal test workflow definition."""
     return Workflow(
         id="wor_1234567890abcdef",
         slug="test-workflow",
@@ -54,6 +57,7 @@ def mock_workflow() -> Workflow:
 
 @pytest.fixture
 def mock_report_dto() -> ReportDataDTO:
+    """Fixture providing a valid ReportDataDTO with SDUI blocks."""
     axis = MatrixScorecardRowDTO(
         block_id="blk_001",
         name="Coaching Clarity",
@@ -80,6 +84,7 @@ def render_service(
     mock_workflow: Workflow,
     mock_report_dto: ReportDataDTO,
 ) -> ExecutionLegacyRenderService:
+    """Fixture providing an ExecutionLegacyRenderService with mocked repositories."""
     exec_repo = AsyncMock()
     exec_repo.get_execution.return_value = mock_execution_record
 

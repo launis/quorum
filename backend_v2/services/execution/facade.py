@@ -65,6 +65,22 @@ class ExecutionService:
         storage_driver: FileDriver | None = None,
         report_repo: IReportArtifactRepository | None = None,
     ) -> None:
+        """Initialize ExecutionService facade with required repositories and sub-services.
+
+        Args:
+            exec_repo: Repository for execution records.
+            workflow_repo: Repository for workflows.
+            comp_repo: Optional repository for components.
+            prompt_block_repo: Optional repository for prompt blocks.
+            output_profile_repo: Optional repository for output profiles.
+            identity_repo: Optional repository for identities.
+            system_repo: Optional repository for system settings.
+            usage_service: Optional service for token usage telemetry.
+            executor: Optional DAGExecutor instance.
+            export_service: Optional ExportService instance.
+            storage_driver: Optional FileDriver storage backend.
+            report_repo: Optional repository for report artifacts.
+        """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo
@@ -120,14 +136,17 @@ class ExecutionService:
         )
 
     async def list_executions(self, initiator: TokenData) -> list[ExecutionRecord]:
+        """List all execution records accessible to the initiator."""
         return await self._lifecycle.list_executions(initiator)
 
     async def get_execution(
         self, initiator: TokenData, execution_id: str, hydrate: bool = True, skip_resumability: bool = False
     ) -> ExecutionRecord:
+        """Retrieve a specific execution record by ID."""
         return await self._lifecycle.get_execution(initiator, execution_id, hydrate, skip_resumability)
 
     async def delete_execution(self, initiator: TokenData, execution_id: str) -> bool:
+        """Delete an execution record and associated storage artifacts."""
         return await self._lifecycle.delete_execution(initiator, execution_id)
 
     async def start_execution(
@@ -137,37 +156,47 @@ class ExecutionService:
         arq_pool: ArqRedis,
         doc_service: DocumentExtractionService | None = None,
     ) -> ExecutionRecord:
+        """Validate ingress payload and schedule a new execution run."""
         return await self._ingress.start_execution(initiator, payload, arq_pool, doc_service)
 
     async def get_workflow_ui_schema(self, workflow_id: str) -> WorkflowSchemaResponseDTO:
+        """Retrieve the dynamic UI schema for a specific workflow."""
         return await self._ingress.get_workflow_ui_schema(workflow_id)
 
     async def check_resumability(self, record: ExecutionRecord) -> bool:
+        """Check if an interrupted execution record can be resumed."""
         return await self._resumption.check_resumability(record)
 
     async def resume_execution(self, initiator: TokenData, execution_id: str, arq_pool: ArqRedis) -> ExecutionRecord:
+        """Resume an interrupted or paused execution run."""
         return await self._resumption.resume_execution(initiator, execution_id, arq_pool)
 
     async def override_atom(
         self, initiator: TokenData, execution_id: str, atom_id: str, payload: HumanOverrideRequest
     ) -> None:
+        """Apply a human override decision to an evaluated atom."""
         await self._override.override_atom(initiator, execution_id, atom_id, payload)
 
     async def reject_evidence_quote(self, initiator: TokenData, execution_id: str, evq_id: str, reason: str) -> None:
+        """Reject a specific evidence quote on an execution record."""
         await self._override.reject_evidence_quote(initiator, execution_id, evq_id, reason)
 
     async def clear_profile_synthesis(self, initiator: TokenData, execution_id: str, profile_id: str) -> None:
+        """Clear cached profile synthesis blocks for an execution."""
         await self._override.clear_profile_synthesis(initiator, execution_id, profile_id)
 
     async def stream_status(self, initiator: TokenData, execution_id: str) -> AsyncGenerator[str]:
+        """Yield Server-Sent Events streaming the real-time status of an execution."""
         async for chunk in self._stream.stream_status(initiator, execution_id):
             yield chunk
 
     async def get_frozen_context_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
+        """Retrieve the raw frozen context JSON payload for an execution."""
         return await self._context.get_frozen_context_bytes(initiator, execution_id)
 
     @deprecated("Use ExportService.export_excel directly or ReportService.get_report_excel_bytes.")
     async def get_execution_export_bytes(self, initiator: TokenData, execution_id: str) -> tuple[bytes, str]:
+        """Retrieve legacy export bytes for an execution."""
         return await self._renderer.get_execution_export_bytes(initiator, execution_id)
 
     async def render_execution(
@@ -181,6 +210,7 @@ class ExecutionService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> RenderExecutionResultDTO:
+        """Render an execution into requested format (PDF, SDUI, HTML, etc.)."""
         return await self._renderer.render_execution(
             initiator,
             execution_id,
@@ -193,9 +223,11 @@ class ExecutionService:
         )
 
     async def get_report_dto(self, initiator: TokenData, execution_id: str) -> ReportDataDTO:
+        """Compile and return the complete ReportDataDTO for an execution."""
         return await self._renderer.get_report_dto(initiator, execution_id)
 
     async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> ReportView:
+        """Generate and return the Server-Driven UI ReportView model."""
         return await self._renderer.get_sdui_view(initiator, execution_id)
 
     async def enqueue_pdf_generation(
@@ -208,6 +240,7 @@ class ExecutionService:
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
     ) -> None:
+        """Enqueue an asynchronous background task to render execution PDF."""
         await self._renderer.enqueue_pdf_generation(
             initiator, execution_id, accept_language, profile_id, arq_pool, custom_preface_md, local_time_str
         )

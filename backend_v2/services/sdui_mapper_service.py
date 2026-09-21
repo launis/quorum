@@ -1,3 +1,11 @@
+"""SDUI Mapper Service for Quorum V2 Architecture.
+
+Translates domain execution DTOs and quote evidence records into strictly typed
+Server-Driven UI view models and blocks without dictionary type laundering.
+"""
+
+from __future__ import annotations
+
 import logging
 
 from backend_v2.models.core_base import I18nText

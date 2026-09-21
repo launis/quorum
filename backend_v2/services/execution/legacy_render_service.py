@@ -53,6 +53,21 @@ class ExecutionLegacyRenderService:
         get_execution_fn: Callable[..., Awaitable[ExecutionRecord]] | None = None,
         get_report_dto_fn: Callable[..., Awaitable[ReportDataDTO]] | None = None,
     ) -> None:
+        """Initialize ExecutionLegacyRenderService with repositories and delegation callables.
+
+        Args:
+            exec_repo: Repository for execution records.
+            workflow_repo: Repository for workflows.
+            comp_repo: Optional repository for components.
+            prompt_block_repo: Optional repository for prompt blocks.
+            output_profile_repo: Optional repository for output profiles.
+            identity_repo: Optional repository for identity records.
+            system_repo: Optional repository for system settings.
+            export_service: Optional export service instance.
+            storage_driver: Optional storage file driver.
+            get_execution_fn: Optional callable to resolve execution records.
+            get_report_dto_fn: Optional callable to resolve report data DTOs.
+        """
         self.exec_repo, self.workflow_repo, self.comp_repo = exec_repo, workflow_repo, comp_repo
         self.prompt_block_repo, self.output_profile_repo = prompt_block_repo, output_profile_repo
         self.identity_repo, self.system_repo = identity_repo, system_repo

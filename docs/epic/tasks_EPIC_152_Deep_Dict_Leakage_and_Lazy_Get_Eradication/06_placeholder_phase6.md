@@ -53,7 +53,7 @@
 - `[MODIFY]` @[backend_v2/models/view/sdui.py#L142-L193]
 - `[MODIFY]` @[backend_v2/models/dtos/base.py#L22-L45]
 - `[MODIFY]` @[backend_v2/services/sdui/adapters/printable_sources_adapter.py#L93-L339]
-- `[MODIFY]` @[backend_v2/services/sdui/adapters/penalties_adapter.py#L58-L126]
+- `[MODIFY]` @[backend_v2/services/sdui/adapters/penalties_adapter.py#L60-L127]
 - `[MODIFY]` @[backend_v2/services/sdui/adapters/variance_adapter.py#L74-L339]
 - `[MODIFY]` @[backend_v2/services/sdui_mapper_service.py#L46-L115]
 - `[MODIFY]` @[backend_v2/services/execution/legacy_render_service.py#L142-L314]
@@ -77,7 +77,7 @@
 - `[MODIFY]` @[backend_v2/tests/unit/services/test_blueprint.py#L382-L1636]
 - `[MODIFY]` @[backend_v2/tests/unit/services/test_sdui_mapper_service.py#L37-L97]
 - `[MODIFY]` @[backend_v2/tests/unit/test_flattener.py#L17-L96]
-- `[MODIFY]` @[backend_v2/tests/unit/api/routers/execution/test_executions.py#L61-L84]
+- `[MODIFY]` @[backend_v2/tests/unit/api/routers/execution/test_executions.py#L78-L100]
 - `[MODIFY]` @[client_app_v2/test/features/execution/controllers/report_controller_test.dart#L12-L38]
 - `[MODIFY]` @[client_app_v2/test/features/execution/controllers/execution_controller_test.dart#L35-L55]
 

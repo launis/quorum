@@ -211,7 +211,6 @@
             {% if view.metrics %}
             <div class="box-teal" style="margin-bottom: 15px;">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <span style="font-size: 16px; margin-right: 8px;">📊</span>
                     <div class="label" style="color: #00695C;">{{ 'TEXT_METRICS_LABEL' | translate }}</div>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
@@ -234,7 +233,6 @@
             {% if d %}
             <div class="box-teal">
                 <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                    <span style="font-size: 16px; margin-right: 8px;">🧠</span>
                     <div>
                         <div class="label" style="color: #00695C;">{{ 'COGNITIVE_LEVEL_LABEL' | translate }}</div>
                         <div class="value" style="color: #004D40;">{{ d.bloom_label }}</div>
@@ -900,9 +898,15 @@
             {% for dim in section.value.get('dimensions', []) %}
                 {% set tda = dim.get('tda_state', {}) %}
                 {% set is_dlq = (tda.get('runtimeType') == 'dlq' or dim.get('status') == 'dlq') %}
-                <div style="background-color: {{ '#EEEEEE' if is_dlq else '#FAFAFA' }}; border: 1px solid {{ '#BDBDBD' if is_dlq else '#E0E0E0' }}; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
-                    <div style="background-color: {{ '#9E9E9E' if is_dlq else '#E1BEE7' }}; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
-                        <span style="font-size: 13px; font-weight: 700; color: {{ '#FFFFFF' if is_dlq else '#311B92' }};">
+                {% if is_dlq %}
+                <div style="background-color: #EEEEEE; border: 1px solid #BDBDBD; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="background-color: #9E9E9E; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #FFFFFF;">
+                {% else %}
+                <div style="background-color: #FAFAFA; border: 1px solid #E0E0E0; border-radius: 6px; padding: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                    <div style="background-color: #E1BEE7; border-radius: 50%; width: 34px; height: 34px; min-width: 34px; display: flex; justify-content: center; align-items: center; margin-top: 2px;">
+                        <span style="font-size: 13px; font-weight: 700; color: #311B92;">
+                {% endif %}
                             {% set ds = dim.get('score_display', '0') %}
                             {% if ds is not none and ds|string|trim != '' %}
                                 {{ ds }}
@@ -963,7 +967,6 @@
         {% elif section.id == 'coach-markdown' %}
         <div class="card" style="background: linear-gradient(135deg, #E8F5E9, #E0F2F1); border: 2px solid #A5D6A7; padding: 20px;">
             <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                <div style="background-color: #43A047; border-radius: 50%; width: 24px; height: 24px; display: inline-flex; justify-content: center; align-items: center; color: white; margin-right: 12px; font-weight: bold; font-family: sans-serif; font-size: 14px;">🧠</div>
                 <h2 style="color: #1B5E20; margin: 0; border: none; padding: 0;">{{ section.label if section.label else 'Ohjaajan Palaute' }}</h2>
             </div>
             <div style="background-color: #FFFFFF; border: 1px solid #C8E6C9; border-radius: 8px; padding: 16px; font-family: inherit; font-size: 11px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word; color: #1B5E20;">{{ section.value.get('content', '') }}</div>
