@@ -228,11 +228,11 @@
   - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
   - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
   - [x] @[backend_v2/hooks/scoring/passivity_hook.py]
-  - [ ] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
   - [ ] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
@@ -422,9 +422,17 @@
     84. `backend_v2/services/orchestrator/matrix_explanation_service.py` (Commit `d1dcd5ce`): Repositioned module docstring to the very top before imports; annotated `QuoteCandidateDTO` fields with PEP 593 `Annotated`; refactored ternaries in `effective_max_quotes`, `effective_max_unmet`, and `resolved_label` into explicit `if/else` statements. Verified all 19 tests in `test_matrix_explanation_service.py` passed with 99% line coverage and 0 AST violations, audit matrix verified.
     85. `backend_v2/hooks/scoring/matrix_hook.py` (Commit `1c688b40`): Annotated `BlockMetaDTO` and `AtomScoringRuleDTO` with PEP 593 `Annotated` syntax. Verified all 21 tests in `test_matrix_hook.py` passed with 94% line coverage and 0 AST violations, audit matrix verified.
     86. `backend_v2/hooks/scoring/passivity_hook.py` (Commit `d2c400eb`): Added `from __future__ import annotations`, explicit `__all__ = ["enforce_passivity_penalty_hook"]`, RFC 7807 structured `logger.error` before all 8 `AppException` raises, eliminated anonymous 3-tuple `(blueprint_id, raw_inputs, True)` in favor of 2-tuple `(blueprint_id, raw_inputs)`. Created dedicated test suite `test_passivity_hook.py` with 17 unit tests achieving 95% line coverage, 0 AST violations, audit matrix verified.
-- All 86 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 18 (Completed & Committed):
+    87. `backend_v2/services/sdui/adapters/global_score_adapter.py` (Commit `30e9b03f`): Added `from __future__ import annotations`, modernized docstrings, expanded unit tests in `test_global_score_adapter.py` testing `AESTHETICS_RULES` and boundary scores, 100% test coverage (5/5 passed), 0 AST violations, audit matrix verified.
+    88. `backend_v2/services/sdui/adapters/matrix_graphs_adapter.py` (Commit `140cc5fb`): Added `from __future__ import annotations`, eradicated ternary fallback in `section_syntheses` and refined `has_renderable_content`, expanded unit tests in `test_matrix_graphs_adapter.py` testing `MATRIX_GRAPHS_RULES`, 98% line coverage (8/8 passed), 0 AST violations, audit matrix verified.
+    89. `backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py` (Commit `400a4d53`): Added `from __future__ import annotations`, eradicated ternary fallback for `raw_columns` with explicit `if` check, expanded unit tests in `test_matrix_summary_table_adapter.py` testing `MATRIX_SUMMARY_RULES` and `STANDARD_COLUMNS`, 100% line coverage (5/5 passed), 0 AST violations, audit matrix verified.
+    90. `backend_v2/services/sdui/adapters/mcp_audit_adapter.py` (Commit `da4bb05c`): Added `from __future__ import annotations`, modernized docstrings, expanded unit tests in `test_mcp_audit_adapter.py` testing `MCP_AUDIT_RULES`, 100% line coverage (5/5 passed), 0 AST violations, audit matrix verified.
+    91. `backend_v2/services/sdui/adapters/metadata_adapter.py` (Commit `d162a2d2`): Added `from __future__ import annotations`, eradicated `or []` lazy fallback in `visible_fields` and ternary `else None` fallback in `custom_preface`, expanded unit tests in `test_metadata_adapter.py` testing `METADATA_RULES`, 98% line coverage (4/4 passed), 0 AST violations, audit matrix verified.
+- All 91 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
+- In `matrix_graphs_adapter.py` and `matrix_summary_table_adapter.py`, resolving optional collection attributes from profile caches or profiles via `x if cond else {}` or `x if cond else STANDARD_COLUMNS` violates `QGR016` (ternary literal fallback); assigning default baseline structures first and updating via explicit `if` blocks complies strictly with AST guardrails.
+- In `metadata_adapter.py`, accessing `profile.visible_metadata or []` violates `QGR016` (lazy literal fallback); using `visible_fields: Sequence[str] = []` followed by `if context.profile.visible_metadata: visible_fields = context.profile.visible_metadata` satisfies AST guardrails and MyPy typing invariants.
 - In `test_legacy_render_service.py`, `QGR014` strictly prohibits assigning `AsyncMock()` or `MagicMock()` to variable names ending with `_repo` or starting with `repo_`. Replacing mock repositories with in-memory fakes (`InMemoryExecutionRepository`, `InMemoryWorkflowRepository`) satisfies the anti-mocking architecture and guarantees realistic stateful persistence testing.
 - In `backend_v2/tests/fakes/in_memory_repositories.py`, `InMemoryUnitOfWork.get_model_registry` was typed with `registry_id: str | None = None` which conflicted with `ISystemRepository.get_model_registry(registry_id: str)`. Correcting the fake signature to `registry_id: str` resolves MyPy strict `[arg-type]` errors across all test consumers.
 - In `lightweight_matrix.py`, `OutputProfileConfig` and `LightweightMatrixOutput` use `LaxXaiExtensionType`, an annotated type alias over `XaiExtensionType`. Unit tests referencing specific extension enum values must access attributes directly from `XaiExtensionType` (e.g. `XaiExtensionType.CITATION`), avoiding non-existent members.
@@ -463,18 +471,13 @@
 - In `test_passivity_hook.py`, test step blueprints and task IDs must strictly conform to `OPAQUE_STRIPE_ID_REGEX` with hex characters (`stp_1234567890abcdef`), avoiding non-hex characters like `blueprint`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 18):
-  - `backend_v2/services/sdui/adapters/global_score_adapter.py`
-  - `backend_v2/services/sdui/adapters/matrix_graphs_adapter.py`
-  - `backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py`
-  - `backend_v2/services/sdui/adapters/mcp_audit_adapter.py`
-  - `backend_v2/services/sdui/adapters/metadata_adapter.py`
-- Subsequent Hardening Targets:
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 19):
   - `backend_v2/services/sdui/adapters/synthesis_text_adapter.py`
   - `backend_v2/services/sdui/adapters/warning_card_adapter.py`
   - `backend_v2/services/sdui/adapters/xai_highlights_adapter.py`
   - `backend_v2/workers/execution_worker.py`
   - `backend_v2/services/orchestrator/sliding_window_linker.py`
+- Subsequent Hardening Targets:
   - `backend_v2/services/localization.py`
   - `backend_v2/services/matrix_domain_parser.py`
 - Integration Checkpoint: Full-Stack Validation.
