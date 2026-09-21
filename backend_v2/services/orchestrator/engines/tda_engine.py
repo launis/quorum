@@ -3,6 +3,8 @@
 Strategy engine executing Kahn-based causal wave graphs over propositional assertion DAGs.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -24,6 +26,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MATRIX_SOURCE_SENTINEL = "MATRIX_EVALUATION"
+
+__all__ = ["TDAEngine"]
 
 
 class TDAEngine(ExecutionEngine):
@@ -52,7 +56,9 @@ class TDAEngine(ExecutionEngine):
             The EngineExecutionResult containing projected results and references.
 
         Raises:
-            AppException: If matrix assertions are missing or execution fails catastrophically.
+            AppException: If matrix assertions are missing or context blackboard is corrupted
+                (ErrorCodes.VALIDATION_FAILED), or if execution fails catastrophically
+                (ErrorCodes.AGENT_EXECUTION_CRITICAL).
         """
         if request.running_event:
             request.running_event.set()

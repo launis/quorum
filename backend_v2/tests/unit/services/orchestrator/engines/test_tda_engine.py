@@ -12,7 +12,12 @@ import pytest
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult, FlattenedAtom
+from backend_v2.models.dtos.engine import (
+    EngineExecutionRequest,
+    EngineExecutionResult,
+    FlattenedAtom,
+    MatrixEvaluationContext,
+)
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.engines.tda_engine import TDAEngine
@@ -242,3 +247,125 @@ async def test_tda_engine_data_starvation_circuit_breaker_with_shuffled_atoms(
     assert "Data Starvation" in str(states_arg["tda_11112222"].evaluation_reasoning)
     assert req.progress_callback is not None
     req.progress_callback.assert_called_with(100, 100)
+
+
+@pytest.mark.asyncio
+async def test_tda_engine_corrupted_blackboard_raises_validation_failed(
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test that a corrupted blackboard raises AppException with VALIDATION_FAILED."""
+    class CorruptedMapping:
+        def __contains__(self, key: object) -> bool:
+            raise TypeError("Corrupted mapping simulation")
+
+    req = engine_request.model_copy(
+        update={
+            "context": engine_request.context.model_copy(
+                update={"context_variables": {"__GLOBAL_ATOM_BLACKBOARD__": CorruptedMapping()}}
+            )
+        }
+    )
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(req)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Corrupted __GLOBAL_ATOM_BLACKBOARD__" in str(exc_info.value.message)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+async def test_tda_engine_execute_exception_group_unwraps_app_exception(
+    mock_atomizer: MagicMock,
+    mock_task_executor: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test that ExceptionGroup containing an AppException unwraps it directly."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    inner_app_exc = AppException(
+        message="Inner pipeline crash", status_code=422, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+    )
+    mock_atomizer_instance.execute_phase_0.side_effect = ExceptionGroup("group_error", [inner_app_exc])
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(engine_request)
+
+    assert exc_info.value.status_code == 422
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Inner pipeline crash" in str(exc_info.value.message)
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+async def test_tda_engine_execute_exception_group_wraps_generic_exception(
+    mock_atomizer: MagicMock,
+    mock_task_executor: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test that ExceptionGroup containing only standard exceptions is wrapped in AGENT_EXECUTION_CRITICAL."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_atomizer_instance.execute_phase_0.side_effect = ExceptionGroup("generic_group", [ValueError("Generic error")])
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+
+    with pytest.raises(AppException) as exc_info:
+        await engine.execute(engine_request)
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.AGENT_EXECUTION_CRITICAL.value
+
+
+@pytest.mark.asyncio
+@patch("backend_v2.services.orchestrator.engines.tda_engine.LLMTaskExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.TwoPassAtomizer")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.EnrichedDagExecutor")
+@patch("backend_v2.services.orchestrator.engines.tda_engine.ResultProjector")
+async def test_tda_engine_execute_with_matrix_context(
+    mock_projector: MagicMock,
+    mock_dag_executor: MagicMock,
+    mock_atomizer: MagicMock,
+    mock_task_executor: MagicMock,
+    engine_request: EngineExecutionRequest,
+    mock_compiler: MagicMock,
+) -> None:
+    """Test that matrix_context is properly forwarded and updated with shuffled_atoms."""
+    mock_atomizer_instance = mock_atomizer.return_value
+    mock_dag_executor_instance = mock_dag_executor.return_value
+
+    mock_atomizer_instance.execute_phase_0 = AsyncMock(
+        return_value=(
+            "mock_ontology",
+            TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+    )
+    mock_dag_executor_instance.execute_graph = AsyncMock(
+        return_value=(
+            {},
+            TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        )
+    )
+    mock_projector.project.return_value = ProjectedResultsDTO(results=[], hydrated_references={})
+
+    matrix_ctx = MatrixEvaluationContext(matrix_objective="Objective test")
+    req = engine_request.model_copy(update={"matrix_context": matrix_ctx})
+
+    engine = TDAEngine(prompt_compiler=mock_compiler)
+    result = await engine.execute(req)
+
+    assert isinstance(result, EngineExecutionResult)
+    _, eg_kwargs = mock_dag_executor_instance.execute_graph.call_args
+    passed_matrix_context = eg_kwargs.get("matrix_context")
+    assert passed_matrix_context is not None
+    assert passed_matrix_context.matrix_objective == "Objective test"
+    assert passed_matrix_context.matrix_assertions == req.shuffled_atoms
+
