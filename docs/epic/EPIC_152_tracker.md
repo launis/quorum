@@ -180,11 +180,11 @@
   - [x] @[backend_v2/services/report_service.py]
   - [x] [NEW] @[backend_v2/models/dtos/prompt.py]
   - [x] [NEW] @[backend_v2/models/dtos/context_variables.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/node_execution.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/sensor.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/finops.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/mcp.py]
-  - [ ] @[backend_v2/services/orchestrator/prompt_compiler.py]
+  - [x] [NEW] @[backend_v2/models/dtos/node_execution.py]
+  - [x] [NEW] @[backend_v2/models/dtos/sensor.py]
+  - [x] [NEW] @[backend_v2/models/dtos/finops.py]
+  - [x] [NEW] @[backend_v2/models/dtos/mcp.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
   - [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
@@ -366,7 +366,13 @@
     34. `backend_v2/services/report_service.py` (Commit `237b30e0`): Broke circular import with `report_worker`, hardened methods with PEP 257 Google-style docstrings, enforced RFC 7807 structured `logger.error` on all error raise points, eradicated 7 QGR016 ternary fallbacks and QGR009 untyped `AppException`, 13/13 tests passing (91% coverage, 0 AST violations), audit matrix verified.
     35. `backend_v2/models/dtos/prompt.py`: Enforces Pydantic V2 ConfigDict(strict=True, extra="forbid", frozen=True), PEP 593 Annotated fields, explicit `__all__`, PEP 257 Google-style docstrings, 100% test coverage (4/4 tests, 0 AST violations), audit matrix verified.
     36. `backend_v2/models/dtos/context_variables.py`: Enforces Pydantic V2 ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True), PEP 593 Annotated fields, explicit `__all__`, PEP 257 Google-style docstrings, 100% test coverage (4/4 tests, 0 AST violations), audit matrix verified.
-- All 36 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 8 (Completed & Committed):
+    37. `backend_v2/models/dtos/node_execution.py` (Commit `73d37752`): PEP 257 Google-style docstrings with full `Attributes:` section, `model_validate` for `to_execution_update_dto`, expanded negative and boundary tests in `test_node_execution.py` (8/8 passing, 100% coverage, 0 AST violations), audit matrix verified.
+    38. `backend_v2/models/dtos/sensor.py` (Commit `53f25e2e`): PEP 257 Google-style docstrings with `Attributes:`, expanded negative extra-fields and strict-typing unit tests in `test_sensor.py` (4/4 passing, 100% coverage, 0 AST violations), audit matrix verified.
+    39. `backend_v2/models/dtos/finops.py` (Commit `2079d6cf`): PEP 257 Google-style docstrings with `Attributes:`, expanded negative extra-fields and strict-typing unit tests in `test_finops.py` (6/6 passing, 100% coverage, 0 AST violations), audit matrix verified.
+    40. `backend_v2/models/dtos/mcp.py` (Commit `f06f4f84`): PEP 257 Google-style docstrings with `Attributes:` across all 3 DTOs, expanded negative extra-fields and strict-typing unit tests in `test_mcp.py` (6/6 passing, 100% coverage, 0 AST violations), audit matrix verified.
+    41. `backend_v2/services/orchestrator/prompt_compiler.py` (Commit `534317e2`): Annotated `_InputMetaDTO` fields with PEP 593 `Annotated`, added `Raises:` documentation to docstrings, purged banned "Epic" reference in `generate_mcp_instruction`, RFC 7807 structured error codes in `calibrate_strictness` (27/27 tests passing, 100% coverage, 0 AST violations), audit matrix verified.
+- All 41 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
@@ -382,16 +388,18 @@
 - In `llm_task_executor.py`, non-critical telemetry and prompt logging exceptions in domain code must dispatch via a DLQ helper (`_dispatch_dlq_telemetry_error`) to satisfy `QGR003` without swallowing exceptions.
 - Circular imports between worker modules and service modules can be broken cleanly without inline imports by importing the service module globally at the top level (e.g. `import backend_v2.services.report_service as report_service_mod`) and resolving the class dynamically at runtime (`report_service_mod.ReportService(repo)`).
 - Direct dot-notation access on default-factored Pydantic sub-DTOs (like `report.storage_paths.pdf_path`) eliminates redundant QGR016 ternary guards when the sub-DTO is guaranteed non-null.
+- In `prompt_compiler.py`, references to "Epic" in docstrings or comments violate `internal_language_and_epic_ban` and must be purged.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 8):
-  - `backend_v2/models/dtos/node_execution.py`
-  - `backend_v2/models/dtos/sensor.py`
-  - `backend_v2/models/dtos/finops.py`
-  - `backend_v2/models/dtos/mcp.py`
-  - `backend_v2/services/orchestrator/prompt_compiler.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 9):
+  - `backend_v2/services/orchestrator/prompt_compiler_adapter.py`
+  - `backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`
+  - `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`
+  - `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py`
+  - `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
