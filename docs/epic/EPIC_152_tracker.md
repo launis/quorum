@@ -215,10 +215,9 @@
   - [x] @[backend_v2/models/dtos/base.py]
   - [x] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
   - [x] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
-  - [x] @[backend_v2/services/sdui/adapters/variance_adapter.py]
-  - [ ] @[backend_v2/services/execution/facade.py]
-  - [ ] @[backend_v2/services/flattener.py]
-  - [ ] @[backend_v2/services/export_service.py]
+  - [x] @[backend_v2/services/execution/facade.py]
+  - [x] @[backend_v2/services/flattener.py]
+  - [x] @[backend_v2/services/export_service.py]
   - [ ] @[backend_v2/api/routers/execution/executions.py]
   - [ ] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
   - [ ] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
@@ -406,8 +405,13 @@
     68. `backend_v2/models/dtos/render.py` (Commit `423c5f42`): Added `from __future__ import annotations`, explicit `__all__`, created unit test suite `test_render.py` covering bytes, str, DTOs, extra-field forbidding, and invalid payload fail-fast, achieving 100% test coverage (5/5 passed), 0 AST violations, audit matrix verified.
     69. `backend_v2/models/dtos/flat_record.py` (Commit `88da76f4`): Added `from __future__ import annotations`, created unit test suite `test_flat_record.py` covering defaults, `to_csv_dict()` dictionary flattening, extra-field forbidding, and type validation fail-fast, achieving 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
     70. `backend_v2/models/dtos/base.py` (Commit `5cc26261`): Fixed module docstring positioning before imports, complete PEP 593 `Annotated` syntax with `Field(default=None, description=..., exclude=True)` on `organization_id`, PEP 257 Google-style docstrings with Attributes on `DataStarvationEvent`, expanded `test_base.py` covering `GenericStatusResponseDTO` and `DataStarvationEvent` with negative tests, achieving 100% test coverage (4/4 passed), 0 AST violations, audit matrix verified.
-    71. `backend_v2/services/sdui/adapters/printable_sources_adapter.py` (Commit `23e3ebf2`): Added `from __future__ import annotations`, eliminated all 3 `QGR016` banned ternary fallbacks in `locale` resolution, `mcp_traces` extraction, and `b_text` retrieval, achieving 94% test coverage (15/15 passed), 0 AST violations, audit matrix verified.
-- All 71 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 15 (Completed & Committed):
+    72. `backend_v2/services/sdui/adapters/penalties_adapter.py` (Commit `659a2707`): Added `from __future__ import annotations`, explicit `__all__ = ["PENALTIES_RULES", "PenaltiesAdapter"]`, PEP 257 docstring with `(ErrorCodes.CONFIGURATION_ERROR)`, refactored `pct_suffix` ternary expression to explicit `if/else`, added data-starvation test in `test_penalties_adapter.py`, 100% test coverage (6/6 tests passing), 0 AST violations, audit matrix verified.
+    73. `backend_v2/services/sdui/adapters/variance_adapter.py` (Commit `062baccd`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 docstrings with ErrorCodes (`VALIDATION_FAILED`, `CONFIGURATION_ERROR`, `INTERNAL_SERVER_ERROR`), RFC 7807 structured logging on linguistics error, replaced `jargon_count` ternary expression with explicit `if/else`, added malformed linguistics test to `test_variance_adapter.py`, 100% test coverage (10/10 tests passing), 0 AST violations, audit matrix verified.
+    74. `backend_v2/services/execution/facade.py` (Commit `e0c5aed9`): Added explicit PEP 257 Google-style docstrings (`Args:`, `Returns:`, `Yields:`) for all 17 delegated methods, replaced ternary assignments for `export_service` and `storage` with explicit `if/else`, created dedicated test suite `test_facade.py` achieving 100% test coverage (19/19 tests passing, 84/84 stmts), 0 AST violations, audit matrix verified.
+    75. `backend_v2/services/flattener.py` (Commit `20eed10e`): Added `from __future__ import annotations`, explicit `__all__ = ["FlatFileService"]`, PEP 257 docstring with DRY returns, explicit `is not None` guards, expanded `test_flattener.py` covering all SDUI matrix blocks and non-matrix blocks, achieving 100% test coverage (3/3 tests passing, 33/33 stmts), 0 AST violations, audit matrix verified.
+    76. `backend_v2/services/export_service.py` (Commit `774f6699`): Added `from __future__ import annotations`, explicit `__all__ = ["ExportService"]`, PEP 257 docstrings with explicit `Raises: AppException`, eradicated all `QGR016` ternary literal fallbacks in header selection, label resolution, status code, and target ID resolution, leveraged `ReportDataDTO` referential integrity for direct reference lookup, expanded `test_export_service.py` achieving 99% test coverage (11/11 tests passing, 136/137 stmts), 0 AST violations, audit matrix verified.
+- All 76 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - In `tavily.py`, unpacking tool arguments via `val if "k" in kwargs and kwargs["k"] is not None else default` violates AST rule `QGR016` (ternary literal fallback). Use explicit `if "k" in kwargs and kwargs["k"] is not None:` branching.
@@ -435,14 +439,19 @@
 - In Pydantic models, writing `field: Annotated[list[T], Field(default_factory=list)]` without a trailing `= Field(default_factory=list)` causes MyPy strict to treat `field` as a required parameter during model instantiation. Always retain `= Field(default_factory=list)` on optional list/dict fields to satisfy MyPy type-checking.
 - `JobAcceptedDTO` in `backend_v2/models/domain/execution.py` requires `status: str`, `message: str`, and `execution_id: str` (with `extra="forbid"`).
 - In `PrintableSourcesAdapter`, ternary expressions for `locale`, `mcp_traces`, and `b_text` must be rewritten as explicit `if/else` statements to satisfy `QGR016`.
+- `HumanOverrideRequest` schema requires `new_status` (`ExecutionStatus`) and `reason` (`str`).
+- `ReportDataDTO` model validator enforces referential integrity between `results` atoms (`tda_id`) and `hydrated_references` keys, guaranteeing O(1) direct dictionary lookup without dead fallback branches.
+- `AtomResultDTO` mandates `evaluation_reasoning` for cognitive statuses `FAILED` and `PASSED`, and requires `error_details` (`ErrorDetailsDTO`) for `SYSTEM_ERROR`.
+- `MatrixScorecardRowDTO.label_i18n` is a mandatory `I18nText` instance, allowing direct `.resolve()` calls without defensive None checks.
+- Excel export headers and status values must avoid ternary literal fallbacks (`QGR016`) by using explicit `if/else` statements.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 15):
-  - `backend_v2/services/sdui/adapters/penalties_adapter.py`
-  - `backend_v2/services/sdui/adapters/variance_adapter.py`
-  - `backend_v2/services/execution/facade.py`
-  - `backend_v2/services/flattener.py`
-  - `backend_v2/services/export_service.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 16):
+  - `backend_v2/api/routers/execution/executions.py`
+  - `backend_v2/tests/unit/services/execution/test_legacy_render_service.py`
+  - `backend_v2/models/dtos/step_telemetry.py`
+  - `backend_v2/models/dtos/matrix_parser.py`
+  - `backend_v2/models/dtos/lightweight_matrix.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
