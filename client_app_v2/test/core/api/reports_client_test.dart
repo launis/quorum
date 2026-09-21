@@ -1,8 +1,6 @@
 import 'dart:typed_data';
 import 'package:client_app/core/api/reports_client.dart';
 import 'package:client_app/core/models/enums.dart';
-import 'package:client_app/features/reports/models/report_artifact.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

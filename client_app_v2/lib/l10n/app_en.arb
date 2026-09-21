@@ -2547,6 +2547,12 @@
   "autoGeneratingReportNotice": "Analysis complete (100%). Generating report...",
   "reportGenerationFailedNotice": "Report generation failed, you can retry",
   "viewReportsButtonLabel": "View Reports",
-  "retryReportGenerationLabel": "Retry"
+  "retryReportGenerationLabel": "Retry",
+  "noProfilesForWorkflow": "No matching output profiles found for this workflow.",
+  "noTableRowsAvailable": "No table rows available.",
+  "tableColumnCriteriaMetric": "Criterion / Metric",
+  "tableColumnScore": "Score",
+  "tableColumnMaxScore": "Maximum",
+  "tableColumnReasoningQuote": "Reasoning & Quote"
 }
 

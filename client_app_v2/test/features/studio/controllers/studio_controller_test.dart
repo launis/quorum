@@ -86,6 +86,7 @@ void main() {
       slug: 'test-wf',
       name: const I18nText(translations: {'en': 'Test'}),
       description: const I18nText(translations: {'en': 'Test Desc'}),
+      modelRegistryId: 'reg_default',
       outputProfiles: {},
     );
 

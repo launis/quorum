@@ -1,9 +1,5 @@
 import 'package:client_app/core/api/execution_client.dart';
-import 'package:client_app/core/error/app_exception.dart';
-import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
-import 'package:client_app/features/execution/models/execution_record.dart';
-import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';

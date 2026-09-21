@@ -5229,4 +5229,23 @@ class AppLocalizationsFi extends AppLocalizations {
 
   @override
   String get retryReportGenerationLabel => 'Yritä uudelleen';
+
+  @override
+  String get noProfilesForWorkflow =>
+      'Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.';
+
+  @override
+  String get noTableRowsAvailable => 'Ei taulukkorivejä saatavilla.';
+
+  @override
+  String get tableColumnCriteriaMetric => 'Kriteeri / Metriikka';
+
+  @override
+  String get tableColumnScore => 'Pisteet';
+
+  @override
+  String get tableColumnMaxScore => 'Maksimi';
+
+  @override
+  String get tableColumnReasoningQuote => 'Perustelu & Sitaatti';
 }

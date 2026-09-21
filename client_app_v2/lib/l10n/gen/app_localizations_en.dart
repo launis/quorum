@@ -5190,4 +5190,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get retryReportGenerationLabel => 'Retry';
+
+  @override
+  String get noProfilesForWorkflow =>
+      'No matching output profiles found for this workflow.';
+
+  @override
+  String get noTableRowsAvailable => 'No table rows available.';
+
+  @override
+  String get tableColumnCriteriaMetric => 'Criterion / Metric';
+
+  @override
+  String get tableColumnScore => 'Score';
+
+  @override
+  String get tableColumnMaxScore => 'Maximum';
+
+  @override
+  String get tableColumnReasoningQuote => 'Reasoning & Quote';
 }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -74,15 +75,21 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
 
   Future<void> _loadProfiles() async {
     try {
+      String? targetWorkflowId = widget.workflowId;
+      if (targetWorkflowId == null) {
+        final execClient = ref.read(executionClientProvider);
+        final execStatus = await execClient.getExecutionStatus(
+          widget.executionId,
+        );
+        targetWorkflowId = execStatus.workflowId;
+      }
+
       final client = ref.read(studioClientProvider);
       final rawList = await client.getOutputProfiles();
       if (!mounted) return;
       final profiles = rawList
           .map((m) => OutputProfile.fromJson(m))
-          .where(
-            (p) =>
-                widget.workflowId == null || p.workflowId == widget.workflowId,
-          )
+          .where((p) => p.workflowId == targetWorkflowId)
           .toList();
       setState(() {
         _availableProfiles = profiles;
@@ -217,7 +224,7 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(
                   minWidth: 480,
-                  maxWidth: 800,
+                  maxWidth: 640,
                   minHeight: 400,
                   maxHeight: 720,
                 ),
@@ -293,6 +300,37 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                   if (_isLoadingProfiles)
                                     const Center(
                                       child: CircularProgressIndicator(),
+                                    )
+                                  else if (_availableProfiles.isEmpty)
+                                    Container(
+                                      padding: AppSpacing.p12,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            colorScheme.surfaceContainerHighest,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: colorScheme.outlineVariant,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.info_outline,
+                                            color: colorScheme.primary,
+                                          ),
+                                          AppSpacing.w12,
+                                          Expanded(
+                                            child: Text(
+                                              l10n.noProfilesForWorkflow,
+                                              style: theme.textTheme.bodyMedium
+                                                  ?.copyWith(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     )
                                   else
                                     DropdownButtonFormField<String>(
@@ -408,7 +446,10 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                       )
                                     : const Icon(Icons.auto_awesome),
                                 label: Text(l10n.saveReportButtonLabel),
-                                onPressed: _isSaving ? null : _handleSave,
+                                onPressed:
+                                    _isSaving || _availableProfiles.isEmpty
+                                    ? null
+                                    : _handleSave,
                               ),
                             ],
                           ),

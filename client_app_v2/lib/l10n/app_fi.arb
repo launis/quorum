@@ -1844,5 +1844,11 @@
   "autoGeneratingReportNotice": "Laskenta valmis (100%). Luodaan tulostetta...",
   "reportGenerationFailedNotice": "Tulosteen generointi epäonnistui, voit yrittää uudelleen",
   "viewReportsButtonLabel": "Näytä tulosteet",
-  "retryReportGenerationLabel": "Yritä uudelleen"
+  "retryReportGenerationLabel": "Yritä uudelleen",
+  "noProfilesForWorkflow": "Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.",
+  "noTableRowsAvailable": "Ei taulukkorivejä saatavilla.",
+  "tableColumnCriteriaMetric": "Kriteeri / Metriikka",
+  "tableColumnScore": "Pisteet",
+  "tableColumnMaxScore": "Maksimi",
+  "tableColumnReasoningQuote": "Perustelu & Sitaatti"
 }

@@ -10,10 +10,9 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:dio/dio.dart';
-import 'package:file_saver/file_saver.dart';
+import 'package:file_picker/file_picker.dart';
 import 'dart:typed_data';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
-import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'dart:convert';
 
@@ -59,26 +58,22 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       );
 
       final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance
-          .saveAs(
-            name: 'Execution_Export_${widget.executionId}',
-            bytes: bytes,
-            fileExtension: 'xlsx',
-            mimeType: MimeType.microsoftExcel,
-          )
-          .timeout(
-            ReportSettings.downloadTimeout,
-            onTimeout: () => throw AppException.timeout(
-              AppLocalizations.of(context)!.errSaveTimeout,
-            ),
-          );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadExcelTooltip,
+        fileName: 'Execution_Export_${widget.executionId}.xlsx',
+        type: FileType.custom,
+        allowedExtensions: const ['xlsx'],
+        bytes: bytes,
+        lockParentWindow: true,
+      );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
     } catch (e, st) {
       ref
@@ -125,16 +120,7 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
     });
 
     try {
-      final targetDate = DateTime.now();
-
-      final localTimeStr =
-          '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')} ${targetDate.hour.toString().padLeft(2, '0')}:${targetDate.minute.toString().padLeft(2, '0')}';
-
-      final queryParams = {
-        'format': 'pdf',
-        'profile_id': widget.variant,
-        'local_time_str': localTimeStr,
-      };
+      final queryParams = {'format': 'pdf', 'profile_id': widget.variant};
 
       final dio = ref.read(apiClientProvider);
       final response = await dio.get<List<int>>(
@@ -144,26 +130,22 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       );
 
       final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance
-          .saveAs(
-            name: 'Report_${widget.executionId}',
-            bytes: bytes,
-            fileExtension: 'pdf',
-            mimeType: MimeType.pdf,
-          )
-          .timeout(
-            ReportSettings.downloadTimeout,
-            onTimeout: () => throw AppException.timeout(
-              AppLocalizations.of(context)!.errSaveTimeout,
-            ),
-          );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadPdfTooltip,
+        fileName: 'Report_${widget.executionId}.pdf',
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
+        bytes: bytes,
+        lockParentWindow: true,
+      );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
     } catch (e, st) {
       ref
@@ -200,26 +182,22 @@ class _ExecutionReportViewState extends ConsumerState<ExecutionReportView> {
       );
 
       final bytes = Uint8List.fromList(response.data!);
-      await FileSaver.instance
-          .saveAs(
-            name: 'FrozenContext_${widget.executionId}',
-            bytes: bytes,
-            fileExtension: 'json',
-            mimeType: MimeType.json,
-          )
-          .timeout(
-            ReportSettings.downloadTimeout,
-            onTimeout: () => throw AppException.timeout(
-              AppLocalizations.of(context)!.errSaveTimeout,
-            ),
-          );
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadFrozenContextTooltip,
+        fileName: 'FrozenContext_${widget.executionId}.json',
+        type: FileType.custom,
+        allowedExtensions: const ['json'],
+        bytes: bytes,
+        lockParentWindow: true,
+      );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
     } catch (e, st) {
       ref

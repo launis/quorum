@@ -9365,6 +9365,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Retry'**
   String get retryReportGenerationLabel;
+
+  /// No description provided for @noProfilesForWorkflow.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching output profiles found for this workflow.'**
+  String get noProfilesForWorkflow;
+
+  /// No description provided for @noTableRowsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No table rows available.'**
+  String get noTableRowsAvailable;
+
+  /// No description provided for @tableColumnCriteriaMetric.
+  ///
+  /// In en, this message translates to:
+  /// **'Criterion / Metric'**
+  String get tableColumnCriteriaMetric;
+
+  /// No description provided for @tableColumnScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Score'**
+  String get tableColumnScore;
+
+  /// No description provided for @tableColumnMaxScore.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum'**
+  String get tableColumnMaxScore;
+
+  /// No description provided for @tableColumnReasoningQuote.
+  ///
+  /// In en, this message translates to:
+  /// **'Reasoning & Quote'**
+  String get tableColumnReasoningQuote;
 }
 
 class _AppLocalizationsDelegate

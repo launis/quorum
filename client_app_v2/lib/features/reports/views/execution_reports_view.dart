@@ -1,5 +1,7 @@
 import 'package:client_app/core/api/reports_client.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
+import 'package:client_app/core/error/app_error_ext.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/ui/error_view.dart';
@@ -9,9 +11,9 @@ import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:client_app/features/reports/views/dialogs/create_report_dialog.dart';
 import 'package:client_app/features/reports/views/widgets/report_artifact_card.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:file_saver/file_saver.dart';
 
 /// Comprehensive Master-Detail reports management view adhering to Desktop Pro Tool UX.
 class ExecutionReportsView extends ConsumerStatefulWidget {
@@ -78,28 +80,34 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     try {
       final client = ref.read(reportsClientProvider);
       final bytes = await client.downloadPdf(reportId);
-      await FileSaver.instance.saveAs(
-        name: 'report_$reportId',
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadPdfTooltip,
+        fileName: 'report_$reportId.pdf',
+        type: FileType.custom,
+        allowedExtensions: const ['pdf'],
         bytes: bytes,
-        fileExtension: 'pdf',
-        mimeType: MimeType.pdf,
+        lockParentWindow: true,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lataus epäonnistui: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ExecutionReportsView', 'Failed to download PDF', e, st);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -107,28 +115,34 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     try {
       final client = ref.read(reportsClientProvider);
       final bytes = await client.downloadExcel(reportId);
-      await FileSaver.instance.saveAs(
-        name: 'report_$reportId',
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadExcelTooltip,
+        fileName: 'report_$reportId.xlsx',
+        type: FileType.custom,
+        allowedExtensions: const ['xlsx'],
         bytes: bytes,
-        fileExtension: 'xlsx',
-        mimeType: MimeType.microsoftExcel,
+        lockParentWindow: true,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lataus epäonnistui: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ExecutionReportsView', 'Failed to download Excel', e, st);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -136,28 +150,34 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     try {
       final client = ref.read(reportsClientProvider);
       final bytes = await client.downloadCsv(reportId);
-      await FileSaver.instance.saveAs(
-        name: 'report_$reportId',
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      final savedPath = await FilePicker.saveFile(
+        dialogTitle: l10n.downloadCsvTooltip,
+        fileName: 'report_$reportId.csv',
+        type: FileType.custom,
+        allowedExtensions: const ['csv'],
         bytes: bytes,
-        fileExtension: 'csv',
-        mimeType: MimeType.csv,
+        lockParentWindow: true,
       );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.downloadSuccess),
-          ),
-        );
+      if (!mounted) return;
+      if (savedPath != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.downloadSuccess)));
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lataus epäonnistui: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
+    } catch (e, st) {
+      ref
+          .read(loggerServiceProvider)
+          .error('ExecutionReportsView', 'Failed to download CSV', e, st);
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(AppExceptionX.extractLocalizedHint(e, l10n)),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -770,11 +790,11 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     final detailAsync = ref.watch(reportDetailProvider(reportSummary.id));
     final currentStatus =
         detailAsync.asData?.value.status ?? reportSummary.status;
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     if (currentStatus == ReportStatus.generating ||
         currentStatus == ReportStatus.pending) {
-      final l10n = AppLocalizations.of(context)!;
-      final theme = Theme.of(context);
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -793,8 +813,6 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     }
 
     if (currentStatus == ReportStatus.failed) {
-      final l10n = AppLocalizations.of(context)!;
-      final theme = Theme.of(context);
       return Center(
         child: Text(
           l10n.reportGenerationFailedNotice,
@@ -817,35 +835,58 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
         ),
         AsyncData(:final value) =>
           value.isEmpty
-              ? const Center(child: Text('Ei taulukkorivejä saatavilla.'))
+              ? Center(
+                  child: Text(
+                    l10n.noTableRowsAvailable,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                )
               : SingleChildScrollView(
                   padding: AppSpacing.p16,
-                  child: DataTable(
-                    columns: const [
-                      DataColumn(label: Text('Kriteeri / Metriikka')),
-                      DataColumn(label: Text('Pisteet')),
-                      DataColumn(label: Text('Maksimi')),
-                      DataColumn(label: Text('Perustelu & Sitaatti')),
-                    ],
-                    rows: value.map((row) {
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(row.metricLabel)),
-                          DataCell(Text(row.score.toStringAsFixed(1))),
-                          DataCell(Text(row.maxScale.toStringAsFixed(1))),
-                          DataCell(
-                            ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 400),
-                              child: Text(
-                                row.reasoning ?? row.quote ?? '-',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: [
+                        DataColumn(label: Text(l10n.tableColumnCriteriaMetric)),
+                        DataColumn(label: Text(l10n.tableColumnScore)),
+                        DataColumn(label: Text(l10n.tableColumnMaxScore)),
+                        DataColumn(label: Text(l10n.tableColumnReasoningQuote)),
+                      ],
+                      rows: value.map((row) {
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 350,
+                                ),
+                                child: Text(
+                                  row.metricLabel,
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                            DataCell(Text(row.score.toStringAsFixed(1))),
+                            DataCell(Text(row.maxScale.toStringAsFixed(1))),
+                            DataCell(
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxWidth: 400,
+                                ),
+                                child: Text(
+                                  row.reasoning ?? row.quote ?? '-',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
                   ),
                 ),
       },
