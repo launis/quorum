@@ -192,3 +192,89 @@ async def test_execute_hook_failure_raises_app_exception(logic_strategy: LogicNo
 
         assert exc_info.value.status_code == 500
         assert "returned success=False" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_execute_missing_hook_raises_app_exception(logic_strategy: LogicNodeStrategy) -> None:
+    step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
+    projector = StateProjector()
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+    )
+    semaphore = asyncio.Semaphore(1)
+
+    from backend_v2.models.enums import StepType
+
+    step_def = {
+        "id": "stp_1234567890abcdef",
+        "slug": "test_slug",
+        "name": {"translations": {"en": "Test"}},
+        "hook": None,
+        "criteria_block_ids": ["blk_0123456789abcdef"],
+        "extraction_protocol_block_id": "blk_0123456789abcdef",
+        "description": {"translations": {"en": "Test Desc"}},
+        "type": StepType.LLM,
+    }
+    from typing import cast
+
+    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
+    mock_repo.get_step_by_id.return_value = step_def
+
+    with pytest.raises(AppException) as exc_info:
+        await logic_strategy.execute(step, projector, context, None, None, semaphore)
+
+    assert exc_info.value.status_code == 500
+    assert "has no native hook defined" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) -> None:
+    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.dtos.step_output import StepOutputDTO
+    from backend_v2.models.enums import StepType
+
+    step = StepRule.model_construct(id="step_1", task_blueprint="bp_123")
+    projector = StateProjector()
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+    )
+    semaphore = asyncio.Semaphore(1)
+
+    step_def = {
+        "id": "stp_1234567890abcdef",
+        "slug": "test_slug",
+        "name": {"translations": {"en": "Test"}},
+        "hook": "test_hook",
+        "description": {"translations": {"en": "Test Desc"}},
+        "type": StepType.LOGIC,
+    }
+    from typing import cast
+    from unittest.mock import patch
+
+    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
+    mock_repo.get_step_by_id.return_value = step_def
+
+    delta_instance = StepOutputDTO(step_id="stp_1", block_id="blk_1", data_type="text", payload="hello")
+
+    with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
+        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=delta_instance))
+
+        traces = await logic_strategy.execute(step, projector, context, None, None, semaphore)
+
+        assert len(traces) == 1
+        assert traces[0].event_type == "output"
+        assert traces[0].content["step_id"] == "stp_1"
+        assert traces[0].content["payload"] == "hello"
+
+
+
+def test_logic_exports() -> None:
+    from backend_v2.services.orchestrator.strategies import logic
+
+    assert hasattr(logic, "__all__")
+    assert "LogicNodeStrategy" in logic.__all__
+

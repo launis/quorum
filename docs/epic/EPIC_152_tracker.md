@@ -193,7 +193,7 @@
   - [x] @[backend_v2/services/orchestrator/state_reducer.py]
   - [x] @[backend_v2/services/orchestrator/dag_executor.py]
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/logic.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
   - [ ] @[backend_v2/services/orchestrator/context_router.py]

@@ -3,12 +3,12 @@
 import asyncio
 import logging
 from collections.abc import Awaitable, Callable, Mapping
+from typing import Any
 
 from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDependencies,
     HookState,
     hook_registry,
@@ -23,6 +23,8 @@ from backend_v2.services.orchestrator.state_reducer import merge_execution_input
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["LogicNodeStrategy"]
 
 
 class LogicNodeStrategy(NodeStrategy):
@@ -63,14 +65,18 @@ class LogicNodeStrategy(NodeStrategy):
             An array of new TraceEvents representing the node's outputs or errors.
 
         Raises:
-            AppException: If configuration is invalid or logic hook execution fails.
+            AppException: With CONFIGURATION_ERROR if the step has no blueprint or definition is not found.
+            AppException: With VALIDATION_FAILED if the step definition has no native hook configured.
+            AppException: With AGENT_EXECUTION_CRITICAL if hook execution returns failure.
         """
         if running_event is not None:
             running_event.set()
         # 1. State Extraction
-        current_state = LogicNodeStateDTO(
-            steps=projector.snapshot if isinstance(projector.snapshot, list) else [],
-        )
+        snapshot_data = projector.snapshot
+        current_steps: list[Any] = []
+        if isinstance(snapshot_data, list):
+            current_steps = list(snapshot_data)
+        current_state = LogicNodeStateDTO(steps=current_steps)
 
         blueprint_id = step.task_blueprint
         if not blueprint_id:
@@ -123,18 +129,13 @@ class LogicNodeStrategy(NodeStrategy):
             system_repo=self.system_repo,
         )
 
-        initial_gvars = (
-            context.global_context_vars
-            if isinstance(context.global_context_vars, GlobalContextVarsDTO)
-            else GlobalContextVarsDTO()
-        )
         safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
             step_id=step.id,
             task_blueprint=blueprint_id,
             metadata=context.metadata,
-            global_context_vars=initial_gvars,
+            global_context_vars=context.global_context_vars,
             inputs=ExecutionInputsDTO(dynamic_inputs={"steps": current_state.steps}),
             target_locale=context.target_locale,
         )
@@ -158,13 +159,12 @@ class LogicNodeStrategy(NodeStrategy):
 
         if main_res.success and main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
-            delta_dict = (
-                delta_val.model_dump(mode="json")
-                if isinstance(delta_val, BaseModel)
-                else dict(delta_val)
-                if isinstance(delta_val, Mapping)
-                else {}
-            )
+            delta_dict: dict[str, Any] = {}
+            if isinstance(delta_val, BaseModel):
+                delta_dict = delta_val.model_dump(mode="json")
+            elif isinstance(delta_val, Mapping):
+                delta_dict = dict(delta_val)
+
             delta_inputs = ExecutionInputsDTO(dynamic_inputs=delta_dict)
             hook_state = hook_state.model_copy(
                 update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
@@ -172,7 +172,16 @@ class LogicNodeStrategy(NodeStrategy):
         elif not main_res.success:
             # Fail-Fast: The primary logic hook returning success=False is a hard execution error.
             msg = f"Logic hook '{logic_hook}' for step '{step.id}' returned success=False."
-            logger.error("[LogicStrategy] %s: %s", ErrorCodes.AGENT_EXECUTION_CRITICAL.name, msg)
+            logger.error(
+                "Logic hook '%s' for step '%s' returned success=False.",
+                logic_hook,
+                step.id,
+                extra={
+                    "error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    "step_id": step.id,
+                    "hook": logic_hook,
+                },
+            )
             raise AppException(
                 message=msg,
                 status_code=500,
