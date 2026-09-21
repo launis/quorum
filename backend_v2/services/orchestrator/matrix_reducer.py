@@ -1,5 +1,7 @@
 """Synchronous reduction of three-state logic (Passed, Failed, DLQ)."""
 
+from __future__ import annotations
+
 import logging
 from typing import Any, Literal
 
@@ -15,7 +17,9 @@ from backend_v2.models.state import StepOutputDTO
 
 logger = logging.getLogger(__name__)
 
-State = Literal["PASSED", "FAILED", "DLQ"]
+type State = Literal["PASSED", "FAILED", "DLQ"]
+
+__all__ = ["MatrixReducer", "State"]
 
 
 class MatrixReducer:
@@ -73,7 +77,7 @@ class MatrixReducer:
             The reduced three-state logic result.
 
         Raises:
-            AppException: If the aggregation mode is unknown.
+            AppException: If the aggregation mode is unknown (ErrorCodes.VALIDATION_FAILED).
         """
         match assertion.aggregation_mode:
             case "EXISTS":
@@ -101,6 +105,9 @@ class MatrixReducer:
 
         Returns:
             A token-compressed LightweightMatrixDTO for the synthesis phase.
+
+        Raises:
+            AppException: If an atom result in the execution trace fails validation (ErrorCodes.VALIDATION_FAILED).
         """
         reduced_atoms: list[ReducedAtomDTO] = []
         total_atoms = 0
