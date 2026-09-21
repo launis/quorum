@@ -13,9 +13,13 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
-from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
+from backend_v2.services.orchestrator.rag_preflight_service import (
+    RAGPreflightService,
+    _extract_inputs_from_record,
+)
 
 
 @pytest.fixture
@@ -550,3 +554,44 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
         mock_atomizer_cls.assert_not_called()
         assert result == {"atoms_by_input": {}, "is_data_starved": True}
         emit_mock.assert_called_with("Input data sparse/empty. Preflight extraction skipped.", 100)
+
+
+def test_extract_inputs_from_record_variations() -> None:
+    """Test _extract_inputs_from_record with ExecutionInputsDTO and dynamic_inputs trace contents."""
+    # 1. Test with ExecutionInputsDTO via model_construct
+    event_dto = TraceEvent.model_construct(
+        step_name="inputs",
+        event_type="input",
+        content=ExecutionInputsDTO(dynamic_inputs={"file_a": "content from dto"}),
+    )
+    rec_dto = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id="wf_0000000000000001",
+        output_profile_id="prof_0000000000000001",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"raw": "fallback"}),
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[event_dto],
+    )
+    extracted_dto = _extract_inputs_from_record(rec_dto)
+    assert extracted_dto == {"file_a": "content from dto"}
+
+    # 2. Test with content containing dynamic_inputs mapping
+    event_dict = TraceEvent(
+        step_name="inputs",
+        event_type="input",
+        content={"dynamic_inputs": {"file_b": "content from dict"}},
+    )
+    rec_dict = ExecutionRecord(
+        id="exe_0000000000000002",
+        workflow_id="wf_0000000000000002",
+        output_profile_id="prof_0000000000000002",
+        raw_inputs=WorkflowInputs(dynamic_inputs={"raw": "fallback"}),
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[event_dict],
+    )
+    extracted_dict = _extract_inputs_from_record(rec_dict)
+    assert extracted_dict == {"file_b": "content from dict"}
+
+

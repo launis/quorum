@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Service for extracting knowledge during RAG Preflight."""
 
 import logging
@@ -19,6 +21,8 @@ from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
+
+__all__ = ["RAGPreflightService"]
 
 
 def _extract_effective_user_text(text: str) -> str:
@@ -84,7 +88,13 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
 
 
 class RAGPreflightService:
-    """Service for RAG knowledge extraction phase 1B."""
+    """Service for RAG knowledge extraction phase 1B.
+
+    Attributes:
+        workflow_repo: Workflow repository interface.
+        system_repo: System repository interface.
+        compiler: Compiler engine dynamic handler.
+    """
 
     def __init__(
         self,
@@ -123,10 +133,16 @@ class RAGPreflightService:
 
         Raises:
             AppException: If task_blueprint is missing (CONFIGURATION_ERROR).
-            AppException: If model_strategy is missing (CONFIGURATION_ERROR).
+            AppException: If cognitive_tier is missing (CONFIGURATION_ERROR).
             AppException: If atom ceiling is exceeded (VALIDATION_FAILED).
         """
         if not target_step.task_blueprint:
+            logger.error(
+                "[RAGPreflightService] %s: Target synthesis step %s missing task_blueprint",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                target_step.id,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "step_id": target_step.id},
+            )
             raise AppException(
                 message="Target synthesis step missing task_blueprint.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -135,6 +151,12 @@ class RAGPreflightService:
 
         cognitive_tier = step_def.cognitive_tier
         if not cognitive_tier:
+            logger.error(
+                "[RAGPreflightService] %s: Blueprint %s has no cognitive_tier configured",
+                ErrorCodes.CONFIGURATION_ERROR.name,
+                target_step.task_blueprint,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "blueprint": target_step.task_blueprint},
+            )
             raise AppException(
                 message=f"Blueprint {target_step.task_blueprint} has no cognitive_tier.",
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
@@ -234,6 +256,19 @@ class RAGPreflightService:
             )
 
             if len(draft_list.atoms) > settings.max_extracted_atoms_per_document:
+                logger.error(
+                    "[RAGPreflightService] %s: Atom ceiling exceeded for file %s: extracted %d atoms exceeds limit %d",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    key,
+                    len(draft_list.atoms),
+                    settings.max_extracted_atoms_per_document,
+                    extra={
+                        "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                        "file_key": key,
+                        "extracted_count": len(draft_list.atoms),
+                        "limit": settings.max_extracted_atoms_per_document,
+                    },
+                )
                 raise AppException(
                     message=f"Atom ceiling exceeded for file {key}. Extracted {len(draft_list.atoms)} atoms.",
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
