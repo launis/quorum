@@ -145,7 +145,7 @@
   - [x] @[backend_v2/hooks/validation.py]
   - [x] @[backend_v2/settings.py]
   - [x] @[backend_v2/utils/math_utils.py]
-  - [ ] @[backend_v2/logging_config.py]
+  - [x] @[backend_v2/logging_config.py]
   - [ ] @[backend_v2/database/tinydb_driver.py]
   - [ ] @[backend_v2/database/firestore_driver.py]
   - [ ] @[backend_v2/models/domain/execution.py]

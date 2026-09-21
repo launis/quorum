@@ -328,12 +328,12 @@ def test_setup_logging_directory_creation_failure(monkeypatch: pytest.MonkeyPatc
     mock_settings = Settings(use_mock_llm=True)
     monkeypatch.setattr(Settings, "log_file_path", property(lambda self: "/nonexistent/invalid/path/test.log"))
     monkeypatch.setattr("backend_v2.logging_config.get_settings", lambda: mock_settings)
-    monkeypatch.setattr("os.path.exists", lambda _: False)
+    monkeypatch.setattr(Path, "exists", lambda self: False)
 
-    def failing_makedirs(*args: Any, **kwargs: Any) -> None:
+    def failing_mkdir(*args: Any, **kwargs: Any) -> None:
         raise OSError("Permission denied creating directory")
 
-    monkeypatch.setattr("os.makedirs", failing_makedirs)
+    monkeypatch.setattr(Path, "mkdir", failing_mkdir)
 
     with pytest.raises(AppException) as exc_info:
         setup_logging(logging.INFO)

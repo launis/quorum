@@ -1,47 +1,62 @@
-"""Logging configuration module."""
+"""Logging configuration module for the Cognitive Quorum backend."""
 
+import collections.abc
+import io
 import json
 import logging
 import os
 import re
 import sys
+from pathlib import Path
 from typing import Any
 
+from fastapi import status
 from pydantic import BaseModel, ConfigDict
 
+from backend_v2 import context as ctx_module
+from backend_v2.context import get_execution_context
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.settings import get_settings
+
+__all__ = [
+    "ContextFilter",
+    "JSONFormatter",
+    "StructuredLogContextDTO",
+    "UvicornPollingFilter",
+    "configure_logfire",
+    "log_error",
+    "log_startup_system_parameters",
+    "setup_logging",
+]
 
 # Force UTF-8 on Windows to prevent Logfire/Rich box-drawing crashes (cp1252 to undefined)
 if sys.platform == "win32":
     try:
-        sys_stdout_reconfigure = getattr(sys.stdout, "reconfigure", None)
-        if sys_stdout_reconfigure:
-            sys_stdout_reconfigure(encoding="utf-8")
-        sys_stderr_reconfigure = getattr(sys.stderr, "reconfigure", None)
-        if sys_stderr_reconfigure:
-            sys_stderr_reconfigure(encoding="utf-8")
-    except Exception as e:
+        if isinstance(sys.stdout, io.TextIOWrapper):
+            sys.stdout.reconfigure(encoding="utf-8")
+        if isinstance(sys.stderr, io.TextIOWrapper):
+            sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, OSError, io.UnsupportedOperation) as e:
         print("Warning: Failed to set UTF-8 console encoding on Windows:", e, file=sys.stderr)
-
-from backend_v2.context import get_execution_context
-from backend_v2.exceptions import AppException, ErrorCodes
 
 try:
     import logfire
 except ImportError:
     logfire = None  # type: ignore[assignment]
     logging.getLogger(__name__).info("Logfire module not found. Cloud observability will be disabled.")
-except Exception as e:
+except (RuntimeError, TypeError, OSError) as e:
     logging.getLogger(__name__).error("Unexpected error importing logfire.", exc_info=True)
     raise AppException(
-        message="Unexpected error importing logfire.", details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+        message="Unexpected error importing logfire.",
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
     ) from e
 
 _LOGFIRE_CONFIGURED = False
 
 
 class ContextFilter(logging.Filter):
-    """Injects execution_id from contextvars into log records."""
+    """Inject execution_id from contextvars into log records."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         """Filter record to inject execution or request ID.
@@ -52,10 +67,8 @@ class ContextFilter(logging.Filter):
         Returns:
             True to allow the record to be processed.
         """
-        from backend_v2.context import get_request_context
-
         exec_id = get_execution_context()
-        req_id = get_request_context()
+        req_id = ctx_module.get_request_context()
 
         # Priority: Execution ID > Request ID > SYSTEM
         if exec_id:
@@ -72,7 +85,7 @@ class ContextFilter(logging.Filter):
 
 
 class UvicornPollingFilter(logging.Filter):
-    """Filters out repetitive 202 Accepted /render polling logs to reduce noise."""
+    """Filter out repetitive 202 Accepted /render polling logs to reduce noise."""
 
     def filter(self, record: logging.LogRecord) -> bool:
         """Filter out repetitive Uvicorn polling logs.
@@ -90,9 +103,9 @@ class UvicornPollingFilter(logging.Filter):
 
 
 def configure_logfire() -> None:
-    """Configures Logfire for observability.
+    """Configure Logfire cloud observability.
 
-    Should be called early in the application lifecycle.
+    Initializes SDK instrumentation and environment variables early in the lifecycle.
     """
     if logfire is None:
         return
@@ -130,9 +143,9 @@ def configure_logfire() -> None:
         if importlib.util.find_spec("litellm"):
             try:
                 logfire.instrument_litellm()
-            except Exception as inst_err:
-                logging.getLogger(__name__).warning(f"Failed to instrument LiteLLM with Logfire: {inst_err}")
-    except Exception as e:
+            except (RuntimeError, TypeError, ValueError, AttributeError, ImportError) as inst_err:
+                logging.getLogger(__name__).warning("Failed to instrument LiteLLM with Logfire: %s", inst_err)
+    except (RuntimeError, TypeError, ValueError, AttributeError, OSError, KeyError) as e:
         msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
         logging.getLogger(__name__).warning(
             msg, exc_info=True, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
@@ -140,7 +153,7 @@ def configure_logfire() -> None:
 
 
 def setup_logging(log_level: int = logging.INFO) -> None:
-    """Configures the root logger to write to a file and the console.
+    """Configure the root logger to write to a file and the console.
 
     Log File: backend_debug.log (in the project root)
     Format: timestamp | level | logger_name | message
@@ -161,16 +174,17 @@ def setup_logging(log_level: int = logging.INFO) -> None:
     log_file_path = settings.log_file_path
 
     # Ensure the directory exists (CRITICAL for custom paths)
-    log_dir = os.path.dirname(log_file_path)
-    if log_dir and not os.path.exists(log_dir):
+    log_path = Path(log_file_path)
+    log_dir = log_path.parent
+    if not log_dir.exists():
         try:
-            os.makedirs(log_dir, exist_ok=True)
-        except Exception as e:
+            log_dir.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
             # FAIL FAST: Cannot start without logging capabilities
             raise AppException(
                 message=f"FAILED TO CREATE LOG DIRECTORY {log_dir}: {e}",
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
     # Create formatters
@@ -220,7 +234,7 @@ def setup_logging(log_level: int = logging.INFO) -> None:
             logfire_handler.setFormatter(formatter)
             logfire_handler.addFilter(context_filter)
             root_logger.addHandler(logfire_handler)
-        except Exception as e:
+        except (RuntimeError, TypeError, ValueError, AttributeError, OSError) as e:
             msg = f"[LoggingConfig] {ErrorCodes.CONFIGURATION_ERROR.name}: Failed to attach Logfire: {e}"
             logging.getLogger(__name__).warning(msg, exc_info=True)
 
@@ -257,10 +271,11 @@ def setup_logging(log_level: int = logging.INFO) -> None:
         try:
             _litellm.set_verbose = False  # type: ignore[attr-defined]
             _litellm.suppress_debug_info = True  # Suppress print statements
-        except Exception as e:
+        except (RuntimeError, TypeError, ValueError, AttributeError) as e:
             logging.getLogger(__name__).error("Unexpected error configuring LiteLLM.", exc_info=True)
             raise AppException(
                 message="Failed to configure LiteLLM logging.",
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
     except ImportError:
@@ -281,7 +296,7 @@ class StructuredLogContextDTO(BaseModel):
 
 
 class JSONFormatter(logging.Formatter):
-    """JSON Formatter for Production Logging."""
+    """JSON formatter for production structured logging."""
 
     def format(self, record: logging.LogRecord) -> str:
         """Format the record as JSON.
@@ -292,33 +307,45 @@ class JSONFormatter(logging.Formatter):
         Returns:
             A JSON-formatted string of the log data.
         """
-        record_dict = record.__dict__
-        if "context_dto" in record_dict and isinstance(record_dict["context_dto"], StructuredLogContextDTO):
-            context = record_dict["context_dto"]
-        else:
+        context: StructuredLogContextDTO
+        try:
+            raw_dto = object.__getattribute__(record, "context_dto")
+            if isinstance(raw_dto, StructuredLogContextDTO):
+                context = raw_dto
+            else:
+                context = StructuredLogContextDTO()
+        except AttributeError:
             exec_id = "SYSTEM"
-            if "execution_id" in record_dict:
-                raw_exec = record_dict["execution_id"]
+            try:
+                raw_exec = object.__getattribute__(record, "execution_id")
                 if isinstance(raw_exec, str):
                     exec_id = raw_exec
+            except AttributeError:
+                pass
 
             ctx_id = "SYSTEM"
-            if "context_id" in record_dict:
-                raw_ctx = record_dict["context_id"]
+            try:
+                raw_ctx = object.__getattribute__(record, "context_id")
                 if isinstance(raw_ctx, str):
                     ctx_id = raw_ctx
+            except AttributeError:
+                pass
 
             err_code = None
-            if "error_code" in record_dict:
-                raw_err = record_dict["error_code"]
+            try:
+                raw_err = object.__getattribute__(record, "error_code")
                 if isinstance(raw_err, str):
                     err_code = raw_err
+            except AttributeError:
+                pass
 
             details_dict = None
-            if "details" in record_dict:
-                raw_details = record_dict["details"]
-                if type(raw_details) is dict:
-                    details_dict = raw_details
+            try:
+                raw_details = object.__getattribute__(record, "details")
+                if isinstance(raw_details, collections.abc.Mapping):
+                    details_dict = dict(raw_details)
+            except AttributeError:
+                pass
 
             context = StructuredLogContextDTO(
                 execution_id=exec_id,
