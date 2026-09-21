@@ -1,5 +1,4 @@
 import 'package:client_app/core/api/reports_client.dart';
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
