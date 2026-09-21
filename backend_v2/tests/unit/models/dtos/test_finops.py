@@ -46,3 +46,26 @@ def test_finops_dto_missing_required_fields() -> None:
 
     with pytest.raises(ValidationError):
         _ = FinOpsFinalizeSummaryDTO()  # type: ignore[call-arg]
+
+
+def test_finops_monitor_summary_dto_negative_extra_forbid() -> None:
+    """Test FinOpsMonitorSummaryDTO rejects extra fields."""
+    with pytest.raises(ValidationError):
+        FinOpsMonitorSummaryDTO(total_duration_ms=100, total_calls=2, extra_arg="forbidden")  # type: ignore[call-arg]
+
+
+def test_finops_finalize_summary_dto_negative_extra_forbid() -> None:
+    """Test FinOpsFinalizeSummaryDTO rejects extra fields."""
+    with pytest.raises(ValidationError):
+        FinOpsFinalizeSummaryDTO(  # type: ignore[call-arg]
+            healing_cost_events=1,
+            usd_cost=0.01,
+            forbidden_field="not_allowed",
+        )
+
+
+def test_finops_dto_negative_strict_type() -> None:
+    """Test strict type validation rejects non-integer duration."""
+    with pytest.raises(ValidationError):
+        FinOpsMonitorSummaryDTO(total_duration_ms="invalid", total_calls=2)  # type: ignore[arg-type]
+

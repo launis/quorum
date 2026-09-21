@@ -15,7 +15,13 @@ __all__ = [
 
 
 class FinOpsMonitorSummaryDTO(V2CoreBase):
-    """Encapsulates FinOps real-time monitoring telemetry metrics and alerts."""
+    """Encapsulates FinOps real-time monitoring telemetry metrics and alerts.
+
+    Attributes:
+        total_duration_ms: Total execution duration in milliseconds.
+        total_calls: Total LLM API calls executed.
+        alerts: FinOps alert messages.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -27,7 +33,15 @@ class FinOpsMonitorSummaryDTO(V2CoreBase):
 
 
 class FinOpsFinalizeSummaryDTO(V2CoreBase):
-    """Encapsulates execution finalization FinOps redundancy metrics and total cost."""
+    """Encapsulates execution finalization FinOps redundancy metrics and total cost.
+
+    Attributes:
+        healing_cost_events: Count of healing cost events.
+        structural_warnings: Structural pipeline duplication warnings.
+        hashing_warnings: Payload hashing duplication warnings.
+        mcp_warnings: Duplicate MCP tool call warnings.
+        usd_cost: Total calculated USD cost incurred.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
