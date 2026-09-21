@@ -2,10 +2,13 @@
 
 Transforms execution metadata into a HeaderBlock component
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
+METADATA_RULES DTO to enforce separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Sequence
 
 from backend_v2.models.dtos.sdui_rules import MetadataAestheticsDTO
 from backend_v2.models.view.sdui import AnySduiBlock, SduiMetadataBlock
@@ -46,9 +49,6 @@ class MetadataAdapter:
 
         Returns:
             Ordered list of polymorphic SDUI blocks ready for rendering.
-
-        Raises:
-            AppException: If profile or profile name is missing.
         """
         blocks: list[AnySduiBlock] = []
 
@@ -58,7 +58,9 @@ class MetadataAdapter:
         costs_val: str | None = None
         tokens_val: dict[str, str] | None = None
 
-        visible_fields = context.profile.visible_metadata or []
+        visible_fields: Sequence[str] = []
+        if context.profile.visible_metadata:
+            visible_fields = context.profile.visible_metadata
 
         for field in visible_fields:
             if field == "user" and context.user_name:
@@ -85,9 +87,9 @@ class MetadataAdapter:
             elif field == "tokens" and context.tokens is not None:
                 tokens_val = {"total": str(context.tokens)}
 
-        custom_preface = (
-            context.profile.custom_preface.resolve(context.locale) if context.profile.custom_preface else None
-        )
+        custom_preface: str | None = None
+        if context.profile.custom_preface is not None:
+            custom_preface = context.profile.custom_preface.resolve(context.locale)
 
         blocks.append(
             SduiMetadataBlock(

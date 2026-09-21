@@ -1,15 +1,18 @@
 """Unit tests for Metadata Adapter."""
 
+from __future__ import annotations
+
 from datetime import datetime
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.dtos.sdui_rules import MetadataAestheticsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.view.sdui import SduiMetadataBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.metadata_adapter import MetadataAdapter
+from backend_v2.services.sdui.adapters.metadata_adapter import METADATA_RULES, MetadataAdapter
 
 
 def _create_sample_profile(locale: str = "en") -> OutputProfile:
@@ -154,3 +157,9 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
     metadata_texts = " ".join(header.metadata_lines)
     assert "Scoring Engine: TopologicalV2" in metadata_texts
     assert "Strictness: 85" in metadata_texts
+
+
+def test_metadata_rules() -> None:
+    """Verify METADATA_RULES export is a valid MetadataAestheticsDTO."""
+    assert isinstance(METADATA_RULES, MetadataAestheticsDTO)
+
