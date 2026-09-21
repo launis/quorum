@@ -26,14 +26,7 @@ $GenericStatusResponseDtoCopyWith<GenericStatusResponseDto> get copyWith => _$Ge
   Map<String, dynamic> toJson();
 
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GenericStatusResponseDto&&(identical(other.status, status) || other.status == status)&&(identical(other.message, message) || other.message == message));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,message);
 
 @override
 String toString() {
@@ -209,8 +202,8 @@ return $default(_that.status,_that.message);case _:
 /// @nodoc
 
 @JsonSerializable(disallowUnrecognizedKeys: true)
-class _GenericStatusResponseDto implements GenericStatusResponseDto {
-  const _GenericStatusResponseDto({this.status = 'ok', required this.message});
+class _GenericStatusResponseDto extends GenericStatusResponseDto {
+  const _GenericStatusResponseDto({this.status = 'ok', required this.message}): super._();
   factory _GenericStatusResponseDto.fromJson(Map<String, dynamic> json) => _$GenericStatusResponseDtoFromJson(json);
 
 @override@JsonKey() final  String status;
@@ -227,14 +220,7 @@ Map<String, dynamic> toJson() {
   return _$GenericStatusResponseDtoToJson(this, );
 }
 
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GenericStatusResponseDto&&(identical(other.status, status) || other.status == status)&&(identical(other.message, message) || other.message == message));
-}
 
-@JsonKey(includeFromJson: false, includeToJson: false)
-@override
-int get hashCode => Object.hash(runtimeType,status,message);
 
 @override
 String toString() {
