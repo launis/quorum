@@ -12,7 +12,13 @@ __all__ = ["SensorValidationContextDTO"]
 
 
 class SensorValidationContextDTO(V2CoreBase):
-    """Encapsulates context parameters for sensor evaluation and anchor validation."""
+    """Encapsulates context parameters for sensor evaluation and anchor validation.
+
+    Attributes:
+        sub_task: Subtask identifier or category.
+        execution_id: Parent execution ID.
+        step_id: Current step ID.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
