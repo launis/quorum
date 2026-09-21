@@ -17,6 +17,7 @@ from backend_v2.models.domain.prompt_blocks import (
 )
 from backend_v2.models.domain.step import ExpectedInput, Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.studio import (
     PromptBlockSimulationRequest,
     PromptBlockSimulationResponse,
@@ -26,6 +27,7 @@ from backend_v2.models.dtos.studio import (
 )
 from backend_v2.models.enums import (
     BlockDataType,
+    CognitiveTier,
     HistoricalContextMode,
     PromptBlockCategory,
     StepType,
@@ -557,7 +559,7 @@ async def test_simulate_step_success(
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        cognitive_tier="fast",
+        cognitive_tier=CognitiveTier.FAST,
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
         execution_persona_block_id="blk_11111111111111111111111111111111",
@@ -568,7 +570,7 @@ async def test_simulate_step_success(
     res = await simulation_service.simulate_step(
         test_token,
         step,
-        mock_inputs={},
+        mock_inputs=ExecutionInputsDTO(),
         target_locale="en",
         context_text="[SIMULATED CONTEXT DOCUMENT]",
     )
@@ -583,12 +585,55 @@ async def test_simulate_step_success(
 
 
 @pytest.mark.asyncio
+async def test_simulate_step_with_execution_inputs_dto(
+    simulation_service: StudioSimulationService,
+    mock_prompt_block_service: AsyncMock,
+    test_token: TokenData,
+) -> None:
+    """Test step simulation accepting strongly typed ExecutionInputsDTO."""
+    mock_block = PersonaPromptBlock(
+        id="blk_11111111111111111111111111111111",
+        slug="role_block",
+        label=I18nText(translations={"en": "Role"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.AGENT_ROLE,
+        type=BlockDataType.STRING,
+        role_enforcement="You are a senior analyst.",
+    )
+    mock_prompt_block_service.get_prompt_block.return_value = mock_block
+
+    step = Step(
+        id="stp_11111111111111111111111111111111",
+        slug="step_analyze",
+        name=I18nText(translations={"en": "Analyze Step"}),
+        description=I18nText(translations={"en": "Desc"}),
+        type=StepType.LLM,
+        cognitive_tier=CognitiveTier.FAST,
+        role_block_id="blk_11111111111111111111111111111111",
+        extraction_protocol_block_id="blk_11111111111111111111111111111111",
+        criteria_block_ids=["blk_11111111111111111111111111111111"],
+    )
+
+    inputs_dto = ExecutionInputsDTO(raw_inputs={"custom_param": "custom_value"})
+    res = await simulation_service.simulate_step(
+        test_token,
+        step,
+        mock_inputs=inputs_dto,
+        target_locale="en",
+        context_text="[SIMULATED CONTEXT DOCUMENT]",
+    )
+    assert res.valid is True
+    assert "--- Prompt Block: blk_11111111111111111111111111111111 ---" in res.rendered_prompt
+    assert isinstance(res.trace, StepSimulationTraceDTO)
+
+
+@pytest.mark.asyncio
 async def test_simulate_step_matrix_blocks_success(
     simulation_service: StudioSimulationService,
     mock_prompt_block_service: AsyncMock,
     test_token: TokenData,
 ) -> None:
-    """Test step simulation containing matrix criteria blocks invokes prompt compilation and populates dynamic_messages."""
+    """Test step simulation with matrix criteria blocks compiles dynamic messages."""
     matrix_block = MatrixPromptBlock(
         id="blk_22222222222222222222222222222222",
         slug="matrix_block",
@@ -624,7 +669,7 @@ async def test_simulate_step_matrix_blocks_success(
         name=I18nText(translations={"en": "Matrix Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        cognitive_tier="fast",
+        cognitive_tier=CognitiveTier.FAST,
         extraction_protocol_block_id="blk_22222222222222222222222222222222",
         criteria_block_ids=["blk_22222222222222222222222222222222"],
     )
@@ -632,7 +677,7 @@ async def test_simulate_step_matrix_blocks_success(
     res = await simulation_service.simulate_step(
         test_token,
         step,
-        mock_inputs={},
+        mock_inputs=ExecutionInputsDTO(),
         target_locale="en",
         context_text="Sample interview text for evaluation.",
     )
@@ -659,13 +704,13 @@ async def test_simulate_step_prompt_block_not_found(
         name=I18nText(translations={"en": "Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        cognitive_tier="fast",
+        cognitive_tier=CognitiveTier.FAST,
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_22222222222222222222222222222222",
         criteria_block_ids=["blk_33333333333333333333333333333333"],
     )
 
-    res = await simulation_service.simulate_step(test_token, step, mock_inputs={})
+    res = await simulation_service.simulate_step(test_token, step, mock_inputs=ExecutionInputsDTO())
     assert res.valid is False
     assert any("Missing referenced Prompt Block" in err for err in res.errors)
     assert "[NOT FOUND]" in res.rendered_prompt
@@ -715,7 +760,7 @@ async def test_studio_simulation_returns_strict_dtos(
         name=I18nText(translations={"en": "Analyze Step"}),
         description=I18nText(translations={"en": "Desc"}),
         type=StepType.LLM,
-        cognitive_tier="fast",
+        cognitive_tier=CognitiveTier.FAST,
         role_block_id="blk_11111111111111111111111111111111",
         extraction_protocol_block_id="blk_11111111111111111111111111111111",
         criteria_block_ids=["blk_11111111111111111111111111111111"],
@@ -740,7 +785,7 @@ async def test_studio_simulation_returns_strict_dtos(
     )
     assert isinstance(pb_res, PromptBlockSimulationResponse)
 
-    step_res = await simulation_service.simulate_step(test_token, step, {})
+    step_res = await simulation_service.simulate_step(test_token, step, ExecutionInputsDTO())
     assert isinstance(step_res, StepSimulationResponse)
     assert isinstance(step_res.trace, StepSimulationTraceDTO)
 

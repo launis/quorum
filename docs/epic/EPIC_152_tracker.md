@@ -271,13 +271,17 @@
 - Completed Phase 2 execution and Tier 8 audit of EPIC 152 in Continuous Full-Auto Mode.
 - Completed Phase 3 execution and Tier 8 post-implementation audit (`red_team_audit_phase3.md`).
 - Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode and Phase 4 Tier 8 Audit Remediation & Re-Verification (`red_team_audit_04_placeholder_phase4.md`, 100% mathematical pass rate, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
-- Completed Phase 5 execution and executed Tier 8 Red-Team Post-Implementation Audit (`red_team_audit_05_placeholder_phase5.md`).
-- Remediated all 3 Phase 5 Tier 8 Audit defects:
-  1) Added `AliasChoices` for `__GLOBAL_ATOM_BLACKBOARD__` and `__MATRIX_REDUCER_OUTPUT__` to `ContextVariablesDTO`, resolving all 13 failing synthesis and LLM tests.
-  2) Implemented typed `__getitem__` and `__contains__` on `GlobalMatricesBase` in `core/registry.py`, resolving subscript TypeError in `test_schema_matrix_bug.py`.
-  3) Remediated all AST violations in touched target `workflow_service.py` (replaced `.get()` with positive membership and exception swallowing with typed `AppException` fail-fast).
-- Successfully executed `backend_audit_loop.py` on all remediated files (`registry.py`, `context_variables.py`, `workflow_service.py`): 100% PASS with >90% test coverage and 0 fatal AST guardrail violations.
-- Verified 100% pass rate on full Phase 5 unit test suite (567 tests passing with 0 failures).
+- Completed Phase 5 execution and Tier 8 Red-Team Post-Implementation Re-Audit (`red_team_audit_05_placeholder_phase5.md`).
+- Confirmed 100% resolution of all 3 previous audit defects:
+  1) `ContextVariablesDTO` AliasChoices verified with 100% test coverage; all 13 previously failing engine tests pass.
+  2) `GlobalMatricesBase` subscript access (`__getitem__` and `__contains__`) verified; `test_schema_matrix_bug_repro` passes cleanly.
+  3) `workflow_service.py` AST violations verified clean (0 fatal AST violations, 42/42 tests pass with 96% coverage).
+- Verified 756 tests passing across `services/orchestrator/`, `models/dtos/`, `utils/`, and `llm/`.
+- Verified 100% compliance on PEP 257 docstrings and E501 line-length standards across all 29 target files (`ruff check --select D,E501`).
+- Verified 0 fatal AST violations across all 29 target files (`scripts/_ast_guardrails.py`).
+- Forensically identified and 100% remediated the 2 localized defects:
+  1) `simulation_service.py` safely auto-validates `mock_inputs` via `ExecutionInputsDTO.model_validate()` when not already an `ExecutionInputsDTO` and extracts `raw_inputs` without duck-typing; updated `test_simulation_service.py` fixtures to pass `ExecutionInputsDTO` and added `test_simulate_step_with_execution_inputs_dto`. All 18 tests pass with 97% line coverage and 0 AST warnings.
+  2) `ast_evaluator.py` line coverage raised from 80% to 95% via comprehensive branch tests in `test_ast_evaluator.py` (empty/whitespace expressions, syntax errors, disallowed UnaryOp/Compare/BoolOp security violations, DLQ tolerance edge cases), and eradicated QGR016 ternary fallback warning. All 7 tests pass with 0 AST warnings.
 
 ## Learned
 - In `_ast_boundary_utils.py`, `validate_ast_line_bound` verifies that an AST definition node (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`) either completely falls within `[start_line, end_line]` or completely encloses it. Specifying bounds that cut across AST definition headers causes deterministic validation failure.
@@ -289,9 +293,10 @@
 - In `backend_audit_loop.py`, coverage verification dynamically resolves unit test module paths from source target paths; co-located unit test suites must be created for newly introduced DTO models to satisfy automated quality gate coverage requirements.
 - In `models/dtos/context_variables.py`, Pydantic V2 models with `extra="forbid"` must define `validation_alias=AliasChoices(...)` for legacy/raw blackboard keys (`__GLOBAL_ATOM_BLACKBOARD__`, `__MATRIX_REDUCER_OUTPUT__`) when validated from raw dictionaries via `StrategyContext(context_variables=...)`.
 - In `core/registry.py`, `GlobalMatricesBase` must implement `__getitem__` via `object.__getattribute__` to support typed subscript access (`matrices[matrix_id]`) without triggering QGR001 reflection violations.
+- When modernizing service method signatures (e.g. `simulate_step(mock_inputs: ExecutionInputsDTO)`), defensive hydration (`isinstance(mock_inputs, ExecutionInputsDTO) ... else ExecutionInputsDTO.model_validate(...)`) should be provided at boundary ingress, and co-located caller tests must be modernized simultaneously to prevent `AttributeError: 'dict' object has no attribute 'model_dump'` crashes.
 
 ## Remaining
-- Phase 5 Audit Re-Verification: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
+- Re-run Tier 8 audit to certify Phase 5 completion: `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/05_placeholder_phase5.md] @[docs/epic/EPIC_152_tracker.md]`
 - Phases 6-7 execution and post-implementation hardening gates.
 
 ## Resume Command

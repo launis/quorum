@@ -106,10 +106,10 @@ class StudioSimulationService:
                 return
 
             in_progress.add(step_id)
-            step = all_steps[step_id] if step_id in all_steps else None
-            if not step:
+            if step_id not in all_steps:
                 # Missing reference in depends_on
                 return
+            step = all_steps[step_id]
 
             for dep in step.depends_on:
                 resolve_deps(dep)
@@ -377,7 +377,10 @@ class StudioSimulationService:
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
 
-        resolved_mock_inputs = mock_inputs.model_dump()
+        if not isinstance(mock_inputs, ExecutionInputsDTO):
+            mock_inputs = ExecutionInputsDTO.model_validate(mock_inputs)
+
+        resolved_mock_inputs = mock_inputs.raw_inputs
 
         prompt_context_msgs: list[LLMMessageDTO] = []
         dynamic_messages_aggregated: list[LLMMessageDTO] = []

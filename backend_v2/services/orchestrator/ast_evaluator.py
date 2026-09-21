@@ -27,7 +27,7 @@ class ASTEvaluator:
     """
 
     @staticmethod
-    def calculate_inverse_dlq_tolerance(total_chunks: int, dlq_chunks: int, inner_val: State) -> State:
+    def calculate_inverse_dlq_tolerance(total_chunks: int, dlq_chunks: int, inner_val: State | str | None) -> State:
         """Apply DLQ Tolerance instead of blind 'not DLQ = DLQ'.
 
         Args:
@@ -44,7 +44,9 @@ class ASTEvaluator:
             case "FALSE":
                 return "TRUE"
             case "DLQ":
-                ratio = dlq_chunks / total_chunks if total_chunks > 0 else 0.0
+                if total_chunks <= 0:
+                    return "TRUE"
+                ratio = dlq_chunks / total_chunks
                 if ratio < 0.05:
                     return "TRUE"
                 return "DLQ"
@@ -54,7 +56,7 @@ class ASTEvaluator:
     @staticmethod
     def evaluate(
         expression: str,
-        facts: Mapping[str, bool | str | State],
+        facts: Mapping[str, bool | str | State | None],
         total_chunks: int = 1,
         dlq_chunks: int = 0,
     ) -> State:
@@ -90,7 +92,9 @@ class ASTEvaluator:
         return ASTEvaluator._eval_node(tree.body, facts, total_chunks, dlq_chunks)
 
     @staticmethod
-    def _eval_node(node: ast.AST, facts: Mapping[str, bool | str | State], total_chunks: int, dlq_chunks: int) -> State:
+    def _eval_node(
+        node: ast.AST, facts: Mapping[str, bool | str | State | None], total_chunks: int, dlq_chunks: int
+    ) -> State:
         """Internal AST evaluation step with strict whitelisting.
 
         Args:

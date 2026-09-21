@@ -1,3 +1,5 @@
+import ast
+
 import pytest
 
 from backend_v2.exceptions import AppException
@@ -113,3 +115,57 @@ def test_ast_evaluator_security_whitelist() -> None:
     with pytest.raises(AppException) as exc:
         ASTEvaluator.evaluate("__import__('os').system('clear')", facts)
     assert "AST Security Violation" in str(exc.value.message)
+
+
+def test_ast_evaluator_empty_expression_and_syntax_error() -> None:
+    """Verify that ASTEvaluator handles empty strings and invalid syntax with fail-fast."""
+    facts = {"fact_a": "Evidence"}
+    assert ASTEvaluator.evaluate("", facts) == "FALSE"
+    assert ASTEvaluator.evaluate("   ", facts) == "FALSE"
+
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator.evaluate("fact_a and and fact_b", facts)
+    assert "Invalid boolean expression syntax" in str(exc.value.message)
+
+
+def test_ast_evaluator_unary_and_bool_op_security_violations() -> None:
+    """Verify that ASTEvaluator rejects disallowed UnaryOp, Compare, and BoolOp operators."""
+    facts = {"fact_a": "Evidence"}
+
+    # Disallowed UnaryOp (positive / negative / invert)
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator.evaluate("+fact_a", facts)
+    assert "Disallowed UnaryOp operator" in str(exc.value.message)
+
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator.evaluate("~fact_a", facts)
+    assert "Disallowed UnaryOp operator" in str(exc.value.message)
+
+    # Disallowed Compare operator
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator.evaluate("fact_a == 'Evidence'", facts)
+    assert "Disallowed AST node type 'Compare'" in str(exc.value.message)
+
+    # Disallowed BoolOp operator via synthetic AST node
+    class UnsupportedBoolOp(ast.boolop):
+        pass
+
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator._eval_node(
+            ast.BoolOp(op=UnsupportedBoolOp(), values=[ast.Name(id="fact_a", ctx=ast.Load())]),
+            facts,
+            total_chunks=1,
+            dlq_chunks=0,
+        )
+    assert "Disallowed BoolOp operator" in str(exc.value.message)
+
+
+def test_ast_evaluator_tolerance_edge_cases() -> None:
+    """Verify calculate_inverse_dlq_tolerance with edge cases (total_chunks <= 0, unknown state)."""
+    # Total chunks <= 0
+    assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=0, dlq_chunks=0, inner_val="DLQ") == "TRUE"
+    assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=-1, dlq_chunks=0, inner_val="DLQ") == "TRUE"
+
+    # Unknown inner_val state
+    assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=10, dlq_chunks=0, inner_val="UNKNOWN") == "FALSE"
+    assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=10, dlq_chunks=0, inner_val=None) == "FALSE"
