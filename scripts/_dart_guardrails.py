@@ -63,10 +63,12 @@ class DartViolation(BaseModel):
 # Rule Patterns
 # ==============================================================================
 
-# DGR001: Loose Map return types in API clients or feature models
+# DGR001: Loose Map return types in API clients, models, controllers, or providers
 DGR001_PATTERN = re.compile(
     r"\b(Future\s*<\s*List\s*<\s*Map(?:\s*<[^>]+>)?\s*>\s*>|"
+    r"FutureOr\s*<\s*List\s*<\s*Map(?:\s*<[^>]+>)?\s*>\s*>|"
     r"Future\s*<\s*Map(?:\s*<[^>]+>)?\s*>|"
+    r"FutureOr\s*<\s*Map(?:\s*<[^>]+>)?\s*>|"
     r"List\s*<\s*Map(?:\s*<[^>]+>)?\s*>|"
     r"Map\s*<[A-Za-z0-9_?,\s]+>)\s+([A-Za-z0-9_]+)\s*\("
 )
@@ -131,7 +133,13 @@ def scan_dart_source(filepath: str, source_bytes: bytes, strict: bool = False) -
     normalized_path = filepath.replace("\\", "/").strip("/")
     path_parts = set(normalized_path.split("/"))
 
-    is_api_or_model_scope = "api" in path_parts or "models" in path_parts or "core/api" in normalized_path
+    is_api_or_model_scope = (
+        "api" in path_parts
+        or "models" in path_parts
+        or "controllers" in path_parts
+        or "providers" in path_parts
+        or "core/api" in normalized_path
+    )
     is_ui_scope = "features" in path_parts or "shared" in path_parts
     is_feature_widget_scope = "features" in path_parts and "test" not in path_parts
     default_severity = GuardrailSeverity.FATAL if strict else GuardrailSeverity.WARNING
