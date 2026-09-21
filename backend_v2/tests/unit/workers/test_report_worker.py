@@ -146,71 +146,35 @@ async def test_generate_pdf_task_execution_not_found() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_pdf_task_success_path() -> None:
-    """Verify generate_pdf_task happy path: builds DTO, creates PDF, saves to storage, updates execution."""
+    """Verify generate_pdf_task happy path: delegates to ReportService for default artifact compilation."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1234567890123456",
+                "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
+                "status": "RUNNING",
+                "target_locale": "fi",
+                "metadata": {},
+            }
+            mock_artifact = MagicMock()
+            mock_artifact.id = "rep_1234567890123456"
 
-            mock_repo.get_execution.side_effect = [
-                {
-                    "id": "exe_1234567890123456",
-                    "workflow_id": "wf_1234567890123456",
-                    "output_profile_id": "prof_1111222233334444",
-                    "status": "RUNNING",
-                    "target_locale": "fi",
-                    "metadata": {},
-                    "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                    "step_states": {
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": "RUNNING",
-                        }
-                    },
-                },
-                {
-                    "id": "exe_1234567890123456",
-                    "workflow_id": "wf_1234567890123456",
-                    "output_profile_id": "prof_1111222233334444",
-                    "status": "RUNNING",
-                    "target_locale": "fi",
-                    "metadata": {},
-                    "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                    "step_states": {
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": "RUNNING",
-                        }
-                    },
-                },
-            ]
+            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.get_or_create_default_artifact.return_value = mock_artifact
 
-            with patch("backend_v2.workers.report_worker.BlueprintTransformer") as mock_transformer_class:
-                mock_transformer = AsyncMock()
-                mock_transformer_class.return_value = mock_transformer
+                await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
 
-                mock_dto = MagicMock()
-                mock_dto.inner_sdui_blocks = []
-                mock_transformer.build_report_dto.return_value = mock_dto
-
-                with patch("backend_v2.workers.report_worker.PdfReportService") as mock_pdf_class:
-                    mock_pdf = AsyncMock()
-                    mock_pdf_class.return_value = mock_pdf
-                    mock_pdf.generate_execution_pdf.return_value = b"%PDF-1.4 sample"
-
-                    with patch("backend_v2.workers.report_worker.get_storage_driver") as mock_storage_class:
-                        mock_storage = AsyncMock()
-                        mock_storage_class.return_value = mock_storage
-                        mock_storage.save.return_value = "executions/exe_1234567890123456/report.pdf"
-
-                        await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
-                        mock_transformer.build_report_dto.assert_called_once_with(
-                            "exe_1234567890123456", "prof_1111222233334444", "fi"
-                        )
-                        mock_storage.save.assert_called_once()
-                        assert mock_repo.update_execution.call_count >= 1
+                mock_service.get_or_create_default_artifact.assert_called_once_with(
+                    execution_id="exe_1234567890123456",
+                    profile_id="prof_1111222233334444",
+                    locale=None,
+                )
+                mock_service.process_artifact_compilation.assert_called_once_with(mock_artifact.id)
 
 
 @pytest.mark.asyncio
@@ -220,45 +184,28 @@ async def test_generate_pdf_task_exception_handling() -> None:
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
             mock_repo = AsyncMock()
             mock_repo_class.return_value = mock_repo
-
-            mock_repo.get_execution.side_effect = [
-                {
-                    "id": "exe_1234567890123456",
-                    "workflow_id": "wf_1234567890123456",
-                    "output_profile_id": "prof_1111222233334444",
-                    "status": "RUNNING",
-                    "target_locale": "en",
-                    "metadata": {},
-                    "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                    "step_states": {
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": "RUNNING",
-                        }
-                    },
+            mock_repo.get_execution.return_value = {
+                "id": "exe_1234567890123456",
+                "workflow_id": "wf_1234567890123456",
+                "output_profile_id": "prof_1111222233334444",
+                "status": "RUNNING",
+                "target_locale": "en",
+                "metadata": {},
+                "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
+                "step_states": {
+                    "sys_render_prof_1111222233334444": {
+                        "id": "sys_render_prof_1111222233334444",
+                        "label": "Rendering",
+                        "status": "RUNNING",
+                    }
                 },
-                {
-                    "id": "exe_1234567890123456",
-                    "workflow_id": "wf_1234567890123456",
-                    "output_profile_id": "prof_1111222233334444",
-                    "status": "RUNNING",
-                    "target_locale": "en",
-                    "metadata": {},
-                    "steps": [{"id": "sys_render_prof_1111222233334444", "label": "Rendering", "status": "RUNNING"}],
-                    "step_states": {
-                        "sys_render_prof_1111222233334444": {
-                            "id": "sys_render_prof_1111222233334444",
-                            "label": "Rendering",
-                            "status": "RUNNING",
-                        }
-                    },
-                },
-            ]
+            }
 
-            with patch(
-                "backend_v2.workers.report_worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")
-            ):
+            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.get_or_create_default_artifact.side_effect = RuntimeError("ReportService crash")
+
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1

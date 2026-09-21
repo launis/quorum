@@ -11,17 +11,13 @@ from typing import Any
 
 from pydantic import ValidationError
 
+import backend_v2.services.report_service as report_service_mod
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.services.blueprint import BlueprintTransformer
-from backend_v2.services.localization import set_language
-from backend_v2.services.pdf_generator import PdfReportService
-import backend_v2.services.report_service as report_service_mod
-from backend_v2.services.storage import get_storage_driver
 from backend_v2.settings import get_settings
 from backend_v2.workers.synthesis_worker import (
     generate_profile_synthesis_and_pdf_task as generate_profile_synthesis_and_pdf_task,
@@ -129,9 +125,10 @@ async def generate_pdf_task(
     accept_language: str | None = None,
     profile_id: str | None = None,
 ) -> None:
-    """Background Task. Assembles the SDUI JSON via Transformer and passes to PDF generator.
+    """Background Task. Assembles and compiles presentation artifacts via ReportService.
 
-    Called by Arq worker for resilient PDF background compilation.
+    Delegates to ReportService to compile all 4 presentation formats and synchronize
+    the execution record in StorageDriver.
 
     Args:
         execution_id: Target execution identifier.
@@ -141,77 +138,29 @@ async def generate_pdf_task(
     Raises:
         AppException: With ErrorCodes.PDF_GENERATION_FAILED if PDF generation fails.
     """
-    logger.info("[Task] Starting Async PDF assembly for execution %s", execution_id)
+    logger.info("[Task] Starting Async PDF and report assembly for execution %s", execution_id)
     try:
         driver = await get_driver(get_settings())
         repo = UnifiedWorkflowRepository(driver)
-        transformer = BlueprintTransformer(
-            exec_repo=repo,
-            workflow_repo=repo,
-            comp_repo=repo,
-            prompt_block_repo=repo,
-            output_profile_repo=repo,
-            identity_repo=repo,
-            system_repo=repo,
-        )
 
         execution_dict = await repo.get_execution(execution_id)
         if not execution_dict:
             logger.warning("[Task] Execution %s no longer exists (deleted?). Skipping PDF generation.", execution_id)
             return
 
-        execution_record = ExecutionRecord.model_validate(execution_dict, strict=False)
-
-        if not accept_language:
-            accept_language = execution_record.target_locale
-
-        if accept_language:
-            set_language(accept_language)
-
-        if execution_record.output_profile_id:
-            profile_id = execution_record.output_profile_id
-
-        dto = await transformer.build_report_dto(execution_id, profile_id, accept_language)
-
-        service = PdfReportService()
-        pdf_bytes = await service.generate_execution_pdf(execution_id, report_dto=dto, locale=accept_language)
-
-        storage = get_storage_driver()
-        output_path_rel = f"executions/{execution_id}/report.pdf"
-        saved_path = await storage.save(output_path_rel, pdf_bytes)
-
-        v_step_id = f"sys_render_{profile_id}"
-
-        exec_record_local = await repo.get_execution(execution_id, hydrate=False)
-        step_states = None
-        steps = None
-        if exec_record_local:
-            exec_record_local = ExecutionRecord.model_validate(exec_record_local, strict=False)
-            if v_step_id in exec_record_local.step_states:
-                old_state = exec_record_local.step_states[v_step_id]
-                new_states = dict(exec_record_local.step_states)
-                new_step = old_state.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100})
-                new_states[v_step_id] = new_step
-                new_steps = [
-                    s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == v_step_id else s
-                    for s in exec_record_local.steps
-                ]
-                exec_record_local = exec_record_local.model_copy(update={"step_states": new_states, "steps": new_steps})
-            step_states = exec_record_local.step_states
-            steps = exec_record_local.steps
-
-        await repo.update_execution(
-            execution_id,
-            ExecutionUpdateDTO(
-                pdf_report_path=saved_path,
-                status=ExecutionStatus.PASSED,
-                steps=steps,
-                step_states=step_states,
-            ),
+        service = report_service_mod.ReportService(
+            repo,
+            synthesis_runner=generate_profile_synthesis_and_pdf_task,
         )
-        logger.info("[Task] PDF generated successfully and path saved: %s", saved_path)
+        artifact = await service.get_or_create_default_artifact(
+            execution_id=execution_id,
+            profile_id=profile_id,
+            locale=accept_language,
+        )
+        await service.process_artifact_compilation(artifact.id)
+        logger.info("[Task] PDF and report artifact compiled successfully: %s", artifact.id)
 
-    except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
+    except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError, ImportError) as e:
         logger.error(
             "[Task] PDF generation failed for %s. Cause: %s",
             execution_id,
