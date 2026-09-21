@@ -185,11 +185,11 @@
   - [x] [NEW] @[backend_v2/models/dtos/finops.py]
   - [x] [NEW] @[backend_v2/models/dtos/mcp.py]
   - [x] @[backend_v2/services/orchestrator/prompt_compiler.py]
-  - [ ] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
+  - [x] @[backend_v2/services/orchestrator/prompt_compiler_adapter.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py]
   - [ ] @[backend_v2/services/orchestrator/state_reducer.py]
   - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/base.py]
@@ -372,7 +372,13 @@
     39. `backend_v2/models/dtos/finops.py` (Commit `2079d6cf`): PEP 257 Google-style docstrings with `Attributes:`, expanded negative extra-fields and strict-typing unit tests in `test_finops.py` (6/6 passing, 100% coverage, 0 AST violations), audit matrix verified.
     40. `backend_v2/models/dtos/mcp.py` (Commit `f06f4f84`): PEP 257 Google-style docstrings with `Attributes:` across all 3 DTOs, expanded negative extra-fields and strict-typing unit tests in `test_mcp.py` (6/6 passing, 100% coverage, 0 AST violations), audit matrix verified.
     41. `backend_v2/services/orchestrator/prompt_compiler.py` (Commit `534317e2`): Annotated `_InputMetaDTO` fields with PEP 593 `Annotated`, added `Raises:` documentation to docstrings, purged banned "Epic" reference in `generate_mcp_instruction`, RFC 7807 structured error codes in `calibrate_strictness` (27/27 tests passing, 100% coverage, 0 AST violations), audit matrix verified.
-- All 41 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 9 (Completed & Committed):
+    42. `backend_v2/services/orchestrator/prompt_compiler_adapter.py` (Commit `9929d774`): Added `from __future__ import annotations`, explicit `__all__ = ["PromptCompilerAdapter"]`, full PEP 257 Google-style docstrings with `Args:` and `Returns:`. Expanded unit tests in `test_prompt_compiler_adapter.py` achieving 100% line coverage (6/6 passing, 0 AST violations), audit matrix verified.
+    43. `backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py` (Commit `8ccf81bf`): Eradicated all 6 `QGR016` ternary lazy fallbacks (replaced `x if cond else None` with explicit `if/else` assignments), added PEP 257 docstrings for `_dlq_stat_fallback` and `_parse_datetime`, verified 100% line coverage (20/20 tests passing, 0 AST violations), audit matrix verified.
+    44. `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py` (Commit `fa7d93a1`): Added `from __future__ import annotations`, explicit `__all__ = ["ContextBuilder"]`, eradicated all 8 `QGR016` lazy fallback violations (`scales or []`, `claims or []`, `tda_assertions or []`, `schema_map or {}`, ternary `dto_list`, ternary `all_steps`, and `extracted_raw_inputs or None`). Expanded unit tests in `test_context_builder.py` achieving 95% line coverage (19/19 passing, 0 AST violations), audit matrix verified.
+    45. `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py` (Commit `063d92d0`): Added `from __future__ import annotations`, explicit `__all__ = ["ContextTargetFilterDTO", "PriorStepOutput", "SourceDocumentPacker"]`, full PEP 257 Google-style docstrings. Expanded unit tests in `test_source_document_packer.py` covering ExecutionInputsDTO, BaseModel payloads, circular JSON error handling, and whitespace mappings, achieving 100% line coverage (12/12 passing, 0 AST violations), audit matrix verified.
+    46. `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (Commit `f43926eb`): Verified full PEP 257 Google-style docstrings and 0 AST violations. Expanded unit tests in `test_prompt_factory.py` covering `execution_time` formatting in `document_date` and `GlobalContextVarsDTO.external_evidence` injection, achieving 99% line coverage (9/9 passing, 0 AST violations), audit matrix verified.
+- All 46 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
@@ -389,17 +395,22 @@
 - Circular imports between worker modules and service modules can be broken cleanly without inline imports by importing the service module globally at the top level (e.g. `import backend_v2.services.report_service as report_service_mod`) and resolving the class dynamically at runtime (`report_service_mod.ReportService(repo)`).
 - Direct dot-notation access on default-factored Pydantic sub-DTOs (like `report.storage_paths.pdf_path`) eliminates redundant QGR016 ternary guards when the sub-DTO is guaranteed non-null.
 - In `prompt_compiler.py`, references to "Epic" in docstrings or comments violate `internal_language_and_epic_ban` and must be purged.
+- `MatrixClaim` in `matrix.py` enforces `label: I18nText` (forbids `claim_text`).
+- `MatrixScale` in `matrix.py` requires `score: int`, `ai_label: str`, and optional `name: I18nText` (forbids `label` and `description`).
+- `MatrixPromptBlock` enforces `type: Literal[BlockDataType.FLOAT, BlockDataType.INT]` (rejects `BlockDataType.CRITERIA`).
+- `json.dumps(data, default=str)` does not raise `TypeError` on arbitrary un-serializable objects because `default=str` coerces them to string; testing `json.dumps` failure requires circular object graphs (`bad_dict['self'] = bad_dict`) which trigger `ValueError`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 9):
-  - `backend_v2/services/orchestrator/prompt_compiler_adapter.py`
-  - `backend_v2/services/orchestrator/strategies/llm_execution/execution_time_resolver.py`
-  - `backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py`
-  - `backend_v2/services/orchestrator/strategies/llm_execution/source_document_packer.py`
-  - `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 10):
+  - `backend_v2/services/orchestrator/state_reducer.py`
+  - `backend_v2/services/orchestrator/dag_executor.py`
+  - `backend_v2/services/orchestrator/strategies/base.py`
+  - `backend_v2/services/orchestrator/strategies/logic.py`
+  - `backend_v2/services/orchestrator/strategies/llm.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
 
