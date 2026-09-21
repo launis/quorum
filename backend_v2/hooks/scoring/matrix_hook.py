@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import logging
 from enum import Enum
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -53,9 +53,9 @@ class BlockMetaDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    scales: list[float]
-    math_min: float
-    math_max: float
+    scales: Annotated[list[float], Field(description="List of numeric score thresholds.")]
+    math_min: Annotated[float, Field(description="Absolute minimum scale value.")]
+    math_max: Annotated[float, Field(description="Absolute maximum scale value.")]
 
 
 class AtomScoringRuleDTO(BaseModel):
@@ -72,12 +72,12 @@ class AtomScoringRuleDTO(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    block_id: str
-    scale_value: float
-    concept_description: str
-    aggregation_mode: str
-    is_inverse_assertion: bool
-    allow_contextual_override: bool
+    block_id: Annotated[str, Field(description="Prompt block identifier.")]
+    scale_value: Annotated[float, Field(description="Numeric score scale target.")]
+    concept_description: Annotated[str, Field(description="Description of evaluated assertion concept.")]
+    aggregation_mode: Annotated[str, Field(description="Logic aggregation mode.")]
+    is_inverse_assertion: Annotated[bool, Field(description="Whether the assertion represents inverse evidence.")]
+    allow_contextual_override: Annotated[bool, Field(description="Whether contextual override is permitted.")]
 
 
 @hook_registry.register(name="matrix_scoring_hook")
