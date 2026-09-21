@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pytest
 
 from backend_v2.models.domain.usage import TokenUsage
@@ -284,3 +286,84 @@ async def test_link_graph_ignores_hallucinated_aliases(monkeypatch: pytest.Monke
     node1 = next(n for n in results if n.atom.tda_id == "tda_11111111")
     assert len(node1.depends_on) == 1
     assert node1.depends_on[0].tda_id == "tda_00000000"
+
+
+@pytest.mark.asyncio
+async def test_link_graph_empty_atoms() -> None:
+    """Test that link_graph with empty atoms returns immediately with 0 usage."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
+
+    linker = SlidingWindowLinker()
+    mock_executor = AsyncMock()
+    mock_client = AsyncMock()
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    results, usage = await linker.link_graph(
+        executor=mock_executor, client=mock_client, atoms=[], ontology_map=ontology
+    )
+    assert results == []
+    assert usage.total_tokens == 0
+
+
+@pytest.mark.asyncio
+async def test_link_graph_llm_failure_raises_app_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that LLM task failure triggers AppException with AGENT_EXECUTION_CRITICAL."""
+    from unittest.mock import AsyncMock
+
+    from backend_v2.exceptions import AppException, ErrorCodes
+    from backend_v2.models.dtos.dag_models import GlobalOntologyMap
+
+    class MockSettings:
+        linker_max_atoms_per_window = 20
+        max_concurrent_llm_steps = 3
+
+    monkeypatch.setattr("backend_v2.services.orchestrator.sliding_window_linker.get_settings", lambda: MockSettings())
+
+    linker = SlidingWindowLinker(window_size=3, overlap=1)
+    atoms = [
+        ExtractedAtom(
+            tda_id="tda_00000000",
+            resolved_claim="claim 0",
+            reasoning="r0",
+            source_quote="q0",
+            source_sequence_index=0,
+        )
+    ]
+    ontology = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    mock_executor = AsyncMock()
+    mock_executor.execute_structured_task.side_effect = RuntimeError("LLM connection timeout")
+    mock_client = AsyncMock()
+
+    with pytest.raises(AppException) as exc_info:
+        await linker.link_graph(executor=mock_executor, client=mock_client, atoms=atoms, ontology_map=ontology)
+
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.AGENT_EXECUTION_CRITICAL.value
+
+
+def test_sliding_window_linker_dtos_extra_fields_forbidden() -> None:
+    """Test that all sliding window linker DTOs strictly forbid extra fields."""
+    from pydantic import ValidationError
+
+    from backend_v2.services.orchestrator.sliding_window_linker import (
+        LinkerDependencyDTO,
+        LinkerEdgeDTO,
+        LinkerResponseDTO,
+        WindowCausalEdgesDTO,
+    )
+
+    with pytest.raises(ValidationError):
+        LinkerEdgeDTO(edge_reasoning="reason", tda_id="a0", extra_field="bad")  # type: ignore[call-arg]
+
+    with pytest.raises(ValidationError):
+        LinkerDependencyDTO(child_alias="a1", extra_field="bad")  # type: ignore[call-arg]
+
+    with pytest.raises(ValidationError):
+        LinkerResponseDTO(extra_field="bad")  # type: ignore[call-arg]
+
+    with pytest.raises(ValidationError):
+        WindowCausalEdgesDTO(extra_field="bad")  # type: ignore[call-arg]
+

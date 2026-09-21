@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Global Sliding Window Linker for DAG topology generation.
 
 Uses a sliding window approach over extracted atoms to resolve cross-chunk causal
@@ -8,7 +10,9 @@ import asyncio
 import logging
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
+from typing import Annotated
 
+from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.template_processor import TemplateProcessor
@@ -32,55 +36,96 @@ from backend_v2.services.orchestrator.prompts.graph_linking import (
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
+__all__ = [
+    "LinkerDependencyDTO",
+    "LinkerEdgeDTO",
+    "LinkerResponseDTO",
+    "SlidingWindowLinker",
+    "WindowCausalEdgesDTO",
+]
+
 logger = logging.getLogger(__name__)
 
 
 class LinkerEdgeDTO(BaseModel):
-    """Temporary DTO for LLM structured output before hydration."""
+    """Temporary DTO for LLM structured output before hydration.
+
+    Attributes:
+        edge_reasoning: Chain-of-thought explaining why the dependency exists.
+        tda_id: The alias of the parent claim (e.g., 'a0').
+        expected_status: Expected execution status of the parent node.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    edge_reasoning: str = Field(description="Chain-of-thought explaining why the dependency exists.")
-    tda_id: str = Field(description="The alias of the parent claim (e.g., 'a0').")
-    expected_status: ExecutionStatus = Field(default=ExecutionStatus.PASSED)
+    edge_reasoning: Annotated[str, Field(description="Chain-of-thought explaining why the dependency exists.")]
+    tda_id: Annotated[str, Field(description="The alias of the parent claim (e.g., 'a0').")]
+    expected_status: Annotated[ExecutionStatus, Field(default=ExecutionStatus.PASSED)] = ExecutionStatus.PASSED
 
 
 class LinkerDependencyDTO(BaseModel):
-    """Mapping between a child alias and its parent dependencies."""
+    """Mapping between a child alias and its parent dependencies.
+
+    Attributes:
+        child_alias: The alias of the child claim (e.g., 'a1').
+        parent_dependencies: List of parent dependencies for this child.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    child_alias: str = Field(description="The alias of the child claim (e.g., 'a1').")
-    parent_dependencies: list[LinkerEdgeDTO] = Field(
-        default_factory=list,
-        description="List of parent dependencies for this child.",
-    )
+    child_alias: Annotated[str, Field(description="The alias of the child claim (e.g., 'a1').")]
+    parent_dependencies: Annotated[
+        list[LinkerEdgeDTO],
+        Field(
+            default_factory=list,
+            description="List of parent dependencies for this child.",
+        ),
+    ] = Field(default_factory=list)
 
 
 class LinkerResponseDTO(BaseModel):
-    """Temporary DTO for LLM structured output before hydration."""
+    """Temporary DTO for LLM structured output before hydration.
+
+    Attributes:
+        dependencies: List of dependencies mapping child aliases to parent aliases.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    dependencies: list[LinkerDependencyDTO] = Field(
-        default_factory=list,
-        description="List of dependencies mapping child aliases to parent aliases.",
-    )
+    dependencies: Annotated[
+        list[LinkerDependencyDTO],
+        Field(
+            default_factory=list,
+            description="List of dependencies mapping child aliases to parent aliases.",
+        ),
+    ] = Field(default_factory=list)
 
 
 class WindowCausalEdgesDTO(BaseModel):
-    """Encapsulates parent causal edges for a child node within a sliding window."""
+    """Encapsulates parent causal edges for a child node within a sliding window.
+
+    Attributes:
+        edges: Map of parent TDA ID to CausalEdge.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    edges: dict[str, CausalEdge] = Field(
-        default_factory=dict,
-        description="Map of parent TDA ID to CausalEdge.",
-    )
+    edges: Annotated[
+        dict[str, CausalEdge],
+        Field(
+            default_factory=dict,
+            description="Map of parent TDA ID to CausalEdge.",
+        ),
+    ] = Field(default_factory=dict)
 
 
 class SlidingWindowLinker:
-    """Discovers causal DAG dependencies between ExtractedAtoms using a context-bounded sliding window heuristic."""
+    """Discovers causal DAG dependencies between ExtractedAtoms using a context-bounded sliding window heuristic.
+
+    Attributes:
+        window_size: Number of chunks per window.
+        overlap: Number of chunks to overlap between windows.
+    """
 
     def __init__(self, window_size: int = 4, overlap: int = 2) -> None:
         """Initialize the linker.
@@ -170,7 +215,7 @@ class SlidingWindowLinker:
             A tuple of list[LinkedAtomGraph] objects with populated depends_on and aggregated TokenUsage.
 
         Raises:
-            AppException: If LLM execution fails critically.
+            AppException: If LLM execution fails critically (ErrorCodes.AGENT_EXECUTION_CRITICAL).
         """
         if not atoms:
             return [], TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
@@ -178,7 +223,10 @@ class SlidingWindowLinker:
         # 1. Group atoms by source_id (chunk_index) maintaining insertion order
         chunk_groups: dict[str, list[ExtractedAtom]] = defaultdict(list)
         for atom in atoms:
-            chunk_groups[atom.source_id or "default"].append(atom)
+            source_key = atom.source_id
+            if not source_key:
+                source_key = "default"
+            chunk_groups[source_key].append(atom)
 
         chunks = list(chunk_groups.values())
         windows = self._get_sliding_windows(chunks)
@@ -225,7 +273,10 @@ class SlidingWindowLinker:
             )
 
             try:
-                async with semaphore or asyncio.Semaphore(get_settings().max_concurrent_llm_steps):
+                sem = semaphore
+                if sem is None:
+                    sem = asyncio.Semaphore(get_settings().max_concurrent_llm_steps)
+                async with sem:
                     response, usage = await executor.execute_structured_task(
                         client=client,
                         messages=compiled_prompt,
@@ -234,9 +285,16 @@ class SlidingWindowLinker:
                     total_usage = total_usage + usage
             except Exception as e:
                 # 01-python-backend.md: Zero-Compromise Pledge. No graceful degradation.
+                msg = f"Failed to link graph window: {str(e)}"
+                logger.error(
+                    "[SlidingWindowLinker] %s: %s",
+                    ErrorCodes.AGENT_EXECUTION_CRITICAL.name,
+                    msg,
+                    exc_info=True,
+                )
                 raise AppException(
-                    message=f"Failed to link graph window: {str(e)}",
-                    status_code=500,
+                    message=msg,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
                 ) from e
 
@@ -271,10 +329,14 @@ class SlidingWindowLinker:
                     if parent_tda_id == child_tda_id:
                         continue
 
+                    child_source_id = child_atom.source_id
+                    if not child_source_id:
+                        child_source_id = "unknown"
+
                     edge = CausalEdge(
                         edge_reasoning=dep.edge_reasoning,
                         tda_id=parent_tda_id,
-                        source_id=child_atom.source_id or "unknown",
+                        source_id=child_source_id,
                         expected_status=dep.expected_status,
                     )
                     current_edges = dict(master_deps[child_tda_id].edges)
