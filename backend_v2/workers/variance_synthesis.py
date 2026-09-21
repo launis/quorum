@@ -38,7 +38,11 @@ logger = logging.getLogger(__name__)
 
 
 class VarianceExplanationResult(BaseModel):
-    """Result model for cognitive-mechanical variance explanation."""
+    """Result model for cognitive-mechanical variance explanation.
+
+    Attributes:
+        explanation: Synthesized cognitive-mechanical variance explanation.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -53,7 +57,25 @@ async def build_variance_metrics_and_task(
     workflow_registry_id: str | None,
     sem_runner: Callable[[Awaitable[Any]], Awaitable[Any]],
 ) -> tuple[ExtensionMetricsDTO | None, Any | None]:
-    """Calculate mechanical variance metrics and build variance explanation task using DEEP tier."""
+    """Calculate mechanical variance metrics and build variance explanation task using DEEP tier.
+
+    Args:
+        repo: Unified workflow repository instance for model configuration.
+        execution: Active execution record containing trace events and context variables.
+        active_profile_dto: Active output profile configuration, or None if omitted.
+        accept_language: Client language code for localized prompt compilation.
+        workflow_registry_id: Optional model registry ID configured at the workflow level.
+        sem_runner: Concurrency semaphore runner for async task invocation.
+
+    Returns:
+        Tuple of optional calculated extension metrics and optional structured LLM task.
+
+    Raises:
+        AppException: ErrorCodes.CONFIGURATION_ERROR if variance validation is active
+            but variance_target_block is unset in the output profile.
+        AppException: ErrorCodes.VALIDATION_FAILED if step_linguistics or lightweight
+            matrix outputs in trace events are corrupted and fail model validation.
+    """
     if not active_profile_dto:
         return None, None
 
@@ -84,7 +106,12 @@ async def build_variance_metrics_and_task(
             f"OutputProfile '{active_profile_dto.id}' requires 'variance_target_block' "
             "when variance validation is active."
         )
-        logger.error("[variance_synthesis] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error(
+            "[variance_synthesis] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
         raise AppException(
             message=msg,
             status_code=400,
@@ -129,12 +156,13 @@ async def build_variance_metrics_and_task(
                         logger.error(
                             "[variance_synthesis] Failed to validate step_linguistics: %s",
                             err,
+                            exc_info=True,
                             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                         raise AppException(
                             message=f"Corrupted step_linguistics in execution trace: {err}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from err
 
             if event.event_type == "output" and authenticity_score is None:
@@ -156,12 +184,13 @@ async def build_variance_metrics_and_task(
                             "[variance_synthesis] Failed to validate LightweightMatrixOutput for %s: %s",
                             target_block_id,
                             err,
+                            exc_info=True,
                             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                         raise AppException(
                             message=f"Corrupted LightweightMatrixOutput for {target_block_id}: {err}",
                             status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED},
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         ) from err
 
             if authenticity_score is not None and performative_phrases_count is not None:

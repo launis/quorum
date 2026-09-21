@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO, PerformativePatternDTO
@@ -119,6 +119,7 @@ async def test_build_variance_metrics_missing_target_block_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 400
+    assert exc_info.value.details == {"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
 
 
 @pytest.mark.asyncio
@@ -154,6 +155,7 @@ async def test_build_variance_metrics_corrupted_linguistics_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 @pytest.mark.asyncio
@@ -184,6 +186,7 @@ async def test_build_variance_metrics_corrupted_matrix_output_raises() -> None:
     with pytest.raises(AppException) as exc_info:
         await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
     assert exc_info.value.status_code == 500
+    assert exc_info.value.details == {"error_code": ErrorCodes.VALIDATION_FAILED.value}
 
 
 @pytest.mark.asyncio
@@ -258,3 +261,55 @@ async def test_build_variance_metrics_full_success_with_tone_and_budget() -> Non
         assert metrics.total_word_count == 200
         assert isinstance(task, VarianceExplanationResult)
         assert task.explanation == "Evaluated variance."
+
+
+@pytest.mark.asyncio
+async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
+    """Test metrics extraction when linguistics and matrix models are directly in trace events."""
+    pat = PerformativePatternDTO(pattern_id="p1", detected_phrase="phrase1", category="filler")
+    ling = LinguisticsResultDTO(performative_patterns=[pat], total_word_count=50)
+    mat = LightweightMatrixOutput(raw_score=2.2)
+
+    evt_ling = TraceEvent(
+        v=1,
+        timestamp=datetime.now(timezone.utc),
+        event_type="decision",
+        step_name="st_dec",
+        content={"step_linguistics": ling.model_dump(mode="json")},
+    )
+    evt_mat = TraceEvent.model_construct(
+        v=1,
+        timestamp=datetime.now(timezone.utc),
+        event_type="output",
+        step_name="st_out",
+        content=mat,
+    )
+    rec = ExecutionRecord.model_construct(
+        id="exe_0123456789abcdef01",
+        workflow_id="wor_0123456789abcdef01",
+        output_profile_id="pro_0123456789abcdef01",
+        status=ExecutionStatus.PASSED,
+        target_locale="en",
+        metadata=ExecutionMetadata(),
+        execution_trace=[evt_ling, evt_mat, "not_a_trace_event"],  # type: ignore[list-item]
+        context_variables=None,
+    )
+    prof = _make_profile(
+        has_ext=True,
+        target_block=TARGET_BLOCK_ID,
+        directive="Evaluate variance.",
+    )
+    mock_client = AsyncMock()
+    mock_client.run_structured_task.return_value = VarianceExplanationResult(explanation="Done.")
+
+    async def dummy_sem(coro: Any) -> Any:
+        return await coro
+
+    with patch("backend_v2.workers.variance_synthesis.LLMClient.from_tier", return_value=mock_client):
+        metrics, task = await build_variance_metrics_and_task(AsyncMock(), rec, prof, "en", None, dummy_sem)
+        assert isinstance(metrics, ExtensionMetricsDTO)
+        assert metrics.authenticity_score == 2.2
+        assert metrics.performative_phrases_count == 1.0
+        assert metrics.total_word_count == 50
+        assert isinstance(task, VarianceExplanationResult)
+
