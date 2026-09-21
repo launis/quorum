@@ -1,9 +1,11 @@
 """Matrix scoring and atom evaluation hook module."""
 
+from __future__ import annotations
+
 import json
 import logging
 from enum import Enum
-from typing import Any, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, ValidationError
 
@@ -41,7 +43,13 @@ __all__ = ["AtomScoringRuleDTO", "BlockMetaDTO", "matrix_scoring_hook"]
 
 
 class BlockMetaDTO(BaseModel):
-    """Metadata and extrema bounds for PromptBlock scoring scales."""
+    """Metadata and extrema bounds for PromptBlock scoring scales.
+
+    Attributes:
+        scales: List of numeric score thresholds.
+        math_min: Absolute minimum scale value.
+        math_max: Absolute maximum scale value.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -51,7 +59,16 @@ class BlockMetaDTO(BaseModel):
 
 
 class AtomScoringRuleDTO(BaseModel):
-    """Encapsulates matrix scoring criteria and attribution rules for a single TDA atom."""
+    """Encapsulates matrix scoring criteria and attribution rules for a single TDA atom.
+
+    Attributes:
+        block_id: Prompt block identifier.
+        scale_value: Numeric score scale target.
+        concept_description: Description of evaluated assertion concept.
+        aggregation_mode: Logic aggregation mode.
+        is_inverse_assertion: Whether the assertion represents inverse evidence.
+        allow_contextual_override: Whether contextual override is permitted.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -88,6 +105,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
     repository = deps.workflow_repo
     if not repository:
         msg = "Strict Fail-Fast Enforced: No repository provided in HookDependencies for matrix_scoring_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.HOOK_EXECUTION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.HOOK_EXECUTION_FAILED.value})
 
     raw_inputs = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
@@ -95,12 +113,14 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
     blueprint_id = state.task_blueprint or state.step_id
     if not blueprint_id:
         msg = "Strict Fail-Fast Enforced: No blueprint_id or step_id provided to matrix_scoring_hook."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     try:
         step_obj = await repository.get_step_by_id(blueprint_id)
         if not step_obj:
             msg = f"Strict Fail-Fast Enforced: Step blueprint '{blueprint_id}' not found in database."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
             raise AppException(
                 message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
             )
@@ -138,6 +158,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
 
         if not state.execution_id or not deps.exec_repo:
             msg = "Strict Fail-Fast Enforced: Missing execution_id or exec_repo in matrix_scoring_hook."
+            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
         raw_exec_data = await deps.exec_repo.get_execution(state.execution_id)
@@ -217,6 +238,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
             scales = pb_model.scales
             if not scales:
                 msg = f"Strict Fail-Fast Enforced: PromptBlock '{pb_id}' has no scales."
+                logger.error("[ScoringHook] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
@@ -259,7 +281,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         block_scale_stats: dict[str, dict[float, LevelStatsDTO]] = {}
         missing_atoms_by_block: dict[str, list[str]] = {}
         evaluated_atoms_by_block: dict[str, dict[str, ExecutionStatus]] = {}
-        atom_quotes_by_block: dict[str, list[Any]] = {}
+        atom_quotes_by_block: dict[str, list[QuoteEvidenceDTO]] = {}
         matrix_extensions_by_block: dict[str, dict[str, list[str]]] = {}
 
         # 2. Iterate evaluations using whitelisted ASTEvaluator for 3-State Logic
