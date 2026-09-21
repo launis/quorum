@@ -1,13 +1,15 @@
 """LLM Handler module for managing model discovery and configuration."""
 
+from __future__ import annotations
+
 import asyncio
+import collections.abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import openai
 import requests
-from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import (
     AppException,
@@ -23,18 +25,7 @@ from backend_v2.models.enums import LLMPlatformType, LLMProviderName
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.settings import Settings, get_settings
 
-
-class _VertexLocationItem(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    locationId: str
-    displayName: str | None = None
-
-
-class _VertexLocationsResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    locations: list[_VertexLocationItem] = Field(default_factory=list)
-    nextPageToken: str | None = None
-
+__all__ = ["LLMHandler"]
 
 try:
     import google.auth
@@ -62,11 +53,11 @@ class LLMHandler:
         Attempts to fetch its metadata in the target location using modern GenAI V2 Client.
 
         Args:
-            model_id (str): The model identifier.
-            location (str): The target location for Vertex AI.
+            model_id: The model identifier.
+            location: The target location for Vertex AI.
 
         Returns:
-            bool: True if available, False otherwise.
+            True if available, False otherwise.
         """
         try:
             from google import genai
@@ -78,14 +69,14 @@ class LLMHandler:
             client = genai.Client(vertexai=True, location=location)
             client.models.get(model=clean_name)
             return True
-        except Exception:
+        except ImportError, AttributeError, RuntimeError, OSError:
             return False
 
     def __init__(self, repo: Any):
         """Initializes the handler.
 
         Args:
-            repo (Any): The IWorkflowRepository instance (injected via dependencies.py).
+            repo: The IWorkflowRepository instance (injected via dependencies.py).
         """
         self.repo = repo
         self._cached_openai_models: list[str] = []
@@ -93,6 +84,13 @@ class LLMHandler:
         self._cached_ai_studio_models: list[str] = []
 
     def _fetch_mock_models(self, providers: list[str], settings: Any, models: dict[str, list[str] | str]) -> None:
+        """Fetch mock models for specified providers during test runs or mock execution mode.
+
+        Args:
+            providers: List of provider names to populate with mock models.
+            settings: Application settings containing mock flags.
+            models: Target dictionary to populate with mock model lists.
+        """
         if settings.use_mock_llm or "mock" in providers:
             if "vertex_ai" in providers or "mock" in providers:
                 models["vertex_ai"] = ["vertex_ai/mock-model-a", "vertex_ai/mock-model-b"]
@@ -189,7 +187,7 @@ class LLMHandler:
                         modern_client = genai.Client(vertexai=True, project=project, location=target_location)
                         _ = modern_client.models.get(model=clean_id)
                         return f"vertex_ai/{clean_id}"
-                    except Exception:
+                    except ImportError, AttributeError, RuntimeError, OSError, ValueError:
                         return None
                 else:
                     try:
@@ -209,7 +207,7 @@ class LLMHandler:
                             return f"vertex_ai/{clean_id}"
 
                         return None
-                    except Exception:
+                    except requests.RequestException, OSError, RuntimeError, ValueError:
                         return None
 
             logger.info(
@@ -334,7 +332,9 @@ class LLMHandler:
             discovered_locations: list[GCPLocationDTO] = []
             next_page_token: str | None = None
             while True:
-                params = {"pageToken": next_page_token} if next_page_token else {}
+                params: dict[str, str] = {}
+                if next_page_token:
+                    params["pageToken"] = next_page_token
                 resp = requests.get(url, headers=headers, params=params, timeout=timeout_sec)
                 if resp.status_code != 200:
                     raise ServiceUnavailableError(
@@ -344,19 +344,33 @@ class LLMHandler:
                         details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "status_code": resp.status_code},
                     )
 
-                parsed_response = _VertexLocationsResponse.model_validate(resp.json())
-                for loc in parsed_response.locations:
-                    if not loc.locationId:
-                        continue
-                    display_name = loc.displayName or loc.locationId
-                    discovered_locations.append(
-                        GCPLocationDTO(
-                            id=loc.locationId,
-                            label=f"{display_name} ({loc.locationId})",
-                            description=f"Google Cloud Vertex AI region: {display_name}",
+                raw_json = resp.json()
+                raw_locations: list[Any] = []
+                if isinstance(raw_json, collections.abc.Mapping) and "locations" in raw_json:
+                    locs_candidate = raw_json["locations"]
+                    if isinstance(locs_candidate, list):
+                        raw_locations = locs_candidate
+
+                for loc in raw_locations:
+                    if isinstance(loc, collections.abc.Mapping) and "locationId" in loc and loc["locationId"]:
+                        loc_id = str(loc["locationId"])
+                        disp_name = loc_id
+                        if "displayName" in loc and loc["displayName"]:
+                            disp_name = str(loc["displayName"])
+                        discovered_locations.append(
+                            GCPLocationDTO(
+                                id=loc_id,
+                                label=f"{disp_name} ({loc_id})",
+                                description=f"Google Cloud Vertex AI region: {disp_name}",
+                            )
                         )
-                    )
-                next_page_token = parsed_response.nextPageToken
+                next_page_token = None
+                if (
+                    isinstance(raw_json, collections.abc.Mapping)
+                    and "nextPageToken" in raw_json
+                    and raw_json["nextPageToken"]
+                ):
+                    next_page_token = str(raw_json["nextPageToken"])
                 if not next_page_token:
                     break
 
@@ -413,9 +427,13 @@ class LLMHandler:
             client = genai.Client(api_key=api_key)
             discovered: list[str] = []
             for m in client.models.list():
-                model_name = str(m.name) if m.name else ""
+                model_name = ""
+                if m.name:
+                    model_name = str(m.name)
                 # Strip models/ prefix if present
-                clean_name = model_name[7:] if model_name.startswith("models/") else model_name
+                clean_name = model_name
+                if model_name.startswith("models/"):
+                    clean_name = model_name[7:]
                 if "gemini" in clean_name.lower():
                     discovered.append(f"gemini/{clean_name}")
 
@@ -562,19 +580,29 @@ class LLMHandler:
         settings = get_settings()
         models: dict[str, list[str] | str] = {}
 
-        # Resolve Target Location from Settings or argument
-        target_location = location if location else settings.vertex_location
+        target_location: str | None
+        if location:
+            target_location = location
+        else:
+            target_location = settings.vertex_location
 
         # Handle Mock Mode
         if settings.use_mock_llm or (providers and "mock" in providers):
-            self._fetch_mock_models(providers or ["mock"], settings, models)
+            if providers:
+                mock_providers = providers
+            else:
+                mock_providers = ["mock"]
+            self._fetch_mock_models(mock_providers, settings, models)
             if settings.use_mock_llm and (not providers or "mock" not in providers):
                 return models
             if providers and len(providers) == 1 and "mock" in providers:
                 return models
 
         # If explicit platform is provided, route directly
-        norm_platform = platform.lower() if platform else LLMPlatformType.ALL.value
+        if platform:
+            norm_platform = platform.lower()
+        else:
+            norm_platform = LLMPlatformType.ALL.value
 
         if norm_platform == LLMPlatformType.VERTEX_AI.value:
             if not target_location:
@@ -603,7 +631,10 @@ class LLMHandler:
             return models
 
         # Standard Multi-Provider Aggregation
-        active_providers = providers or settings.enabled_providers
+        if providers is not None:
+            active_providers = providers
+        else:
+            active_providers = settings.enabled_providers
         if not active_providers:
             return {}
 
@@ -652,7 +683,10 @@ class LLMHandler:
                 resource_id="global_model_registry",
             )
 
-        raw_config = record["config"] if "config" in record else {}
+        if "config" in record:
+            raw_config = record["config"]
+        else:
+            raw_config = {}
 
         # Pydantic V2 Validation
         try:
@@ -678,15 +712,16 @@ class LLMHandler:
             Optional[Dict[str, Any]]: Configuration dictionary if found, else None.
         """
         registry = await self.get_active_model_registry()
-        models = (
-            registry["tier_definitions"]
-            if "tier_definitions" in registry
-            else (registry["models"] if "models" in registry else {})
-        )
-        config = models[mode] if mode in models else None
+        models: dict[str, Any]
+        if "tier_definitions" in registry:
+            models = registry["tier_definitions"]
+        elif "models" in registry:
+            models = registry["models"]
+        else:
+            models = {}
 
-        if config:
-            return dict(config)
+        if mode in models:
+            return dict(models[mode])
         return None
 
     async def create_provider_for_strategy(self, mode: str) -> Any:
@@ -702,11 +737,13 @@ class LLMHandler:
             AppException: If configuration is invalid, missing, or model is not available.
         """
         registry = await self.get_active_model_registry()
-        models = (
-            registry["tier_definitions"]
-            if "tier_definitions" in registry
-            else (registry["models"] if "models" in registry else {})
-        )
+        models: dict[str, Any]
+        if "tier_definitions" in registry:
+            models = registry["tier_definitions"]
+        elif "models" in registry:
+            models = registry["models"]
+        else:
+            models = {}
 
         if mode not in models:
             raise ConfigurationError(
@@ -725,42 +762,56 @@ class LLMHandler:
         model_name = cd["model_name"]
         temperature = cd["temperature"]
         max_tokens = cd["max_tokens"]
-        api_key = cd["api_key"] if "api_key" in cd else None
+
+        api_key: str | None = None
+        if "api_key" in cd:
+            api_key = cd["api_key"]
 
         # Dynamic location resolution from additional_params or settings
-        add_params = cd["additional_params"] if "additional_params" in cd and cd["additional_params"] else {}
-        target_location = (
-            add_params["vertex_location"]
-            if "vertex_location" in add_params and add_params["vertex_location"]
-            else settings.vertex_location
-        )
+        add_params: dict[str, Any] = {}
+        if "additional_params" in cd and cd["additional_params"]:
+            add_params = cd["additional_params"]
+
+        target_location: str | None = None
+        if "vertex_location" in add_params and add_params["vertex_location"]:
+            target_location = str(add_params["vertex_location"])
+        else:
+            target_location = settings.vertex_location
 
         # STRICT VALIDATION: Ensure the configured model name actually exists in the target region/platform.
         # This prevents "blind" 404s from the provider.
         if provider in (LLMProviderName.VERTEX_AI.value, LLMProviderName.AI_STUDIO.value) and mode != "mock":
-            target_platform = (
-                LLMPlatformType.VERTEX_AI.value
-                if provider == LLMProviderName.VERTEX_AI.value
-                else LLMPlatformType.AI_STUDIO.value
-            )
+            if provider == LLMProviderName.VERTEX_AI.value:
+                target_platform = LLMPlatformType.VERTEX_AI.value
+                query_location = target_location
+            else:
+                target_platform = LLMPlatformType.AI_STUDIO.value
+                query_location = None
+
             available_models_map = await asyncio.to_thread(
                 self.fetch_all_available_models,
                 providers=[provider],
-                location=target_location if target_platform == LLMPlatformType.VERTEX_AI.value else None,
+                location=query_location,
                 platform=target_platform,
             )
 
-            valid_models = available_models_map[target_platform] if target_platform in available_models_map else []
+            if target_platform in available_models_map:
+                valid_models = available_models_map[target_platform]
+            else:
+                valid_models = []
+
             if not isinstance(valid_models, list):
-                valid_models = [valid_models] if valid_models else []
+                if valid_models:
+                    valid_models = [valid_models]
+                else:
+                    valid_models = []
 
             if model_name not in valid_models:
                 if "mock" not in model_name.lower():
-                    location_detail = (
-                        f" in target region ('{target_location}')"
-                        if target_platform == LLMPlatformType.VERTEX_AI.value
-                        else ""
-                    )
+                    if target_platform == LLMPlatformType.VERTEX_AI.value:
+                        location_detail = f" in target region ('{target_location}')"
+                    else:
+                        location_detail = ""
                     error_msg = (
                         f"STRICT VALIDATION ERROR: Model '{model_name}' configured for strategy '{mode}' "
                         f"is NOT available for platform '{target_platform}'{location_detail}. "
@@ -782,18 +833,26 @@ class LLMHandler:
                 max_tokens,
             )
 
+            base_url: str | None = None
+            if "base_url" in cd:
+                base_url = cd["base_url"]
+
+            vertex_loc: str | None = None
+            if "vertex_location" in cd:
+                vertex_loc = cd["vertex_location"]
+
             # Construct strict config object
             provider_config = LLMProviderConfig(
                 id=f"prov_{provider.replace('-', '').replace('_', '')}{mode.replace('-', '').replace('_', '')}00000000",
                 provider=provider,
                 model_name=model_name,
                 api_key=api_key,
-                base_url=cd["base_url"] if "base_url" in cd else None,
+                base_url=base_url,
                 temperature=temperature,
                 tpm_limit=cd["tpm_limit"],
                 rpm_limit=cd["rpm_limit"],
                 default_max_tokens=max_tokens,
-                vertex_location=cd["vertex_location"] if "vertex_location" in cd else None,
+                vertex_location=vertex_loc,
                 supports_grounding=cd["supports_grounding"],
                 is_active=cd["is_active"],
                 additional_params=cd["additional_params"],

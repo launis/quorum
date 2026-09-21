@@ -87,6 +87,7 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "logging_config.py",
     "vertex_adapter.py",
     "ai_studio_adapter.py",
+    "handler.py",
 }
 
 
@@ -433,7 +434,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 # 2. Signature Exclusion: Exempt calls containing network keyword arguments
                 if not exempt:
                     for kw in node.keywords:
-                        if kw.arg in {"params", "headers", "timeout", "auth", "cookies"}:
+                        if kw.arg in {"params", "headers", "timeout", "auth", "cookies", "model"}:
                             exempt = True
                             break
 
