@@ -32,8 +32,8 @@ class ReportsClient {
       data: {
         'profile_id': profileId,
         'locale': locale,
-        if (customPrefaceMd != null) 'custom_preface_md': customPrefaceMd,
-        if (modelRegistryId != null) 'model_registry_id': modelRegistryId,
+        'custom_preface_md': ?customPrefaceMd,
+        'model_registry_id': ?modelRegistryId,
       },
     );
     return ReportArtifactSummary.fromJson(
