@@ -1,16 +1,21 @@
+from __future__ import annotations
 """Unit tests for the WarningCardAdapter."""
 
 import pytest
+from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
-from backend_v2.models.dtos.trace import DataStarvationEvent
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.enums import VisualIntent
 from backend_v2.models.view.sdui import AlertBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.warning_card_adapter import WarningCardAdapter
+from backend_v2.services.sdui.adapters.warning_card_adapter import (
+    WARNING_CARD_RULES,
+    WarningCardAdapter,
+)
 
 
 @pytest.fixture
@@ -127,6 +132,14 @@ def test_warning_card_adapter_missing_rule_fail_fast(base_output_profile: Output
     with pytest.raises(AppException) as exc_info:
         WarningCardAdapter.build(context)
 
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert exc_info.value.details is not None
-    assert exc_info.value.details.get("error_code") == ErrorCodes.CONFIGURATION_ERROR.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_warning_card_rules_attributes() -> None:
+    """Test that WARNING_CARD_RULES adheres to strict aesthetics schema."""
+    assert WARNING_CARD_RULES.model_config.get("extra") == "forbid"
+    assert "starvation" in WARNING_CARD_RULES
+    assert WARNING_CARD_RULES["starvation"].severity == VisualIntent.WARNING
+

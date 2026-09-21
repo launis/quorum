@@ -1,11 +1,15 @@
+from __future__ import annotations
+
 """Warning Card SDUI Adapter.
 
 Transforms system events (such as data starvation) into polymorphic AlertBlocks
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-WARNING_CARD_RULES dictionary to enforce separation of presentation from logic.
+WARNING_CARD_RULES DTO to enforce separation of presentation from logic.
 """
 
 import logging
+
+from fastapi import status
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.sdui_rules import WarningCardAestheticsDTO, WarningCardSeverityDTO
@@ -61,7 +65,8 @@ class WarningCardAdapter:
             Ordered list of polymorphic SDUI blocks ready for rendering.
 
         Raises:
-            AppException: If an unmapped event_type key is encountered in WARNING_CARD_RULES.
+            AppException: If an unmapped event_type key is encountered in WARNING_CARD_RULES
+                (ErrorCodes.CONFIGURATION_ERROR).
         """
         blocks: list[AnySduiBlock] = []
 
@@ -81,7 +86,7 @@ class WarningCardAdapter:
             logger.error("[WarningCardAdapter] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
-                status_code=500,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
