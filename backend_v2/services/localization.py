@@ -1,12 +1,15 @@
 """Localization and string formatting service for backend SDUI schemas."""
 
+from __future__ import annotations
+
 import json
 import logging
 from contextvars import ContextVar
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
+from fastapi import status
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -28,7 +31,7 @@ def set_language(lang: str) -> None:
     """Sets the language for the current context (request).
 
     Args:
-        lang (str): The language code to set (e.g., 'en' or 'fi').
+        lang: The language code to set (e.g. 'en' or 'fi').
     """
     _language_var.set(lang)
 
@@ -37,36 +40,74 @@ def get_language() -> str:
     """Gets the language from the current context.
 
     Returns:
-        str: The current language code.
+        The current language code.
     """
     return _language_var.get()
 
 
 class LocaleTranslationsDTO(BaseModel):
-    """Encapsulates translations for a specific locale."""
+    """Encapsulates translations for a specific locale.
+
+    Attributes:
+        translations: Mapping of translation keys to localized string values.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    translations: dict[str, str] = Field(default_factory=dict)
+    translations: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Mapping of translation keys to localized string values"),
+    ] = Field(default_factory=dict)
 
     def lookup(self, key: str) -> str | None:
-        """Retrieve translation string by key if present."""
+        """Retrieve translation string by key if present.
+
+        Args:
+            key: The translation key.
+
+        Returns:
+            The translation string if present, None otherwise.
+        """
         if key in self.translations:
             return self.translations[key]
         return None
 
     def __getitem__(self, key: str) -> str:
-        """Subscript access for template rendering."""
+        """Subscript access for template rendering.
+
+        Args:
+            key: The translation key.
+
+        Returns:
+            The translation string for key.
+        """
         return self.translations[key]
 
     def __getattr__(self, item: str) -> str:
-        """Attribute access for template rendering."""
+        """Attribute access for template rendering.
+
+        Args:
+            item: Attribute name as translation key.
+
+        Returns:
+            The translation string for item.
+
+        Raises:
+            AttributeError: If key is not found in translations.
+        """
         if item in self.translations:
             return self.translations[item]
         raise AttributeError(f"Translation key '{item}' not found in translations")
 
     def __contains__(self, key: str) -> bool:
-        """Check if key exists in translations."""
+        """Check if key exists in translations.
+
+        Args:
+            key: The translation key to verify.
+
+        Returns:
+            True if key exists, False otherwise.
+        """
         return key in self.translations
 
 
@@ -84,7 +125,7 @@ class LocalizationService:
         """Loads translation files into memory on first access.
 
         Raises:
-            AppException: If the L10N_DIR is missing, contains no files, or contains corrupt JSON.
+            AppException: If the L10N_DIR is missing, contains no files, or contains corrupt JSON (ErrorCodes.CONFIGURATION_ERROR).
         """
         if cls._loaded:
             return
@@ -96,8 +137,8 @@ class LocalizationService:
                 logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
             json_files = list(cls.L10N_DIR.glob("*.json"))
@@ -107,8 +148,8 @@ class LocalizationService:
                 logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 
             for file_path in json_files:
@@ -118,7 +159,7 @@ class LocalizationService:
                     with open(file_path, encoding="utf-8") as f:
                         data = json.load(f)
                         cls._translations[lang_code] = LocaleTranslationsDTO(translations=data)
-                except Exception as e:
+                except (json.JSONDecodeError, OSError, ValueError) as e:
                     # Fail Fast: Corrupt translation file.
                     msg = f"Failed to load translation file {file_path}"
                     logger.error(
@@ -130,22 +171,22 @@ class LocalizationService:
                     )
                     raise AppException(
                         message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "original_error": str(e)},
                     ) from e
 
             cls._loaded = True
             logger.info("Loaded translations for languages: %s", list(cls._translations.keys()))
         except AppException:
             raise
-        except Exception as e:
+        except OSError as e:
             # Catch-all for unexpected filesystem errors
             msg = f"Critical error loading translations: {e}"
             logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
                 message=msg,
-                status_code=500,
-                details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "original_error": str(e)},
             ) from e
 
     @classmethod
@@ -153,15 +194,15 @@ class LocalizationService:
         """Translates a key into the target language with optional interpolation.
 
         Args:
-            key (str): The translation key.
-            lang (str | None): The target language code (e.g., 'fi'). If None, uses Context.
-            **kwargs (Any): Arguments for string interpolation (e.g., name="User").
+            key: The translation key.
+            lang: The target language code (e.g., 'fi'). If None, uses Context.
+            **kwargs: Arguments for string interpolation (e.g., name="User").
 
         Returns:
-            str: The translated and formatted string.
+            The translated and formatted string.
 
         Raises:
-            AppException: If the translation key is completely missing or interpolation arguments are invalid.
+            AppException: If the translation key is completely missing or interpolation arguments are invalid (ErrorCodes.CONFIGURATION_ERROR).
         """
         cls.load_if_needed()
 
@@ -172,12 +213,15 @@ class LocalizationService:
         # Fallback logic: "fi-FI" -> "fi"
         lang_simple = lang.split("-")[0].lower()
         target_dto = cls.get_translations(lang_simple)
-        val = target_dto.lookup(key) if target_dto is not None else None
+        val: str | None = None
+        if target_dto is not None:
+            val = target_dto.lookup(key)
 
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
             en_dto = cls.get_translations("en")
-            val = en_dto.lookup(key) if en_dto is not None else None
+            if en_dto is not None:
+                val = en_dto.lookup(key)
             if val is not None:
                 logger.warning(
                     "BFF Translation Fallback: Key '%s' missing in '%s', falling back to English.", key, lang_simple
@@ -188,7 +232,9 @@ class LocalizationService:
             msg = f"Translation key '{key}' is missing from both '{lang_simple}' and 'en' dictionaries."
             logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
             raise AppException(
-                message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
+                message=msg,
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
         # 4. Interpolation
@@ -201,17 +247,17 @@ class LocalizationService:
                 logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "missing_arg": str(e.args[0])},
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "missing_arg": str(e.args[0])},
                 ) from e
-            except Exception as e:
+            except (ValueError, TypeError) as e:
                 # Fail Fast: Invalid format string
                 msg = f"Localization format error for key '{key}': {e}"
                 logger.error("[LocalizationService] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg, exc_info=True)
                 raise AppException(
                     message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR, "original_error": str(e)},
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "original_error": str(e)},
                 ) from e
 
         return val
@@ -242,6 +288,9 @@ class LocalizationService:
 
         Returns:
             The translated string.
+
+        Raises:
+            AppException: If the translation key is missing or formatting fails (ErrorCodes.CONFIGURATION_ERROR).
         """
         return cls.translate(key, lang, **kwargs)
 

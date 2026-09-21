@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import json
 from pathlib import Path
 
 import pytest
+from fastapi import status
+from pydantic import ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.localization import (
+    LocaleTranslationsDTO,
     LocalizationService,
     get_language,
     set_language,
@@ -51,8 +56,8 @@ def test_load_if_needed_missing_dir() -> None:
     with pytest.raises(AppException) as exc_info:
         LocalizationService.load_if_needed()
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 def test_load_if_needed_no_files(tmp_path: Path) -> None:
@@ -63,8 +68,8 @@ def test_load_if_needed_no_files(tmp_path: Path) -> None:
     with pytest.raises(AppException) as exc_info:
         LocalizationService.load_if_needed()
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 def test_load_if_needed_corrupt_json(tmp_path: Path) -> None:
@@ -76,8 +81,27 @@ def test_load_if_needed_corrupt_json(tmp_path: Path) -> None:
     with pytest.raises(AppException) as exc_info:
         LocalizationService.load_if_needed()
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
+
+
+def test_load_if_needed_filesystem_oserror(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    l10n_dir = tmp_path / "l10n"
+    l10n_dir.mkdir()
+    (l10n_dir / "en.json").write_text(json.dumps({"hello": "Hello"}), encoding="utf-8")
+
+    LocalizationService.L10N_DIR = l10n_dir
+
+    def mock_glob(self: Path, pattern: str) -> list[Path]:
+        raise OSError("Simulated disk read failure")
+
+    monkeypatch.setattr(Path, "glob", mock_glob)
+
+    with pytest.raises(AppException) as exc_info:
+        LocalizationService.load_if_needed()
+
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 def test_translate_success(tmp_path: Path) -> None:
@@ -115,7 +139,7 @@ def test_translate_missing_key(tmp_path: Path) -> None:
     with pytest.raises(AppException) as exc_info:
         LocalizationService.translate("missing_key", lang="en")
 
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
     assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
@@ -128,9 +152,22 @@ def test_translate_missing_interpolation_arg(tmp_path: Path) -> None:
     with pytest.raises(AppException) as exc_info:
         LocalizationService.translate("greeting", lang="en", name="John")
 
-    assert exc_info.value.status_code == 500
-    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
     assert exc_info.value.details["missing_arg"] == "age"
+
+
+def test_translate_invalid_format_string(tmp_path: Path) -> None:
+    l10n_dir = tmp_path / "l10n"
+    l10n_dir.mkdir()
+    (l10n_dir / "en.json").write_text(json.dumps({"broken": "Hello {unclosed"}), encoding="utf-8")
+
+    LocalizationService.L10N_DIR = l10n_dir
+    with pytest.raises(AppException) as exc_info:
+        LocalizationService.translate("broken", lang="en", name="John")
+
+    assert exc_info.value.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
+    assert exc_info.value.details["error_code"] == ErrorCodes.CONFIGURATION_ERROR.value
 
 
 def test_get_alias(tmp_path: Path) -> None:
@@ -139,7 +176,8 @@ def test_get_alias(tmp_path: Path) -> None:
     (l10n_dir / "en.json").write_text(json.dumps({"greeting": "Hello"}), encoding="utf-8")
 
     LocalizationService.L10N_DIR = l10n_dir
-    assert LocalizationService.get("greeting", lang="en") == "Hello"
+    service_get = LocalizationService.get
+    assert service_get("greeting", lang="en") == "Hello"
 
 
 def test_localization_service_translate_and_formatting() -> None:
@@ -181,8 +219,6 @@ def test_localization_service_translate_and_formatting() -> None:
 
 def test_locale_translations_dto_methods() -> None:
     """Test LocaleTranslationsDTO typed methods and template access helpers."""
-    from backend_v2.services.localization import LocaleTranslationsDTO
-
     dto = LocaleTranslationsDTO(translations={"key_a": "Value A", "key_b": "Value B"})
     assert dto.lookup("key_a") == "Value A"
     assert dto.lookup("missing_key") is None
@@ -193,6 +229,12 @@ def test_locale_translations_dto_methods() -> None:
 
     with pytest.raises(AttributeError):
         _ = dto.non_existent_attribute
+
+
+def test_locale_translations_dto_extra_fields_forbidden() -> None:
+    """Verify that LocaleTranslationsDTO forbids extra fields."""
+    with pytest.raises(ValidationError):
+        LocaleTranslationsDTO.model_validate({"translations": {}, "extra_field": "invalid"})
 
 
 def test_localization_service_get_translations() -> None:
@@ -206,3 +248,4 @@ def test_localization_service_get_translations() -> None:
 
     none_dto = LocalizationService.get_translations("non_existent_lang")
     assert none_dto is None
+
