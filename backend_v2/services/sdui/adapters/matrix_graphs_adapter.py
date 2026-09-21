@@ -5,7 +5,10 @@ Visual rules are co-located as a module-level MATRIX_GRAPHS_RULES instance to en
 separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
+from collections.abc import Mapping, Sequence
 
 from backend_v2.models.dtos.sdui_rules import MatrixGraphMinAxesDTO, MatrixGraphsAestheticsDTO
 from backend_v2.models.view.sdui import (
@@ -62,7 +65,9 @@ class MatrixGraphsAdapter:
 
         locale = context.locale
         all_parsed_matrices = context.parsed_matrices
-        section_syntheses = context.profile_cache.section_syntheses if context.profile_cache else {}
+        section_syntheses: Mapping[str, Sequence[AnySduiBlock]] = {}
+        if context.profile_cache is not None and context.profile_cache.section_syntheses:
+            section_syntheses = context.profile_cache.section_syntheses
 
         for grp in context.profile.matrix_synthesis_groups:
             target_blocks = grp.target_blocks
@@ -77,17 +82,17 @@ class MatrixGraphsAdapter:
                     axes.append(axis)
 
             group_id = grp.id
-            section_blocks: list[AnySduiBlock] | None = None
+            section_blocks: list[AnySduiBlock] = []
             if group_id in section_syntheses:
                 section_blocks = list(section_syntheses[group_id])
 
-            has_renderable_content = bool(axes or section_blocks)
+            has_renderable_content = len(axes) > 0 or len(section_blocks) > 0
 
             if has_renderable_content:
-                if grp.title:
+                if grp.title is not None:
                     blocks.append(MarkdownBlock(text=f"### {grp.title.resolve(locale)}"))
 
-                if section_blocks:
+                if len(section_blocks) > 0:
                     blocks.extend(section_blocks)
 
                 # Route graph block emission by deterministic view_type

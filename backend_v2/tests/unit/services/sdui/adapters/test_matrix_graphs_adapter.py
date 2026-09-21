@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import backend_v2.models.state  # noqa: F401
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import MatrixSynthesisGroup, RenderedSynthesisCache
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO
+from backend_v2.models.dtos.sdui_rules import MatrixGraphsAestheticsDTO
 from backend_v2.models.enums import PresetView
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
@@ -12,7 +15,8 @@ from backend_v2.models.view.sdui import (
     SduiScatterPlotBlock,
 )
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MatrixGraphsAdapter
+from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MATRIX_GRAPHS_RULES, MatrixGraphsAdapter
+
 
 
 def test_matrix_graphs_adapter_empty_groups() -> None:
@@ -455,3 +459,12 @@ def test_matrix_graphs_adapter_explicit_view_types() -> None:
     b_text = MatrixGraphsAdapter.build(ctx_text)
     assert len(b_text) == 1
     assert isinstance(b_text[0], MarkdownBlock)
+
+
+def test_matrix_graphs_rules() -> None:
+    """Verify MATRIX_GRAPHS_RULES export is a valid MatrixGraphsAestheticsDTO with correct thresholds."""
+    assert isinstance(MATRIX_GRAPHS_RULES, MatrixGraphsAestheticsDTO)
+    assert MATRIX_GRAPHS_RULES["radar"].min_axes == 3
+    assert MATRIX_GRAPHS_RULES["scatter"].min_axes == 2
+    assert MATRIX_GRAPHS_RULES["metrics"].min_axes == 1
+
