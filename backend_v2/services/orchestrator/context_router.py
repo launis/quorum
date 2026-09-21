@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Context Router for dynamic UI-driven state pruning.
 
 This module isolates UI-driven routing, step-to-step variable normalization,
@@ -6,9 +8,9 @@ and data culling/pruning logic matching the Phase 9 architecture standards.
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.exceptions import (
     AppException,
@@ -17,6 +19,12 @@ from backend_v2.exceptions import (
     MissingRoutingModeError,
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
+
+__all__ = [
+    "ContextRouter",
+    "RoutingModeConfig",
+    "SnapshotState",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +39,11 @@ class RoutingModeConfig(BaseModel):
         description: Optional routing description.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-    routing_mode: str
-    target: str | None = None
-    source: str | None = None
-    description: str | None = None
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    routing_mode: Annotated[str, Field(description="The routing behavior configuration string.")]
+    target: Annotated[str | None, Field(default=None, description="Optional destination key or path.")] = None
+    source: Annotated[str | None, Field(default=None, description="Optional source key or path.")] = None
+    description: Annotated[str | None, Field(default=None, description="Optional routing description.")] = None
 
 
 class SnapshotState(BaseModel):
@@ -49,12 +57,16 @@ class SnapshotState(BaseModel):
         global_context_vars: Optional global context variables.
     """
 
-    model_config = ConfigDict(strict=True, extra="forbid")
-    steps: list[Any] | None = None
-    raw_inputs: dict[str, Any] | None = None
-    inputs: Any | None = None
-    metadata: Any | None = None
-    global_context_vars: Any | None = None
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    steps: Annotated[list[Any] | None, Field(default=None, description="Optional list of executed step data.")] = None
+    raw_inputs: Annotated[
+        dict[str, Any] | None, Field(default=None, description="Optional dictionary representing starting inputs.")
+    ] = None
+    inputs: Annotated[Any | None, Field(default=None, description="Optional dynamic inputs structure.")] = None
+    metadata: Annotated[Any | None, Field(default=None, description="Optional execution metadata.")] = None
+    global_context_vars: Annotated[
+        Any | None, Field(default=None, description="Optional global context variables.")
+    ] = None
 
 
 class ContextRouter:
@@ -73,7 +85,6 @@ class ContextRouter:
 
         Raises:
             ConfigurationError: If trace event validation fails structurally or has missing base fields.
-            MissingXaiExtensionError: If a requested extension is missing in the trace.
         """
         try:
             if isinstance(trace_event, LightweightMatrixOutput):
@@ -102,7 +113,7 @@ class ContextRouter:
                 message=f"Fail-Fast: Invalid trace_event format: {e}",
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
-        except Exception as e:
+        except (TypeError, ValueError, KeyError) as e:
             logger.error(
                 "[ContextRouter] %s: Unexpected parsing error during trace event validation: %s",
                 ErrorCodes.RESOURCE_NOT_FOUND.name,
@@ -156,7 +167,12 @@ class ContextRouter:
             config = RoutingModeConfig.model_validate(mapping_config)
             return config.routing_mode
         except ValidationError as e:
-            logger.error("RoutingMode validation failed for path %s.", mapping_path, exc_info=True)
+            logger.error(
+                "RoutingMode validation failed for path %s.",
+                mapping_path,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                exc_info=True,
+            )
             raise MissingRoutingModeError(mapping_path=mapping_path) from e
 
     @staticmethod
@@ -179,7 +195,10 @@ class ContextRouter:
         if not path:
             return path
 
-        clean_path = path[1:] if path.startswith("$") else path
+        if path.startswith("$"):
+            clean_path = path[1:]
+        else:
+            clean_path = path
 
         if clean_path.startswith("steps."):
             parts = clean_path.split(".")
@@ -189,7 +208,11 @@ class ContextRouter:
                 try:
                     state = SnapshotState.model_validate(snapshot)
                 except ValidationError as e:
-                    logger.error("SnapshotState validation failed.", exc_info=True)
+                    logger.error(
+                        "SnapshotState validation failed.",
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        exc_info=True,
+                    )
                     raise AppException(
                         message="Fail-Fast: Snapshot validation failed. Must match SnapshotState.",
                         status_code=500,
@@ -202,7 +225,7 @@ class ContextRouter:
 
                 if not found:
                     msg = f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step)."
-                    logger.error(msg)
+                    logger.error(msg, extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})
                     raise AppException(
                         message=msg,
                         status_code=500,
@@ -216,7 +239,7 @@ class ContextRouter:
                         "Fail-Fast: Legacy V1 '.output' variable format is strictly forbidden. "
                         f"Update the UI mapping to use strict V2 format (e.g. $steps.{step_key})."
                     )
-                    logger.error(msg)
+                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                     raise AppException(
                         message=msg,
                         status_code=400,

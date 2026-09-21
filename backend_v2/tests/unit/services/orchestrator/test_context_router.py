@@ -5,14 +5,14 @@ from backend_v2.exceptions import (
     ConfigurationError,
     MissingRoutingModeError,
 )
-from backend_v2.models.dtos.lightweight_matrix import OutputProfileConfig
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, OutputProfileConfig
 from backend_v2.models.enums import XaiExtensionType
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.context_router import ContextRouter
 
 
 def test_normalize_and_validate_variable_legacy_output_rejected() -> None:
-    # Epic 43: State must be a list of StepOutputDTOs under the 'steps' key
+    # State contract: State must be a list of StepOutputDTOs under the 'steps' key
     snapshot = {"steps": [StepOutputDTO(step_id="step_1", block_id="b", data_type="text", payload={})]}
     path = "$steps.step_1.output"
 
@@ -171,7 +171,7 @@ def test_route_and_prune_success() -> None:
     result = ContextRouter.route_and_prune(trace_event, output_profile)
 
     assert result.normalized_score == 85.0
-    assert result.level_breakdown == {"4.0": {"hits": 1, "total": 1}}
+    assert result.level_breakdown == {"4.0": LevelStatsDTO(hits=1, total=1, dlqs=0)}
     assert result.justification == "Good logic."
     assert result.evaluated_atoms == {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED}
 
