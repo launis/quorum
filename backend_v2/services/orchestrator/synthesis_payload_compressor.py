@@ -3,6 +3,8 @@
 Encapsulates payload compression logic for the synthesis pipeline.
 """
 
+from __future__ import annotations
+
 import copy
 import json
 import logging
@@ -110,7 +112,10 @@ class SynthesisPayloadCompressor:
                 if isinstance(item, EvaluatedAtomDTO):
                     status = item.status
                 elif type(item) is dict:
-                    status = item["status"] if "status" in item else None
+                    if "status" in item:
+                        status = item["status"]
+                    else:
+                        status = None
                 else:
                     logger.error(
                         "[SynthesisPayloadCompressor] %s: Invalid evaluation item type: %s",
@@ -133,8 +138,14 @@ class SynthesisPayloadCompressor:
                     quotes = item.exact_quotes
                     atom_id = item.atom_id or item.tda_id
                 else:
-                    quotes = item["exact_quotes"] if "exact_quotes" in item else []
-                    atom_id = str(item["atom_id"]) if "atom_id" in item else ""
+                    if "exact_quotes" in item:
+                        quotes = item["exact_quotes"]
+                    else:
+                        quotes = []
+                    if "atom_id" in item:
+                        atom_id = str(item["atom_id"])
+                    else:
+                        atom_id = ""
                 return (-len(quotes), atom_id)
 
             deficits.sort(key=sort_key)
@@ -160,7 +171,9 @@ class SynthesisPayloadCompressor:
             def get_atom_id(x: EvaluatedAtomDTO | dict[str, Any]) -> str:
                 if isinstance(x, EvaluatedAtomDTO):
                     return str(x.atom_id or x.tda_id)
-                return str(x["atom_id"]) if "atom_id" in x else ""
+                if "atom_id" in x:
+                    return str(x["atom_id"])
+                return ""
 
             selected.sort(key=get_atom_id)
 
@@ -229,14 +242,15 @@ class SynthesisPayloadCompressor:
                                     and not (q.strip().startswith("[") and q.strip().endswith("]"))
                                 ]
                                 if valid_quotes:
+                                    reasoning = None
+                                    if ev.evaluation_reasoning:
+                                        reasoning = str(ev.evaluation_reasoning)[
+                                            : settings.max_synthesis_reasoning_length
+                                        ]
                                     sanitized_ev = DistilledEvaluation(
                                         atom_id=atom_id,
                                         exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
-                                        semantic_reasoning=(
-                                            str(ev.evaluation_reasoning)[: settings.max_synthesis_reasoning_length]
-                                            if ev.evaluation_reasoning
-                                            else None
-                                        ),
+                                        semantic_reasoning=reasoning,
                                     )
                                     dumped = sanitized_ev.model_dump(mode="json")
                                     if ev.status:
@@ -300,19 +314,18 @@ class SynthesisPayloadCompressor:
                                         valid_quotes.append(q_str)
 
                                 if valid_quotes:
+                                    sem_reasoning = None
+                                    if lite_ev_obj.semantic_reasoning:
+                                        sem_reasoning = str(lite_ev_obj.semantic_reasoning)[
+                                            : settings.max_synthesis_reasoning_length
+                                        ]
                                     sanitized_ev = DistilledEvaluation.model_validate(
                                         lite_ev_obj.model_dump(exclude_unset=True)
                                         | {
                                             "exact_quotes": [
                                                 q[: settings.max_synthesis_quote_length] for q in valid_quotes
                                             ],
-                                            "semantic_reasoning": (
-                                                str(lite_ev_obj.semantic_reasoning)[
-                                                    : settings.max_synthesis_reasoning_length
-                                                ]
-                                                if lite_ev_obj.semantic_reasoning
-                                                else None
-                                            ),
+                                            "semantic_reasoning": sem_reasoning,
                                         }
                                     )
                                     dumped = sanitized_ev.model_dump(mode="json")
