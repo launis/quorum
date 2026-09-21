@@ -14,6 +14,7 @@ from backend_v2.models.view.sdui import (
     AlertBlock,
     AnySduiBlock,
 )
+from backend_v2.models.dtos.sdui_rules import PenaltiesRulesDTO, PenaltyRuleItemDTO
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 
@@ -28,23 +29,25 @@ logger = logging.getLogger(__name__)
 # chains for visual property selection.
 # ============================================================================
 
-PENALTIES_RULES: dict[str, dict[str, Any]] = {
-    "PENALTY_SECURITY": {
-        "severity": VisualIntent.CRITICAL_OVERRIDE,
-        "title_key": "penalty_security_title",
-        "desc_key": "penalty_security_description",
-    },
-    "PENALTY_POST_HOC": {
-        "severity": VisualIntent.WARNING,
-        "title_key": "penalty_post_hoc_title",
-        "desc_key": "penalty_post_hoc_description",
-    },
-    "PENALTY_PASSIVITY": {
-        "severity": VisualIntent.WARNING,
-        "title_key": "penalty_passivity_title",
-        "desc_key": "penalty_passivity_description",
-    },
-}
+PENALTIES_RULES: PenaltiesRulesDTO = PenaltiesRulesDTO(
+    rules={
+        "PENALTY_SECURITY": PenaltyRuleItemDTO(
+            severity=VisualIntent.CRITICAL_OVERRIDE,
+            title_key="penalty_security_title",
+            desc_key="penalty_security_description",
+        ),
+        "PENALTY_POST_HOC": PenaltyRuleItemDTO(
+            severity=VisualIntent.WARNING,
+            title_key="penalty_post_hoc_title",
+            desc_key="penalty_post_hoc_description",
+        ),
+        "PENALTY_PASSIVITY": PenaltyRuleItemDTO(
+            severity=VisualIntent.WARNING,
+            title_key="penalty_passivity_title",
+            desc_key="penalty_passivity_description",
+        ),
+    }
+)
 
 
 # ============================================================================
@@ -101,8 +104,8 @@ class PenaltiesAdapter:
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 ) from e
 
-            title = LocalizationService.translate(aesthetics["title_key"], context.locale)
-            desc = LocalizationService.translate(aesthetics["desc_key"], context.locale)
+            title = LocalizationService.translate(aesthetics.title_key, context.locale)
+            desc = LocalizationService.translate(aesthetics.desc_key, context.locale)
 
             if pct_str is not None:
                 pct_suffix = f" (-{pct_str} %)" if context.locale == "fi" else f" (-{pct_str}%)"
@@ -115,7 +118,7 @@ class PenaltiesAdapter:
             blocks.append(
                 AlertBlock(
                     id=f"alert_penalty_{token.lower()}",
-                    severity=aesthetics["severity"],
+                    severity=aesthetics.severity,
                     text=alert_text,
                     exact_quotes=[],
                     citations=[],

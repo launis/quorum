@@ -16,6 +16,7 @@ __all__ = [
     "BaseDTO",
     "BaseResponseDTO",
     "DataStarvationEvent",
+    "GenericStatusResponseDTO",
 ]
 
 
@@ -42,6 +43,21 @@ class BaseResponseDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     organization_id: Annotated[str | None, Field(exclude=True)] = None
+
+
+class GenericStatusResponseDTO(BaseResponseDTO):
+    """Standard operation status response payload.
+
+    Attributes:
+        status: Operation outcome status indicator.
+        message: Human-readable operational outcome message.
+    """
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    status: Annotated[str, Field(default="ok", description="Operation status indicator")] = "ok"
+    message: Annotated[str, Field(description="Operational outcome message")]
+
 
 
 class DataStarvationEvent(BaseDTO):

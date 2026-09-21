@@ -7,12 +7,22 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from backend_v2.api.dependencies import get_arq_pool, get_current_user_from_header, get_execution_service
+from datetime import datetime, timezone
+
+from backend_v2.api.dependencies import (
+    get_arq_pool,
+    get_current_user_from_header,
+    get_execution_service,
+    get_report_service,
+)
 from backend_v2.main import app
 from backend_v2.models.auth import TokenData, UserRole
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionRecord, JobAcceptedDTO
+from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
+from backend_v2.models.dtos.render import RenderExecutionResultDTO
+from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.enums import VisualIntent
+from backend_v2.models.enums import ReportStatus, VisualIntent
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.view.sdui import ReportView
 
@@ -32,6 +42,14 @@ def override_dependencies() -> Generator[None]:
 def mock_execution_service() -> Any:
     service = AsyncMock()
     app.dependency_overrides[get_execution_service] = lambda: service
+    return service
+
+
+@pytest.fixture
+def mock_report_service() -> Any:
+    service = AsyncMock()
+    service.list_reports_for_execution.return_value = []
+    app.dependency_overrides[get_report_service] = lambda: service
     return service
 
 
@@ -66,7 +84,7 @@ def test_get_execution_sdui_returns_view(override_dependencies: Any, mock_execut
         view_id="test_execution_123",
         title="SDUI Raportti",
         status_theme=VisualIntent.SUCCESS,
-        sections=[],
+        inner_sdui_blocks=[],
         metrics=None,
         system_notification=None,
         references=[],
@@ -79,7 +97,8 @@ def test_get_execution_sdui_returns_view(override_dependencies: Any, mock_execut
     data = response.json()
     assert data["view_id"] == "test_execution_123"
     assert data["title"] == "SDUI Raportti"
-    assert "sections" in data
+    assert "inner_sdui_blocks" in data
+    assert "sections" not in data
 
 
 def test_start_execution_null_matrix_sampling_strategy_regression(
@@ -210,24 +229,33 @@ def test_download_execution_export(override_dependencies: Any, mock_execution_se
 
 
 def test_render_execution_json(override_dependencies: Any, mock_execution_service: Any) -> None:
-    """Test GET /api/v2/execution/executions/{execution_id}/render returning dict."""
+    """Test GET /api/v2/execution/executions/{execution_id}/render returning ReportDataDTO."""
     client = TestClient(app)
-    mock_execution_service.render_execution.return_value = ({"rendered": "ok"}, "application/json", None)
+    mock_rep = ReportDataDTO(
+        execution_id="exe_1234567890abcdef",
+        workflow_id="wor_standard_audit",
+        profile_id="prf_001",
+        global_score=95.0,
+    )
+    mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(
+        content=mock_rep,
+        media_type="application/json",
+        filename=None,
+    )
 
     response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=json")
     assert response.status_code == 200
-    assert response.json() == {"rendered": "ok"}
+    assert response.json()["execution_id"] == "exe_1234567890abcdef"
+    assert response.json()["global_score"] == 95.0
 
 
 def test_render_execution_job_accepted(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id}/render returning JobAcceptedDTO."""
-    from backend_v2.models.domain.execution import JobAcceptedDTO
-
     client = TestClient(app)
-    mock_execution_service.render_execution.return_value = (
-        JobAcceptedDTO(status="Accepted", message="Rendering queued", execution_id="exe_1234567890abcdef"),
-        "application/json",
-        None,
+    mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(
+        content=JobAcceptedDTO(status="Accepted", message="Rendering queued", execution_id="exe_1234567890abcdef"),
+        media_type="application/json",
+        filename=None,
     )
 
     response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=pdf")
@@ -238,7 +266,11 @@ def test_render_execution_job_accepted(override_dependencies: Any, mock_executio
 def test_render_execution_binary_pdf(override_dependencies: Any, mock_execution_service: Any) -> None:
     """Test GET /api/v2/execution/executions/{execution_id}/render returning binary pdf."""
     client = TestClient(app)
-    mock_execution_service.render_execution.return_value = (b"%PDF-1.4", "application/pdf", "report.pdf")
+    mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(
+        content=b"%PDF-1.4",
+        media_type="application/pdf",
+        filename="report.pdf",
+    )
 
     response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=pdf")
     assert response.status_code == 200
@@ -291,3 +323,120 @@ def test_reject_evidence_quote(override_dependencies: Any, mock_execution_servic
     )
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_render_execution_flat(override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any) -> None:
+    """Test GET /api/v2/execution/executions/{execution_id}/render returning FlatExecutionRecordDTO."""
+    client = TestClient(app)
+    mock_flat = FlatExecutionRecordDTO(
+        execution_id="exe_1234567890abcdef",
+        workflow_id="wor_standard_audit",
+        status="PASSED",
+        global_score=90.0,
+    )
+    mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(
+        content=mock_flat,
+        media_type="application/json",
+        filename=None,
+    )
+
+    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=flat")
+    assert response.status_code == 200
+    assert response.json()["status"] == "PASSED"
+    assert response.json()["global_score"] == 90.0
+
+
+def test_render_execution_string_html(override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any) -> None:
+    """Test GET /api/v2/execution/executions/{execution_id}/render returning string content."""
+    client = TestClient(app)
+    mock_execution_service.render_execution.return_value = RenderExecutionResultDTO(
+        content="<html>Report</html>",
+        media_type="text/html",
+        filename="report.html",
+    )
+
+    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=html")
+    assert response.status_code == 200
+    assert response.text == "<html>Report</html>"
+    assert response.headers["content-disposition"] == 'attachment; filename="report.html"'
+
+
+def test_render_execution_precompiled_pdf(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
+    """Test transparent resolution of pre-compiled PDF ReportArtifact."""
+    client = TestClient(app)
+    mock_report = ReportArtifactSummaryDTO(
+        id="rep_1234567890abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_001",
+        locale="fi",
+        title="Raportti",
+        status=ReportStatus.READY,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    mock_report_service.list_reports_for_execution.return_value = [mock_report]
+    mock_report_service.get_report_pdf_bytes.return_value = (b"%PDF-1.4", "cached_report.pdf")
+
+    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=pdf&profile_id=prf_001")
+    assert response.status_code == 200
+    assert response.headers["content-disposition"] == 'attachment; filename="cached_report.pdf"'
+    assert response.content == b"%PDF-1.4"
+
+
+def test_render_execution_precompiled_json(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
+    """Test transparent resolution of pre-compiled JSON ReportArtifact."""
+    client = TestClient(app)
+    mock_report = ReportArtifactSummaryDTO(
+        id="rep_1234567890abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_001",
+        locale="fi",
+        title="Raportti",
+        status=ReportStatus.READY,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    mock_report_service.list_reports_for_execution.return_value = [mock_report]
+    mock_sdui = ReportDataDTO(
+        execution_id="exe_1234567890abcdef",
+        workflow_id="wor_audit",
+        profile_id="prf_001",
+        global_score=88.0,
+    )
+    mock_report_service.get_report_sdui.return_value = mock_sdui
+
+    response = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=json&profile_id=prf_001")
+    assert response.status_code == 200
+    assert response.json()["global_score"] == 88.0
+
+
+def test_render_execution_precompiled_excel_and_csv(
+    override_dependencies: Any, mock_execution_service: Any, mock_report_service: Any
+) -> None:
+    """Test transparent resolution of pre-compiled Excel and CSV ReportArtifact."""
+    client = TestClient(app)
+    mock_report = ReportArtifactSummaryDTO(
+        id="rep_1234567890abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_001",
+        locale="fi",
+        title="Raportti",
+        status=ReportStatus.READY,
+        created_at=datetime.now(timezone.utc),
+        updated_at=datetime.now(timezone.utc),
+    )
+    mock_report_service.list_reports_for_execution.return_value = [mock_report]
+    mock_report_service.get_report_excel_bytes.return_value = (b"excel-bytes", "cached_report.xlsx")
+    mock_report_service.get_report_csv_bytes.return_value = (b"csv-bytes", "cached_report.csv")
+
+    res_excel = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=excel&profile_id=prf_001")
+    assert res_excel.status_code == 200
+    assert res_excel.content == b"excel-bytes"
+
+    res_csv = client.get("/api/v2/execution/executions/exe_1234567890abcdef/render?format=csv&profile_id=prf_001")
+    assert res_csv.status_code == 200
+    assert res_csv.content == b"csv-bytes"

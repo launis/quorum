@@ -10,6 +10,11 @@ import logging
 import re
 from typing import Any
 
+from backend_v2.models.dtos.sdui_rules import (
+    PrintableSourcesRulesDTO,
+    SourceDisplayNameDTO,
+    TheoryEvidenceItemDTO,
+)
 from backend_v2.models.enums import EntityPrefix, SourcesDisplayMode
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
@@ -32,54 +37,54 @@ __all__ = ["PRINTABLE_SOURCES_RULES", "PrintableSourcesAdapter"]
 # if/elif/else chains for tool name resolution.
 # ============================================================================
 
-PRINTABLE_SOURCES_RULES: dict[str, Any] = {
-    "literature_source": {
-        "display_name_fi": "Vertaisarvioitu tieteellinen julkaisu ja arviointimalli",
-        "display_name_en": "Peer-reviewed scientific literature & framework",
-    },
-    "theory_evidence_map": {
-        "popper": {
-            "fi": (
+PRINTABLE_SOURCES_RULES: PrintableSourcesRulesDTO = PrintableSourcesRulesDTO(
+    literature_source=SourceDisplayNameDTO(
+        display_name_fi="Vertaisarvioitu tieteellinen julkaisu ja arviointimalli",
+        display_name_en="Peer-reviewed scientific literature & framework",
+    ),
+    theory_evidence_map={
+        "popper": TheoryEvidenceItemDTO(
+            fi=(
                 "Tieteellinen arviointikehys: Hypoteesien ja toimenpiteiden falsifioitavuus, "
                 "epäonnistumiskriteerit ja kriittinen rationalismi."
             ),
-            "en": (
+            en=(
                 "Scientific evaluation framework: Empirical falsifiability of hypotheses, "
                 "failure criteria, and critical rationalism."
             ),
-        },
-        "toulmin": {
-            "fi": "Argumentaatiomalli: Väitteiden oikeutus, taustatuki (backing) ja perusteluketjujen looginen eheys.",
-            "en": "Argumentation model: Claim justification, empirical backing, and logical structure integrity.",
-        },
-        "kahneman": {
-            "fi": (
+        ),
+        "toulmin": TheoryEvidenceItemDTO(
+            fi="Argumentaatiomalli: Väitteiden oikeutus, taustatuki (backing) ja perusteluketjujen looginen eheys.",
+            en="Argumentation model: Claim justification, empirical backing, and logical structure integrity.",
+        ),
+        "kahneman": TheoryEvidenceItemDTO(
+            fi=(
                 "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja "
                 "itsenäisen laadunvalvonnan arviointi."
             ),
-            "en": (
+            en=(
                 "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation."
             ),
-        },
-        "tversky": {
-            "fi": (
+        ),
+        "tversky": TheoryEvidenceItemDTO(
+            fi=(
                 "Kognitiivinen päätöksenteko: Heuristiikat, kognitiiviset vinoumat ja "
                 "itsenäisen laadunvalvonnan arviointi."
             ),
-            "en": (
+            en=(
                 "Cognitive decision-making: Heuristics, cognitive biases, and independent quality assurance evaluation."
             ),
-        },
-        "default": {
-            "fi": "Tieteellinen taustakirjallisuus ja arviointiviitekehys.",
-            "en": "Scientific reference literature and evaluation framework.",
-        },
+        ),
+        "default": TheoryEvidenceItemDTO(
+            fi="Tieteellinen taustakirjallisuus ja arviointiviitekehys.",
+            en="Scientific reference literature and evaluation framework.",
+        ),
     },
-    "default_tool": {
-        "display_name_fi": "Ulkoisen tiedonhaun yhdyskäytävä",
-        "display_name_en": "External Information Retrieval Gateway",
-    },
-}
+    default_tool=SourceDisplayNameDTO(
+        display_name_fi="Ulkoisen tiedonhaun yhdyskäytävä",
+        display_name_en="External Information Retrieval Gateway",
+    ),
+)
 
 
 # ============================================================================
@@ -178,7 +183,7 @@ class PrintableSourcesAdapter:
                         clean_name = t_id.removeprefix("mcp_").replace("_", " ").title()
                         t_name = f"{clean_name} Gateway"
                     else:
-                        t_name = str(PRINTABLE_SOURCES_RULES["default_tool"][f"display_name_{locale}"])
+                        t_name = PRINTABLE_SOURCES_RULES.default_tool.get_display_name(locale)
                     tool_badges.append(t_name)
 
                 summary_lines.append(f"> - **{used_gateways_label}** {', '.join(tool_badges)}")
@@ -250,7 +255,7 @@ class PrintableSourcesAdapter:
                     clean_name = trace.tool_id.removeprefix("mcp_").replace("_", " ").title()
                     t_name = f"{clean_name} Gateway"
                 else:
-                    t_name = str(PRINTABLE_SOURCES_RULES["default_tool"][f"display_name_{locale}"])
+                    t_name = PRINTABLE_SOURCES_RULES.default_tool.get_display_name(locale)
 
                 urls_to_render = [u.strip() for u in trace.source_urls if u.strip()]
                 if not urls_to_render:
@@ -272,16 +277,9 @@ class PrintableSourcesAdapter:
                         evidence_lines.append(f"  - **{theory_label}** {trace.response_summary.strip()}")
 
             # Render remaining standalone cited sources with full evidence details in VERIFIED_EVIDENCE mode
-            if "literature_source" in PRINTABLE_SOURCES_RULES:
-                lit_rule = PRINTABLE_SOURCES_RULES["literature_source"]
-            else:
-                lit_rule = PRINTABLE_SOURCES_RULES["default_tool"]
-            lit_name = str(lit_rule[f"display_name_{locale}"])
-            theory_map = (
-                PRINTABLE_SOURCES_RULES["theory_evidence_map"]
-                if "theory_evidence_map" in PRINTABLE_SOURCES_RULES
-                else {}
-            )
+            lit_rule = PRINTABLE_SOURCES_RULES.literature_source
+            lit_name = lit_rule.get_display_name(locale)
+            theory_map = PRINTABLE_SOURCES_RULES.theory_evidence_map
 
             for src in clean_cited_sources:
                 if src not in rendered_urls:
@@ -321,10 +319,10 @@ class PrintableSourcesAdapter:
                         evidence_lines.append(f"  - **{observation_label}** {no_obs_text}")
 
                     # Resolve theoretical grounding description
-                    if raw_author in theory_map and locale in theory_map[raw_author]:
-                        theory_desc = str(theory_map[raw_author][locale])
-                    elif "default" in theory_map and locale in theory_map["default"]:
-                        theory_desc = str(theory_map["default"][locale])
+                    if raw_author in theory_map:
+                        theory_desc = theory_map[raw_author].get_text(locale)
+                    elif "default" in theory_map:
+                        theory_desc = theory_map["default"].get_text(locale)
                     else:
                         theory_desc = None
 

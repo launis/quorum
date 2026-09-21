@@ -59,17 +59,25 @@ def test_flat_file_service_flatten_results() -> None:
 
     flat_data = FlatFileService.flatten_results(record, report_dto=report)
 
-    assert flat_data["execution_id"] == execution_id
-    assert flat_data["workflow_id"] == "wf_test"
-    assert flat_data["status"] == "PASSED"
-    assert flat_data["global_score"] == 85.0
-    assert flat_data["has_warning"] is False
+    assert flat_data.execution_id == execution_id
+    assert flat_data.workflow_id == "wf_test"
+    assert flat_data.status == "PASSED"
+    assert flat_data.global_score == 85.0
+    assert flat_data.has_warning is False
 
     # Check flattened trace data
-    assert flat_data["matrix_blk_1_score"] == 4.0
-    assert flat_data["matrix_blk_1_reasoning"] == "Passed because of X"
-    assert flat_data["matrix_blk_1_quote"] == "This is a quote"
-    assert flat_data["matrix_blk_1_source"] == "Source A"
+    assert flat_data.matrix_metrics["matrix_blk_1_score"] == 4.0
+    assert flat_data.matrix_metrics["matrix_blk_1_reasoning"] == "Passed because of X"
+    assert flat_data.matrix_metrics["matrix_blk_1_quote"] == "This is a quote"
+    assert flat_data.matrix_metrics["matrix_blk_1_source"] == "Source A"
+
+    # Check to_csv_dict() serialization for export
+    csv_dict = flat_data.to_csv_dict()
+    assert csv_dict["execution_id"] == execution_id
+    assert csv_dict["workflow_id"] == "wf_test"
+    assert csv_dict["status"] == "PASSED"
+    assert csv_dict["global_score"] == 85.0
+    assert csv_dict["matrix_blk_1_score"] == 4.0
 
 
 def test_flat_file_service_empty_results() -> None:
@@ -89,7 +97,11 @@ def test_flat_file_service_empty_results() -> None:
 
     flat_data = FlatFileService.flatten_results(record)
 
-    assert flat_data["execution_id"] == execution_id
-    assert flat_data["workflow_id"] == "wf_empty"
-    assert flat_data["status"] == "FAILED"
-    assert "global_score" not in flat_data
+    assert flat_data.execution_id == execution_id
+    assert flat_data.workflow_id == "wf_empty"
+    assert flat_data.status == "FAILED"
+    assert flat_data.global_score is None
+
+    csv_dict = flat_data.to_csv_dict()
+    assert csv_dict["global_score"] is None
+    assert csv_dict["execution_id"] == execution_id

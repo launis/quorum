@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any
 from warnings import deprecated
 
 from arq import ArqRedis
@@ -22,10 +21,11 @@ from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundErro
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, JobAcceptedDTO
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.render import RenderExecutionResultDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
-from backend_v2.models.view.sdui import AlertBlock, MarkdownBlock, ParagraphBlock
+from backend_v2.models.view.sdui import AlertBlock, MarkdownBlock, ParagraphBlock, ReportView
 from backend_v2.services import blueprint, flattener, pdf_generator, sdui_mapper_service, storage
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.export_service import ExportService
@@ -139,7 +139,7 @@ class ExecutionLegacyRenderService:
             local_time_str=local_time_str,
         )
 
-    async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> dict[str, Any]:
+    async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> ReportView:
         """Get the SDUI view components for an execution."""
         dto = await self._get_report_dto(initiator, execution_id)
         mapper = sdui_mapper_service.SduiMapperService()
@@ -154,7 +154,7 @@ class ExecutionLegacyRenderService:
                         pass
         if title_summary:
             view = view.model_copy(update={"title": title_summary.strip()[:100]})
-        return view.model_dump(mode="json")
+        return view
 
     async def enqueue_pdf_generation(
         self,
@@ -200,7 +200,7 @@ class ExecutionLegacyRenderService:
         arq_pool: ArqRedis,
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
-    ) -> tuple[bytes | list[Any] | dict[str, Any] | Any, str, str | None]:
+    ) -> RenderExecutionResultDTO:
         """Render an execution record to requested format."""
         record = await self._get_execution(initiator=initiator, execution_id=execution_id)
         if record.status != ExecutionStatus.PASSED:
@@ -219,7 +219,12 @@ class ExecutionLegacyRenderService:
             rep_dto = await transformer.build_report_dto(
                 execution_id, profile_id, accept_language, custom_preface_md, local_time_str
             )
-            return flattener.FlatFileService.flatten_results(record, rep_dto), "application/json", None
+            flat_rec = flattener.FlatFileService.flatten_results(record, rep_dto)
+            return RenderExecutionResultDTO(
+                content=flat_rec,
+                media_type="application/json",
+                filename=None,
+            )
 
         workflow_data = await self.workflow_repo.get_workflow_by_id(record.workflow_id)
         if not workflow_data:
@@ -248,10 +253,12 @@ class ExecutionLegacyRenderService:
                 if v_step_id in record.step_states
                 else "Valmistellaan tulostusta..."
             )
-            return (
-                JobAcceptedDTO(status=ExecutionStatus.PENDING, message=active_message, execution_id=execution_id),
-                "application/json",
-                None,
+            return RenderExecutionResultDTO(
+                content=JobAcceptedDTO(
+                    status=ExecutionStatus.PENDING, message=active_message, execution_id=execution_id
+                ),
+                media_type="application/json",
+                filename=None,
             )
 
         if fmt == "json":
@@ -261,7 +268,11 @@ class ExecutionLegacyRenderService:
                 custom_preface_md=custom_preface_md,
                 local_time_str=local_time_str,
             )
-            return dto.model_dump(mode="json"), "application/json", None
+            return RenderExecutionResultDTO(
+                content=dto,
+                media_type="application/json",
+                filename=None,
+            )
 
         target_locale = accept_language if accept_language else record.target_locale
         if not target_locale:
@@ -271,10 +282,11 @@ class ExecutionLegacyRenderService:
         if fmt == "pdf":
             if resolved_pid == default_pid and record.pdf_report_path and not custom_preface_md and not local_time_str:
                 try:
-                    return (
-                        await storage_drv.read(record.pdf_report_path),
-                        "application/pdf",
-                        f"execution_{execution_id}.pdf",
+                    pdf_bytes = await storage_drv.read(record.pdf_report_path)
+                    return RenderExecutionResultDTO(
+                        content=pdf_bytes,
+                        media_type="application/pdf",
+                        filename=f"execution_{execution_id}.pdf",
                     )
                 except Exception as strg_err:
                     logger.error("[LegacyRenderService] Storage read failed: %s", strg_err)
@@ -289,7 +301,11 @@ class ExecutionLegacyRenderService:
 
         if fmt == "html":
             html_string = await pdf_service.generate_execution_html(execution_id, rep_dto, target_locale)
-            return html_string.encode("utf-8"), "text/html", f"execution_{execution_id}.html"
+            return RenderExecutionResultDTO(
+                content=html_string.encode("utf-8"),
+                media_type="text/html",
+                filename=f"execution_{execution_id}.html",
+            )
 
         if fmt == "pdf":
             pdf_bytes = await pdf_service.generate_execution_pdf(execution_id, rep_dto, target_locale)
@@ -307,7 +323,11 @@ class ExecutionLegacyRenderService:
                         "Failed to save PDF to storage", 500, {"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value}
                     ) from heal_err
 
-            return pdf_bytes, "application/pdf", f"execution_{execution_id}.pdf"
+            return RenderExecutionResultDTO(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                filename=f"execution_{execution_id}.pdf",
+            )
 
         raise AppException(
             f"Unsupported format: {format_type}", 400, {"error_code": ErrorCodes.VALIDATION_FAILED.value}

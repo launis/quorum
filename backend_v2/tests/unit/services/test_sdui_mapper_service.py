@@ -78,19 +78,44 @@ def test_map_report_to_sdui_complete() -> None:
     assert view.view_id == "exe_123"
     assert view.status_theme == "warning"
     assert view.metrics is not None
-    assert view.metrics["global_score"] == 90.0
-    assert view.metrics["strictness_level"] == 80
-
-    # Sections: mcp (1) -> total 1
-    assert len(view.sections) == 1
+    assert view.metrics.global_score == 90.0
+    assert view.metrics.strictness_level == 80.0
 
     # Check SDUI Blocks
     assert len(view.inner_sdui_blocks) == 1
+    assert view.inner_sdui_blocks[0].title is not None
     assert view.inner_sdui_blocks[0].title.translations["en"] == "Metrics"
     assert view.inner_sdui_blocks[0].axes[0].name == "Security Policy"
 
-    # Check MCP Audit Section
-    assert view.sections[0].id == "xai_mcp_audit"
-    assert view.sections[0].type.value == "USAGE_STATS"
-    assert len(view.sections[0].data) == 1
-    assert view.sections[0].data[0]["tool_id"] == "mcp_tavily"
+
+def test_map_report_to_sdui_na_outcomes() -> None:
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+    from backend_v2.models.view.sdui import SduiNACard
+
+    mapper = SduiMapperService()
+    na_result = AtomResultDTO(
+        tda_id="tda_1",
+        status=ExecutionStatus.N_A,
+        short_circuit_reason_tda_ids=["tda_1"],
+    )
+    report = ReportDataDTO(
+        execution_id="exe_na",
+        workflow_id="wf_na",
+        profile_id="prof_na",
+        results=[na_result],
+        hydrated_references={
+            "tda_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.N_A_CARD,
+                resolved_claim="Requirement not applicable for this sector",
+            )
+        },
+    )
+    view = mapper.map_report_to_sdui(report, execution_id="exe_na")
+    assert len(view.inner_sdui_blocks) == 1
+    assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
+    assert view.inner_sdui_blocks[0].short_circuit_reason_tda_ids == ["tda_1"]
+    assert "Requirement not applicable for this sector" in view.inner_sdui_blocks[0].message
+
+
+

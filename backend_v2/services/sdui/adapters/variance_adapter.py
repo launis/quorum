@@ -24,6 +24,7 @@ from backend_v2.models.view.sdui import (
     SduiGridBlock,
     SduiQuadrantMatrixBlock,
 )
+from backend_v2.models.dtos.sdui_rules import VarianceRuleItemDTO, VarianceRulesDTO
 from backend_v2.services.localization import LocalizationService
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.settings import get_settings
@@ -45,17 +46,13 @@ logger = logging.getLogger(__name__)
 # To understand the logic:     Read SECTION 2 below.
 # ============================================================================
 
-VARIANCE_RULES: dict[str, dict[str, VisualIntent]] = {
-    "aligned": {
-        "severity": VisualIntent.INFO,
-    },
-    "misaligned": {
-        "severity": VisualIntent.WARNING,
-    },
-    "misaligned_sycophancy": {
-        "severity": VisualIntent.WARNING,
-    },
-}
+VARIANCE_RULES: VarianceRulesDTO = VarianceRulesDTO(
+    rules={
+        "aligned": VarianceRuleItemDTO(severity=VisualIntent.INFO),
+        "misaligned": VarianceRuleItemDTO(severity=VisualIntent.WARNING),
+        "misaligned_sycophancy": VarianceRuleItemDTO(severity=VisualIntent.WARNING),
+    }
+)
 
 
 # ============================================================================
@@ -181,7 +178,7 @@ class VarianceAdapter:
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             ) from e
 
-        alert_severity = aesthetics["severity"]
+        alert_severity = aesthetics.severity
         align_val = LocalizationService.translate(f"alignment_{lvl_key}", context.locale)
 
         # 3. EXTRACT PERFORMATIVE PATTERNS (if available)

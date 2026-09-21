@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import AliasChoices, ConfigDict, Field, StringConstraints
 
@@ -139,19 +139,20 @@ class SystemNotification(V2CoreBase):
     level: StrictStr = "info"
 
 
-class SectionType(StrEnum):
-    SCORE_CARD = "SCORE_CARD"
-    MARKDOWN_BLOCK = "MARKDOWN_BLOCK"
-    USAGE_STATS = "USAGE_STATS"
-    MATRIX_BLOCK = "MATRIX_BLOCK"
+class ReportViewMetricsDTO(V2CoreBase):
+    """Global execution performance and audit metrics.
 
+    Attributes:
+        global_score: Global normalized evaluation score (0-100).
+        strictness_level: Continuous execution strictness level.
+        total_word_count: Total word count across evaluated inputs.
+    """
 
-class UiSection(V2CoreBase):
-    model_config = ConfigDict(strict=True, extra="forbid")
-    id: str
-    type: SectionType
-    title: str
-    data: Any
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    global_score: Annotated[float | None, Field(default=None, description="Global audit score")] = None
+    strictness_level: Annotated[float | None, Field(default=None, description="Strictness level percentage")] = None
+    total_word_count: Annotated[int | None, Field(default=None, description="Total evaluated word count")] = None
 
 
 class ReportView(V2CoreBase):
@@ -161,7 +162,7 @@ class ReportView(V2CoreBase):
         view_id: Session Execution unique identifier.
         title: Localization title key reference.
         status_theme: Status color theme indicator.
-        sections: Array of polymorphic UI rendering nodes.
+        inner_sdui_blocks: Ordered list of SDUI components.
         metrics: Extra global key-value performance indicators.
         system_notification: Global alerts if applicable.
         references: Structured citations matrix.
@@ -174,15 +175,10 @@ class ReportView(V2CoreBase):
     status_theme: Annotated[
         VisualIntent, Field(default=VisualIntent.SUCCESS, description="Visual theme: 'success' | 'warning' | 'danger'")
     ]
-    sections: Annotated[
-        list[UiSection], Field(default_factory=list, description="Legacy sections array for backward compatibility")
-    ]
     inner_sdui_blocks: Annotated[
         list[AnySduiBlock], Field(default_factory=list, description="Ordered list of SDUI components")
     ]
-    metrics: Annotated[
-        dict[str, Any] | None, Field(default=None, description="Global audit metrics (Word Count, etc.)")
-    ]
+    metrics: Annotated[ReportViewMetricsDTO | None, Field(default=None, description="Global audit metrics")] = None
     system_notification: Annotated[
         SystemNotification | None, Field(default=None, description="Global notification/warning")
     ] = None

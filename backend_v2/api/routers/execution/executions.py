@@ -5,7 +5,6 @@ including starting, resuming, tracking, and rendering results.
 """
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Query, Request, status
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -24,6 +23,8 @@ from backend_v2.models.domain.execution import (
     ExecutionRecord,
     JobAcceptedDTO,
 )
+from backend_v2.models.dtos.base import GenericStatusResponseDTO
+from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
@@ -266,7 +267,7 @@ async def get_execution_sdui(
     execution_id: str,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-) -> Any:
+) -> ReportView:
     """Get the Server-Driven UI component tree for rendering.
 
     Args:
@@ -319,48 +320,45 @@ async def render_execution(
     accept_language = request.headers.get("accept-language")
 
     # Transparent resolution: check if a pre-compiled ReportArtifact is ready
-    try:
-        existing_reports = await report_service.list_reports_for_execution(execution_id)
-        matching_report: ReportArtifactSummaryDTO | None = None
-        for r in existing_reports:
-            if r.status == ReportStatus.READY:
-                if profile_id and r.profile_id == profile_id:
-                    matching_report = r
-                    break
-                elif not profile_id:
-                    matching_report = r
-                    break
+    existing_reports = await report_service.list_reports_for_execution(execution_id)
+    matching_report: ReportArtifactSummaryDTO | None = None
+    for r in existing_reports:
+        if r.status == ReportStatus.READY:
+            if profile_id and r.profile_id == profile_id:
+                matching_report = r
+                break
+            elif not profile_id:
+                matching_report = r
+                break
 
-        if matching_report and not custom_preface_md and not local_time_str:
-            fmt = format.lower()
-            if fmt == "pdf":
-                pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
-                return Response(
-                    content=pdf_bytes,
-                    media_type="application/pdf",
-                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-                )
-            elif fmt == "json":
-                sdui_dto = await report_service.get_report_sdui(matching_report.id)
-                return JSONResponse(content=sdui_dto.model_dump(mode="json"))
-            elif fmt == "excel":
-                excel_bytes, report_filename = await report_service.get_report_excel_bytes(matching_report.id)
-                return Response(
-                    content=excel_bytes,
-                    media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-                )
-            elif fmt == "csv":
-                csv_bytes, report_filename = await report_service.get_report_csv_bytes(matching_report.id)
-                return Response(
-                    content=csv_bytes,
-                    media_type="text/csv",
-                    headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
-                )
-    except Exception as resolve_err:
-        logger.debug("[ExecutionsRouter] Pre-compiled report resolution bypassed: %s", resolve_err)
+    if matching_report and not custom_preface_md and not local_time_str:
+        fmt = format.lower()
+        if fmt == "pdf":
+            pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
+            return Response(
+                content=pdf_bytes,
+                media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+            )
+        elif fmt == "json":
+            sdui_dto = await report_service.get_report_sdui(matching_report.id)
+            return JSONResponse(content=sdui_dto.model_dump(mode="json"))
+        elif fmt == "excel":
+            excel_bytes, report_filename = await report_service.get_report_excel_bytes(matching_report.id)
+            return Response(
+                content=excel_bytes,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+            )
+        elif fmt == "csv":
+            csv_bytes, report_filename = await report_service.get_report_csv_bytes(matching_report.id)
+            return Response(
+                content=csv_bytes,
+                media_type="text/csv",
+                headers={"Content-Disposition": f'attachment; filename="{report_filename}"'},
+            )
 
-    content, media_type, filename = await execution_service.render_execution(
+    render_res = await execution_service.render_execution(
         initiator=current_user,
         execution_id=execution_id,
         format_type=format,
@@ -372,16 +370,20 @@ async def render_execution(
     )
 
     headers = {}
-    if filename:
-        headers["Content-Disposition"] = f'attachment; filename="{filename}"'
+    if render_res.filename:
+        headers["Content-Disposition"] = f'attachment; filename="{render_res.filename}"'
 
-    if isinstance(content, JobAcceptedDTO):
-        return JSONResponse(content=content.model_dump(mode="json"), status_code=status.HTTP_202_ACCEPTED)
-
-    if isinstance(content, (dict, list)):  # noqa: QGR012 [REASON: FastAPI router HTTP transport boundary serialization]
-        return JSONResponse(content=content)
-
-    return Response(content=content, media_type=media_type, headers=headers)
+    match render_res.content:
+        case JobAcceptedDTO() as job_dto:
+            return JSONResponse(content=job_dto.model_dump(mode="json"), status_code=status.HTTP_202_ACCEPTED)
+        case ReportDataDTO() as rep_dto:
+            return JSONResponse(content=rep_dto.model_dump(mode="json"))
+        case FlatExecutionRecordDTO() as flat_rec:
+            return JSONResponse(content=flat_rec.model_dump(mode="json"))
+        case bytes() as byte_content:
+            return Response(content=byte_content, media_type=render_res.media_type, headers=headers)
+        case str() as str_content:
+            return Response(content=str_content, media_type=render_res.media_type, headers=headers)
 
 
 @router.post("/{execution_id}/render_pdf", response_model=JobAcceptedDTO, status_code=status.HTTP_202_ACCEPTED)
@@ -454,14 +456,18 @@ async def delete_profile_synthesis(
     )
 
 
-@router.patch("/{execution_id}/atoms/{atom_id}/override", status_code=status.HTTP_200_OK)
+@router.patch(
+    "/{execution_id}/atoms/{atom_id}/override",
+    response_model=GenericStatusResponseDTO,
+    status_code=status.HTTP_200_OK,
+)
 async def override_atom(
     execution_id: str,
     atom_id: str,
     payload: HumanOverrideRequest,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-) -> dict[str, str]:
+) -> GenericStatusResponseDTO:
     """Apply a human override to a scorecard atom.
 
     Args:
@@ -483,17 +489,21 @@ async def override_atom(
         atom_id=atom_id,
         payload=payload,
     )
-    return {"status": "ok", "message": "Atom overridden and execution recalculated successfully."}
+    return GenericStatusResponseDTO(status="ok", message="Atom overridden and execution recalculated successfully.")
 
 
-@router.put("/{execution_id}/evidence/{evq_id}/reject", status_code=status.HTTP_200_OK)
+@router.put(
+    "/{execution_id}/evidence/{evq_id}/reject",
+    response_model=GenericStatusResponseDTO,
+    status_code=status.HTTP_200_OK,
+)
 async def reject_evidence_quote(
     execution_id: str,
     evq_id: str,
     payload: EvidenceRejectionRequest,
     current_user: CurrentUserDep,
     execution_service: ExecutionServiceDep,
-) -> dict[str, str]:
+) -> GenericStatusResponseDTO:
     """Reject an evidence quote and soft delete it from the synthesis.
 
     Args:
@@ -515,4 +525,4 @@ async def reject_evidence_quote(
         evq_id=evq_id,
         reason=payload.rejection_reason,
     )
-    return {"status": "ok", "message": "Evidence quote rejected successfully."}
+    return GenericStatusResponseDTO(status="ok", message="Evidence quote rejected successfully.")

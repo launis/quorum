@@ -10,8 +10,6 @@ import io
 import logging
 from typing import Any
 
-import pandas as pd
-
 from backend_v2.database.interfaces import IComponentRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -162,16 +160,16 @@ class ExportService:
                 else:
                     matrix_label = atom.matrix_id
 
-            ref = hydrated_refs.get(atom.tda_id)
+            ref = hydrated_refs[atom.tda_id] if atom.tda_id in hydrated_refs else None
             criterion = atom.tda_id
             if ref is not None:
                 criterion = ref.resolved_claim
 
             target_block: AnyPromptBlock | None = None
-            if atom.matrix_id:
-                target_block = blocks_by_id.get(atom.matrix_id)
-            if target_block is None:
-                target_block = blocks_by_id.get(atom.tda_id)
+            if atom.matrix_id and atom.matrix_id in blocks_by_id:
+                target_block = blocks_by_id[atom.matrix_id]
+            elif atom.tda_id in blocks_by_id:
+                target_block = blocks_by_id[atom.tda_id]
             rule_text = _extract_claim_rule(target_block)
 
             reasoning = atom.evaluation_reasoning
@@ -191,7 +189,7 @@ class ExportService:
             if "internalized_rule" in atom.extensions:
                 internalized_rule_val = atom.extensions["internalized_rule"]
 
-            confidence_val = atom.extensions.get("confidence")
+            confidence_val = atom.extensions["confidence"] if "confidence" in atom.extensions else None
 
             source_id_val = ""
             if "source_id" in atom.extensions:
@@ -219,6 +217,8 @@ class ExportService:
 
         output = io.BytesIO()
         try:
+            import pandas as pd
+
             with pd.ExcelWriter(output, engine="openpyxl") as writer:
                 pd.DataFrame(summary_rows).to_excel(writer, sheet_name=h["excelSheetSummary"], index=False)
                 pd.DataFrame(rows).to_excel(writer, sheet_name=h["excelSheetRawData"], index=False)
@@ -251,9 +251,10 @@ class ExportService:
             A tuple of the CSV file bytes and the suggested filename.
         """
         flat_data = FlatFileService.flatten_results(execution, report_dto)
+        csv_dict = flat_data.to_csv_dict()
         output = io.StringIO()
-        writer = csv.DictWriter(output, fieldnames=list(flat_data.keys()))
+        writer = csv.DictWriter(output, fieldnames=list(csv_dict.keys()))
         writer.writeheader()
-        writer.writerow(flat_data)
+        writer.writerow(csv_dict)
         target_id = execution_id if execution_id is not None else execution.id
         return output.getvalue().encode("utf-8"), f"execution_export_{target_id}.csv"

@@ -1,5 +1,4 @@
 import logging
-from typing import Any
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -8,11 +7,10 @@ from backend_v2.models.enums import ExecutionStatus, VisualIntent
 from backend_v2.models.view.sdui import (
     AnySduiBlock,
     ReportView,
+    ReportViewMetricsDTO,
     SduiNACard,
     SduiQuoteCard,
     SduiWarningCard,
-    SectionType,
-    UiSection,
 )
 
 logger = logging.getLogger(__name__)
@@ -46,33 +44,16 @@ class SduiMapperService:
     def map_report_to_sdui(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
         """Map ReportDataDTO to ReportView."""
         # Phase B1: Metrics & Telemetry (Capture global_score, strictness_level, has_warning)
-        metrics: dict[str, Any] = {}
-        if report.global_score is not None:
-            metrics["global_score"] = report.global_score
-        if report.strictness_level is not None:
-            metrics["strictness_level"] = report.strictness_level
+        metrics = ReportViewMetricsDTO(
+            global_score=report.global_score,
+            strictness_level=report.strictness_level,
+        )
 
         status_theme = VisualIntent.WARNING if report.has_warning else VisualIntent.SUCCESS
 
-        sections: list[UiSection] = []
-
-        # Phase B1: XAI Transparency
-        if report.mcp_tool_audit:
-            title_audit = I18nText(
-                translations={"fi": "Auditointityökalujen käyttö", "en": "Audit Tool Usage"}
-            ).resolve(lang)
-            sections.append(
-                UiSection(
-                    id="xai_mcp_audit",
-                    type=SectionType.USAGE_STATS,
-                    title=title_audit,
-                    data=[trace.model_dump(mode="json") for trace in report.mcp_tool_audit],
-                )
-            )
+        inner_blocks: list[AnySduiBlock] = list(report.inner_sdui_blocks)
 
         # Phase 3a: Map N_A outcomes to SDUI N_A Cards
-        na_blocks = []
-
         na_default_msg = I18nText(translations={"fi": "Ei sovelleta (N/A)", "en": "Not applicable (N/A)"}).resolve(lang)
         na_rule_prefix = I18nText(
             translations={"fi": "Ohitettu säännön perusteella:", "en": "Skipped based on rule:"}
@@ -87,29 +68,16 @@ class SduiMapperService:
                         hydrated = report.hydrated_references[tda_id]
                         reason_msg = f"{na_rule_prefix} {hydrated.resolved_claim}"
 
-                na_blocks.append(
+                inner_blocks.append(
                     SduiNACard(
-                        short_circuit_reason_tda_ids=result.short_circuit_reason_tda_ids, message=reason_msg
-                    ).model_dump(mode="json")
+                        short_circuit_reason_tda_ids=result.short_circuit_reason_tda_ids,
+                        message=reason_msg,
+                    )
                 )
-
-        if na_blocks:
-            title_na = I18nText(translations={"fi": "Ohitetut Osiot (N/A)", "en": "Skipped Sections (N/A)"}).resolve(
-                lang
-            )
-            sections.append(
-                UiSection(
-                    id="na_outcomes",
-                    type=SectionType.MARKDOWN_BLOCK,
-                    title=title_na,
-                    data=na_blocks,
-                )
-            )
 
         return ReportView(
             view_id=execution_id,
             metrics=metrics,
             status_theme=status_theme,
-            sections=sections,
-            inner_sdui_blocks=report.inner_sdui_blocks,
+            inner_sdui_blocks=inner_blocks,
         )

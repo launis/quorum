@@ -6,9 +6,8 @@ Adheres to V2 Architecture:
 - Prevents deep nesting hiding crucial data for data analysts.
 """
 
-from typing import Any
-
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.view.sdui import (
     SduiMatrixTableBlock,
@@ -22,25 +21,23 @@ class FlatFileService:
     """Service to flatten nested ExecutionRecord results using ReportDataDTO."""
 
     @staticmethod
-    def flatten_results(execution: ExecutionRecord, report_dto: ReportDataDTO | None = None) -> dict[str, Any]:
-        """Flattens the DAG results dictionary into a single-level dictionary.
+    def flatten_results(execution: ExecutionRecord, report_dto: ReportDataDTO | None = None) -> FlatExecutionRecordDTO:
+        """Flattens the DAG results into a strongly typed FlatExecutionRecordDTO.
 
         Args:
             execution: The ExecutionRecord to flatten.
             report_dto: The headless state containing semantic atoms.
 
         Returns:
-            dict[str, Any]: A flat dictionary suitable for CSV serialization.
+            FlatExecutionRecordDTO: A flat execution record suitable for CSV serialization.
         """
-        flat_record: dict[str, Any] = {
-            "execution_id": execution.id,
-            "workflow_id": execution.workflow_id,
-            "status": execution.status.value,
-        }
+        matrix_metrics: dict[str, str | float | int | bool | None] = {}
+        global_score: float | None = None
+        has_warning: bool = False
 
         if report_dto:
-            flat_record["global_score"] = report_dto.global_score
-            flat_record["has_warning"] = report_dto.has_warning
+            global_score = report_dto.global_score
+            has_warning = report_dto.has_warning
 
             matrices = []
             if report_dto.inner_sdui_blocks:
@@ -57,12 +54,19 @@ class FlatFileService:
                             pass
             for matrix in matrices:
                 matrix_prefix = f"matrix_{matrix.block_id}"
-                flat_record[f"{matrix_prefix}_score"] = matrix.score
+                matrix_metrics[f"{matrix_prefix}_score"] = matrix.score
                 if matrix.semantic_reasoning:
-                    flat_record[f"{matrix_prefix}_reasoning"] = matrix.semantic_reasoning
+                    matrix_metrics[f"{matrix_prefix}_reasoning"] = matrix.semantic_reasoning
                 if matrix.cited_text_quote:
-                    flat_record[f"{matrix_prefix}_quote"] = matrix.cited_text_quote
+                    matrix_metrics[f"{matrix_prefix}_quote"] = matrix.cited_text_quote
                 if matrix.cited_source_id:
-                    flat_record[f"{matrix_prefix}_source"] = matrix.cited_source_id
+                    matrix_metrics[f"{matrix_prefix}_source"] = matrix.cited_source_id
 
-        return flat_record
+        return FlatExecutionRecordDTO(
+            execution_id=execution.id,
+            workflow_id=execution.workflow_id,
+            status=execution.status.value,
+            global_score=global_score,
+            has_warning=has_warning,
+            matrix_metrics=matrix_metrics,
+        )

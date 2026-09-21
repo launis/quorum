@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import TYPE_CHECKING
 from warnings import deprecated
 
 from arq import ArqRedis
+
+if TYPE_CHECKING:
+    from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -22,8 +25,10 @@ from backend_v2.database.interfaces import (
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
+from backend_v2.models.dtos.render import RenderExecutionResultDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
+from backend_v2.models.view.sdui import ReportView
 from backend_v2.services.document_extraction import DocumentExtractionService
 from backend_v2.services.execution.context_service import ExecutionContextService
 from backend_v2.services.execution.ingress_service import ExecutionIngressService, create_execution_record
@@ -43,7 +48,7 @@ __all__ = ["ExecutionService", "create_execution_record"]
 
 
 class ExecutionService:
-    """Unified facade for workflow execution operations."""
+    """Consolidated facade delegating execution operations to decomposed domain services."""
 
     def __init__(
         self,
@@ -55,7 +60,7 @@ class ExecutionService:
         identity_repo: IIdentityRepository | None = None,
         system_repo: ISystemRepository | None = None,
         usage_service: UsageService | None = None,
-        executor: Any = None,
+        executor: DAGExecutor | None = None,
         export_service: ExportService | None = None,
         storage_driver: FileDriver | None = None,
         report_repo: IReportArtifactRepository | None = None,
@@ -175,7 +180,7 @@ class ExecutionService:
         arq_pool: ArqRedis,
         custom_preface_md: str | None = None,
         local_time_str: str | None = None,
-    ) -> tuple[bytes | list[Any] | dict[str, Any] | Any, str, str | None]:
+    ) -> RenderExecutionResultDTO:
         return await self._renderer.render_execution(
             initiator,
             execution_id,
@@ -190,7 +195,7 @@ class ExecutionService:
     async def get_report_dto(self, initiator: TokenData, execution_id: str) -> ReportDataDTO:
         return await self._renderer.get_report_dto(initiator, execution_id)
 
-    async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> dict[str, Any]:
+    async def get_sdui_view(self, initiator: TokenData, execution_id: str) -> ReportView:
         return await self._renderer.get_sdui_view(initiator, execution_id)
 
     async def enqueue_pdf_generation(
