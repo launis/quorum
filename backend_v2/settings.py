@@ -7,6 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Annotated, Any, Literal, Self
 
+from fastapi import status
 from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -585,7 +586,7 @@ class Settings(BaseSettings):
             The verified active target backend strategy.
 
         Raises:
-            AppException: If storage backend is explicitly requested but invalid.
+            AppException: CONFIGURATION_ERROR if storage backend is explicitly requested but invalid.
         """
         if not self.storage_backend:
             return StorageBackend.LOCAL
@@ -600,7 +601,7 @@ class Settings(BaseSettings):
         logger.error("[Settings] %s", msg, extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}, exc_info=True)
         raise AppException(
             message=msg,
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
         )
 
@@ -628,7 +629,7 @@ class Settings(BaseSettings):
             __context: Lifecycle contexts from Pydantic.
 
         Raises:
-            AppException: If critical credentials are missing when mock mode is inactive.
+            AppException: CONFIGURATION_ERROR if critical credentials are missing when mock mode is inactive.
         """
         if not self.use_mock_llm:
             if not os.getenv("GOOGLE_APPLICATION_CREDENTIALS"):
@@ -653,7 +654,7 @@ class Settings(BaseSettings):
                 )
                 raise AppException(
                     message=msg,
-                    status_code=500,
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
                 )
 

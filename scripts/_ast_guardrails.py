@@ -775,7 +775,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         )
 
             # QGR007: Missing ConfigDict(strict=True, extra="forbid")
-            if not self._is_test_file:
+            is_settings = any(
+                (isinstance(b, ast.Name) and b.id == "BaseSettings")
+                or (isinstance(b, ast.Attribute) and b.attr == "BaseSettings")
+                for b in node.bases
+            )
+            if not self._is_test_file and not is_settings:
                 has_model_config = False
                 has_strict_true = False
                 has_extra_forbid = False
