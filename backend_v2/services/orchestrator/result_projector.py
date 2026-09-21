@@ -5,6 +5,8 @@ required by the frontend (AtomResultDTO and HydratedAtomDTO) and aggregates matr
 results into MatrixProjectionResultDTO.
 """
 
+from __future__ import annotations
+
 import logging
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -19,15 +21,13 @@ from backend_v2.models.dtos.hook_delta import (
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, SDUIComponentType, XaiExtensionType
 
+__all__ = ["ResultProjector"]
+
 logger = logging.getLogger(__name__)
 
 
 class ResultProjector:
-    """Projects internal DAG state into presentation DTOs.
-
-    Attributes:
-        None
-    """
+    """Projects internal DAG state into presentation DTOs."""
 
     @staticmethod
     def project(
@@ -44,7 +44,8 @@ class ResultProjector:
             ProjectedResultsDTO encapsulating results list and hydrated_references dict.
 
         Raises:
-            AppException: If a node has a PASSED or FAILED status but is missing mandatory reasoning.
+            AppException: ErrorCodes.VALIDATION_FAILED if a node has PASSED or FAILED
+                status but lacks mandatory evaluation_reasoning.
         """
         results: list[AtomResultDTO] = []
         hydrated_references: dict[str, HydratedAtomDTO] = {}
@@ -120,7 +121,12 @@ class ResultProjector:
             # For PASSED/FAILED, reasoning is mandatory. Make sure we never pass None.
             if status in (ExecutionStatus.PASSED, ExecutionStatus.FAILED) and not reasoning:
                 msg = f"Node {tda_id} has status {status.value} but lacks mandatory evaluation_reasoning."
-                logger.error("[ResultProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                logger.error(
+                    "[ResultProjector] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
                 raise AppException(
                     message=msg,
                     status_code=400,
@@ -212,10 +218,12 @@ class ResultProjector:
 
         for scale in matrix_block.scales:
             for claim in scale.claims:
-                for tda in claim.tda_assertions or []:
+                if claim.tda_assertions is None:
+                    continue
+                for tda in claim.tda_assertions:
                     aid = str(tda.tda_id)
-                    res = atom_results_map[aid] if aid in atom_results_map else None
-                    if res is not None:
+                    if aid in atom_results_map:
+                        res = atom_results_map[aid]
                         evaluated_atoms[aid] = res.status
                         if res.status == ExecutionStatus.FAILED:
                             missing_atoms.append(tda.concept_description)
