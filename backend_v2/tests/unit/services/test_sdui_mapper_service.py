@@ -116,3 +116,48 @@ def test_map_report_to_sdui_na_outcomes() -> None:
     assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
     assert view.inner_sdui_blocks[0].short_circuit_reason_tda_ids == ["tda_1"]
     assert "Requirement not applicable for this sector" in view.inner_sdui_blocks[0].message
+
+
+def test_map_report_alias_and_fallback_execution_id() -> None:
+    mapper = SduiMapperService()
+    report = ReportDataDTO(
+        execution_id="exe_fallback_123",
+        workflow_id="wf_123",
+        profile_id="prof_123",
+        has_warning=False,
+    )
+    view = mapper.map_report(report)
+    assert view.view_id == "exe_fallback_123"
+    assert view.status_theme == "success"
+
+
+def test_map_report_to_sdui_na_unhydrated_reference() -> None:
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
+    from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
+    from backend_v2.models.view.sdui import SduiNACard
+
+    mapper = SduiMapperService()
+    na_result = AtomResultDTO(
+        tda_id="tda_1",
+        status=ExecutionStatus.N_A,
+        short_circuit_reason_tda_ids=[],
+    )
+    report = ReportDataDTO(
+        execution_id="exe_unhydrated",
+        workflow_id="wf_na",
+        profile_id="prof_na",
+        results=[na_result],
+        hydrated_references={
+            "tda_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.N_A_CARD,
+                resolved_claim="Requirement not applicable for this sector",
+            )
+        },
+    )
+    view = mapper.map_report_to_sdui(report, execution_id="exe_unhydrated", lang="en")
+    assert len(view.inner_sdui_blocks) == 1
+    assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
+    assert view.inner_sdui_blocks[0].message == "Not applicable (N/A)"
+
+
+

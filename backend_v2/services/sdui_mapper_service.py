@@ -21,6 +21,8 @@ from backend_v2.models.view.sdui import (
     SduiWarningCard,
 )
 
+__all__ = ["SduiMapperService"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +33,13 @@ class SduiMapperService:
         """Map QuoteEvidenceDTO to SduiQuoteCard or SduiWarningCard.
 
         Performs Dual-Reporting Telemetry logging for hallucinated aliases.
+
+        Args:
+            evidence: The quote evidence record containing extracted and validated quote tokens.
+            lang: Target localized language code for warning card notifications.
+
+        Returns:
+            An AnySduiBlock discriminated union instance (SduiQuoteCard or SduiWarningCard).
         """
         # Telemetry logging for hallucinations (Dual-Reporting)
         if not evidence.is_verified or evidence.unverified_aliases:
@@ -46,18 +55,39 @@ class SduiMapperService:
         return SduiQuoteCard(quote=evidence.quote, source_aliases=evidence.verified_source_ids, citations=[])
 
     def map_report(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
-        """Alias for map_report_to_sdui to satisfy existing test bindings if any."""
+        """Alias for map_report_to_sdui to satisfy existing test bindings if any.
+
+        Args:
+            report: The aggregated report data DTO to map into client view representation.
+            execution_id: Optional explicit execution identifier override.
+            lang: Target localized language code for report strings.
+
+        Returns:
+            The mapped ReportView instance for client rendering.
+        """
         return self.map_report_to_sdui(report, execution_id, lang)
 
     def map_report_to_sdui(self, report: ReportDataDTO, execution_id: str = "", lang: str = "fi") -> ReportView:
-        """Map ReportDataDTO to ReportView."""
+        """Map ReportDataDTO to ReportView.
+
+        Args:
+            report: The aggregated report data DTO to map into client view representation.
+            execution_id: Optional explicit execution identifier override.
+            lang: Target localized language code for report strings.
+
+        Returns:
+            The mapped ReportView instance for client rendering.
+        """
         # Phase B1: Metrics & Telemetry (Capture global_score, strictness_level, has_warning)
         metrics = ReportViewMetricsDTO(
             global_score=report.global_score,
             strictness_level=report.strictness_level,
         )
 
-        status_theme = VisualIntent.WARNING if report.has_warning else VisualIntent.SUCCESS
+        if report.has_warning:
+            status_theme = VisualIntent.WARNING
+        else:
+            status_theme = VisualIntent.SUCCESS
 
         inner_blocks: list[AnySduiBlock] = list(report.inner_sdui_blocks)
 
@@ -83,8 +113,13 @@ class SduiMapperService:
                     )
                 )
 
+        if execution_id:
+            resolved_execution_id = execution_id
+        else:
+            resolved_execution_id = report.execution_id
+
         return ReportView(
-            view_id=execution_id,
+            view_id=resolved_execution_id,
             metrics=metrics,
             status_theme=status_theme,
             inner_sdui_blocks=inner_blocks,
