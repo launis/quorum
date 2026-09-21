@@ -9,15 +9,13 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING, Annotated, Any
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.llm.client import LLMClient
-from backend_v2.models.domain.matrix import AcceptanceCriterion, AntiPattern, ContrastivePairDTO, TheoryGrounding
+from backend_v2.models.domain.matrix import ContrastivePairDTO, TheoryGrounding
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
-from backend_v2.models.dtos.dag_models import CausalEdge
-from backend_v2.models.enums import TargetSpeaker
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 
@@ -33,65 +31,7 @@ __all__ = [
 ]
 
 
-def _coerce_to_tuple(v: Any) -> Any:
-    """Coerces list to tuple for immutable DAG depends_on fields."""
-    if isinstance(v, list):
-        return tuple(v)
-    return v
-
-
-class FlattenedAtom(BaseModel):
-    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
-
-    Attributes:
-        atom_id: Opaque hashed ID for the extracted atom.
-        question: The text content evaluated blindly.
-        extraction_rule: The specific validation rule.
-        anchor_target: Semantic bounding box target.
-        is_inverse: True if this is an inverse assertion.
-        depends_on: Causal dependencies attached to this atom.
-    """
-
-    atom_id: Annotated[str, Field(description="Opaque hashed ID for the extracted atom.")]
-    question: Annotated[str, Field(description="The text content evaluated blindly.")]
-    extraction_rule: Annotated[str, Field(default="", description="The specific validation rule.")]
-    anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")]
-    is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")]
-    depends_on: Annotated[
-        tuple[CausalEdge, ...],
-        BeforeValidator(_coerce_to_tuple),
-        Field(
-            default_factory=tuple,
-            description="Causal dependencies attached to this atom.",
-        ),
-    ]
-    contrastive_example: Annotated[
-        ContrastivePairDTO | None,
-        Field(default=None, description="Structured contrastive pair."),
-    ] = None
-    acceptance_criteria: Annotated[
-        tuple[AcceptanceCriterion, ...],
-        BeforeValidator(_coerce_to_tuple),
-        Field(default_factory=tuple, description="Deductive verification sequence."),
-    ]
-    anti_patterns: Annotated[
-        tuple[AntiPattern, ...],
-        BeforeValidator(_coerce_to_tuple),
-        Field(default_factory=tuple, description="Disqualifying patterns."),
-    ]
-    syntactic_anchors: Annotated[
-        tuple[str, ...],
-        BeforeValidator(_coerce_to_tuple),
-        Field(default_factory=tuple, description="Exact syntactic markers."),
-    ]
-    target_speaker: Annotated[
-        TargetSpeaker,
-        Field(
-            default=TargetSpeaker.USER, strict=False, description="Evaluated target actor (USER, AI). Defaults to USER."
-        ),
-    ] = TargetSpeaker.USER
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+from backend_v2.models.dtos.flattened_atom import FlattenedAtom as FlattenedAtom
 
 
 class MatrixEvaluationContext(BaseModel):

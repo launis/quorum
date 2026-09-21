@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, Self
 if TYPE_CHECKING:
     from backend_v2.models.dtos.dag_models import CausalEdge
 
-from pydantic import BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, StringConstraints, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import I18nText, V2CoreBase
@@ -25,6 +25,7 @@ __all__ = [
     "AcceptanceCriterion",
     "AntiPattern",
     "ContrastivePairDTO",
+    "FlattenedAtom",
     "MatrixClaim",
     "MatrixRow",
     "MatrixScale",
@@ -298,3 +299,54 @@ class MatrixScale(V2CoreBase):
 from backend_v2.models.dtos.dag_models import CausalEdge
 
 TDAAssertion.model_rebuild(_types_namespace={"CausalEdge": CausalEdge})
+
+
+class FlattenedAtom(BaseModel):
+    """Strict Pydantic schema for individual shuffled items (No Naked Dicts rule).
+
+    Attributes:
+        atom_id: The unique identifier of the atom.
+        question: The evaluation question or statement for the atom.
+        depends_on: Immutable tuple of causal edge dependencies in the DAG.
+        contrastive_example: Contrastive calibration pair for assertion boundary grounding.
+        acceptance_criteria: Structured acceptance criteria with bilingual instructions.
+        anti_patterns: Known anti-patterns with bilingual descriptions.
+        syntactic_anchors: Required lexical tokens/phrases for surface syntax grounding.
+        target_speaker: The speaker role this atom evaluates against.
+    """
+
+    atom_id: Annotated[str, Field(description="The unique identifier of the atom.")]
+    question: Annotated[str, Field(description="The evaluation question or statement for the atom.")]
+    extraction_rule: Annotated[str, Field(default="", description="The specific validation rule.")] = ""
+    anchor_target: Annotated[str, Field(default="", description="Semantic bounding box target.")] = ""
+    is_inverse: Annotated[bool, Field(default=False, description="True if this is an inverse assertion.")] = False
+    depends_on: Annotated[
+        tuple[CausalEdge, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Immutable tuple of causal dependencies."),
+    ]
+    contrastive_example: Annotated[
+        ContrastivePairDTO | None,
+        Field(default=None, description="Contrastive calibration pair for assertion boundary grounding."),
+    ] = None
+    acceptance_criteria: Annotated[
+        tuple[AcceptanceCriterion, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Structured acceptance criteria."),
+    ]
+    anti_patterns: Annotated[
+        tuple[AntiPattern, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Known anti-patterns."),
+    ]
+    syntactic_anchors: Annotated[
+        tuple[str, ...],
+        BeforeValidator(_coerce_to_tuple),
+        Field(default_factory=tuple, description="Required lexical tokens/phrases."),
+    ]
+    target_speaker: Annotated[
+        TargetSpeaker,
+        Field(default=TargetSpeaker.USER, strict=False, description="Evaluated speaker role."),
+    ] = TargetSpeaker.USER
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)

@@ -568,7 +568,7 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            req = ChunkingRequest[dict[str, Any]](
+            req = ChunkingRequest[FlattenedAtom | dict[str, Any]](
                 parent_id=context.workflow_id,
                 items=shuffled_atoms,
                 max_chunk_size=get_settings().schema_max_evaluations,
@@ -828,9 +828,9 @@ class LLMNodeStrategy(NodeStrategy):
 
             if engine_result.synthesis_output is not None:
                 if isinstance(engine_result.synthesis_output, BaseModel):
-                    final_dict = engine_result.synthesis_output.model_dump()
+                    final_dict = engine_result.synthesis_output.model_dump(exclude_none=True)
                 elif isinstance(engine_result.synthesis_output, Mapping):
-                    final_dict = dict(engine_result.synthesis_output)
+                    final_dict = {k: v for k, v in engine_result.synthesis_output.items() if v is not None}
                 else:
                     final_dict = {"output": engine_result.synthesis_output}
             else:
@@ -913,17 +913,25 @@ class LLMNodeStrategy(NodeStrategy):
             if key in state_data:
                 final_dict[key] = state_data[key]
 
-        meta = final_dict.setdefault("_step_metadata", {})
-        meta["task_blueprint"] = blueprint_id
-        meta["model_strategy"] = "synthesis" if isinstance(self._engine, SynthesisEngine) else "prompt"
-        meta["cognitive_tier"] = (
+        meta_dict: dict[str, Any] = {}
+        if "_step_metadata" in final_dict:
+            existing_meta = final_dict["_step_metadata"]
+            if isinstance(existing_meta, BaseModel):
+                meta_dict = existing_meta.model_dump(exclude_none=True)
+            elif isinstance(existing_meta, Mapping):
+                meta_dict = dict(existing_meta)
+
+        meta_dict["task_blueprint"] = blueprint_id
+        meta_dict["model_strategy"] = "synthesis" if isinstance(self._engine, SynthesisEngine) else "prompt"
+        meta_dict["cognitive_tier"] = (
             step_obj.cognitive_tier if isinstance(step_obj.cognitive_tier, str) else step_obj.cognitive_tier.value
         )
         if bound_client and bound_client.model_name:
-            meta["physical_model"] = bound_client.model_name
+            meta_dict["physical_model"] = bound_client.model_name
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
-            if "token_usage" not in meta:
-                meta["token_usage"] = usage_agg.model_dump()
+            if "token_usage" not in meta_dict:
+                meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
+        final_dict["_step_metadata"] = meta_dict
 
         metadata: dict[str, Any] = {
             "latency_ms": latency_ms,

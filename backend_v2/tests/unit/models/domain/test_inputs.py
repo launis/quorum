@@ -116,3 +116,48 @@ def test_execution_inputs_rejects_raw_string_without_coercion() -> None:
     """Test contract: ExecutionInputsDTO rejects raw string inputs without silent coercion."""
     with pytest.raises(ValidationError):
         ExecutionInputsDTO(raw_inputs="hello")  # type: ignore[arg-type]
+
+
+def test_domain_input_value_accepts_none() -> None:
+    """Test contract: DomainInputValue union accepts None for optional/unmapped inputs."""
+    inputs = WorkflowInputs(
+        organization_id="org_123",
+        dynamic_inputs={"optional_key": None, "str_key": "val"},
+    )
+    assert inputs.dynamic_inputs["optional_key"] is None
+    assert inputs.dynamic_inputs["str_key"] == "val"
+
+
+def test_execution_inputs_handles_none_values() -> None:
+    """Test contract: ExecutionInputsDTO cleanly accepts None values in raw_inputs and dynamic_inputs."""
+    dto = ExecutionInputsDTO(
+        raw_inputs={"id": None, "text": "sample"},
+        dynamic_inputs={"id": None, "score": 4.5},
+    )
+    assert dto.raw_inputs["id"] is None
+    assert dto.raw_inputs["text"] == "sample"
+    assert dto.dynamic_inputs["id"] is None
+    assert dto.dynamic_inputs["score"] == 4.5
+
+
+def test_domain_input_value_accepts_flattened_atoms() -> None:
+    """Test contract: DomainInputValue union accepts FlattenedAtom and list[FlattenedAtom]."""
+    from backend_v2.models.dtos.flattened_atom import FlattenedAtom
+
+    atom = FlattenedAtom(
+        atom_id="tda_123",
+        question="test question",
+        extraction_rule="rule",
+        anchor_target="target",
+        is_inverse=False,
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
+    )
+    dto = ExecutionInputsDTO(
+        raw_inputs={"shuffled_atoms": [atom]},
+        dynamic_inputs={"atom": atom},
+    )
+    assert len(dto.raw_inputs["shuffled_atoms"]) == 1  # type: ignore[arg-type]
+    assert dto.dynamic_inputs["atom"].atom_id == "tda_123"  # type: ignore[union-attr]
+

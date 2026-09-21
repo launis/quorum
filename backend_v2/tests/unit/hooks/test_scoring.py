@@ -4390,3 +4390,121 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
     with pytest.raises(AppException) as exc:
         await recalculate({"blk_1111222233334444": {}}, "prf_1111222233334444", deps)
     assert exc.value.error_code == "VALIDATION_FAILED"
+
+
+@pytest.mark.asyncio
+async def test_falsifier_hook_coverage_branches() -> None:
+    """Test StateInputWrapper directly in extract functions and validation failure branches."""
+    from backend_v2.hooks.scoring.falsifier_hook import (
+        StateInputWrapper,
+        _extract_guard_flag,
+        _extract_passivity_flag,
+        _extract_payloads,
+    )
+
+    # 1. StateInputWrapper directly
+    state_input = StateInputWrapper(
+        steps=[
+            StepOutputDTO(
+                step_id="s1",
+                block_id="b1",
+                data_type="text",
+                payload={"passivity_detected": True},
+            )
+        ],
+        passivity_detected=True,
+    )
+    assert _extract_passivity_flag(state_input) is True
+    assert _extract_guard_flag(state_input) is None
+    payloads = _extract_payloads(state_input)
+    assert len(payloads) == 1
+    assert payloads[0].passivity_detected is True
+
+    # 2. Invalid StepOutputDTO _evaluative_matrices payload raises
+    invalid_step_state = StateInputWrapper(
+        steps=[
+            StepOutputDTO(
+                step_id="s1",
+                block_id="_evaluative_matrices",
+                data_type="matrix",
+                payload={"blk_1": "not-a-float"},
+            )
+        ]
+    )
+    with pytest.raises(AppException) as exc1:
+        _extract_payloads(invalid_step_state)
+    assert "Invalid StepOutputDTO '_evaluative_matrices' payload" in exc1.value.message
+
+    # 3. Invalid top-level _evaluative_matrices raises
+    invalid_top_level = StateInputWrapper(
+        raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": "not-a-float"}},
+        steps=[],
+    )
+    with pytest.raises(AppException) as exc2:
+        _extract_payloads(invalid_top_level)
+    assert "Invalid top-level '_evaluative_matrices'" in exc2.value.message
+
+    # 4. Invalid scoring payload in extra_dict raises
+    invalid_extra = StateInputWrapper(
+        raw_inputs={"steps": [], "step_falsifier": {"step_falsifier": "not-a-dto"}},
+        steps=[],
+    )
+    with pytest.raises(AppException) as exc3:
+        _extract_payloads(invalid_extra)
+    assert "Invalid scoring payload for key 'step_falsifier'" in exc3.value.message
+
+
+@pytest.mark.asyncio
+async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
+    """Test apply_scoring_logic_hook when repository returns a typed Workflow model."""
+    from backend_v2.models.core_base import I18nText
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.enums import HistoricalContextMode
+
+    workflow_model = Workflow(
+        id="wor_1111222233334444",
+        slug="wf_test",
+        name=I18nText(translations={"en": "Workflow", "fi": "Workflow"}),
+        description=I18nText(translations={"en": "Desc", "fi": "Desc"}),
+        status="active",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode=HistoricalContextMode.DISABLED,
+        default_profile_id="prf_1111222233334444",
+        default_strictness_level=70,
+        steps=[],
+    )
+    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo.get_workflow_by_id.return_value = workflow_model
+
+    state = HookState(
+        execution_id="exec_0000000000000009",
+        workflow_id="wor_1111222233334444",
+        step_id="step_final",
+        task_blueprint="step_final",
+        metadata=ExecutionMetadata(),
+        inputs=ExecutionInputsDTO(
+            raw_inputs={
+                "steps": [],
+                "_evaluative_matrices": {"blk_1": 90.0},
+            }
+        ),
+        global_context_vars=GlobalContextVarsDTO(),
+    )
+    deps = HookDependencies(
+        exec_repo=cast(Any, AsyncMock()),
+        workflow_repo=cast(Any, mock_workflow_repo),
+        comp_repo=cast(Any, AsyncMock()),
+        prompt_block_repo=cast(Any, AsyncMock()),
+        output_profile_repo=cast(Any, AsyncMock()),
+        identity_repo=cast(Any, AsyncMock()),
+        audit_repo=cast(Any, AsyncMock()),
+        system_repo=cast(Any, AsyncMock()),
+    )
+
+    result = await apply_scoring_logic_hook(state, deps)
+    assert result.success is True
+    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
+    assert delta is not None
+    assert delta["scoring_result"]["final_score"] == 90.0
+

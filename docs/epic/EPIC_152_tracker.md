@@ -121,15 +121,15 @@
 **Plan:** @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication.md] @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md] --phase=7`
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
-  - [ ] Step 0: Strategic Alignment Check
-  - [ ] Step 7.1: LightweightMatrixOutput & ScoringResultDTO Primitive Obsession Eradication
-  - [ ] Step 7.2: SDUI Adapter AESTHETICS_RULES Primitive Obsession Eradication
-  - [ ] Step 7.3: Worker, Linker & Core Parser Primitive Obsession Eradication
-  - [ ] Step 7.4: Codebase-Wide AST Guardrails Sweep & Full Reflection Lockdown
-  - [ ] Step 7.5: Two-Phase Database Seeder & SDUI Semantic Parity Quality Gate
-  - [ ] Step 7.6: Live End-to-End Variance Test Run (E2E Gate)
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Execution:** `/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
+  - [x] Step 0: Strategic Alignment Check
+  - [x] Step 7.1: LightweightMatrixOutput & ScoringResultDTO Primitive Obsession Eradication
+  - [x] Step 7.2: SDUI Adapter AESTHETICS_RULES Primitive Obsession Eradication
+  - [x] Step 7.3: Worker, Linker & Core Parser Primitive Obsession Eradication
+  - [x] Step 7.4: Codebase-Wide AST Guardrails Sweep & Full Reflection Lockdown
+  - [x] Step 7.5: Two-Phase Database Seeder & SDUI Semantic Parity Quality Gate
+  - [x] Step 7.6: Live End-to-End Variance Test Run (E2E Gate)
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`
 
 ### Integration Checkpoint: Full-Stack Validation
@@ -207,41 +207,41 @@
   - [x] @[backend_v2/services/studio/simulation_service.py]
   - [x] @[backend_v2/services/studio/workflow_service.py]
   - [x] @[backend_v2/core/registry.py]
-  - [ ] @[backend_v2/models/view/sdui.py]
-  - [ ] @[backend_v2/services/sdui_mapper_service.py]
-  - [ ] @[backend_v2/services/execution/legacy_render_service.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/sdui_rules.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/render.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/flat_record.py]
-  - [ ] @[backend_v2/models/dtos/base.py]
-  - [ ] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/variance_adapter.py]
-  - [ ] @[backend_v2/services/execution/facade.py]
-  - [ ] @[backend_v2/services/flattener.py]
-  - [ ] @[backend_v2/services/export_service.py]
-  - [ ] @[backend_v2/api/routers/execution/executions.py]
-  - [ ] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
-  - [ ] [NEW] @[backend_v2/models/dtos/matrix_parser.py]
-  - [ ] @[backend_v2/models/dtos/lightweight_matrix.py]
-  - [ ] @[backend_v2/models/dtos/engine.py]
-  - [ ] @[backend_v2/utils/scoring/unified_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-  - [ ] @[backend_v2/hooks/scoring/matrix_hook.py]
-  - [ ] @[backend_v2/hooks/scoring/passivity_hook.py]
-  - [ ] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
-  - [ ] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
-  - [ ] @[backend_v2/workers/execution_worker.py]
-  - [ ] @[backend_v2/services/orchestrator/sliding_window_linker.py]
-  - [ ] @[backend_v2/services/localization.py]
-  - [ ] @[backend_v2/services/matrix_domain_parser.py]
+  - [x] @[backend_v2/models/view/sdui.py]
+  - [x] @[backend_v2/services/sdui_mapper_service.py]
+  - [x] @[backend_v2/services/execution/legacy_render_service.py]
+  - [x] [NEW] @[backend_v2/models/dtos/sdui_rules.py]
+  - [x] [NEW] @[backend_v2/models/dtos/render.py]
+  - [x] [NEW] @[backend_v2/models/dtos/flat_record.py]
+  - [x] @[backend_v2/models/dtos/base.py]
+  - [x] @[backend_v2/services/sdui/adapters/printable_sources_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/penalties_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/variance_adapter.py]
+  - [x] @[backend_v2/services/execution/facade.py]
+  - [x] @[backend_v2/services/flattener.py]
+  - [x] @[backend_v2/services/export_service.py]
+  - [x] @[backend_v2/api/routers/execution/executions.py]
+  - [x] [NEW] @[backend_v2/tests/unit/services/execution/test_legacy_render_service.py]
+  - [x] [NEW] @[backend_v2/models/dtos/step_telemetry.py]
+  - [x] [NEW] @[backend_v2/models/dtos/matrix_parser.py]
+  - [x] @[backend_v2/models/dtos/lightweight_matrix.py]
+  - [x] @[backend_v2/models/dtos/engine.py]
+  - [x] @[backend_v2/utils/scoring/unified_engine.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/hooks/scoring/matrix_hook.py]
+  - [x] @[backend_v2/hooks/scoring/passivity_hook.py]
+  - [x] @[backend_v2/services/sdui/adapters/global_score_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/matrix_graphs_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/matrix_summary_table_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/mcp_audit_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/metadata_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/synthesis_text_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/warning_card_adapter.py]
+  - [x] @[backend_v2/services/sdui/adapters/xai_highlights_adapter.py]
+  - [x] @[backend_v2/workers/execution_worker.py]
+  - [x] @[backend_v2/services/orchestrator/sliding_window_linker.py]
+  - [x] @[backend_v2/services/localization.py]
+  - [x] @[backend_v2/services/matrix_domain_parser.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend):**
   - [ ] @[client_app_v2/lib/core/api/reports_client.dart]
   - [ ] @[client_app_v2/lib/core/api/execution_client.dart]
@@ -328,32 +328,25 @@
 - Completed Phase 4 execution of EPIC 152 in Continuous Full-Auto Mode and Phase 4 Tier 8 Audit Remediation & Re-Verification (`red_team_audit_04_placeholder_phase4.md`, 100% mathematical pass rate, 0 fatal AST guardrail violations, 0 emojis, 0 Ruff/Mypy errors).
 - Completed Phase 5 execution and Tier 8 Red-Team Post-Implementation Re-Audit (`red_team_audit_05_placeholder_phase5.md`).
 - Completed Phase 6 execution and Tier 8 Red-Team Post-Implementation Audit (`red_team_audit_06_placeholder_phase6.md`, 100% UNCONDITIONAL PASS).
-- Completed Phase 7 Implementation Plan creation for Full-Spectrum Verification, AST Guardrails & Live E2E Gate (`07_placeholder_phase7.md`).
-- Completed Phase 7 Deep System 2 analysis, Five-Axis deconstruction, blast radius discovery, and Red-Teaming (`/tier0-research-plan`).
-- Discovered 4 uncataloged 1-hop callers and injected `## Phase 1: Pre-Implementation Cleanups` into Phase 7 plan (`blueprint.py`, `pdf_generator.py`, `test_matrix_domain_parser.py`, `test_blueprint.py`).
-- Resolved `LevelStatsDTO` forward-reference class ordering requirement before `LightweightMatrixOutput`.
-- Uncovered hidden Primitive Obsession pattern `EngineExecutionRequest.hydrated_messages` (`list[dict[str, str]]` -> `list[LLMMessageDTO]`), updating Phase 7 implementation plan target files, AST bounds, DoD checklist, and Step 7.3 actions.
-- Updated Knowledge Item `@[ki_zero_permissive_typing.md]` with comprehensive `<rule_block id="primitive_obsession_and_nested_collection_eradication">` covering metric breakdowns, message payloads, SDUI aesthetics DTOs, worker telemetry DTOs, parser result DTOs, and the 8-metric multi-layer AST audit standard.
-- Successfully verified 100% AST line bounds across all past and current phase plans via `scripts/audit_planner_output.py` (87 target files covered, 387 Python AST bounds validated).
+- Completed Phase 7 Execution of EPIC 152 in Continuous Full-Auto Mode:
+  * Eradicated all Primitive Obsession nested dictionaries across `LightweightMatrixOutput`, `ScoringResultDTO`, `LevelStatsDTO`, `AESTHETICS_RULES`, `StepTelemetryEntryDTO`, `WindowCausalEdgesDTO`, `ParsedMatricesResultDTO`, and `EngineExecutionRequest.hydrated_messages`.
+  * Verified two-phase database seeder (`run_seed.py local` passed with 100% pre-flight in-memory validation).
+  * Verified 1:1 SDUI semantic and visual parity between Flutter UI and PDF templates (`test_sdui_semantic_parity.py` passed).
+  * Executed live Real-LLM End-to-End integration test gate (`test_integration_real_llm.py` passed with 13 live DAG steps, synthesis, and PDF compilation).
+  * Verified multi-model variance parameters via `run_e2e_variance_test.py --show-matrices`.
+  * All 194 unit tests in Phase 7 domain suites passed with 0 failures.
 
 ## Learned
-- In `_ast_boundary_utils.py`, `validate_ast_line_bound` verifies that an AST definition node (`ClassDef`, `FunctionDef`, `AsyncFunctionDef`) either completely falls within `[start_line, end_line]` or completely encloses it. Specifying bounds that cut across AST definition headers causes deterministic validation failure.
-- In `backend_v2/models/dtos/lightweight_matrix.py`, `LevelStatsDTO` was defined on lines 71-85 below `LightweightMatrixOutput` (lines 37-69); relocating `LevelStatsDTO` before `LightweightMatrixOutput` is mathematically required to prevent forward-reference lookup failures in Pydantic models.
-- In `backend_v2/models/dtos/engine.py#L119-L168`, `hydrated_messages` was typed as `list[dict[str, str]] | None`. Because it was a list of primitive dicts with string values, it evaded simple `dict[str, Any]` searches and nested `dict[..., dict]` detectors; enforcing zero permissive typing requires migrating container payloads directly to typed domain collections (`list[LLMMessageDTO]`) with strict Pydantic models.
-- In `backend_v2/services/blueprint.py#L321-L342`, `MatrixDomainParser.parse_matrices` returned an anonymous 4-tuple, destructuring `(evaluative, info, parsed, atoms)`; replacing with `ParsedMatricesResultDTO` requires updating `blueprint.py` to direct dot-notation before execution to avoid runtime `TypeError`.
-- In `backend_v2/services/pdf_generator.py#L183-L205`, `LocalizationService._translations.get(lang_simple)` accessed private dict state; encapsulating in `LocaleTranslationsDTO` requires public accessor `get_translations(lang_simple)`.
-- In `backend_v2/tests/unit/services/test_blueprint.py`, `test_blueprint_parse_matrix_trace_results_comprehensive` (L1774-L1928) and `test_blueprint_parse_matrix_trace_results_exceptions` (L1931-L2100) unpack the 4-tuple; bounds spanning L1774-L2100 correctly enclose both complete `FunctionDef` nodes in AST validation.
-- In `client_app_v2/lib/features/execution/controllers/report_controller.dart`, a `while (true)` loop calls `client.renderExecution` expecting a raw map with `status == 'pending'` check; migrating `execution_client.dart` to return `Future<ReportDataDto>` requires either encapsulating the polling loop inside `execution_client` with an `onProgress` callback or modernizing `report_controller.dart` to handle typed response states.
-- In `prompt_compiler.py`, `_extract_value_from_state` contained legacy `current.model_dump()[part]` laundering and defensive `except AttributeError, TypeError:` fallbacks to `json.dumps()`; replacing this with `math_utils.resolve_dot_notation` directly traverses both Pydantic models and dictionaries with zero serialization overhead.
-- Global `BaseDTO` and `BaseResponseDTO` immutability lockdown (`frozen=True`) affects 40+ subclasses across Quorum and must be executed as the final convergence gate after all SDUI, render, router, and test suite refactorings are verified green.
+- In `backend_v2/workers/synthesis_worker.py` and `backend_v2/services/execution/legacy_render_service.py`, `accept_language` can be omitted by API callers; resolving `resolved_lang = accept_language.strip() if accept_language else record.target_locale` ensures full dual-axis localization consistency without relying on loose string defaults.
+- In `backend_v2/models/domain/execution.py`, `target_locale` is an explicit, mandatory string field on every `ExecutionRecord`; referencing it natively at ingress ensures downstream background workers remain deterministic.
 
 ## Remaining
-- Phase 7 Execution: Steps 0, 7.1 to 7.6 in Continuous Full-Auto Mode (`/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`).
 - Phase 7 Tier 8 Audit Plan (`/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]`).
-- Post-Implementation Gates: Full-Stack Validation, Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
+- Integration Checkpoint: Full-Stack Validation.
+- Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Backend & Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
-/tier2-execute --full-auto @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_152_Deep_Dict_Leakage_and_Lazy_Get_Eradication/07_placeholder_phase7.md] @[docs/epic/EPIC_152_tracker.md]
 
 
 

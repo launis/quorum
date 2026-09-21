@@ -42,11 +42,11 @@ def test_linguistics_payload_dto() -> None:
     """Test safe extraction logic inside LinguisticsPayloadDTO."""
     # Language in global vars
     dto1 = LinguisticsPayloadDTO(dynamic_inputs={})
-    assert dto1.extract_language({"language": "fi"}) == "fi"
+    assert dto1.extract_language(GlobalContextVarsDTO(language="fi")) == "fi"
 
     # Default fallback to en
     dto2 = LinguisticsPayloadDTO(dynamic_inputs={})
-    assert dto2.extract_language({}) == "en"
+    assert dto2.extract_language(GlobalContextVarsDTO()) == "en"
 
     # Input aggregation
     dto3 = LinguisticsPayloadDTO(dynamic_inputs={"foo": "bar", "num": 123, "empty": ""})

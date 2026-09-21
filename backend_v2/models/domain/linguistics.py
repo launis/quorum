@@ -6,9 +6,11 @@ to eliminate legacy dictionary-based parsing and enforce Zero-Compromise protoco
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from backend_v2.models.domain.metadata import StepMetadataDTO
 
 if TYPE_CHECKING:
     from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
@@ -16,7 +18,8 @@ if TYPE_CHECKING:
 type DynamicScalar = str | int | float | bool | None
 type DynamicInputNode = DynamicScalar | list[DynamicScalar] | dict[str, DynamicScalar | list[DynamicScalar]]
 type DynamicInputValue = (
-    DynamicScalar
+    StepMetadataDTO
+    | DynamicScalar
     | list[DynamicScalar]
     | list[DynamicInputNode]
     | dict[str, DynamicScalar]
@@ -103,22 +106,20 @@ class LinguisticsPayloadDTO(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
-    def extract_language(self, global_vars: GlobalContextVarsDTO | dict[str, Any] | None = None) -> str:
+    def extract_language(self, global_vars: GlobalContextVarsDTO | None = None) -> str:
         """Determines language safely without dict.get() fallbacks.
 
         Args:
-            global_vars: Optional GlobalContextVarsDTO or legacy dict of global variables.
+            global_vars: Optional GlobalContextVarsDTO container.
 
         Returns:
             The extracted language code.
         """
-        if global_vars is not None and not isinstance(global_vars, dict):
+        if global_vars is not None:
             if global_vars.language:
                 return str(global_vars.language).split("-")[0].lower()
             if global_vars.target_locale:
                 return str(global_vars.target_locale).split("-")[0].lower()
-        elif isinstance(global_vars, dict) and "language" in global_vars and global_vars["language"]:
-            return str(global_vars["language"]).split("-")[0].lower()
 
         if self.language:
             return str(self.language).split("-")[0].lower()
@@ -146,7 +147,7 @@ class LinguisticsPayloadDTO(BaseModel):
             elif isinstance(val, list):
                 for item in val:
                     _extract(item)
-            elif val is not None and not isinstance(val, bool):
+            elif type(val) is dict:
                 for sub_val in val.values():
                     _extract(sub_val)
 

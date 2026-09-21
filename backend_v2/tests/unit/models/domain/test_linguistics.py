@@ -9,18 +9,19 @@ from backend_v2.models.domain.linguistics import (
     LinguisticsResultDTO,
     PerformativePatternDTO,
 )
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 
 
 def test_linguistics_payload_dto_extract_language() -> None:
     """Test extract_language logic with various inputs."""
     dto1 = LinguisticsPayloadDTO(dynamic_inputs={})
-    assert dto1.extract_language({"language": "fi-FI"}) == "fi"
+    assert dto1.extract_language(GlobalContextVarsDTO(language="fi-FI")) == "fi"
 
     dto2 = LinguisticsPayloadDTO(language="sv-SE", dynamic_inputs={})
-    assert dto2.extract_language({}) == "sv"
+    assert dto2.extract_language(GlobalContextVarsDTO()) == "sv"
 
     dto3 = LinguisticsPayloadDTO(dynamic_inputs={})
-    assert dto3.extract_language({}) == "en"
+    assert dto3.extract_language(GlobalContextVarsDTO()) == "en"
 
 
 def test_linguistics_payload_dto_get_text_to_scan() -> None:

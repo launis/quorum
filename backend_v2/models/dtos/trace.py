@@ -141,6 +141,7 @@ class StepTraceMetadataDTO(BaseDTO):
     timestamp_isot: Annotated[str | None, Field(default=None)] = None
     unix_time: Annotated[int | None, Field(default=None)] = None
     v2_engine: Annotated[bool | None, Field(default=None)] = None
+    cognitive_tier: Annotated[str | None, Field(default=None)] = None
 
 
 class TraceEventMetadataEnvelope(BaseDTO):

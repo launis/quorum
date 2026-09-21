@@ -12,7 +12,7 @@ import subprocess
 import time
 from pathlib import Path
 
-import fitz  # type: ignore
+import fitz
 import pytest
 import requests
 
@@ -144,7 +144,11 @@ async def test_real_llm_pdf_execution() -> None:
 
         payload = {"workflow_id": workflow_id, "target_locale": "fi", "raw_inputs": {"dynamic_inputs": dynamic_inputs}}
 
-        headers = {"Authorization": "Bearer mock-token:usr_18a0d5f6151349a5", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": "Bearer mock-token:usr_18a0d5f6151349a5",
+            "Content-Type": "application/json",
+            "Accept-Language": "fi",
+        }
 
         logger.info("Sending execution POST request to backend...")
         response = requests.post(
@@ -182,6 +186,27 @@ async def test_real_llm_pdf_execution() -> None:
             time.sleep(5)
 
         assert completed, f"Execution {execution_id} timed out after {WAIT_TIMEOUT} seconds."
+
+        logger.info("Requesting PDF rendering via omni-channel render endpoint...")
+        render_start = time.time()
+        pdf_ready = False
+        while time.time() - render_start < 120:
+            render_res = requests.get(
+                f"http://127.0.0.1:8000/api/v2/execution/executions/{execution_id}/render?format=pdf",
+                headers=headers,
+                timeout=30,
+            )
+            if render_res.status_code == 200 and render_res.headers.get("content-type") == "application/pdf":
+                logger.info("PDF rendering completed successfully via render endpoint.")
+                pdf_ready = True
+                break
+            elif render_res.status_code == 202:
+                logger.info("PDF rendering in progress (202 Accepted)...")
+            else:
+                logger.warning("Unexpected render response: %s - %s", render_res.status_code, render_res.text)
+            time.sleep(3)
+
+        assert pdf_ready, f"PDF rendering timed out for {execution_id}"
 
         logger.info("Verifying generated PDF for SDUI parity...")
         pdf_path = os.path.join(WORKSPACE_ROOT, "data", "files", "executions", execution_id, "report.pdf")

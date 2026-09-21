@@ -3,7 +3,7 @@
 import logging
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field, TypeAdapter, ValidationError
+from pydantic import ConfigDict, Field, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -19,7 +19,6 @@ from backend_v2.models.domain.falsifier import FalsifierData
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
 from backend_v2.models.state import StepOutputDTO
 
@@ -39,7 +38,7 @@ MAX_TOTAL_PENALTY_RATIO: float = 0.40
 class ScoringPayloadWrapper(V2CoreBase):
     """Wrapper for intermediate payload extraction during scoring logic execution."""
 
-    model_config = ConfigDict(strict=True, extra="ignore", frozen=True)
+    model_config = ConfigDict(strict=True, extra="ignore", frozen=True, from_attributes=True)
 
     sanitization_result: SanitizationResultDTO | None = None
     step_input_processing: InputProcessingOutputDTO | None = None
@@ -47,6 +46,7 @@ class ScoringPayloadWrapper(V2CoreBase):
     step_panel: StepPanelDTO | None = None
     evaluative_matrices: Annotated[dict[str, float] | None, Field(alias="_evaluative_matrices")] = None
     passivity_detected: bool | None = None
+    justification: str | None = None
 
     @property
     def has_scoring_data(self) -> bool:
@@ -59,6 +59,7 @@ class ScoringPayloadWrapper(V2CoreBase):
                 self.step_panel is not None,
                 self.evaluative_matrices is not None,
                 self.passivity_detected is not None,
+                self.justification is not None,
             )
         )
 
@@ -66,7 +67,7 @@ class ScoringPayloadWrapper(V2CoreBase):
 class StateInputWrapper(V2CoreBase):
     """Wrapper for structured state inputs passed into the scoring context."""
 
-    model_config = ConfigDict(strict=True, extra="ignore", frozen=True)
+    model_config = ConfigDict(strict=True, extra="ignore", frozen=True, from_attributes=True)
 
     steps: list[StepOutputDTO] | None = None
     inputs: ExecutionInputsDTO | dict[str, Any] | None = None
@@ -88,6 +89,7 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
         AppException: With ErrorCodes.VALIDATION_FAILED if data validation fails.
     """
     payloads: list[ScoringPayloadWrapper] = []
+    raw_source: dict[str, Any] | None = None
 
     try:
         if isinstance(data, StateInputWrapper):
@@ -114,8 +116,8 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
             continue
         if valid_dto.block_id == "_evaluative_matrices":
             try:
-                eval_map = TypeAdapter(dict[str, float]).validate_python(valid_dto.payload)
-                payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
+                wrapper = ScoringPayloadWrapper.model_validate({"_evaluative_matrices": valid_dto.payload})
+                payloads.append(wrapper)
                 continue
             except ValidationError as e:
                 msg = f"Strict Fail-Fast Enforced: Invalid StepOutputDTO '_evaluative_matrices' payload: {e}"
@@ -140,7 +142,7 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
         )
 
     # Add explicitly injected top-level inputs
-    for extra_inputs in [hydrated_state.inputs, hydrated_state.raw_inputs]:
+    for extra_inputs in [raw_source, hydrated_state.inputs, hydrated_state.raw_inputs]:
         if extra_inputs is not None:
             if isinstance(extra_inputs, ExecutionInputsDTO):
                 candidate_dicts = [extra_inputs.raw_inputs, extra_inputs.dynamic_inputs]
@@ -150,19 +152,31 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                 if extra_dict:
                     if "_evaluative_matrices" in extra_dict:
                         try:
-                            eval_map = TypeAdapter(dict[str, float]).validate_python(extra_dict["_evaluative_matrices"])
-                            payloads.append(ScoringPayloadWrapper.model_validate({"_evaluative_matrices": eval_map}))
+                            wrapper = ScoringPayloadWrapper.model_validate(
+                                {"_evaluative_matrices": extra_dict["_evaluative_matrices"]}
+                            )
+                            payloads.append(wrapper)
                         except ValidationError as e:
                             msg = f"Strict Fail-Fast Enforced: Invalid top-level '_evaluative_matrices': {e}"
                             logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
                             raise AppException(
                                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                             ) from e
-                    try:
-                        wrapper = ScoringPayloadWrapper.model_validate(extra_dict)
-                        payloads.append(wrapper)
-                    except ValidationError as e:
-                        logger.debug("[ScoringHook] Extra dict skipped (not a ScoringPayloadWrapper): %s", e)
+                    for k, val in extra_dict.items():
+                        if k == "_evaluative_matrices":
+                            continue
+                        if isinstance(val, (str, int, float, bool, list)) or val is None:
+                            continue
+                        try:
+                            wrapper = ScoringPayloadWrapper.model_validate(val)
+                            if wrapper.has_scoring_data:
+                                payloads.append(wrapper)
+                        except ValidationError as e:
+                            msg = f"Strict Fail-Fast Enforced: Invalid scoring payload for key '{k}': {e}"
+                            logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                            ) from e
 
     return payloads
 
@@ -355,7 +369,8 @@ async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> 
             for block_id, norm_val in source.evaluative_matrices.items():
                 unique_matrices[block_id] = float(norm_val)
 
-    for wrapper in _extract_payloads(state.inputs):
+    extracted_payloads = _extract_payloads(state.inputs)
+    for wrapper in extracted_payloads:
         _extract_scores(wrapper)
 
     for v_float in unique_matrices.values():
@@ -364,16 +379,9 @@ async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> 
         scores_found.append(v_float)
 
     if count == 0:
-        is_valid_indeterminate = False
-        lookup_ctx = state.inputs.dynamic_inputs if state.inputs.dynamic_inputs else state.inputs.raw_inputs
-        for _, v in lookup_ctx.items():
-            try:
-                matrix_out = LightweightMatrixOutput.model_validate(v)
-                if matrix_out.justification and "[INDETERMINATE]" in matrix_out.justification:
-                    is_valid_indeterminate = True
-                    break
-            except ValidationError:
-                continue
+        is_valid_indeterminate = any(
+            p.justification is not None and "[INDETERMINATE]" in p.justification for p in extracted_payloads
+        )
 
         if is_valid_indeterminate:
             logger.warning("[ScoringHook] All matrices are INDETERMINATE. Skipping aggregation.")

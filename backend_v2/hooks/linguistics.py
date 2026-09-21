@@ -38,6 +38,18 @@ __all__ = ["detect_performative_patterns"]
 logger = logging.getLogger(__name__)
 
 
+def _handle_extraction_dlq_failure(error: Exception) -> None:
+    """Logs dynamic extraction failures for dead-letter telemetry tracking.
+
+    Args:
+        error: The exception encountered during dynamic performative extraction.
+    """
+    logger.warning(
+        "[LinguisticsHook] Dynamic performative extraction failed: %s",
+        error,
+    )
+
+
 @hook_registry.register(name="detect_performative_patterns")
 async def detect_performative_patterns(state: HookState, deps: HookDependencies) -> HookResult:
     """HOOK: detect_performative_patterns.
@@ -102,7 +114,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
             state_delta=HookDeltaDTO(
                 delta={
                     "step_linguistics": empty_dto.model_dump(mode="json"),
-                    "global_context_vars": {"step_linguistics": empty_dto.model_dump(mode="json")},
+                    "global_context_vars": {"step_linguistics": empty_dto},
                 }
             ),
         )
@@ -162,10 +174,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                             extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
         except (AppException, RuntimeError, ValueError, TimeoutError, OSError) as e:
-            logger.warning(
-                "[LinguisticsHook] Dynamic performative extraction failed: %s",
-                e,
-            )
+            _handle_extraction_dlq_failure(e)
 
     # Deduplicate detected phrases while preserving order
     unique_detected = list(dict.fromkeys(dynamic_phrases))
@@ -193,7 +202,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         state_delta=HookDeltaDTO(
             delta={
                 "step_linguistics": result_dto.model_dump(mode="json"),
-                "global_context_vars": {"step_linguistics": result_dto.model_dump(mode="json")},
+                "global_context_vars": {"step_linguistics": result_dto},
             }
         ),
     )

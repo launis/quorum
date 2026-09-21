@@ -950,8 +950,8 @@ class DAGExecutor:
                             fc_updates["mcp_tool_audit"] = current_traces + new_unique_traces
 
                     if schema_manifest.schemas:
-                        merged_schemas = {**base_fc.generated_schemas, **schema_manifest.schemas}
-                        fc_updates["generated_schemas"] = merged_schemas
+                        merged_schemas = {**base_fc.generated_schemas.schemas, **schema_manifest.schemas}
+                        fc_updates["generated_schemas"] = GeneratedSchemaManifestDTO(schemas=merged_schemas)
 
                     if fc_updates:
                         new_fc = base_fc.model_copy(update=fc_updates)

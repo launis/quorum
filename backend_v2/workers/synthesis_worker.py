@@ -99,7 +99,7 @@ async def generate_profile_synthesis_and_pdf_task(
         AppException: If synthesis or execution update fails with VALIDATION_FAILED,
             CONFIGURATION_ERROR, or INTERNAL_SERVER_ERROR.
     """
-    if not accept_language or not accept_language.strip():
+    if accept_language is not None and not accept_language.strip():
         msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
         logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
         raise AppException(
@@ -119,6 +119,16 @@ async def generate_profile_synthesis_and_pdf_task(
             return
 
         execution = ExecutionRecord.model_validate(execution_data, strict=False)
+        resolved_lang = accept_language.strip() if accept_language else execution.target_locale
+        if not resolved_lang or not resolved_lang.strip():
+            msg = "Strict Fail-Fast Enforced: 'accept_language' is mandatory and cannot be empty."
+            logger.error("[Task] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+            raise AppException(
+                message=msg,
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+        accept_language = resolved_lang.strip()
         v_step_id = f"sys_render_{profile_id}"
 
         syntheses: dict[str, Any] = {}
@@ -186,13 +196,18 @@ async def generate_profile_synthesis_and_pdf_task(
         ):
             return
 
-        if profile_id:
-            p_dict = await repo.get_output_profile_by_id(profile_id)
+        resolved_pid = profile_id
+        if not resolved_pid or resolved_pid == "default":
+            resolved_pid = execution.output_profile_id
+
+        if resolved_pid:
+            p_dict = await repo.get_output_profile_by_id(resolved_pid)
             if not p_dict:
-                msg = f"Strict Fail-Fast Enforced: OutputProfile '{profile_id}' not found in repository."
+                msg = f"Strict Fail-Fast Enforced: OutputProfile '{resolved_pid}' not found in repository."
                 logger.error("[Worker] %s: %s", ErrorCodes.RESOURCE_NOT_FOUND.name, msg)
-                raise ResourceNotFoundError(resource_type="output_profile", resource_id=profile_id)
+                raise ResourceNotFoundError(resource_type="output_profile", resource_id=resolved_pid)
             active_profile_dto: OutputProfile | None = OutputProfile.model_validate(p_dict, strict=False)
+            profile_id = resolved_pid
         else:
             active_profile_dto = None
 

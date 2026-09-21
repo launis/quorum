@@ -5,15 +5,24 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import Hypothesis
-from backend_v2.models.domain.validation import GuttmanAtomItemDTO
+from backend_v2.models.domain.interaction import InteractionAnalysisDTO
+from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.domain.matrix import FlattenedAtom
+from backend_v2.models.domain.metadata import StepMetadataDTO
+from backend_v2.models.domain.metrics import TextMetricsDTO
+from backend_v2.models.domain.references import BibliographyResultDTO
+from backend_v2.models.domain.security import SanitizationResultDTO
+from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
-from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.llm import LLMProviderConfig
 
 logger = logging.getLogger(__name__)
 
@@ -54,23 +63,36 @@ type DomainInputValue = Annotated[
     | list[StepOutputDTO]
     | AtomResultDTO
     | list[AtomResultDTO]
+    | FlattenedAtom
+    | list[FlattenedAtom]
     | DLQAtomSchema
     | list[DLQAtomSchema]
     | HydratedAtomDTO
     | dict[str, HydratedAtomDTO]
     | LightweightMatrixOutput
+    | ScoringResultDTO
+    | TraceScoringPayloadDTO
     | dict[str, float]
     | dict[str, str]
     | GuttmanAtomItemDTO
     | list[GuttmanAtomItemDTO]
+    | ValidationResultDTO
     | Hypothesis
     | list[Hypothesis]
     | GuidedReflectionInputDTO
+    | StepMetadataDTO
+    | LinguisticsResultDTO
+    | SanitizationResultDTO
+    | TextMetricsDTO
+    | BibliographyResultDTO
+    | InteractionAnalysisDTO
+    | LLMProviderConfig
     | str
     | int
     | float
     | bool
-    | list[str],
+    | list[str]
+    | None,
     Field(description="Strict closed union of extracted domain inputs (Base64Attachment strictly excluded)"),
 ]
 
@@ -131,3 +153,14 @@ class WorkflowInputs(WorkflowInputsBase):
             description="Structured dictionary for domain inputs (Base64Attachment excluded).",
         ),
     ] = Field(default_factory=dict)
+
+    @field_validator("dynamic_inputs")
+    @classmethod
+    def validate_no_base64(cls, v: dict[str, DomainInputValue]) -> dict[str, DomainInputValue]:
+        """Strictly ban base64 payloads from domain inputs."""
+        for val in v.values():
+            if isinstance(val, Base64Attachment):
+                raise ValueError("Base64Attachment is strictly forbidden in WorkflowInputs")
+            if type(val) is dict and "content_base64" in val:
+                raise ValueError("Base64 payloads are strictly forbidden in WorkflowInputs")
+        return v

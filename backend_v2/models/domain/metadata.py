@@ -7,12 +7,12 @@ from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.inputs import WorkflowInputsIngress
+from backend_v2.models.domain.usage import TokenUsage
 
 logger = logging.getLogger(__name__)
 
 
-class MetadataHookPayloadDTO(WorkflowInputsIngress):
+class MetadataHookPayloadDTO(V2CoreBase):
     """Payload to extract initiator safely.
 
     Attributes:
@@ -22,6 +22,10 @@ class MetadataHookPayloadDTO(WorkflowInputsIngress):
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
     sys_initiator_id: Annotated[str, Field(min_length=1, alias="_sys_initiator_id")] = "system"
+    organization_id: Annotated[str | None, Field(default=None)] = None
+    user_id: Annotated[str | None, Field(default=None)] = None
+    simulation_mode: Annotated[bool, Field(default=False)] = False
+    language: Annotated[str, Field(default="en")] = "en"
 
 
 class StepMetadataDTO(V2CoreBase):
@@ -35,6 +39,11 @@ class StepMetadataDTO(V2CoreBase):
         timestamp_isot: Timestamp in ISO format.
         unix_time: Unix timestamp.
         v2_engine: Engine flag.
+        task_blueprint: Optional task blueprint ID.
+        model_strategy: Optional strategy name.
+        cognitive_tier: Optional cognitive tier name.
+        physical_model: Optional physical model name.
+        token_usage: Optional TokenUsage model.
     """
 
     model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
@@ -47,6 +56,10 @@ class StepMetadataDTO(V2CoreBase):
     unix_time: Annotated[int, Field(description="Unix timestamp")]
     v2_engine: bool = True
     task_blueprint: Annotated[str | None, Field(default=None)] = None
+    model_strategy: Annotated[str | None, Field(default=None)] = None
+    cognitive_tier: Annotated[str | None, Field(default=None)] = None
+    physical_model: Annotated[str | None, Field(default=None)] = None
+    token_usage: Annotated[TokenUsage | None, Field(default=None)] = None
 
     @field_validator("unix_time")
     @classmethod

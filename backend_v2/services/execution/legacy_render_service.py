@@ -253,14 +253,14 @@ class ExecutionLegacyRenderService:
             updated_ts = "0"
             if record.updated_at:
                 updated_ts = str(record.updated_at).replace(":", "").replace("-", "").replace(".", "").replace(" ", "_")
-            lang_key = accept_language if accept_language else "default"
-            job_id = f"render_{execution_id}_{resolved_pid}_{lang_key}_{updated_ts}"
+            resolved_lang = accept_language if (accept_language and accept_language.strip()) else record.target_locale
+            job_id = f"render_{execution_id}_{resolved_pid}_{resolved_lang}_{updated_ts}"
             await arq_pool.enqueue_job(
                 "render_profile_job",
                 _job_id=job_id,
                 execution_id=execution_id,
                 profile_id=resolved_pid,
-                accept_language=accept_language,
+                accept_language=resolved_lang,
             )
             v_step_id = f"sys_render_{resolved_pid}"
             active_message = (
