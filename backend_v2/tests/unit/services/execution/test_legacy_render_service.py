@@ -1,5 +1,7 @@
 """Unit tests for ExecutionLegacyRenderService."""
 
+from __future__ import annotations
+
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,6 +20,10 @@ from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.view.sdui import ParagraphBlock, ReportView, SduiMetrics1DBlock
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.execution.legacy_render_service import ExecutionLegacyRenderService
+from backend_v2.tests.fakes.in_memory_repositories import (
+    InMemoryExecutionRepository,
+    InMemoryWorkflowRepository,
+)
 
 
 @pytest.fixture
@@ -58,17 +64,44 @@ def mock_workflow() -> Workflow:
 @pytest.fixture
 def mock_report_dto() -> ReportDataDTO:
     """Fixture providing a valid ReportDataDTO with SDUI blocks."""
+    from backend_v2.models.dtos.matrix_scorecard import TDAPending
+
     axis = MatrixScorecardRowDTO(
         block_id="blk_001",
         name="Coaching Clarity",
         label_i18n=I18nText(translations={"fi": "Valmennuksen selkeys", "en": "Coaching Clarity"}),
-        row_explanation="Detailed and clear reasoning provided.",
+        description="Detailed description",
         score=4.5,
-        is_evaluative=True,
+        score_display_label="4.5 / 5.0",
+        scale_min=1.0,
+        scale_max=5.0,
+        normalized_score=90.0,
+        true_atoms=1,
+        total_atoms=1,
+        row_explanation="Detailed and clear reasoning provided.",
+        evidence_type="EXPLICIT_QUOTE",
+        cited_source_id=None,
+        cited_text_quote=None,
+        cited_web_citation=None,
+        cited_source_title=None,
+        cited_source_url=None,
+        confidence=1.0,
+        inner_sdui_blocks=[],
+        contextual_override=False,
         semantic_reasoning="Detailed and clear reasoning provided.",
+        level_breakdown={},
+        level_names={},
+        ui_plot_ratio=0.9,
+        ui_boundary_labels={},
+        is_evaluative=True,
+        allow_contextual_override=True,
+        used_evidence_ids=[],
+        evaluated_atoms=[],
+        clustered_row_sources=[],
+        tda_state=TDAPending(runtimeType="pending"),
     )
     metric_block = SduiMetrics1DBlock(id="metrics_1", axes=[axis])
-    para_block = ParagraphBlock(id="p1", text="Executive Summary Lead Text")
+    para_block = ParagraphBlock(id="p1", text="Executive Summary Lead Text", exact_quotes=[], citations=[])
     return ReportDataDTO(
         execution_id="exe_1234567890abcdef",
         workflow_id="wor_1234567890abcdef",
@@ -85,11 +118,11 @@ def render_service(
     mock_report_dto: ReportDataDTO,
 ) -> ExecutionLegacyRenderService:
     """Fixture providing an ExecutionLegacyRenderService with mocked repositories."""
-    exec_repo = AsyncMock()
-    exec_repo.get_execution.return_value = mock_execution_record
+    exec_repo = InMemoryExecutionRepository()
+    exec_repo._save_isolated(mock_execution_record.id, mock_execution_record)
 
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id.return_value = mock_workflow
+    workflow_repo = InMemoryWorkflowRepository()
+    workflow_repo._save_isolated(mock_workflow.id, mock_workflow)
 
     service = ExecutionLegacyRenderService(
         exec_repo=exec_repo,
@@ -99,7 +132,7 @@ def render_service(
     )
     transformer_mock = AsyncMock()
     transformer_mock.build_report_dto.return_value = mock_report_dto
-    service._transformer = lambda: transformer_mock  # type: ignore[assignment]
+    service._transformer = lambda: transformer_mock  # type: ignore[method-assign]
     return service
 
 
@@ -172,7 +205,7 @@ async def test_render_execution_returns_job_accepted_when_synthesis_missing(
 ) -> None:
     """Verify missing profile synthesis triggers async job and returns JobAcceptedDTO."""
     empty_synth_record = mock_execution_record.model_copy(update={"profile_syntheses": {}})
-    render_service._get_execution = AsyncMock(return_value=empty_synth_record)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=empty_synth_record)
 
     result = await render_service.render_execution(
         initiator=mock_initiator,
@@ -216,7 +249,7 @@ async def test_render_execution_not_passed_raises(
 ) -> None:
     """Verify render_execution raises 400 when execution is not PASSED."""
     running_rec = mock_execution_record.model_copy(update={"status": ExecutionStatus.RUNNING})
-    render_service._get_execution = AsyncMock(return_value=running_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=running_rec)
 
     with pytest.raises(AppException) as exc_info:
         await render_service.render_execution(
@@ -268,7 +301,7 @@ async def test_render_execution_pdf_cached(
     cached_rec = mock_execution_record.model_copy(
         update={"pdf_report_path": "executions/exe_1234567890abcdef/report.pdf"}
     )
-    render_service._get_execution = AsyncMock(return_value=cached_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=cached_rec)
     mock_storage = AsyncMock()
     mock_storage.read = AsyncMock(return_value=b"%PDF-1.4-cached")
 
@@ -300,7 +333,7 @@ async def test_render_execution_pdf_cached_storage_failure(
     cached_rec = mock_execution_record.model_copy(
         update={"pdf_report_path": "executions/exe_1234567890abcdef/report.pdf"}
     )
-    render_service._get_execution = AsyncMock(return_value=cached_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=cached_rec)
     mock_storage = AsyncMock()
     mock_storage.read = AsyncMock(side_effect=RuntimeError("Disk I/O failure"))
 
@@ -371,7 +404,7 @@ async def test_get_report_dto_not_passed_raises(
 ) -> None:
     """Verify get_report_dto raises 400 when execution is not PASSED."""
     failed_rec = mock_execution_record.model_copy(update={"status": ExecutionStatus.FAILED})
-    render_service._get_execution = AsyncMock(return_value=failed_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=failed_rec)
 
     with pytest.raises(AppException) as exc_info:
         await render_service.get_report_dto(mock_initiator, "exe_1234567890abcdef")
@@ -384,10 +417,10 @@ async def test_default_get_execution(
     mock_workflow: Workflow,
 ) -> None:
     """Verify _default_get_execution fetches and validates execution from exec_repo."""
-    exec_repo = AsyncMock()
-    exec_repo.get_execution.return_value = mock_execution_record
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id.return_value = mock_workflow
+    exec_repo = InMemoryExecutionRepository()
+    exec_repo._save_isolated(mock_execution_record.id, mock_execution_record)
+    workflow_repo = InMemoryWorkflowRepository()
+    workflow_repo._save_isolated(mock_workflow.id, mock_workflow)
 
     service = ExecutionLegacyRenderService(exec_repo=exec_repo, workflow_repo=workflow_repo)
     rec = await service._default_get_execution(TokenData(id="usr_001", role=UserRole.ADMIN), "exe_1234567890abcdef")
@@ -399,10 +432,9 @@ async def test_default_get_execution_not_found_raises(
     mock_workflow: Workflow,
 ) -> None:
     """Verify _default_get_execution raises ResourceNotFoundError when record is missing."""
-    exec_repo = AsyncMock()
-    exec_repo.get_execution.return_value = None
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id.return_value = mock_workflow
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
+    workflow_repo._save_isolated(mock_workflow.id, mock_workflow)
 
     service = ExecutionLegacyRenderService(exec_repo=exec_repo, workflow_repo=workflow_repo)
     with pytest.raises(ResourceNotFoundError):
@@ -414,8 +446,8 @@ def test_transformer_missing_repos_raises(
     mock_workflow: Workflow,
 ) -> None:
     """Verify _transformer raises 500 when required repositories are None."""
-    exec_repo = AsyncMock()
-    workflow_repo = AsyncMock()
+    exec_repo = InMemoryExecutionRepository()
+    workflow_repo = InMemoryWorkflowRepository()
     service = ExecutionLegacyRenderService(exec_repo=exec_repo, workflow_repo=workflow_repo)
 
     with pytest.raises(AppException) as exc_info:
@@ -451,6 +483,7 @@ async def test_get_execution_export_bytes_success(
         status=LaxExecutionStatus.PASSED,
         semantic_reasoning="Valid semantic reasoning",
         contextual_override=False,
+        structural_location=None,
         chart_display_label="Chart 1",
         visual_intent=VisualIntent.INFO,
     )
@@ -460,7 +493,7 @@ async def test_get_execution_export_bytes_success(
         scorecard_atoms={"atm_001": atom},
     )
     rec_with_atoms = mock_execution_record.model_copy(update={"step_states": {"stp_001": step}})
-    render_service._get_execution = AsyncMock(return_value=rec_with_atoms)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=rec_with_atoms)
     render_service.export_service = AsyncMock()
     render_service.export_service.export_excel.return_value = (b"PK_EXCEL_BYTES", "report.xlsx")
 
@@ -492,7 +525,7 @@ async def test_get_execution_export_bytes_not_passed(
 ) -> None:
     """Verify get_execution_export_bytes raises 400 when execution is not PASSED."""
     running_rec = mock_execution_record.model_copy(update={"status": ExecutionStatus.RUNNING})
-    render_service._get_execution = AsyncMock(return_value=running_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=running_rec)
 
     with pytest.raises(AppException) as exc_info:
         await render_service.get_execution_export_bytes(mock_initiator, "exe_1234567890abcdef")
@@ -507,7 +540,7 @@ async def test_get_execution_export_bytes_no_atoms(
 ) -> None:
     """Verify get_execution_export_bytes raises 400 when execution has no scoreable atoms."""
     empty_atoms_rec = mock_execution_record.model_copy(update={"step_states": {}})
-    render_service._get_execution = AsyncMock(return_value=empty_atoms_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=empty_atoms_rec)
 
     with pytest.raises(AppException) as exc_info:
         await render_service.get_execution_export_bytes(mock_initiator, "exe_1234567890abcdef")
@@ -541,6 +574,7 @@ async def test_get_execution_export_bytes_report_dto_failure(
         status=LaxExecutionStatus.PASSED,
         semantic_reasoning="Valid semantic reasoning",
         contextual_override=False,
+        structural_location=None,
         chart_display_label="Chart 1",
         visual_intent=VisualIntent.INFO,
     )
@@ -550,8 +584,8 @@ async def test_get_execution_export_bytes_report_dto_failure(
         scorecard_atoms={"atm_001": atom},
     )
     rec_with_atoms = mock_execution_record.model_copy(update={"step_states": {"stp_001": step}})
-    render_service._get_execution = AsyncMock(return_value=rec_with_atoms)  # type: ignore[assignment]
-    render_service._get_report_dto = AsyncMock(side_effect=RuntimeError("Transformation error"))  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=rec_with_atoms)
+    render_service._get_report_dto = AsyncMock(side_effect=RuntimeError("Transformation error"))
 
     with pytest.raises(AppException) as exc_info:
         await render_service.get_execution_export_bytes(mock_initiator, "exe_1234567890abcdef")
@@ -565,10 +599,10 @@ async def test_enqueue_pdf_generation_success(
     mock_execution_record: ExecutionRecord,
 ) -> None:
     """Verify enqueue_pdf_generation updates execution state and enqueues job."""
-    exec_repo = AsyncMock()
-    exec_repo.get_execution.return_value = mock_execution_record
+    exec_repo = InMemoryExecutionRepository()
+    exec_repo._save_isolated(mock_execution_record.id, mock_execution_record)
     render_service.exec_repo = exec_repo
-    render_service._get_execution = AsyncMock(return_value=mock_execution_record)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=mock_execution_record)
 
     arq_pool = AsyncMock()
     await render_service.enqueue_pdf_generation(
@@ -579,7 +613,7 @@ async def test_enqueue_pdf_generation_success(
         arq_pool=arq_pool,
     )
 
-    exec_repo.update_execution.assert_awaited_once()
+    assert exec_repo.get_call_count("update_execution") == 1
     arq_pool.enqueue_job.assert_awaited_once_with(
         "generate_pdf_job",
         execution_id="exe_1234567890abcdef",
@@ -596,8 +630,7 @@ async def test_render_execution_workflow_not_found(
     mock_initiator: TokenData,
 ) -> None:
     """Verify render_execution raises 500 when workflow is not found."""
-    workflow_repo = AsyncMock()
-    workflow_repo.get_workflow_by_id.return_value = None
+    workflow_repo = InMemoryWorkflowRepository()
     render_service.workflow_repo = workflow_repo
 
     with pytest.raises(AppException) as exc_info:
@@ -621,7 +654,7 @@ async def test_render_execution_target_locale_missing(
 ) -> None:
     """Verify render_execution raises 500 when target locale is missing."""
     no_locale_rec = mock_execution_record.model_copy(update={"target_locale": None})
-    render_service._get_execution = AsyncMock(return_value=no_locale_rec)  # type: ignore[assignment]
+    render_service._get_execution = AsyncMock(return_value=no_locale_rec)
 
     with pytest.raises(AppException) as exc_info:
         await render_service.render_execution(

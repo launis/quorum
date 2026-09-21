@@ -1486,7 +1486,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         await self._knowledge.clear_knowledge_base()
 
     # 10. System
-    async def get_model_registry(self, registry_id: str | None = None) -> SystemConfigModelRegistry:
+    async def get_model_registry(self, registry_id: str) -> SystemConfigModelRegistry:
         return await self._system.get_model_registry(registry_id=registry_id)
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
