@@ -158,7 +158,7 @@
   - [x] @[backend_v2/llm/handler.py]
   - [x] [NEW] @[backend_v2/models/dtos/theory_manifest.py]
   - [x] [NEW] @[backend_v2/models/dtos/schema_manifest.py]
-  - [ ] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
+  - [x] @[backend_v2/services/orchestrator/two_pass_atomizer.py]
   - [ ] @[backend_v2/workers/synthesis_reducers.py]
   - [ ] @[backend_v2/services/orchestrator/synthesis_payload_compressor.py]
   - [ ] [NEW] @[backend_v2/events/domain_events.py]

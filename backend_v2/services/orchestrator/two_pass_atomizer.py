@@ -1,5 +1,7 @@
 """Two-pass atomization service for extracting global ontologies and fine-grained claims."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 import uuid
@@ -29,6 +31,8 @@ from backend_v2.services.orchestrator.prompts.atom_extraction import (
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
+__all__ = ["TwoPassAtomizer"]
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,7 +48,15 @@ class TwoPassAtomizer:
         self.executor = executor
 
     def _calculate_packets(self, hydrated_text: str, packet_size: int = 50) -> list[tuple[str, str, list[str]]]:
-        """Deterministically calculate logical chunk boundaries."""
+        """Deterministically calculate logical chunk boundaries.
+
+        Args:
+            hydrated_text: Full document string containing block markers.
+            packet_size: Number of blocks per packet chunk.
+
+        Returns:
+            List of 3-tuples containing (start_block, end_block, list_of_block_keys).
+        """
         block_keys = []
         for line in hydrated_text.split("\n\n"):
             if line.startswith("[") and "] " in line:
@@ -130,6 +142,18 @@ class TwoPassAtomizer:
     async def _extract_ontology_from_chunk(
         self, client: LLMClient, compiled_prompt: CompiledPrompt, start_b: str, end_b: str, sem: asyncio.Semaphore
     ) -> tuple[GlobalOntologyMap, TokenUsage]:
+        """Extract ontology elements from a single text packet.
+
+        Args:
+            client: The LLM client.
+            compiled_prompt: Compiled prompt template with source text.
+            start_b: Starting block ID for chunk.
+            end_b: Ending block ID for chunk.
+            sem: Semaphore for concurrency limiting.
+
+        Returns:
+            Tuple of GlobalOntologyMap and TokenUsage for the chunk.
+        """
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -229,6 +253,24 @@ class TwoPassAtomizer:
         hydrated_text: str,
         sem: asyncio.Semaphore,
     ) -> tuple[list[ExtractedAtom], TokenUsage]:
+        """Extract resolved atoms from a single text packet.
+
+        Args:
+            client: The LLM client.
+            compiled_prompt: Compiled prompt template with source text.
+            start_b: Starting block ID for chunk.
+            end_b: Ending block ID for chunk.
+            packet_keys: List of valid block IDs in this packet.
+            chunk_index: Numerical index of the packet.
+            hydrated_text: Complete hydrated document string for alias mapping.
+            sem: Semaphore for concurrency limiting.
+
+        Returns:
+            Tuple of list of ExtractedAtom and chunk TokenUsage.
+
+        Raises:
+            ValueError: If a non-deductive atom refers to a block ID outside packet bounds.
+        """
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -257,9 +299,19 @@ class TwoPassAtomizer:
                 tda_id = f"tda_{uuid.uuid4().hex[:8]}"
                 exact_quote = None
 
-                if not draft.is_logical_deduction and draft.source_block_id:
+                if not draft.is_logical_deduction:
+                    if not draft.source_block_id:
+                        logger.warning("corrupted_atom_dropped: missing_source_block_id on %s", tda_id)
+                        continue
                     clean_id = draft.source_block_id.replace("[", "").replace("]", "").strip()
                     if clean_id not in packet_keys:
+                        logger.error(
+                            "Packet boundary violation: %s not in packet [%s, %s]",
+                            clean_id,
+                            start_b,
+                            end_b,
+                            extra={"error_code": "PACKET_BOUNDARY_VIOLATION"},
+                        )
                         raise ValueError(
                             f"Block ID {clean_id} is outside the assigned packet [{start_b}] to [{end_b}]!"
                         )
@@ -276,6 +328,7 @@ class TwoPassAtomizer:
                             tda_id,
                             draft.source_block_id,
                         )
+                        continue
 
                 final_atoms.append(
                     ExtractedAtom(
@@ -386,6 +439,21 @@ class TwoPassAtomizer:
         hydrated_text: str,
         sem: asyncio.Semaphore,
     ) -> tuple[DraftAtomList, TokenUsage]:
+        """Extract draft atoms from a single chunk with retry policy.
+
+        Args:
+            client: The LLM client.
+            compiled_prompt: Compiled prompt template with source text.
+            start_b: Starting block ID for chunk.
+            end_b: Ending block ID for chunk.
+            packet_keys: List of valid block IDs in this packet.
+            chunk_index: Numerical index of the packet.
+            hydrated_text: Complete hydrated document string for alias mapping.
+            sem: Semaphore for concurrency limiting.
+
+        Returns:
+            Tuple of DraftAtomList and chunk TokenUsage.
+        """
         async with sem:
             dynamic_instruction = (
                 f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
@@ -474,6 +542,21 @@ class TwoPassAtomizer:
         hydrated_text: str,
         sem: asyncio.Semaphore,
     ) -> tuple[DraftAtomList, TokenUsage]:
+        """Execute chunk extraction trapping fatal failures into DLQ.
+
+        Args:
+            client: The LLM client.
+            compiled_prompt: Compiled prompt template with source text.
+            start_b: Starting block ID for chunk.
+            end_b: Ending block ID for chunk.
+            packet_keys: List of valid block IDs in this packet.
+            chunk_index: Numerical index of the packet.
+            hydrated_text: Complete hydrated document string for alias mapping.
+            sem: Semaphore for concurrency limiting.
+
+        Returns:
+            Tuple of DraftAtomList and TokenUsage.
+        """
         try:
             return await self._extract_drafts_from_chunk_with_retry(
                 client, compiled_prompt, start_b, end_b, packet_keys, chunk_index, hydrated_text, sem
@@ -483,7 +566,14 @@ class TwoPassAtomizer:
 
     @staticmethod
     def _dispatch_dlq_failure(exc: Exception) -> tuple[DraftAtomList, TokenUsage]:
-        """Dispatch unhandled chunk worker failure to typed DLQ result."""
+        """Dispatch unhandled chunk worker failure to typed DLQ result.
+
+        Args:
+            exc: Exception that caused chunk extraction failure.
+
+        Returns:
+            Tuple of DraftAtomList with DLQ status and zero TokenUsage.
+        """
         logger.error("DLQ Worker Failed: %s", exc, exc_info=True)
         return DraftAtomList(atoms=[], dlq_status="FAILED/DLQ"), TokenUsage(
             prompt_tokens=0, completion_tokens=0, total_tokens=0

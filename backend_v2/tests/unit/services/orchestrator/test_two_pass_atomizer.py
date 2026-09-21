@@ -215,3 +215,124 @@ async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_cl
     assert drafts_res.dlq_status is None
     assert drafts_usage.total_tokens == 0
     assert mock_executor.execute_structured_task.call_count == 0
+
+
+@pytest.mark.asyncio
+async def test_extract_atoms_from_chunk_outside_packet_raises(mock_executor, mock_client, settings_mock):
+    """Negative boundary: Block ID outside packet bounds raises ValueError."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="R",
+                resolved_claim="C",
+                source_block_id="B99",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    sem = asyncio.Semaphore(1)
+    with pytest.raises(ValueError, match="outside the assigned packet"):
+        await atomizer._extract_atoms_from_chunk(
+            client=mock_client,
+            compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
+            start_b="B0",
+            end_b="B1",
+            packet_keys=["B0", "B1"],
+            chunk_index=0,
+            hydrated_text="[B0] text\n\n[B1] text2",
+            sem=sem,
+        )
+
+
+@pytest.mark.asyncio
+async def test_extract_atoms_from_chunk_alias_not_found(mock_executor, mock_client, settings_mock):
+    """Verifies behavior when clean_id is not in alias map."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="R",
+                resolved_claim="C",
+                source_block_id="B1",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    sem = asyncio.Semaphore(1)
+    atoms, _ = await atomizer._extract_atoms_from_chunk(
+        client=mock_client,
+        compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
+        start_b="B0",
+        end_b="B1",
+        packet_keys=["B0", "B1"],
+        chunk_index=0,
+        hydrated_text="[B0] text",
+        sem=sem,
+    )
+    assert len(atoms) == 0
+
+
+@pytest.mark.asyncio
+async def test_execute_phase_1_drafts_dlq_chunk_detected(mock_executor, mock_client, settings_mock):
+    """Verifies execute_phase_1_drafts sets dlq_status when chunk fails."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_executor.execute_structured_task.side_effect = RuntimeError("DLQ crash")
+    ontology_empty = GlobalOntologyMap(entities=[], macro_rules=[])
+
+    result, _ = await atomizer.execute_phase_1_drafts(
+        client=mock_client, hydrated_text="[B0] text", ontology=ontology_empty
+    )
+    assert result.dlq_status == "FAILED/DLQ"
+    assert result.atoms == []
+
+
+@pytest.mark.asyncio
+async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client, settings_mock):
+    """Verifies that non-deductive atoms with block_id outside boundary or missing alias are dropped."""
+    atomizer = TwoPassAtomizer(executor=mock_executor)
+    mock_draft_list = LLMDraftAtomList(
+        atoms=[
+            LLMDraftAtom(
+                reasoning="R1",
+                resolved_claim="C1",
+                source_block_id="B99",
+                draft_id="a1",
+                is_logical_deduction=False,
+            ),
+            LLMDraftAtom(
+                reasoning="R2",
+                resolved_claim="C2",
+                source_block_id="B1",
+                draft_id="a2",
+                is_logical_deduction=False,
+            ),
+        ]
+    )
+    mock_executor.execute_structured_task.return_value = (
+        mock_draft_list,
+        TokenUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+    )
+    sem = asyncio.Semaphore(1)
+    result, _ = await atomizer._extract_drafts_from_chunk(
+        client=mock_client,
+        compiled_prompt=CompiledPrompt(static_messages=[], dynamic_messages=[]),
+        start_b="B0",
+        end_b="B1",
+        packet_keys=["B0", "B1"],
+        chunk_index=0,
+        hydrated_text="[B0] text",
+        sem=sem,
+    )
+    assert len(result.atoms) == 0
+
