@@ -140,7 +140,7 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide search/replace of old import paths and delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend):**
   - [x] [NEW] @[scripts/audit_dict_eradication.py]
-  - [ ] @[scripts/_ast_guardrails.py]
+  - [x] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
   - [ ] @[backend_v2/hooks/validation.py]
   - [ ] @[backend_v2/settings.py]

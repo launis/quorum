@@ -89,7 +89,14 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
 
 
 def _is_dict_type_node(node: ast.AST) -> bool:
-    """Checks if an AST node represents a dictionary type or container/union with a dictionary."""
+    """Checks if an AST node represents a dictionary type or container/union with a dictionary.
+
+    Args:
+        node: AST node to inspect.
+
+    Returns:
+        True if the node represents a dictionary type, False otherwise.
+    """
     match node:
         case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
             return True
@@ -115,6 +122,12 @@ class CommentSuppressor:
     """Parses inline comment suppressions (# noqa: QGRxxx [REASON: ...]) across physical source lines."""
 
     def __init__(self, source_bytes: bytes, filepath: str = "unknown") -> None:
+        """Initialize CommentSuppressor with raw source bytes and filepath.
+
+        Args:
+            source_bytes: Raw source code content in bytes.
+            filepath: Target file path.
+        """
         self.filepath = filepath
         self.suppressions: dict[int, set[str]] = {}
         self.invalid_suppressions: list[GuardrailViolation] = []
@@ -126,6 +139,11 @@ class CommentSuppressor:
         self._parse_comments(source_bytes)
 
     def _parse_comments(self, source_bytes: bytes) -> None:
+        """Parses inline comments from raw source bytes to extract suppression directives.
+
+        Args:
+            source_bytes: Raw source code content in bytes.
+        """
         try:
             tokens = tokenize.tokenize(io.BytesIO(source_bytes).readline)
             for tok in tokens:
@@ -199,6 +217,16 @@ class CommentSuppressor:
             pass
 
     def is_suppressed(self, rule_code: str, start_line: int, end_line: int | None = None) -> bool:
+        """Checks whether a rule is suppressed for the specified line range.
+
+        Args:
+            rule_code: Guardrail rule code e.g. QGR001.
+            start_line: 1-indexed starting line number.
+            end_line: Optional 1-indexed ending line number.
+
+        Returns:
+            True if rule is suppressed, False otherwise.
+        """
         if rule_code == "QGR000":
             return False  # Fatal rule QGR000 is immune to suppression
         last_line = end_line if end_line is not None else start_line
@@ -214,6 +242,12 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
     """AST Visitor detecting domain architectural violations with zero reflection."""
 
     def __init__(self, filepath: str, suppressor: CommentSuppressor) -> None:
+        """Initialize QuorumGuardrailVisitor with target filepath and suppressor.
+
+        Args:
+            filepath: Target file path to scan.
+            suppressor: CommentSuppressor instance containing parsed suppressions.
+        """
         self.filepath = filepath
         self.suppressor = suppressor
         self.violations: list[GuardrailViolation] = []
@@ -234,6 +268,15 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         remediation: str,
         severity: GuardrailSeverity = GuardrailSeverity.WARNING,
     ) -> None:
+        """Helper to append a structured GuardrailViolation to the visitor violations list.
+
+        Args:
+            node: Offending AST node.
+            rule_code: Guardrail rule code e.g. QGR001.
+            message: Descriptive violation message.
+            remediation: Deterministic remediation instructions.
+            severity: Guardrail severity level.
+        """
         lineno = (
             node.lineno
             if isinstance(
@@ -1116,7 +1159,15 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
 
 def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[GuardrailViolation]:
-    """Scans Python source code bytes for architectural violations with complete fault isolation."""
+    """Scans Python source code bytes for architectural violations with complete fault isolation.
+
+    Args:
+        filepath: Target file path of the source code.
+        source_bytes: Raw source content bytes.
+
+    Returns:
+        List of detected GuardrailViolation instances.
+    """
     # 1. Parse AST with SyntaxError / IndentationError / TabError isolation
     try:
         source_text = source_bytes.decode("utf-8")
@@ -1192,7 +1243,14 @@ def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[
 
 
 def scan_file_for_guardrails(filepath: str | Path) -> list[GuardrailViolation]:
-    """Scans a single Python file on disk for architectural violations."""
+    """Scans a single Python file on disk for architectural violations.
+
+    Args:
+        filepath: Target file path on disk.
+
+    Returns:
+        List of detected GuardrailViolation instances.
+    """
     path = Path(filepath)
     try:
         source_bytes = path.read_bytes()
@@ -1214,7 +1272,14 @@ def scan_file_for_guardrails(filepath: str | Path) -> list[GuardrailViolation]:
 
 
 def _collect_py_files(target: str | Path) -> list[Path]:
-    """Recursively collects Python files while ignoring .venv, node_modules, and cache directories."""
+    """Recursively collects Python files while ignoring .venv, node_modules, and cache directories.
+
+    Args:
+        target: Target directory or file path.
+
+    Returns:
+        Sorted list of collected Python file Paths.
+    """
     path = Path(target)
     if not path.exists():
         return []
@@ -1240,10 +1305,12 @@ def scan_files_for_guardrails(
 ) -> tuple[list[GuardrailViolation], bool]:
     """Scans multiple target files or directories for AST violations.
 
+    Args:
+        targets: Sequence of target file or directory paths.
+        strict: When True, requires 0 unsuppressed violations of any severity.
+
     Returns:
-        tuple[list[GuardrailViolation], bool]: (violations, is_success)
-        In strict mode, passes only if there are 0 unsuppressed violations.
-        In advisory mode, passes if there are 0 unsuppressed FATAL violations.
+        Tuple containing list of violations and boolean success flag.
     """
     all_violations: list[GuardrailViolation] = []
 
@@ -1265,7 +1332,14 @@ def scan_files_for_guardrails(
 
 
 def format_violations_table(violations: list[GuardrailViolation]) -> str:
-    """Formats a list of GuardrailViolation objects into a readable console report."""
+    """Formats a list of GuardrailViolation objects into a readable console report.
+
+    Args:
+        violations: List of GuardrailViolation instances to format.
+
+    Returns:
+        Formatted console report string.
+    """
     if not violations:
         return "✅ No AST guardrail violations found."
 
@@ -1282,6 +1356,7 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 
 
 def main() -> None:
+    """CLI entry point for running AST codebase guardrails."""
     targets: list[str] = []
     strict_mode = False
 
