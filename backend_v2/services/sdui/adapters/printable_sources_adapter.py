@@ -6,6 +6,8 @@ mappings are co-located in SECTION 1 PRINTABLE_SOURCES_RULES to enforce Dumb Pai
 separation of presentation from logic.
 """
 
+from __future__ import annotations
+
 import logging
 import re
 
@@ -117,7 +119,9 @@ class PrintableSourcesAdapter:
         if context.is_data_starved:
             return blocks
 
-        locale = context.locale if context.locale in ("fi", "en") else "en"
+        locale = "en"
+        if context.locale in ("fi", "en"):
+            locale = context.locale
         display_mode = context.profile.sources_display_mode
         show_summary_box = context.profile.show_sources_summary_box
 
@@ -142,7 +146,9 @@ class PrintableSourcesAdapter:
                     clean_cited_sources.append(clean_item)
 
         # 2. READ: Extract MCP audit traces
-        mcp_traces = list(context.mcp_audit_map.values()) if context.mcp_audit_map else []
+        mcp_traces = []
+        if context.mcp_audit_map:
+            mcp_traces = list(context.mcp_audit_map.values())
 
         if not clean_cited_sources and not mcp_traces and not show_summary_box:
             return blocks
@@ -232,7 +238,9 @@ class PrintableSourcesAdapter:
             if context.profile_cache and context.profile_cache.section_syntheses:
                 for sec_blocks in context.profile_cache.section_syntheses.values():
                     for b in sec_blocks:
-                        b_text = b.text if isinstance(b, MarkdownBlock | ParagraphBlock) else ""
+                        b_text = ""
+                        if isinstance(b, MarkdownBlock | ParagraphBlock):
+                            b_text = b.text
                         if b_text:
                             for s in re.split(r"(?<=[.!?])\s+", b_text):
                                 clean_s = s.strip()
