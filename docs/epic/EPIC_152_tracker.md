@@ -240,15 +240,15 @@
   - [x] @[backend_v2/services/orchestrator/sliding_window_linker.py]
   - [x] @[backend_v2/services/localization.py]
   - [x] @[backend_v2/services/matrix_domain_parser.py]
-- [ ] **[NOK] Tier 2 Hardening (Frontend):**
+- [x] **[OK] Tier 2 Hardening (Frontend):**
   - [x] @[client_app_v2/lib/core/api/reports_client.dart]
   - [x] @[client_app_v2/lib/core/api/execution_client.dart]
   - [x] [NEW] @[client_app_v2/lib/core/models/generic_status_response_dto.dart]
   - [x] @[client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart]
   - [x] @[client_app_v2/lib/features/execution/models/report_data_v2_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving business logic.
 
@@ -440,6 +440,10 @@
     100. `client_app_v2/lib/core/models/generic_status_response_dto.dart` (Commit `9d5edb65`): Upgraded to `@Freezed(equal: false)` with `disallowUnrecognizedKeys: true`, removed banned lint suppression comments per DGR004, regenerated code, created unit test suite `test/core/models/generic_status_response_dto_test.dart` covering 4 positive and negative test cases (100% pass rate), 0 analyzer warnings, audit matrix verified (104/104 rules).
     101. `client_app_v2/lib/features/reports/controllers/report_artifact_controller.dart` (Commit `d2ffe8d2`): Removed unused `safe_isolate` import, expanded unit test suite `test/features/reports/report_artifact_controller_test.dart` to cover 9 positive and negative test cases across all query providers and action mutations (100% pass rate), 0 analyzer warnings, audit matrix verified (104/104 rules).
     102. `client_app_v2/lib/features/execution/models/report_data_v2_dto.dart` (Commit `e30701fa`): Added class-level docstring, verified `@Freezed(equal: false)` and `safeIsolateRun` background JSON parsing, verified 4 unit tests in `report_data_v2_dto_test.dart` (100% pass rate), 0 analyzer warnings, audit matrix verified (104/104 rules).
+  - Batch 22 (Frontend Hardening Batch 2 - Completed & Committed):
+    103. `client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart` (Commit `efe7c027`): Added class docstring, eradicated hardcoded colors and magic numbers in favor of `Theme.of(context).colorScheme` and `AppSpacing` design tokens, expanded test suite with boundary tests for empty axes and sparse rows (9/9 widget tests passing), 0 analyzer warnings, audit matrix verified (104/104 rules).
+    104. `client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart` (Commit `735bf553`): Eradicated banned `// ignore_for_file:` comment per DGR004, added class-level docstrings across all 6 DTO models, expanded test suite with negative tests for unrecognized keys, empty atomsByLevel, and defaults (10/10 tests passing), 0 analyzer warnings, audit matrix verified (104/104 rules).
+    105. `client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart` (Commit `70c5040f`): Added class docstring, verified Dart 3 switch expression with pattern matching on `EvidenceType`, created comprehensive test suite `test/features/execution/views/widgets/xai_axis_telemetry_grid_test.dart` testing full/titlesOnly/none modes, contextual override, evidence icons, and empty content (6/6 widget tests passing), 0 analyzer warnings, audit matrix verified (104/104 rules).
 
 ## Learned
 - In `client_app_v2/lib/core/api/reports_client.dart`, modern Dart syntax enforces null-aware map entries (`'custom_preface_md': ?customPrefaceMd`) rather than `if (val != null) 'key': val`.
@@ -448,12 +452,12 @@
 - In `report_artifact_controller_test.dart`, assertions on `AsyncValue<void>` mutations must explicitly compare against `const AsyncValue<void>.data(null)` rather than untyped `const AsyncValue.data(null)`.
 - In `audit_matrix_manager.py`, mentions of Dart or Python source files in rule justifications must anchor strictly to the target stem or allowed system files (`settings.py`, `enums.py`, `conftest.py`, `audit_matrix_manager.py`, `backend_audit_loop.py`, `flutter_audit_loop.py`) to prevent cross-file hallucination.
 - NA justifications in `audit_matrix_manager.py` must not be repeated more than 40 times across the matrix to ensure substantive, non-rubber-stamped auditing.
+- In `sdui_matrix_table_widget.dart`, score and ratio containers must strictly utilize `Theme.of(context).colorScheme.primaryContainer` and `tertiaryContainer` with `AppSpacing.s4` border radii rather than hardcoded `Colors.green` or `Colors.blue` shades to comply with `design_token_absolute_rule`.
+- In `matrix_scorecard_dto.dart`, removing `// ignore_for_file: invalid_annotation_target` resolves the DGR004 static guardrail warning while maintaining 100% Freezed serialization integrity.
+- In `xai_axis_telemetry_grid.dart`, `TextDeliveryMode` options are `full`, `titlesOnly`, and `none` (not `concise`), and `reportConfidenceTitle` formats as `AI Confidence: {value}%`.
 
 ## Remaining
-- Tier 2 Hardening (Frontend) remaining files (3 targets):
-  - `client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart`
-  - `client_app_v2/lib/features/execution/models/matrix_scorecard_dto.dart`
-  - `client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart`
+- Tier 2 Hardening (Frontend) is 100% COMPLETE (8/8 targets audited, committed, and verified).
 - Subsequent Post-Implementation Gates:
   - Integration Checkpoint: Full-Stack Validation
   - Pre-Delete Audit
@@ -461,8 +465,9 @@
   - As-Built Architectural Sync (`/tier7-describe-architecture`)
   - Final Epic Audit (`/tier8-audit-epic`)
 
-## Resume Command
-/tier5-resume --target="docs/epic/EPIC_152_tracker.md, client_app_v2" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+## Next Step
+Execute the next Post-Implementation Gate:
+`/tier7-describe-architecture` or Integration Checkpoint: Full-Stack Validation.
 
 
 
