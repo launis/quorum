@@ -42,8 +42,13 @@ def merge_execution_inputs(
     merged_dynamic = copy.deepcopy(dict(base.dynamic_inputs))
     merged_dynamic.update(copy.deepcopy(dict(delta.dynamic_inputs)))
 
-    target_locale = delta.target_locale if delta.target_locale is not None else base.target_locale
-    user_role = delta.user_role if delta.user_role is not None else base.user_role
+    target_locale = base.target_locale
+    if delta.target_locale is not None:
+        target_locale = delta.target_locale
+
+    user_role = base.user_role
+    if delta.user_role is not None:
+        user_role = delta.user_role
 
     return base.model_copy(
         update={

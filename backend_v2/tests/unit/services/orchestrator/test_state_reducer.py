@@ -68,3 +68,26 @@ def test_merge_execution_inputs_overwrites_and_locale() -> None:
     assert merged.user_role == "admin"
     # When delta target_locale is None, base target_locale is preserved
     assert merged.target_locale == "en"
+
+
+def test_merge_execution_inputs_negative_and_boundary_cases() -> None:
+    """ISTQB Partition 4 & 5: Negative schema rejection and boundary None handling."""
+    import pytest
+    from pydantic import ValidationError
+
+    # Negative test 1: Extra fields rejected fail-fast by strict DTO
+    with pytest.raises(ValidationError):
+        ExecutionInputsDTO.model_validate({"raw_inputs": {}, "unexpected_extra": "fail"})
+
+    # Negative test 2: Invalid type for target_locale rejected fail-fast
+    with pytest.raises(ValidationError):
+        ExecutionInputsDTO.model_validate({"target_locale": 12345})
+
+    # Boundary: Both base and delta have None user_role and target_locale
+    base = ExecutionInputsDTO(raw_inputs={"a": "1"}, user_role=None, target_locale=None)
+    delta = ExecutionInputsDTO(raw_inputs={"b": "2"}, user_role=None, target_locale=None)
+    merged = merge_execution_inputs(base, delta)
+    assert merged.user_role is None
+    assert merged.target_locale is None
+    assert merged.raw_inputs == {"a": "1", "b": "2"}
+
