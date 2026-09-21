@@ -47,6 +47,7 @@ from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
 from backend_v2.services.orchestrator.engines.synthesis_engine import SynthesisEngine
@@ -741,7 +742,7 @@ class LLMNodeStrategy(NodeStrategy):
                 )
 
                 static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
-                static_msg = {"role": "system", "content": static_instructions}
+                static_msg = LLMMessageDTO(role="system", content=static_instructions)
 
                 engine_request = EngineExecutionRequest(
                     bound_client=bound_client,
@@ -781,8 +782,8 @@ class LLMNodeStrategy(NodeStrategy):
 
                 static_instructions = self.compiler.compile_static_instructions(criteria_blocks, target_locale)
                 hydrated_messages = [
-                    {"role": "system", "content": static_instructions},
-                    {"role": "user", "content": user_payload},
+                    LLMMessageDTO(role="system", content=static_instructions),
+                    LLMMessageDTO(role="user", content=user_payload),
                 ]
 
                 engine_request = EngineExecutionRequest(

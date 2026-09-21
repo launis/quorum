@@ -12,6 +12,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.services.orchestrator.engines.prompt_engine import PromptEngine
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 
@@ -49,7 +50,7 @@ def base_request() -> EngineExecutionRequest:
     return EngineExecutionRequest(
         bound_client=client,
         compiled_schema=MockResponseModel,
-        hydrated_messages=[{"role": "user", "content": "Hello"}],
+        hydrated_messages=[LLMMessageDTO(role="user", content="Hello")],
         system_prompt="Test",
         step=step,
         context=context,

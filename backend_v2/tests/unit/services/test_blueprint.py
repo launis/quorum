@@ -376,6 +376,12 @@ def mock_repo_transformer() -> Any:
         theme_mode="system",
         created_at=datetime.now(timezone.utc),
     )
+    from backend_v2.models.domain.system_config import SystemConfigMCPGateways
+    repo.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_0000000000000001",
+        type="mcp_gateways",
+        tools=[],
+    )
     return repo
 
 
@@ -1496,20 +1502,18 @@ async def test_blueprint_matrix_crash_missing_chart_label(mock_repo_transformer:
                     },
                     "results": [
                         {
-                            "atom_id": "tda_11111111111111111111111111111111",
-                            "level": 100,
-                            "level_name": "Full",
-                            "claim_label": "claim",
-                            "status": "PASS",
-                            "exact_quotes": [],
-                            "semantic_reasoning": "This is a matrix block evaluation.",
-                            "contextual_override": False,
-                            "structural_location": None,
-                            "chart_display_label": "Test",
-                            "visual_intent": "positive",
-                            # MISSING chart_display_label and visual_intent !
+                            "tda_id": "tda_11111111111111111111111111111111",
+                            "status": "PASSED",
+                            "evaluation_reasoning": "This is a matrix block evaluation.",
+                            "contextual_override": True,
                         }
                     ],
+                    "hydrated_references": {
+                        "tda_11111111111111111111111111111111": {
+                            "sdui_component": "boolean_card",
+                            "resolved_claim": "claim",
+                        }
+                    },
                 },
             )
         ],
@@ -1836,8 +1840,10 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
             block_id="results",
             payload=[
                 {
-                    "atom_id": "tda_11111111111111111111111111111111",
-                    "semantic_reasoning": "Sem reasoning",
+                    "tda_id": "tda_11111111111111111111111111111111",
+                    "status": "PASSED",
+                    "evaluation_reasoning": "Sem reasoning",
+                    "contextual_override": True,
                 }
             ],
         ),
@@ -1911,7 +1917,7 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
 
     mcp_audit_map: Any = {"doc1": SimpleNamespace(tool_id="test", step_name="step_1", query="query", source_urls=[])}
 
-    evaluative, info, parsed, atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=results,
         locale="en",
         blocks_by_id=blocks_by_id,
@@ -1922,6 +1928,10 @@ async def test_blueprint_parse_matrix_trace_results_comprehensive(mock_repo_tran
         row_curated_quotes_cache={},
         mcp_audit_map=mcp_audit_map,
     )
+    evaluative = res.evaluative_matrices
+    info = res.informational_matrices
+    parsed = res.all_parsed_matrices
+    atoms = res.step_scorecard_atoms
 
     assert len(evaluative) == 2
     assert "tda_11111111111111111111111111111111" in atoms["step_1"]
@@ -2857,6 +2867,9 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                 content={
                     "user_rejected": True,
                     "evq_id": "evq_00000000000000000000000000000001",
+                    "rejection_reason": "Rejected evidence",
+                    "rejected_by": "usr_0123456789abcdef",
+                    "rejected_at": datetime.now(timezone.utc),
                 },
             ),
             TraceEvent(
@@ -2865,6 +2878,9 @@ async def test_blueprint_transformer_evidence_rejection_and_reverse_mcp(
                 content={
                     "user_rejected": False,
                     "evq_id": "evq_00000000000000000000000000000002",
+                    "rejection_reason": "Not rejected",
+                    "rejected_by": "usr_0123456789abcdef",
+                    "rejected_at": datetime.now(timezone.utc),
                 },
             ),
             TraceEvent(
@@ -3296,7 +3312,7 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
         },
     )
 
-    eval_m, _, all_parsed, _ = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[step_output_none],
         locale="fi",
         blocks_by_id={pb_id: pb},
@@ -3306,6 +3322,8 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    all_parsed = res.all_parsed_matrices
     row_key = f"{step_output_none.step_id}_{pb_id}"
     assert len(eval_m) == 1
     assert eval_m[0].block_id == pb_id
@@ -3324,7 +3342,7 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
         },
     )
 
-    eval_m2, _, all_parsed2, _ = MatrixDomainParser.parse_matrices(
+    res2 = MatrixDomainParser.parse_matrices(
         results=[step_output_list],
         locale="fi",
         blocks_by_id={pb_id: pb},
@@ -3334,6 +3352,8 @@ def test_matrix_domain_parser_accepts_matrix_payload_with_atom_quotes() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m2 = res2.evaluative_matrices
+    all_parsed2 = res2.all_parsed_matrices
     row_key2 = f"{step_output_list.step_id}_{pb_id}"
     assert len(eval_m2) == 1
     assert eval_m2[0].block_id == pb_id
@@ -3540,3 +3560,213 @@ async def test_blueprint_variance_target_block_adherence(
     assert report is not None
     assert len(report.inner_sdui_blocks) > 0
     assert profile.variance_target_block == variance_target_id
+
+
+@pytest.mark.asyncio
+async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicMock) -> None:
+    """Test that corrupted payload branches fail fast with typed AppException."""
+    from backend_v2.models.domain.workflow import Workflow
+    from backend_v2.models.dtos.atom_result import HydratedAtomDTO
+    from backend_v2.models.enums import SDUIComponentType
+
+    profile = OutputProfile(
+        id="prf_0000000000000001",
+        slug="test-p",
+        workflow_id="wf_0000000000000001",
+        name=I18nText(translations={"en": "P"}),
+        target_block_order=[TargetBlockType.METADATA_BLOCK],
+    )
+    wf = Workflow(
+        id="wf_0000000000000001",
+        slug="wf-1",
+        name=I18nText(translations={"en": "WF"}),
+        description=I18nText(translations={"en": "Desc"}),
+        status="published",
+        version=1,
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode="DISABLED",
+        default_profile_id=profile.id,
+        mcp_gateway_id="sys_0000000000000001",
+        steps=[],
+    )
+    mock_repo_transformer.get_all_output_profiles.return_value = [profile]
+    mock_repo_transformer.get_output_profile.return_value = profile
+    mock_repo_transformer.get_workflow.return_value = wf
+
+    transformer = BlueprintTransformer(
+        exec_repo=mock_repo_transformer,
+        workflow_repo=mock_repo_transformer,
+        comp_repo=mock_repo_transformer,
+        prompt_block_repo=mock_repo_transformer,
+        output_profile_repo=mock_repo_transformer,
+        identity_repo=mock_repo_transformer,
+        system_repo=mock_repo_transformer,
+    )
+
+    # 1. MCP Gateway invalid config error branch
+    mock_repo_transformer.get_mcp_gateways.return_value = {"invalid_key": "not_a_valid_gateway"}
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000001",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000001")
+    assert "Failed to parse MCP gateway config" in str(exc_info.value)
+
+    # Reset valid gateway
+    from backend_v2.models.domain.system_config import SystemConfigMCPGateways
+
+    mock_repo_transformer.get_mcp_gateways.return_value = SystemConfigMCPGateways(
+        id="sys_0000000000000001", type="mcp_gateways", tools=[]
+    )
+
+    # 2. Corrupt scoring payload in results
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000002",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="scoring_step",
+                event_type="output",
+                content={"scoring_result": "invalid_not_a_dict"},
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000002")
+    assert "Failed to parse TraceScoringPayloadDTO" in str(exc_info.value)
+
+    # 3. Corrupt evidence override in execution trace
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000003",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="override_step",
+                event_type="evidence_override",
+                content={"invalid_override": "corrupted"},
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000003")
+    assert "Failed to parse EvidenceOverrideDTO" in str(exc_info.value)
+
+    # 4. Corrupt AtomResultDTO in results
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000004",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="atom_step",
+                event_type="output",
+                content={"results": [{"invalid_atom": "corrupted"}]},
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000004")
+    assert "Failed to parse AtomResultDTO list" in str(exc_info.value)
+
+    # 5. Corrupt hydrated_references in results
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000005",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        execution_trace=[
+            TraceEvent(
+                step_name="ref_step",
+                event_type="output",
+                content={"hydrated_references": {"ref_1": {"invalid_key": "bad"}}},
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000005")
+    assert "Failed to parse HydratedAtomDTO" in str(exc_info.value)
+
+    # 6. Corrupt TraceEventMetadataEnvelope in trace
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000006",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=0,
+        completion_tokens=0,
+        reasoning_tokens=0,
+        dag_cost_usd=0.0,
+        execution_trace=[
+            TraceEvent(
+                step_name="meta_step",
+                event_type="output",
+                    content={"_step_metadata": {"token_usage": "not_valid"}},
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+    )
+    with pytest.raises(AppException) as exc_info:
+        await transformer.build_report_dto("exe_0000000000000006")
+    assert "Corrupted TraceEventMetadataEnvelope" in str(exc_info.value)
+
+    # 7. Valid HydratedAtomDTO object in hydrated_references + custom preface + cache coverage
+    cache = RenderedSynthesisCache(
+        row_explanations={"matrix_1": "Explanation text"},
+        row_curated_quotes={"matrix_1": ["Quote 1"]},
+    )
+    hydrated_dto = HydratedAtomDTO(
+        sdui_component=SDUIComponentType.BOOLEAN_CARD,
+        resolved_claim="Claim text",
+        source_quote="Quote text",
+    )
+    mock_repo_transformer.get_execution.return_value = ExecutionRecord(
+        id="exe_0000000000000007",
+        workflow_id=wf.id,
+        output_profile_id=profile.id,
+        status=ExecutionStatus.PASSED,
+        prompt_tokens=10,
+        completion_tokens=5,
+        reasoning_tokens=2,
+        dag_cost_usd=0.01,
+        execution_trace=[
+            TraceEvent(
+                step_name="ref_step",
+                event_type="output",
+                content={
+                    "hydrated_references": {"ref_1": hydrated_dto},
+                },
+            )
+        ],
+        metadata=ExecutionMetadata(),
+        target_locale="en",
+        profile_syntheses={profile.id: cache},
+    )
+    report = await transformer.build_report_dto(
+        "exe_0000000000000007",
+        custom_preface_md="# Custom Preface",
+        local_time_str="2026-09-21 12:00",
+    )
+    assert report is not None
+    assert report.custom_preface_md == "# Custom Preface"
+    assert "ref_1" in report.hydrated_references
+

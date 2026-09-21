@@ -13,6 +13,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -139,7 +140,7 @@ class SynthesisEngine:
             if request.hydrated_messages is None:
                 raise ValueError("hydrated_messages must be provided for SynthesisEngine")
 
-            local_messages = [dict(msg) for msg in request.hydrated_messages]
+            local_messages = list(request.hydrated_messages)
 
             raw_xai_extensions_str = ""
             if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
@@ -171,7 +172,7 @@ class SynthesisEngine:
                 user_content_parts.append(SPARSE_DATA_SYNTHESIS_MANDATE)
 
             final_user_content = "\n\n".join(user_content_parts)
-            local_messages.append({"role": "user", "content": final_user_content})
+            local_messages.append(LLMMessageDTO(role="user", content=final_user_content))
 
             logger.info("SynthesisEngine: Final hydrated message count: %d", len(local_messages))
 

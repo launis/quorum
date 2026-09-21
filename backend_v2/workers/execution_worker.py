@@ -20,6 +20,7 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -180,7 +181,7 @@ async def execute_workflow_job(
                 models_used: dict[str, int] = {}
                 if updated_exec_record.models_used:
                     models_used = updated_exec_record.models_used.copy()
-                step_telemetry: dict[str, dict[str, Any]] = {}
+                step_telemetry: dict[str, StepTelemetryEntryDTO] = {}
                 total_cost_usd = 0.0
                 total_prompt_tokens = 0
                 total_completion_tokens = 0
@@ -244,28 +245,33 @@ async def execute_workflow_job(
 
                     step_id = event.step_name
                     if step_id not in step_telemetry:
-                        step_telemetry[step_id] = {
-                            "model_strategy": model_strategy,
-                            "physical_model": step_meta.physical_model,
-                            "system_fingerprint": step_meta.system_fingerprint,
-                            "prompt_tokens": 0,
-                            "completion_tokens": 0,
-                            "cached_tokens": 0,
-                            "reasoning_tokens": 0,
-                            "cost_usd": 0.0,
-                            "chunk_count": 0,
-                        }
-                    st_entry = step_telemetry[step_id]
-                    if step_meta.physical_model and not st_entry["physical_model"]:
-                        st_entry["physical_model"] = step_meta.physical_model
-                    if step_meta.system_fingerprint and not st_entry["system_fingerprint"]:
-                        st_entry["system_fingerprint"] = step_meta.system_fingerprint
-                    st_entry["prompt_tokens"] += p_tokens
-                    st_entry["completion_tokens"] += comp_tokens
-                    st_entry["cached_tokens"] += cac_tokens
-                    st_entry["reasoning_tokens"] += reas_tokens
-                    st_entry["cost_usd"] += c_cost
-                    st_entry["chunk_count"] += chunk_size
+                        step_telemetry[step_id] = StepTelemetryEntryDTO(
+                            model_strategy=model_strategy,
+                            physical_model=step_meta.physical_model,
+                            system_fingerprint=step_meta.system_fingerprint,
+                            prompt_tokens=p_tokens,
+                            completion_tokens=comp_tokens,
+                            cached_tokens=cac_tokens,
+                            reasoning_tokens=reas_tokens,
+                            cost_usd=c_cost,
+                            chunk_count=chunk_size,
+                        )
+                    else:
+                        prev = step_telemetry[step_id]
+                        phys_model = prev.physical_model or step_meta.physical_model
+                        sys_fp = prev.system_fingerprint or step_meta.system_fingerprint
+                        step_telemetry[step_id] = prev.model_copy(
+                            update={
+                                "physical_model": phys_model,
+                                "system_fingerprint": sys_fp,
+                                "prompt_tokens": prev.prompt_tokens + p_tokens,
+                                "completion_tokens": prev.completion_tokens + comp_tokens,
+                                "cached_tokens": prev.cached_tokens + cac_tokens,
+                                "reasoning_tokens": prev.reasoning_tokens + reas_tokens,
+                                "cost_usd": prev.cost_usd + c_cost,
+                                "chunk_count": prev.chunk_count + chunk_size,
+                            }
+                        )
 
                 updated_steps: list[ExecutionStep] = []
                 existing_steps = (
@@ -306,15 +312,15 @@ async def execute_workflow_job(
                                 "scorecard_atoms": scorecard,
                                 "progress": actual_progress,
                                 "has_warning": actual_warning,
-                                "model_strategy": tel["model_strategy"],
-                                "physical_model": tel["physical_model"],
-                                "system_fingerprint": tel["system_fingerprint"],
-                                "prompt_tokens": tel["prompt_tokens"],
-                                "completion_tokens": tel["completion_tokens"],
-                                "cached_tokens": tel["cached_tokens"],
-                                "reasoning_tokens": tel["reasoning_tokens"],
-                                "cost_usd": tel["cost_usd"],
-                                "chunk_count": max(1, tel["chunk_count"]),
+                                "model_strategy": tel.model_strategy,
+                                "physical_model": tel.physical_model,
+                                "system_fingerprint": tel.system_fingerprint,
+                                "prompt_tokens": tel.prompt_tokens,
+                                "completion_tokens": tel.completion_tokens,
+                                "cached_tokens": tel.cached_tokens,
+                                "reasoning_tokens": tel.reasoning_tokens,
+                                "cost_usd": tel.cost_usd,
+                                "chunk_count": max(1, tel.chunk_count),
                             }
                         )
                         updated_steps.append(updated_st)

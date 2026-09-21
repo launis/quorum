@@ -88,7 +88,9 @@ def mock_repo() -> MagicMock:
 
 @pytest.fixture
 def mock_compiler() -> MagicMock:
-    return MagicMock()
+    compiler = MagicMock()
+    compiler.compile_static_instructions.return_value = "Static instructions"
+    return compiler
 
 
 @pytest.fixture

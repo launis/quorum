@@ -13,6 +13,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TokenUsage
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -83,7 +84,7 @@ def base_request() -> EngineExecutionRequest:
     return EngineExecutionRequest(
         bound_client=MagicMock(spec=LLMClient),
         compiled_schema=MockSynthesisOutput,
-        hydrated_messages=[{"role": "system", "content": "You are an assistant."}],
+        hydrated_messages=[LLMMessageDTO(role="system", content="You are an assistant.")],
         system_prompt="You are an assistant.",
         step=step,
         context=context,
@@ -299,8 +300,8 @@ async def test_synthesis_engine_sparse_data_rule_injected(
     call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
     user_message = messages[-1]
-    assert user_message["role"] == "user"
-    assert SPARSE_DATA_SYNTHESIS_MANDATE in user_message["content"]
+    assert user_message.role == "user"
+    assert SPARSE_DATA_SYNTHESIS_MANDATE in user_message.content
     assert isinstance(result.synthesis_output, dict)
     assert result.synthesis_output["title"] == "Sparse"
 
@@ -348,8 +349,8 @@ async def test_synthesis_engine_prompt_injection_cdata_shielding(
     call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
     user_message = messages[-1]
-    assert "<![CDATA[" in user_message["content"]
-    assert "]]]]><![CDATA[>" in user_message["content"]
+    assert "<![CDATA[" in user_message.content
+    assert "]]]]><![CDATA[>" in user_message.content
 
 
 @pytest.mark.asyncio
@@ -412,8 +413,8 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
     call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
     messages = call_kwargs["messages"]
     user_message = messages[-1]
-    assert "<raw_xai_extensions>" in user_message["content"]
-    assert "risk_flag" in user_message["content"]
+    assert "<raw_xai_extensions>" in user_message.content
+    assert "risk_flag" in user_message.content
 
 
 @pytest.mark.asyncio

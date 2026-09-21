@@ -146,3 +146,41 @@ def test_engine_execution_request_semaphore_cm_and_fields() -> None:
     sem = asyncio.Semaphore(1)
     req_sem = req.model_copy(update={"semaphore": sem})
     assert req_sem.semaphore_cm is sem
+
+
+def test_engine_execution_request_hydrated_messages_typed() -> None:
+    """Test that EngineExecutionRequest enforces list[LLMMessageDTO] | None."""
+    from unittest.mock import MagicMock
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.models.domain.step import StepRule
+    from backend_v2.models.enums import CognitiveTier
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.models.llm import LLMMessageDTO
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    step = StepRule(id="stp_1111111111111111", task_blueprint="bp_1")
+    context = StrategyContext(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+        cognitive_tier=CognitiveTier.FAST,
+    )
+    client = MagicMock(spec=LLMClient)
+    msg = LLMMessageDTO(role="system", content="Hello")
+
+    req = EngineExecutionRequest(
+        bound_client=client,
+        compiled_schema=None,
+        hydrated_messages=[msg],
+        system_prompt="System",
+        step=step,
+        context=context,
+        global_source_text="Source",
+        target_locale="en",
+        prompt_compiler=MagicMock(),
+    )
+    assert req.hydrated_messages is not None
+    assert len(req.hydrated_messages) == 1
+    assert req.hydrated_messages[0].role == "system"
+    assert req.hydrated_messages[0].content == "Hello"
+

@@ -221,7 +221,22 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
         event_type="output",
         content=meta_env1.model_dump(by_alias=True, mode="json"),
     )
-    event2 = ErrorTraceEvent(
+    meta_env2 = TraceEventMetadataEnvelope(
+        step_metadata=StepTraceMetadataDTO(
+            step_id=step_id,
+            model_strategy="fast",
+            physical_model="gpt-5.4",
+            system_fingerprint="fp_123",
+            chunk_size=1,
+            token_usage=None,
+        )
+    )
+    event2 = TraceEvent(
+        step_name="step1",
+        event_type="output",
+        content=meta_env2.model_dump(by_alias=True, mode="json"),
+    )
+    event3 = ErrorTraceEvent(
         step_name="step2",
         error_code="INTERNAL_SERVER_ERROR",
         error_message="Degraded warning",
@@ -230,7 +245,7 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
     base_record = _create_mock_record()
     mock_executed_record = base_record.model_copy(
         update={
-            "execution_trace": [event1, event2],
+            "execution_trace": [event1, event2, event3],
             "models_used": {"gpt-5.4": 1},
         }
     )

@@ -68,6 +68,17 @@ class LinkerResponseDTO(BaseModel):
     )
 
 
+class WindowCausalEdgesDTO(BaseModel):
+    """Encapsulates parent causal edges for a child node within a sliding window."""
+
+    model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
+
+    edges: dict[str, CausalEdge] = Field(
+        default_factory=dict,
+        description="Map of parent TDA ID to CausalEdge.",
+    )
+
+
 class SlidingWindowLinker:
     """Discovers causal DAG dependencies between ExtractedAtoms using a context-bounded sliding window heuristic."""
 
@@ -172,7 +183,7 @@ class SlidingWindowLinker:
         chunks = list(chunk_groups.values())
         windows = self._get_sliding_windows(chunks)
 
-        master_deps: dict[str, dict[str, CausalEdge]] = defaultdict(dict)
+        master_deps: dict[str, WindowCausalEdgesDTO] = defaultdict(WindowCausalEdgesDTO)
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         ontology_text = ontology_map.model_dump_json(indent=2)
@@ -234,31 +245,27 @@ class SlidingWindowLinker:
                 child_alias = dep_mapping.child_alias
                 deps = dep_mapping.parent_dependencies
 
-                try:
-                    child_tda_id = alias_engine.resolve_alias(child_alias)
-                except AppException as exc:
+                if child_alias not in alias_engine.alias_map:
                     logger.warning(
-                        "Hallucinated child alias dropped: %s. Error: %s",
+                        "Hallucinated child alias dropped: %s",
                         child_alias,
-                        exc.message,
                     )
                     continue
+                child_tda_id = alias_engine.alias_map[child_alias]
 
                 child_atom = next((a for a in window_atoms if a.tda_id == child_tda_id), None)
                 if not child_atom:
                     continue
 
                 for dep in deps:
-                    try:
-                        parent_tda_id = alias_engine.resolve_alias(dep.tda_id)
-                    except AppException as exc:
+                    if dep.tda_id not in alias_engine.alias_map:
                         logger.warning(
-                            "Hallucinated parent alias dropped: %s (child: %s). Error: %s",
+                            "Hallucinated parent alias dropped: %s (child: %s)",
                             dep.tda_id,
                             child_alias,
-                            exc.message,
                         )
                         continue
+                    parent_tda_id = alias_engine.alias_map[dep.tda_id]
 
                     # Self-dependency check to prevent immediate loops
                     if parent_tda_id == child_tda_id:
@@ -270,12 +277,14 @@ class SlidingWindowLinker:
                         source_id=child_atom.source_id or "unknown",
                         expected_status=dep.expected_status,
                     )
-                    master_deps[child_tda_id][parent_tda_id] = edge
+                    current_edges = dict(master_deps[child_tda_id].edges)
+                    current_edges[parent_tda_id] = edge
+                    master_deps[child_tda_id] = WindowCausalEdgesDTO(edges=current_edges)
 
         # Finally, wrap all atoms into LinkedAtomGraphs
         results = []
         for atom in atoms:
-            deps_list = list(master_deps[atom.tda_id].values())
+            deps_list = list(master_deps[atom.tda_id].edges.values())
             results.append(LinkedAtomGraph(atom=atom, depends_on=deps_list))
 
         return results, total_usage

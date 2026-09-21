@@ -170,7 +170,7 @@ class MockDTO(BaseModel):
 
 def test_parse_matrices_empty_results() -> None:
     profile = get_dummy_profile()
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[],
         locale="en",
         blocks_by_id={},
@@ -180,6 +180,10 @@ def test_parse_matrices_empty_results() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     assert not eval_m
     assert not info_m
     assert not all_parsed
@@ -190,7 +194,7 @@ def test_parse_matrices_skip_non_matrix() -> None:
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload={"key": "val"})
     pb = get_dummy_pb(category=PromptBlockCategory.AGENT_ROLE)
 
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -200,6 +204,10 @@ def test_parse_matrices_skip_non_matrix() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     assert not eval_m
 
 
@@ -234,7 +242,7 @@ def test_parse_matrices_success() -> None:
     payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -244,6 +252,10 @@ def test_parse_matrices_success() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     assert "step1_blk_1234567890abcdef1234567890abcdef" in all_parsed
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.row_explanation == "Good!"
@@ -263,7 +275,7 @@ def test_parse_matrices_na_bypass() -> None:
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -273,6 +285,10 @@ def test_parse_matrices_na_bypass() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.score is None
     assert matrix.normalized_score is None
@@ -296,7 +312,7 @@ def test_parse_matrices_failed_does_not_increment() -> None:
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -306,6 +322,10 @@ def test_parse_matrices_failed_does_not_increment() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.true_atoms == 1
     assert matrix.total_atoms == 3
@@ -341,7 +361,7 @@ def test_parse_matrices_indicator_partitions(
     payload = {"raw_score": 0.8, "normalized_score": 80.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    eval_m, info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -351,6 +371,10 @@ def test_parse_matrices_indicator_partitions(
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    eval_m = res.evaluative_matrices
+    info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
 
     assert len(eval_m) == expected_eval_count
     assert len(info_m) == expected_info_count
@@ -371,7 +395,7 @@ def test_parse_matrix_normalized_100_display_scale() -> None:
     payload = {"raw_score": 0.8, "normalized_score": 80.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -381,6 +405,10 @@ def test_parse_matrix_normalized_100_display_scale() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.scale_min == 0.0
     assert matrix.scale_max == 100.0
@@ -400,7 +428,7 @@ def test_parse_matrix_custom_display_scale() -> None:
     payload = {"raw_score": 3.0, "normalized_score": 50.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -410,6 +438,10 @@ def test_parse_matrix_custom_display_scale() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.scale_min == 4.0
     assert matrix.scale_max == 10.0
@@ -425,7 +457,7 @@ def test_parse_matrix_original_display_scale() -> None:
     payload = {"raw_score": 1.0, "normalized_score": 100.0, "evaluated_atoms": {}}
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -435,6 +467,10 @@ def test_parse_matrix_original_display_scale() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.scale_min == 0.0
     assert matrix.scale_max == 1.0
@@ -586,7 +622,7 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
     }
     dto_valid = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload_valid)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto_valid],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -596,6 +632,10 @@ def test_parse_matrices_level_breakdown_and_synthesis_cache() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.level_breakdown == {"0": "1/2", "1": "2/2"}
 
@@ -644,7 +684,7 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
         payload=[eval_record],
     )
 
-    _eval_m, _info_m, all_parsed, step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto_matrix, dto_evals],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -654,6 +694,10 @@ def test_parse_matrices_evaluations_quotes_and_atom_results() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert len(matrix.evaluated_atoms) == 2
     assert "step1" in step_atoms
@@ -704,7 +748,7 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
         metadata=ExecutionMetadata(),
     )
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto_valid],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -715,6 +759,10 @@ def test_parse_matrices_data_starvation_bypasses_missing_row_explanations_cache(
         row_curated_quotes_cache={},
         execution=exec_record,
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     matrix = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert matrix.row_explanation == ""
 
@@ -756,7 +804,7 @@ def test_parse_matrices_context_target_and_xai_extensions() -> None:
         )
     }
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -767,6 +815,10 @@ def test_parse_matrices_context_target_and_xai_extensions() -> None:
         row_curated_quotes_cache={},
         expected_inputs_map=expected_inputs_map,
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row.context_target == "chat_log"
     assert row.context_target_label is not None
@@ -798,7 +850,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
     # 1. Positive resolution without expected_inputs_map (harness compatibility)
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -808,6 +860,10 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row.context_target == "financials_q3"
     assert row.context_target_label is not None
@@ -824,7 +880,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
             label=I18nText(translations={"en": "Q3 Financials", "fi": "Q3 Talous"}),
         )
     }
-    _eval_m2, _info_m2, all_parsed2, _ = MatrixDomainParser.parse_matrices(
+    res2 = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -835,6 +891,9 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
         row_curated_quotes_cache={},
         expected_inputs_map=expected_map,
     )
+    _eval_m2 = res2.evaluative_matrices
+    _info_m2 = res2.informational_matrices
+    all_parsed2 = res2.all_parsed_matrices
     row2 = all_parsed2["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row2.context_target == "financials_q3"
     assert row2.context_target_label is not None
@@ -846,7 +905,7 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
         task_blueprint="step_1234567890abcdef",
         input_mappings={"context": "unmapped_doc"},
     )
-    _eval_m3, _info_m3, all_parsed3, _ = MatrixDomainParser.parse_matrices(
+    res3 = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -857,6 +916,9 @@ def test_parse_matrices_dynamic_filename_context_target() -> None:
         row_curated_quotes_cache={},
         expected_inputs_map=expected_map,
     )
+    _eval_m3 = res3.evaluative_matrices
+    _info_m3 = res3.informational_matrices
+    all_parsed3 = res3.all_parsed_matrices
     row3 = all_parsed3["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row3.context_target is None
 
@@ -896,7 +958,7 @@ def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -906,6 +968,10 @@ def test_parse_matrices_negative_missing_input_mappings_and_extensions() -> None
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row.context_target is None
     assert row.context_target_label is None
@@ -938,7 +1004,7 @@ def test_parse_matrices_axis_collision_coverage() -> None:
     dto1 = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
     dto2 = MockDTO(step_id="step2", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto1, dto2],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -948,6 +1014,10 @@ def test_parse_matrices_axis_collision_coverage() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     assert len(all_parsed) == 2
     row2 = all_parsed["step2_blk_1234567890abcdef1234567890abcdef"]
     assert "sr_abcdef1234567890" in row2.name
@@ -977,7 +1047,7 @@ def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb_with_target},
@@ -987,6 +1057,10 @@ def test_parse_matrices_prompt_block_explicit_target_input_key() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row.context_target == "product_text"
     assert row.context_target_label is not None
@@ -1017,7 +1091,7 @@ def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
     }
     dto = MockDTO(step_id="step1", block_id="blk_1234567890abcdef1234567890abcdef", payload=payload)
 
-    _eval_m, _info_m, all_parsed, _step_atoms = MatrixDomainParser.parse_matrices(
+    res = MatrixDomainParser.parse_matrices(
         results=[dto],
         locale="en",
         blocks_by_id={"blk_1234567890abcdef1234567890abcdef": pb},
@@ -1027,6 +1101,10 @@ def test_parse_matrices_multi_input_step_fallback_to_all() -> None:
         workflow_ext_values=[],
         row_curated_quotes_cache={},
     )
+    _eval_m = res.evaluative_matrices
+    _info_m = res.informational_matrices
+    all_parsed = res.all_parsed_matrices
+    _step_atoms = res.step_scorecard_atoms
     row = all_parsed["step1_blk_1234567890abcdef1234567890abcdef"]
     assert row.context_target == "all"
     assert row.context_target_label is not None

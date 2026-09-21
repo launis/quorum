@@ -5,9 +5,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import BaseModel, ConfigDict, Field
+
 from backend_v2.exceptions import AppException, ErrorCodes
 
 __all__ = [
+    "LocaleTranslationsDTO",
     "LocalizationService",
     "get_language",
     "set_language",
@@ -37,10 +40,38 @@ def get_language() -> str:
     return _language_var.get()
 
 
+class LocaleTranslationsDTO(BaseModel):
+    """Encapsulates translations for a specific locale."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    translations: dict[str, str] = Field(default_factory=dict)
+
+    def lookup(self, key: str) -> str | None:
+        """Retrieve translation string by key if present."""
+        if key in self.translations:
+            return self.translations[key]
+        return None
+
+    def __getitem__(self, key: str) -> str:
+        """Subscript access for template rendering."""
+        return self.translations[key]
+
+    def __getattr__(self, item: str) -> str:
+        """Attribute access for template rendering."""
+        if item in self.translations:
+            return self.translations[item]
+        raise AttributeError(f"Translation key '{item}' not found in translations")
+
+    def __contains__(self, key: str) -> bool:
+        """Check if key exists in translations."""
+        return key in self.translations
+
+
 class LocalizationService:
     """Service to handle server-side translation for SDUI schemas."""
 
-    _translations: dict[str, dict[str, str]] = {}
+    _translations: dict[str, LocaleTranslationsDTO] = {}
     _loaded: bool = False
 
     # Point to the backend l10n directory
@@ -84,7 +115,7 @@ class LocalizationService:
                 try:
                     with open(file_path, encoding="utf-8") as f:
                         data = json.load(f)
-                        cls._translations[lang_code] = data
+                        cls._translations[lang_code] = LocaleTranslationsDTO(translations=data)
                 except Exception as e:
                     # Fail Fast: Corrupt translation file.
                     msg = f"Failed to load translation file {file_path}"
@@ -138,15 +169,13 @@ class LocalizationService:
 
         # Fallback logic: "fi-FI" -> "fi"
         lang_simple = lang.split("-")[0].lower()
-        target_dict = cls._translations[lang_simple] if lang_simple in cls._translations else {}
-
-        # 1. Try exact match in target language
-        val = target_dict[key] if key in target_dict else None
+        target_dto = cls.get_translations(lang_simple)
+        val = target_dto.lookup(key) if target_dto is not None else None
 
         # 2. Try Fallback to English
         if val is None and lang_simple != "en":
-            en_dict = cls._translations["en"] if "en" in cls._translations else {}
-            val = en_dict[key] if key in en_dict else None
+            en_dto = cls.get_translations("en")
+            val = en_dto.lookup(key) if en_dto is not None else None
             if val is not None:
                 logger.warning(
                     "BFF Translation Fallback: Key '%s' missing in '%s', falling back to English.", key, lang_simple
@@ -184,6 +213,21 @@ class LocalizationService:
                 ) from e
 
         return val
+
+    @classmethod
+    def get_translations(cls, lang_simple: str) -> LocaleTranslationsDTO | None:
+        """Retrieves translations for a specific language code.
+
+        Args:
+            lang_simple: Simple language code (e.g. 'en', 'fi').
+
+        Returns:
+            LocaleTranslationsDTO if loaded and found, None otherwise.
+        """
+        cls.load_if_needed()
+        if lang_simple in cls._translations:
+            return cls._translations[lang_simple]
+        return None
 
     @classmethod
     def get(cls, key: str, lang: str | None = None, **kwargs: Any) -> str:

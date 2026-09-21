@@ -21,7 +21,9 @@ from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
 
 @pytest.fixture
 def mock_compiler() -> MagicMock:
-    return MagicMock()
+    compiler = MagicMock()
+    compiler.compile_static_instructions.return_value = "Static instructions"
+    return compiler
 
 
 @pytest.fixture

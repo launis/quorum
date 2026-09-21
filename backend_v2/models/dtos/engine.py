@@ -18,6 +18,7 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.enums import TargetSpeaker
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 
 if TYPE_CHECKING:
@@ -124,7 +125,7 @@ class EngineExecutionRequest(BaseModel):
     Attributes:
         bound_client: The initialized LLM client.
         compiled_schema: Forward compatibility for SynthesisEngine schema.
-        hydrated_messages: Forward compatibility for SynthesisEngine messages.
+        hydrated_messages: Strongly typed messages for SynthesisEngine / PromptEngine.
         system_prompt: The compiled system prompt.
         step: The step configuration.
         context: Immutable strategy context.
@@ -141,7 +142,7 @@ class EngineExecutionRequest(BaseModel):
 
     bound_client: LLMClient
     compiled_schema: type[BaseModel] | None
-    hydrated_messages: list[dict[str, str]] | None
+    hydrated_messages: list[LLMMessageDTO] | None
     system_prompt: str
     step: StepRule
     context: StrategyContext

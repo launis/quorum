@@ -2,7 +2,7 @@
 
 import logging
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -22,7 +22,7 @@ from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, PromptBlockAd
 from backend_v2.models.domain.system_config import AllowedMCPTool, MCPAuditTrace, SystemConfigMCPGateways
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
-from backend_v2.models.dtos.trace import TraceEventMetadataEnvelope, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope, TraceScoringPayloadDTO
 from backend_v2.models.enums import (
     TargetBlockType,
     VirtualSystemStepID,
@@ -147,7 +147,7 @@ class BlueprintTransformer:
 
         mcp_tools_map: dict[str, AllowedMCPTool] = {}
         mcp_gw_id = workflow_obj.mcp_gateway_id
-        if mcp_gw_id:
+        if isinstance(mcp_gw_id, str) and mcp_gw_id:
             try:
                 raw_gateway = await self.system_repo.get_mcp_gateways(id=mcp_gw_id)
                 if isinstance(raw_gateway, SystemConfigMCPGateways):
@@ -155,8 +155,14 @@ class BlueprintTransformer:
                 elif raw_gateway is not None:
                     gateway_obj = TypeAdapter(SystemConfigMCPGateways).validate_python(raw_gateway)
                     mcp_tools_map = {tool.tool_id: tool for tool in gateway_obj.tools}
-            except ValidationError, TypeError, AttributeError:
-                pass
+            except (ValidationError, TypeError, AttributeError) as gw_err:
+                msg = f"Failed to parse MCP gateway config for gateway '{mcp_gw_id}': {gw_err}"
+                logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from gw_err
 
         projector = StateProjector()
         results = projector.fold_trace(execution.execution_trace)
@@ -211,12 +217,20 @@ class BlueprintTransformer:
             if dto.block_id == VirtualSystemStepID.SCORING_RESULT.value and dto.payload:
                 try:
                     scoring_dto = TypeAdapter(TraceScoringPayloadDTO).validate_python(dto.payload)
-                except ValidationError:
-                    pass
+                except ValidationError as val_err:
+                    msg = f"Failed to parse TraceScoringPayloadDTO from scoring step: {val_err}"
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from val_err
             if dto.block_id == VirtualSystemStepID.HAS_WARNING.value and dto.payload:
                 has_warning = True
 
-        profile_cache = execution.profile_syntheses.get(resolved_pid)
+        profile_cache = (
+            execution.profile_syntheses[resolved_pid] if resolved_pid in execution.profile_syntheses else None
+        )
         section_syntheses: dict[str, list[AnySduiBlock]] = {}
 
         if profile_cache:
@@ -281,8 +295,14 @@ class BlueprintTransformer:
                         override_dto = TypeAdapter(EvidenceOverrideDTO).validate_python(ev.content)
                         if override_dto.user_rejected and override_dto.evq_id:
                             rejected_evq_ids.add(override_dto.evq_id)
-                    except ValidationError:
-                        pass
+                    except ValidationError as val_err:
+                        msg = f"Failed to parse EvidenceOverrideDTO in execution trace: {val_err}"
+                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from val_err
 
         mcp_audit_map: dict[str, MCPAuditTrace] = {}
         if execution.frozen_context and execution.frozen_context.mcp_tool_audit:
@@ -298,14 +318,37 @@ class BlueprintTransformer:
                 try:
                     parsed_atoms = TypeAdapter(list[AtomResultDTO]).validate_python(dto.payload)
                     v2_results.extend(parsed_atoms)
-                except ValidationError:
-                    pass
-            elif dto.block_id == "hydrated_references" and dto.payload:
-                try:
-                    parsed_refs = TypeAdapter(dict[str, HydratedAtomDTO]).validate_python(dto.payload)
-                    v2_hydrated_refs.update(parsed_refs)
-                except ValidationError:
-                    pass
+                except ValidationError as val_err:
+                    msg = f"Failed to parse AtomResultDTO list in execution results: {val_err}"
+                    logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from val_err
+            elif dto.block_id == "hydrated_references" and isinstance(dto.payload, Mapping):
+                for k, v in dto.payload.items():
+                    if isinstance(v, HydratedAtomDTO):
+                        v2_hydrated_refs[str(k)] = v
+                    elif isinstance(v, Mapping):
+                        try:
+                            v2_hydrated_refs[str(k)] = HydratedAtomDTO.model_validate(v)
+                        except ValidationError as val_err:
+                            msg = f"Failed to parse HydratedAtomDTO in execution results: {val_err}"
+                            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from val_err
+                    else:
+                        msg = f"Invalid hydrated reference format for key '{k}' in execution results."
+                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        )
 
         workflow_steps_map = {s.id: s for s in workflow_obj.steps} if workflow_obj.steps else {}
         expected_inputs_list = workflow_obj.expected_inputs if workflow_obj.expected_inputs else []
@@ -318,12 +361,7 @@ class BlueprintTransformer:
         if profile_cache and profile_cache.row_curated_quotes:
             row_curated_quotes_cache = profile_cache.row_curated_quotes
 
-        (
-            evaluative_matrices,
-            informational_matrices,
-            all_parsed_matrices,
-            _step_scorecard_atoms,
-        ) = MatrixDomainParser.parse_matrices(
+        parsed_result = MatrixDomainParser.parse_matrices(
             results=results,
             locale=locale,
             blocks_by_id=blocks_by_id,
@@ -339,6 +377,8 @@ class BlueprintTransformer:
             execution=execution,
             expected_inputs_map=expected_inputs_map,
         )
+        evaluative_matrices = parsed_result.evaluative_matrices
+        all_parsed_matrices = parsed_result.all_parsed_matrices
 
         p_tokens = int(execution.prompt_tokens)
         c_tokens = int(execution.completion_tokens)
@@ -356,17 +396,29 @@ class BlueprintTransformer:
             for ev in execution.execution_trace:
                 if not ev.content:
                     continue
-                try:
-                    envelope = TraceEventMetadataEnvelope.model_validate(ev.content)
-                    if envelope.step_metadata and envelope.step_metadata.token_usage:
-                        u = envelope.step_metadata.token_usage
-                        trace_p += u.prompt_tokens
-                        trace_c += u.completion_tokens
-                        trace_r += u.reasoning_tokens
-                        trace_t += u.total_tokens
-                        trace_cost += u.cost_usd
-                except ValidationError, ValueError:
-                    pass
+                step_meta: StepTraceMetadataDTO | None = None
+                if isinstance(ev.content, TraceEventMetadataEnvelope):
+                    step_meta = ev.content.step_metadata
+                elif isinstance(ev.content, Mapping) and (
+                    "_step_metadata" in ev.content or "step_metadata" in ev.content
+                ):
+                    try:
+                        step_meta = TraceEventMetadataEnvelope.model_validate(ev.content).step_metadata
+                    except (ValidationError, ValueError) as val_err:
+                        msg = f"Corrupted TraceEventMetadataEnvelope in execution trace: {val_err}"
+                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from val_err
+                if step_meta and step_meta.token_usage:
+                    u = step_meta.token_usage
+                    trace_p += u.prompt_tokens
+                    trace_c += u.completion_tokens
+                    trace_r += u.reasoning_tokens
+                    trace_t += u.total_tokens
+                    trace_cost += u.cost_usd
 
             if trace_cost > 0.0 or trace_t > 0:
                 if total_exec_cost == 0.0:

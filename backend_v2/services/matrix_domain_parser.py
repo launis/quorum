@@ -2,6 +2,7 @@
 
 import logging
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from pydantic import ValidationError
@@ -16,6 +17,7 @@ from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
 from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO, ScorecardAtomCollectionDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
@@ -74,12 +76,7 @@ class MatrixDomainParser:
         source_identity_manifest: dict[str, str] | None = None,
         execution: Any = None,
         expected_inputs_map: dict[str, Any] | None = None,
-    ) -> tuple[
-        list[MatrixScorecardRowDTO],
-        list[MatrixScorecardRowDTO],
-        dict[str, MatrixScorecardRowDTO],
-        dict[str, dict[str, ScorecardAtomDTO]],
-    ]:
+    ) -> ParsedMatricesResultDTO:
         """Parses folded results into MatrixScorecardRowDTOs.
 
         Args:
@@ -99,7 +96,7 @@ class MatrixDomainParser:
             expected_inputs_map: Optional map of step expected input definitions for target routing.
 
         Returns:
-            A tuple of (evaluative_matrices, informational_matrices, all_parsed_matrices, step_scorecard_atoms).
+            A ParsedMatricesResultDTO containing parsed scorecard rows and atom collections.
 
         Raises:
             AppException: If validation or configuration constraints fail.
@@ -107,7 +104,7 @@ class MatrixDomainParser:
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
-        step_scorecard_atoms: dict[str, dict[str, ScorecardAtomDTO]] = {}
+        step_scorecard_atoms_dict: dict[str, dict[str, ScorecardAtomDTO]] = {}
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
@@ -332,7 +329,9 @@ class MatrixDomainParser:
             synthesis_expected = profile.requires_row_explanations and has_synthesis_cache
             is_data_starved = False
             if execution and execution.profile_syntheses:
-                current_cache = execution.profile_syntheses.get(profile.id)
+                current_cache = (
+                    execution.profile_syntheses[profile.id] if profile.id in execution.profile_syntheses else None
+                )
                 if current_cache and current_cache.data_starvation is not None:
                     is_data_starved = True
 
@@ -361,11 +360,20 @@ class MatrixDomainParser:
                 for r_dto in results:
                     if r_dto.step_id == step_id and r_dto.block_id == "results" and isinstance(r_dto.payload, list):
                         for ev in r_dto.payload:
-                            try:
-                                atom_dto = AtomResultDTO.model_validate(ev)
-                                step_evals_map[atom_dto.tda_id] = atom_dto
-                            except ValidationError, TypeError, ValueError:
-                                continue
+                            if isinstance(ev, AtomResultDTO):
+                                step_evals_map[ev.tda_id] = ev
+                            elif isinstance(ev, Mapping):
+                                try:
+                                    atom_dto = AtomResultDTO.model_validate(ev)
+                                    step_evals_map[atom_dto.tda_id] = atom_dto
+                                except (ValidationError, TypeError, ValueError) as val_err:
+                                    msg = f"Invalid atom result payload in step {step_id}: {val_err}"
+                                    logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                                    raise AppException(
+                                        message=msg,
+                                        status_code=500,
+                                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                                    ) from val_err
                         break
 
                 if pb_meta.scales:
@@ -381,7 +389,7 @@ class MatrixDomainParser:
 
                             for tda in claim.tda_assertions:
                                 atom_id = tda.tda_id
-                                val_data = step_evals_map.get(atom_id)
+                                val_data = step_evals_map[atom_id] if atom_id in step_evals_map else None
 
                                 display_label = "Kriteeri"
                                 if claim_label.strip():
@@ -442,7 +450,7 @@ class MatrixDomainParser:
                                         ) from e
 
                                     evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
+                                    step_scorecard_atoms_dict.setdefault(step_id, {})[atom_id] = s_atom
                                 else:
                                     dummy_reasoning = ReasoningStepDTO(
                                         step_1_identify_premise="",
@@ -467,7 +475,7 @@ class MatrixDomainParser:
                                         human_override=None,
                                     )
                                     evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms.setdefault(step_id, {})[atom_id] = s_atom
+                                    step_scorecard_atoms_dict.setdefault(step_id, {})[atom_id] = s_atom
 
             score_display_label = "-"
             if score_float is not None:
@@ -622,9 +630,14 @@ class MatrixDomainParser:
             else:
                 informational_matrices.append(row_dto)
 
-        return (
-            evaluative_matrices,
-            informational_matrices,
-            all_parsed_matrices,
-            step_scorecard_atoms,
+        step_scorecard_atoms = {
+            step_k: ScorecardAtomCollectionDTO(atoms=atom_dict)
+            for step_k, atom_dict in step_scorecard_atoms_dict.items()
+        }
+
+        return ParsedMatricesResultDTO(
+            evaluative_matrices=evaluative_matrices,
+            informational_matrices=informational_matrices,
+            all_parsed_matrices=all_parsed_matrices,
+            step_scorecard_atoms=step_scorecard_atoms,
         )

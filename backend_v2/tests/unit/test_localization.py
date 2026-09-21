@@ -177,3 +177,33 @@ def test_localization_service_translate_and_formatting() -> None:
     assert LocalizationService.format_cost(12.5, "en") == "$12.50"
     assert LocalizationService.format_cost(0.04, "fi") == "0,04 $"
     assert LocalizationService.format_cost(0.04, "en") == "$0.04"
+
+
+def test_locale_translations_dto_methods() -> None:
+    """Test LocaleTranslationsDTO typed methods and template access helpers."""
+    from backend_v2.services.localization import LocaleTranslationsDTO
+
+    dto = LocaleTranslationsDTO(translations={"key_a": "Value A", "key_b": "Value B"})
+    assert dto.lookup("key_a") == "Value A"
+    assert dto.lookup("missing_key") is None
+    assert dto["key_b"] == "Value B"
+    assert dto.key_a == "Value A"
+    assert "key_a" in dto
+    assert "missing" not in dto
+
+    with pytest.raises(AttributeError):
+        _ = dto.non_existent_attribute
+
+
+def test_localization_service_get_translations() -> None:
+    """Test public LocalizationService.get_translations method."""
+    LocalizationService.L10N_DIR = Path(__file__).parent.parent.parent / "l10n"
+    LocalizationService.load_if_needed()
+
+    en_dto = LocalizationService.get_translations("en")
+    assert en_dto is not None
+    assert en_dto.lookup("metadata_user") == "User"
+
+    none_dto = LocalizationService.get_translations("non_existent_lang")
+    assert none_dto is None
+

@@ -181,7 +181,7 @@ class PdfReportService:
                 raise ConfigurationError(msg) from e
 
             lang_simple = target_locale.split("-")[0].lower()
-            l10n = LocalizationService._translations.get(lang_simple)
+            l10n = LocalizationService.get_translations(lang_simple)
 
             if not l10n:
                 msg = f"Locale '{target_locale}' is not supported in .arb L10n files."
