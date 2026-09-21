@@ -8,7 +8,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any
+from typing import TYPE_CHECKING
 
 import httpx
 from pydantic import ValidationError
@@ -24,7 +24,17 @@ from backend_v2.models.dtos.retrieval import BatchSearchQueryDTO, TavilySearchRe
 from backend_v2.models.enums import SearchStatus
 from backend_v2.settings import get_settings
 
+if TYPE_CHECKING:
+    from backend_v2.llm.client import LLMClient
+    from backend_v2.services.llm_task_executor import LLMTaskExecutor
+
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "TavilySearchResult",
+    "batch_tavily_search",
+    "tavily_search",
+]
 
 
 def _sanitize_text(text: str) -> str:
@@ -80,7 +90,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
     """
     if not query or not str(query).strip():
         msg = "Tavily search query cannot be empty. Zero-Compromise Fail-Fast enforced."
-        logger.error("[TavilyClient] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        logger.error(
+            "[TavilyClient] %s: %s",
+            ErrorCodes.VALIDATION_FAILED.name,
+            msg,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
         raise AppException(message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
     settings = get_settings()
@@ -100,7 +115,12 @@ async def tavily_search(query: str) -> TavilySearchResult:
 
     if not api_key:
         msg = "Tavily API key is not configured. Set TAVILY_API_KEY in .env."
-        logger.error("[TavilyClient] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+        logger.error(
+            "[TavilyClient] %s: %s",
+            ErrorCodes.CONFIGURATION_ERROR.name,
+            msg,
+            extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+        )
         raise ConfigurationError(message=msg)
 
     request_dto = TavilySearchRequestDTO(
@@ -125,6 +145,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
             logger.error(
                 f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
                 exc_info=True,
+                extra={"error_code": ErrorCodes.FETCH_FAILED.value},
             )
             raise AppException(
                 message=msg,
@@ -141,6 +162,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
             logger.error(
                 f"[TavilyClient] {ErrorCodes.VALIDATION_FAILED.name}: {msg}",
                 exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
             raise AppException(
                 message=msg,
@@ -149,7 +171,10 @@ async def tavily_search(query: str) -> TavilySearchResult:
             ) from e
 
         # Parse response — Zero-Compromise Fail-Fast, no empty result fallbacks
-        answer = str(parsed_data.answer or "")
+        if parsed_data.answer is not None:
+            answer = str(parsed_data.answer)
+        else:
+            answer = ""
         results_list = parsed_data.results
 
         # Allow empty results gracefully without raising exception.
@@ -198,6 +223,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
         logger.error(
             f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
             exc_info=True,
+            extra={"error_code": ErrorCodes.FETCH_FAILED.value},
         )
         raise AppException(
             message=msg,
@@ -209,6 +235,7 @@ async def tavily_search(query: str) -> TavilySearchResult:
         logger.error(
             f"[TavilyClient] {ErrorCodes.FETCH_FAILED.name}: {msg}",
             exc_info=True,
+            extra={"error_code": ErrorCodes.FETCH_FAILED.value},
         )
         raise AppException(
             message=msg,
@@ -226,7 +253,9 @@ def _is_transient_error(e: BaseException) -> bool:
     return False
 
 
-async def batch_tavily_search(document_text: str, task_executor: Any, llm_client: Any) -> list[TavilySearchResultDTO]:
+async def batch_tavily_search(
+    document_text: str, task_executor: LLMTaskExecutor, llm_client: LLMClient
+) -> list[TavilySearchResultDTO]:
     """Execute a batch concurrent Tavily search from an extracted document text.
 
     Args:
@@ -238,7 +267,7 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
         List of TavilySearchResultDTO containing results or DLQ status.
 
     Raises:
-        AppException: If initial extraction fails.
+        AppException: Raised with VALIDATION_FAILED error code if initial extraction fails.
     """
     if not document_text.strip():
         return []
@@ -260,9 +289,15 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
         dto, _usage = await task_executor.execute_structured_task(
             client=llm_client, messages=messages, response_model=BatchSearchQueryDTO
         )
-    except Exception as e:
+    except AppException:
+        raise
+    except (ValidationError, ValueError, RuntimeError, TimeoutError, OSError) as e:
         msg = "Failed to extract search queries for batch Tavily."
-        logger.error(f"[BatchTavily] {ErrorCodes.VALIDATION_FAILED.name}: {msg}", exc_info=True)
+        logger.error(
+            f"[BatchTavily] {ErrorCodes.VALIDATION_FAILED.name}: {msg}",
+            exc_info=True,
+            extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
         raise AppException(
             message=msg, status_code=502, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
         ) from e
@@ -346,9 +381,11 @@ async def batch_tavily_search(document_text: str, task_executor: Any, llm_client
     # Fan-out mapping
     final_results: list[TavilySearchResultDTO] = []
     for res in results:
-        original_queries = (
-            normalized_map[res.query.casefold()] if res.query.casefold() in normalized_map else [res.query]
-        )
+        norm_key = res.query.casefold()
+        if norm_key in normalized_map:
+            original_queries = normalized_map[norm_key]
+        else:
+            original_queries = [res.query]
         for orig_q in original_queries:
             final_results.append(
                 TavilySearchResultDTO(
