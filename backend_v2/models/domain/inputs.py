@@ -26,6 +26,16 @@ from backend_v2.models.llm import LLMProviderConfig
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "Base64Attachment",
+    "DLQAtomSchema",
+    "DomainInputValue",
+    "IngressInputValue",
+    "WorkflowInputs",
+    "WorkflowInputsBase",
+    "WorkflowInputsIngress",
+]
+
 
 class Base64Attachment(V2CoreBase):
     """Strict DTO for handling binary base64 file uploads.
@@ -44,7 +54,13 @@ class Base64Attachment(V2CoreBase):
 
 
 class DLQAtomSchema(V2CoreBase):
-    """Strict schema for DLQ validation."""
+    """Strict schema for DLQ validation.
+
+    Attributes:
+        atom_id: Target atom identifier.
+        tda_id: Target TDA identifier.
+        status: DLQ status string.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
@@ -157,7 +173,17 @@ class WorkflowInputs(WorkflowInputsBase):
     @field_validator("dynamic_inputs")
     @classmethod
     def validate_no_base64(cls, v: dict[str, DomainInputValue]) -> dict[str, DomainInputValue]:
-        """Strictly ban base64 payloads from domain inputs."""
+        """Strictly ban base64 payloads from domain inputs.
+
+        Args:
+            v: Dictionary of dynamic domain inputs to validate.
+
+        Returns:
+            The validated dictionary of domain inputs.
+
+        Raises:
+            ValueError: If a Base64Attachment or content_base64 dictionary payload is present.
+        """
         for val in v.values():
             if isinstance(val, Base64Attachment):
                 raise ValueError("Base64Attachment is strictly forbidden in WorkflowInputs")

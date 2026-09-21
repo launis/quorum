@@ -160,3 +160,20 @@ def test_domain_input_value_accepts_flattened_atoms() -> None:
     )
     assert len(dto.raw_inputs["shuffled_atoms"]) == 1  # type: ignore[arg-type]
     assert dto.dynamic_inputs["atom"].atom_id == "tda_123"  # type: ignore[union-attr]
+
+
+def test_dlq_atom_schema_valid() -> None:
+    """Test valid DLQAtomSchema creation and immutability."""
+    from backend_v2.models.domain.inputs import DLQAtomSchema
+
+    dlq = DLQAtomSchema(atom_id="atm_123", tda_id="tda_456", status="FAILED")
+    assert dlq.atom_id == "atm_123"
+    assert dlq.tda_id == "tda_456"
+    assert dlq.status == "FAILED"
+
+
+def test_validate_no_base64_validator_direct() -> None:
+    """Test contract: validate_no_base64 directly raises ValueError on Base64Attachment."""
+    attachment = Base64Attachment(filename="doc.pdf", content_base64="JVBERi...")
+    with pytest.raises(ValueError, match="Base64Attachment is strictly forbidden in WorkflowInputs"):
+        WorkflowInputs.validate_no_base64({"attachment": attachment})  # type: ignore[dict-item]
