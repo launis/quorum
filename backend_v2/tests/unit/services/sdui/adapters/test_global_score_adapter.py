@@ -1,14 +1,17 @@
 """Unit tests for the GlobalScoreAdapter SDUI adapter."""
 
+from __future__ import annotations
+
 import pytest
 
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.base import DataStarvationEvent
+from backend_v2.models.dtos.sdui_rules import GlobalScoreAestheticsDTO
 from backend_v2.models.view.sdui import SduiScoreCardBlock
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
-from backend_v2.services.sdui.adapters.global_score_adapter import GlobalScoreAdapter
+from backend_v2.services.sdui.adapters.global_score_adapter import AESTHETICS_RULES, GlobalScoreAdapter
 
 
 @pytest.fixture
@@ -99,3 +102,9 @@ def test_build_boundary_scores(sample_profile: OutputProfile) -> None:
         assert len(blocks) == 1
         assert isinstance(blocks[0], SduiScoreCardBlock)
         assert blocks[0].global_score == score
+
+
+def test_aesthetics_rules() -> None:
+    """Verify AESTHETICS_RULES export is a valid GlobalScoreAestheticsDTO."""
+    assert isinstance(AESTHETICS_RULES, GlobalScoreAestheticsDTO)
+

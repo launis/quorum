@@ -2,8 +2,10 @@
 
 Transforms execution global score into a SduiScoreCardBlock component
 for Server-Driven UI rendering. Visual rules are co-located as a module-level
-AESTHETICS_RULES dictionary to enforce separation of presentation from logic.
+AESTHETICS_RULES DTO to enforce separation of presentation from logic.
 """
+
+from __future__ import annotations
 
 import logging
 
