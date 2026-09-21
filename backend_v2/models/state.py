@@ -10,7 +10,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated, Any, Literal  # noqa: F401
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -20,7 +20,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.utils.pydantic_utils import inflate
 
@@ -41,42 +43,68 @@ __all__ = [
 
 
 class StepExecutionEnvelope(V2CoreBase):
-    """Base envelope for execution traces to prevent repetition and enforce DRY architecture."""
+    """Base envelope for execution traces to prevent repetition and enforce DRY architecture.
+
+    Attributes:
+        execution_id: Unique execution identifier.
+        workflow_id: Workflow definition identifier.
+        step_id: Step definition identifier.
+        initiator_id: Initiator user or system identifier.
+        timestamp_isot: ISO timestamp string.
+        unix_time: Unix epoch time.
+        v2_engine: Engine flag indicator.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    execution_id: str | None = Field(default=None)
-    workflow_id: str | None = Field(default=None)
-    step_id: str | None = Field(default=None)
-    initiator_id: str | None = Field(default=None)
-    timestamp_isot: str | None = Field(default=None)
-    unix_time: int | None = Field(default=None)
-    v2_engine: bool | None = Field(default=None)
-
-
-from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.step_output import StepOutputDTO
+    execution_id: Annotated[str | None, Field(default=None)] = None
+    workflow_id: Annotated[str | None, Field(default=None)] = None
+    step_id: Annotated[str | None, Field(default=None)] = None
+    initiator_id: Annotated[str | None, Field(default=None)] = None
+    timestamp_isot: Annotated[str | None, Field(default=None)] = None
+    unix_time: Annotated[int | None, Field(default=None)] = None
+    v2_engine: Annotated[bool | None, Field(default=None)] = None
 
 
 class ReasoningTrace(V2CoreBase):
-    """Stores hidden Chain-of-Thought (preserves 'Thinking Tokens')."""
+    """Stores hidden Chain-of-Thought (preserves 'Thinking Tokens').
+
+    Attributes:
+        thought_process: Raw chain-of-thought or reasoning trace.
+        conclusion: Final conclusion derived from the reasoning.
+        confidence_score: Confidence in the conclusion.
+        model_name: Optional model used for reasoning.
+        token_usage: Token usage statistics.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    thought_process: str = Field(
-        min_length=1,
-        pattern=r"\S",
-        description="The raw chain-of-thought or reasoning trace. "
-        "MUST be written strictly in English to ensure cross-run determinism.",
-    )
-    conclusion: str = Field(
-        min_length=1,
-        pattern=r"\S",
-        description="The final conclusion derived from the reasoning. MUST be written strictly in English.",
-    )
-    confidence_score: float = Field(description="Confidence in the conclusion.")
-    model_name: str | None = Field(default=None, description="The model used for reasoning.")
-    token_usage: TokenUsage = Field(
+    thought_process: Annotated[
+        str,
+        Field(
+            min_length=1,
+            pattern=r"\S",
+            description="The raw chain-of-thought or reasoning trace. "
+            "MUST be written strictly in English to ensure cross-run determinism.",
+        ),
+    ]
+    conclusion: Annotated[
+        str,
+        Field(
+            min_length=1,
+            pattern=r"\S",
+            description="The final conclusion derived from the reasoning. MUST be written strictly in English.",
+        ),
+    ]
+    confidence_score: Annotated[float, Field(description="Confidence in the conclusion.")]
+    model_name: Annotated[str | None, Field(default=None, description="The model used for reasoning.")] = None
+    token_usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Token usage statistics.",
+        ),
+    ] = Field(
         default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         description="Token usage statistics.",
     )
@@ -93,7 +121,7 @@ class ReasoningTrace(V2CoreBase):
             The validated confidence score.
 
         Raises:
-            AppException: If score is out of bounds.
+            AppException: If score is out of bounds (VALIDATION_FAILED).
         """
         if not (0.0 <= v <= 1.0):
             msg = "confidence_score must be between 0.0 and 1.0"
@@ -107,61 +135,106 @@ class ReasoningTrace(V2CoreBase):
 
 
 class EvidenceOverrideDTO(V2CoreBase):
-    """Payload for evidence override events."""
+    """Payload for evidence override events.
+
+    Attributes:
+        evq_id: The opaque evidence quote ID.
+        user_rejected: Whether the user explicitly rejected this evidence.
+        rejection_reason: The user-provided reason for rejection.
+        rejected_by: User ID who made the rejection.
+        rejected_at: Timestamp of the rejection.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    evq_id: str = Field(description="The opaque evidence quote ID.")
-    user_rejected: bool = Field(description="Whether the user explicitly rejected this evidence.")
-    rejection_reason: str = Field(description="The user-provided reason for rejection.")
-    rejected_by: str = Field(description="User ID who made the rejection.")
-    rejected_at: datetime = Field(description="Timestamp of the rejection.")
+    evq_id: Annotated[str, Field(description="The opaque evidence quote ID.")]
+    user_rejected: Annotated[bool, Field(description="Whether the user explicitly rejected this evidence.")]
+    rejection_reason: Annotated[str, Field(description="The user-provided reason for rejection.")]
+    rejected_by: Annotated[str, Field(description="User ID who made the rejection.")]
+    rejected_at: Annotated[datetime, Field(description="Timestamp of the rejection.")]
 
 
 class TraceEvent(V2CoreBase):
-    """Immutable event log item representing a distinct step or state change."""
+    """Immutable event log item representing a distinct step or state change.
+
+    Attributes:
+        event_id: Unique event identifier.
+        v: Schema version for forward compatibility and lazy upcasting.
+        timestamp: Event timestamp.
+        step_name: Name of the step that generated this event.
+        event_type: Type of the event.
+        content: Structured content of the event.
+        reasoning: Associated reasoning trace.
+        metadata: Additional metadata.
+        mcp_audit_traces: Associated MCP tool audit traces.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique event identifier.")
-    v: int = Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
-
-    step_name: str = Field(
-        ...,
-        min_length=1,
-        pattern=r"\S",
-        description="Name of the step that generated this event.",
-        json_schema_extra={"x-ui-label": "Step Name"},
+    event_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, description="Unique event identifier.")] = Field(
+        default_factory=uuid.uuid4, description="Unique event identifier."
     )
+    v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
+    timestamp: Annotated[
+        datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
+    ] = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
 
-    event_type: Literal[
-        "input", "reasoning", "decision", "error", "output", "tombstone", "evidence_override", "progress"
-    ] = Field(..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"})
+    step_name: Annotated[
+        str,
+        Field(
+            ...,
+            min_length=1,
+            pattern=r"\S",
+            description="Name of the step that generated this event.",
+            json_schema_extra={"x-ui-label": "Step Name"},
+        ),
+    ]
 
-    content: dict[str, Any] = Field(default_factory=dict, description="Structured content of the event.")
-    reasoning: ReasoningTrace | None = Field(default=None, description="Associated reasoning trace.")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata.")
-    mcp_audit_traces: list[MCPAuditTrace] = Field(default_factory=list, description="Associated MCP tool audit traces.")
+    event_type: Annotated[
+        Literal["input", "reasoning", "decision", "error", "output", "tombstone", "evidence_override", "progress"],
+        Field(..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"}),
+    ]
+
+    content: Annotated[dict[str, Any], Field(default_factory=dict, description="Structured content of the event.")] = (
+        Field(default_factory=dict, description="Structured content of the event.")
+    )
+    reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
+    metadata: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional metadata.")] = Field(
+        default_factory=dict, description="Additional metadata."
+    )
+    mcp_audit_traces: Annotated[
+        list[MCPAuditTrace], Field(default_factory=list, description="Associated MCP tool audit traces.")
+    ] = Field(default_factory=list, description="Associated MCP tool audit traces.")
 
 
 class ErrorTraceEvent(TraceEvent):
-    """Specific event representing a fail-fast error katkos."""
+    """Specific event representing a fail-fast error katkos.
+
+    Attributes:
+        event_type: Constant 'error' event type.
+        error_code: The standard ErrorCode string.
+        error_message: Detailed error message.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_type: Literal["error"] = "error"
-    error_code: str = Field(description="The standard ErrorCode string.")
-    error_message: str = Field(description="Detailed error message.")
+    event_type: Annotated[Literal["error"], Field(default="error")] = "error"
+    error_code: Annotated[str, Field(description="The standard ErrorCode string.")]
+    error_message: Annotated[str, Field(description="Detailed error message.")]
 
 
 class TombstoneEvent(TraceEvent):
-    """Specific event representing GDPR-redacted or deleted data."""
+    """Specific event representing GDPR-redacted or deleted data.
+
+    Attributes:
+        event_type: Constant 'tombstone' event type.
+        redacted_hash: Cryptographic hash or identifier of the original redacted data.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_type: Literal["tombstone"] = "tombstone"
-    redacted_hash: str = Field(description="Cryptographic hash or identifier of the original redacted data.")
+    event_type: Annotated[Literal["tombstone"], Field(default="tombstone")] = "tombstone"
+    redacted_hash: Annotated[str, Field(description="Cryptographic hash or identifier of the original redacted data.")]
 
 
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -219,24 +292,39 @@ ExecutionUpdateDTO.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):
-    """Aggregate root containing the execution trace and current state."""
+    """Aggregate root containing the execution trace and current state.
+
+    Attributes:
+        execution_id: Unique execution identifier.
+        workflow_id: The ID of the workflow definition.
+        trace_version: Optimistic Concurrency Control version.
+        workflow_name: Optional human-readable name of the workflow.
+        created_at: Creation timestamp.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    execution_id: uuid.UUID = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
-    workflow_id: str = Field(
-        ...,
-        min_length=1,
-        pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
-        description="The ID of the workflow definition.",
-    )
-    trace_version: int = Field(default=0, description="Optimistic Concurrency Control version.")
+    execution_id: Annotated[
+        uuid.UUID, Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
+    ] = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
+    workflow_id: Annotated[
+        str,
+        Field(
+            ...,
+            min_length=1,
+            pattern=r"^([a-z]{2,5})_[a-zA-Z0-9]{8,}$",
+            description="The ID of the workflow definition.",
+        ),
+    ]
+    trace_version: Annotated[int, Field(default=0, description="Optimistic Concurrency Control version.")] = 0
     # Phase 2: status, execution_trace, execution_trace_storage_path,
     # context_variables, context_variables_storage_path are inherited
     # from ExecutionCoreFields (SSOT).
 
-    workflow_name: str | None = Field(default=None, description="Human-readable name of the workflow.")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
+    workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
+    created_at: Annotated[
+        datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
+    ] = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
 
     @property
     def start_time(self) -> datetime:
@@ -268,7 +356,9 @@ class WorkflowState(ExecutionCoreFields):
         Returns:
             The value (Model or Any) or None if missing/invalid.
         """
-        val = self.context_variables.get(key)
+        if key not in self.context_variables:
+            return None
+        val = self.context_variables[key]
         if val is None:
             return None
 
@@ -312,7 +402,7 @@ class WorkflowState(ExecutionCoreFields):
         """Type-Safe Accessor for XAI Reporter Output."""
         return self.get_context("step_xai", XAIOutput)
 
-    # --- Legacy / Sub-Step Accessors (Still useful for direct access if needed) ---
+    # --- Sub-Step Accessors ---
 
     @property
     def step_logician(self) -> Any | None:
@@ -347,19 +437,27 @@ class WorkflowState(ExecutionCoreFields):
     @property
     def organization_id(self) -> str | None:
         """Retrieves organization ID from context variables."""
-        val = self.context_variables.get("organization_id")
-        return str(val) if val is not None else None
+        if "organization_id" in self.context_variables:
+            val = self.context_variables["organization_id"]
+            if val is not None:
+                return str(val)
+        return None
 
     @property
     def user_id(self) -> str | None:
         """Retrieves user ID from context variables."""
-        val = self.context_variables.get("user_id")
-        return str(val) if val is not None else None
+        if "user_id" in self.context_variables:
+            val = self.context_variables["user_id"]
+            if val is not None:
+                return str(val)
+        return None
 
     @property
-    def audit_results(self) -> str | int | float | bool | list[str] | None:
+    def audit_results(self) -> Any:
         """Retrieves audit results from context variables."""
-        return self.context_variables.get("audit_results")
+        if "audit_results" in self.context_variables:
+            return self.context_variables["audit_results"]
+        return None
 
     @property
     def step_detector(self) -> Any | None:
@@ -465,7 +563,9 @@ class StateProjector:
                 logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
 
                 raise AppException(
-                    status_code=500, message=msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    message=msg,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 ) from err
 
             for block_id, payload in items_iter:
@@ -490,17 +590,26 @@ class StateProjector:
             self._snapshot[event.step_name] = event.content
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker
-            redacted_hash = event.redacted_hash if isinstance(event, TombstoneEvent) else "unknown"
+            redacted_hash = "unknown"
+            if isinstance(event, TombstoneEvent):
+                redacted_hash = event.redacted_hash
             self._snapshot[event.step_name] = {"_redacted": True, "hash": redacted_hash}
 
 
 class ExecutionState(V2CoreBase):
-    """Headless, strongly-typed Pydantic model representing the overall execution state."""
+    """Headless, strongly-typed Pydantic model representing the overall execution state.
+
+    Attributes:
+        executive_summary: Concise overview of findings from execution run.
+        evidence_quotes: Selected quotes to support the findings.
+        urgency_level: Urgency or severity level.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    executive_summary: str = Field(description="Concise overview of findings from execution run.")
-    evidence_quotes: list[QuoteEvidenceDTO] = Field(
-        default_factory=list, description="Selected quotes to support the findings."
-    )
-    urgency_level: int = Field(description="Urgency or severity level.")
+    executive_summary: Annotated[str, Field(description="Concise overview of findings from execution run.")]
+    evidence_quotes: Annotated[
+        list[QuoteEvidenceDTO],
+        Field(default_factory=list, description="Selected quotes to support the findings."),
+    ] = Field(default_factory=list, description="Selected quotes to support the findings.")
+    urgency_level: Annotated[int, Field(description="Urgency or severity level.")]

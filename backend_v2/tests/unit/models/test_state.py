@@ -365,3 +365,33 @@ def test_workflow_state_accessors_and_properties() -> None:
     assert empty_ws.step_causal is None
     assert empty_ws.step_detector is None
     assert empty_ws.step_judge_cognitive is None
+    assert empty_ws.organization_id is None
+    assert empty_ws.user_id is None
+    assert empty_ws.audit_results is None
+
+
+def test_workflow_state_none_branches() -> None:
+    """Test organization_id and user_id when values in context_variables are None."""
+    ws = WorkflowState(
+        workflow_id="wf_none00000000",
+        target_locale="fi",
+        context_variables={"organization_id": None, "user_id": None},
+    )
+    assert ws.organization_id is None
+    assert ws.user_id is None
+    assert ws.audit_results is None
+
+
+def test_state_projector_fold_trace_string_content() -> None:
+    """Test fold_trace token calculation when event content is a string and fails fast."""
+    event = TraceEvent(
+        step_name="stp_str",
+        event_type="output",
+        content={"blk_1": "data"},
+    )
+    object.__setattr__(event, "content", "string payload")
+    projector = StateProjector()
+    with pytest.raises(AppException, match="Legacy flat trace detected"):
+        projector.fold_trace([event], max_tokens=100)
+
+
