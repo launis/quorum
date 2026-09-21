@@ -86,7 +86,7 @@ class ExecutionCommitter:
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
         frozen_context: Any | None = None,
-        context_variables: ContextVariablesDTO | dict[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | Mapping[str, Any] | None = None,
         steps: list[ExecutionStep] | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely.
@@ -104,9 +104,13 @@ class ExecutionCommitter:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
         """
         try:
-            cv_dict = (
-                context_variables.to_dict() if isinstance(context_variables, ContextVariablesDTO) else context_variables
-            )
+            cv_dict: dict[str, Any] | None
+            if isinstance(context_variables, ContextVariablesDTO):
+                cv_dict = context_variables.to_dict()
+            elif isinstance(context_variables, Mapping):
+                cv_dict = dict(context_variables)
+            else:
+                cv_dict = None
             update_node = NodeExecutionUpdateDTO(
                 status=status,
                 execution_trace=trace,
@@ -195,10 +199,10 @@ class NodeExecutor:
         strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
-        context_variables: ContextVariablesDTO | dict[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | Mapping[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
-        global_context_vars: GlobalContextVarsDTO | dict[str, Any] | None = None,
+        global_context_vars: GlobalContextVarsDTO | Mapping[str, Any] | None = None,
         target_locale: str = "en",
         output_profile_id: str | None = None,
         organization_id: str | None = None,
@@ -213,24 +217,24 @@ class NodeExecutor:
             projector: Transient state snapshot delta computer context.
             semaphore: Concurrency barrier constraints control instance.
             expected_inputs: Type list schema limits.
-            frozen_ctx: Snapshot of historical context fields.
-            trace: Dynamic execution historical collection tracker.
-            strictness_level: Tolerance boundary configuration limits.
-            arq_pool: Worker delegation dispatcher parameters.
-            running_event: Coordinator signal emitter.
-            context_variables: Execution level context variables.
-            progress_callback: Optional progress reporter callback function.
-            step_def: Optional pre-loaded Step blueprint.
-            global_context_vars: Optional global context variables.
-            target_locale: Target localization code for linguistic mapping.
-            output_profile_id: Optional output profile identifier.
-            organization_id: Optional organization tenant identifier.
+            frozen_ctx: Frozen context snapshot.
+            trace: Trace events history.
+            strictness_level: Strictness level numeric value.
+            arq_pool: Async Arq pool context.
+            running_event: Event trigger notification mechanism.
+            context_variables: Global state context dictionary or DTO.
+            progress_callback: Progress observer async invocation handler.
+            step_def: Underlying definition specification if eager loaded.
+            global_context_vars: Global context variables state envelope.
+            target_locale: ISO language tag.
+            output_profile_id: Presentation output profile identifier.
+            organization_id: Organization context identifier.
 
         Returns:
-            List of events generated during step evaluation.
+            List of emitted trace events.
 
         Raises:
-            AppException: Triggered with CONFIGURATION_ERROR if step metadata or target templates are absent.
+            AppException: Fail-fast error if node configuration or blueprint is missing.
         """
         try:
             blueprint_id = step.task_blueprint
@@ -286,13 +290,14 @@ class NodeExecutor:
                 engine=engine,
             )
 
-            resolved_global_vars: GlobalContextVarsDTO = (
-                global_context_vars
-                if isinstance(global_context_vars, GlobalContextVarsDTO)
-                else GlobalContextVarsDTO(**dict(global_context_vars))
-                if isinstance(global_context_vars, Mapping)
-                else GlobalContextVarsDTO()
-            )
+            resolved_global_vars: GlobalContextVarsDTO
+            if isinstance(global_context_vars, GlobalContextVarsDTO):
+                resolved_global_vars = global_context_vars
+            elif isinstance(global_context_vars, Mapping):
+                resolved_global_vars = GlobalContextVarsDTO(**dict(global_context_vars))
+            else:
+                resolved_global_vars = GlobalContextVarsDTO()
+
             if (
                 isinstance(metadata, ExecutionMetadata)
                 and metadata.global_context_vars is not None
@@ -304,13 +309,13 @@ class NodeExecutor:
             if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
                 resolved_model_registry_id = metadata.model_registry_id
 
-            resolved_context_vars: ContextVariablesDTO = (
-                context_variables
-                if isinstance(context_variables, ContextVariablesDTO)
-                else ContextVariablesDTO.from_dict(dict(context_variables))
-                if isinstance(context_variables, Mapping)
-                else ContextVariablesDTO()
-            )
+            resolved_context_vars: ContextVariablesDTO
+            if isinstance(context_variables, ContextVariablesDTO):
+                resolved_context_vars = context_variables
+            elif isinstance(context_variables, Mapping):
+                resolved_context_vars = ContextVariablesDTO.from_dict(dict(context_variables))
+            else:
+                resolved_context_vars = ContextVariablesDTO()
 
             context = StrategyContext(
                 execution_id=execution_id,
