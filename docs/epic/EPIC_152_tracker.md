@@ -154,7 +154,7 @@
   - [x] @[backend_v2/models/dtos/ingress.py]
   - [x] @[backend_v2/models/dtos/hook_state.py]
   - [x] @[backend_v2/models/dtos/atom_result.py]
-  - [ ] @[backend_v2/llm/adapters/vertex_adapter.py]
+  - [x] @[backend_v2/llm/adapters/vertex_adapter.py]
   - [ ] @[backend_v2/llm/handler.py]
   - [ ] [NEW] @[backend_v2/models/dtos/theory_manifest.py]
   - [ ] [NEW] @[backend_v2/models/dtos/schema_manifest.py]

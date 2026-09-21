@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import collections.abc
 import datetime
 import hashlib
 import json
@@ -27,6 +28,13 @@ from backend_v2.utils.redis_patcher import get_patched_fakeredis_pool
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "VertexCacheAdapter",
+    "VertexAdapter",
+    "get_redis_client",
+    "is_gemini_v3_or_higher",
+]
+
 _VERTEX_SAFETY_SETTINGS = [
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
     {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
@@ -36,6 +44,22 @@ _VERTEX_SAFETY_SETTINGS = [
 
 _redis_pool: Any = None
 _redis_loop: Any = None
+
+
+def _is_system_turn(m: LLMMessageDTO | dict[str, Any]) -> bool:
+    """Check whether a message represents a system turn without using dict.get().
+
+    Args:
+        m: The message DTO or message dictionary.
+
+    Returns:
+        True if the message is a system role, False otherwise.
+    """
+    if isinstance(m, LLMMessageDTO):
+        return m.role == "system"
+    if isinstance(m, collections.abc.Mapping) and "role" in m:
+        return str(m["role"]) == "system"
+    return False
 
 
 async def get_redis_client() -> Any:
@@ -99,6 +123,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
             A pair containing:
                 - The list of flattened messages.
                 - A dictionary of extra keyword arguments containing the cache reference name.
+
+        Raises:
+            ConfigurationError: If Vertex AI requires a configured location that is missing.
         """
         # Vertex AI context caching requires caching conversational turns in `contents`.
         # System instructions alone cannot form an explicit cached resource in GCP without conversational content.
@@ -142,9 +169,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
         redis_key = f"vertex_cache:{location}:{model_name}:{static_hash}"
         lock_key = f"lock:vertex_cache:{location}:{model_name}:{static_hash}"
 
-        redis_client = await get_redis_client()
+        client = await get_redis_client()
 
-        cache_id = await redis_client.get(redis_key)
+        cache_id = await client.get(redis_key)
         if cache_id:
             if isinstance(cache_id, bytes):
                 cache_id = cache_id.decode("utf-8")
@@ -165,11 +192,11 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 }
 
         lock_ttl_ms = int(get_settings().context_cache_lock_ttl_seconds * 1000)
-        lock_acquired = await redis_client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
+        lock_acquired = await client.set(lock_key, "worker_1", nx=True, px=lock_ttl_ms)
 
         if lock_acquired:
             try:
-                cache_id = await redis_client.get(redis_key)
+                cache_id = await client.get(redis_key)
                 if cache_id:
                     if isinstance(cache_id, bytes):
                         cache_id = cache_id.decode("utf-8")
@@ -180,7 +207,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             "cached_content": cache_id,
                         }
 
-                await redis_client.set(
+                await client.set(
                     redis_key,
                     PromptCacheStatus.CREATING.value,
                     ex=get_settings().context_cache_lock_ttl_seconds,
@@ -243,7 +270,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             f"projects/{project}/locations/{location}/cachedContents/{cache_resource_id}"
                         )
 
-                    await redis_client.set(
+                    await client.set(
                         redis_key,
                         cache_resource_id,
                         ex=get_settings().context_cache_passive_ttl_seconds,
@@ -263,7 +290,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         "Continuing with uncached completion.",
                         str(exc),
                     )
-                    await redis_client.set(
+                    await client.set(
                         redis_key,
                         PromptCacheStatus.FAILED.value,
                         ex=get_settings().context_cache_failed_ttl_seconds,
@@ -271,7 +298,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     return compiled_prompt.to_flat_messages(), {}
 
             finally:
-                await redis_client.delete(lock_key)
+                await client.delete(lock_key)
 
         else:
             poll_interval_s = float(get_settings().context_cache_lock_poll_interval_ms / 1000.0)
@@ -282,7 +309,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 await asyncio.sleep(poll_interval_s)
                 elapsed_s += poll_interval_s
 
-                cache_id = await redis_client.get(redis_key)
+                cache_id = await client.get(redis_key)
                 if cache_id:
                     if isinstance(cache_id, bytes):
                         cache_id = cache_id.decode("utf-8")
@@ -393,9 +420,12 @@ class VertexCacheAdapter(BaseLLMAdapter):
                 tool_call_id = msg.tool_call_id
             else:
                 msg_dict = dict(msg)
-                role = str(msg_dict["role"]) if "role" in msg_dict else None
-                tool_calls = msg_dict["tool_calls"] if "tool_calls" in msg_dict else None
-                tool_call_id = str(msg_dict["tool_call_id"]) if "tool_call_id" in msg_dict else None
+                if "role" in msg_dict and msg_dict["role"] is not None:
+                    role = str(msg_dict["role"])
+                if "tool_calls" in msg_dict:
+                    tool_calls = msg_dict["tool_calls"]
+                if "tool_call_id" in msg_dict and msg_dict["tool_call_id"] is not None:
+                    tool_call_id = str(msg_dict["tool_call_id"])
 
             if role == "assistant" and tool_calls:
                 for tc in tool_calls:
@@ -403,7 +433,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
                         validated_tc = tc
                     else:
                         tc_dict = dict(tc)
-                        fn = tc_dict["function"] if "function" in tc_dict else None
+                        fn = None
+                        if "function" in tc_dict:
+                            fn = tc_dict["function"]
                         if fn is not None and not isinstance(fn, (str, int, float, bool, list)):
                             fn_dict = dict(fn)
                             if "arguments" not in fn_dict:
@@ -440,6 +472,9 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
         Returns:
             The potentially modified call_kwargs dictionary.
+
+        Raises:
+            ConfigurationError: If Vertex AI requires a configured location that cannot be resolved.
         """
         # 1. Resolve Vertex Location
         config_location = None
@@ -449,9 +484,12 @@ class VertexCacheAdapter(BaseLLMAdapter):
             config_location = config.additional_params.vertex_location
 
         # 1.5 Reasoning & Thinking Parameter Extraction / Sanitization
-        model_name = str(
-            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
-        ).lower()
+        model_name_raw = ""
+        if "model" in call_kwargs and call_kwargs["model"]:
+            model_name_raw = str(call_kwargs["model"])
+        elif isinstance(config, ModelProfile):
+            model_name_raw = str(config.model_name)
+        model_name = model_name_raw.lower()
         is_gemini_v3 = is_gemini_v3_or_higher(model_name)
 
         thinking_budget: int | None = None
@@ -459,11 +497,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
             thinking_budget = int(config.thinking_budget_tokens)
 
         if settings is not None and settings.environment == "development":
-            thinking_budget = (
-                min(thinking_budget, settings.dev_max_thinking_budget)
-                if thinking_budget is not None
-                else settings.dev_max_thinking_budget
-            )
+            if thinking_budget is not None:
+                thinking_budget = min(thinking_budget, settings.dev_max_thinking_budget)
+            else:
+                thinking_budget = settings.dev_max_thinking_budget
 
         if thinking_budget is not None:
             if "extra_body" not in call_kwargs or call_kwargs["extra_body"] is None:
@@ -489,16 +526,20 @@ class VertexCacheAdapter(BaseLLMAdapter):
                     model_name,
                 )
 
-        settings_location = settings.vertex_location if settings is not None else None
+        settings_location = None
+        if settings is not None:
+            settings_location = settings.vertex_location
         env_location = os.getenv("HARDENING_VERTEX_LOCATION")
-        active_location = call_kwargs.get("vertex_location")
-        if not active_location and config_location:
+        active_location = None
+        if "vertex_location" in call_kwargs and call_kwargs["vertex_location"]:
+            active_location = str(call_kwargs["vertex_location"])
+        elif config_location:
             active_location = config_location
-        if not active_location and settings_location:
+        elif settings_location:
             active_location = settings_location
-        if not active_location and env_location:
+        elif env_location:
             active_location = env_location
-        if not active_location and "cached_content" in call_kwargs and isinstance(call_kwargs["cached_content"], str):
+        elif "cached_content" in call_kwargs and isinstance(call_kwargs["cached_content"], str):
             loc_match = re.search(r"/locations/([^/]+)/", call_kwargs["cached_content"])
             if loc_match:
                 active_location = loc_match.group(1)
@@ -516,7 +557,10 @@ class VertexCacheAdapter(BaseLLMAdapter):
         if "cached_content" in call_kwargs:
             # Vertex API rejects (400 Bad Request) dynamic tools when using static cached_content.
             # If tools are detected, we gracefully bypass caching for this single request.
-            if call_kwargs.get("tools"):
+            has_tools = False
+            if "tools" in call_kwargs and call_kwargs["tools"]:
+                has_tools = True
+            if has_tools:
                 logger.warning(
                     "[VertexAdapter] Dynamic tool payload detected alongside Vertex Caching. "
                     "Bypassing caching dynamically to prevent 400 Bad Request."
@@ -535,11 +579,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
 
                 # V3 Cache Fix: Diagnostic guard replacing blind system scrubber
                 if "messages" in call_kwargs:
-                    system_msgs = [
-                        m
-                        for m in call_kwargs["messages"]
-                        if (m.role == "system" if isinstance(m, LLMMessageDTO) else m.get("role") == "system")
-                    ]
+                    system_msgs = [m for m in call_kwargs["messages"] if _is_system_turn(m)]
                     if system_msgs:
                         logger.critical(
                             "ARCHITECTURE VIOLATION: %d system message(s) detected in cached payload. "
@@ -547,11 +587,7 @@ class VertexCacheAdapter(BaseLLMAdapter):
                             "This indicates a CompiledPrompt construction defect.",
                             len(system_msgs),
                         )
-                        call_kwargs["messages"] = [
-                            m
-                            for m in call_kwargs["messages"]
-                            if (m.role != "system" if isinstance(m, LLMMessageDTO) else m.get("role") != "system")
-                        ]
+                        call_kwargs["messages"] = [m for m in call_kwargs["messages"] if not _is_system_turn(m)]
 
         return call_kwargs
 

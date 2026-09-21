@@ -750,3 +750,62 @@ async def test_vertex_adapter_caching_consecutive_system_messages_empty_contents
 
     assert extra_kwargs == {}
     assert len(flat_msgs) == 2
+
+
+@pytest.mark.asyncio
+async def test_vertex_adapter_missing_location_raises_configuration_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify that prepare_caching_payload and prepare_kwargs raise ConfigurationError when no location is configured."""
+    from backend_v2.exceptions import ConfigurationError
+
+    monkeypatch.delenv("VERTEX_LOCATION", raising=False)
+    monkeypatch.delenv("VERTEXAI_LOCATION", raising=False)
+    monkeypatch.delenv("HARDENING_VERTEX_LOCATION", raising=False)
+
+    from backend_v2.settings import get_settings
+
+    settings = get_settings()
+    monkeypatch.setattr(settings, "vertex_location", "")
+
+    adapter = VertexCacheAdapter()
+    prompt = CompiledPrompt(
+        static_messages=[
+            {"role": "user", "content": "Static text instructions " * 300},
+        ],
+        dynamic_messages=[
+            {"role": "user", "content": "Dynamic question"},
+        ],
+    )
+
+    with pytest.raises(ConfigurationError) as exc_info:
+        await adapter.prepare_caching_payload(prompt, "gemini-1.5-pro")
+    assert "Vertex AI requires a configured location" in str(exc_info.value.message)
+
+    with pytest.raises(ConfigurationError) as exc_info2:
+        adapter.prepare_kwargs({"model": "gemini-1.5-pro"}, settings=settings)
+    assert "Vertex AI requires a configured location" in str(exc_info2.value.message)
+
+
+def test_vertex_adapter_is_system_turn_and_dict_message_handling() -> None:
+    """Verify _is_system_turn helper and dictionary message scrubbing in cached kwargs."""
+    from backend_v2.llm.adapters.vertex_adapter import _is_system_turn
+
+    assert _is_system_turn(LLMMessageDTO(role="system", content="sys")) is True
+    assert _is_system_turn(LLMMessageDTO(role="user", content="usr")) is False
+    assert _is_system_turn({"role": "system", "content": "sys"}) is True
+    assert _is_system_turn({"role": "user", "content": "usr"}) is False
+    assert _is_system_turn({"other": "no_role"}) is False
+
+    adapter = VertexCacheAdapter()
+    call_kwargs: dict[str, Any] = {
+        "model": "gemini-1.5-pro",
+        "vertex_location": "us-central1",
+        "cached_content": "projects/p/locations/us-central1/cachedContents/c123",
+        "messages": [
+            {"role": "system", "content": "System prompt in dict"},
+            {"role": "user", "content": "User prompt in dict"},
+        ],
+    }
+    prepared = adapter.prepare_kwargs(call_kwargs)
+    assert len(prepared["messages"]) == 1
+    assert prepared["messages"][0]["role"] == "user"
+
