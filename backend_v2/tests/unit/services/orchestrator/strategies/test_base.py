@@ -243,3 +243,117 @@ async def test_run_post_hooks_failure(dummy_strategy: DummyStrategy, monkeypatch
     res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, step_rule, hook_state, MagicMock())
     assert res_state == hook_state
     assert res_events == []
+
+
+@pytest.mark.asyncio
+async def test_run_post_hooks_with_matrix_hook_result(
+    dummy_strategy: DummyStrategy, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify run_post_hooks handles MatrixHookResultDTO properly."""
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookDeltaDTO,
+        HookResult,
+        hook_registry,
+    )
+    from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
+    from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+
+    matrix_out = LightweightMatrixOutput(raw_score=4.0, normalized_score=80.0)
+    matrix_dto = MatrixHookResultDTO(
+        matrix_outputs={"blk_1": matrix_out},
+        missing_contexts={"blk_1": "missing_data"},
+        atom_quotes={"blk_1": []},
+    )
+    mock_result = HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(
+            delta=matrix_dto,
+        ),
+    )
+    monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
+
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", post_hooks=["hook_matrix"])  # type: ignore[arg-type]
+    step_rule = MagicMock(id="node_1")
+    hook_state = HookState(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(),
+    )
+
+    res_state, res_events = await dummy_strategy.run_post_hooks(step_obj, step_rule, hook_state, MagicMock())
+    assert res_state.inputs.dynamic_inputs["blk_1"] == matrix_out
+    assert res_state.inputs.raw_inputs["blk_1"] == matrix_out
+    assert res_state.inputs.dynamic_inputs["blk_1_missing_context"] == "missing_data"
+    assert res_state.inputs.raw_inputs["blk_1_missing_context"] == "missing_data"
+
+
+@pytest.mark.asyncio
+async def test_run_pre_and_post_hooks_with_dto_and_explicit_inputs(
+    dummy_strategy: DummyStrategy, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Verify run_pre_hooks and run_post_hooks handle GlobalContextVarsDTO instance and explicit inputs/dynamic_inputs."""
+    from backend_v2.core.hook_registry import (
+        ExecutionInputsDTO,
+        GlobalContextVarsDTO,
+        HookDeltaDTO,
+        HookResult,
+        hook_registry,
+    )
+
+    gvars_dto = GlobalContextVarsDTO(language="fi", target_locale="fi")
+    mock_result = HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(
+            delta={
+                "global_context_vars": gvars_dto,
+                "dynamic_inputs": {"dyn_key": "dyn_val"},
+                "inputs": {"raw_key": "raw_val"},
+            },
+        ),
+    )
+    monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
+
+    step_obj = V2Step.model_construct(id="stp_1", slug="s1", name="s1", pre_hooks=["hook_pre"])  # type: ignore[arg-type]
+    step_rule = MagicMock(id="node_1")
+    hook_state = HookState(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+        global_context_vars=GlobalContextVarsDTO(),
+        inputs=ExecutionInputsDTO(),
+    )
+
+    res_state, res_events = await dummy_strategy.run_pre_hooks(step_obj, step_rule, hook_state, MagicMock())
+    assert res_state.global_context_vars.language == "fi"
+    assert res_state.inputs.dynamic_inputs["dyn_key"] == "dyn_val"
+    assert res_state.inputs.raw_inputs["raw_key"] == "raw_val"
+
+
+def test_strategy_context_validation_and_immutability() -> None:
+    """Verify StrategyContext Pydantic V2 ConfigDict(strict=True, extra='forbid', frozen=True)."""
+    from pydantic import ValidationError
+
+    from backend_v2.services.orchestrator.strategies.base import StrategyContext
+
+    ctx = StrategyContext(
+        execution_id="exe_1",
+        workflow_id="wf_1",
+        metadata=ExecutionMetadata(),
+    )
+    assert ctx.execution_id == "exe_1"
+    assert ctx.workflow_id == "wf_1"
+    assert ctx.target_locale == "en"
+
+    # Extra fields rejected fail-fast
+    with pytest.raises(ValidationError):
+        StrategyContext(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            metadata=ExecutionMetadata(),
+            extra_field="rejected",  # type: ignore[call-arg]
+        )
+

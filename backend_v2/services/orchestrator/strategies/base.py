@@ -7,7 +7,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -28,6 +28,7 @@ from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.engine import EngineExecutionRequest
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
@@ -61,25 +62,39 @@ class StrategyContext(BaseModel):
         model_registry_id: Optional sovereign model registry ID binding.
     """
 
-    execution_id: str
-    workflow_id: str
-    target_locale: str = "en"
-    output_profile_id: str | None = None
-    metadata: ExecutionMetadata
-    expected_inputs: list[ExpectedInput] | None = None
-    cognitive_tier: CognitiveTier = CognitiveTier.FAST
-    strictness_level: int = StrictnessAnchor.STANDARD.value
-    global_context_vars: GlobalContextVarsDTO = Field(default_factory=GlobalContextVarsDTO)
-    context_variables: ContextVariablesDTO = Field(default_factory=ContextVariablesDTO)
-    prompt_blocks: list[PromptBlock] = Field(default_factory=list)
-    model_registry_id: str | None = None
+    execution_id: Annotated[str, Field(description="ID of the parent execution")]
+    workflow_id: Annotated[str, Field(description="ID of the parent workflow")]
+    target_locale: Annotated[str, Field(description="Target locale string")] = "en"
+    output_profile_id: Annotated[str | None, Field(default=None, description="Optional target output profile ID")] = (
+        None
+    )
+    metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata container")]
+    expected_inputs: Annotated[
+        list[ExpectedInput] | None, Field(default=None, description="Optional expected inputs definition")
+    ] = None
+    cognitive_tier: Annotated[
+        CognitiveTier, Field(description="Cognitive tier determining model profile resolution")
+    ] = CognitiveTier.FAST
+    strictness_level: Annotated[int, Field(description="Int representing strictness level")] = (
+        StrictnessAnchor.STANDARD.value
+    )
+    global_context_vars: Annotated[GlobalContextVarsDTO, Field(description="Global context variables")] = Field(
+        default_factory=GlobalContextVarsDTO
+    )
+    context_variables: Annotated[ContextVariablesDTO, Field(description="Local context variables")] = Field(
+        default_factory=ContextVariablesDTO
+    )
+    prompt_blocks: Annotated[list[PromptBlock], Field(description="Hydrated prompt blocks for execution")] = Field(
+        default_factory=list
+    )
+    model_registry_id: Annotated[
+        str | None, Field(default=None, description="Optional sovereign model registry ID binding")
+    ] = None
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
 
 # Rebuild EngineExecutionRequest now that StrategyContext is defined
-from backend_v2.models.dtos.engine import EngineExecutionRequest
-
 EngineExecutionRequest.model_rebuild()
 
 
@@ -294,14 +309,13 @@ class NodeStrategy(ABC):
                     )
 
                 if isinstance(delta, Mapping):
-                    delta_dyn = (
-                        dict(delta["dynamic_inputs"])
-                        if ("dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping))
-                        else {}
-                    )
-                    delta_raw = (
-                        dict(delta["inputs"]) if ("inputs" in delta and isinstance(delta["inputs"], Mapping)) else {}
-                    )
+                    delta_dyn: dict[str, Any] = {}
+                    if "dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping):
+                        delta_dyn = dict(delta["dynamic_inputs"])
+
+                    delta_raw: dict[str, Any] = {}
+                    if "inputs" in delta and isinstance(delta["inputs"], Mapping):
+                        delta_raw = dict(delta["inputs"])
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             delta_dyn[k] = v
@@ -380,14 +394,13 @@ class NodeStrategy(ABC):
                     )
 
                 if isinstance(delta, Mapping):
-                    delta_dyn = (
-                        dict(delta["dynamic_inputs"])
-                        if ("dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping))
-                        else {}
-                    )
-                    delta_raw = (
-                        dict(delta["inputs"]) if ("inputs" in delta and isinstance(delta["inputs"], Mapping)) else {}
-                    )
+                    delta_dyn: dict[str, Any] = {}
+                    if "dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping):
+                        delta_dyn = dict(delta["dynamic_inputs"])
+
+                    delta_raw: dict[str, Any] = {}
+                    if "inputs" in delta and isinstance(delta["inputs"], Mapping):
+                        delta_raw = dict(delta["inputs"])
                     for k, v in delta.items():
                         if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
                             delta_dyn[k] = v
