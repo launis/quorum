@@ -16,6 +16,8 @@ from backend_v2.exceptions import AppException, ErrorCodes
 
 logger = logging.getLogger(__name__)
 
+__all__ = ["ASTEvaluator", "State"]
+
 # PEP 695 type alias for evaluation statuses
 type State = Literal["TRUE", "FALSE", "DLQ"]
 
@@ -82,7 +84,13 @@ class ASTEvaluator:
         try:
             tree = ast.parse(expression.strip(), mode="eval")
         except SyntaxError as e:
-            logger.error("ASTEvaluator: Syntax error parsing expression '%s': %s", expression, e, exc_info=True)
+            logger.error(
+                "ASTEvaluator: Syntax error parsing expression '%s': %s",
+                expression,
+                e,
+                exc_info=True,
+                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
             raise AppException(
                 message=f"Invalid boolean expression syntax: {expression}",
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -107,7 +115,7 @@ class ASTEvaluator:
             State computed from current branch.
 
         Raises:
-            AppException: Security violation if non-whitelisted node structure is supplied.
+            AppException: Raised with VALIDATION_FAILED error code if non-whitelisted node structure or operator is supplied.
         """
         allowed_types = (
             ast.Expression,
@@ -120,7 +128,7 @@ class ASTEvaluator:
         )
         if not isinstance(node, allowed_types):
             msg = f"AST Security Violation: Disallowed AST node type '{type(node).__name__}'"
-            logger.error(msg)
+            logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
             raise AppException(
                 message=msg,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -145,7 +153,7 @@ class ASTEvaluator:
 
             case ast.UnaryOp(op=non_not_op):
                 msg = f"AST Security Violation: Disallowed UnaryOp operator '{type(non_not_op).__name__}'"
-                logger.error(msg)
+                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -160,7 +168,9 @@ class ASTEvaluator:
                         return "FALSE"
                     elif res == "DLQ":
                         has_dlq = True
-                return "DLQ" if has_dlq else "TRUE"
+                if has_dlq:
+                    return "DLQ"
+                return "TRUE"
 
             case ast.BoolOp(op=ast.Or(), values=values):
                 has_dlq = False
@@ -170,11 +180,13 @@ class ASTEvaluator:
                         return "TRUE"
                     elif res == "DLQ":
                         has_dlq = True
-                return "DLQ" if has_dlq else "FALSE"
+                if has_dlq:
+                    return "DLQ"
+                return "FALSE"
 
             case ast.BoolOp(op=disallowed_op):
                 msg = f"AST Security Violation: Disallowed BoolOp operator '{type(disallowed_op).__name__}'"
-                logger.error(msg)
+                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -183,7 +195,7 @@ class ASTEvaluator:
 
             case _:
                 msg = f"AST Security Violation: Disallowed node '{type(node).__name__}'"
-                logger.error(msg)
+                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                 raise AppException(
                     message=msg,
                     status_code=status.HTTP_400_BAD_REQUEST,

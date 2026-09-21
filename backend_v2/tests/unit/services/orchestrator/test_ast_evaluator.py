@@ -2,7 +2,7 @@ import ast
 
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.services.orchestrator.ast_evaluator import ASTEvaluator
 
 
@@ -169,3 +169,18 @@ def test_ast_evaluator_tolerance_edge_cases() -> None:
     # Unknown inner_val state
     assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=10, dlq_chunks=0, inner_val="UNKNOWN") == "FALSE"
     assert ASTEvaluator.calculate_inverse_dlq_tolerance(total_chunks=10, dlq_chunks=0, inner_val=None) == "FALSE"
+
+
+def test_ast_evaluator_unhandled_allowed_node_fallback() -> None:
+    """Verify that _eval_node raises AppException when node matches allowed_types but not concrete cases."""
+    facts = {"fact_a": "Evidence"}
+    with pytest.raises(AppException) as exc:
+        ASTEvaluator._eval_node(
+            ast.Expression(body=ast.Name(id="fact_a", ctx=ast.Load())),
+            facts,
+            total_chunks=1,
+            dlq_chunks=0,
+        )
+    assert "Disallowed node 'Expression'" in str(exc.value.message)
+    assert exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
