@@ -41,7 +41,7 @@
         <responsibility>DECOUPLED PILLAR CAPABILITIES</responsibility>
         <key_domains>
           - Pillar 2 (Ontology): studio/, translation_service.py, factories/ (output_profile_factory.py)
-          - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
+          - Pillar 3 (Orchestration): execution/ (lifecycle_service.py, ingress_service.py, resumption_service.py, override_service.py, stream_service.py, context_service.py, legacy_render_service.py), execution.py (facade), web_fetcher.py, llm_task_executor.py, length_budget_enforcer.py, mcp/, drivers/, file_driver.py, flattener.py, storage.py, orchestrator/ (engines/, strategies/, prompts/, prompt_compiler.py, prompt_compiler_adapter.py, rag_preflight_service.py, chunking_service.py, dag_compiler.py, dag_executor.py, synthesis_distiller.py, synthesis_payload_compressor.py, matrix_explanation_service.py, context_router.py, matrix_reducer.py, state_reducer.py, schema_factory.py, localization_compiler.py)
           - Pillar 4 (SDUI & Presentation): report_service.py, export_service.py, blueprint.py, sdui_mapper_service.py, pdf_generator.py, localization.py, sdui/adapters/ (base_adapter.py, executive_summary_adapter.py, global_score_adapter.py, matrix_graphs_adapter.py, matrix_summary_table_adapter.py, mcp_audit_adapter.py, metadata_adapter.py, penalties_adapter.py, printable_sources_adapter.py, synthesis_text_adapter.py, variance_adapter.py, warning_card_adapter.py, xai_highlights_adapter.py)
           - Pillar 5 (Resilience): pii_analyzer.py, usage_service.py, progress.py, cache/ (typed_cache.py)
           - Pillar 6 (Atom Graph): document_extraction.py, chat_normalizer.py, chat_parser.py, ingress/ (pdf_chat_extractor.py, multi_channel_ingress_service.py), source_verification_service.py, matrix_domain_parser.py, orchestrator/ (anchor_validation_service.py, two_pass_atomizer.py, topological_evaluator.py, sliding_window_linker.py, extractive_sensor_service.py, enriched_dag_executor.py, result_projector.py, ast_evaluator.py, atomizer.py, extraction_schema_factory.py)
@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py), view/ (SDUI Blocks), state.py, enums.py
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, render.py, flat_record.py, step_telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py, workflow_schema.py), view/ (SDUI Blocks), state.py, enums.py
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)
@@ -107,7 +107,7 @@
 
     <module path="scripts/">
         <responsibility>AUTOMATED AUDIT LOOPS & AST GUARDRAILS (PILLAR 1/5)</responsibility>
-        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), _dart_guardrails.py (Client-Side Static Dart Guardrail Analyzer), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
+        <key_domains>_ast_guardrails.py (Static AST Invariant Enforcement), _dart_guardrails.py (Client-Side Static Dart Guardrail Analyzer), audit_dict_eradication.py (Zero Permissive Typing & Dict Eradication AST Verifier), backend_audit_loop.py, flutter_audit_loop.py, audit_tracker_output.py (Structural Audit for Epic & Standalone Plan Trackers), audit_database_atoms.py, sanitize_seed_vault.py, migrate_seed_contrastive_pairs.py, matrix_slice_engine.py, matrix_hardening_generator.py, run_e2e_variance_test.py (E2E Multi-Provider Variance Runner), diff_executions.py (Cross-Model Telemetry & NFKC Diff Engine)</key_domains>
     </module>
 
     <module path="client_app_v2/lib/features/">
@@ -117,7 +117,7 @@
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>api/execution_client.dart (Typed Future<ExecutionRecord> Client), error/app_error_boundary.dart, models/enums.dart, network/</key_domains>
+        <key_domains>api/execution_client.dart (Typed Future<ExecutionRecord> Client), api/reports_client.dart, error/app_error_boundary.dart, models/enums.dart, models/generic_status_response_dto.dart, network/</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">
