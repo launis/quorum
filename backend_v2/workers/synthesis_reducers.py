@@ -57,7 +57,20 @@ def extract_user_role_from_trace(
     default_role: str | None = None,
     default_justification: str | None = None,
 ) -> tuple[str | None, str | None]:
-    """Extract user role and justification deterministically from evaluated matrix score."""
+    """Extract user role and justification deterministically from evaluated matrix score.
+
+    Args:
+        execution: Authoritative execution record holding execution trace events.
+        role_target_block_id: Target block ID to extract matrix evaluation from.
+        default_role: Optional fallback role classification string.
+        default_justification: Optional fallback justification description.
+
+    Returns:
+        A tuple of (user_role, user_role_justification).
+
+    Raises:
+        AppException: If a corrupted LightweightMatrixOutput is encountered in the trace (ErrorCodes.VALIDATION_FAILED).
+    """
     role_raw_score: float | None = None
     if execution.execution_trace:
         for event in execution.execution_trace:
@@ -112,7 +125,15 @@ def process_executive_summary_result(
     result_tuple: tuple[Any, Any] | None,
     active_profile_dto: OutputProfile | None,
 ) -> tuple[ExecutiveSummarySectionResult | None, list[AnySduiBlock], float, int]:
-    """Process executive summary result, apply length constraint, and return blocks & usage."""
+    """Process executive summary result, apply length constraint, and return blocks and usage.
+
+    Args:
+        result_tuple: Optional tuple containing synthesis result DTO and TokenUsage.
+        active_profile_dto: Optional active output profile with length constraints.
+
+    Returns:
+        A 4-tuple of (exec_dto, blocks, cost_usd, total_tokens).
+    """
     if not result_tuple:
         return None, [], 0.0, 0
     exec_res, usage = result_tuple
@@ -144,7 +165,14 @@ def process_executive_summary_result(
 def process_matrix_sections_result(
     task_results: list[tuple[str, tuple[Any, Any] | None]],
 ) -> tuple[dict[str, list[AnySduiBlock]], float, int]:
-    """Process matrix synthesis sections and calculate aggregated token usage."""
+    """Process matrix synthesis sections and calculate aggregated token usage.
+
+    Args:
+        task_results: List of tuples containing layout IDs and result tuples.
+
+    Returns:
+        A 3-tuple of (section_dict, total_cost_usd, total_tokens).
+    """
     sec_dict: dict[str, list[AnySduiBlock]] = {}
     cost = 0.0
     tokens = 0
@@ -169,7 +197,15 @@ def process_xai_highlights_result(
     result_tuple: tuple[Any, Any] | None,
     active_profile_dto: OutputProfile | None,
 ) -> tuple[list[Any], float, int]:
-    """Process XAI highlights result and enforce length constraint."""
+    """Process XAI highlights result and enforce length constraint.
+
+    Args:
+        result_tuple: Optional tuple containing XaiHighlightsResult and TokenUsage.
+        active_profile_dto: Optional active output profile with length constraints.
+
+    Returns:
+        A 3-tuple of (highlights, cost_usd, total_tokens).
+    """
     if not result_tuple:
         return [], 0.0, 0
     xai_res, usage = result_tuple
@@ -197,7 +233,16 @@ def process_row_explanations_result(
     matrices_to_explain: list[MatrixExplanationContextDTO],
     active_profile_dto: OutputProfile | None,
 ) -> tuple[dict[str, str], float, int]:
-    """Process row explanations and format cache map."""
+    """Process row explanations and format cache map.
+
+    Args:
+        result_tuple: Optional tuple containing MatrixExplanationsResult and TokenUsage.
+        matrices_to_explain: List of matrix explanation context DTOs to map.
+        active_profile_dto: Optional active output profile with length constraints.
+
+    Returns:
+        A 3-tuple of (cache_explanations, cost_usd, total_tokens).
+    """
     if not result_tuple:
         return {}, 0.0, 0
     row_dto, usage = result_tuple
@@ -242,7 +287,22 @@ async def handle_starvation_if_detected(
     redis: Any | None,
     update_render_status_fn: Any,
 ) -> bool:
-    """Check for data starvation event and short-circuit if detected."""
+    """Check for data starvation event and short-circuit if detected.
+
+    Args:
+        execution: Execution record to inspect for data starvation events.
+        profile_id: Optional output profile identifier.
+        accept_language: Localized target language code.
+        repo: Repository instance for updating execution records.
+        redis: Optional Redis queue client for dispatching PDF generation.
+        update_render_status_fn: Async callback to update rendering progress.
+
+    Returns:
+        True if data starvation was detected and handled, False otherwise.
+
+    Raises:
+        AppException: If a corrupted DataStarvationEvent is detected (ErrorCodes.VALIDATION_FAILED).
+    """
     starvation_detected = False
     for trace_evt in execution.execution_trace:
         if trace_evt.event_type == "output":
@@ -300,7 +360,18 @@ async def recover_trace_telemetry(
     execution: ExecutionRecord,
     dag_cost: float,
 ) -> tuple[float, int | None, int | None, int | None, int | None]:
-    """Recover DAG telemetry tokens and cost from offloaded execution trace blob if needed."""
+    """Recover DAG telemetry tokens and cost from offloaded execution trace blob if needed.
+
+    Args:
+        execution: Execution record containing offloaded trace storage path.
+        dag_cost: Baseline DAG execution cost in USD.
+
+    Returns:
+        A 5-tuple of (final_cost, prompt_tokens, completion_tokens, cached_tokens, reasoning_tokens).
+
+    Raises:
+        AppException: If storage reading fails (ErrorCodes.DATA_CORRUPTION) or metadata envelope is invalid (ErrorCodes.VALIDATION_FAILED).
+    """
     rec_p = None
     rec_c = None
     rec_cac = None
@@ -372,7 +443,19 @@ async def handle_synthesis_failure_state(
     profile_id: str | None,
     error: Exception,
 ) -> None:
-    """Quarantine Phase 3 failure by updating virtual step state without failing ExecutionRecord status."""
+    """Quarantine Phase 3 failure by updating virtual step state without failing ExecutionRecord status.
+
+    Args:
+        execution_id: Authoritative identifier of the execution record.
+        profile_id: Optional output profile identifier.
+        error: Captured exception from the synthesis task.
+
+    Returns:
+        None.
+
+    Raises:
+        AppException: If the database update fails (ErrorCodes.INTERNAL_SERVER_ERROR).
+    """
     if not profile_id:
         return
     try:
