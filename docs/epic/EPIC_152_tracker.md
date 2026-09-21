@@ -142,7 +142,7 @@
   - [x] [NEW] @[scripts/audit_dict_eradication.py]
   - [x] @[scripts/_ast_guardrails.py]
   - [x] @[scripts/run_e2e_variance_test.py]
-  - [ ] @[backend_v2/hooks/validation.py]
+  - [x] @[backend_v2/hooks/validation.py]
   - [ ] @[backend_v2/settings.py]
   - [ ] @[backend_v2/utils/math_utils.py]
   - [ ] @[backend_v2/logging_config.py]

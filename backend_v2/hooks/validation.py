@@ -25,6 +25,12 @@ from backend_v2.models.domain.validation import (
 
 logger = logging.getLogger(__name__)
 
+__all__ = [
+    "verify_anomaly",
+    "verify_output_language",
+    "verify_structure",
+]
+
 
 @hook_registry.register(name="verify_structure")
 def verify_structure(state: HookState | None, deps: HookDependencies) -> HookResult:
@@ -44,6 +50,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
         AppException: EMPTY_INPUT if state is missing or fields are empty.
         AppException: INVALID_OUTPUT_SCHEMA if inputs validation fails.
         AppException: VALIDATION_FAILED if structural rules are violated.
+        AppException: INTERNAL_SERVER_ERROR if validation result construction fails.
     """
     logger.debug("[ValidationHook] Running structural inputs check...")
 
@@ -156,7 +163,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
         logger.error("[ValidationHook] Failed to create ValidationResult: %s", e, exc_info=True)
         raise AppException(
             message=f"System Error: {e}",
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
         ) from e
 
@@ -182,6 +189,15 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
 
 def _resolve_target_locale(state: HookState, payload: ValidationHookPayloadDTO) -> str | None:
+    """Resolve target locale from state inputs, payload, or global context variables.
+
+    Args:
+        state: Current frozen workflow execution state.
+        payload: Validated validation hook payload DTO.
+
+    Returns:
+        Target locale string if resolved, otherwise None.
+    """
     if isinstance(state.inputs, ExecutionInputsDTO) and state.inputs.target_locale:
         return state.inputs.target_locale
     if "target_locale" in payload.root and payload.root["target_locale"]:
@@ -226,7 +242,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
             logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
             raise AppException(
                 message=msg,
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
         target_locale = target_locale.lower()
@@ -235,7 +251,7 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
         logger.error("[ValidationHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
         raise AppException(
             message=msg,
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
         ) from e
 
@@ -314,6 +330,9 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
 
     Returns:
         Structured state delta container.
+
+    Raises:
+        AppException: VALIDATION_FAILED if atom payload is malformed.
     """
     logger.debug("[ValidationHook] Running LLM Anomaly detection...")
 
