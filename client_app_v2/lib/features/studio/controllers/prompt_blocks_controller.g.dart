@@ -68,7 +68,7 @@ final class PromptBlockByIdProvider
   }
 }
 
-String _$promptBlockByIdHash() => r'e1cb851ed60f34d21f72668ca80a8bf837030812';
+String _$promptBlockByIdHash() => r'8d0545f8b8db6d846aa942aa5bd7fccec7da93b3';
 
 /// Fetches a single Prompt Block natively by ID
 
@@ -213,7 +213,7 @@ final class PromptBlocksControllerProvider
 }
 
 String _$promptBlocksControllerHash() =>
-    r'a2413166b9daf0a916be7fa470ed46466fdfdc5f';
+    r'2e255bf0f83f193a5a1feaedcf729632ad54680a';
 
 /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
 /// Implements Optimistic UI principles where possible.

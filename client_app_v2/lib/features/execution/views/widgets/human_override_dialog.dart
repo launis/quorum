@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
+import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
@@ -21,10 +22,12 @@ class HumanOverrideDialog extends ConsumerStatefulWidget {
 }
 
 class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
+  final _formKey = GlobalKey<FormState>();
   late ExecutionStatus _selectedStatus;
   final _reasonController = TextEditingController();
   final List<QuoteEvidenceDto> _quotes = [];
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -47,34 +50,24 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
 
   Future<void> _submitOverride() async {
     final l10n = AppLocalizations.of(context)!;
-    final reason = _reasonController.text.trim();
-    if (reason.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.humanOverrideReasonRequired)));
+    if (!_formKey.currentState!.validate()) {
       return;
     }
+    final reason = _reasonController.text.trim();
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
       final client = ref.read(executionClientProvider);
 
-      final payload = {
-        'new_status': _selectedStatus == ExecutionStatus.passed
-            ? 'PASSED'
-            : 'FAILED',
-        'reason': reason,
-        'evidence_quotes': _quotes
-            .map(
-              (q) => {
-                'quote': q.quote,
-                'verified_source_ids': q.verifiedSourceIds,
-                'unverified_aliases': q.unverifiedAliases,
-                'is_verified': q.isVerified,
-              },
-            )
-            .toList(),
-      };
+      final payload = HumanOverrideRequestDto(
+        newStatus: _selectedStatus,
+        reason: reason,
+        evidenceQuotes: List<QuoteEvidenceDto>.from(_quotes),
+      );
 
       await client.overrideAtom(
         executionId: widget.executionId,
@@ -87,9 +80,9 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.humanOverrideSaveFailed(e.toString()))),
-        );
+        setState(() {
+          _errorMessage = l10n.humanOverrideSaveFailed(e.toString());
+        });
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -101,109 +94,138 @@ class _HumanOverrideDialogState extends ConsumerState<HumanOverrideDialog> {
     final l10n = AppLocalizations.of(context)!;
 
     return AlertDialog(
-      title: Text('👨‍⚖️ ${l10n.humanOverrideTitle}'),
+      title: Text(l10n.humanOverrideTitle),
       content: SizedBox(
         width: 500,
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                l10n.humanOverrideClaimLabel(widget.atom.claimLabel),
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<ExecutionStatus>(
-                initialValue: _selectedStatus,
-                items: const [
-                  DropdownMenuItem(
-                    value: ExecutionStatus.passed,
-                    child: Text('PASS'),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_errorMessage != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.errorContainer,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onErrorContainer,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                  DropdownMenuItem(
-                    value: ExecutionStatus.failed,
-                    child: Text('FAIL'),
-                  ),
+                  const SizedBox(height: 12),
                 ],
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedStatus = val);
-                },
-                decoration: InputDecoration(
-                  labelText: l10n.humanOverrideNewStatusLabel,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _reasonController,
-                decoration: InputDecoration(
-                  labelText: l10n.humanOverrideReasonLabel,
-                  border: const OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 24),
-              Text(
-                l10n.humanOverrideQuotesTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              if (_quotes.isEmpty)
                 Text(
-                  l10n.humanOverrideNoQuotes,
-                  style: const TextStyle(
-                    fontStyle: FontStyle.italic,
-                    color: Colors.grey,
+                  l10n.humanOverrideClaimLabel(widget.atom.claimLabel),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<ExecutionStatus>(
+                  initialValue: _selectedStatus,
+                  items: [
+                    DropdownMenuItem(
+                      value: ExecutionStatus.passed,
+                      child: Text(ExecutionStatus.passed.name.toUpperCase()),
+                    ),
+                    DropdownMenuItem(
+                      value: ExecutionStatus.failed,
+                      child: Text(ExecutionStatus.failed.name.toUpperCase()),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedStatus = val);
+                  },
+                  decoration: InputDecoration(
+                    labelText: l10n.humanOverrideNewStatusLabel,
+                    border: const OutlineInputBorder(),
                   ),
                 ),
-              ..._quotes.map(
-                (q) => Card(
-                  elevation: 0,
-                  color: Colors.grey.shade50,
-                  shape: RoundedRectangleBorder(
-                    side: BorderSide(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _reasonController,
+                  decoration: InputDecoration(
+                    labelText: l10n.humanOverrideReasonLabel,
+                    border: const OutlineInputBorder(),
                   ),
-                  child: ListTile(
-                    dense: true,
-                    title: Text(q.quote, style: const TextStyle(fontSize: 13)),
-                    subtitle: Text(
-                      q.verifiedSourceIds.isNotEmpty
-                          ? q.verifiedSourceIds.join(', ')
-                          : (q.unverifiedAliases.isNotEmpty
-                                ? q.unverifiedAliases.join(', ')
-                                : 'HUMAN_OVERRIDE'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                      ),
+                  maxLines: 3,
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) {
+                      return l10n.humanOverrideReasonRequired;
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  l10n.humanOverrideQuotesTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                if (_quotes.isEmpty)
+                  Text(
+                    l10n.humanOverrideNoQuotes,
+                    style: const TextStyle(
+                      fontStyle: FontStyle.italic,
+                      color: Colors.grey,
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete, size: 18),
-                      onPressed: () => setState(() => _quotes.remove(q)),
-                      tooltip: l10n.humanOverrideDeleteQuoteTooltip,
+                  ),
+                ..._quotes.map(
+                  (q) => Card(
+                    elevation: 0,
+                    color: Colors.grey.shade50,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(
+                        q.quote,
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      subtitle: Text(
+                        q.verifiedSourceIds.isNotEmpty
+                            ? q.verifiedSourceIds.join(', ')
+                            : (q.unverifiedAliases.isNotEmpty
+                                  ? q.unverifiedAliases.join(', ')
+                                  : 'HUMAN_OVERRIDE'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete, size: 18),
+                        onPressed: () => setState(() => _quotes.remove(q)),
+                        tooltip: l10n.humanOverrideDeleteQuoteTooltip,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _quotes.add(
-                      QuoteEvidenceDto(
-                        verifiedSourceIds: const ['human_override'],
-                        quote: l10n.humanOverrideExpertNote,
-                        isVerified: true,
-                      ),
-                    );
-                  });
-                },
-                icon: const Icon(Icons.add, size: 16),
-                label: Text(l10n.humanOverrideAddEvidenceBtn),
-              ),
-            ],
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _quotes.add(
+                        QuoteEvidenceDto(
+                          verifiedSourceIds: const ['human_override'],
+                          quote: l10n.humanOverrideExpertNote,
+                          isVerified: true,
+                        ),
+                      );
+                    });
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: Text(l10n.humanOverrideAddEvidenceBtn),
+                ),
+              ],
+            ),
           ),
         ),
       ),

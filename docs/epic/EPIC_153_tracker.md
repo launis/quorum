@@ -21,13 +21,13 @@
 
 ### Phase 1: Pre-Implementation Technical Debt Cleanups & Full-Duplex Zero Permissive Typing Foundation
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
-  - [ ] Step 1.0: Pre-Implementation Technical Debt Cleanups Execution
-  - [ ] Step 1.1: Freezed DTO Model Generation
-  - [ ] Step 1.2: API Clients & Controllers Typing Refactor
-  - [ ] Step 1.3: Views Permissive Typing Elimination
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+  - [x] Step 1.0: Pre-Implementation Technical Debt Cleanups Execution
+  - [x] Step 1.1: Freezed DTO Model Generation
+  - [x] Step 1.2: API Clients & Controllers Typing Refactor
+  - [x] Step 1.3: Views Permissive Typing Elimination
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Phase 2: SDUI Dumb Painter Performance & Cell Decomposition
@@ -124,19 +124,19 @@
 
 | Requirement Description | Source Document & Boundary | Target Phase & Step | Status |
 | :--- | :--- | :--- | :--- |
-| Pre-implementation technical debt cleanups across 16 client files | EPIC 153 Section 3, Step 1.0 | Phase 1, Step 1.0 | PENDING |
-| Generate 6 new Freezed models with disallowUnrecognizedKeys: true | EPIC 153 Section 3, Step 1.1 | Phase 1, Step 1.1 | PENDING |
-| Strongly type all 33 CRUD, draft, clone, and simulation endpoints in StudioClient | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | PENDING |
-| Strongly type WorkflowClient.getWorkflowUiSchema to WorkflowUiSchema | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | PENDING |
-| Strongly type ExecutionClient.overrideAtom to HumanOverrideRequestDto | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | PENDING |
-| Refactor 5 controllers to consume typed Freezed models directly | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | PENDING |
-| Update 10 unit test mock suites to return strongly typed Freezed models | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | PENDING |
-| Refactor NewExecutionView availableWorkflows and selectedWorkflow to Workflow models | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
-| Pass List&lt;ExpectedInput&gt; directly in DynamicStartScreen without dictionary subscripting | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
-| Bind typed McpGateway properties in MCP Master and Detail views | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
-| Consume typed List&lt;OutputProfile&gt; in CreateReportDialog without fromJson parsing | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
-| Bind typed simulation responses in WorkflowBuilderView and PromptBlockBuilderView | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
-| Construct HumanOverrideRequestDto in HumanOverrideDialog | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | PENDING |
+| Pre-implementation technical debt cleanups across 16 client files | EPIC 153 Section 3, Step 1.0 | Phase 1, Step 1.0 | DONE |
+| Generate 6 new Freezed models with disallowUnrecognizedKeys: true | EPIC 153 Section 3, Step 1.1 | Phase 1, Step 1.1 | DONE |
+| Strongly type all 33 CRUD, draft, clone, and simulation endpoints in StudioClient | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | DONE |
+| Strongly type WorkflowClient.getWorkflowUiSchema to WorkflowUiSchema | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | DONE |
+| Strongly type ExecutionClient.overrideAtom to HumanOverrideRequestDto | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | DONE |
+| Refactor 5 controllers to consume typed Freezed models directly | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | DONE |
+| Update 10 unit test mock suites to return strongly typed Freezed models | EPIC 153 Section 3, Step 1.2 | Phase 1, Step 1.2 | DONE |
+| Refactor NewExecutionView availableWorkflows and selectedWorkflow to Workflow models | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
+| Pass List&lt;ExpectedInput&gt; directly in DynamicStartScreen without dictionary subscripting | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
+| Bind typed McpGateway properties in MCP Master and Detail views | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
+| Consume typed List&lt;OutputProfile&gt; in CreateReportDialog without fromJson parsing | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
+| Bind typed simulation responses in WorkflowBuilderView and PromptBlockBuilderView | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
+| Construct HumanOverrideRequestDto in HumanOverrideDialog | EPIC 153 Section 3, Step 1.3 | Phase 1, Step 1.3 | DONE |
 | Decompose SduiMatrixTableWidget into 4 private Dumb Painter cell widgets | EPIC 153 Section 3, Step 2.1 | Phase 2, Step 2.1 | PENDING |
 | Purge nested in-build sorting from SduiMatrixTableWidget | EPIC 153 Section 3, Step 2.1 | Phase 2, Step 2.1 | PENDING |
 | Eliminate mutable list allocations and token-bind colors in XAIAxisTelemetryGrid | EPIC 153 Section 3, Step 2.2 | Phase 2, Step 2.2 | PENDING |
@@ -157,26 +157,24 @@
 # Session Handover Context
 
 ## Achieved
-- Decomposed EPIC 153 into 4 sequential phased implementation plans in `docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/`.
-- Generated detailed implementations for Phase 1 (`01_phase1_plan.md`) and Phase 2 (`02_phase2_plan.md`).
-- Generated placeholder plan files for Phase 3 (`03_placeholder_phase3.md`) and Phase 4 (`04_placeholder_phase4.md`) with explicit section source references.
-- Verified all 13 Epic line bounds and 7 `[NEW]` targets preserved verbatim.
-- Verified all 8 Python AST line bounds against physical codebase.
-- Enforced zero permissive typing, O(1) Dumb Painter rendering performance, master view virtualization, and modal uncommitted state loss shields.
-- Created `docs/epic/EPIC_153_tracker.md` with full Requirements Traceability Matrix and post-implementation hardening checklists.
+- Successfully executed Phase 1 of Epic 153 with 0 fatal DGR violations across all modified files.
+- Generated and compiled 6 new Freezed models with `disallowUnrecognizedKeys: true`: `McpGateway`, `AllowedMcpTool`, `LlmPlatform`, `WorkflowUiSchema`, `HumanOverrideRequestDto`, `PromptBlockSimulationRequest`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`.
+- Strongly typed all 33 endpoints in `StudioClient`, purged banned `?? []` default, refactored `WorkflowClient.getWorkflowUiSchema` to `Future<WorkflowUiSchema>`, and `ExecutionClient.overrideAtom` to take `HumanOverrideRequestDto`.
+- Modernized 5 Riverpod controllers (`PromptBlocksController`, `StudioController`, `OutputProfileController`, `ModelRegistryController`, `McpGatewaysController`).
+- Refactored all views, modals, tabs, and downstream consumers (`NewExecutionView`, `DynamicStartScreen`, `McpGatewaysMasterView`, `McpGatewayView`, `MatricesMasterView`, `WorkflowsMasterView`, `OutputProfileListView`, `CreateReportDialog`, `WorkflowBuilderView`, `PromptBlockBuilderView`, `ScaleEditorModal`, `HumanOverrideDialog`, `StepBuilderView`, `DashboardView`, `WorkflowGeneralTab`, `WorkflowStepCard`, `WorkflowStepsTab`, `AtomMatrixTableWidget`, `XAIAxisTelemetryGrid`).
+- Executed and passed 87 unit and characterization tests across 14 test suites, verifying all 9 test contracts from the plan.
+- Quality gates verified: `flutter_audit_loop.py` passed with exit code 0 across views, controllers, and core APIs, and `_dart_guardrails.py` verified 0 fatal violations.
 
 ## Learned
-- **Producer Contracts Verified:** Backend Pydantic V2 models (`SystemConfigMCPGateways`, `LLMPlatformDTO`, `WorkflowSchemaResponseDTO`, `HumanOverrideRequest`, `PromptBlockSimulationRequest`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`) are strictly locked under `ConfigDict(strict=True, extra="forbid")`.
-- **Consumer Technical Debt:** 45 methods/providers in `client_app_v2` exhibited loose map (`DGR001`) handling, 9 `SizedBox.shrink()` concealed empty blocks (`DGR002`), in-build sorting passes caused render-tree thrashing, and dialogs lacked `PopScope` discard checking.
-- **AST Node Bounds:** `WorkflowSchemaResponseDTO` ClassDef spans lines 13-21 in `workflow_schema.py`; `HumanOverrideRequest` ClassDef spans lines 34-52 in `matrix_scorecard.py`.
+- **Type Propagation Downstream:** When controllers (`mcpGatewaysControllerProvider`, `availableWorkflowsProvider`) become strongly typed, all secondary views consuming them (such as `step_builder_view.dart` and `dashboard_view.dart`) must also be typed to prevent downstream compiler regressions.
+- **CheckedFromJsonException vs FormatException:** In `json_annotation`, `disallowUnrecognizedKeys: true` throws `CheckedFromJsonException` when unrecognized keys are encountered, which satisfies strict fail-fast contracts.
+- **Isolate Deserialization:** Direct typed parsing inside `studio_client.dart` eliminates redundant `safeIsolateRun` wrapping in controllers while maintaining background parse capability.
 
 ## Remaining
-- Phase 1 execution: Pre-implementation cleanups, Freezed DTO generation, API client typing, controller refactoring, and test mock fixture alignment.
-- Phase 2 execution: SDUI matrix table cell decomposition, XAI telemetry grid declarative refactoring, and `SizedBox.shrink()` purge.
-- Phase 3 execution: Master view virtualization, sticky header integration, and Freezed `.when()` purge.
-- Phase 4 execution: Modal dialog discard shield, negative ISTQB test creation, and global quality gate verification.
+- Run `/tier8-audit-plan` on Phase 1 implementation plan and tracker.
+- Proceed to Phase 2: SDUI Dumb Painter Performance & Cell Decomposition (`02_phase2_plan.md`).
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]
 ```

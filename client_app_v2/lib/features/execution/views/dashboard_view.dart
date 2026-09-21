@@ -6,11 +6,12 @@ import 'package:client_app/router/router.dart';
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
-import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/features/execution/views/new_execution_view.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_exception.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
 
 import 'package:client_app/features/execution/controllers/execution_controller.dart';
 
@@ -153,18 +154,13 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
                         asyncWorkflows.value != null) {
                       final workflows = asyncWorkflows.value!;
                       final wf = workflows
-                          .where((w) => w['id']?.toString() == workflowId)
+                          .where((w) => w.id == workflowId)
                           .firstOrNull;
                       if (wf != null) {
-                        final nameRaw = wf['name'];
-                        String titleStr = id;
-                        if (nameRaw is Map) {
-                          titleStr = I18nText.fromJson(
-                            Map<String, dynamic>.from(nameRaw),
-                          ).get(Localizations.localeOf(context).languageCode);
-                        } else if (nameRaw is String && nameRaw.isNotEmpty) {
-                          titleStr = nameRaw;
-                        }
+                        final locale = Localizations.localeOf(
+                          context,
+                        ).languageCode;
+                        final titleStr = wf.name.get(locale);
                         workflowDisplay = AppLocalizations.of(
                           context,
                         )!.workflowPrefixLabel(titleStr);
@@ -257,24 +253,20 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
     BuildContext context,
     String executionId,
     String workflowId,
-    AsyncValue<List<Map<String, dynamic>>> asyncWorkflows,
+    AsyncValue<List<Workflow>> asyncWorkflows,
   ) {
     if (workflowId.isEmpty) return;
 
     final workflows = asyncWorkflows.asData?.value ?? [];
-    final wf = workflows.firstWhere(
-      (w) => w['id']?.toString() == workflowId,
-      orElse: () => <String, dynamic>{},
-    );
+    final wf = workflows.where((w) => w.id == workflowId).firstOrNull;
 
-    if (wf.isEmpty) {
+    if (wf == null) {
       throw AppException.validation(
         'CRITICAL FAIL-FAST: Workflow $workflowId is not found in the payload for execution $executionId.',
       );
     }
 
-    final opRaw = wf['output_profiles'];
-    final outputProfiles = opRaw is Map ? opRaw : {};
+    final outputProfiles = wf.outputProfiles;
     final variants = outputProfiles.keys.toList();
 
     if (variants.isEmpty) {
@@ -389,23 +381,16 @@ class _DashboardViewState extends ConsumerState<DashboardView> with RouteAware {
   String _getVariantDisplayName(
     BuildContext context,
     String key,
-    Map outputProfiles,
+    Map<String, OutputProfile> outputProfiles,
   ) {
     if (key == 'default') {
       return AppLocalizations.of(context)!.reportTitleMain;
     }
 
     final profile = outputProfiles[key];
-    if (profile is Map) {
-      final nameObj = profile['name'];
-      if (nameObj is Map) {
-        final locale = Localizations.localeOf(context).languageCode;
-        return I18nText.fromJson(
-          Map<String, dynamic>.from(nameObj),
-        ).get(locale);
-      } else if (nameObj is String && nameObj.isNotEmpty) {
-        return nameObj;
-      }
+    if (profile != null) {
+      final locale = Localizations.localeOf(context).languageCode;
+      return profile.name.get(locale);
     }
     throw AppException.validation(
       'Fail-Fast: Missing required translation for key $key.',

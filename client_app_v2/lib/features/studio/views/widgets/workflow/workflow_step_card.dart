@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
 /// **WorkflowStepCard**
@@ -17,7 +18,7 @@ class WorkflowStepCard extends StatelessWidget {
   final StepRule stepDef;
   final List<NodeStrategy> blueprints;
   final List<StepRule> allSteps;
-  final List<Map<String, dynamic>> mcpGateways;
+  final List<McpGateway> mcpGateways;
   final List<ExpectedInput> globalWorkflowInputs;
   final AppLocalizations l10n;
   final Function(StepRule) onChanged;

@@ -4,6 +4,7 @@ import 'package:client_app/features/studio/controllers/prompt_blocks_controller.
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/router/router.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 
@@ -46,13 +47,6 @@ class MatricesMasterView extends ConsumerWidget {
                       ref
                           .read(loggerServiceProvider)
                           .error('MatricesMasterView', 'Failed to mint', e, st);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.studioViewsFailedToCreate(e.toString()),
-                          ),
-                        ),
-                      );
                     }
                   }
                 },
@@ -72,7 +66,10 @@ class MatricesMasterView extends ConsumerWidget {
               builder: (context) {
                 // The BARS matrices are a subtype of Prompt Blocks
                 final matrices = blocks
-                    .where((b) => b.categoryId == 'matrix')
+                    .where(
+                      (b) => PromptBlockCategoryGroups.matrixCategories
+                          .contains(b.categoryId),
+                    )
                     .toList();
 
                 if (matrices.isEmpty) {
@@ -126,15 +123,7 @@ class MatricesMasterView extends ConsumerWidget {
                                         promptBlocksControllerProvider.notifier,
                                       )
                                       .clonePromptBlock(id);
-                                  if (!context.mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.studioViewsMatrixCloned,
-                                      ),
-                                    ),
-                                  );
-                                } catch (e) {
+                                } catch (e, st) {
                                   if (!context.mounted) return;
                                   ref
                                       .read(loggerServiceProvider)
@@ -142,19 +131,8 @@ class MatricesMasterView extends ConsumerWidget {
                                         'Studio',
                                         'Failed to clone matrix: $e',
                                         e,
+                                        st,
                                       );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        l10n.studioViewsFailedToClone(
-                                          e.toString(),
-                                        ),
-                                      ),
-                                      backgroundColor: Theme.of(
-                                        context,
-                                      ).colorScheme.error,
-                                    ),
-                                  );
                                 }
                               },
                             ),

@@ -9,7 +9,8 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
 
-import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/core/api/studio_client.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/core/api/execution_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 
@@ -18,22 +19,14 @@ import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/core/error/app_error_ext.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
 
 part 'new_execution_view.g.dart';
 
 // 1. Provider to fetch available workflows
 @riverpod
-Future<List<Map<String, dynamic>>> availableWorkflows(Ref ref) async {
-  final dio = ref.watch(apiClientProvider);
-  final response = await dio.get(
-    '/studio/workflows',
-  ); // Note: Reusing the studio endpoint for now since there's no public one yet
-
-  final List<dynamic> data = response.data is List ? response.data as List : [];
-  return data
-      .map((e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{})
-      .toList();
+Future<List<Workflow>> availableWorkflows(Ref ref) async {
+  final client = ref.watch(studioClientProvider);
+  return await client.getWorkflows();
 }
 
 @riverpod
@@ -85,7 +78,7 @@ class NewExecutionView extends ConsumerStatefulWidget {
 }
 
 class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
-  Map<String, dynamic>? _selectedWorkflow;
+  Workflow? _selectedWorkflow;
   String? _selectedProfileId;
   bool _autoGenerateReport = true;
 
@@ -105,14 +98,13 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     super.dispose();
   }
 
-  void _onWorkflowSelected(Map<String, dynamic>? workflow) {
+  void _onWorkflowSelected(Workflow? workflow) {
     if (workflow == null) return;
     setState(() {
       _selectedWorkflow = workflow;
-      _selectedProfileId = workflow['default_profile_id']?.toString();
-      if (_selectedProfileId?.isEmpty ?? false) {
-        _selectedProfileId = null;
-      }
+      _selectedProfileId = workflow.defaultProfileId.isNotEmpty
+          ? workflow.defaultProfileId
+          : null;
       _autoGenerateReport = _selectedProfileId != null;
       _compiledInputs.clear();
       _selectedFileNames.clear();
@@ -183,42 +175,37 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     });
 
     // Validate required inputs (Fail-Fast Client-Side)
-    final expectedInputsRaw = _selectedWorkflow!['expected_inputs'];
-    if (expectedInputsRaw is List) {
-      for (final e in expectedInputsRaw) {
-        final item = e is Map ? e as Map<String, dynamic> : <String, dynamic>{};
-        final key = item['input_key']?.toString() ?? '';
-        final isRequired =
-            item['required'] == true || item['required']?.toString() == 'true';
+    for (final item in _selectedWorkflow!.expectedInputs) {
+      final key = item.inputKey;
+      final isRequired = item.required;
 
-        if (isRequired && key.isNotEmpty) {
-          final val = _compiledInputs[key];
-          bool isEmpty = true;
+      if (isRequired && key.isNotEmpty) {
+        final val = _compiledInputs[key];
+        bool isEmpty = true;
 
-          if (val is String && val.trim().isNotEmpty) {
-            isEmpty = false;
-          } else if (val is Map && val.isNotEmpty) {
-            isEmpty = false;
+        if (val is String && val.trim().isNotEmpty) {
+          isEmpty = false;
+        } else if (val is Map && val.isNotEmpty) {
+          isEmpty = false;
+        }
+
+        if (isEmpty) {
+          if (mounted) {
+            final l10n = AppLocalizations.of(context)!;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.fillRequiredInputs),
+                backgroundColor: Theme.of(context).colorScheme.error,
+                duration: const Duration(seconds: 4),
+              ),
+            );
           }
-
-          if (isEmpty) {
-            if (mounted) {
-              final l10n = AppLocalizations.of(context)!;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(l10n.fillRequiredInputs),
-                  backgroundColor: Theme.of(context).colorScheme.error,
-                  duration: const Duration(seconds: 4),
-                ),
-              );
-            }
-            return; // Halt submission
-          }
+          return; // Halt submission
         }
       }
     }
 
-    final workflowId = _selectedWorkflow!['id']?.toString() ?? '';
+    final workflowId = _selectedWorkflow!.id;
 
     try {
       final localeCode = Localizations.localeOf(context).languageCode;
@@ -295,29 +282,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 itemCount: value.length,
                 itemBuilder: (context, index) {
                   final wf = value[index];
-                  final id = wf['id']?.toString() ?? '';
-
-                  final nmRaw = wf['name'];
-                  String titleStr = id;
-                  if (nmRaw is Map) {
-                    titleStr = I18nText.fromJson(
-                      Map<String, dynamic>.from(nmRaw),
-                    ).get(Localizations.localeOf(context).languageCode);
-                  } else if (nmRaw is String && nmRaw.isNotEmpty) {
-                    titleStr = nmRaw;
-                  }
-
-                  final descRaw = wf['description'];
-                  String descStr = '';
-                  if (descRaw is Map) {
-                    descStr = I18nText.fromJson(
-                      Map<String, dynamic>.from(descRaw),
-                    ).get(Localizations.localeOf(context).languageCode);
-                  } else if (descRaw is String) {
-                    descStr = descRaw;
-                  }
-
-                  final isSelected = _selectedWorkflow?['id'] == id;
+                  final id = wf.id;
+                  final locale = Localizations.localeOf(context).languageCode;
+                  final titleStr = wf.name.get(locale);
+                  final descStr = wf.description.get(locale);
+                  final isSelected = _selectedWorkflow?.id == id;
 
                   return ListTile(
                     title: Text(
@@ -354,31 +323,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       );
     }
 
-    final id = _selectedWorkflow!['id']?.toString() ?? '';
-    final expectedInputsRaw = _selectedWorkflow!['expected_inputs'];
-
-    // Parse expected_inputs gracefully (V2 List of ExpectedInput objects)
-    List<Map<String, dynamic>> expectedInputsList = [];
-    if (expectedInputsRaw is List) {
-      for (final e in expectedInputsRaw) {
-        final item = e is Map ? e as Map<String, dynamic> : <String, dynamic>{};
-        final key = item['input_key']?.toString() ?? '';
-        if (key.isNotEmpty) {
-          expectedInputsList.add(item);
-        }
-      }
-    }
-
-    // Prepare localized title for the header
-    final nmRaw = _selectedWorkflow!['name'];
-    String titleStr = id;
-    if (nmRaw is Map) {
-      titleStr = I18nText.fromJson(
-        Map<String, dynamic>.from(nmRaw),
-      ).get(Localizations.localeOf(context).languageCode);
-    } else if (nmRaw is String && nmRaw.isNotEmpty) {
-      titleStr = nmRaw;
-    }
+    final wf = _selectedWorkflow!;
+    final id = wf.id;
+    final expectedInputsList = wf.expectedInputs;
+    final titleStr = wf.name.get(Localizations.localeOf(context).languageCode);
 
     if (expectedInputsList.isEmpty) {
       return Center(
@@ -418,17 +366,14 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               const SizedBox(height: 24),
 
               ...expectedInputsList.map((item) {
-                final inputKey = item['input_key']?.toString() ?? '';
-                final modesRaw = item['input_modes'];
-                final modes = (modesRaw is List ? modesRaw : [])
-                    .map((m) => m.toString())
-                    .toList();
+                final inputKey = item.inputKey;
+                final modes = item.inputModes;
 
                 // Handle questionnaire first
                 if (modes.contains('questionnaire')) {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 24),
-                    child: _buildQuestionnaireWidget(inputKey, item),
+                    child: _buildQuestionnaireWidget(item),
                   );
                 }
 
@@ -546,20 +491,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     );
   }
 
-  Widget _buildQuestionnaireWidget(String inputKey, Map<String, dynamic> item) {
-    final defsRaw = item['questionnaire_definition'];
-    final defs = defsRaw is List ? defsRaw : [];
-    final labelRaw = item['label'];
+  Widget _buildQuestionnaireWidget(ExpectedInput item) {
+    final inputKey = item.inputKey;
+    final defs = item.questionnaireDefinition;
     final locale = Localizations.localeOf(context).languageCode;
-
-    String title = inputKey;
-    if (labelRaw is Map) {
-      title = I18nText.fromJson(
-        Map<String, dynamic>.from(labelRaw),
-      ).get(locale);
-    } else if (labelRaw is String && labelRaw.isNotEmpty) {
-      title = labelRaw;
-    }
+    final title = item.label.get(locale);
 
     return Card(
       elevation: 0,
@@ -579,19 +515,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ...defs.map((defInput) {
-              final def = defInput is Map ? defInput : {};
-              final qId = def['question_id']?.toString() ?? '';
-              final qLabelRaw = def['question'];
-
-              String qLabel = qId;
-              if (qLabelRaw is Map) {
-                qLabel = I18nText.fromJson(
-                  Map<String, dynamic>.from(qLabelRaw),
-                ).get(locale);
-              } else if (qLabelRaw is String && qLabelRaw.isNotEmpty) {
-                qLabel = qLabelRaw;
-              }
+            ...defs.map((def) {
+              final qId = def.questionId;
+              final qLabel = def.question.get(locale);
 
               // Use custom key with separator
               final mapKey = "$inputKey|||$qId";
@@ -619,10 +545,9 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
 
   Widget _buildProfileSelector() {
     if (_selectedWorkflow == null) return const SizedBox();
+    final wf = _selectedWorkflow!;
 
-    final opRaw = _selectedWorkflow!['output_profiles'];
-    final outputProfiles = opRaw is Map ? opRaw : {};
-
+    final outputProfiles = wf.outputProfiles;
     if (outputProfiles.isEmpty) {
       return const SizedBox();
     }
@@ -630,23 +555,11 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     final locale = Localizations.localeOf(context).languageCode;
     final List<MapEntry<String, String>> profiles = [];
 
-    outputProfiles.forEach((key, value) {
-      String name = key.toString();
-      if (value is Map) {
-        final nameObj = value['name'];
-        if (nameObj is Map) {
-          name = I18nText.fromJson(
-            Map<String, dynamic>.from(nameObj),
-          ).get(locale);
-        } else if (nameObj is String && nameObj.isNotEmpty) {
-          name = nameObj;
-        }
-      }
-      profiles.add(MapEntry(key.toString(), name));
+    outputProfiles.forEach((key, profile) {
+      profiles.add(MapEntry(key, profile.name.get(locale)));
     });
 
-    final String defaultId =
-        _selectedWorkflow!['default_profile_id']?.toString() ?? '';
+    final String defaultId = wf.defaultProfileId;
 
     return Card(
       elevation: 0,
@@ -743,16 +656,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                           : null);
 
                 String? descriptionText;
-                if (currentId != null && outputProfiles[currentId] is Map) {
-                  final profileObj = outputProfiles[currentId];
-                  final descObj = profileObj['description'];
-                  if (descObj is Map) {
-                    descriptionText = I18nText.fromJson(
-                      Map<String, dynamic>.from(descObj),
-                    ).get(locale);
-                  } else if (descObj is String && descObj.isNotEmpty) {
-                    descriptionText = descObj;
-                  }
+                if (currentId != null &&
+                    outputProfiles.containsKey(currentId)) {
+                  final profileObj = outputProfiles[currentId]!;
+                  descriptionText = profileObj.description?.get(locale);
                 }
 
                 if (descriptionText != null && descriptionText.isNotEmpty) {

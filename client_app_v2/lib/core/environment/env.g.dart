@@ -12,7 +12,7 @@ part of 'env.dart';
 ///
 /// Manages environment-specific variables and configuration secrets.
 /// This abstraction ensures the app is not hardcoded to specific URLs or keys,
-/// facilitating movement between Dev (localhost), Staging, and Production.
+/// facilitating movement between Dev (localhost) and Production.
 ///
 /// **Source**:
 /// Loads values from the `.env` file via `flutter_dotenv`.
@@ -28,7 +28,7 @@ final envProvider = EnvProvider._();
 ///
 /// Manages environment-specific variables and configuration secrets.
 /// This abstraction ensures the app is not hardcoded to specific URLs or keys,
-/// facilitating movement between Dev (localhost), Staging, and Production.
+/// facilitating movement between Dev (localhost) and Production.
 ///
 /// **Source**:
 /// Loads values from the `.env` file via `flutter_dotenv`.
@@ -43,7 +43,7 @@ final class EnvProvider extends $FunctionalProvider<Env, Env, Env>
   ///
   /// Manages environment-specific variables and configuration secrets.
   /// This abstraction ensures the app is not hardcoded to specific URLs or keys,
-  /// facilitating movement between Dev (localhost), Staging, and Production.
+  /// facilitating movement between Dev (localhost) and Production.
   ///
   /// **Source**:
   /// Loads values from the `.env` file via `flutter_dotenv`.

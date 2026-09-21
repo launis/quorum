@@ -132,10 +132,10 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             margin: const EdgeInsets.only(top: AppSpacing.s12),
             padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: AppColors.intentWarning.withValues(alpha: 0.1),
-              border: const Border(
+              color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.3),
+              border: Border(
                 left: BorderSide(
-                  color: AppColors.intentWarning,
+                  color: theme.colorScheme.tertiary,
                   width: AppSpacing.s4,
                 ),
               ),
@@ -147,12 +147,12 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
                   child: Icon(
                     Icons.lightbulb_outline,
                     size: AppSpacing.s16,
-                    color: AppColors.intentWarning,
+                    color: theme.colorScheme.tertiary,
                   ),
                 ),
                 AppSpacing.w8,
@@ -242,148 +242,145 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
       return const SizedBox();
     }
 
-    final l10n = AppLocalizations.of(context)!;
-    final theme = Theme.of(context);
+    final hasConfidence = axis.confidence != null;
+    final hasCoaching =
+        axis.coaching != null && axis.coaching!.trim().isNotEmpty;
+    final hasFalsification =
+        axis.falsification != null && axis.falsification!.trim().isNotEmpty;
+    final hasRemediation =
+        axis.remediationSteps != null &&
+        axis.remediationSteps!.trim().isNotEmpty;
 
-    final List<Widget> boxes = [];
-
-    if (axis.confidence != null) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-          child: Text(
-            l10n.reportConfidenceTitle(
-              (axis.confidence! * 100).toStringAsFixed(0),
-            ),
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-        ),
-      );
-    }
-
-    if (axis.coaching != null && axis.coaching!.trim().isNotEmpty) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.s2),
-                child: Icon(
-                  Icons.lightbulb_outline,
-                  size: AppSpacing.s16,
-                  color: theme.colorScheme.primary,
-                ),
-              ),
-              AppSpacing.w8,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.reportCoachingTitle,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(axis.coaching!, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (axis.falsification != null && axis.falsification!.trim().isNotEmpty) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: AppSpacing.s2),
-                child: Icon(
-                  Icons.gavel,
-                  size: AppSpacing.s16,
-                  color: AppColors.intentWarning,
-                ),
-              ),
-              AppSpacing.w8,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.reportFalsificationTitle,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(axis.falsification!, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (axis.remediationSteps != null &&
-        axis.remediationSteps!.trim().isNotEmpty) {
-      boxes.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Padding(
-                padding: EdgeInsets.only(top: AppSpacing.s2),
-                child: Icon(
-                  Icons.build,
-                  size: AppSpacing.s16,
-                  color: AppColors.intentInfo,
-                ),
-              ),
-              AppSpacing.w8,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.reportRemediationStepsTitle,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      axis.remediationSteps!,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (boxes.isEmpty) {
+    if (!hasConfidence &&
+        !hasCoaching &&
+        !hasFalsification &&
+        !hasRemediation) {
       return const SizedBox();
     }
+
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: boxes,
+      children: [
+        if (hasConfidence)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Text(
+              l10n.reportConfidenceTitle(
+                (axis.confidence! * 100).toStringAsFixed(0),
+              ),
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ),
+        if (hasCoaching)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.lightbulb_outline,
+                    size: AppSpacing.s16,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.reportCoachingTitle,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(axis.coaching!, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (hasFalsification)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.gavel,
+                    size: AppSpacing.s16,
+                    color: theme.colorScheme.tertiary,
+                  ),
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.reportFalsificationTitle,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        axis.falsification!,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (hasRemediation)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                  child: Icon(
+                    Icons.build,
+                    size: AppSpacing.s16,
+                    color: AppColors.intentInfo,
+                  ),
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.reportRemediationStepsTitle,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        axis.remediationSteps!,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
@@ -395,9 +392,9 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
         color: AppColors.intentSuccess,
         size: AppSpacing.s16,
       ),
-      EvidenceType.impliedIntent => const Icon(
+      EvidenceType.impliedIntent => Icon(
         Icons.warning,
-        color: AppColors.intentWarning,
+        color: theme.colorScheme.tertiary,
         size: AppSpacing.s16,
       ),
       EvidenceType.noEvidence => Icon(

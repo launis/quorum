@@ -7,6 +7,7 @@ import 'package:client_app/features/studio/controllers/prompt_blocks_controller.
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/controllers/mcp_gateways_controller.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/features/studio/views/widgets/i18n_text_field.dart';
 import 'package:client_app/features/studio/views/widgets/step_simulation_dialog.dart';
 import 'package:client_app/core/error/app_error_boundary.dart';
@@ -146,7 +147,7 @@ class StepBuilderView extends HookConsumerWidget {
     NodeStrategy payload,
     String stepId,
     List<PromptBlock> promptBlocks,
-    List<Map<String, dynamic>> mcpGateways,
+    List<McpGateway> mcpGateways,
   ) {
     final deleteMutation = useMutation<void>(
       onSuccess: (_) {
@@ -435,33 +436,16 @@ class StepBuilderView extends HookConsumerWidget {
                 Wrap(
                   spacing: 8,
                   children: mcpGateways
-                      .expand((gateway) {
-                        final tools = gateway['tools'] as List<dynamic>? ?? [];
-                        return tools;
-                      })
-                      .where((toolRaw) {
-                        if (toolRaw is! Map<String, dynamic>) return false;
-                        final toolId = toolRaw['tool_id']?.toString() ?? '';
-                        return toolId.isNotEmpty;
-                      })
-                      .map((toolRaw) {
-                        final toolData = toolRaw as Map<String, dynamic>;
-                        final toolId = toolData['tool_id']?.toString() ?? '';
-
-                        final nameMap =
-                            toolData['name'] as Map<String, dynamic>? ?? {};
-                        final translations =
-                            nameMap['translations'] as Map<String, dynamic>? ??
-                            {};
-
+                      .expand((gateway) => gateway.tools)
+                      .where((tool) => tool.toolId.isNotEmpty)
+                      .map((tool) {
+                        final toolId = tool.toolId;
                         final currentLocale = Localizations.localeOf(
                           context,
                         ).languageCode;
-                        final labelText =
-                            translations[currentLocale] ?? translations['en'];
+                        final labelText = tool.name.get(currentLocale);
 
-                        if (labelText == null ||
-                            labelText.toString().trim().isEmpty) {
+                        if (labelText.trim().isEmpty) {
                           throw AppException.validation(
                             'Fail-Fast: MCP tool $toolId lacks required translation for locale $currentLocale or en fallback.',
                           );
@@ -473,7 +457,7 @@ class StepBuilderView extends HookConsumerWidget {
                         final isSelected = allowedMcpTools.contains(toolId);
 
                         return FilterChip(
-                          label: Text(labelText.toString()),
+                          label: Text(labelText),
                           selected: isSelected,
                           onSelected: (bool selected) {
                             if (selected) {

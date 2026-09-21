@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:uuid/uuid.dart';
 import 'workflow_step_card.dart';
 
@@ -11,7 +12,7 @@ import 'workflow_step_card.dart';
 class WorkflowStepsTab extends StatelessWidget {
   final Workflow workflow;
   final List<NodeStrategy> blueprints;
-  final List<Map<String, dynamic>> mcpGateways;
+  final List<McpGateway> mcpGateways;
   final Function(Workflow) onChanged;
 
   const WorkflowStepsTab({

@@ -10,11 +10,20 @@ import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/features/studio/views/widgets/prompt_preview_dialog.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
 
+class FakePromptBlockSimulationRequest extends Fake
+    implements PromptBlockSimulationRequest {}
+
 void main() {
+  setUpAll(() {
+    registerFallbackValue(FakePromptBlockSimulationRequest());
+  });
+
   Widget createTestWidget(Widget child, {List overrides = const []}) {
     return ProviderScope(
       overrides: overrides.cast(),
@@ -847,18 +856,18 @@ void main() {
 
         final mockClient = MockStudioClient();
         when(() => mockClient.simulatePromptBlock(any())).thenAnswer(
-          (_) async => {
-            'valid': true,
-            'rendered_prompt': '<xml>Simulated Prompt Schema</xml>',
-            'prompt_context': {
-              'static_messages': [
-                {'role': 'system', 'content': 'System message'},
+          (_) async => const PromptBlockSimulationResponse(
+            valid: true,
+            renderedPrompt: '<xml>Simulated Prompt Schema</xml>',
+            promptContext: PromptContextDto(
+              staticMessages: [
+                LlmMessageDto(role: 'system', content: 'System message'),
               ],
-              'dynamic_messages': [
-                {'role': 'user', 'content': 'Dynamic message'},
+              dynamicMessages: [
+                LlmMessageDto(role: 'user', content: 'Dynamic message'),
               ],
-            },
-          },
+            ),
+          ),
         );
 
         final sampleScale = createSampleScale();

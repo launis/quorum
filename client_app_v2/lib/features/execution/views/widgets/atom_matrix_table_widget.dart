@@ -37,7 +37,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Macro-Breakpoint standard: if too small, use ListView pattern
-        final isSmallScreen = constraints.maxWidth < 600;
+        final isSmallScreen = constraints.maxWidth < 800;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +49,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            const SizedBox(height: 16),
+            AppSpacing.h16,
             Container(
               decoration: BoxDecoration(
                 border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -62,7 +62,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             if (tableMatrices.any(
               (m) => m.isEvaluative || m.allowContextualOverride,
             )) ...[
-              const SizedBox(height: 8),
+              AppSpacing.h8,
               if (tableMatrices.any((m) => m.isEvaluative))
                 Text(
                   l10n.matrixEvaluativeAsteriskLegend,
@@ -427,13 +427,14 @@ class AtomMatrixTableWidget extends ConsumerWidget {
     WidgetRef ref,
     MatrixScorecardRowDto m,
   ) {
+    final theme = Theme.of(context);
     if (m.atomsByLevel.isEmpty) {
-      return const Text(
+      return Text(
         '-',
         style: TextStyle(
           fontSize: 13,
           fontStyle: FontStyle.italic,
-          color: Colors.grey,
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       );
     }
@@ -485,6 +486,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                       atom.exactQuotes,
                       isPass,
                       hasOverride,
+                      theme: theme,
                     ); // Fade if overridden
 
                     // 2. Human Override rendering
@@ -494,6 +496,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         atom.humanOverride!.evidenceQuotes,
                         isPass,
                         false,
+                        theme: theme,
                       );
                       overrideBox = Container(
                         margin: const EdgeInsets.only(top: 8.0, bottom: 4.0),
@@ -623,8 +626,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   }
 
                   if (itemsToRender.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.only(bottom: 4.0),
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4.0),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -635,7 +638,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontStyle: FontStyle.italic,
-                                color: Colors.grey,
+                                color: theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -660,8 +663,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
   List<Widget> _buildQuoteWidgets(
     List<QuoteEvidenceDto> quotes,
     bool isPass,
-    bool isFaded,
-  ) {
+    bool isFaded, {
+    required ThemeData theme,
+  }) {
     final uniqueQuotes = <String>{};
     final parsedQuotes = <Widget>[];
     for (final q in quotes) {
@@ -680,7 +684,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             text: TextSpan(
               style: TextStyle(
                 fontSize: 13,
-                color: isFaded ? Colors.black38 : Colors.black87,
+                color: isFaded
+                    ? theme.colorScheme.onSurface.withValues(alpha: 0.38)
+                    : theme.colorScheme.onSurface,
               ),
               children: [
                 if (disp != null && disp.isNotEmpty) ...[
@@ -694,12 +700,17 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isFaded
-                            ? Colors.grey.withValues(alpha: 0.1)
-                            : Colors.blue.withValues(alpha: 0.1),
+                            ? theme.colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.5)
+                            : theme.colorScheme.primaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
                         border: Border.all(
                           color: isFaded
-                              ? Colors.grey.withValues(alpha: 0.3)
-                              : Colors.blue.withValues(alpha: 0.3),
+                              ? theme.colorScheme.outlineVariant
+                              : theme.colorScheme.primary.withValues(
+                                  alpha: 0.3,
+                                ),
                         ),
                         borderRadius: BorderRadius.circular(4.0),
                       ),
@@ -708,7 +719,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
-                          color: isFaded ? Colors.grey[600] : Colors.blue[800],
+                          color: isFaded
+                              ? theme.colorScheme.onSurfaceVariant
+                              : theme.colorScheme.primary,
                         ),
                       ),
                     ),

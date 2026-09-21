@@ -13,6 +13,8 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/prompt_block_category.dart';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
+import 'package:client_app/features/studio/models/step_simulation.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
 
@@ -40,7 +42,7 @@ class TestPromptBlockForm extends PromptBlockForm {
 }
 
 class MockPromptBlocksController extends PromptBlocksController {
-  final Future<Map<String, dynamic>> Function(
+  final Future<PromptBlockSimulationResponse> Function(
     PromptBlock payload,
     Map<String, dynamic> mockInputs,
   )?
@@ -53,7 +55,7 @@ class MockPromptBlocksController extends PromptBlocksController {
   FutureOr<List<PromptBlock>> build() async => [];
 
   @override
-  Future<Map<String, dynamic>> simulatePromptBlock(
+  Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock payload,
     Map<String, dynamic> mockInputs, {
     int? targetScaleScore,
@@ -63,7 +65,9 @@ class MockPromptBlocksController extends PromptBlocksController {
     if (onSimulate != null) {
       return onSimulate!(payload, mockInputs);
     }
-    return {'rendered_prompt': '<system_rule>Test Simulation</system_rule>'};
+    return const PromptBlockSimulationResponse(
+      renderedPrompt: '<system_rule>Test Simulation</system_rule>',
+    );
   }
 
   @override
@@ -328,16 +332,19 @@ void main() {
 
       final controller = MockPromptBlocksController(
         onSimulate: (payload, mockInputs) async {
-          return {
-            'rendered_prompt':
+          return const PromptBlockSimulationResponse(
+            renderedPrompt:
                 '<system_rule>\nCompiled prompt instructions\n</system_rule>',
-            'prompt_context': {
-              'static_messages': [
-                {'role': 'system', 'content': 'Compiled prompt instructions'},
+            promptContext: PromptContextDto(
+              staticMessages: [
+                LlmMessageDto(
+                  role: 'system',
+                  content: 'Compiled prompt instructions',
+                ),
               ],
-              'dynamic_messages': <dynamic>[],
-            },
-          };
+              dynamicMessages: [],
+            ),
+          );
         },
       );
 

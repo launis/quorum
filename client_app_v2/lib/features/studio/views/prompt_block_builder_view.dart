@@ -21,10 +21,12 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
+
 /// **Universal Matrix Builder**
 ///
-/// CRUD interface for editing evaluation matrices adhering strictly to the
-/// De-Generator policy (`Map<String, dynamic>`).
+/// CRUD interface for editing evaluation matrices adhering strictly to
+/// strongly-typed Freezed domain models.
 /// Now compliant with the Gold Standard Riverpod Form UI pattern.
 class PromptBlockBuilderView extends HookConsumerWidget {
   final String? id;
@@ -154,27 +156,32 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             payload.rows?.isNotEmpty == true ||
             payload.columns?.isNotEmpty == true);
 
-    final validateMutation = useMutation<Map<String, dynamic>>(
+    final simulationError = useState<String?>(null);
+
+    final validateMutation = useMutation<PromptBlockSimulationResponse>(
       onSuccess: (data) {
         if (context.mounted) {
-          final promptContext =
-              data['prompt_context'] as Map<String, dynamic>? ?? const {};
-          final staticMessages = promptContext['static_messages'];
-          final dynamicMessages = promptContext['dynamic_messages'];
-          final tools = promptContext['tools'];
-          final rendered = data['rendered_prompt']?.toString() ?? '';
+          if (!data.valid && data.errors.isNotEmpty) {
+            simulationError.value = data.errors.join(', ');
+            return;
+          }
+          simulationError.value = null;
+          final promptContext = data.promptContext;
+          final staticMessages = promptContext?.staticMessages ?? const [];
+          final dynamicMessages = promptContext?.dynamicMessages ?? const [];
+          final rendered = data.renderedPrompt;
 
           showDialog<void>(
             context: context,
             builder: (ctx) => PromptPreviewDialog(
-              staticContent: PromptPreviewFormatter.formatMessagesFromRaw(
+              staticContent: PromptPreviewFormatter.formatMessages(
                 staticMessages,
               ),
-              dynamicContent: PromptPreviewFormatter.formatMessagesFromRaw(
+              dynamicContent: PromptPreviewFormatter.formatMessages(
                 dynamicMessages,
               ),
               schemaContent: PromptPreviewFormatter.formatSchema(
-                tools,
+                null,
                 rendered,
               ),
             ),
@@ -186,12 +193,7 @@ class PromptBlockBuilderView extends HookConsumerWidget {
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to validate prompt block: $e', e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
-          );
+          simulationError.value = l10n.simulatorFailedError(e.toString());
         }
       },
     );
@@ -339,282 +341,174 @@ class PromptBlockBuilderView extends HookConsumerWidget {
             AppSpacing.w16,
           ],
         ),
-        body: Align(
-          alignment: Alignment.topCenter,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: AppSpacing.p16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Matrix Metadata
-                    Card(
-                      child: Padding(
-                        padding: AppSpacing.p16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.promptBlockConfigTitle,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+        body: Column(
+          children: [
+            if (simulationError.value != null) ...[
+              MaterialBanner(
+                content: Text(simulationError.value!),
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                contentTextStyle: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => simulationError.value = null,
+                    child: Text(l10n.cancelButton),
+                  ),
+                ],
+              ),
+            ],
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: AppSpacing.p16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Matrix Metadata
+                          Card(
+                            child: Padding(
+                              padding: AppSpacing.p16,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.promptBlockConfigTitle,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  AppSpacing.h16,
+                                  if (payload.id.isNotEmpty == true) ...[
+                                    Text(
+                                      l10n.opaqueIdLabel(payload.id),
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.onSurfaceVariant,
+                                        fontFamily: 'monospace',
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    AppSpacing.h24,
+                                  ],
+                                ],
                               ),
                             ),
-                            AppSpacing.h16,
-                            if (payload.id.isNotEmpty == true) ...[
-                              Text(
-                                l10n.opaqueIdLabel(payload.id),
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                  fontFamily: 'monospace',
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              AppSpacing.h24,
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
+                          ),
 
-                    AppSpacing.h24,
+                          AppSpacing.h24,
 
-                    // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
-                    AppSpacing.h16,
-                    Card(
-                      child: Padding(
-                        padding: AppSpacing.p16,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Text(
-                              l10n.promptBlockPropertiesTitle,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            AppSpacing.h16,
+                          // --- ROOT CONFIGURATION (NO MORE CRITERIA ARRAY) ---
+                          AppSpacing.h16,
+                          Card(
+                            child: Padding(
+                              padding: AppSpacing.p16,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    l10n.promptBlockPropertiesTitle,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  AppSpacing.h16,
 
-                            // Categories
-                            DropdownButtonFormField<PromptBlockCategory>(
-                              isExpanded: true,
-                              decoration: InputDecoration(
-                                labelText: l10n.categoryLabel,
-                                helperText: isMatrix
-                                    ? l10n.matrixCategoryLockedHelper
-                                    : null,
-                              ),
-                              initialValue: PromptBlockCategory.fromId(
-                                payload.categoryId,
-                              ),
-                              items: PromptBlockCategory.values.map((category) {
-                                return DropdownMenuItem(
-                                  value: category,
-                                  child: Text(category.displayName(context)),
-                                );
-                              }).toList(),
-                              onChanged: isMatrix
-                                  ? null
-                                  : (val) {
-                                      if (val != null) {
-                                        final newBlock = switch (val) {
-                                          PromptBlockCategory.matrix =>
-                                            PromptBlock.matrix(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              aiDescription:
-                                                  payload is MatrixPromptBlock
-                                                  ? payload.aiDescription
-                                                  : null,
-                                              isEvaluative: true,
-                                              type:
-                                                  (payload.type ==
-                                                          BlockDataType
-                                                              .floatType ||
-                                                      payload.type ==
-                                                          BlockDataType.intType)
-                                                  ? payload.type
-                                                  : BlockDataType.floatType,
-                                              allowDecimals:
-                                                  payload.allowDecimals,
-                                              outputExtensions:
-                                                  payload.outputExtensions,
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              scales: const [],
-                                              targetInputKey:
-                                                  payload is MatrixPromptBlock
-                                                  ? payload.targetInputKey
-                                                  : null,
-                                            ),
-                                          PromptBlockCategory.systemRule =>
-                                            PromptBlock.systemRule(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              instructionText:
-                                                  payload
-                                                      is SystemRulePromptBlock
-                                                  ? payload.instructionText
-                                                  : (payload
-                                                            is RuntimeVariablesPromptBlock
-                                                        ? payload
-                                                              .instructionText
-                                                        : (payload
-                                                                  is TaskDefinitionPromptBlock
-                                                              ? payload
-                                                                    .instructionText
-                                                              : null)),
-                                            ),
-                                          PromptBlockCategory
-                                              .executionPersona =>
-                                            PromptBlock.executionPersona(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              roleEnforcement:
-                                                  payload
-                                                      is ExecutionPersonaPromptBlock
-                                                  ? payload.roleEnforcement
-                                                  : (payload
-                                                            is AgentRolePromptBlock
-                                                        ? payload
-                                                              .roleEnforcement
-                                                        : null),
-                                            ),
-                                          PromptBlockCategory.agentRole =>
-                                            PromptBlock.agentRole(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              roleEnforcement:
-                                                  payload
-                                                      is AgentRolePromptBlock
-                                                  ? payload.roleEnforcement
-                                                  : (payload
-                                                            is ExecutionPersonaPromptBlock
-                                                        ? payload
-                                                              .roleEnforcement
-                                                        : null),
-                                            ),
-                                          PromptBlockCategory.protocol =>
-                                            PromptBlock.protocol(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              protocolInstructions:
-                                                  payload is ProtocolPromptBlock
-                                                  ? payload.protocolInstructions
-                                                  : null,
-                                            ),
-                                          PromptBlockCategory
-                                              .runtimeVariables =>
-                                            PromptBlock.runtimeVariables(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              instructionText:
-                                                  payload
-                                                      is RuntimeVariablesPromptBlock
-                                                  ? payload.instructionText
-                                                  : (payload
-                                                            is SystemRulePromptBlock
-                                                        ? payload
-                                                              .instructionText
-                                                        : (payload
-                                                                  is TaskDefinitionPromptBlock
-                                                              ? payload
-                                                                    .instructionText
-                                                              : null)),
-                                            ),
-                                          PromptBlockCategory.taskDefinition =>
-                                            PromptBlock.taskDefinition(
-                                              id: payload.id,
-                                              slug: payload.slug,
-                                              organizationId:
-                                                  payload.organizationId,
-                                              label: payload.label,
-                                              description: payload.description,
-                                              isEvaluative: false,
-                                              type: BlockDataType.instruction,
-                                              allowDecimals: false,
-                                              outputExtensions: const [],
-                                              theoryGrounding:
-                                                  payload.theoryGrounding,
-                                              isLightweightProtocol:
-                                                  payload.isLightweightProtocol,
-                                              instructionText:
-                                                  payload
-                                                      is TaskDefinitionPromptBlock
-                                                  ? payload.instructionText
-                                                  : (payload
+                                  // Categories
+                                  DropdownButtonFormField<PromptBlockCategory>(
+                                    isExpanded: true,
+                                    decoration: InputDecoration(
+                                      labelText: l10n.categoryLabel,
+                                      helperText: isMatrix
+                                          ? l10n.matrixCategoryLockedHelper
+                                          : null,
+                                    ),
+                                    initialValue: PromptBlockCategory.fromId(
+                                      payload.categoryId,
+                                    ),
+                                    items: PromptBlockCategory.values.map((
+                                      category,
+                                    ) {
+                                      return DropdownMenuItem(
+                                        value: category,
+                                        child: Text(
+                                          category.displayName(context),
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: isMatrix
+                                        ? null
+                                        : (val) {
+                                            if (val != null) {
+                                              final newBlock = switch (val) {
+                                                PromptBlockCategory.matrix =>
+                                                  PromptBlock.matrix(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    aiDescription:
+                                                        payload
+                                                            is MatrixPromptBlock
+                                                        ? payload.aiDescription
+                                                        : null,
+                                                    isEvaluative: true,
+                                                    type:
+                                                        (payload.type ==
+                                                                BlockDataType
+                                                                    .floatType ||
+                                                            payload.type ==
+                                                                BlockDataType
+                                                                    .intType)
+                                                        ? payload.type
+                                                        : BlockDataType
+                                                              .floatType,
+                                                    allowDecimals:
+                                                        payload.allowDecimals,
+                                                    outputExtensions: payload
+                                                        .outputExtensions,
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    scales: const [],
+                                                    targetInputKey:
+                                                        payload
+                                                            is MatrixPromptBlock
+                                                        ? payload.targetInputKey
+                                                        : null,
+                                                  ),
+                                                PromptBlockCategory
+                                                    .systemRule =>
+                                                  PromptBlock.systemRule(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    instructionText:
+                                                        payload
                                                             is SystemRulePromptBlock
                                                         ? payload
                                                               .instructionText
@@ -622,487 +516,697 @@ class PromptBlockBuilderView extends HookConsumerWidget {
                                                                   is RuntimeVariablesPromptBlock
                                                               ? payload
                                                                     .instructionText
-                                                              : null)),
+                                                              : (payload
+                                                                        is TaskDefinitionPromptBlock
+                                                                    ? payload
+                                                                          .instructionText
+                                                                    : null)),
+                                                  ),
+                                                PromptBlockCategory
+                                                    .executionPersona =>
+                                                  PromptBlock.executionPersona(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    roleEnforcement:
+                                                        payload
+                                                            is ExecutionPersonaPromptBlock
+                                                        ? payload
+                                                              .roleEnforcement
+                                                        : (payload
+                                                                  is AgentRolePromptBlock
+                                                              ? payload
+                                                                    .roleEnforcement
+                                                              : null),
+                                                  ),
+                                                PromptBlockCategory.agentRole =>
+                                                  PromptBlock.agentRole(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    roleEnforcement:
+                                                        payload
+                                                            is AgentRolePromptBlock
+                                                        ? payload
+                                                              .roleEnforcement
+                                                        : (payload
+                                                                  is ExecutionPersonaPromptBlock
+                                                              ? payload
+                                                                    .roleEnforcement
+                                                              : null),
+                                                  ),
+                                                PromptBlockCategory.protocol =>
+                                                  PromptBlock.protocol(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    protocolInstructions:
+                                                        payload
+                                                            is ProtocolPromptBlock
+                                                        ? payload
+                                                              .protocolInstructions
+                                                        : null,
+                                                  ),
+                                                PromptBlockCategory
+                                                    .runtimeVariables =>
+                                                  PromptBlock.runtimeVariables(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    instructionText:
+                                                        payload
+                                                            is RuntimeVariablesPromptBlock
+                                                        ? payload
+                                                              .instructionText
+                                                        : (payload
+                                                                  is SystemRulePromptBlock
+                                                              ? payload
+                                                                    .instructionText
+                                                              : (payload
+                                                                        is TaskDefinitionPromptBlock
+                                                                    ? payload
+                                                                          .instructionText
+                                                                    : null)),
+                                                  ),
+                                                PromptBlockCategory
+                                                    .taskDefinition =>
+                                                  PromptBlock.taskDefinition(
+                                                    id: payload.id,
+                                                    slug: payload.slug,
+                                                    organizationId:
+                                                        payload.organizationId,
+                                                    label: payload.label,
+                                                    description:
+                                                        payload.description,
+                                                    isEvaluative: false,
+                                                    type: BlockDataType
+                                                        .instruction,
+                                                    allowDecimals: false,
+                                                    outputExtensions: const [],
+                                                    theoryGrounding:
+                                                        payload.theoryGrounding,
+                                                    isLightweightProtocol: payload
+                                                        .isLightweightProtocol,
+                                                    instructionText:
+                                                        payload
+                                                            is TaskDefinitionPromptBlock
+                                                        ? payload
+                                                              .instructionText
+                                                        : (payload
+                                                                  is SystemRulePromptBlock
+                                                              ? payload
+                                                                    .instructionText
+                                                              : (payload
+                                                                        is RuntimeVariablesPromptBlock
+                                                                    ? payload
+                                                                          .instructionText
+                                                                    : null)),
+                                                  ),
+                                              };
+                                              ref
+                                                  .read(
+                                                    promptBlockFormProvider(
+                                                      blockId,
+                                                    ).notifier,
+                                                  )
+                                                  .forceRebuild(newBlock);
+                                            }
+                                          },
+                                  ),
+                                  AppSpacing.h16,
+
+                                  // Label (I18N)
+                                  I18nTextField(
+                                    label: l10n.blockLabelName,
+                                    initialData: payload.label,
+                                    onChanged: (val) {
+                                      ref
+                                          .read(
+                                            promptBlockFormProvider(
+                                              blockId,
+                                            ).notifier,
+                                          )
+                                          .forceRebuild(
+                                            payload.copyWith(label: val),
+                                          );
+                                    },
+                                  ),
+                                  AppSpacing.h16,
+
+                                  // Description (I18N) - Short UI Hint
+                                  I18nTextField(
+                                    label: l10n.shortDescriptionHint,
+                                    initialData: payload.description,
+                                    onChanged: (val) {
+                                      ref
+                                          .read(
+                                            promptBlockFormProvider(
+                                              blockId,
+                                            ).notifier,
+                                          )
+                                          .forceRebuild(
+                                            payload.copyWith(description: val),
+                                          );
+                                    },
+                                  ),
+                                  AppSpacing.h16,
+
+                                  // Zero-XML Polymorphic Form Sections
+                                  _buildPolymorphicInstructionSection(
+                                    context,
+                                    ref,
+                                    l10n,
+                                    payload,
+                                    blockId,
+                                  ),
+
+                                  if (payload is MatrixPromptBlock) ...[
+                                    AppSpacing.h16,
+                                    // XAI & Constraints Container
+                                    Container(
+                                      padding: AppSpacing.p12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.stretch,
+                                        children: [
+                                          Text(
+                                            l10n.dataTypeExecutionConstraints,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
                                             ),
-                                        };
+                                          ),
+                                          AppSpacing.h12,
+                                          Wrap(
+                                            spacing: 16,
+                                            runSpacing: 8,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
+                                            children: [
+                                              ConstrainedBox(
+                                                constraints:
+                                                    const BoxConstraints(
+                                                      maxWidth: 180,
+                                                      minWidth: 140,
+                                                    ),
+                                                child: DropdownButton<BlockDataType>(
+                                                  isExpanded: true,
+                                                  value: payload.type,
+                                                  items: [
+                                                    DropdownMenuItem(
+                                                      value: BlockDataType
+                                                          .instruction,
+                                                      child: Text(
+                                                        l10n.typeInstruction,
+                                                      ),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: BlockDataType
+                                                          .stringType,
+                                                      child: Text(
+                                                        l10n.typeString,
+                                                      ),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value:
+                                                          BlockDataType.intType,
+                                                      child: Text(
+                                                        l10n.typeInteger,
+                                                      ),
+                                                    ),
+                                                    DropdownMenuItem(
+                                                      value: BlockDataType
+                                                          .floatType,
+                                                      child: Text(
+                                                        l10n.typeFloat,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                  onChanged: (val) {
+                                                    if (val != null) {
+                                                      ref
+                                                          .read(
+                                                            promptBlockFormProvider(
+                                                              blockId,
+                                                            ).notifier,
+                                                          )
+                                                          .forceRebuild(
+                                                            payload.copyWith(
+                                                              type: val,
+                                                            ),
+                                                          );
+                                                    }
+                                                  },
+                                                ),
+                                              ),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Checkbox(
+                                                    value:
+                                                        payload.allowDecimals,
+                                                    onChanged: (val) {
+                                                      if (val != null) {
+                                                        ref
+                                                            .read(
+                                                              promptBlockFormProvider(
+                                                                blockId,
+                                                              ).notifier,
+                                                            )
+                                                            .forceRebuild(
+                                                              payload.copyWith(
+                                                                allowDecimals:
+                                                                    val,
+                                                              ),
+                                                            );
+                                                      }
+                                                    },
+                                                  ),
+                                                  Flexible(
+                                                    child: Text(
+                                                      l10n.allowDecimals,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Checkbox(
+                                                    value: payload.isEvaluative,
+                                                    onChanged: (val) {
+                                                      if (val != null) {
+                                                        ref
+                                                            .read(
+                                                              promptBlockFormProvider(
+                                                                blockId,
+                                                              ).notifier,
+                                                            )
+                                                            .forceRebuild(
+                                                              payload.copyWith(
+                                                                isEvaluative:
+                                                                    val,
+                                                              ),
+                                                            );
+                                                      }
+                                                    },
+                                                  ),
+                                                  Flexible(
+                                                    child: Text(
+                                                      l10n.isEvaluativeMatrix,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                          AppSpacing.h16,
+                                          Text(
+                                            l10n.xaiOutputExtensionsTitle,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          AppSpacing.h8,
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children:
+                                                {
+                                                  "justification":
+                                                      l10n.xaiJustification,
+                                                  "coaching":
+                                                      l10n.xaiCoachingTip,
+                                                  "falsification":
+                                                      l10n.xaiDevilsAdvocate,
+                                                  "missing_context":
+                                                      l10n.xaiMissingContext,
+                                                  "risk_flag": l10n.xaiRiskFlag,
+                                                  "remediation_steps":
+                                                      l10n.xaiRemediation,
+                                                  "emotional_sentiment":
+                                                      l10n.xaiSentiment,
+                                                  "theory_link":
+                                                      l10n.xaiTheoryLink,
+                                                  "confidence":
+                                                      l10n.xaiConfidence,
+                                                  "citation":
+                                                      l10n.xaiSourceCitation,
+                                                }.entries.map((entry) {
+                                                  final extList =
+                                                      payload.outputExtensions;
+                                                  final isSelected = extList
+                                                      .contains(entry.key);
+                                                  return FilterChip(
+                                                    label: Text(entry.value),
+                                                    selected: isSelected,
+                                                    onSelected: (bool selected) {
+                                                      final newList =
+                                                          List<String>.from(
+                                                            payload
+                                                                .outputExtensions,
+                                                          );
+                                                      if (selected) {
+                                                        newList.add(entry.key);
+                                                      } else {
+                                                        newList.remove(
+                                                          entry.key,
+                                                        );
+                                                      }
+                                                      ref
+                                                          .read(
+                                                            promptBlockFormProvider(
+                                                              blockId,
+                                                            ).notifier,
+                                                          )
+                                                          .forceRebuild(
+                                                            payload.copyWith(
+                                                              outputExtensions:
+                                                                  newList,
+                                                            ),
+                                                          );
+                                                    },
+                                                    selectedColor:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .primaryContainer,
+                                                    checkmarkColor:
+                                                        Theme.of(context)
+                                                            .colorScheme
+                                                            .onPrimaryContainer,
+                                                  );
+                                                }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    AppSpacing.h16,
+                                    // Contextual Override Configuration
+                                    Container(
+                                      padding: AppSpacing.p12,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.surfaceContainerHighest,
+                                      child: SwitchListTile(
+                                        title: Text(
+                                          l10n.allowContextualOverrideLabel,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 4.0,
+                                          ),
+                                          child: Text(
+                                            l10n.allowContextualOverrideDescription,
+                                          ),
+                                        ),
+                                        value: payload.allowContextualOverride,
+                                        onChanged: (val) {
+                                          ref
+                                              .read(
+                                                promptBlockFormProvider(
+                                                  blockId,
+                                                ).notifier,
+                                              )
+                                              .forceRebuild(
+                                                payload.copyWith(
+                                                  allowContextualOverride: val,
+                                                ),
+                                              );
+                                        },
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                    ),
+                                  ],
+
+                                  AppSpacing.h16,
+                                  // Ensemble Configuration
+                                  Container(
+                                    padding: AppSpacing.p12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHighest,
+                                    child: SwitchListTile(
+                                      title: Text(
+                                        l10n.promptBlockEnsembleToggle,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4.0,
+                                        ),
+                                        child: Text(
+                                          l10n.promptBlockEnsembleToggleDesc,
+                                        ),
+                                      ),
+                                      value: !payload.isLightweightProtocol,
+                                      onChanged: (val) {
                                         ref
                                             .read(
                                               promptBlockFormProvider(
                                                 blockId,
                                               ).notifier,
                                             )
-                                            .forceRebuild(newBlock);
-                                      }
-                                    },
+                                            .forceRebuild(
+                                              payload.copyWith(
+                                                isLightweightProtocol: !val,
+                                              ),
+                                            );
+                                      },
+                                      contentPadding: EdgeInsets.zero,
+                                    ),
+                                  ),
+
+                                  AppSpacing.h16,
+                                  // Theory Grounding Wrapper
+                                  Container(
+                                    padding: AppSpacing.p12,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.surfaceContainerHigh,
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                l10n.theoryGroundingTitle,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Switch(
+                                              value:
+                                                  payload.theoryGrounding !=
+                                                  null,
+                                              onChanged: (val) {
+                                                if (val) {
+                                                  ref
+                                                      .read(
+                                                        promptBlockFormProvider(
+                                                          blockId,
+                                                        ).notifier,
+                                                      )
+                                                      .forceRebuild(
+                                                        payload.copyWith(
+                                                          theoryGrounding:
+                                                              const TheoryGrounding(
+                                                                sourceUrl: '',
+                                                                citationReference:
+                                                                    '',
+                                                              ),
+                                                        ),
+                                                      );
+                                                } else {
+                                                  ref
+                                                      .read(
+                                                        promptBlockFormProvider(
+                                                          blockId,
+                                                        ).notifier,
+                                                      )
+                                                      .forceRebuild(
+                                                        payload.copyWith(
+                                                          theoryGrounding: null,
+                                                        ),
+                                                      );
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        if (payload.theoryGrounding !=
+                                            null) ...[
+                                          AppSpacing.h8,
+                                          // Source URL
+                                          TextFormField(
+                                            initialValue: payload
+                                                .theoryGrounding!
+                                                .sourceUrl,
+                                            decoration: InputDecoration(
+                                              labelText: l10n.sourceUrlLabel,
+                                              border:
+                                                  const UnderlineInputBorder(),
+                                            ),
+                                            onChanged: (val) {
+                                              ref
+                                                  .read(
+                                                    promptBlockFormProvider(
+                                                      blockId,
+                                                    ).notifier,
+                                                  )
+                                                  .forceRebuild(
+                                                    payload.copyWith(
+                                                      theoryGrounding: payload
+                                                          .theoryGrounding!
+                                                          .copyWith(
+                                                            sourceUrl: val,
+                                                          ),
+                                                    ),
+                                                  );
+                                            },
+                                          ),
+                                          AppSpacing.h8,
+                                          TextFormField(
+                                            initialValue: payload
+                                                .theoryGrounding!
+                                                .citationReference,
+                                            decoration: InputDecoration(
+                                              labelText:
+                                                  l10n.citationReferenceLabel,
+                                              border:
+                                                  const UnderlineInputBorder(),
+                                            ),
+                                            onChanged: (val) {
+                                              ref
+                                                  .read(
+                                                    promptBlockFormProvider(
+                                                      blockId,
+                                                    ).notifier,
+                                                  )
+                                                  .forceRebuild(
+                                                    payload.copyWith(
+                                                      theoryGrounding: payload
+                                                          .theoryGrounding!
+                                                          .copyWith(
+                                                            citationReference:
+                                                                val,
+                                                          ),
+                                                    ),
+                                                  );
+                                            },
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (payload is MatrixPromptBlock) ...[
+                            AppSpacing.h16,
+                            _buildRowListCard(
+                              context,
+                              ref,
+                              l10n,
+                              payload,
+                              blockId,
+                              l10n.gridRowsOptional,
                             ),
                             AppSpacing.h16,
-
-                            // Label (I18N)
-                            I18nTextField(
-                              label: l10n.blockLabelName,
-                              initialData: payload.label,
-                              onChanged: (val) {
-                                ref
-                                    .read(
-                                      promptBlockFormProvider(blockId).notifier,
-                                    )
-                                    .forceRebuild(payload.copyWith(label: val));
-                              },
+                            _buildColumnListCard(
+                              context,
+                              ref,
+                              l10n,
+                              payload,
+                              blockId,
+                              l10n.gridColumnsOptional,
                             ),
                             AppSpacing.h16,
-
-                            // Description (I18N) - Short UI Hint
-                            I18nTextField(
-                              label: l10n.shortDescriptionHint,
-                              initialData: payload.description,
-                              onChanged: (val) {
-                                ref
-                                    .read(
-                                      promptBlockFormProvider(blockId).notifier,
-                                    )
-                                    .forceRebuild(
-                                      payload.copyWith(description: val),
-                                    );
-                              },
-                            ),
-                            AppSpacing.h16,
-
-                            // Zero-XML Polymorphic Form Sections
-                            _buildPolymorphicInstructionSection(
+                            _buildScalesCard(
                               context,
                               ref,
                               l10n,
                               payload,
                               blockId,
                             ),
-
-                            if (payload is MatrixPromptBlock) ...[
-                              AppSpacing.h16,
-                              // XAI & Constraints Container
-                              Container(
-                                padding: AppSpacing.p12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Text(
-                                      l10n.dataTypeExecutionConstraints,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    AppSpacing.h12,
-                                    Wrap(
-                                      spacing: 16,
-                                      runSpacing: 8,
-                                      crossAxisAlignment:
-                                          WrapCrossAlignment.center,
-                                      children: [
-                                        ConstrainedBox(
-                                          constraints: const BoxConstraints(
-                                            maxWidth: 180,
-                                            minWidth: 140,
-                                          ),
-                                          child: DropdownButton<BlockDataType>(
-                                            isExpanded: true,
-                                            value: payload.type,
-                                            items: [
-                                              DropdownMenuItem(
-                                                value:
-                                                    BlockDataType.instruction,
-                                                child: Text(
-                                                  l10n.typeInstruction,
-                                                ),
-                                              ),
-                                              DropdownMenuItem(
-                                                value: BlockDataType.stringType,
-                                                child: Text(l10n.typeString),
-                                              ),
-                                              DropdownMenuItem(
-                                                value: BlockDataType.intType,
-                                                child: Text(l10n.typeInteger),
-                                              ),
-                                              DropdownMenuItem(
-                                                value: BlockDataType.floatType,
-                                                child: Text(l10n.typeFloat),
-                                              ),
-                                            ],
-                                            onChanged: (val) {
-                                              if (val != null) {
-                                                ref
-                                                    .read(
-                                                      promptBlockFormProvider(
-                                                        blockId,
-                                                      ).notifier,
-                                                    )
-                                                    .forceRebuild(
-                                                      payload.copyWith(
-                                                        type: val,
-                                                      ),
-                                                    );
-                                              }
-                                            },
-                                          ),
-                                        ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Checkbox(
-                                              value: payload.allowDecimals,
-                                              onChanged: (val) {
-                                                if (val != null) {
-                                                  ref
-                                                      .read(
-                                                        promptBlockFormProvider(
-                                                          blockId,
-                                                        ).notifier,
-                                                      )
-                                                      .forceRebuild(
-                                                        payload.copyWith(
-                                                          allowDecimals: val,
-                                                        ),
-                                                      );
-                                                }
-                                              },
-                                            ),
-                                            Flexible(
-                                              child: Text(
-                                                l10n.allowDecimals,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Checkbox(
-                                              value: payload.isEvaluative,
-                                              onChanged: (val) {
-                                                if (val != null) {
-                                                  ref
-                                                      .read(
-                                                        promptBlockFormProvider(
-                                                          blockId,
-                                                        ).notifier,
-                                                      )
-                                                      .forceRebuild(
-                                                        payload.copyWith(
-                                                          isEvaluative: val,
-                                                        ),
-                                                      );
-                                                }
-                                              },
-                                            ),
-                                            Flexible(
-                                              child: Text(
-                                                l10n.isEvaluativeMatrix,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    AppSpacing.h16,
-                                    Text(
-                                      l10n.xaiOutputExtensionsTitle,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    AppSpacing.h8,
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children:
-                                          {
-                                            "justification":
-                                                l10n.xaiJustification,
-                                            "coaching": l10n.xaiCoachingTip,
-                                            "falsification":
-                                                l10n.xaiDevilsAdvocate,
-                                            "missing_context":
-                                                l10n.xaiMissingContext,
-                                            "risk_flag": l10n.xaiRiskFlag,
-                                            "remediation_steps":
-                                                l10n.xaiRemediation,
-                                            "emotional_sentiment":
-                                                l10n.xaiSentiment,
-                                            "theory_link": l10n.xaiTheoryLink,
-                                            "confidence": l10n.xaiConfidence,
-                                            "citation": l10n.xaiSourceCitation,
-                                          }.entries.map((entry) {
-                                            final extList =
-                                                payload.outputExtensions;
-                                            final isSelected = extList.contains(
-                                              entry.key,
-                                            );
-                                            return FilterChip(
-                                              label: Text(entry.value),
-                                              selected: isSelected,
-                                              onSelected: (bool selected) {
-                                                final newList =
-                                                    List<String>.from(
-                                                      payload.outputExtensions,
-                                                    );
-                                                if (selected) {
-                                                  newList.add(entry.key);
-                                                } else {
-                                                  newList.remove(entry.key);
-                                                }
-                                                ref
-                                                    .read(
-                                                      promptBlockFormProvider(
-                                                        blockId,
-                                                      ).notifier,
-                                                    )
-                                                    .forceRebuild(
-                                                      payload.copyWith(
-                                                        outputExtensions:
-                                                            newList,
-                                                      ),
-                                                    );
-                                              },
-                                              selectedColor: Theme.of(
-                                                context,
-                                              ).colorScheme.primaryContainer,
-                                              checkmarkColor: Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimaryContainer,
-                                            );
-                                          }).toList(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              AppSpacing.h16,
-                              // Contextual Override Configuration
-                              Container(
-                                padding: AppSpacing.p12,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.surfaceContainerHighest,
-                                child: SwitchListTile(
-                                  title: Text(
-                                    l10n.allowContextualOverrideLabel,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  subtitle: Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Text(
-                                      l10n.allowContextualOverrideDescription,
-                                    ),
-                                  ),
-                                  value: payload.allowContextualOverride,
-                                  onChanged: (val) {
-                                    ref
-                                        .read(
-                                          promptBlockFormProvider(
-                                            blockId,
-                                          ).notifier,
-                                        )
-                                        .forceRebuild(
-                                          payload.copyWith(
-                                            allowContextualOverride: val,
-                                          ),
-                                        );
-                                  },
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ],
-
-                            AppSpacing.h16,
-                            // Ensemble Configuration
-                            Container(
-                              padding: AppSpacing.p12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHighest,
-                              child: SwitchListTile(
-                                title: Text(
-                                  l10n.promptBlockEnsembleToggle,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Text(
-                                    l10n.promptBlockEnsembleToggleDesc,
-                                  ),
-                                ),
-                                value: !payload.isLightweightProtocol,
-                                onChanged: (val) {
-                                  ref
-                                      .read(
-                                        promptBlockFormProvider(
-                                          blockId,
-                                        ).notifier,
-                                      )
-                                      .forceRebuild(
-                                        payload.copyWith(
-                                          isLightweightProtocol: !val,
-                                        ),
-                                      );
-                                },
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            ),
-
-                            AppSpacing.h16,
-                            // Theory Grounding Wrapper
-                            Container(
-                              padding: AppSpacing.p12,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surfaceContainerHigh,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          l10n.theoryGroundingTitle,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      Switch(
-                                        value: payload.theoryGrounding != null,
-                                        onChanged: (val) {
-                                          if (val) {
-                                            ref
-                                                .read(
-                                                  promptBlockFormProvider(
-                                                    blockId,
-                                                  ).notifier,
-                                                )
-                                                .forceRebuild(
-                                                  payload.copyWith(
-                                                    theoryGrounding:
-                                                        const TheoryGrounding(
-                                                          sourceUrl: '',
-                                                          citationReference: '',
-                                                        ),
-                                                  ),
-                                                );
-                                          } else {
-                                            ref
-                                                .read(
-                                                  promptBlockFormProvider(
-                                                    blockId,
-                                                  ).notifier,
-                                                )
-                                                .forceRebuild(
-                                                  payload.copyWith(
-                                                    theoryGrounding: null,
-                                                  ),
-                                                );
-                                          }
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  if (payload.theoryGrounding != null) ...[
-                                    AppSpacing.h8,
-                                    // Source URL
-                                    TextFormField(
-                                      initialValue:
-                                          payload.theoryGrounding!.sourceUrl,
-                                      decoration: InputDecoration(
-                                        labelText: l10n.sourceUrlLabel,
-                                        border: const UnderlineInputBorder(),
-                                      ),
-                                      onChanged: (val) {
-                                        ref
-                                            .read(
-                                              promptBlockFormProvider(
-                                                blockId,
-                                              ).notifier,
-                                            )
-                                            .forceRebuild(
-                                              payload.copyWith(
-                                                theoryGrounding: payload
-                                                    .theoryGrounding!
-                                                    .copyWith(sourceUrl: val),
-                                              ),
-                                            );
-                                      },
-                                    ),
-                                    AppSpacing.h8,
-                                    TextFormField(
-                                      initialValue: payload
-                                          .theoryGrounding!
-                                          .citationReference,
-                                      decoration: InputDecoration(
-                                        labelText: l10n.citationReferenceLabel,
-                                        border: const UnderlineInputBorder(),
-                                      ),
-                                      onChanged: (val) {
-                                        ref
-                                            .read(
-                                              promptBlockFormProvider(
-                                                blockId,
-                                              ).notifier,
-                                            )
-                                            .forceRebuild(
-                                              payload.copyWith(
-                                                theoryGrounding: payload
-                                                    .theoryGrounding!
-                                                    .copyWith(
-                                                      citationReference: val,
-                                                    ),
-                                              ),
-                                            );
-                                      },
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
                           ],
-                        ),
+                        ],
                       ),
                     ),
-                    if (payload is MatrixPromptBlock) ...[
-                      AppSpacing.h16,
-                      _buildRowListCard(
-                        context,
-                        ref,
-                        l10n,
-                        payload,
-                        blockId,
-                        l10n.gridRowsOptional,
-                      ),
-                      AppSpacing.h16,
-                      _buildColumnListCard(
-                        context,
-                        ref,
-                        l10n,
-                        payload,
-                        blockId,
-                        l10n.gridColumnsOptional,
-                      ),
-                      AppSpacing.h16,
-                      _buildScalesCard(context, ref, l10n, payload, blockId),
-                    ],
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

@@ -8,11 +8,19 @@ import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
-class OutputProfileListView extends ConsumerWidget {
+class OutputProfileListView extends ConsumerStatefulWidget {
   const OutputProfileListView({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<OutputProfileListView> createState() =>
+      _OutputProfileListViewState();
+}
+
+class _OutputProfileListViewState extends ConsumerState<OutputProfileListView> {
+  String? _bannerError;
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final profilesState = ref.watch(outputProfilesControllerProvider);
 
@@ -21,6 +29,22 @@ class OutputProfileListView extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_bannerError != null) ...[
+            MaterialBanner(
+              content: Text(_bannerError!),
+              backgroundColor: Theme.of(context).colorScheme.errorContainer,
+              contentTextStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onErrorContainer,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => setState(() => _bannerError = null),
+                  child: Text(l10n.cancelButton),
+                ),
+              ],
+            ),
+            AppSpacing.h16,
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -47,13 +71,11 @@ class OutputProfileListView extends ConsumerWidget {
                             e,
                             st,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.studioViewsFailedToCreate(e.toString()),
-                          ),
-                        ),
-                      );
+                      setState(() {
+                        _bannerError = l10n.studioViewsFailedToCreate(
+                          e.toString(),
+                        );
+                      });
                     }
                   }
                 },
@@ -66,8 +88,9 @@ class OutputProfileListView extends ConsumerWidget {
           switch (profilesState) {
             AsyncData(value: final profiles) => Builder(
               builder: (context) {
-                if (profiles.isEmpty)
+                if (profiles.isEmpty) {
                   return Text(l10n.studioViewsNoOutputProfiles);
+                }
                 return ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -79,13 +102,7 @@ class OutputProfileListView extends ConsumerWidget {
                     final currentLocale = Localizations.localeOf(
                       context,
                     ).languageCode;
-                    final title =
-                        profile.name.translations[currentLocale] ??
-                        profile.name.translations['en'] ??
-                        profile.name.translations['fi'] ??
-                        (profile.id.isNotEmpty
-                            ? profile.id
-                            : l10n.studioViewsUnnamedProfile);
+                    final title = profile.name.get(currentLocale);
 
                     return Card(
                       child: ListTile(

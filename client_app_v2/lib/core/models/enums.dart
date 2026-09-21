@@ -132,6 +132,9 @@ class PromptBlockCategoryGroups {
     'criteria',
     'text',
   ];
+
+  /// Categories allowed for Matrix Master selection (Cleanup C1).
+  static final List<String> matrixCategories = ['matrix'];
 }
 
 extension XaiExtensionTypeValue on XaiExtensionType {

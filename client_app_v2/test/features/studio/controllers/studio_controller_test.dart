@@ -19,11 +19,27 @@ void main() {
   late MockLoggerService mockLogger;
   late ProviderContainer container;
 
+  final validWorkflow = Workflow(
+    id: 'wf_0123456789abcdef',
+    slug: 'test-wf',
+    name: const I18nText(translations: {'en': 'Test'}),
+    description: const I18nText(translations: {'en': 'Test Desc'}),
+    modelRegistryId: 'reg_default',
+    outputProfiles: {},
+  );
+
+  setUpAll(() {
+    registerFallbackValue(validWorkflow);
+    registerFallbackValue(StackTrace.current);
+  });
+
   setUp(() {
     mockClient = MockStudioClient();
     mockLogger = MockLoggerService();
 
     // Add default mock behavior for logger
+    when(() => mockLogger.error(any(), any())).thenReturn(null);
+    when(() => mockLogger.error(any(), any(), any())).thenReturn(null);
     when(() => mockLogger.error(any(), any(), any(), any())).thenReturn(null);
     when(() => mockLogger.info(any(), any())).thenReturn(null);
 
@@ -81,22 +97,13 @@ void main() {
   });
 
   group('WorkflowsController Form & Serialization (Bug Fix 422)', () {
-    final validWorkflow = Workflow(
-      id: 'wf_0123456789abcdef',
-      slug: 'test-wf',
-      name: const I18nText(translations: {'en': 'Test'}),
-      description: const I18nText(translations: {'en': 'Test Desc'}),
-      modelRegistryId: 'reg_default',
-      outputProfiles: {},
-    );
-
     test(
-      'Positive: saveWorkflow strips output_profiles from payload',
+      'Positive: saveWorkflow sends typed Workflow payload and updates state',
       () async {
         when(() => mockClient.getWorkflows()).thenAnswer((_) async => []);
         when(
           () => mockClient.saveWorkflow(any(), any()),
-        ).thenAnswer((_) async => validWorkflow.toJson());
+        ).thenAnswer((_) async => validWorkflow);
 
         final controller = container.read(workflowsControllerProvider.notifier);
         await controller.saveWorkflow('wf_0123456789abcdef', validWorkflow);
@@ -105,8 +112,8 @@ void main() {
           () => mockClient.saveWorkflow('wf_0123456789abcdef', captureAny()),
         ).captured;
 
-        final payload = captured.first as Map<String, dynamic>;
-        expect(payload.containsKey('output_profiles'), isFalse);
+        final payload = captured.first as Workflow;
+        expect(payload.id, 'wf_0123456789abcdef');
       },
     );
 

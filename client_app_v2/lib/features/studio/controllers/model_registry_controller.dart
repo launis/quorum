@@ -1,10 +1,10 @@
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:client_app/features/studio/models/gcp_location.dart';
+import 'package:client_app/features/studio/models/llm_platform.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,12 +28,7 @@ class ModelRegistryController extends _$ModelRegistryController {
   Future<List<ModelConfig>> _fetchConfigs() async {
     final client = ref.read(studioClientProvider);
     final rawList = await client.getSystemConfigs();
-    return safeIsolateRun(
-      () => rawList
-          .where((map) => map['type'] == 'model_registry')
-          .map((e) => ModelConfig.fromJson(e))
-          .toList(),
-    );
+    return rawList.where((c) => c.type == 'model_registry').toList();
   }
 
   /// Refreshes the model registry list from the backend.
@@ -72,10 +67,7 @@ class ModelRegistryController extends _$ModelRegistryController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.saveSystemConfig(id, payload.toJson());
-      final verifiedConfig = await safeIsolateRun(
-        () => ModelConfig.fromJson(rawResponse),
-      );
+      final verifiedConfig = await client.saveSystemConfig(id, payload);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
@@ -129,10 +121,7 @@ class ModelRegistryController extends _$ModelRegistryController {
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final rawConfig = await client.cloneSystemConfig(id);
-      final clonedConfig = await safeIsolateRun(
-        () => ModelConfig.fromJson(rawConfig),
-      );
+      final clonedConfig = await client.cloneSystemConfig(id);
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
@@ -158,10 +147,7 @@ class ModelRegistryController extends _$ModelRegistryController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawConfig = await client.createSystemConfigDraft();
-      final draftConfig = await safeIsolateRun(
-        () => ModelConfig.fromJson(rawConfig),
-      );
+      final draftConfig = await client.createSystemConfigDraft();
 
       if (state.hasValue && state.value != null) {
         final currentList = List<ModelConfig>.from(state.value!);
@@ -184,8 +170,7 @@ class ModelRegistryController extends _$ModelRegistryController {
 @riverpod
 Future<ModelConfig> modelRegistryById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  final rawData = await client.getSystemConfig(id);
-  return safeIsolateRun(() => ModelConfig.fromJson(rawData));
+  return await client.getSystemConfig(id);
 }
 
 /// Fetches the list of available models from the backend filtered by platform and location.
@@ -210,9 +195,9 @@ Future<List<GcpLocation>> supportedLocations(Ref ref) async {
 
 /// Fetches supported LLM platforms.
 @riverpod
-Future<List<Map<String, dynamic>>> supportedPlatforms(Ref ref) async {
+Future<List<LlmPlatform>> supportedPlatforms(Ref ref) async {
   final client = ref.watch(studioClientProvider);
-  return client.getSupportedPlatforms();
+  return await client.getSupportedPlatforms();
 }
 
 // --- Gold Standard Form State (Flat MVC) ---

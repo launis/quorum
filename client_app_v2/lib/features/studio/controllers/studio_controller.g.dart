@@ -63,7 +63,7 @@ final class WorkflowByIdProvider
   }
 }
 
-String _$workflowByIdHash() => r'bd7910a463824b12a17dceda1ae6d215dc406cfe';
+String _$workflowByIdHash() => r'f9092d31130e16190d0ef2ed20483b06573dba3c';
 
 /// Fetches a single Workflow natively by ID
 
@@ -234,7 +234,7 @@ final class StepByIdProvider
   }
 }
 
-String _$stepByIdHash() => r'7dfc6f2dce88dc770f5b4c0064f57c8400af5d11';
+String _$stepByIdHash() => r'b098b0b1fee3c991f9b4d2fc5ebc4121aee9bf6a';
 
 /// Fetches a single Step natively by ID
 
@@ -468,7 +468,7 @@ final class WorkflowsControllerProvider
 }
 
 String _$workflowsControllerHash() =>
-    r'03b058a029a98f797350de07157137a925c0f633';
+    r'698cd0d37bea8379445747c15fe421258198cacd';
 
 /// Controller managing Studio Workflows (DAGs) strictly using `Workflow` mapped domain model.
 /// Implements Optimistic UI principles where possible.
@@ -522,7 +522,7 @@ final class StepsControllerProvider
   StepsController create() => StepsController();
 }
 
-String _$stepsControllerHash() => r'57ade31ceba246c4a6746fb14f1f25bfb507cb7d';
+String _$stepsControllerHash() => r'6bf4740c0971564172ed8e4dee24f3a6160ad6d9';
 
 /// Controller managing Studio Steps strictly using `NodeStrategy` mapping.
 /// Implements Optimistic UI principles where possible.

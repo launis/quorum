@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:client_app/core/network/api_client.dart';
+import 'package:client_app/features/studio/models/workflow_ui_schema.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'workflow_client.g.dart';
@@ -17,10 +18,8 @@ class WorkflowClient {
   WorkflowClient(this._dio);
 
   /// Fetches the dynamically required inputs UI schema for a specific workflow.
-  ///
-  /// Uses "De-Generator" policy, returns raw `Map<String, dynamic>`.
-  Future<Map<String, dynamic>> getWorkflowUiSchema(String workflowId) async {
+  Future<WorkflowUiSchema> getWorkflowUiSchema(String workflowId) async {
     final response = await _dio.get('/api/v2/workflows/$workflowId/ui_schema');
-    return response.data as Map<String, dynamic>;
+    return WorkflowUiSchema.fromJson(response.data as Map<String, dynamic>);
   }
 }

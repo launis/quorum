@@ -28,10 +28,7 @@ class OutputProfilesController extends _$OutputProfilesController {
 
   Future<List<OutputProfile>> _fetchProfiles() async {
     final client = ref.read(studioClientProvider);
-    final rawList = await client.getOutputProfiles();
-    return safeIsolateRun(
-      () => rawList.map((e) => OutputProfile.fromJson(e)).toList(),
-    );
+    return await client.getOutputProfiles();
   }
 
   /// Refreshes the profiles list from the backend.
@@ -70,10 +67,7 @@ class OutputProfilesController extends _$OutputProfilesController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.saveOutputProfile(id, payload.toJson());
-      final verifiedProfile = await safeIsolateRun(
-        () => OutputProfile.fromJson(rawResponse),
-      );
+      final verifiedProfile = await client.saveOutputProfile(id, payload);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
@@ -127,10 +121,7 @@ class OutputProfilesController extends _$OutputProfilesController {
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final rawProfile = await client.cloneOutputProfile(id);
-      final clonedProfile = await safeIsolateRun(
-        () => OutputProfile.fromJson(rawProfile),
-      );
+      final clonedProfile = await client.cloneOutputProfile(id);
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
@@ -156,10 +147,7 @@ class OutputProfilesController extends _$OutputProfilesController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawProfile = await client.createOutputProfileDraft();
-      final draftProfile = await safeIsolateRun(
-        () => OutputProfile.fromJson(rawProfile),
-      );
+      final draftProfile = await client.createOutputProfileDraft();
 
       if (state.hasValue && state.value != null) {
         final currentList = List<OutputProfile>.from(state.value!);
@@ -182,8 +170,7 @@ class OutputProfilesController extends _$OutputProfilesController {
 @riverpod
 Future<OutputProfile> outputProfileById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  final rawData = await client.getOutputProfile(id);
-  return safeIsolateRun(() => OutputProfile.fromJson(rawData));
+  return await client.getOutputProfile(id);
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -214,8 +201,9 @@ class OutputProfileForm extends _$OutputProfileForm {
 
     state = await AsyncValue.guard(() async {
       final idToSave = updatedData.id.isNotEmpty ? updatedData.id : configId;
-      if (idToSave.isEmpty || idToSave == 'new')
+      if (idToSave.isEmpty || idToSave == 'new') {
         throw AppException.validation("Profile ID is required");
+      }
 
       final profileWithId = updatedData.copyWith(id: idToSave);
 

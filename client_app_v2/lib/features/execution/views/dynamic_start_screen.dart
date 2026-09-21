@@ -10,20 +10,21 @@ import 'package:client_app/shared/widgets/omni_input_box.dart';
 
 import 'package:client_app/core/ui/error_view.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
-import 'package:client_app/shared/models/i18n_text.dart';
+import 'package:client_app/features/studio/models/workflow_ui_schema.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
 
 // Riverpod Provider for UI Schema. Replaces manual `_fetchSchema()` side-effects.
 final workflowUiSchemaProvider = FutureProvider.autoDispose
-    .family<Map<String, dynamic>, String>((ref, workflowId) async {
+    .family<WorkflowUiSchema, String>((ref, workflowId) async {
       final client = ref.watch(workflowClientProvider);
       return await client.getWorkflowUiSchema(workflowId);
     });
 
 /// **Dynamic Start Screen**
 ///
-/// V2 Architecture: Renders required inputs blindly based on the backend's
-/// `expected_inputs` schema. Does not use static model classes.
-/// Refactored to HookConsumerWidget to comply with Riverpod and No-String mandates.
+/// V2 Architecture: Renders required inputs using strongly typed `WorkflowUiSchema`
+/// and `ExpectedInput` models matching the backend Pydantic SSOT contract.
+/// Complies with Riverpod and No-String mandates.
 class DynamicStartScreen extends HookConsumerWidget {
   final String workflowId;
 
@@ -39,13 +40,7 @@ class DynamicStartScreen extends HookConsumerWidget {
       AsyncData(:final value) => _buildContent(
         context,
         ref,
-        (value['expected_inputs'] is List
-                ? value['expected_inputs'] as List
-                : [])
-            .map(
-              (e) => e is Map ? e as Map<String, dynamic> : <String, dynamic>{},
-            )
-            .toList(),
+        value.expectedInputs,
         collectedInputs.value,
         formKey,
       ),
@@ -94,10 +89,12 @@ class DynamicStartScreen extends HookConsumerWidget {
   Widget _buildContent(
     BuildContext context,
     WidgetRef ref,
-    List<Map<String, dynamic>> expectedInputs,
+    List<ExpectedInput> expectedInputs,
     Map<String, dynamic> collectedInputs,
     GlobalKey<FormState> formKey,
   ) {
+    final locale = Localizations.localeOf(context).languageCode;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24.0),
       child: Center(
@@ -114,32 +111,15 @@ class DynamicStartScreen extends HookConsumerWidget {
                 ),
                 const SizedBox(height: 24),
 
-                // Blindly iterate expected_inputs to build OmniInputBoxes
-                ...expectedInputs.map((details) {
-                  final semanticRole = details['input_key']?.toString() ?? '';
-                  final reqRaw = details['required'];
-                  final requiredParam = reqRaw is bool
-                      ? reqRaw
-                      : (reqRaw?.toString() != 'false');
-
-                  // I18n fallback for label
-                  final labelRaw = details['label'];
-                  final locale = Localizations.localeOf(context).languageCode;
-                  String label = semanticRole.toUpperCase();
-                  if (labelRaw is Map) {
-                    label = I18nText.fromJson(
-                      Map<String, dynamic>.from(labelRaw),
-                    ).get(locale);
-                  } else if (labelRaw is String && labelRaw.isNotEmpty) {
-                    label = labelRaw;
-                  }
-
-                  final modesRaw = details['input_modes'];
-                  final inputModes = (modesRaw is List ? modesRaw : [])
-                      .map((e) => e.toString())
-                      .toList();
-                  final isQuestionnaire = inputModes.contains('questionnaire');
-                  final isAssignment = inputModes.contains('assignment');
+                // Iterate typed expectedInputs to build OmniInputBoxes
+                ...expectedInputs.map((input) {
+                  final semanticRole = input.inputKey;
+                  final requiredParam = input.required;
+                  final label = input.label.get(locale);
+                  final isQuestionnaire = input.inputModes.contains(
+                    'questionnaire',
+                  );
+                  final isAssignment = input.inputModes.contains('assignment');
 
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
@@ -148,15 +128,11 @@ class DynamicStartScreen extends HookConsumerWidget {
                             context,
                             semanticRole,
                             label,
-                            (details['questionnaire_definition'] is List
-                                ? details['questionnaire_definition'] as List
-                                : []),
+                            input.questionnaireDefinition,
                             collectedInputs,
                           )
                         : HookBuilder(
                             builder: (ctx) {
-                              // We use a local state to trigger rebuilds of this OmniInputBox
-                              // when the value changes, instead of rebuilding the entire form.
                               final localValue = useState<dynamic>(
                                 collectedInputs[semanticRole],
                               );
@@ -200,7 +176,7 @@ class DynamicStartScreen extends HookConsumerWidget {
     BuildContext context,
     String semanticRole,
     String title,
-    List<dynamic> definitions,
+    List<QuestionnaireItem> definitions,
     Map<String, dynamic> collectedInputs,
   ) {
     if (collectedInputs[semanticRole] == null) {
@@ -228,19 +204,9 @@ class DynamicStartScreen extends HookConsumerWidget {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
-            ...definitions.map((defInput) {
-              final def = defInput is Map ? defInput : {};
-              final qId = def['question_id']?.toString() ?? '';
-              final qLabelRaw = def['question'];
-
-              String qLabel = qId;
-              if (qLabelRaw is Map) {
-                qLabel = I18nText.fromJson(
-                  Map<String, dynamic>.from(qLabelRaw),
-                ).get(locale);
-              } else if (qLabelRaw is String && qLabelRaw.isNotEmpty) {
-                qLabel = qLabelRaw;
-              }
+            ...definitions.map((def) {
+              final qId = def.questionId;
+              final qLabel = def.question.get(locale);
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),

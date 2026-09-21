@@ -1,11 +1,10 @@
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/workflow_simulation.dart';
 
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
@@ -21,9 +20,7 @@ part 'studio_controller.g.dart';
 @riverpod
 Future<Workflow> workflowById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  final rawData = await client.getWorkflow(id);
-  final str = jsonEncode(rawData);
-  return Workflow.parseInBackground(str);
+  return await client.getWorkflow(id);
 }
 
 /// Fetches available extensions for a Workflow natively by ID
@@ -38,11 +35,7 @@ Future<List<String>> workflowAvailableExtensions(Ref ref, String id) async {
 @riverpod
 Future<NodeStrategy> stepById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  final rawData = await client.getStep(id);
-  final str = jsonEncode(rawData);
-  return safeIsolateRun(
-    () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
-  );
+  return await client.getStep(id);
 }
 
 // --- Form State (Flat MVC) ---
@@ -124,8 +117,7 @@ class WorkflowsController extends _$WorkflowsController {
 
   Future<List<Workflow>> _fetchWorkflows() async {
     final client = ref.read(studioClientProvider);
-    final rawData = await client.getWorkflows();
-    return Workflow.parseListInBackground(rawData);
+    return await client.getWorkflows();
   }
 
   /// Refreshes the workflow list from the backend.
@@ -163,14 +155,7 @@ class WorkflowsController extends _$WorkflowsController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-
-      // Enforce strict SDUI boundary: Strip joined relation data before mutating base entity
-      final jsonPayload = returnData.toJson();
-      jsonPayload.remove('output_profiles');
-
-      final rawResponse = await client.saveWorkflow(id, jsonPayload);
-      final str = jsonEncode(rawResponse);
-      final verifiedWorkflow = await Workflow.parseInBackground(str);
+      final verifiedWorkflow = await client.saveWorkflow(id, returnData);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
@@ -223,9 +208,7 @@ class WorkflowsController extends _$WorkflowsController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.cloneWorkflow(id);
-      final str = jsonEncode(rawResponse);
-      final clonedWorkflow = await Workflow.parseInBackground(str);
+      final clonedWorkflow = await client.cloneWorkflow(id);
 
       // Append cloned workflow to local state instantly
       if (state.hasValue && state.value != null) {
@@ -255,9 +238,7 @@ class WorkflowsController extends _$WorkflowsController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.createWorkflowDraft();
-      final str = jsonEncode(rawResponse);
-      final draftWorkflow = await Workflow.parseInBackground(str);
+      final draftWorkflow = await client.createWorkflowDraft();
 
       if (state.hasValue && state.value != null) {
         final currentList = List<Workflow>.from(state.value!);
@@ -276,10 +257,10 @@ class WorkflowsController extends _$WorkflowsController {
   }
 
   /// Simulates a workflow on the backend without saving it.
-  Future<Map<String, dynamic>> simulateWorkflow(Workflow payload) async {
+  Future<WorkflowSimulationResponse> simulateWorkflow(Workflow payload) async {
     try {
       final client = ref.read(studioClientProvider);
-      return await client.simulateWorkflow(payload.toJson());
+      return await client.simulateWorkflow(payload);
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)
@@ -304,11 +285,7 @@ class StepsController extends _$StepsController {
 
   Future<List<NodeStrategy>> _fetchSteps() async {
     final client = ref.read(studioClientProvider);
-    final rawData = await client.getSteps();
-    // Isolate Mandate: Zero-Latency
-    return safeIsolateRun(() {
-      return rawData.map((e) => NodeStrategy.fromJson(e)).toList();
-    });
+    return await client.getSteps();
   }
 
   /// Refreshes the steps list from the backend.
@@ -360,11 +337,7 @@ class StepsController extends _$StepsController {
     try {
       // 2. Network Call (Append-Only)
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.saveStep(id, returnData.toJson());
-      final str = jsonEncode(rawResponse);
-      final verifiedStep = await safeIsolateRun(
-        () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
-      );
+      final verifiedStep = await client.saveStep(id, returnData);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
@@ -427,11 +400,7 @@ class StepsController extends _$StepsController {
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.cloneStep(id);
-      final str = jsonEncode(rawResponse);
-      final clonedStep = await safeIsolateRun(
-        () => NodeStrategy.fromJson(jsonDecode(str) as Map<String, dynamic>),
-      );
+      final clonedStep = await client.cloneStep(id);
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
@@ -457,12 +426,7 @@ class StepsController extends _$StepsController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.createStepDraft();
-
-      // Isolate Mandate: Zero-Latency
-      final draftStep = await safeIsolateRun(() {
-        return NodeStrategy.fromJson(rawResponse);
-      });
+      final draftStep = await client.createStepDraft();
 
       if (state.hasValue && state.value != null) {
         final currentList = List<NodeStrategy>.from(state.value!);

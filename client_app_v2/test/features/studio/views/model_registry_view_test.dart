@@ -6,6 +6,7 @@ import 'package:client_app/features/studio/views/model_registry_view.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/models/gcp_location.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/features/studio/models/llm_platform.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 void main() {
@@ -22,11 +23,11 @@ void main() {
     ),
   ];
 
-  final List<Map<String, dynamic>> mockPlatforms = <Map<String, dynamic>>[
-    {'id': 'vertex_ai', 'label': 'Google Vertex AI', 'has_regions': true},
-    {'id': 'ai_studio', 'label': 'Google AI Studio', 'has_regions': false},
-    {'id': 'openai', 'label': 'OpenAI', 'has_regions': false},
-    {'id': 'anthropic', 'label': 'Anthropic', 'has_regions': false},
+  const List<LlmPlatform> mockPlatforms = [
+    LlmPlatform(id: 'vertex_ai', label: 'Google Vertex AI', hasRegions: true),
+    LlmPlatform(id: 'ai_studio', label: 'Google AI Studio', hasRegions: false),
+    LlmPlatform(id: 'openai', label: 'OpenAI', hasRegions: false),
+    LlmPlatform(id: 'anthropic', label: 'Anthropic', hasRegions: false),
   ];
 
   group('ModelRegistryView Desktop Pro Tool UX Tests', () {

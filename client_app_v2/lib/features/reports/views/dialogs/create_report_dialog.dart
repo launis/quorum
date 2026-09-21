@@ -37,6 +37,9 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
   final _profileFocusNode = FocusNode();
   final _prefaceFocusNode = FocusNode();
 
+  static const _labelFi = 'Suomi (FI)';
+  static const _labelEn = 'English (EN)';
+
   String? _selectedProfileId;
   String _selectedLocale = 'fi';
   List<OutputProfile> _availableProfiles = [];
@@ -85,10 +88,9 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
       }
 
       final client = ref.read(studioClientProvider);
-      final rawList = await client.getOutputProfiles();
+      final allProfiles = await client.getOutputProfiles();
       if (!mounted) return;
-      final profiles = rawList
-          .map((m) => OutputProfile.fromJson(m))
+      final profiles = allProfiles
           .where((p) => p.workflowId == targetWorkflowId)
           .toList();
       setState(() {
@@ -385,11 +387,11 @@ class _CreateReportDialogState extends ConsumerState<CreateReportDialog> {
                                     items: const [
                                       DropdownMenuItem(
                                         value: 'fi',
-                                        child: Text('Suomi (FI)'),
+                                        child: Text(_labelFi),
                                       ),
                                       DropdownMenuItem(
                                         value: 'en',
-                                        child: Text('English (EN)'),
+                                        child: Text(_labelEn),
                                       ),
                                     ],
                                     onChanged: (val) {

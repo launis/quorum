@@ -1,9 +1,9 @@
-import 'package:client_app/core/utils/safe_isolate.dart';
 import 'dart:async';
-import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -13,20 +13,20 @@ part 'mcp_gateways_controller.g.dart';
 
 // --- Controllers ---
 
-/// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
+/// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class McpGatewaysController extends _$McpGatewaysController {
   @override
-  FutureOr<List<Map<String, dynamic>>> build() async {
+  FutureOr<List<McpGateway>> build() async {
     // SWR Strategy for List Views
     ref.cacheFor(AppDurations.cacheTimeout);
     return _fetchGateways();
   }
 
-  Future<List<Map<String, dynamic>>> _fetchGateways() async {
+  Future<List<McpGateway>> _fetchGateways() async {
     final client = ref.read(studioClientProvider);
-    return client.getMcpGateways();
+    return await client.getMcpGateways();
   }
 
   /// Refreshes the MCP Gateways list from the backend.
@@ -44,23 +44,19 @@ class McpGatewaysController extends _$McpGatewaysController {
   }
 
   /// Saves an MCP Gateway config utilizing Optimistic Updates.
-  Future<Map<String, dynamic>> saveGateway(
-    String id,
-    Map<String, dynamic> payload,
-  ) async {
+  Future<McpGateway> saveGateway(String id, McpGateway payload) async {
     final previousState = state;
-    Map<String, dynamic> returnData = {...payload, 'id': id};
+    final returnData = payload.copyWith(id: id);
 
     // 1. Optimistic Update
     if (state.hasValue && state.value != null) {
-      final currentList = List<Map<String, dynamic>>.from(state.value!);
-      final index = currentList.indexWhere((m) => m['id'] == id);
+      final currentList = List<McpGateway>.from(state.value!);
+      final index = currentList.indexWhere((m) => m.id == id);
 
-      final updatedGateway = {...payload, 'id': id};
       if (index >= 0) {
-        currentList[index] = updatedGateway;
+        currentList[index] = returnData;
       } else {
-        currentList.add(updatedGateway);
+        currentList.add(returnData);
       }
       state = AsyncValue.data(currentList);
     }
@@ -68,19 +64,18 @@ class McpGatewaysController extends _$McpGatewaysController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final verifiedGateway = await client.saveMcpGateway(id, payload);
+      final verifiedGateway = await client.saveMcpGateway(id, returnData);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        final index = currentList.indexWhere((m) => m['id'] == id);
+        final currentList = List<McpGateway>.from(state.value!);
+        final index = currentList.indexWhere((m) => m.id == id);
         if (index >= 0) {
           currentList[index] = verifiedGateway;
           state = AsyncValue.data(currentList);
         }
-        returnData = verifiedGateway;
       }
-      return returnData;
+      return verifiedGateway;
     } catch (e, st) {
       // 4. Rollback on Failure
       state = previousState;
@@ -101,8 +96,8 @@ class McpGatewaysController extends _$McpGatewaysController {
       await client.deleteMcpGateway(id);
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
-        currentList.removeWhere((m) => m['id'] == id);
+        final currentList = List<McpGateway>.from(state.value!);
+        currentList.removeWhere((m) => m.id == id);
         state = AsyncValue.data(currentList);
       }
     } catch (e, st) {
@@ -117,7 +112,7 @@ class McpGatewaysController extends _$McpGatewaysController {
   }
 
   /// Clones an MCP Gateway utilizing Optimistic UI.
-  Future<Map<String, dynamic>> cloneGateway(String id) async {
+  Future<McpGateway> cloneGateway(String id) async {
     final previousState = state;
     try {
       // 1. Network Call
@@ -126,7 +121,7 @@ class McpGatewaysController extends _$McpGatewaysController {
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<McpGateway>.from(state.value!);
         currentList.add(clonedGateway);
         state = AsyncValue.data(currentList);
       }
@@ -144,14 +139,14 @@ class McpGatewaysController extends _$McpGatewaysController {
   }
 
   /// Creates a draft MCP Gateway via the SSoT backend.
-  Future<Map<String, dynamic>> createMcpGatewayDraft() async {
+  Future<McpGateway> createMcpGatewayDraft() async {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
       final draftGateway = await client.createMcpGatewayDraft();
 
       if (state.hasValue && state.value != null) {
-        final currentList = List<Map<String, dynamic>>.from(state.value!);
+        final currentList = List<McpGateway>.from(state.value!);
         currentList.insert(0, draftGateway);
         state = AsyncValue.data(currentList);
       }
@@ -169,9 +164,9 @@ class McpGatewaysController extends _$McpGatewaysController {
 
 /// Fetches a single MCP Gateway natively by ID
 @riverpod
-Future<Map<String, dynamic>> mcpGatewayById(Ref ref, String id) async {
+Future<McpGateway> mcpGatewayById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  return client.getMcpGateway(id);
+  return await client.getMcpGateway(id);
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -179,13 +174,8 @@ Future<Map<String, dynamic>> mcpGatewayById(Ref ref, String id) async {
 @riverpod
 class McpGatewayForm extends _$McpGatewayForm {
   @override
-  FutureOr<Map<String, dynamic>> build(String gatewayId) async {
-    // 1. Fetch raw data
-    final rawData = await ref.watch(mcpGatewayByIdProvider(gatewayId).future);
-
-    // 2. ISOLATE MANDATE: Deep Copy / Parse in Isolate protecting Main Thread
-    final str = jsonEncode(rawData);
-    return safeIsolateRun(() => jsonDecode(str) as Map<String, dynamic>);
+  FutureOr<McpGateway> build(String gatewayId) async {
+    return ref.watch(mcpGatewayByIdProvider(gatewayId).future);
   }
 
   /// Synchronous local state mutations for the form
@@ -193,44 +183,39 @@ class McpGatewayForm extends _$McpGatewayForm {
     final payload = state.value;
     if (payload == null) return;
 
-    final tools = List<Map<String, dynamic>>.from(payload['tools'] ?? []);
-    tools.add({
-      'tool_id': 'new_tool',
-      'name': {
-        'translations': {'en': 'New Tool', 'fi': 'Uusi työkalu'},
-      },
-      'description': '',
-      'input_schema': <String, dynamic>{},
-    });
+    final tools = List<AllowedMcpTool>.from(payload.tools);
+    tools.add(
+      const AllowedMcpTool(
+        toolId: 'new_tool',
+        name: I18nText(translations: {'en': 'New Tool', 'fi': 'Uusi työkalu'}),
+        description: '',
+        inputSchema: <String, dynamic>{},
+      ),
+    );
 
-    payload['tools'] = tools;
-    state = AsyncData(Map<String, dynamic>.from(payload)); // Force rebuild
+    state = AsyncData(payload.copyWith(tools: tools));
   }
 
   void removeTool(int index) {
     final payload = state.value;
     if (payload == null) return;
 
-    final tools = List<Map<String, dynamic>>.from(payload['tools'] ?? []);
+    final tools = List<AllowedMcpTool>.from(payload.tools);
     if (index >= 0 && index < tools.length) {
       tools.removeAt(index);
-      payload['tools'] = tools;
-      state = AsyncData(Map<String, dynamic>.from(payload));
+      state = AsyncData(payload.copyWith(tools: tools));
     }
   }
 
-  void forceRebuild() {
-    final payload = state.value;
-    if (payload != null) {
-      state = AsyncData(Map<String, dynamic>.from(payload));
-    }
+  void forceRebuild(McpGateway gateway) {
+    state = AsyncData(gateway);
   }
 
-  Future<void> submit(Map<String, dynamic> updatedData) async {
+  Future<void> submit(McpGateway updatedData) async {
     state = const AsyncLoading(); // Side effect isolation
 
     state = await AsyncValue.guard(() async {
-      final idToSave = updatedData['id'] ?? gatewayId;
+      final idToSave = updatedData.id.isNotEmpty ? updatedData.id : gatewayId;
       await ref
           .read(mcpGatewaysControllerProvider.notifier)
           .saveGateway(idToSave, updatedData);

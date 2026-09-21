@@ -5,6 +5,7 @@ import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -97,11 +98,11 @@ class ExecutionClient {
   Future<GenericStatusResponseDto> overrideAtom({
     required String executionId,
     required String atomId,
-    required Map<String, dynamic> payload,
+    required HumanOverrideRequestDto payload,
   }) async {
     final response = await _dio.patch(
       '/execution/executions/$executionId/atoms/$atomId/override',
-      data: payload,
+      data: payload.toJson(),
     );
     return GenericStatusResponseDto.fromJson(
       response.data as Map<String, dynamic>,

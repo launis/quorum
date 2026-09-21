@@ -35,7 +35,7 @@ class McpGatewaysMasterView extends ConsumerWidget {
                         .read(mcpGatewaysControllerProvider.notifier)
                         .createMcpGatewayDraft();
                     if (context.mounted) {
-                      McpGatewayEditRoute(id: draft['id'] ?? '').go(context);
+                      McpGatewayEditRoute(id: draft.id).go(context);
                     }
                   } catch (e, st) {
                     if (context.mounted) {
@@ -47,13 +47,6 @@ class McpGatewaysMasterView extends ConsumerWidget {
                             e,
                             st,
                           );
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            l10n.studioViewsFailedToCreate(e.toString()),
-                          ),
-                        ),
-                      );
                     }
                   }
                 },
@@ -80,8 +73,7 @@ class McpGatewaysMasterView extends ConsumerWidget {
                   itemCount: gateways.length,
                   itemBuilder: (context, index) {
                     final gateway = gateways[index];
-                    final tools =
-                        (gateway['allowed_tools'] as List?)?.length ?? 0;
+                    final tools = gateway.tools.length;
 
                     return Card(
                       child: ListTile(
@@ -90,24 +82,21 @@ class McpGatewaysMasterView extends ConsumerWidget {
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                         title: Text(
-                          gateway['id']?.toString() ?? l10n.unnamedGateway,
+                          gateway.id.isNotEmpty
+                              ? gateway.id
+                              : l10n.unnamedGateway,
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         subtitle: Text(
-                          l10n.gatewaySubtitle(
-                            tools,
-                            gateway['is_active'] == true
-                                ? l10n.activeStatus
-                                : l10n.inactiveStatus,
-                          ),
+                          l10n.gatewaySubtitle(tools, l10n.activeStatus),
                         ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             CloneEntityButton(
                               onClone: () async {
-                                final id = gateway['id']?.toString();
-                                if (id == null) return;
+                                final id = gateway.id;
+                                if (id.isEmpty) return;
                                 await ref
                                     .read(
                                       mcpGatewaysControllerProvider.notifier,
@@ -119,9 +108,7 @@ class McpGatewaysMasterView extends ConsumerWidget {
                           ],
                         ),
                         onTap: () {
-                          McpGatewayEditRoute(
-                            id: gateway['id'] ?? '',
-                          ).go(context);
+                          McpGatewayEditRoute(id: gateway.id).go(context);
                         },
                       ),
                     );

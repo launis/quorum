@@ -170,26 +170,23 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
       if (!mounted) return;
       setState(() => _isLoadingPreview = false);
 
-      final promptContext =
-          res['prompt_context'] as Map<String, dynamic>? ?? const {};
-      final staticMessages = promptContext['static_messages'];
-      final dynamicMessages = promptContext['dynamic_messages'];
-      final tools = promptContext['tools'];
-      final renderedPrompt = res['rendered_prompt'] as String? ?? '';
+      final staticContent = PromptPreviewFormatter.formatMessages(
+        res.promptContext?.staticMessages ?? const [],
+      );
+      final dynamicContent = PromptPreviewFormatter.formatMessages(
+        res.promptContext?.dynamicMessages ?? const [],
+      );
+      final schemaContent = PromptPreviewFormatter.formatSchema(
+        null,
+        res.renderedPrompt,
+      );
 
       await showDialog<void>(
         context: context,
         builder: (dialogCtx) => PromptPreviewDialog(
-          staticContent: PromptPreviewFormatter.formatMessagesFromRaw(
-            staticMessages,
-          ),
-          dynamicContent: PromptPreviewFormatter.formatMessagesFromRaw(
-            dynamicMessages,
-          ),
-          schemaContent: PromptPreviewFormatter.formatSchema(
-            tools,
-            renderedPrompt,
-          ),
+          staticContent: staticContent,
+          dynamicContent: dynamicContent,
+          schemaContent: schemaContent,
         ),
       );
     } catch (e) {

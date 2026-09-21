@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import '../../../../../l10n/gen/app_localizations.dart';
 import '../i18n_text_field.dart';
 import '../../../controllers/output_profile_controller.dart';
@@ -219,11 +220,12 @@ class WorkflowGeneralTab extends ConsumerWidget {
                         final mcpGatewaysAsync = ref.watch(
                           mcpGatewaysControllerProvider,
                         );
-                        final gateways = mcpGatewaysAsync.value ?? [];
+                        final gateways =
+                            mcpGatewaysAsync.value ?? const <McpGateway>[];
                         final currentGatewayId = workflow.mcpGatewayId;
                         final hasCurrentGw =
                             currentGatewayId == null ||
-                            gateways.any((gw) => gw['id'] == currentGatewayId);
+                            gateways.any((gw) => gw.id == currentGatewayId);
                         final safeGatewayId = hasCurrentGw
                             ? currentGatewayId
                             : null;
@@ -245,12 +247,11 @@ class WorkflowGeneralTab extends ConsumerWidget {
                               child: Text(l10n.studioWorkflowMcpGatewayNone),
                             ),
                             ...gateways.map((gw) {
-                              final id = gw['id'] as String? ?? '';
-                              final toolsCount =
-                                  (gw['tools'] as List?)?.length ?? 0;
+                              final id = gw.id;
+                              final toolsCount = gw.tools.length;
                               return DropdownMenuItem<String?>(
                                 value: id,
-                                child: Text('$id ($toolsCount tools)'),
+                                child: Text('$id ($toolsCount)'),
                               );
                             }),
                           ],

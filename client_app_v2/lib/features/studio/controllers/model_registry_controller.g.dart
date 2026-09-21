@@ -40,7 +40,7 @@ final class ModelRegistryControllerProvider
 }
 
 String _$modelRegistryControllerHash() =>
-    r'1014a3fde13a32bfc279f4686b9d54a57499b600';
+    r'86ba94a1a3f9eba817fc6afad6d55222e9429b7a';
 
 /// Controller managing the Model Registry strictly using strict representations.
 /// Implements Optimistic UI principles where possible.
@@ -125,7 +125,7 @@ final class ModelRegistryByIdProvider
   }
 }
 
-String _$modelRegistryByIdHash() => r'067d118916579f82d8d390703c42ed6ad8bdd552';
+String _$modelRegistryByIdHash() => r'63993012eb757846edf08cf788d0b8125bde578f';
 
 /// Fetches a single System Config natively by ID
 
@@ -301,13 +301,13 @@ final supportedPlatformsProvider = SupportedPlatformsProvider._();
 final class SupportedPlatformsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          AsyncValue<List<LlmPlatform>>,
+          List<LlmPlatform>,
+          FutureOr<List<LlmPlatform>>
         >
     with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
+        $FutureModifier<List<LlmPlatform>>,
+        $FutureProvider<List<LlmPlatform>> {
   /// Fetches supported LLM platforms.
   SupportedPlatformsProvider._()
     : super(
@@ -325,18 +325,18 @@ final class SupportedPlatformsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $FutureProviderElement<List<LlmPlatform>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  FutureOr<List<LlmPlatform>> create(Ref ref) {
     return supportedPlatforms(ref);
   }
 }
 
 String _$supportedPlatformsHash() =>
-    r'8406a5e457c8fe2041d09f748b171bc13f4765a6';
+    r'b99e918b8259b269aecfc600724a3995439b974e';
 
 @ProviderFor(ModelRegistryForm)
 final modelRegistryFormProvider = ModelRegistryFormFamily._();

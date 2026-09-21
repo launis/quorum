@@ -15,13 +15,11 @@ final availableWorkflowsProvider = AvailableWorkflowsProvider._();
 final class AvailableWorkflowsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          AsyncValue<List<Workflow>>,
+          List<Workflow>,
+          FutureOr<List<Workflow>>
         >
-    with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
+    with $FutureModifier<List<Workflow>>, $FutureProvider<List<Workflow>> {
   AvailableWorkflowsProvider._()
     : super(
         from: null,
@@ -38,18 +36,18 @@ final class AvailableWorkflowsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $FutureProviderElement<List<Workflow>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  FutureOr<List<Workflow>> create(Ref ref) {
     return availableWorkflows(ref);
   }
 }
 
 String _$availableWorkflowsHash() =>
-    r'19ae922d67285befdac2f993e92010ab3d206610';
+    r'6daccfc472d3b4c4275393f75039c22ff4e26acb';
 
 @ProviderFor(NewExecutionController)
 final newExecutionControllerProvider = NewExecutionControllerProvider._();

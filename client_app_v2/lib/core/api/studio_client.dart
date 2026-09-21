@@ -1,9 +1,18 @@
 import 'package:dio/dio.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/network/api_client.dart';
 import 'package:client_app/core/utils/safe_isolate.dart';
 import 'package:client_app/features/studio/models/gcp_location.dart';
+import 'package:client_app/features/studio/models/llm_platform.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
+import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/workflow_simulation.dart';
 
 part 'studio_client.g.dart';
 
@@ -14,9 +23,6 @@ StudioClient studioClient(Ref ref) {
 }
 
 /// Client for interacting with the V2 Studio API (Admin/Config features).
-///
-/// Strictly adheres to V2 De-Generator policy. All data in and out
-/// are pure `Map<String, dynamic>` representations.
 class StudioClient {
   final Dio _dio;
 
@@ -25,36 +31,44 @@ class StudioClient {
   // --- Matrices (Criteria & Scoring) ---
 
   /// Retrieves all evaluation prompt blocks.
-  Future<List<Map<String, dynamic>>> getPromptBlocks() async {
+  Future<List<PromptBlock>> getPromptBlocks() async {
     final response = await _dio.get('studio/prompt-blocks');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => PromptBlock.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a specific prompt block by id.
-  Future<Map<String, dynamic>> getPromptBlock(String id) async {
+  Future<PromptBlock> getPromptBlock(String id) async {
     final response = await _dio.get('studio/prompt-blocks/$id');
-    return response.data as Map<String, dynamic>;
+    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Appends or updates a prompt block.
   /// In V2, blocks are append-only. This typically returns a new version ID.
-  Future<Map<String, dynamic>> savePromptBlock(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('studio/prompt-blocks/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<PromptBlock> savePromptBlock(String id, PromptBlock data) async {
+    final response = await _dio.put(
+      'studio/prompt-blocks/$id',
+      data: data.toJson(),
+    );
+    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Dry-runs a prompt block or matrix rendering with mock variables.
-  Future<Map<String, dynamic>> simulatePromptBlock(
-    Map<String, dynamic> data,
+  Future<PromptBlockSimulationResponse> simulatePromptBlock(
+    PromptBlockSimulationRequest request,
   ) async {
+    if (request.block.id.isEmpty) {
+      throw AppException.validation('PromptBlock ID is required');
+    }
     final response = await _dio.post(
       'studio/prompt-blocks/simulate',
-      data: data,
+      data: request.toJson(),
     );
-    return response.data as Map<String, dynamic>;
+    return PromptBlockSimulationResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Deletes a prompt block.
@@ -63,46 +77,51 @@ class StudioClient {
   }
 
   /// Deep clones a prompt block securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> clonePromptBlock(String id) async {
+  Future<PromptBlock> clonePromptBlock(String id) async {
     final response = await _dio.post('studio/prompt-blocks/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft prompt block securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createPromptBlockDraft() async {
+  Future<PromptBlock> createPromptBlockDraft() async {
     final response = await _dio.post('studio/prompt-blocks/');
-    return response.data as Map<String, dynamic>;
+    return PromptBlock.fromJson(response.data as Map<String, dynamic>);
   }
 
   // --- Workflows (DAG definitions) ---
 
   /// Retrieves all workflow definitions.
-  Future<List<Map<String, dynamic>>> getWorkflows() async {
+  Future<List<Workflow>> getWorkflows() async {
     final response = await _dio.get('studio/workflows');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => Workflow.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a specific workflow definition by id.
-  Future<Map<String, dynamic>> getWorkflow(String id) async {
+  Future<Workflow> getWorkflow(String id) async {
     final response = await _dio.get('studio/workflows/$id');
-    return response.data as Map<String, dynamic>;
+    return Workflow.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Appends or updates a workflow definition.
-  Future<Map<String, dynamic>> saveWorkflow(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('studio/workflows/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<Workflow> saveWorkflow(String id, Workflow data) async {
+    final payload = data.toJson();
+    payload.remove('output_profiles');
+    final response = await _dio.put('studio/workflows/$id', data: payload);
+    return Workflow.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Validates a workflow definition using the Pre-Flight Simulator API.
-  Future<Map<String, dynamic>> simulateWorkflow(
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.post('studio/workflows/simulate', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<WorkflowSimulationResponse> simulateWorkflow(Workflow data) async {
+    final response = await _dio.post(
+      'studio/workflows/simulate',
+      data: data.toJson(),
+    );
+    return WorkflowSimulationResponse.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   /// Deletes a workflow definition.
@@ -111,15 +130,15 @@ class StudioClient {
   }
 
   /// Deep clones a workflow definition securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> cloneWorkflow(String id) async {
+  Future<Workflow> cloneWorkflow(String id) async {
     final response = await _dio.post('studio/workflows/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return Workflow.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft workflow definition securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createWorkflowDraft() async {
+  Future<Workflow> createWorkflowDraft() async {
     final response = await _dio.post('studio/workflows/');
-    return response.data as Map<String, dynamic>;
+    return Workflow.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Retrieves available block-level extensions for a workflow.
@@ -128,30 +147,31 @@ class StudioClient {
       'studio/workflows/$id/available-extensions',
     );
     final data = response.data as Map<String, dynamic>;
-    return List<String>.from(data['available_extensions'] ?? []);
+    final rawList = data['available_extensions'] as List;
+    return rawList.map((e) => e.toString()).toList(growable: false);
   }
 
   // --- Steps ---
 
   /// Retrieves all steps.
-  Future<List<Map<String, dynamic>>> getSteps() async {
+  Future<List<NodeStrategy>> getSteps() async {
     final response = await _dio.get('studio/steps');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => NodeStrategy.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a specific step by id.
-  Future<Map<String, dynamic>> getStep(String id) async {
+  Future<NodeStrategy> getStep(String id) async {
     final response = await _dio.get('studio/steps/$id');
-    return response.data as Map<String, dynamic>;
+    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Appends or updates a step.
-  Future<Map<String, dynamic>> saveStep(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('studio/steps/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<NodeStrategy> saveStep(String id, NodeStrategy data) async {
+    final response = await _dio.put('studio/steps/$id', data: data.toJson());
+    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Deletes a step.
@@ -173,16 +193,17 @@ class StudioClient {
   }
 
   /// Deep clones a step securely.
-  Future<Map<String, dynamic>> cloneStep(String id) async {
+  Future<NodeStrategy> cloneStep(String id) async {
     final response = await _dio.post('studio/steps/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft step securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createStepDraft() async {
+  Future<NodeStrategy> createStepDraft() async {
     final response = await _dio.post('studio/steps/');
-    return response.data as Map<String, dynamic>;
+    return NodeStrategy.fromJson(response.data as Map<String, dynamic>);
   }
+
   // --- Model Registry ---
 
   /// Retrieves available models filtered by platform and location.
@@ -217,30 +238,36 @@ class StudioClient {
   }
 
   /// Retrieves all supported LLM platforms.
-  Future<List<Map<String, dynamic>>> getSupportedPlatforms() async {
+  Future<List<LlmPlatform>> getSupportedPlatforms() async {
     final response = await _dio.get('studio/model-registry/platforms');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => LlmPlatform.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves all system configs (Model Registries).
-  Future<List<Map<String, dynamic>>> getSystemConfigs() async {
+  Future<List<ModelConfig>> getSystemConfigs() async {
     final response = await _dio.get('studio/model-registry/');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => ModelConfig.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a system config by ID.
-  Future<Map<String, dynamic>> getSystemConfig(String id) async {
+  Future<ModelConfig> getSystemConfig(String id) async {
     final response = await _dio.get('studio/model-registry/$id');
-    return response.data as Map<String, dynamic>;
+    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Updates a system config.
-  Future<Map<String, dynamic>> saveSystemConfig(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('studio/model-registry/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<ModelConfig> saveSystemConfig(String id, ModelConfig data) async {
+    final response = await _dio.put(
+      'studio/model-registry/$id',
+      data: data.toJson(),
+    );
+    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Deletes a system config.
@@ -249,38 +276,41 @@ class StudioClient {
   }
 
   /// Deep clones a system config.
-  Future<Map<String, dynamic>> cloneSystemConfig(String id) async {
+  Future<ModelConfig> cloneSystemConfig(String id) async {
     final response = await _dio.post('studio/model-registry/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft system config securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createSystemConfigDraft() async {
+  Future<ModelConfig> createSystemConfigDraft() async {
     final response = await _dio.post('studio/model-registry/');
-    return response.data as Map<String, dynamic>;
+    return ModelConfig.fromJson(response.data as Map<String, dynamic>);
   }
 
   // --- MCP Gateways ---
 
   /// Retrieves all MCP Gateways.
-  Future<List<Map<String, dynamic>>> getMcpGateways() async {
+  Future<List<McpGateway>> getMcpGateways() async {
     final response = await _dio.get('studio/mcp-gateways/');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => McpGateway.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a specific MCP Gateway by ID.
-  Future<Map<String, dynamic>> getMcpGateway(String id) async {
+  Future<McpGateway> getMcpGateway(String id) async {
     final response = await _dio.get('studio/mcp-gateways/$id');
-    return response.data as Map<String, dynamic>;
+    return McpGateway.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Appends or updates an MCP Gateway.
-  Future<Map<String, dynamic>> saveMcpGateway(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('studio/mcp-gateways/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<McpGateway> saveMcpGateway(String id, McpGateway data) async {
+    final response = await _dio.put(
+      'studio/mcp-gateways/$id',
+      data: data.toJson(),
+    );
+    return McpGateway.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Deletes an MCP Gateway.
@@ -289,38 +319,38 @@ class StudioClient {
   }
 
   /// Deep clones an MCP Gateway.
-  Future<Map<String, dynamic>> cloneMcpGateway(String id) async {
+  Future<McpGateway> cloneMcpGateway(String id) async {
     final response = await _dio.post('studio/mcp-gateways/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return McpGateway.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft MCP Gateway securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createMcpGatewayDraft() async {
+  Future<McpGateway> createMcpGatewayDraft() async {
     final response = await _dio.post('studio/mcp-gateways/');
-    return response.data as Map<String, dynamic>;
+    return McpGateway.fromJson(response.data as Map<String, dynamic>);
   }
 
   // --- Output Profiles ---
 
   /// Retrieves all output profiles.
-  Future<List<Map<String, dynamic>>> getOutputProfiles() async {
+  Future<List<OutputProfile>> getOutputProfiles() async {
     final response = await _dio.get('output-profiles/');
-    return List<Map<String, dynamic>>.from(response.data as List);
+    final rawList = response.data as List;
+    return rawList
+        .map((item) => OutputProfile.fromJson(item as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   /// Retrieves a specific output profile by ID.
-  Future<Map<String, dynamic>> getOutputProfile(String id) async {
+  Future<OutputProfile> getOutputProfile(String id) async {
     final response = await _dio.get('output-profiles/$id');
-    return response.data as Map<String, dynamic>;
+    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Appends or updates an output profile.
-  Future<Map<String, dynamic>> saveOutputProfile(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    final response = await _dio.put('output-profiles/$id', data: data);
-    return response.data as Map<String, dynamic>;
+  Future<OutputProfile> saveOutputProfile(String id, OutputProfile data) async {
+    final response = await _dio.put('output-profiles/$id', data: data.toJson());
+    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Deletes an output profile.
@@ -329,14 +359,14 @@ class StudioClient {
   }
 
   /// Deep clones an output profile.
-  Future<Map<String, dynamic>> cloneOutputProfile(String id) async {
+  Future<OutputProfile> cloneOutputProfile(String id) async {
     final response = await _dio.post('output-profiles/$id/clone');
-    return response.data as Map<String, dynamic>;
+    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
   /// Creates a draft output profile securely via SSOT Service Layer.
-  Future<Map<String, dynamic>> createOutputProfileDraft() async {
+  Future<OutputProfile> createOutputProfileDraft() async {
     final response = await _dio.post('output-profiles/');
-    return response.data as Map<String, dynamic>;
+    return OutputProfile.fromJson(response.data as Map<String, dynamic>);
   }
 }

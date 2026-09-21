@@ -14,6 +14,7 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
@@ -51,7 +52,7 @@ void main() {
 
       final mockClient = MockStudioClient();
       when(() => mockClient.getPromptBlocks()).thenAnswer(
-        (_) async => mockPromptBlocks.map((e) => e.toJson()).toList(),
+        (_) async => mockPromptBlocks,
       );
       when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
       when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
@@ -144,7 +145,7 @@ void main() {
 
         final mockClient = MockStudioClient();
         when(() => mockClient.getPromptBlocks()).thenAnswer(
-          (_) async => mockPromptBlocks.map((e) => e.toJson()).toList(),
+          (_) async => mockPromptBlocks,
         );
         when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
         when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
@@ -350,14 +351,17 @@ class MockPromptBlocksController extends PromptBlocksController {
   }
 
   @override
-  Future<Map<String, dynamic>> simulatePromptBlock(
+  Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock payload,
     Map<String, dynamic> mockInputs, {
     int? targetScaleScore,
     String? targetLocale,
     String? contextText,
   }) async {
-    return {'rendered_prompt': 'MOCK', 'valid': true};
+    return const PromptBlockSimulationResponse(
+      renderedPrompt: 'MOCK',
+      valid: true,
+    );
   }
 }
 

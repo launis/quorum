@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
+import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 
 import 'package:client_app/utils/riverpod_extensions.dart';
 import 'package:dio/dio.dart';
@@ -18,9 +18,7 @@ part 'prompt_blocks_controller.g.dart';
 @riverpod
 Future<PromptBlock> promptBlockById(Ref ref, String id) async {
   final client = ref.watch(studioClientProvider);
-  final rawData = await client.getPromptBlock(id);
-  final str = jsonEncode(rawData);
-  return PromptBlock.parseInBackground(str);
+  return await client.getPromptBlock(id);
 }
 
 // --- Gold Standard Form State (Flat MVC) ---
@@ -67,9 +65,7 @@ class PromptBlocksController extends _$PromptBlocksController {
 
   Future<List<PromptBlock>> _fetchPromptBlocks() async {
     final client = ref.read(studioClientProvider);
-    final rawData = await client.getPromptBlocks();
-    // Using safeIsolateRun per 2026 Mandate to prevent Main Thread Jank on 120Hz displays
-    return PromptBlock.parseListInBackground(rawData);
+    return await client.getPromptBlocks();
   }
 
   /// Refreshes the Prompt Blocks list from the backend.
@@ -107,10 +103,7 @@ class PromptBlocksController extends _$PromptBlocksController {
     try {
       // 2. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.savePromptBlock(id, returnData.toJson());
-      final verifiedBlock = await PromptBlock.parseInBackground(
-        jsonEncode(rawResponse),
-      );
+      final verifiedBlock = await client.savePromptBlock(id, returnData);
 
       // 3. Confirm with Actual Data
       if (state.hasValue && state.value != null) {
@@ -143,10 +136,7 @@ class PromptBlocksController extends _$PromptBlocksController {
     try {
       // 1. Network Call
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.clonePromptBlock(id);
-      final clonedBlock = await PromptBlock.parseInBackground(
-        jsonEncode(rawResponse),
-      );
+      final clonedBlock = await client.clonePromptBlock(id);
 
       // 2. Update State
       if (state.hasValue && state.value != null) {
@@ -172,10 +162,7 @@ class PromptBlocksController extends _$PromptBlocksController {
     final previousState = state;
     try {
       final client = ref.read(studioClientProvider);
-      final rawResponse = await client.createPromptBlockDraft();
-      final draftBlock = await PromptBlock.parseInBackground(
-        jsonEncode(rawResponse),
-      );
+      final draftBlock = await client.createPromptBlockDraft();
 
       if (state.hasValue && state.value != null) {
         final currentList = List<PromptBlock>.from(state.value!);
@@ -216,7 +203,7 @@ class PromptBlocksController extends _$PromptBlocksController {
   }
 
   /// Simulates rendering of a Prompt Block or Matrix with mock data.
-  Future<Map<String, dynamic>> simulatePromptBlock(
+  Future<PromptBlockSimulationResponse> simulatePromptBlock(
     PromptBlock block,
     Map<String, dynamic> mockInputs, {
     int? targetScaleScore,
@@ -224,15 +211,15 @@ class PromptBlocksController extends _$PromptBlocksController {
     String? contextText,
   }) async {
     try {
-      final payload = <String, dynamic>{
-        'block': block.toJson(),
-        'mock_inputs': mockInputs,
-        if (targetScaleScore != null) 'target_scale_score': targetScaleScore,
-        if (targetLocale != null) 'target_locale': targetLocale,
-        if (contextText != null) 'context_text': contextText,
-      };
+      final request = PromptBlockSimulationRequest(
+        block: block,
+        mockInputs: mockInputs,
+        targetScaleScore: targetScaleScore,
+        targetLocale: targetLocale,
+        contextText: contextText,
+      );
       final client = ref.read(studioClientProvider);
-      return await client.simulatePromptBlock(payload);
+      return await client.simulatePromptBlock(request);
     } catch (e, st) {
       ref
           .read(loggerServiceProvider)

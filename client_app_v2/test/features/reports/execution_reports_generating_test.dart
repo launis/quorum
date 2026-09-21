@@ -6,6 +6,8 @@ import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/reports/models/report_artifact.dart';
 import 'package:client_app/features/reports/views/dialogs/create_report_dialog.dart';
 import 'package:client_app/features/reports/views/execution_reports_view.dart';
+import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -91,23 +93,29 @@ void main() {
     'CreateReportDialog filters output profiles strictly matching workflowId',
     (WidgetTester tester) async {
       final mockStudioClient = MockStudioClient();
-      final profilesJson = [
-        {
-          'id': 'prf_01b1d71000000001',
-          'workflow_id': 'wor_01b1d71000000001',
-          'name': {
-            'translations': {'fi': 'Oma Työnkulkuni Profiili', 'en': 'Target Workflow Profile'},
-          },
-        },
-        {
-          'id': 'prf_01b1d71000000002',
-          'workflow_id': 'wor_01b1d71000000002',
-          'name': {
-            'translations': {'fi': 'Toisen Työnkulun Profiili', 'en': 'Other Workflow Profile'},
-          },
-        },
+      const profiles = [
+        OutputProfile(
+          id: 'prf_01b1d71000000001',
+          workflowId: 'wor_01b1d71000000001',
+          name: I18nText(
+            translations: {
+              'fi': 'Oma Työnkulkuni Profiili',
+              'en': 'Target Workflow Profile',
+            },
+          ),
+        ),
+        OutputProfile(
+          id: 'prf_01b1d71000000002',
+          workflowId: 'wor_01b1d71000000002',
+          name: I18nText(
+            translations: {
+              'fi': 'Toisen Työnkulun Profiili',
+              'en': 'Other Workflow Profile',
+            },
+          ),
+        ),
       ];
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profilesJson);
+      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -139,21 +147,27 @@ void main() {
     (WidgetTester tester) async {
       final mockStudioClient = MockStudioClient();
       final mockExecClient = MockExecutionClient();
-      final profilesJson = [
-        {
-          'id': 'prf_01b1d71000000001',
-          'workflow_id': 'wor_01b1d71000000001',
-          'name': {
-            'translations': {'fi': 'Dynaaminen Profiili', 'en': 'Dynamic Profile'},
-          },
-        },
-        {
-          'id': 'prf_01b1d71000000002',
-          'workflow_id': 'wor_01b1d71000000002',
-          'name': {
-            'translations': {'fi': 'Väärä Profiili', 'en': 'Wrong Profile'},
-          },
-        },
+      const profiles = [
+        OutputProfile(
+          id: 'prf_01b1d71000000001',
+          workflowId: 'wor_01b1d71000000001',
+          name: I18nText(
+            translations: {
+              'fi': 'Dynaaminen Profiili',
+              'en': 'Dynamic Profile',
+            },
+          ),
+        ),
+        OutputProfile(
+          id: 'prf_01b1d71000000002',
+          workflowId: 'wor_01b1d71000000002',
+          name: I18nText(
+            translations: {
+              'fi': 'Väärä Profiili',
+              'en': 'Wrong Profile',
+            },
+          ),
+        ),
       ];
       final execRecord = ExecutionRecord.fromJson({
         'id': 'exe_01b1d71000000001',
@@ -163,7 +177,7 @@ void main() {
       });
 
       when(() => mockExecClient.getExecutionStatus('exe_01b1d71000000001')).thenAnswer((_) async => execRecord);
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profilesJson);
+      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -197,16 +211,16 @@ void main() {
     'CreateReportDialog shows informational warning when no profiles match workflow',
     (WidgetTester tester) async {
       final mockStudioClient = MockStudioClient();
-      final profilesJson = [
-        {
-          'id': 'prf_01b1d71000000002',
-          'workflow_id': 'wor_01b1d71000000002',
-          'name': {
-            'translations': {'fi': 'Muu Profiili', 'en': 'Other Profile'},
-          },
-        },
+      const profiles = [
+        OutputProfile(
+          id: 'prf_01b1d71000000002',
+          workflowId: 'wor_01b1d71000000002',
+          name: I18nText(
+            translations: {'fi': 'Muu Profiili', 'en': 'Other Profile'},
+          ),
+        ),
       ];
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profilesJson);
+      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(

@@ -5,6 +5,8 @@ import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:client_app/core/state/mutation.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
+import 'package:client_app/features/studio/models/workflow_simulation.dart';
 
 import 'package:client_app/core/error/app_error_ext.dart';
 import 'package:client_app/core/error/app_exception.dart';
@@ -91,7 +93,7 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
   final String wfId;
   final Workflow payload;
   final List<NodeStrategy> blueprints;
-  final List<Map<String, dynamic>> mcpGateways;
+  final List<McpGateway> mcpGateways;
   final AppLocalizations l10n;
 
   const _BuilderScaffoldWrapper({
@@ -231,37 +233,23 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
       return null;
     }, const []);
 
-    final validateMutation = useMutation<Map<String, dynamic>>(
+    final simulationBanner = useState<WorkflowSimulationResponse?>(null);
+
+    final validateMutation = useMutation<WorkflowSimulationResponse>(
       onSuccess: (data) {
-        if (context.mounted) {
-          final isValid = data['valid'] == true;
-          final errors = List<dynamic>.from(
-            data['errors'] ?? [],
-          ).map((e) => e.toString()).toList();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                isValid
-                    ? l10n.simulatorValidDag
-                    : l10n.simulatorDagErrors(errors.join(', ')),
-              ),
-              backgroundColor: isValid
-                  ? const Color(0xFF2E7D32)
-                  : Theme.of(context).colorScheme.error,
-            ),
-          );
-        }
+        simulationBanner.value = data;
       },
       onError: (e) {
         if (context.mounted) {
           ref
               .read(loggerServiceProvider)
               .error('Studio', 'Failed to validate workflow: $e', e);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.simulatorFailedError(e.toString())),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          simulationBanner.value = WorkflowSimulationResponse(
+            valid: false,
+            errors: [e.toString()],
+            stepStatus: const {},
+            executionOrder: const [],
+            trace: const {},
           );
         }
       },
@@ -437,24 +425,58 @@ class _BuilderScaffoldWrapper extends HookConsumerWidget {
               ],
             ),
           ),
-          body: TabBarView(
+          body: Column(
             children: [
-              WorkflowGeneralTab(
-                workflow: payload,
-                idController: idController,
-                slugController: slugController,
-                onChanged: triggerUpdate,
-              ),
-              WorkflowInputsTab(workflow: payload, onChanged: triggerUpdate),
-              WorkflowStepsTab(
-                workflow: payload,
-                blueprints: blueprints,
-                mcpGateways: mcpGateways,
-                onChanged: triggerUpdate,
-              ),
-              WorkflowStrictnessTab(
-                workflow: payload,
-                onChanged: triggerUpdate,
+              if (simulationBanner.value != null) ...[
+                MaterialBanner(
+                  content: Text(
+                    simulationBanner.value!.valid
+                        ? l10n.simulatorValidDag
+                        : l10n.simulatorDagErrors(
+                            simulationBanner.value!.errors.join(', '),
+                          ),
+                  ),
+                  backgroundColor: simulationBanner.value!.valid
+                      ? const Color(0xFFE8F5E9)
+                      : Theme.of(context).colorScheme.errorContainer,
+                  contentTextStyle: TextStyle(
+                    color: simulationBanner.value!.valid
+                        ? const Color(0xFF2E7D32)
+                        : Theme.of(context).colorScheme.onErrorContainer,
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => simulationBanner.value = null,
+                      child: Text(l10n.cancelButton),
+                    ),
+                  ],
+                ),
+              ],
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    WorkflowGeneralTab(
+                      workflow: payload,
+                      idController: idController,
+                      slugController: slugController,
+                      onChanged: triggerUpdate,
+                    ),
+                    WorkflowInputsTab(
+                      workflow: payload,
+                      onChanged: triggerUpdate,
+                    ),
+                    WorkflowStepsTab(
+                      workflow: payload,
+                      blueprints: blueprints,
+                      mcpGateways: mcpGateways,
+                      onChanged: triggerUpdate,
+                    ),
+                    WorkflowStrictnessTab(
+                      workflow: payload,
+                      onChanged: triggerUpdate,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

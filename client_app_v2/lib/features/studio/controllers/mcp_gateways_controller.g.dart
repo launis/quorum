@@ -8,21 +8,17 @@ part of 'mcp_gateways_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
+/// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(McpGatewaysController)
 final mcpGatewaysControllerProvider = McpGatewaysControllerProvider._();
 
-/// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
+/// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
 final class McpGatewaysControllerProvider
-    extends
-        $AsyncNotifierProvider<
-          McpGatewaysController,
-          List<Map<String, dynamic>>
-        > {
-  /// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
+    extends $AsyncNotifierProvider<McpGatewaysController, List<McpGateway>> {
+  /// Controller managing the MCP Gateways strictly using immutable Freezed models.
   /// Implements Optimistic UI principles where possible.
   McpGatewaysControllerProvider._()
     : super(
@@ -44,31 +40,24 @@ final class McpGatewaysControllerProvider
 }
 
 String _$mcpGatewaysControllerHash() =>
-    r'511b7e4dacf2e759add24319a779fe7fab6d0d19';
+    r'708b01bdc76d4e830bdc0f815e2aaba293ca7e53';
 
-/// Controller managing the MCP Gateways strictly using `Map<String, dynamic>`.
+/// Controller managing the MCP Gateways strictly using immutable Freezed models.
 /// Implements Optimistic UI principles where possible.
 
 abstract class _$McpGatewaysController
-    extends $AsyncNotifier<List<Map<String, dynamic>>> {
-  FutureOr<List<Map<String, dynamic>>> build();
+    extends $AsyncNotifier<List<McpGateway>> {
+  FutureOr<List<McpGateway>> build();
   @$mustCallSuper
   @override
   void runBuild() {
     final ref =
-        this.ref
-            as $Ref<
-              AsyncValue<List<Map<String, dynamic>>>,
-              List<Map<String, dynamic>>
-            >;
+        this.ref as $Ref<AsyncValue<List<McpGateway>>, List<McpGateway>>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<List<Map<String, dynamic>>>,
-                List<Map<String, dynamic>>
-              >,
-              AsyncValue<List<Map<String, dynamic>>>,
+              AnyNotifier<AsyncValue<List<McpGateway>>, List<McpGateway>>,
+              AsyncValue<List<McpGateway>>,
               Object?,
               Object?
             >;
@@ -86,13 +75,11 @@ final mcpGatewayByIdProvider = McpGatewayByIdFamily._();
 final class McpGatewayByIdProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<McpGateway>,
+          McpGateway,
+          FutureOr<McpGateway>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<McpGateway>, $FutureProvider<McpGateway> {
   /// Fetches a single MCP Gateway natively by ID
   McpGatewayByIdProvider._({
     required McpGatewayByIdFamily super.from,
@@ -117,12 +104,11 @@ final class McpGatewayByIdProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
-    $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  $FutureProviderElement<McpGateway> $createElement($ProviderPointer pointer) =>
+      $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<McpGateway> create(Ref ref) {
     final argument = this.argument as String;
     return mcpGatewayById(ref, argument);
   }
@@ -138,12 +124,12 @@ final class McpGatewayByIdProvider
   }
 }
 
-String _$mcpGatewayByIdHash() => r'2f60b17d0fd6b12c7588177f8bb6845de1baac23';
+String _$mcpGatewayByIdHash() => r'7132534f0c48cc702979df5800d26a0484f00634';
 
 /// Fetches a single MCP Gateway natively by ID
 
 final class McpGatewayByIdFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<Map<String, dynamic>>, String> {
+    with $FunctionalFamilyOverride<FutureOr<McpGateway>, String> {
   McpGatewayByIdFamily._()
     : super(
         retry: null,
@@ -166,7 +152,7 @@ final class McpGatewayByIdFamily extends $Family
 final mcpGatewayFormProvider = McpGatewayFormFamily._();
 
 final class McpGatewayFormProvider
-    extends $AsyncNotifierProvider<McpGatewayForm, Map<String, dynamic>> {
+    extends $AsyncNotifierProvider<McpGatewayForm, McpGateway> {
   McpGatewayFormProvider._({
     required McpGatewayFormFamily super.from,
     required String super.argument,
@@ -203,15 +189,15 @@ final class McpGatewayFormProvider
   }
 }
 
-String _$mcpGatewayFormHash() => r'2b6c84b9d8d1cee7cae4e1c113c5ceef1a53ea6e';
+String _$mcpGatewayFormHash() => r'677dec4bc474bcb3a92b078bec0e3d3f10d0719b';
 
 final class McpGatewayFormFamily extends $Family
     with
         $ClassFamilyOverride<
           McpGatewayForm,
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>,
+          AsyncValue<McpGateway>,
+          McpGateway,
+          FutureOr<McpGateway>,
           String
         > {
   McpGatewayFormFamily._()
@@ -230,25 +216,20 @@ final class McpGatewayFormFamily extends $Family
   String toString() => r'mcpGatewayFormProvider';
 }
 
-abstract class _$McpGatewayForm extends $AsyncNotifier<Map<String, dynamic>> {
+abstract class _$McpGatewayForm extends $AsyncNotifier<McpGateway> {
   late final _$args = ref.$arg as String;
   String get gatewayId => _$args;
 
-  FutureOr<Map<String, dynamic>> build(String gatewayId);
+  FutureOr<McpGateway> build(String gatewayId);
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>>, Map<String, dynamic>>;
+    final ref = this.ref as $Ref<AsyncValue<McpGateway>, McpGateway>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>>,
-                Map<String, dynamic>
-              >,
-              AsyncValue<Map<String, dynamic>>,
+              AnyNotifier<AsyncValue<McpGateway>, McpGateway>,
+              AsyncValue<McpGateway>,
               Object?,
               Object?
             >;
