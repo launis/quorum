@@ -374,3 +374,36 @@ def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMoc
     assert "You are a highly accurate, structured evaluation assistant." in payload2.base_system_prompt
     assert "<ROLE_DIRECTIVE>" not in payload2.base_system_prompt
     assert "<EXTRACTION_PROTOCOL>" not in payload2.base_system_prompt
+
+
+def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: MagicMock) -> None:
+    """Test PromptFactory formats execution_time in document_date and injects external evidence."""
+    from datetime import datetime, timezone
+    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+    from backend_v2.models.dtos.prompt import LLMContextDataDTO
+    from backend_v2.models.execution_core import ExecutionMetadata
+
+    context_data = LLMContextDataDTO(
+        execution_time=datetime(2026, 9, 21, 14, 30, 0, tzinfo=timezone.utc),
+    )
+    global_vars = GlobalContextVarsDTO(
+        external_evidence="Aggregated external research evidence text.",
+    )
+
+    payload = PromptFactory.build(
+        compiler=mock_compiler,
+        role_block=None,
+        protocol_block=None,
+        execution_persona_block=None,
+        criteria_blocks=[],
+        target_locale="en",
+        effective_mcp_tools=None,
+        input_mappings={},
+        llm_context_data=context_data,
+        expected_inputs=None,
+        global_context_vars=global_vars,
+    )
+
+    assert "<document_date>2026-09-21 14:30:00+00:00</document_date>" in payload.user_payload
+    assert "Aggregated external research evidence text." in payload.user_payload
+
