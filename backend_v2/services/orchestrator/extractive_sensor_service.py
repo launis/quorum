@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Extractive Sensor Service for TDD deterministic evaluation and Bo3 LLM voting."""
 
 import asyncio
@@ -39,9 +41,23 @@ from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder impor
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
 from backend_v2.utils.alias_engine import AliasEngine
 
+__all__ = [
+    "BatchEvaluationResponse",
+    "BooleanEvaluationResult",
+    "ExtractiveSensorService",
+    "PreFlightResult",
+]
+
 
 class PreFlightResult(BaseModel):
-    """Result of the deterministic pre-flight evaluation."""
+    """Result of the deterministic pre-flight evaluation.
+
+    Attributes:
+        decided: Whether the evaluation was decided deterministically during pre-flight.
+        result: The deterministic execution status if decided.
+        exact_quotes: Extracted exact quote evidence if any.
+        source_quote: Raw source quote string if matched.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid", strict=True)
 
@@ -52,7 +68,18 @@ class PreFlightResult(BaseModel):
 
 
 class BooleanEvaluationResult(BaseModel):
-    """Schema for a single boolean evaluation result from LLM."""
+    """Schema for a single boolean evaluation result from LLM.
+
+    Attributes:
+        alias: Short deterministic alias identifier for the evaluated atom.
+        reasoning: Detailed semantic reasoning justifying the boolean evaluation.
+        is_true: Boolean flag indicating whether the atom assertion is satisfied.
+        source_quote: Exact textual substring from source text evidencing the claim.
+        contextual_override: Flag indicating contextual override when quote is absent.
+        coaching: Optional localized coaching guidance for improving the criterion.
+        falsification: Optional falsification details if claim was contradicted.
+        remediation_steps: Optional concrete remediation steps for addressing issues.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
     alias: Annotated[str, Field(description=DESC_ALIAS)]
@@ -83,7 +110,9 @@ class BooleanEvaluationResult(BaseModel):
         if len(v) > 500:
             truncated = v[:500]
             last_dot = truncated.rfind(".")
-            return (truncated[: last_dot + 1]) if last_dot > 100 else truncated
+            if last_dot > 100:
+                return truncated[: last_dot + 1]
+            return truncated
         return v
 
     @model_validator(mode="after")
@@ -107,7 +136,11 @@ class BooleanEvaluationResult(BaseModel):
 
 
 class BatchEvaluationResponse(BaseModel):
-    """Schema for the batch boolean evaluation result."""
+    """Schema for the batch boolean evaluation result.
+
+    Attributes:
+        results: List of boolean evaluation results for requested atom aliases.
+    """
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
     results: list[BooleanEvaluationResult]
@@ -215,7 +248,10 @@ class ExtractiveSensorService:
                     "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
                 )
                 return PreFlightResult(decided=False)
-            res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
+            if tda.inverse_evidence:
+                res = ExecutionStatus.PASSED
+            else:
+                res = ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=EXISTS, found=0)",
                 tda.tda_id,
@@ -234,7 +270,10 @@ class ExtractiveSensorService:
                     "[ExtractiveSensor] TDA %s bypassed early exit due to allow_contextual_override=True", tda.tda_id
                 )
                 return PreFlightResult(decided=False)
-            res = ExecutionStatus.PASSED if tda.inverse_evidence else ExecutionStatus.FAILED
+            if tda.inverse_evidence:
+                res = ExecutionStatus.PASSED
+            else:
+                res = ExecutionStatus.FAILED
             logger.info(
                 "[ExtractiveSensor] TDA %s early exit triggered: decided=True, result=%s (aggregation=ALL_MUST_COMPLY, missing anchors)",
                 tda.tda_id,
@@ -342,6 +381,13 @@ class ExtractiveSensorService:
         valid_results = [r for r in results if r is not None]
 
         if len(valid_results) < min_consensus:
+            logger = logging.getLogger(__name__)
+            logger.error(
+                "ExtractiveSensorService.resolve_majority_vote insufficient valid Bo3 results: %d < %d",
+                len(valid_results),
+                min_consensus,
+                extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+            )
             # Transient API failure split (< 2 valid results total)
             raise AgentExecutionError(
                 detail=f"Insufficient valid Bo3 results ({len(valid_results)} < {min_consensus}) due to transient API failures.",
@@ -540,9 +586,15 @@ class ExtractiveSensorService:
                             is_inverse = False
 
                         if is_inverse:
-                            status = ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
+                            if eval_result.is_true:
+                                status = ExecutionStatus.FAILED
+                            else:
+                                status = ExecutionStatus.PASSED
                         else:
-                            status = ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
+                            if eval_result.is_true:
+                                status = ExecutionStatus.PASSED
+                            else:
+                                status = ExecutionStatus.FAILED
 
                         call_results[call_tda_id] = AtomEvaluationResultDTO(
                             status=status,
@@ -603,13 +655,15 @@ class ExtractiveSensorService:
                                         is_inverse = False
 
                                     if is_inverse:
-                                        status = (
-                                            ExecutionStatus.FAILED if eval_result.is_true else ExecutionStatus.PASSED
-                                        )
+                                        if eval_result.is_true:
+                                            status = ExecutionStatus.FAILED
+                                        else:
+                                            status = ExecutionStatus.PASSED
                                     else:
-                                        status = (
-                                            ExecutionStatus.PASSED if eval_result.is_true else ExecutionStatus.FAILED
-                                        )
+                                        if eval_result.is_true:
+                                            status = ExecutionStatus.PASSED
+                                        else:
+                                            status = ExecutionStatus.FAILED
 
                                     call_results[call_tda_id] = AtomEvaluationResultDTO(
                                         status=status,
@@ -640,7 +694,14 @@ class ExtractiveSensorService:
 
             task_outputs = [t.result() for t in tasks]
         except ExceptionGroup as eg:
-            raise eg.exceptions[0] from eg
+            first_exc = eg.exceptions[0]
+            logger.error(
+                "ExtractiveSensorService.evaluate_atom_boolean_batch ensemble TaskGroup failed: %s",
+                first_exc,
+                extra={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
+                exc_info=True,
+            )
+            raise first_exc from eg
 
         results: list[dict[str, AtomEvaluationResultDTO] | None] = []
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)

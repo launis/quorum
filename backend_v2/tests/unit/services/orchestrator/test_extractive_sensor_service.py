@@ -33,7 +33,7 @@ from backend_v2.settings import get_settings
 
 
 def test_extractive_sensor_service_fallback_llm() -> None:
-    """Varmistaa että fallback tapahtuu jos enforce_pre_flight=False tai ankkureita ei ole."""
+    """Verify fallback occurs if enforce_pre_flight=False or syntactic anchors are missing."""
     tda = TDAAssertion(
         enforce_pre_flight=False,
         evaluation_track="EXTRACTIVE_SENSOR",
@@ -50,7 +50,7 @@ def test_extractive_sensor_service_fallback_llm() -> None:
 
 
 def test_extractive_sensor_service_aggregation_exists_delegate() -> None:
-    """Varmistaa että EXISTS -aggregaatio palauttaa decided=False (delegoi LLM:lle), jos ankkuri LÖYTYY."""
+    """Verify EXISTS aggregation returns decided=False (delegates to LLM) if an anchor is found."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["must_find_this", "or_this"],
@@ -63,13 +63,13 @@ def test_extractive_sensor_service_aggregation_exists_delegate() -> None:
         depends_on=(),
     )
 
-    # Ankkuri löytyy -> Ei voida tehdä pre-flight päätöstä (pitää antaa LLM arvioida Bounding Box)
+    # Anchor found -> Cannot make pre-flight decision (delegate to LLM for context evaluation)
     result = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_find_this is located.")
     assert not result.decided
 
 
 def test_extractive_sensor_service_aggregation_exists_fail() -> None:
-    """Varmistaa että EXISTS -aggregaatio palauttaa decided=True ja FAIL, jos MITÄÄN ankkuria ei löydy."""
+    """Verify EXISTS aggregation returns decided=True and FAILED if no anchors are found."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["anchor1", "anchor2"],
@@ -82,7 +82,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
         depends_on=(),
     )
 
-    # Yhtäkään ankkuria ei löydy -> Voidaan hylätä suoraan ilman LLM:ää
+    # No anchors found -> Reject directly without calling LLM
     result = ExtractiveSensorService.pre_evaluate(tda, "Completely different text.")
     assert result.decided
     assert result.result == ExecutionStatus.FAILED
@@ -90,7 +90,7 @@ def test_extractive_sensor_service_aggregation_exists_fail() -> None:
 
 
 def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:
-    """Varmistaa että ALL_MUST_COMPLY -aggregaatio epäonnistuu suoraan, jos yksikin puuttuu."""
+    """Verify ALL_MUST_COMPLY aggregation fails directly if any anchor is missing."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["anchor1", "anchor2"],
@@ -109,7 +109,7 @@ def test_extractive_sensor_service_aggregation_all_must_comply_fail() -> None:
 
 
 def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
-    """Varmistaa että negaatio kääntää tuloksen (myrkyn etsintä) kun päätös voidaan tehdä."""
+    """Verify negation inverts the result (penalty detection) when early exit decision can be made."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["poison"],
@@ -122,18 +122,18 @@ def test_extractive_sensor_service_inverse_evidence_early_exit() -> None:
         depends_on=(),
     )
 
-    # Poison ei löydy -> Voidaan päättää heti. Koska se on inverse, puuttuminen on PASS.
+    # Poison not found -> Can decide immediately. Since it is inverse evidence, absence is PASSED.
     result = ExtractiveSensorService.pre_evaluate(tda, "Clean text here.")
     assert result.decided
     assert result.result == ExecutionStatus.PASSED
 
-    # Poison löytyy -> Ei voida päättää (saattaa olla ettei ehto silti täyty esim contextin takia)
+    # Poison found -> Cannot decide definitively (condition might not be met due to context)
     result2 = ExtractiveSensorService.pre_evaluate(tda, "Text with poison inside.")
     assert not result2.decided
 
 
 def test_extractive_sensor_service_fuzzy_match() -> None:
-    """Varmistaa että sumea mätsäys toimii lokaalipohjaisella kynnysarvolla."""
+    """Verify fuzzy matching operates against language-dependent threshold."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["must_find_this"],
@@ -146,11 +146,11 @@ def test_extractive_sensor_service_fuzzy_match() -> None:
         depends_on=(),
     )
 
-    # 1. Pitäisi delegoida LLM:lle (decided=False), koska ankkuri "löytyy" sumeasti (typo "must_fiind_this")
+    # 1. Should delegate to LLM (decided=False) because anchor is fuzzily matched with minor typo
     result_fi = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_fiind_this is located.", locale="fi")
     assert not result_fi.decided
 
-    # 2. Pitäisi failata early exitillä, jos typoja on liikaa (esim. "must_fxxnd_this")
+    # 2. Should fail early exit if too many typos are present
     result_fail = ExtractiveSensorService.pre_evaluate(tda, "Some text where must_fxxnd_this is located.", locale="en")
     assert result_fail.decided
     assert result_fail.result == ExecutionStatus.FAILED
@@ -397,7 +397,7 @@ async def test_extractive_sensor_service_evaluate_atom_boolean_batch() -> None:
 
 
 def test_extractive_sensor_service_allow_contextual_override() -> None:
-    """Varmistaa että pre-flight ohitetaan jos allow_contextual_override on True."""
+    """Verify pre-flight early exit is bypassed if allow_contextual_override is True."""
     tda = TDAAssertion(
         enforce_pre_flight=True,
         syntactic_anchors=["anchor_missing"],
@@ -426,7 +426,7 @@ def test_extractive_sensor_service_allow_contextual_override() -> None:
 
 @pytest.mark.asyncio
 async def test_extractive_sensor_service_evaluate_atom_boolean_batch_null_theory_grounding() -> None:
-    """Varmistaa että LLM pystyy käsittelemään atomit turvallisesti vaikka theory_grounding puuttuu matriisikontekstista."""
+    """Verify LLM processes atoms safely when theory_grounding is omitted from matrix context."""
     atom = ExtractedAtom(
         tda_id="tda_11111111111111111111111111111111",
         reasoning="reason",
@@ -1070,3 +1070,119 @@ async def test_evaluate_atom_boolean_batch_targeted_recovery_failure_preserves_i
     assert results["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
     assert usage.total_tokens == 120
     assert executor.execute_structured_task.call_count == 2
+
+
+def test_resolve_majority_vote_insufficient_consensus_raises_agent_execution_error() -> None:
+    """Verify resolve_majority_vote logs structured RFC 7807 error and raises AgentExecutionError when consensus is not reached."""
+    with pytest.raises(AgentExecutionError) as exc_info:
+        ExtractiveSensorService.resolve_majority_vote(
+            expected_tda_ids=["tda_11111111111111111111111111111111"],
+            results=[None, None, None],
+        )
+    assert exc_info.value.status_code == 503
+    assert "Insufficient valid Bo3 results" in exc_info.value.message
+
+
+@pytest.mark.asyncio
+async def test_evaluate_atom_boolean_batch_with_current_states_and_extensions() -> None:
+    """Verify evaluate_atom_boolean_batch accepts current_states and populates extensions."""
+    from backend_v2.models.dtos.dag_models import AtomExecutionState
+
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason 1",
+            resolved_claim="claim 1",
+            source_quote="valid quote text here",
+            source_id="src_1",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+
+    class MockResult(BaseModel):
+        alias: str
+        reasoning: str
+        is_true: bool
+        source_quote: str | None = None
+        contextual_override: bool | None = None
+        coaching: str | None = None
+        falsification: str | None = None
+        remediation_steps: list[str] | None = None
+
+    class MockResponse(BaseModel):
+        results: list[MockResult]
+
+    primary_response = MockResponse(
+        results=[
+            MockResult(
+                alias="a0",
+                reasoning="Claim matched",
+                is_true=True,
+                source_quote="valid quote text here",
+                coaching="Improve coaching",
+                falsification="Contradicted by data",
+                remediation_steps=["Step 1", "Step 2"],
+            ),
+        ]
+    )
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+    executor.execute_structured_task.return_value = (
+        primary_response,
+        TokenUsage(prompt_tokens=100, completion_tokens=20, total_tokens=120),
+    )
+
+    current_states = {
+        "tda_11111111111111111111111111111111": AtomExecutionState(
+            tda_id="tda_11111111111111111111111111111111",
+            status=ExecutionStatus.PENDING,
+        ),
+    }
+
+    results, usage = await ExtractiveSensorService.evaluate_atom_boolean_batch(
+        nodes=[node],
+        executor=executor,
+        client=client,
+        context_text="Primary context text with valid quote text here",
+        target_locale="fi",
+        current_states=current_states,
+    )
+
+    assert "tda_11111111111111111111111111111111" in results
+    res = results["tda_11111111111111111111111111111111"]
+    assert res.status == ExecutionStatus.PASSED
+    assert res.extensions["coaching"] == "Improve coaching"
+    assert res.extensions["falsification"] == "Contradicted by data"
+    assert "- Step 1" in res.extensions["remediation_steps"]
+
+
+@pytest.mark.asyncio
+async def test_evaluate_atom_boolean_batch_exception_group_propagation() -> None:
+    """Verify evaluate_atom_boolean_batch re-raises first exception from ExceptionGroup with RFC 7807 logging."""
+    node = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_11111111111111111111111111111111",
+            reasoning="reason 1",
+            resolved_claim="claim 1",
+            source_quote="valid quote text here",
+            source_id="src_1",
+            source_sequence_index=0,
+        ),
+        depends_on=[],
+    )
+
+    executor = AsyncMock(spec=LLMTaskExecutor)
+    client = AsyncMock(spec=LLMClient)
+    executor.execute_structured_task.side_effect = RuntimeError("Fatal LLM crash")
+
+    with pytest.raises(RuntimeError, match="Fatal LLM crash"):
+        await ExtractiveSensorService.evaluate_atom_boolean_batch(
+            nodes=[node],
+            executor=executor,
+            client=client,
+            context_text="Primary context text with valid quote text here",
+            target_locale="fi",
+        )
+
