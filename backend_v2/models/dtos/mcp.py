@@ -16,7 +16,16 @@ __all__ = [
 
 
 class TavilySearchRequestDTO(V2CoreBase):
-    """Payload sent to the Tavily search API endpoint."""
+    """Payload sent to the Tavily search API endpoint.
+
+    Attributes:
+        api_key: Tavily API key.
+        query: Search query string.
+        max_results: Maximum number of search results.
+        include_answer: Include concise AI answer.
+        include_raw_content: Include full raw content.
+        search_depth: Search depth (basic or advanced).
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -29,7 +38,14 @@ class TavilySearchRequestDTO(V2CoreBase):
 
 
 class MCPFunctionDefinitionDTO(V2CoreBase):
-    """Inner function definition schema for MCP tool declaration."""
+    """Inner function definition schema for MCP tool declaration.
+
+    Attributes:
+        name: Tool function identifier name.
+        description: Detailed tool description for LLM.
+        parameters: JSON schema parameter definitions.
+        strict: Whether schema enforces strict adherence.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
@@ -40,7 +56,12 @@ class MCPFunctionDefinitionDTO(V2CoreBase):
 
 
 class MCPToolDeclarationDTO(V2CoreBase):
-    """OpenAI-compatible function tool declaration for MCP."""
+    """OpenAI-compatible function tool declaration for MCP.
+
+    Attributes:
+        type: Tool declaration type.
+        function: Function definition.
+    """
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
