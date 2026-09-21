@@ -341,3 +341,77 @@ def test_stripped_base_tda_extraction_coerce_exact_quotes() -> None:
         exact_quotes=None,
     )
     assert dto.exact_quotes == []
+
+
+def test_grid_schema_strategy_instruction_block() -> None:
+    """Test GridSchemaStrategy with instruction type prompt block."""
+    strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
+    instruction_block = SystemRulePromptBlock(
+        id="blk_1111222233334444",
+        slug="inst-block",
+        label=I18nText(translations={"en": "Instruction Label"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.INSTRUCTION,
+    )
+
+    schema = strat.build_schema(
+        "InstructionSchema",
+        criteria=[instruction_block],
+        has_shuffled_atoms=False,
+        strictness_level=70,
+    )
+    assert "blk_1111222233334444" in schema.model_fields
+
+
+def test_grid_schema_strategy_numeric_and_boolean_output_extensions() -> None:
+    """Test GridSchemaStrategy with confidence and risk_flag output extensions."""
+    strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
+    block_with_ext = SystemRulePromptBlock(
+        id="blk_5555666677778888",
+        slug="ext-block",
+        label=I18nText(translations={"en": "Extended Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.SYSTEM_RULE,
+        type=BlockDataType.CRITERIA,
+        output_extensions=["confidence", "risk_flag", "custom_note"],
+    )
+
+    schema = strat.build_schema(
+        "ExtendedSchema",
+        criteria=[block_with_ext],
+        has_shuffled_atoms=False,
+        strictness_level=70,
+    )
+    assert "blk_5555666677778888" in schema.model_fields
+    nested_model = schema.model_fields["blk_5555666677778888"].annotation
+    assert nested_model is not None
+
+
+def test_grid_schema_strategy_compilation_failure_raises_app_exception(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that unexpected failure in dynamic schema create_model raises AppException."""
+    import pydantic
+    from backend_v2.exceptions import AppException, ErrorCodes
+
+    strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
+
+    original_create_model = pydantic.create_model
+
+    def failing_create_model(*args: Any, **kwargs: Any) -> Any:
+        if args and args[0] == "FailSchema":
+            raise RuntimeError("Simulated Pydantic compiler crash")
+        return original_create_model(*args, **kwargs)
+
+    monkeypatch.setattr("backend_v2.core.registry.create_model", failing_create_model)
+
+    with pytest.raises(AppException) as exc_info:
+        strat.build_schema(
+            "FailSchema",
+            criteria=[],
+            has_shuffled_atoms=False,
+            strictness_level=70,
+        )
+
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+

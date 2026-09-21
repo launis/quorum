@@ -4,9 +4,11 @@ Provides safe, static, global execution tracking of agentic
 routines linked with formal Pydantic schemas.
 """
 
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from enum import Enum, StrEnum
 from typing import Annotated, Any, cast
 
@@ -19,7 +21,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
@@ -31,6 +33,23 @@ from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 from backend_v2.utils.alias_engine import AliasEngine
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "CoercedBool",
+    "EvidenceType",
+    "GlobalMatricesBase",
+    "GridSchemaStrategy",
+    "HeroInsightSchemaStrategy",
+    "MarkdownSchemaStrategy",
+    "SchemaBuilderStrategy",
+    "StrippedBaseMatrixXAI",
+    "StrippedBaseTDAExtraction",
+    "TaskDefinition",
+    "TaskMetadataDTO",
+    "TaskRegistry",
+    "get_schema_strategy",
+    "register_sdui_schema",
+]
 
 
 class TaskMetadataDTO(BaseModel):
@@ -65,12 +84,14 @@ class TaskDefinition(V2CoreBase):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    name: str
-    handler: Callable[..., Any]
-    input_schema: type[BaseModel]
-    output_schema: type[BaseModel]
-    description: str | None = None
-    metadata: TaskMetadataDTO | None = None
+    name: Annotated[str, Field(description="Unique task identifier")]
+    handler: Annotated[Callable[..., Any], Field(description="Handing callable logic")]
+    input_schema: Annotated[type[BaseModel], Field(description="Input Pydantic model")]
+    output_schema: Annotated[type[BaseModel], Field(description="Output Pydantic model")]
+    description: Annotated[str | None, Field(default=None, description="Task description text")] = None
+    metadata: Annotated[
+        TaskMetadataDTO | None, Field(default=None, description="Associated TaskMetadataDTO structure")
+    ] = None
 
 
 class TaskRegistry:
@@ -474,7 +495,11 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             )
 
         def get_cat(c: PromptBlock) -> str:
-            return str(c.category_id.value) if isinstance(c.category_id, Enum) else str(c.category_id or "criteria")
+            if isinstance(c.category_id, Enum):
+                return str(c.category_id.value)
+            if c.category_id is not None:
+                return str(c.category_id)
+            return BlockDataType.CRITERIA.value
 
         matrix_blocks = [c for c in criteria if isinstance(c, MatrixPromptBlock)]
         if matrix_blocks:
@@ -496,22 +521,26 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 atom_id = str(tda.tda_id)
                                 if atom_id in dag_results:
                                     atom_item = dag_results[atom_id]
-                                    if (
-                                        isinstance(atom_item, AtomResultDTO)
-                                        and atom_item.status == ExecutionStatus.PASSED
-                                    ):
-                                        has_evidence = True
-                                        break
-                                    if "status" in atom_item and (
-                                        atom_item["status"] == "PASSED" or atom_item["status"] == ExecutionStatus.PASSED
-                                    ):
-                                        has_evidence = True
-                                        break
+                                    if isinstance(atom_item, AtomResultDTO):
+                                        if atom_item.status == ExecutionStatus.PASSED:
+                                            has_evidence = True
+                                            break
+                                    elif isinstance(atom_item, Mapping):
+                                        if "status" in atom_item:
+                                            raw_status = atom_item["status"]
+                                            if (
+                                                raw_status == ExecutionStatus.PASSED
+                                                or raw_status == ExecutionStatus.PASSED.value
+                                            ):
+                                                has_evidence = True
+                                                break
                     if not has_evidence:
                         logger.warning("Zero evidence found for Matrix %s, omitting from LLM schema", matrix_id)
                         continue
 
-                label_str = self._resolve_i18n(matrix.label, target_locale) if matrix.label else ""
+                label_str = ""
+                if matrix.label is not None:
+                    label_str = self._resolve_i18n(matrix.label, target_locale)
                 desc_val = f"Global matrix evaluation for '{matrix_id}' ({label_str})."
                 if matrix.ai_description:
                     desc_val += f" Objective: {matrix.ai_description}"
@@ -592,7 +621,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         if has_shuffled_atoms:
             schema_criteria = []
         else:
-            schema_criteria = [c for c in criteria if get_cat(c) != "matrix"]
+            schema_criteria = [c for c in criteria if get_cat(c) != PromptBlockCategory.MATRIX.value]
 
         for index, crit in enumerate(schema_criteria):
             crit_id = crit.id
@@ -602,13 +631,16 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
 
             alias_name = f"eval_{index + 1}"
 
-            if crit.category_id != "matrix" and crit.type == "instruction":
-                label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
-                cat_val = (
-                    crit.category_id.value
-                    if isinstance(crit.category_id, Enum)
-                    else (crit.category_id or "instruction")
-                )
+            if crit.category_id != PromptBlockCategory.MATRIX and crit.type == BlockDataType.INSTRUCTION:
+                label_str = ""
+                if crit.label is not None:
+                    label_str = self._resolve_i18n(crit.label, target_locale)
+                if isinstance(crit.category_id, Enum):
+                    cat_val = crit.category_id.value
+                elif crit.category_id is not None:
+                    cat_val = str(crit.category_id)
+                else:
+                    cat_val = BlockDataType.INSTRUCTION.value
 
                 desc_val = f"Instruction field for {cat_val} block '{crit_id}' ({label_str})."
 
@@ -625,19 +657,28 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             if not crit.label:
                 msg = f"PromptBlock '{crit_id}' is missing strict evaluation parameter: label."
                 logger.error(
-                    "PromptBlock structurally invalid.",
+                    "[SchemaRegistry] %s: %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    msg,
                     extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "block_id": crit_id},
                 )
-                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED})
+                raise ConfigurationError(msg, details={"error_code": ErrorCodes.VALIDATION_FAILED.value})
 
             base_class: type[BaseModel]
-            if crit.category_id == "matrix":
+            if crit.category_id == PromptBlockCategory.MATRIX:
                 base_class = StrippedBaseMatrixXAI
             else:
                 base_class = step_strict_class
 
-            label_str = self._resolve_i18n(crit.label, target_locale) if crit.label else ""
-            cat_val = crit.category_id.value if isinstance(crit.category_id, Enum) else (crit.category_id or "criteria")
+            label_str = ""
+            if crit.label is not None:
+                label_str = self._resolve_i18n(crit.label, target_locale)
+            if isinstance(crit.category_id, Enum):
+                cat_val = crit.category_id.value
+            elif crit.category_id is not None:
+                cat_val = str(crit.category_id)
+            else:
+                cat_val = BlockDataType.CRITERIA.value
             desc_val = f"Evaluation field for {cat_val} block '{crit_id}' ({label_str})."
 
             if crit.output_extensions:
@@ -722,7 +763,10 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         except Exception as e:
             msg = f"Critical failure while dynamically compiling LLM execution schema '{schema_name}'."
             logger.error(
-                "Dynamic schema compilation failed.",
+                "[SchemaRegistry] %s: %s (Error: %s)",
+                ErrorCodes.INTERNAL_SERVER_ERROR.name,
+                msg,
+                str(e),
                 extra={
                     "error_code": ErrorCodes.INTERNAL_SERVER_ERROR.name,
                     "schema_name": schema_name,
@@ -733,5 +777,5 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
             raise AppException(
                 message=msg,
                 status_code=500,
-                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR},
+                details={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
             ) from e
