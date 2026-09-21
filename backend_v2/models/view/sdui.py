@@ -237,14 +237,14 @@ class ReportView(V2CoreBase):
     ]
     inner_sdui_blocks: Annotated[
         list[AnySduiBlock], Field(default_factory=list, description="Ordered list of SDUI components")
-    ]
+    ] = Field(default_factory=list)
     metrics: Annotated[ReportViewMetricsDTO | None, Field(default=None, description="Global audit metrics")] = None
     system_notification: Annotated[
         SystemNotification | None, Field(default=None, description="Global notification/warning")
     ] = None
     references: Annotated[
         list[ReferenceItem], Field(default_factory=list, description="Global bibliography and references")
-    ]
+    ] = Field(default_factory=list)
 
 
 class StepProgressItem(V2CoreBase):
@@ -715,8 +715,12 @@ class SduiMetadataBlock(SduiBlockBase):
     model_config = ConfigDict(title="metadata", strict=True, extra="forbid")
     block_type: Literal["metadata"] = "metadata"
     title: Annotated[str, Field(..., description="Main title of the report")]
-    badges: Annotated[list[str], Field(default_factory=list, description="Highlighted badges")]
-    metadata_lines: Annotated[list[str], Field(default_factory=list, description="Metadata strings")]
+    badges: Annotated[list[str], Field(default_factory=list, description="Highlighted badges")] = Field(
+        default_factory=list
+    )
+    metadata_lines: Annotated[list[str], Field(default_factory=list, description="Metadata strings")] = Field(
+        default_factory=list
+    )
     costs: Annotated[str | None, Field(default=None, description="Formatted cost string")] = None
     tokens: Annotated[dict[str, str] | None, Field(default=None, description="Token usage details")] = None
     custom_preface_md: Annotated[str | None, Field(default=None, description="Optional preface markdown")] = None
@@ -746,7 +750,7 @@ class SduiRadarChartBlock(SduiBlockBase):
     model_config = ConfigDict(title="3d_matrix", strict=True, extra="forbid")
     block_type: Literal["3d_matrix"] = "3d_matrix"
     title: I18nText | None = None
-    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)] = Field(default_factory=list)
 
 
 class SduiScatterPlotBlock(SduiBlockBase):
@@ -755,7 +759,7 @@ class SduiScatterPlotBlock(SduiBlockBase):
     model_config = ConfigDict(title="2d_compare", strict=True, extra="forbid")
     block_type: Literal["2d_compare"] = "2d_compare"
     title: I18nText | None = None
-    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)] = Field(default_factory=list)
 
 
 class SduiQuadrantMatrixBlock(SduiBlockBase):
@@ -764,7 +768,7 @@ class SduiQuadrantMatrixBlock(SduiBlockBase):
     model_config = ConfigDict(title="quadrant_matrix", strict=True, extra="forbid")
     block_type: Literal["quadrant_matrix"] = "quadrant_matrix"
     title: I18nText | None = None
-    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)] = Field(default_factory=list)
 
 
 class SduiMatrixTableBlock(SduiBlockBase):
@@ -773,10 +777,12 @@ class SduiMatrixTableBlock(SduiBlockBase):
     model_config = ConfigDict(title="matrix_summary", strict=True, extra="forbid")
     block_type: Literal["matrix_summary"] = "matrix_summary"
     title: I18nText | None = None
-    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
-    matrix_column_labels: Annotated[dict[str, I18nText], Field(default_factory=dict)]
-    extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)]
-    matrix_visible_columns: Annotated[list[str], Field(default_factory=list)]
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)] = Field(default_factory=list)
+    matrix_column_labels: Annotated[dict[str, I18nText], Field(default_factory=dict)] = Field(default_factory=dict)
+    extension_labels: Annotated[dict[LaxXaiExtensionType, I18nText], Field(default_factory=dict)] = Field(
+        default_factory=dict
+    )
+    matrix_visible_columns: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)
 
 
 class SduiMetrics1DBlock(SduiBlockBase):
@@ -785,7 +791,7 @@ class SduiMetrics1DBlock(SduiBlockBase):
     model_config = ConfigDict(title="1d_metrics", strict=True, extra="forbid")
     block_type: Literal["1d_metrics"] = "1d_metrics"
     title: I18nText | None = None
-    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)]
+    axes: Annotated[list[MatrixScorecardRowDTO], Field(default_factory=list)] = Field(default_factory=list)
 
 
 AnySduiBlock = Annotated[
