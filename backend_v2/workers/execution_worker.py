@@ -34,12 +34,20 @@ logger = logging.getLogger(__name__)
 
 
 def _format_dlq_failure() -> dict[str, str]:
-    """Helper to format Dead Letter Queue failure payload."""
+    """Format Dead Letter Queue failure payload.
+
+    Returns:
+        Dictionary indicating DLQ failure status.
+    """
     return {"_dlq_status": "FAILED/DLQ"}
 
 
 def _record_dlq_error(err_msg: str) -> None:
-    """Log DLQ error details when failure status update fails."""
+    """Log DLQ error details when failure status update fails.
+
+    Args:
+        err_msg: Error message describing the update failure.
+    """
     logger.error(
         "[ExecutionWorker] %s",
         err_msg,
@@ -73,7 +81,10 @@ async def execute_workflow_job(
         The final workflow execution summary dictionary.
 
     Raises:
-        AppException: Inherited from execution logic.
+        AppException: With ErrorCodes.RESOURCE_NOT_FOUND if workflow or execution is missing,
+            ErrorCodes.CONFIGURATION_ERROR if target_locale is missing,
+            ErrorCodes.INTERNAL_SERVER_ERROR if trace hydration fails,
+            or ErrorCodes.VALIDATION_FAILED if trace metadata is corrupted.
     """
     msg = (
         f"[Job] Executing workflow: {workflow_id} "
@@ -82,7 +93,12 @@ async def execute_workflow_job(
     logger.info(msg)
 
     # LOGFIRE INTEGRATION: Bind execution_id to this trace context
-    span_execution_id = execution_id or "unknown"
+    if execution_id:
+        exec_id = execution_id
+    else:
+        exec_id = f"exe_{uuid.uuid4().hex}"
+    span_execution_id = exec_id
+
     with logfire.span("execute_workflow_job", tags={"execution_id": span_execution_id}):
         if organization_id and "organization_id" not in inputs:
             inputs["organization_id"] = organization_id
@@ -93,11 +109,16 @@ async def execute_workflow_job(
         engine = ctx["engine"]
         repository = ctx["repository"]
 
-        exec_id = execution_id or f"exe_{uuid.uuid4().hex}"
-
         try:
             workflow_dict = await repository.get_workflow(workflow_id)
             if not workflow_dict:
+                missing_msg = f"Workflow '{workflow_id}' not found."
+                logger.error(
+                    "[Worker] %s: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    missing_msg,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": workflow_id},
+                )
                 raise WorkflowNotFoundError(workflow_id)
 
             workflow_def = Workflow.model_validate(workflow_dict)
@@ -107,7 +128,12 @@ async def execute_workflow_job(
             execution_data = await repository.get_execution(exec_id)
             if not execution_data:
                 msg = f"Execution {exec_id} not found in DB before execution! Cannot resolve dynamic strictness."
-                logger.error("[Job] %s", msg)
+                logger.error(
+                    "[Job] %s: %s",
+                    ErrorCodes.RESOURCE_NOT_FOUND.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": exec_id},
+                )
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
                 )
@@ -117,13 +143,20 @@ async def execute_workflow_job(
 
             if not exec_record.target_locale:
                 msg = f"Strict Fail-Fast Enforced: Execution '{exec_record.id}' is missing mandatory 'target_locale'."
-                logger.error("[Worker] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                logger.error(
+                    "[Worker] %s: %s",
+                    ErrorCodes.CONFIGURATION_ERROR.name,
+                    msg,
+                    extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value, "execution_id": exec_record.id},
+                )
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value}
                 )
             set_language(exec_record.target_locale)
 
-            redis = ctx["redis"] if "redis" in ctx else None
+            redis = None
+            if "redis" in ctx:
+                redis = ctx["redis"]
             updated_exec_record = await engine.execute_workflow(
                 execution_id=exec_id,
                 workflow=workflow_def,
@@ -292,9 +325,9 @@ async def execute_workflow_job(
                     ]
                 )
                 for st in existing_steps:
-                    st_state = (
-                        updated_exec_record.step_states[st.id] if st.id in updated_exec_record.step_states else None
-                    )
+                    st_state = None
+                    if st.id in updated_exec_record.step_states:
+                        st_state = updated_exec_record.step_states[st.id]
                     actual_status = st_state.status if st_state else st.status
                     last_err = st_state.last_error if st_state else st.last_error
                     msg_code = st_state.message_code if st_state else st.message_code
@@ -302,7 +335,9 @@ async def execute_workflow_job(
                     actual_progress = st_state.progress if st_state else st.progress
                     actual_warning = st_state.has_warning if st_state else st.has_warning
 
-                    tel = step_telemetry[st.id] if st.id in step_telemetry else None
+                    tel = None
+                    if st.id in step_telemetry:
+                        tel = step_telemetry[st.id]
                     if tel:
                         updated_st = st.model_copy(
                             update={
@@ -395,10 +430,12 @@ async def execute_workflow_job(
                 )
 
                 if redis:
-                    with contextlib.suppress(Exception):
+                    with contextlib.suppress(OSError, RuntimeError, ConnectionError):
                         await redis.publish(f"execution:{exec_id}", ExecutionStatus.PASSED.value)
 
-            final_duration = duration_ms if exec_id else 0
+            final_duration: int = 0
+            if exec_id:
+                final_duration = duration_ms
             return {
                 "status": "COMPLETED",
                 "execution_id": exec_id,
