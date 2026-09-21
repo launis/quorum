@@ -4,6 +4,8 @@ Provides the endpoints for managing asynchronous workflow executions,
 including starting, resuming, tracking, and rendering results.
 """
 
+from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter, Query, Request, status
@@ -30,6 +32,8 @@ from backend_v2.models.dtos.report_artifact import ReportArtifactSummaryDTO
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ReportStatus
 from backend_v2.models.view.sdui import ReportView
+
+__all__ = ["router"]
 
 logger = logging.getLogger(__name__)
 
@@ -324,14 +328,14 @@ async def render_execution(
     matching_report: ReportArtifactSummaryDTO | None = None
     for r in existing_reports:
         if r.status == ReportStatus.READY:
-            if profile_id and r.profile_id == profile_id:
+            if profile_id is not None and r.profile_id == profile_id:
                 matching_report = r
                 break
-            elif not profile_id:
+            elif profile_id is None:
                 matching_report = r
                 break
 
-    if matching_report and not custom_preface_md and not local_time_str:
+    if matching_report is not None and custom_preface_md is None and local_time_str is None:
         fmt = format.lower()
         if fmt == "pdf":
             pdf_bytes, report_filename = await report_service.get_report_pdf_bytes(matching_report.id)
@@ -415,8 +419,11 @@ async def generate_pdf_async(
     Raises:
         AppException: If queuing fails or permission is denied.
     """
-    accept_language = request.headers.get("accept-language", None)
-    prof_id = profile_id or "default"
+    accept_language = request.headers.get("accept-language")
+    if profile_id is not None:
+        prof_id = profile_id
+    else:
+        prof_id = "default"
 
     await execution_service.enqueue_pdf_generation(
         initiator=current_user,
