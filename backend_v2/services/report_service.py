@@ -9,9 +9,10 @@ from typing import Any
 from backend_v2.database.interfaces import IUnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ExecutionNotReadyError, ResourceNotFoundError
 from backend_v2.models.core_base import generate_opaque_id
-from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.report_artifact import (
     PublicReportDTO,
     ReportArtifactCreateDTO,
@@ -22,6 +23,7 @@ from backend_v2.models.dtos.report_artifact import (
     ReportStoragePathsDTO,
 )
 from backend_v2.models.dtos.report_data import ReportDataDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import EntityPrefix, ExecutionStatus, ReportStatus
 from backend_v2.services.blueprint import BlueprintTransformer
 from backend_v2.services.export_service import ExportService
@@ -148,8 +150,27 @@ class ReportService:
             raise ResourceNotFoundError(resource_type="output_profile", resource_id=payload.profile_id)
 
         profile = OutputProfile.model_validate(profile_dict, strict=False)
+        if profile.workflow_id != execution.workflow_id:
+            logger.error(
+                "[ReportService] %s: Profile '%s' belongs to workflow '%s', not execution workflow '%s'.",
+                ErrorCodes.VALIDATION_FAILED.name,
+                payload.profile_id,
+                profile.workflow_id,
+                execution.workflow_id,
+                extra={
+                    "error_code": ErrorCodes.VALIDATION_FAILED.value,
+                    "profile_id": payload.profile_id,
+                    "workflow_id": execution.workflow_id,
+                },
+            )
+            raise AppException(
+                message=f"Output profile '{payload.profile_id}' does not belong to workflow '{execution.workflow_id}'.",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            )
+
         report_id = generate_opaque_id(EntityPrefix.REPORT)
-        resolved_title = profile.name.resolve(payload.locale) or f"Report {report_id}"
+        resolved_title = profile.name.resolve(payload.locale)
         now = datetime.now(timezone.utc)
 
         report = ReportArtifact(
@@ -167,6 +188,87 @@ class ReportService:
             updated_at=now,
         )
         return await self.repo.create_report_artifact(report)
+
+    async def get_or_create_default_artifact(
+        self,
+        execution_id: str,
+        profile_id: str | None = None,
+        locale: str | None = None,
+    ) -> ReportArtifact:
+        """Retrieves an existing matching report artifact or creates and persists a default pending artifact.
+
+        Args:
+            execution_id: Target execution identifier.
+            profile_id: Optional output profile identifier.
+            locale: Optional target locale code.
+
+        Returns:
+            The existing or newly created ReportArtifact model.
+
+        Raises:
+            ResourceNotFoundError: If execution or target workflow/profile does not exist.
+            AppException: If execution is not ready or profile mismatch occurs.
+        """
+        exec_dict = await self.repo.get_execution(execution_id)
+        if not exec_dict:
+            logger.error(
+                "[ReportService] %s: Execution '%s' not found.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                execution_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": execution_id},
+            )
+            raise ResourceNotFoundError(resource_type="execution", resource_id=execution_id)
+
+        execution = ExecutionRecord.model_validate(exec_dict, strict=False)
+        resolved_locale = locale.strip() if locale and locale.strip() else execution.target_locale
+
+        target_profile_id: str | None = profile_id
+        if not target_profile_id:
+            if execution.output_profile_id:
+                target_profile_id = execution.output_profile_id
+            elif execution.active_profile_id:
+                target_profile_id = execution.active_profile_id
+            else:
+                wf_dict = await self.repo.get_workflow(execution.workflow_id)
+                if not wf_dict:
+                    logger.error(
+                        "[ReportService] %s: Workflow '%s' not found for execution '%s'.",
+                        ErrorCodes.RESOURCE_NOT_FOUND.name,
+                        execution.workflow_id,
+                        execution_id,
+                        extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "workflow_id": execution.workflow_id},
+                    )
+                    raise ResourceNotFoundError(resource_type="workflow", resource_id=execution.workflow_id)
+                workflow = Workflow.model_validate(wf_dict, strict=False)
+                if workflow.default_profile_id:
+                    target_profile_id = workflow.default_profile_id
+                else:
+                    all_profiles = await self.repo.get_all_output_profiles()
+                    matching_profiles = [p for p in all_profiles if p.workflow_id == execution.workflow_id]
+                    if not matching_profiles:
+                        logger.error(
+                            "[ReportService] %s: No output profiles found for workflow '%s'.",
+                            ErrorCodes.RESOURCE_NOT_FOUND.name,
+                            execution.workflow_id,
+                            extra={
+                                "error_code": ErrorCodes.RESOURCE_NOT_FOUND.value,
+                                "workflow_id": execution.workflow_id,
+                            },
+                        )
+                        raise ResourceNotFoundError(resource_type="output_profile", resource_id=execution.workflow_id)
+                    target_profile_id = matching_profiles[0].id
+
+        existing_reports = await self.repo.list_report_artifacts_by_execution(execution_id)
+        for r in existing_reports:
+            if r.profile_id == target_profile_id and r.locale == resolved_locale:
+                return r
+
+        create_dto = ReportArtifactCreateDTO(
+            execution_id=execution_id,
+            profile_id=target_profile_id,
+            locale=resolved_locale,
+        )
+        return await self.create_report_artifact(create_dto)
 
     async def compile_and_persist_artifact(self, report_id: str, arq_pool: Any) -> None:
         """Sets status to GENERATING and enqueues background artifact compilation.
@@ -186,12 +288,17 @@ class ReportService:
             report_id: Canonical ID of the report artifact to compile.
 
         Raises:
-            ResourceNotFoundError: If execution does not exist.
+            ResourceNotFoundError: If report or execution does not exist.
         """
         report = await self.repo.get_report_artifact(report_id)
         if not report:
-            logger.warning("[ReportService] Report %s missing; skipping compilation.", report_id)
-            return
+            logger.error(
+                "[ReportService] %s: Report '%s' not found for compilation.",
+                ErrorCodes.RESOURCE_NOT_FOUND.name,
+                report_id,
+                extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "report_id": report_id},
+            )
+            raise ResourceNotFoundError(resource_type="report_artifact", resource_id=report_id)
 
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
         try:
@@ -271,6 +378,44 @@ class ReportService:
                 report_id,
                 ReportArtifactUpdateDTO(status=ReportStatus.READY, storage_paths=paths, metadata=meta),
             )
+
+            v_step_id = f"sys_render_{report.profile_id}"
+            exec_refreshed = await self.repo.get_execution(report.execution_id, hydrate=False)
+            step_states = None
+            steps = None
+            if exec_refreshed:
+                exec_obj = ExecutionRecord.model_validate(exec_refreshed, strict=False)
+                new_states = dict(exec_obj.step_states)
+                if v_step_id in new_states:
+                    old_step = new_states[v_step_id]
+                    new_states[v_step_id] = old_step.model_copy(
+                        update={"status": ExecutionStatus.PASSED, "progress": 100}
+                    )
+                else:
+                    new_states[v_step_id] = ExecutionStep(
+                        id=v_step_id,
+                        label="Report Render",
+                        status=ExecutionStatus.PASSED,
+                        progress=100,
+                        has_warning=False,
+                    )
+                new_steps = [
+                    s.model_copy(update={"status": ExecutionStatus.PASSED, "progress": 100}) if s.id == v_step_id else s
+                    for s in exec_obj.steps
+                ]
+                if not any(s.id == v_step_id for s in exec_obj.steps):
+                    new_steps.append(new_states[v_step_id])
+                step_states = new_states
+                steps = new_steps
+
+            await self.repo.update_execution(
+                report.execution_id,
+                ExecutionUpdateDTO(
+                    pdf_report_path=pdf_path,
+                    steps=steps,
+                    step_states=step_states,
+                ),
+            )
             logger.info("[ReportService] Successfully compiled report artifact: %s", report_id)
         except Exception as exc:
             await self._dispatch_report_compilation_dlq(report_id, exc)
@@ -283,7 +428,13 @@ class ReportService:
             exc: Caught exception causing the compilation failure.
         """
         msg = f"Artifact compilation failed for report {report_id}: {exc}"
-        logger.error("[ReportService] %s: %s", ErrorCodes.INTERNAL_SERVER_ERROR.name, msg, exc_info=True)
+        logger.error(
+            "[ReportService] %s: %s",
+            ErrorCodes.INTERNAL_SERVER_ERROR.name,
+            msg,
+            exc_info=True,
+            extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value, "report_id": report_id},
+        )
         await self.repo.update_report_artifact(
             report_id,
             ReportArtifactUpdateDTO(status=ReportStatus.FAILED, error_message=str(exc)),

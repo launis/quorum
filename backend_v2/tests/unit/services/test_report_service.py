@@ -7,12 +7,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend_v2.exceptions import AppException, ResourceNotFoundError
+from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.report_artifact import ReportArtifact
+from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
@@ -365,3 +366,211 @@ async def test_regenerate_report_artifact() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     await service.regenerate_report_artifact(report.id, arq)
     arq.enqueue_job.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_create_report_artifact_workflow_id_mismatch() -> None:
+    """Verify create_report_artifact fails fast when profile does not belong to execution workflow."""
+    repo = AsyncMock()
+    repo.get_execution.return_value = _create_dummy_execution().model_dump(mode="json")
+    mismatched_profile = _create_dummy_profile().model_copy(update={"workflow_id": "wor_other_workflow_123"})
+    repo.get_output_profile_by_id.return_value = mismatched_profile.model_dump(mode="json")
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    payload = ReportArtifactCreateDTO(
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+        locale="fi",
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        await service.create_report_artifact(payload)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_default_artifact_returns_existing() -> None:
+    """Verify get_or_create_default_artifact returns existing report artifact if already present."""
+    repo = AsyncMock()
+    execution = _create_dummy_execution()
+    repo.get_execution.return_value = execution.model_dump(mode="json")
+    existing_report = _create_dummy_report()
+    repo.list_report_artifacts_by_execution.return_value = [existing_report]
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    result = await service.get_or_create_default_artifact(
+        execution_id=execution.id,
+        profile_id="prf_1234567890abcdef",
+        locale="fi",
+    )
+
+    assert result.id == existing_report.id
+    repo.create_report_artifact.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_default_artifact_creates_when_none() -> None:
+    """Verify get_or_create_default_artifact creates a new report artifact using execution default profile."""
+    repo = AsyncMock()
+    execution = _create_dummy_execution()
+    execution = execution.model_copy(update={"output_profile_id": "prf_1234567890abcdef"})
+    repo.get_execution.return_value = execution.model_dump(mode="json")
+    repo.list_report_artifacts_by_execution.return_value = []
+    repo.get_output_profile_by_id.return_value = _create_dummy_profile().model_dump(mode="json")
+    repo.create_report_artifact.side_effect = lambda rep: rep
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    result = await service.get_or_create_default_artifact(
+        execution_id=execution.id,
+    )
+
+    assert result.execution_id == execution.id
+    assert result.profile_id == "prf_1234567890abcdef"
+    assert result.locale == "fi"
+    repo.create_report_artifact.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_syncs_execution_record(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify compilation updates ExecutionRecord.pdf_report_path and sys_render step state."""
+    repo = AsyncMock()
+    report = _create_dummy_report()
+    repo.get_report_artifact.return_value = report
+    execution = _create_dummy_execution()
+    repo.get_execution.return_value = execution.model_dump(mode="json")
+
+    storage = AsyncMock()
+    storage.save.side_effect = lambda path, data: path
+
+    export_service = AsyncMock()
+    export_service.export_excel.return_value = (b"excel_bytes", "report.xlsx")
+    export_service.export_flat_csv = MagicMock(return_value=(b"csv_bytes", "report.csv"))
+
+    pdf_service = AsyncMock()
+    pdf_service.generate_execution_pdf.return_value = b"pdf_bytes"
+
+    dummy_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1234567890abcdef",
+        profile_id="prf_1234567890abcdef",
+    )
+    from backend_v2.services import blueprint
+
+    monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
+
+    service = ReportService(repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service)
+    await service.process_artifact_compilation(report.id)
+
+    repo.update_execution.assert_called_once()
+    update_dto = repo.update_execution.call_args[0][1]
+    assert update_dto.pdf_report_path == f"artifacts/reports/{report.id}/report.pdf"
+    assert update_dto.step_states is not None
+    assert f"sys_render_{report.profile_id}" in update_dto.step_states
+    assert update_dto.step_states[f"sys_render_{report.profile_id}"].status == ExecutionStatus.PASSED
+    assert update_dto.step_states[f"sys_render_{report.profile_id}"].progress == 100
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_default_artifact_execution_not_found() -> None:
+    """Verify get_or_create_default_artifact raises ResourceNotFoundError if execution does not exist."""
+    repo = AsyncMock()
+    repo.get_execution.return_value = None
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_or_create_default_artifact("exe_nonexistent")
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_default_artifact_workflow_default_and_fallback() -> None:
+    """Verify get_or_create_default_artifact resolves workflow default_profile_id and fallback profiles."""
+    repo = AsyncMock()
+    execution = _create_dummy_execution()
+    repo.get_execution.return_value = execution.model_dump(mode="json")
+    repo.list_report_artifacts_by_execution.return_value = []
+
+    # Case 1: Workflow has default_profile_id
+    workflow = Workflow(
+        id=execution.workflow_id,
+        slug="standard_flow",
+        name="Standard Workflow",
+        description="Desc",
+        status="active",
+        version=1,
+        default_profile_id="prf_0000000000000001",
+        model_registry_id="cfg_model_registry_01",
+        historical_context_mode="DISABLED",
+    )
+    repo.get_workflow.return_value = workflow.model_dump(mode="json")
+    default_profile = _create_dummy_profile(profile_id="prf_0000000000000001")
+    repo.get_output_profile_by_id.return_value = default_profile.model_dump(mode="json")
+    repo.create_report_artifact.side_effect = lambda rep: rep
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    res1 = await service.get_or_create_default_artifact(execution.id)
+    assert res1.profile_id == "prf_0000000000000001"
+
+    # Case 2: Workflow default_profile_id is None, falls back to first matching profile
+    workflow_no_default = workflow.model_copy(update={"default_profile_id": None})
+    repo.get_workflow.return_value = workflow_no_default.model_dump(mode="json")
+    fallback_profile = _create_dummy_profile(profile_id="prf_0000000000000002")
+    repo.get_all_output_profiles.return_value = [fallback_profile]
+    repo.get_output_profile_by_id.return_value = fallback_profile.model_dump(mode="json")
+
+    res2 = await service.get_or_create_default_artifact(execution.id)
+    assert res2.profile_id == "prf_0000000000000002"
+
+    # Case 3: No matching profiles raises ResourceNotFoundError
+    repo.get_all_output_profiles.return_value = []
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_or_create_default_artifact(execution.id)
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_missing_report_raises() -> None:
+    """Verify process_artifact_compilation raises ResourceNotFoundError if report does not exist."""
+    repo = AsyncMock()
+    repo.get_report_artifact.return_value = None
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+
+    with pytest.raises(ResourceNotFoundError):
+        await service.process_artifact_compilation("rep_missing")
+
+
+@pytest.mark.asyncio
+async def test_read_artifact_failures() -> None:
+    """Verify _read_artifact raises AppException when not ready or storage read fails."""
+    repo = AsyncMock()
+    pending_report = _create_dummy_report(status=ReportStatus.PENDING)
+    ready_report = _create_dummy_report(status=ReportStatus.READY)
+
+    storage = AsyncMock()
+    storage.read.side_effect = OSError("Read failed")
+
+    service = ReportService(repo=repo, storage_driver=storage)
+
+    with pytest.raises(AppException) as exc_info1:
+        await service._read_artifact(pending_report, "artifacts/reports/rep_1/report.pdf", "PDF")
+    assert exc_info1.value.status_code == 409
+
+    with pytest.raises(AppException) as exc_info2:
+        await service._read_artifact(ready_report, "artifacts/reports/rep_1/report.pdf", "PDF")
+    assert exc_info2.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_get_public_report_execution_missing_raises() -> None:
+    """Verify get_public_report raises ResourceNotFoundError if underlying execution is missing."""
+    repo = AsyncMock()
+    report = _create_dummy_report(status=ReportStatus.READY)
+    repo.get_report_artifact.return_value = report
+    repo.get_execution.return_value = None
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    with pytest.raises(ResourceNotFoundError):
+        await service.get_public_report(report.id)
+
+
