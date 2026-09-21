@@ -1,16 +1,16 @@
-from __future__ import annotations
-
 """Matrix Explanation Service.
 
 Abstracts the matrix quote assembly and justification logic out of the
 synthesis distiller to prevent God Code and maintain Single Responsibility.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
@@ -39,9 +39,9 @@ class QuoteCandidateDTO(BaseModel):
 
     model_config = ConfigDict(extra="forbid", strict=True, frozen=True)
 
-    claim_label: str
-    quote: str
-    quote_length: int
+    claim_label: Annotated[str, Field(description="Localized label of the associated claim.")]
+    quote: Annotated[str, Field(description="Evidence quote text string.")]
+    quote_length: Annotated[int, Field(description="Character length of the quote.")]
 
 
 class MatrixExplanationService:
@@ -79,14 +79,15 @@ class MatrixExplanationService:
         # Hoist limits via Tripartite Configuration Resolution SSOT
         settings_obj = get_settings()
         max_quote_len = settings_obj.max_synthesis_quote_length
-        effective_max_quotes = (
-            max_quotes_per_matrix if max_quotes_per_matrix is not None else settings_obj.max_synthesis_quotes_per_matrix
-        )
-        effective_max_unmet = (
-            max_unmet_criteria
-            if max_unmet_criteria is not None
-            else settings_obj.max_synthesis_unmet_criteria_per_matrix
-        )
+        if max_quotes_per_matrix is not None:
+            effective_max_quotes = max_quotes_per_matrix
+        else:
+            effective_max_quotes = settings_obj.max_synthesis_quotes_per_matrix
+
+        if max_unmet_criteria is not None:
+            effective_max_unmet = max_unmet_criteria
+        else:
+            effective_max_unmet = settings_obj.max_synthesis_unmet_criteria_per_matrix
 
         # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
@@ -260,7 +261,10 @@ class MatrixExplanationService:
                     )
 
                 final_justification = "\n\n".join(justification_sections).strip()
-                resolved_label = title_map[block_id.lower()] if block_id.lower() in title_map else block_id
+                if block_id.lower() in title_map:
+                    resolved_label = title_map[block_id.lower()]
+                else:
+                    resolved_label = block_id
 
                 matrices_to_explain_map[block_id] = MatrixExplanationContextDTO(
                     real_matrix_id=block_id,
