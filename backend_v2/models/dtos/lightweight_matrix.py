@@ -3,12 +3,23 @@
 Defines schemas for matrix scoring outputs, level statistics, and XAI logs.
 """
 
+from __future__ import annotations
+
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxExecutionStatus, LaxXaiExtensionType
+
+__all__ = [
+    "LevelStatsDTO",
+    "LightweightMatrixOutput",
+    "MergedFactsDTO",
+    "OutputProfileConfig",
+    "ScoringResultDTO",
+    "XAILogDto",
+]
 
 
 class OutputProfileConfig(V2CoreBase):
@@ -21,8 +32,12 @@ class OutputProfileConfig(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    visible_block_extensions: list[LaxXaiExtensionType]
-    visible_workflow_extensions: list[LaxXaiExtensionType]
+    visible_block_extensions: Annotated[
+        list[LaxXaiExtensionType], Field(description="List of extensions enabled at the block level")
+    ]
+    visible_workflow_extensions: Annotated[
+        list[LaxXaiExtensionType], Field(description="List of extensions enabled globally across the workflow")
+    ]
 
 
 class XAILogDto(V2CoreBase):
@@ -35,8 +50,11 @@ class XAILogDto(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    pedagogical_key: str
-    engine_debug_trace: Annotated[dict[str, Any], Field(default_factory=dict)]
+    pedagogical_key: Annotated[str, Field(description="The designated mapping key for UI-facing explanations")]
+    engine_debug_trace: Annotated[
+        dict[str, Any],
+        Field(default_factory=dict, description="System dictionary containing mathematical/diagnostic reasoning"),
+    ] = Field(default_factory=dict)
 
 
 class LevelStatsDTO(V2CoreBase):
@@ -50,9 +68,9 @@ class LevelStatsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    hits: int | float
-    total: int | float
-    dlqs: int = 0
+    hits: Annotated[int | float, Field(description="Number of passing criteria at this level")]
+    total: Annotated[int | float, Field(description="Total number of criteria at this level")]
+    dlqs: Annotated[int, Field(default=0, description="Number of items that hit the dead letter queue")] = 0
 
 
 class LightweightMatrixOutput(V2CoreBase):
@@ -67,19 +85,40 @@ class LightweightMatrixOutput(V2CoreBase):
         evaluated_atoms: Mapping tracking which structural logic atoms were hit.
         extensions: Arbitrarily mapped XAI extensions dict for UI components.
         allowed_extensions: Explicit list restricting dynamic schema mappings.
+        atom_quotes: Atom quotes list if provided.
     """
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    raw_score: float | None = None
-    normalized_score: float | None = None
-    level_breakdown: dict[str, LevelStatsDTO] | None = None
-    justification: str = ""
-    xai_log: XAILogDto | None = None
-    evaluated_atoms: Annotated[dict[str, LaxExecutionStatus], Field(default_factory=dict)]
-    extensions: Annotated[dict[LaxXaiExtensionType, Any], Field(default_factory=dict)]
-    allowed_extensions: list[LaxXaiExtensionType] | None = None
-    atom_quotes: list[Any] | None = None
+    raw_score: Annotated[
+        float | None, Field(default=None, description="Original unnormalized float evaluation score")
+    ] = None
+    normalized_score: Annotated[
+        float | None, Field(default=None, description="Final scaled score ranging from 0.0 to 100.0")
+    ] = None
+    level_breakdown: Annotated[
+        dict[str, LevelStatsDTO] | None,
+        Field(default=None, description="Complex dictionary mapping multi-tier performance indicators"),
+    ] = None
+    justification: Annotated[
+        str, Field(default="", description="Primary text string explaining the dimension result")
+    ] = ""
+    xai_log: Annotated[
+        XAILogDto | None, Field(default=None, description="Nested logging details isolating debugging data")
+    ] = None
+    evaluated_atoms: Annotated[
+        dict[str, LaxExecutionStatus],
+        Field(default_factory=dict, description="Mapping tracking which structural logic atoms were hit"),
+    ] = Field(default_factory=dict)
+    extensions: Annotated[
+        dict[LaxXaiExtensionType, Any],
+        Field(default_factory=dict, description="Arbitrarily mapped XAI extensions dict for UI components"),
+    ] = Field(default_factory=dict)
+    allowed_extensions: Annotated[
+        list[LaxXaiExtensionType] | None,
+        Field(default=None, description="Explicit list restricting dynamic schema mappings"),
+    ] = None
+    atom_quotes: Annotated[list[Any] | None, Field(default=None, description="Atom quotes list if provided")] = None
 
     @field_validator("normalized_score")
     @classmethod
@@ -110,6 +149,8 @@ class ScoringResultDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    score: float
-    xai_log: XAILogDto
-    breakdown: dict[str, LevelStatsDTO]
+    score: Annotated[float, Field(description="The calculated raw score mapped between math_min and math_max")]
+    xai_log: Annotated[XAILogDto, Field(description="Structured XAI trace and pedagogical key")]
+    breakdown: Annotated[
+        dict[str, LevelStatsDTO], Field(description="Level breakdown dictionary mapping levels to metric counts")
+    ]
