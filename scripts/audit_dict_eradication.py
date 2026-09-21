@@ -133,30 +133,58 @@ class DictEradicationVisitor(ast.NodeVisitor):
         return False
 
     def _find_nested_dict_subscript(self, node: ast.AST | None) -> ast.Subscript | None:
-        """Finds any nested dictionary annotation like dict[..., dict[...]] in the AST node."""
+        """Finds any nested dictionary or primitive collection obsession annotation in the AST node."""
         if node is None:
             return None
         for sub in ast.walk(node):
-            if isinstance(sub, ast.Subscript):
-                is_outer_dict = False
-                match sub.value:
-                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
-                        is_outer_dict = True
+            if not isinstance(sub, ast.Subscript):
+                continue
+
+            # Pattern 1: Outer dict with inner dict or collection of dicts
+            is_outer_dict = False
+            match sub.value:
+                case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                    is_outer_dict = True
+                case _:
+                    pass
+            if is_outer_dict:
+                match sub.slice:
+                    case ast.Tuple(elts=elements) if len(elements) == 2:
+                        val_type = elements[1]
+                        for inner in ast.walk(val_type):
+                            if inner is val_type and isinstance(inner, ast.Name) and inner.id in ("dict", "Dict"):
+                                return sub
+                            if isinstance(inner, ast.Subscript):
+                                match inner.value:
+                                    case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                                        return sub
+                                    case _:
+                                        pass
                     case _:
                         pass
-                if is_outer_dict:
-                    match sub.slice:
-                        case ast.Tuple(elts=elements) if len(elements) == 2:
-                            val_type = elements[1]
-                            for inner in ast.walk(val_type):
-                                if isinstance(inner, ast.Subscript):
-                                    match inner.value:
-                                        case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
-                                            return sub
-                                        case _:
-                                            pass
-                        case _:
-                            pass
+
+            # Pattern 2: Outer collection (list, List, Sequence, Iterable, set, Set) containing dict
+            is_outer_collection = False
+            match sub.value:
+                case (
+                    ast.Name(id="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
+                    | ast.Attribute(attr="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
+                ):
+                    is_outer_collection = True
+                case _:
+                    pass
+            if is_outer_collection:
+                for inner in ast.walk(sub.slice):
+                    if isinstance(inner, ast.Subscript):
+                        match inner.value:
+                            case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
+                                return sub
+                            case _:
+                                pass
+                    elif isinstance(inner, ast.Name) and inner.id in ("dict", "Dict"):
+                        return sub
+                    elif isinstance(inner, ast.Attribute) and inner.attr in ("dict", "Dict"):
+                        return sub
         return None
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
@@ -196,8 +224,7 @@ class DictEradicationVisitor(ast.NodeVisitor):
                             line=node.lineno,
                             metric="naked_dict_annotations",
                             message=(
-                                f"Naked dict return type annotation in `{node.name}`: "
-                                f"`{ast.unparse(node.returns)}`"
+                                f"Naked dict return type annotation in `{node.name}`: `{ast.unparse(node.returns)}`"
                             ),
                         )
                     )
@@ -583,7 +610,7 @@ def main(argv: list[str] | None = None) -> int:
     if isinstance(sys.stdout, io.TextIOWrapper):
         try:
             sys.stdout.reconfigure(encoding="utf-8")
-        except (AttributeError, io.UnsupportedOperation):
+        except AttributeError, io.UnsupportedOperation:
             pass
 
     print("=" * 80)

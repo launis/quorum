@@ -91,15 +91,19 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
 def _is_dict_type_node(node: ast.AST) -> bool:
     """Checks if an AST node represents a dictionary type or container/union with a dictionary."""
     match node:
-        case ast.Name(id="dict" | "Dict"):
+        case ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict"):
             return True
-        case ast.Subscript(value=ast.Name(id="dict" | "Dict")):
+        case ast.Subscript(value=ast.Name(id="dict" | "Dict") | ast.Attribute(attr="dict" | "Dict")):
             return True
-        case ast.Subscript(value=ast.Name(id="list" | "List"), slice=inner):
+        case ast.Subscript(
+            value=ast.Name(id="list" | "List" | "Sequence" | "Iterable" | "set" | "Set")
+            | ast.Attribute(attr="list" | "List" | "Sequence" | "Iterable" | "set" | "Set"),
+            slice=inner,
+        ):
             return _is_dict_type_node(inner)
         case ast.BinOp(left=left, op=ast.BitOr(), right=right):
             return _is_dict_type_node(left) or _is_dict_type_node(right)
-        case ast.Subscript(value=ast.Name(id="Union"), slice=slice_node):
+        case ast.Subscript(value=ast.Name(id="Union") | ast.Attribute(attr="Union"), slice=slice_node):
             if isinstance(slice_node, ast.Tuple):
                 return any(_is_dict_type_node(elt) for elt in slice_node.elts)
             return _is_dict_type_node(slice_node)

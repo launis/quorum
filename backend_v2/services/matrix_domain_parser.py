@@ -104,7 +104,7 @@ class MatrixDomainParser:
         evaluative_matrices: list[MatrixScorecardRowDTO] = []
         informational_matrices: list[MatrixScorecardRowDTO] = []
         all_parsed_matrices: dict[str, MatrixScorecardRowDTO] = {}
-        step_scorecard_atoms_dict: dict[str, dict[str, ScorecardAtomDTO]] = {}
+        step_scorecard_atoms_accum: dict[str, list[ScorecardAtomDTO]] = {}
 
         # Safe attribute access using V2 Models
         display_scale = profile.display_scale
@@ -450,7 +450,9 @@ class MatrixDomainParser:
                                         ) from e
 
                                     evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms_dict.setdefault(step_id, {})[atom_id] = s_atom
+                                    if step_id not in step_scorecard_atoms_accum:
+                                        step_scorecard_atoms_accum[step_id] = []
+                                    step_scorecard_atoms_accum[step_id].append(s_atom)
                                 else:
                                     dummy_reasoning = ReasoningStepDTO(
                                         step_1_identify_premise="",
@@ -475,7 +477,9 @@ class MatrixDomainParser:
                                         human_override=None,
                                     )
                                     evaluated_atoms_list.append(s_atom)
-                                    step_scorecard_atoms_dict.setdefault(step_id, {})[atom_id] = s_atom
+                                    if step_id not in step_scorecard_atoms_accum:
+                                        step_scorecard_atoms_accum[step_id] = []
+                                    step_scorecard_atoms_accum[step_id].append(s_atom)
 
             score_display_label = "-"
             if score_float is not None:
@@ -631,8 +635,8 @@ class MatrixDomainParser:
                 informational_matrices.append(row_dto)
 
         step_scorecard_atoms = {
-            step_k: ScorecardAtomCollectionDTO(atoms=atom_dict)
-            for step_k, atom_dict in step_scorecard_atoms_dict.items()
+            step_k: ScorecardAtomCollectionDTO(atoms={atom.atom_id: atom for atom in atom_list})
+            for step_k, atom_list in step_scorecard_atoms_accum.items()
         }
 
         return ParsedMatricesResultDTO(

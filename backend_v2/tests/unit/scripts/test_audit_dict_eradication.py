@@ -62,22 +62,23 @@ def test_audit_dict_eradication_detects_naked_dict(tmp_path: Path) -> None:
 
 
 def test_audit_dict_eradication_detects_primitive_obsession_nested_dict(tmp_path: Path) -> None:
-    """Verifies detection of Primitive Obsession nested dicts (e.g. dict[str, dict[str, int]])."""
+    """Verifies detection of Primitive Obsession nested dicts and list[dict[...]] collections."""
     dtos_dir = tmp_path / "dtos"
     dtos_dir.mkdir(parents=True, exist_ok=True)
     target_file = dtos_dir / "stats_dto.py"
     target_file.write_text(
-        "level_breakdown: dict[str, dict[str, int]] | None = None\n\n"
-        "def compute_stats(breakdown: dict[str, dict[str, int]]) -> dict[str, dict[str, int]]:\n"
+        "level_breakdown: dict[str, dict[str, int]] | None = None\n"
+        "messages: list[dict[str, str]] | None = None\n\n"
+        "def compute_stats(breakdown: dict[str, dict[str, int]], items: list[dict[str, str]]) -> dict[str, dict[str, int]]:\n"
         "    return breakdown\n\n"
-        "async def async_compute(data: dict[str, dict[str, int]]) -> dict[str, dict[str, int]]:\n"
-        "    return data\n",
+        "async def async_compute(data: dict[str, dict[str, int]]) -> list[dict[str, str]]:\n"
+        "    return []\n",
         encoding="utf-8",
     )
 
     report = audit_dict_eradication(target_file)
-    assert report.primitive_obsession_nested_dicts == 5
-    assert report.total_violations >= 5
+    assert report.primitive_obsession_nested_dicts == 7
+    assert report.total_violations >= 7
 
 
 def test_audit_dict_eradication_detects_service_duck_typing(tmp_path: Path) -> None:
