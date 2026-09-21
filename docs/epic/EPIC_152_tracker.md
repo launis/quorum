@@ -195,11 +195,11 @@
   - [x] @[backend_v2/services/orchestrator/strategies/base.py]
   - [x] @[backend_v2/services/orchestrator/strategies/logic.py]
   - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
-  - [ ] @[backend_v2/services/orchestrator/context_router.py]
-  - [ ] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
-  - [ ] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
-  - [ ] @[backend_v2/services/orchestrator/rag_preflight_service.py]
+  - [x] @[backend_v2/services/orchestrator/extractive_sensor_service.py]
+  - [x] @[backend_v2/services/orchestrator/context_router.py]
+  - [x] @[backend_v2/services/orchestrator/extraction_schema_factory.py]
+  - [x] @[backend_v2/services/orchestrator/matrix_explanation_service.py]
+  - [x] @[backend_v2/services/orchestrator/rag_preflight_service.py]
   - [ ] @[backend_v2/services/orchestrator/ast_evaluator.py]
   - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
   - [ ] @[backend_v2/services/mcp/tavily_search_client.py]
@@ -384,9 +384,19 @@
     49. `backend_v2/services/orchestrator/strategies/base.py` (Commit `fd149b9c`): Hoisted `EngineExecutionRequest` import to top-level, eliminating inline mid-file imports. Converted all `StrategyContext` fields to PEP 593 `Annotated` syntax. Eradicated 4 `QGR016` banned ternary fallbacks in `run_pre_hooks` and `run_post_hooks`. Expanded `test_base.py` achieving 97% test coverage (13/13 tests passed), 0 AST guardrail violations, verified via audit matrix.
     50. `backend_v2/services/orchestrator/strategies/logic.py` (Commit `d963990d`): Added explicit `__all__ = ["LogicNodeStrategy"]`. Eradicated ternary lazy fallbacks in state extraction and delta unpacking. Replaced `logger.error` with RFC 7807 structured logging and added explicit `AppException` error codes to execute docstring. Expanded `test_logic.py` with missing hook, BaseModel delta, and export tests achieving 100% test coverage (8/8 tests passed), 0 AST guardrail violations, verified via audit matrix.
     51. `backend_v2/services/orchestrator/strategies/llm.py` (Commit `1f671034`): Eradicated all 4 AST `QGR016` ternary fallbacks in `_extract_step_context_metadata`, `execute`, and `_step_metadata` generation. Expanded `test_llm.py` covering blackboard context extraction, nested mapping results, debug logging handler, and synthesis engine metadata packaging, achieving 92% test coverage (33/33 tests passed), 0 AST guardrail violations, verified via audit matrix.
-- All 51 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
+  - Batch 11 (Completed & Committed):
+    52. `backend_v2/services/orchestrator/extractive_sensor_service.py` (Commit `335b7f1c`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 Google-style docstrings with Attributes on bases, RFC 7807 structured `logger.error` before exceptions, translated all Finnish docstrings in test suite, 93% test coverage (30/30 tests passed), 0 AST violations, audit matrix verified.
+    53. `backend_v2/services/orchestrator/context_router.py` (Commit `42fa58a3`): Hardened models with `ConfigDict(strict=True, extra="forbid", frozen=True)`, PEP 593 `Annotated` fields, typed exception tuples, RFC 7807 structured error logging, purged Epic references, 93% test coverage (17/17 tests passed), 0 AST violations, audit matrix verified.
+    54. `backend_v2/services/orchestrator/extraction_schema_factory.py` (Commit `d736775e`): Purged Epic references, explicit `__all__`, PEP 257 docstrings with Attributes, RFC 7807 structured error logging, fixed Pydantic 2.11 `model_fields` deprecations, added tests for `__getitem__` and non-dict container validation, 100% test coverage (6/6 tests passed), 0 AST violations, audit matrix verified.
+    55. `backend_v2/services/orchestrator/matrix_explanation_service.py` (Commit `374b527c`): Added `from __future__ import annotations`, encapsulated quote candidates in immutable `QuoteCandidateDTO(BaseModel)` eradicating naked dicts, PEP 257 docstrings, RFC 7807 structured logging, added non-mapping container skip test, 100% test coverage (19/19 tests passed), 0 AST violations, audit matrix verified.
+    56. `backend_v2/services/orchestrator/rag_preflight_service.py` (Commit `383d65ce`): Added `from __future__ import annotations`, explicit `__all__`, PEP 257 Google-style docstrings with Attributes, RFC 7807 structured logging on all exception exit points, fixed `StepRule.id` attribute access, added `_extract_inputs_from_record` tests covering DTO and dictionary traces, 100% test coverage (10/10 tests passed), 0 AST violations, audit matrix verified.
+- All 56 physical targets marked DONE in `tmp/hardening_state.json` and checked off in `docs/epic/EPIC_152_tracker.md`.
 
 ## Learned
+- In Pydantic 2.11+, accessing `model_fields` on instances (`inst.model_fields`) triggers a `PydanticDeprecatedSince211` deprecation warning. Always inspect model fields using `type(inst).model_fields` or directly from the class `MyModel.model_fields`.
+- In `matrix_explanation_service.py`, encapsulating candidate quotes for `ranked_round_robin_select` in a dedicated `QuoteCandidateDTO(BaseModel)` eliminates `list[dict[str, Any]]` and satisfies the `no_naked_dicts_in_state` mandate.
+- In `rag_preflight_service.py`, `StepRule` inherits from `V2CoreBase` with primary key `id` (`sr_...`); accessing `target_step.step_id` causes MyPy strict `[attr-defined]` failure.
+- In `TraceEvent`, `content` enforces `dict[str, Any]`; instantiating with typed DTO payloads during tests requires `TraceEvent.model_construct(content=...)` if testing boundary hydration helpers.
 - `QGR012` bans `isinstance(x, dict)`. Replace with `isinstance(x, collections.abc.Mapping)` when duck-typing raw structures at boundary serialization.
 - `QGR016` flags ternary literal fallbacks like `x if cond else None` or `x if cond else ""` as well as lazy literal fallbacks `list_var or []`. Use explicit `if/else` statements or `if var is None: continue`.
 - `QGR002` receiver exemptions include `ast.Name(id="client")`. In storage drivers, assigning `client = self._get_table(...)` avoids QGR002 false positives on `.get()`.
@@ -409,17 +419,18 @@
 - In `HookState`, `global_context_vars` enforces strict extra="forbid"; testing custom blackboard context variables on HookState requires `HookState.model_construct(...)` or configuring `context.context_variables`.
 
 ## Remaining
-- Tier 2 Hardening (Backend) Remaining Targets (Batch 11):
-  - `backend_v2/services/orchestrator/extractive_sensor_service.py`
-  - `backend_v2/services/orchestrator/context_router.py`
-  - `backend_v2/services/orchestrator/extraction_schema_factory.py`
-  - `backend_v2/services/orchestrator/matrix_explanation_service.py`
-  - `backend_v2/services/orchestrator/rag_preflight_service.py`
+- Tier 2 Hardening (Backend) Remaining Targets (Batch 12):
+  - `backend_v2/services/orchestrator/ast_evaluator.py`
+  - `backend_v2/utils/finops_trace_analyzer.py`
+  - `backend_v2/services/mcp/tavily_search_client.py`
+  - `backend_v2/services/mcp/tools/tavily.py`
+  - `backend_v2/services/studio/simulation_service.py`
 - Integration Checkpoint: Full-Stack Validation.
 - Post-Implementation Gates: Golden Master & Test Restoration Audit, Proxy Sunset & Consumer Migration, Tier 2 Hardening (Frontend), Tier 7 Architectural Documentation, and Tier 8 Reverse Epic Audit.
 
 ## Resume Command
 /tier5-resume --target="docs/epic/EPIC_152_tracker.md, backend_v2" --workflow=/tier2-hardening-backend --rules="00-antigravity-core.md, 01-python-backend.md"
+
 
 
 
