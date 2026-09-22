@@ -228,4 +228,69 @@ void main() {
       );
     });
   });
+
+  group('OutputProfilesController Unit Tests', () {
+    test('SelectedOutputProfileConfigSection selects and updates target section', () {
+      final container = ProviderContainer();
+      final provider = selectedOutputProfileConfigSectionProvider('prf_123');
+
+      expect(container.read(provider), isNull);
+
+      container.read(provider.notifier).select(TargetBlockType.metadataBlock);
+      expect(container.read(provider), TargetBlockType.metadataBlock);
+
+      container.read(provider.notifier).select(null);
+      expect(container.read(provider), isNull);
+    });
+
+    test('OutputProfileForm submit throws validation error when ID is empty or new', () async {
+      final container = ProviderContainer(
+        overrides: [
+          outputProfilesControllerProvider.overrideWith(
+            () => MockOutputProfilesController(),
+          ),
+        ],
+      );
+
+      final invalidProfile = OutputProfile(
+        id: '',
+        workflowId: 'wf_1',
+        name: const I18nText(translations: {'en': 'Test'}),
+      );
+
+      final formProvider = outputProfileFormProvider('');
+      final formNotifier = container.read(formProvider.notifier);
+
+      await formNotifier.submit(invalidProfile);
+
+      final state = container.read(formProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<AppException>());
+    });
+
+    test('OutputProfileForm submit throws validation error when name is empty', () async {
+      final container = ProviderContainer(
+        overrides: [
+          outputProfilesControllerProvider.overrideWith(
+            () => MockOutputProfilesController(),
+          ),
+        ],
+      );
+
+      final noNameProfile = OutputProfile(
+        id: 'prf_123',
+        workflowId: 'wf_1',
+        name: const I18nText(translations: {}),
+      );
+
+      final formProvider = outputProfileFormProvider('prf_123');
+      final formNotifier = container.read(formProvider.notifier);
+
+      await formNotifier.submit(noNameProfile);
+
+      final state = container.read(formProvider);
+      expect(state.hasError, isTrue);
+      expect(state.error, isA<AppException>());
+    });
+  });
 }

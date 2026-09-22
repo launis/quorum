@@ -78,7 +78,7 @@
   - [x] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
+  - [x] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
   - [ ] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
