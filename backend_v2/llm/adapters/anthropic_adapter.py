@@ -187,9 +187,12 @@ class AnthropicCacheAdapter(BaseLLMAdapter):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
-        model_name = str(
-            call_kwargs.get("model") or (config.model_name if isinstance(config, ModelProfile) else "")
-        ).lower()
+        resolved_model = ""
+        if "model" in call_kwargs and call_kwargs["model"]:
+            resolved_model = str(call_kwargs["model"])
+        elif isinstance(config, ModelProfile):
+            resolved_model = config.model_name
+        model_name = resolved_model.lower()
         is_claude_37 = "claude-3-7" in model_name or "claude-3.7" in model_name
 
         thinking_budget: int | None = None

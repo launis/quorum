@@ -27,16 +27,16 @@
   - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py`
   - [x] Git commit Phase 3
 
-- [ ] **Phase 4: External Ingress & LLM Adapters Layer**
-  - [ ] Update `backend_v2/services/ingress/pdf_chat_extractor.py` (positive drawing dict checks)
-  - [ ] Update `backend_v2/llm/adapters/openai_adapter.py` (positive checks on info and schema)
-  - [ ] Update `backend_v2/llm/adapters/anthropic_adapter.py` (positive check on call_kwargs)
-  - [ ] Update `backend_v2/llm/adapters/base_adapter.py` (positive check on discriminator propertyName)
-  - [ ] Update `backend_v2/llm/ingress_pipeline.py` (positive checks on discriminator_field)
-  - [ ] Update `backend_v2/llm/client.py` (positive check on schema_err.details error_code)
-  - [ ] Update `backend_v2/llm/mock.py` (positive check on response_schema title)
-  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py backend_v2/tests/unit/llm/`
-  - [ ] Git commit Phase 4
+- [x] **Phase 4: External Ingress & LLM Adapters Layer**
+  - [x] Update `backend_v2/services/ingress/pdf_chat_extractor.py` (positive drawing dict checks)
+  - [x] Update `backend_v2/llm/adapters/openai_adapter.py` (positive checks on info and schema)
+  - [x] Update `backend_v2/llm/adapters/anthropic_adapter.py` (positive check on call_kwargs)
+  - [x] Update `backend_v2/llm/adapters/base_adapter.py` (positive check on discriminator propertyName)
+  - [x] Update `backend_v2/llm/ingress_pipeline.py` (positive checks on discriminator_field)
+  - [x] Update `backend_v2/llm/client.py` (positive check on schema_err.details error_code)
+  - [x] Update `backend_v2/llm/mock.py` (positive check on response_schema title)
+  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py backend_v2/tests/unit/llm/`
+  - [x] Git commit Phase 4
 
 - [ ] **Phase 5: Core Services & Infrastructure**
   - [ ] Update `backend_v2/services/auth.py` (positive check on sub and email)

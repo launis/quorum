@@ -132,11 +132,12 @@ class OpenAICacheAdapter(BaseLLMAdapter):
 
             clean_model = model_name.removeprefix("openai/")
             info = litellm.get_model_info(clean_model)
-            raw_params = info.get("supported_openai_params")
+            raw_params = info["supported_openai_params"] if "supported_openai_params" in info else None
             supported_params: list[str] = []
             if isinstance(raw_params, list):
                 supported_params = [str(param) for param in raw_params if isinstance(param, str)]
-            if bool(info.get("supports_reasoning")) or "reasoning_effort" in supported_params:
+            has_reasoning = "supports_reasoning" in info and bool(info["supports_reasoning"])
+            if has_reasoning or "reasoning_effort" in supported_params:
                 is_reasoning_model = True
         except Exception:  # noqa: QGR003 [REASON: Non-fatal fallback to prefix heuristic for local or unmapped models]
             # Fallback for local, mock, unmapped, or cutting-edge unindexed models
@@ -201,7 +202,8 @@ class OpenAICacheAdapter(BaseLLMAdapter):
             if "oneOf" in node:
                 node["anyOf"] = node.pop("oneOf")
 
-            if node.get("type") == "object" or "properties" in node:
+            node_type = node["type"] if "type" in node else None
+            if node_type == "object" or "properties" in node:
                 node["additionalProperties"] = False
                 if "properties" in node:
                     properties = node["properties"]

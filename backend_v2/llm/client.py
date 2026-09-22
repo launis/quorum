@@ -542,7 +542,9 @@ class LLMClient:
                 if isinstance(schema_err, AppException) and (
                     schema_err.status_code in (502, 503, 504)
                     or (
-                        schema_err.details and schema_err.details.get("error_code") == ErrorCodes.UPSTREAM_TIMEOUT.value
+                        schema_err.details
+                        and "error_code" in schema_err.details
+                        and schema_err.details["error_code"] == ErrorCodes.UPSTREAM_TIMEOUT.value
                     )
                 ):
                     raise schema_err

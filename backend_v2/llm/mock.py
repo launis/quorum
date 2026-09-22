@@ -66,7 +66,7 @@ class MockLLMService:
                 mock_obj = MOCK_REGISTRY[response_schema]
                 return str(mock_obj.model_dump_json())
             elif isinstance(response_schema, dict):  # noqa: QGR012 [REASON: Schema dictionary inspection in mock service fallback]
-                title = response_schema.get("title")
+                title = response_schema["title"] if "title" in response_schema else None
                 if title:
                     for reg_type, mock_obj in MOCK_REGISTRY.items():
                         if reg_type.__name__ == title:

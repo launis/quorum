@@ -110,10 +110,10 @@ class UniversalIngress:
             The matched BaseModel class, or None if no match found.
         """
         # If discriminator is already present, match directly by literal tag
-        current_tag = item.get(discriminator_field)
+        current_tag = item[discriminator_field] if discriminator_field in item else None
         if current_tag is not None:
             for model in candidate_models:
-                f_info = model.model_fields.get(discriminator_field)
+                f_info = model.model_fields[discriminator_field] if discriminator_field in model.model_fields else None
                 if f_info:
                     # Check default value
                     if f_info.default == current_tag:
@@ -142,7 +142,7 @@ class UniversalIngress:
                         return model
 
         # 2. BulletListBlock signature
-        if "items" in item and isinstance(item.get("items"), list):
+        if "items" in item and isinstance(item["items"], list):
             for model in candidate_models:
                 if "items" in model.model_fields and discriminator_field in model.model_fields:
                     disc_info = model.model_fields[discriminator_field]

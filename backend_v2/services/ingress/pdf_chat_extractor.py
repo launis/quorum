@@ -65,7 +65,7 @@ class PdfChatExtractorService:
         Note:
             d is an External PyMuPDF API boundary dict from page.get_drawings().
         """
-        rect_obj = d.get("rect")
+        rect_obj = d["rect"] if "rect" in d else None
         if not isinstance(rect_obj, fitz.Rect):
             return False
         r: fitz.Rect = rect_obj
@@ -79,7 +79,7 @@ class PdfChatExtractorService:
             return False
 
         # 3. Vector fill/stroke requirement
-        if d.get("fill") is None and d.get("color") is None:
+        if ("fill" not in d or d["fill"] is None) and ("color" not in d or d["color"] is None):
             return False
 
         # 4. Table Overlap Defense: Drawings intersecting table bounding boxes
@@ -186,7 +186,7 @@ class PdfChatExtractorService:
         user_bubbles: list[fitz.Rect] = []
         for d in page.get_drawings():
             if PdfChatExtractorService._is_user_bubble_drawing(d, page_w, page_h, table_rects):
-                r_obj = d.get("rect")
+                r_obj = d["rect"] if "rect" in d else None
                 if isinstance(r_obj, fitz.Rect):
                     user_bubbles.append(r_obj)
 
@@ -332,7 +332,7 @@ class PdfChatExtractorService:
         page_blocks = page.get_text("blocks")
 
         for d in page.get_drawings():
-            rect_obj = d.get("rect")
+            rect_obj = d["rect"] if "rect" in d else None
             if not isinstance(rect_obj, fitz.Rect):
                 continue
             r: fitz.Rect = rect_obj
