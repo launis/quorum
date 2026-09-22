@@ -94,11 +94,11 @@
   - [x] @[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/studio_controller.dart]
   - [x] @[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
@@ -163,57 +163,49 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully audited, verified, and hardened Batch 5 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
-  1. `@[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`:
+- Successfully audited, verified, and hardened Batch 6 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
+  1. `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`:
      - 104 neuro-symbolic audit matrix rules validated via `audit_matrix_manager.py`.
-     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
-     - Authored `prompt_block_simulation_test.dart` asserting positive deserialization and negative fail-fast on unrecognized/hallucinated keys.
-     - Committed: `e14cdf18 test(studio): add contract tests and clean lint suppression in prompt_block_simulation`.
+     - Authored `client_app_v2/test/features/studio/controllers/mcp_gateways_controller_test.dart` asserting fetch, optimistic save, rollback on failure, delete, clone, create draft, and McpGatewayForm tool mutations.
+     - Committed: `de052d1c test(studio): add unit test suite for mcp_gateways_controller`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  2. `@[client_app_v2/lib/features/studio/models/workflow_simulation.dart]`:
+  2. `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
-     - Authored `workflow_simulation_test.dart` asserting positive deserialization, missing fields, and unrecognized key fail-fast.
-     - Committed: `fbf6d377 test(studio): add contract tests and clean lint suppression in workflow_simulation`.
+     - Authored `client_app_v2/test/features/execution/views/dynamic_start_screen_test.dart` asserting loading state, ErrorView on schema load failure (negative test), and input rendering / start execution dispatch.
+     - Committed: `3f8ae25e test(execution): add widget test suite for dynamic_start_screen`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  3. `@[client_app_v2/lib/core/api/execution_client.dart]`:
+  3. `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified by comprehensive 7-test suite in `execution_client_test.dart` asserting all endpoints, negative network timeout propagation, and malformed payload handling.
+     - Resolved all Dart analyzer info warnings: added curly braces to flow control statements and normalized wildcard parameters to single underscore.
+     - Verified by all 17 tests passing in `scale_editor_modal_test.dart`.
+     - Committed: `e49d06ea style(studio): resolve dart analyzer warnings in scale_editor_modal`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  4. `@[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]`:
+  4. `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Modernized docstring eliminating stale `Map<String, dynamic>` mention.
-     - Expanded `studio_controller_test.dart` with dedicated `PromptBlocksController` test suite asserting save, rollback on failure, orphan delete rejection, and empty ID validation.
-     - Committed: `abb2986b test(studio): expand unit tests and update docstring in prompt_blocks_controller`.
+     - Verified by 11 comprehensive tests in `sdui_matrix_table_widget_test.dart` with 0 analyzer issues and zero in-build sorting jank.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  5. `@[client_app_v2/lib/features/studio/controllers/studio_controller.dart]`:
+  5. `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified by comprehensive unit test suite in `studio_controller_test.dart` asserting WorkflowForm, WorkflowsController optimistic save/rollback, and Step/ModelRegistry operations.
+     - Modernized collection loop to use Dart null-aware element marker `?_renderBlock` eliminating analyzer info.
+     - Verified by 15 tests passing in `sdui_blocks_renderer_test.dart` proving zero `SizedBox.shrink()` occurrences (DGR002).
+     - Committed: `7a13a030 style(execution): use null-aware collection element in sdui_blocks_renderer`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-- Overall Dart codebase warnings (DGR001-DGR004) decreased further as redundant handwritten lint suppressions continue to be eliminated.
-- Total files audited in post-implementation gates: 25 / 34 completed.
+- Total files audited in post-implementation gates: 30 / 33 completed.
 
 ## Learned
-- In Riverpod controller tests utilizing `mocktail`, when mocking methods that accept Freezed models as `any()` arguments (e.g. `saveSystemConfig(any(), any())`), `registerFallbackValue(dummyModelInstance)` must be called in `setUpAll` to avoid null-safety type matching errors.
-- `audit_matrix_manager.py` enforces that justifications must anchor strictly to the target file stem; mentioning other test filenames in justification strings causes verification rejections.
+- In Flutter widget tests where execution controllers interact with logger or environment services, `loggerServiceProvider.overrideWithValue(MockLoggerService())` avoids `DotEnv` uninitialized exceptions.
+- Dart collection literals support null-aware element markers (`?expression`), cleanly replacing `if (expr case final val?) val`.
+- `audit_matrix_manager.py` verifies both unique PASS justifications and limits NA justifications per reason to <= 40 to enforce thoughtful, contextual evaluation.
 
 ## Remaining
-- Continue Tier 2 Hardening (Frontend) for the remaining 9 Flutter files in `### Post-Implementation Gates`:
-  - `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`
-  - `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`
-  - `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`
-  - `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`
-  - `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
+- Continue Tier 2 Hardening (Frontend) for the final 3 Flutter files in `### Post-Implementation Gates`:
   - `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`
   - `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
   - `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`
-  - `@[client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart]`
+- Transition `Tier 2 Hardening (Frontend)` gate from `[NOK]` to `[OK]` once all 33 files are completed.
 - Complete subsequent Post-Implementation Gates: `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
 /tier5-resume --target="C:\src\quorum\docs\epic\EPIC_153_tracker.md, C:\src\quorum\client_app_v2\lib" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
 ```
-
-
-
