@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/utils/json_converters.dart';
