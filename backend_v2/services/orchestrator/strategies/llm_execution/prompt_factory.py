@@ -11,8 +11,6 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import BaseModel
-
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.domain.prompt_blocks import (
@@ -120,12 +118,7 @@ class PromptFactory:
 
         anchors_xml = ""
         if is_grounded_step:
-            anchors_context = (
-                llm_context_data.model_dump(mode="json")
-                if isinstance(llm_context_data, BaseModel)
-                else llm_context_data
-            )
-            anchors_payload = MechanicalAnchorsPayload.from_context(anchors_context)
+            anchors_payload = MechanicalAnchorsPayload.from_context(llm_context_data)
             anchors_xml = anchors_payload.to_xml()
 
         # Layer 1: Global Mandates static caching prefix

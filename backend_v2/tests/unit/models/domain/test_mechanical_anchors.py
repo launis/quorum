@@ -2,6 +2,7 @@
 
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.domain.performativity import PerformativePattern
+from backend_v2.models.dtos.prompt import LLMContextDataDTO
 
 
 def test_mechanical_anchors_default_instantiation() -> None:
@@ -15,19 +16,21 @@ def test_mechanical_anchors_default_instantiation() -> None:
 
 def test_mechanical_anchors_from_context_direct_keys() -> None:
     """Test deterministic extraction when keys are present at top level."""
-    context = {
-        "word_count": 250,
-        "say_do_gap": 0.45,
-        "automation_bias": 0.15,
-        "performative_patterns": [
-            {
-                "pattern_id": "pat_1",
-                "detected_phrase": "clearly state",
-                "category": "hedging",
-            },
-            "raw phrase marker",
-        ],
-    }
+    context = LLMContextDataDTO(
+        inputs={
+            "word_count": 250,
+            "say_do_gap": 0.45,
+            "automation_bias": 0.15,
+            "performative_patterns": [
+                {
+                    "pattern_id": "pat_1",
+                    "detected_phrase": "clearly state",
+                    "category": "hedging",
+                },
+                "raw phrase marker",
+            ],
+        }
+    )
     payload = MechanicalAnchorsPayload.from_context(context)
     assert payload.word_count == 250
     assert payload.say_do_gap == 0.45
@@ -39,20 +42,14 @@ def test_mechanical_anchors_from_context_direct_keys() -> None:
 
 def test_mechanical_anchors_from_context_nested_raw_inputs() -> None:
     """Test deterministic extraction when metrics are inside raw_inputs."""
-    context = {
-        "raw_inputs": {
+    context = LLMContextDataDTO(
+        raw_inputs={
             "word_count": 120,
             "say_do_gap": 0.2,
             "automation_bias": 0.8,
-            "performative_phrases": [
-                PerformativePattern(
-                    pattern_id="pat_inst",
-                    detected_phrase="unquestionably true",
-                    category="certainty",
-                )
-            ],
+            "performative_phrases": ["unquestionably true"],
         }
-    }
+    )
     payload = MechanicalAnchorsPayload.from_context(context)
     assert payload.word_count == 120
     assert payload.say_do_gap == 0.2
@@ -67,7 +64,7 @@ def test_mechanical_anchors_from_context_empty_and_none() -> None:
     assert p_none.word_count == 0
     assert p_none.performative_patterns == []
 
-    p_empty = MechanicalAnchorsPayload.from_context({})
+    p_empty = MechanicalAnchorsPayload.from_context(LLMContextDataDTO())
     assert p_empty.word_count == 0
     assert p_empty.performative_patterns == []
 

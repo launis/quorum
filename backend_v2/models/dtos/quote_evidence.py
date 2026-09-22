@@ -71,22 +71,19 @@ class LLMExtractedQuote(BaseSourceId):
         """
         try:
             d = dict(data)
-        except TypeError, ValueError:
-            return data
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
 
-        source_id = d.get("source_id")
+        source_id = d["source_id"] if "source_id" in d else None
         if not source_id:
             return d
 
         if info.context is None:
             return d
 
-        try:
-            alias_map = info.context.get("alias_map") or {}
-            allowed_dynamic_keys = info.context.get("allowed_dynamic_keys") or []
-            allowed_mcp_prefixes = info.context.get("allowed_mcp_prefixes") or []
-        except AttributeError, TypeError:
-            return d
+        alias_map = info.context["alias_map"] if "alias_map" in info.context else {}
+        allowed_dynamic_keys = info.context["allowed_dynamic_keys"] if "allowed_dynamic_keys" in info.context else []
+        allowed_mcp_prefixes = info.context["allowed_mcp_prefixes"] if "allowed_mcp_prefixes" in info.context else []
 
         if not alias_map and not allowed_dynamic_keys and not allowed_mcp_prefixes:
             return d
@@ -143,20 +140,17 @@ class QuoteEvidenceDTO(V2CoreBase):
         """
         try:
             d = dict(data)
-        except TypeError, ValueError:
-            return data
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
 
         if info.context is None:
             if "verified_source_ids" in d or "unverified_aliases" in d:
                 return d
             raise RuntimeError("ValidationInfo.context is missing. Cannot resolve aliases without context.")
 
-        try:
-            registry = info.context.get("alias_registry") or {}
-        except AttributeError, TypeError:
-            registry = {}
+        registry = info.context["alias_registry"] if "alias_registry" in info.context else {}
 
-        raw_aliases = d.get("source_alias")
+        raw_aliases = d["source_alias"] if "source_alias" in d else None
         if raw_aliases is None:
             raw_aliases = []
         elif isinstance(raw_aliases, str):
@@ -181,10 +175,7 @@ class QuoteEvidenceDTO(V2CoreBase):
         unverified: list[str] = []
 
         for alias in raw_aliases:
-            try:
-                opaque_id = registry.get(alias)
-            except AttributeError, TypeError:
-                opaque_id = None
+            opaque_id = registry[alias] if (registry is not None and alias in registry) else None
 
             if opaque_id is not None:
                 verified.append(str(opaque_id))

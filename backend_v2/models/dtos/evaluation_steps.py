@@ -35,13 +35,13 @@ class BaseExtractionDTO(V2CoreBase):
         """Sanitizes source aliases by fixing typos and nullifying invalid ones before Literal validation."""
         try:
             d = dict(data)
-        except TypeError, ValueError:
-            return data
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"Expected dictionary input for validation, got {type(data).__name__}") from exc
 
         for list_field in ["used_source_aliases", "source_document_aliases"]:
-            raw_list = d.get(list_field)
+            raw_list = d[list_field] if list_field in d else None
             if isinstance(raw_list, list):
-                field_info = cls.model_fields.get(list_field)
+                field_info = cls.model_fields[list_field] if list_field in cls.model_fields else None
                 if not field_info:
                     continue
 

@@ -5,12 +5,13 @@ for grounded LLM prompt compilation.
 """
 
 import logging
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.performativity import PerformativePattern
+from backend_v2.models.dtos.prompt import LLMContextDataDTO
 
 logger = logging.getLogger(__name__)
 
@@ -33,11 +34,11 @@ class MechanicalAnchorsPayload(V2CoreBase):
     ] = Field(default_factory=list)
 
     @classmethod
-    def from_context(cls, data: dict[str, Any] | None) -> MechanicalAnchorsPayload:
+    def from_context(cls, data: LLMContextDataDTO | None = None) -> MechanicalAnchorsPayload:
         """Extracts mechanical anchors deterministically from LLM context map.
 
         Args:
-            data: Raw context map containing state data or text metrics.
+            data: LLM context data DTO or mapping containing state data or text metrics.
 
         Returns:
             A strictly validated MechanicalAnchorsPayload instance.
@@ -45,88 +46,63 @@ class MechanicalAnchorsPayload(V2CoreBase):
         if not data:
             return cls(performative_patterns=[])
 
-        try:
+        if isinstance(data, LLMContextDataDTO):
+            source = data.inputs if data.inputs is not None else data.raw_inputs
+            raw_inputs = data.raw_inputs
+        else:
             source = data
-            try:
-                raw_inputs = data.get("raw_inputs")
-            except AttributeError, TypeError:
-                raw_inputs = None
+            raw_inputs = data["raw_inputs"] if (data is not None and "raw_inputs" in data) else None
+            if (
+                raw_inputs
+                and "word_count" not in source
+                and "say_do_gap" not in source
+                and "automation_bias" not in source
+                and "performative_patterns" not in source
+                and "performative_phrases" not in source
+            ):
+                source = raw_inputs
 
-            if raw_inputs:
-                try:
-                    if (
-                        "word_count" not in source
-                        and "say_do_gap" not in source
-                        and "automation_bias" not in source
-                        and "performative_patterns" not in source
-                        and "performative_phrases" not in source
-                    ):
-                        source = raw_inputs
-                except TypeError, KeyError:
-                    pass
+        raw_wc = source["word_count"] if (source is not None and "word_count" in source) else None
+        raw_sd = source["say_do_gap"] if (source is not None and "say_do_gap" in source) else None
+        raw_ab = source["automation_bias"] if (source is not None and "automation_bias" in source) else None
 
-            try:
-                raw_wc = source.get("word_count")
-                raw_sd = source.get("say_do_gap")
-                raw_ab = source.get("automation_bias")
-            except AttributeError, TypeError:
-                raw_wc = raw_sd = raw_ab = None
+        word_count = int(raw_wc) if isinstance(raw_wc, (int, float)) else 0
+        say_do_gap = float(raw_sd) if isinstance(raw_sd, (int, float)) else 0.0
+        automation_bias = float(raw_ab) if isinstance(raw_ab, (int, float)) else 0.0
 
-            word_count = int(raw_wc) if isinstance(raw_wc, (int, float)) else 0
-            say_do_gap = float(raw_sd) if isinstance(raw_sd, (int, float)) else 0.0
-            automation_bias = float(raw_ab) if isinstance(raw_ab, (int, float)) else 0.0
+        raw_patterns = None
+        if source is not None and "performative_patterns" in source:
+            raw_patterns = source["performative_patterns"]
+        elif source is not None and "performative_phrases" in source:
+            raw_patterns = source["performative_phrases"]
+        elif raw_inputs is not None and "performative_patterns" in raw_inputs:
+            raw_patterns = raw_inputs["performative_patterns"]
+        elif raw_inputs is not None and "performative_phrases" in raw_inputs:
+            raw_patterns = raw_inputs["performative_phrases"]
 
-            raw_patterns = None
-            try:
-                raw_patterns = source.get("performative_patterns") or source.get("performative_phrases")
-            except AttributeError, TypeError:
-                pass
-
-            if raw_patterns is None and raw_inputs:
-                try:
-                    raw_patterns = raw_inputs.get("performative_patterns") or raw_inputs.get("performative_phrases")
-                except AttributeError, TypeError:
-                    pass
-
-            patterns: list[PerformativePattern] = []
-            if isinstance(raw_patterns, list):
-                for item in raw_patterns:
-                    match item:
-                        case PerformativePattern():
-                            patterns.append(item)
-                        case str() if item.strip():
-                            patterns.append(
-                                PerformativePattern(
-                                    pattern_id="pat_marker",
-                                    detected_phrase=item.strip(),
-                                    category="linguistic_marker",
-                                )
+        patterns: list[PerformativePattern] = []
+        if isinstance(raw_patterns, list):
+            for item in raw_patterns:
+                match item:
+                    case PerformativePattern():
+                        patterns.append(item)
+                    case str() if item.strip():
+                        patterns.append(
+                            PerformativePattern(
+                                pattern_id="pat_marker",
+                                detected_phrase=item.strip(),
+                                category="linguistic_marker",
                             )
-                        case _:
-                            try:
-                                phrase = item.get("detected_phrase") or item.get("phrase")
-                                if phrase and isinstance(phrase, str):
-                                    pat_id = item.get("pattern_id") or item.get("pattern_name") or "pat_marker"
-                                    cat = item.get("category") or "linguistic_marker"
-                                    patterns.append(
-                                        PerformativePattern(
-                                            pattern_id=str(pat_id),
-                                            detected_phrase=phrase,
-                                            category=str(cat),
-                                        )
-                                    )
-                            except AttributeError, TypeError:
-                                pass
+                        )
+                    case _:
+                        patterns.append(PerformativePattern.model_validate(item))
 
-            return cls(
-                word_count=max(0, word_count),
-                say_do_gap=max(0.0, say_do_gap),
-                automation_bias=max(0.0, automation_bias),
-                performative_patterns=patterns,
-            )
-        except (ValueError, TypeError) as e:
-            logger.warning("[MechanicalAnchors] Could not parse context: %s", e)
-            return cls(performative_patterns=[])
+        return cls(
+            word_count=max(0, word_count),
+            say_do_gap=max(0.0, say_do_gap),
+            automation_bias=max(0.0, automation_bias),
+            performative_patterns=patterns,
+        )
 
     def to_xml(self) -> str:
         """Generates <mechanical_anchors> XML string for prompt injection.

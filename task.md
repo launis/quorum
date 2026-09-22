@@ -13,14 +13,14 @@
   - [x] Run quality gate: `uv run python scripts/_ast_guardrails.py backend_v2` and `uv run python scripts/audit_dict_eradication.py`
   - [x] Git commit Phase 1
 
-- [ ] **Phase 2: Models & DTO Validation Layer**
-  - [ ] Update `backend_v2/models/dtos/quote_evidence.py` (resolve_source_id & resolve_and_verify_aliases)
-  - [ ] Update `backend_v2/models/domain/mechanical_anchors.py` (from_context accepting LLMContextDataDTO | None, positive checks)
-  - [ ] Update `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (pass llm_context_data directly)
-  - [ ] Update `backend_v2/tests/unit/models/domain/test_mechanical_anchors.py` (fixtures with LLMContextDataDTO)
-  - [ ] Update `backend_v2/models/dtos/evaluation_steps.py` (_sanitize_source_aliases)
-  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/models/` and `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/quote_evidence.py --test`
-  - [ ] Git commit Phase 2
+- [x] **Phase 2: Models & DTO Validation Layer**
+  - [x] Update `backend_v2/models/dtos/quote_evidence.py` (resolve_source_id & resolve_and_verify_aliases)
+  - [x] Update `backend_v2/models/domain/mechanical_anchors.py` (from_context accepting LLMContextDataDTO | None, positive checks)
+  - [x] Update `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (pass llm_context_data directly)
+  - [x] Update `backend_v2/tests/unit/models/domain/test_mechanical_anchors.py` (fixtures with LLMContextDataDTO)
+  - [x] Update `backend_v2/models/dtos/evaluation_steps.py` (_sanitize_source_aliases)
+  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/models/` and `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/quote_evidence.py --test`
+  - [x] Git commit Phase 2
 
 - [ ] **Phase 3: Orchestration & Prompt Compilation Layer**
   - [ ] Update `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py` (Fail-Fast AppException on missing atom)
