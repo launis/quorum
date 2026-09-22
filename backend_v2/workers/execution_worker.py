@@ -114,38 +114,24 @@ async def execute_workflow_job(
     span_execution_id = exec_id
 
     with logfire.span("execute_workflow_job", tags={"execution_id": span_execution_id}):
-        if isinstance(inputs, WorkflowInputs):
-            inputs_obj = inputs
-        elif isinstance(inputs, ExecutionInputsDTO):
-            merged_dynamic = dict(inputs.dynamic_inputs)
-            merged_dynamic.update(inputs.raw_inputs)
-            org_id = organization_id
-            if not org_id and "organization_id" in inputs.raw_inputs:
-                raw_org = inputs.raw_inputs["organization_id"]
-                if isinstance(raw_org, str):
-                    org_id = raw_org
-            u_id = user_id
-            if not u_id and "user_id" in inputs.raw_inputs:
-                raw_u = inputs.raw_inputs["user_id"]
-                if isinstance(raw_u, str):
-                    u_id = raw_u
-            inputs_obj = WorkflowInputs(
-                organization_id=org_id,
-                user_id=u_id,
-                dynamic_inputs=merged_dynamic,
-            )
+        resolved_inputs = (
+            inputs
+            if isinstance(inputs, (WorkflowInputs, ExecutionInputsDTO))
+            else TypeAdapter(WorkflowInputs | ExecutionInputsDTO).validate_python(inputs)
+        )
+        if isinstance(resolved_inputs, WorkflowInputs):
+            inputs_obj = resolved_inputs
         else:
-            inputs_dto = ExecutionInputsDTO.model_validate(inputs)
-            merged_dynamic = dict(inputs_dto.dynamic_inputs)
-            merged_dynamic.update(inputs_dto.raw_inputs)
+            merged_dynamic = dict(resolved_inputs.dynamic_inputs)
+            merged_dynamic.update(resolved_inputs.raw_inputs)
             org_id = organization_id
-            if not org_id and "organization_id" in inputs_dto.raw_inputs:
-                raw_dto_org = inputs_dto.raw_inputs["organization_id"]
+            if not org_id and "organization_id" in resolved_inputs.raw_inputs:
+                raw_dto_org = resolved_inputs.raw_inputs["organization_id"]
                 if isinstance(raw_dto_org, str):
                     org_id = raw_dto_org
             u_id = user_id
-            if not u_id and "user_id" in inputs_dto.raw_inputs:
-                raw_dto_u = inputs_dto.raw_inputs["user_id"]
+            if not u_id and "user_id" in resolved_inputs.raw_inputs:
+                raw_dto_u = resolved_inputs.raw_inputs["user_id"]
                 if isinstance(raw_dto_u, str):
                     u_id = raw_dto_u
             inputs_obj = WorkflowInputs(
