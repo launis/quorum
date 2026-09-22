@@ -79,10 +79,10 @@
   - [x] @[client_app_v2/lib/core/api/studio_client.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]
   - [x] @[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
+  - [x] @[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/models/llm_platform.dart]
@@ -163,28 +163,45 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully audited and verified Batch 2 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
-  - `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`: 104 neuro-symbolic audit matrix rules validated. Backed by existing comprehensive widget tests in `output_profile_list_view_test.dart` (empty state, search miss, AsyncError, 4K containment, virtualization).
-  - `@[client_app_v2/lib/core/api/workflow_client.dart]`: 104 rules validated. Authored `workflow_client_test.dart` asserting 200 parsing, `CheckedFromJsonException` on unrecognized keys, 404 error mapping, and malformed body handling.
-  - `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`: 104 rules validated. Authored `new_execution_view_test.dart` testing empty workflows, ErrorView presentation, required input client-side validation failure, and zero-input submission.
-  - `@[client_app_v2/lib/core/api/studio_client.dart]`: 104 rules validated. Verified all 33 endpoints strongly typed with Freezed models. Backed by `studio_client_test.dart`.
-  - `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]`: 104 rules validated. Verified `PopScope` discard interception, serialization-based dirty check (`jsonEncode`), post-frame blur flush, atomic `_isSaving` in-flight lock, 480-1400px bounds, and in-modal error banner. Verified by 6 widget tests in `human_override_dialog_test.dart`.
-- Updated `tmp/hardening_state.json` and tracked gates in `docs/epic/EPIC_153_tracker.md`.
-- Passed `flutter_audit_loop.py` with 0 fatal errors, clean format, and clean analysis.
+- Successfully audited and verified Batch 3 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
+  1. `@[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]`:
+     - 104 neuro-symbolic audit matrix rules validated via `audit_matrix_manager.py`.
+     - Authored `create_report_dialog_test.dart` asserting profile loading, inline error banner, dirty state discard prompt on `Escape`, and form submission.
+     - Committed: `6a4af7d7 test(reports): add ISTQB widget tests for create_report_dialog`.
+     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
+  2. `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`:
+     - 104 rules validated via `audit_matrix_manager.py`.
+     - Expanded `output_profile_controller_test.dart` with tests for `SelectedOutputProfileConfigSection`, form ID validation, and name validation.
+     - Committed: `a500f0d8 test(studio): expand unit tests for output_profile_controller`.
+     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
+  3. `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`:
+     - 104 rules validated via `audit_matrix_manager.py`.
+     - Authored `workflow_builder_view_test.dart` verifying `ErrorView` on load failure, 4-tab layout with localized title, and empty ID validation snackbar.
+     - Committed: `d7d301ca test(studio): add ISTQB widget tests for workflow_builder_view`.
+     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
+  4. `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`:
+     - 104 rules validated via `audit_matrix_manager.py`.
+     - Verified by existing comprehensive suite of 18 widget tests in `prompt_block_builder_view_test.dart` (Zero-XML forms, SystemRule, ExecutionPersona, AgentRole, Protocol, RuntimeVariables, Matrix, PromptPreviewDialog simulation modal, 1200px max-width containment, category switching sanitization).
+     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
+  5. `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`:
+     - 104 rules validated via `audit_matrix_manager.py`.
+     - Verified by 6 widget tests in `atom_matrix_table_widget_test.dart` asserting table rendering, mobile list layout switching (< 800px macro-breakpoint), null levelBreakdown handling, and EU AI Act Human Override display box.
+     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
+- All audited files passed `scripts/flutter_audit_loop.py` cleanly with 0 fatal errors, 0 analysis issues, and 0 formatting discrepancies.
 
 ## Learned
-- In `scripts/audit_matrix_manager.py`, `check_conflicting_file_references()` enforces that justifications must never mention other filenames (such as test or generated files); references must anchor exclusively to the target file itself.
-- For NA justifications in `tmp/audit_matrix.json`, no single justification string can appear more than 40 times across the 104 rules; categorization by rule family (IDE orchestration, backend runtime, LLM orchestration, SDUI rendering, specialized modal contracts) prevents repetition limit triggers.
-- In Dart Freezed models, parsing payloads with missing required fields or unrecognized keys throws `CheckedFromJsonException` from `package:json_annotation/json_annotation.dart`.
+- In `scripts/audit_matrix_manager.py`, `check_conflicting_file_references()` enforces that justifications must anchor exclusively to the target file itself or globally permitted names (`settings.py`, `enums.py`, `conftest.py`, `audit_matrix_manager.py`, `flutter_audit_loop.py`).
+- For NA justifications in `tmp/audit_matrix.json`, categorizing NA rules by domain (ide_orchestration, backend_runtime, llm_architecture, database_persistence, sdui_pipeline, chart_semantics, testing_standards, git_persistence) prevents any single NA string from repeating more than 40 times across 104 rules.
+- Running `flutter test <path_to_test.dart>` directly from `client_app_v2/` avoids long repository-wide coverage runs while maintaining ISTQB unit/widget test verification for each target file.
 
 ## Remaining
-- Continue Tier 2 Hardening (Frontend) for the remaining 25 Flutter files in `### Post-Implementation Gates`:
-  - `@[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]`
-  - `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`
-  - `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`
-  - `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`
-  - `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`
-  - ... and subsequent files.
+- Continue Tier 2 Hardening (Frontend) for the remaining 19 Flutter files in `### Post-Implementation Gates`:
+  - `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]`
+  - `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`
+  - `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`
+  - `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`
+  - `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`
+  - ... and remaining models, controllers, and views.
 - Complete subsequent Post-Implementation Gates: `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
