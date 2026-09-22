@@ -28,7 +28,7 @@
   - [x] Step 1.2: API Clients & Controllers Typing Refactor
   - [x] Step 1.3: Views Permissive Typing Elimination
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Phase 2: SDUI Dumb Painter Performance & Cell Decomposition
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md]
@@ -165,6 +165,7 @@
 - Verified all mock clients and controllers across test suites (`MockExecutionClient`, `MockExecutionClientPending`, `MockMcpGatewaysController`) to strictly enforce `HumanOverrideRequestDto` and `McpGateway` types.
 - Executed and passed 100% of the complete `client_app_v2` Flutter test suite (425 tests passed), verifying all 9 test contracts from the plan.
 - Quality gates verified: `flutter_audit_loop.py` passed with exit code 0 across views, controllers, and core APIs with 0 errors and 0 warnings, and `_dart_guardrails.py` verified 0 fatal violations.
+- Completed Tier 8 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`) with PASSED verdict documented in `red_team_audit_01_phase1_plan.md`.
 
 ## Learned
 - **Type Propagation Downstream:** When controllers (`mcpGatewaysControllerProvider`, `availableWorkflowsProvider`) become strongly typed, all secondary views and test mocks consuming them (`MockExecutionClient`, `MockMcpGatewaysController`, `step_builder_view.dart`, `dashboard_view.dart`) must also be typed to prevent downstream compiler regressions.
@@ -173,10 +174,10 @@
 - **Golden Snapshot Synchronization:** Visual design token improvements (replacing magic numbers with theme tokens) alter pixel rendering slightly, requiring test goldens to be explicitly synchronized.
 
 ## Remaining
-- Run `/tier8-audit-plan` on Phase 1 implementation plan and tracker.
-- Proceed to Phase 2: SDUI Dumb Painter Performance & Cell Decomposition (`02_phase2_plan.md`).
+- Execute Phase 2 Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`.
+- Execute Phase 2 implementation: SDUI Dumb Painter Performance & Cell Decomposition (`02_phase2_plan.md`).
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]
+/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]
 ```

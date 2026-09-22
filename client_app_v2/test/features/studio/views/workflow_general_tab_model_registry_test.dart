@@ -344,20 +344,13 @@ class MockMcpGatewaysController extends AsyncNotifier<List<McpGateway>>
   @override
   Future<void> refresh() async {}
   @override
-  Future<McpGateway> saveGateway(
-    String id,
-    McpGateway data,
-  ) async => data;
+  Future<McpGateway> saveGateway(String id, McpGateway data) async => data;
   @override
   Future<void> deleteGateway(String id) async {}
   @override
-  Future<McpGateway> cloneGateway(String id) async => const McpGateway(
-    id: 'gw_cloned',
-    slug: 'cloned',
-  );
+  Future<McpGateway> cloneGateway(String id) async =>
+      const McpGateway(id: 'gw_cloned', slug: 'cloned');
   @override
-  Future<McpGateway> createMcpGatewayDraft() async => const McpGateway(
-    id: 'gw_draft',
-    slug: 'draft',
-  );
+  Future<McpGateway> createMcpGatewayDraft() async =>
+      const McpGateway(id: 'gw_draft', slug: 'draft');
 }
