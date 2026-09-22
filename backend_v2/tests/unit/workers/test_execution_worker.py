@@ -525,8 +525,8 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
     )
 
     assert result.status == "FAILED/DLQ"
- 
- 
+
+
 @pytest.mark.asyncio
 async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> None:
     """Verify worker processes ExecutionInputsDTO and populates step telemetry."""
@@ -636,4 +636,3 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
 
     assert result.status == "COMPLETED"
     assert result.execution_id.startswith("exe_")
-

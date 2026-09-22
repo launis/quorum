@@ -66,7 +66,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.types import TypeDecorator
 
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState, FrozenContext, TraceEvent
+from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock
@@ -75,6 +75,7 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.dtos.atom_evaluation import EvaluatedAtomDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.render import ReportDataDTO
+from backend_v2.models.dtos.trace import TraceEventDTO
 
 class Base(DeclarativeBase):
     pass
@@ -85,7 +86,7 @@ class PydanticJSONB[T](TypeDecorator[T]):
     Guarantees absolute eradication of naked dictionaries:
     - Supports single Pydantic models (WorkflowInputs, ContextVariablesDTO, FrozenContext, ReportDataDTO, OutputProfile).
     - Supports polymorphic discriminated unions (AnyPromptBlock, SystemConfigModelRegistry | SystemConfigMCPGateways).
-    - Supports collections of models (list[EvaluatedAtomDTO], list[ExecutionStep], list[ExpectedInput], list[StepRule]).
+    - Supports collections of models (list[EvaluatedAtomDTO], list[ExecutionStep], list[ExpectedInput], list[StepRule], list[TraceEventDTO]).
     - Supports typed mapping models (dict[str, ExecutionStepState], dict[str, int]).
     - Directly executes Rust-accelerated dump_python and validate_python without intermediate dict bridges.
     """
@@ -247,7 +248,7 @@ class Execution(Base):
     atom_evaluations: Mapped[list[EvaluatedAtomDTO]] = mapped_column(PydanticJSONB(list[EvaluatedAtomDTO]), nullable=False, default=list)
     steps: Mapped[list[ExecutionStep]] = mapped_column(PydanticJSONB(list[ExecutionStep]), nullable=False, default=list)
     step_states: Mapped[dict[str, ExecutionStepState]] = mapped_column(PydanticJSONB(dict[str, ExecutionStepState]), nullable=False, default=dict)
-    execution_trace: Mapped[list[TraceEvent]] = mapped_column(PydanticJSONB(list[TraceEvent]), nullable=False, default=list)
+    execution_trace: Mapped[list[TraceEventDTO]] = mapped_column(PydanticJSONB(list[TraceEventDTO]), nullable=False, default=list)
     models_used: Mapped[dict[str, int]] = mapped_column(PydanticJSONB(dict[str, int]), nullable=False, default=dict)
     source_identity_manifest: Mapped[dict[str, str]] = mapped_column(PydanticJSONB(dict[str, str]), nullable=False, default=dict)
     
@@ -302,6 +303,39 @@ class ReportBinary(Base):
 
     artifact: Mapped["ReportArtifact"] = relationship("ReportArtifact", back_populates="binary")
 ```
+
+#### **Vaihe 2.0.1: Telemetrian tyyppiturvallisuus & TraceEvent-sanakirjojen hävittäminen (TraceEventDTO SSOT)**
+
+Tällä hetkellä `backend_v2/models/state.py`:n vanhassa `TraceEvent`-mallissa elää kaksi alastonta sanakirjaa:
+- `content: Annotated[dict[str, Any], Field(default_factory=dict)]`
+- `metadata: Annotated[dict[str, Any], Field(default_factory=dict)]`
+
+Koska `TraceEvent`-tietueet tallennetaan suoraan `execution_trace.json`-tiedostoon ja lähetetään Flutter-työpöytäsovellukselle SSE-virrassa (Server-Sent Events) 22 eri tiedostossa, niiden muuttaminen ennen PostgreSQL-migraatiota rikkoisi käynnissä olevat ajot.
+
+PostgreSQL-migraatiossa vanha `TraceEvent` korvataan lopullisesti uudella, 100 % tyypitetyllä `TraceEventDTO`-mallilla (`backend_v2/models/dtos/trace.py`), jolloin alastomat sanakirjat hävitetään myös tietokannan ja telemetriavirran sisältä:
+
+```python
+class TraceEventDTO(V2CoreBase):
+    """PostgreSQL 17+ & SSE Stream 100% typed trace event (ZERO NAKED DICTS)."""
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    event_id: Annotated[UUID, Field(default_factory=uuid.uuid4, description="Unique event identifier.")]
+    v: Annotated[int, Field(default=1, description="Schema version for forward compatibility.")]
+    timestamp: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp.")]
+    step_name: Annotated[str, Field(min_length=1, description="Name of the step that generated this event.")]
+    event_type: Annotated[str, Field(min_length=1, description="Type of the event.")]
+    
+    # ZERO NAKED DICTS: Content ja metadata tyypitettyinä JsonValue-rakenteina
+    content: Annotated[dict[str, JsonValue], Field(default_factory=dict, description="Structured event payload")]
+    reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Chain-of-thought reasoning")]
+    metadata: Annotated[dict[str, JsonValue], Field(default_factory=dict, description="Operational event metadata")]
+    mcp_audit_traces: Annotated[list[MCPAuditTrace], Field(default_factory=list, description="Associated MCP audit traces")]
+```
+
+Tällöin:
+1. `Execution.execution_trace: Mapped[list[TraceEventDTO]] = mapped_column(PydanticJSONB(list[TraceEventDTO]), nullable=False, default=list)` takaa, että PostgreSQL:n JSONB-sarakkeeseen ei päädy yhtäkään `dict[str, Any]` -kenttää.
+2. Myös Flutter-asiakkaalle suoratoistettava SSE-telemetria noudattaa samaa tiukkaa `TraceEventDTO`-skeemaa.
+3. PostgreSQL-suunnitelman sääntö 3.1 ("Ei alastomia sanakirjoja ORM-malleissa") toteutuu 100 %:sesti myös syvimmässä lokituskerroksessa.
 
 ---
 
@@ -472,7 +506,7 @@ if __name__ == "__main__":
 | **4. UUIDv7 -tietovuoto & ID-sopimukset** | Säilytetään Quorumin viralliset Opaque Stripe ID:t (`exe_...`, `rep_...`). UUIDv7 upotetaan heksasuffiksiksi, jolloin B-Tree-indeksihyöty säilyy täysin ilman, että API-sopimuksia rikotaan. | **100 % TAKLATTU** |
 | **5. Tapahtumasilmukan lukkiutuminen & Tiedostolukituskilpa (Lock Starvation & Race Condition)** | TinyDB:n synkroniset levynkirjoitukset, `time.sleep(0.02)` -odotussilmukat ja `msvcrt`-tiedostolukitukset poistuvat. PostgreSQL käyttää täysin asynkronista yhteysallasta (`asyncpg` / `asyncio`), MVCC:tä ja rivitason lukitusta (`SELECT ... FOR UPDATE`). Samanaikaiset DAG-ajot eivät enää kilpaile tiedostolukosta eivätkä aiheuta `TimeoutError`/`PermissionError`-kaatumisia, I/O ei estä `asyncio.TaskGroup`-ajoja eikä SSE-telemetriaa, eivätkä ajot jää orpoina `RUNNING`-tilaan ilman DLQ-reititystä. | **100 % TAKLATTU** |
 | **6. Kuolevan tiedostokoodin ylikorjaus & Hukkatyö (Sunk Cost Engineering)** | EPIC 152:ssa ei yritetä refaktoroida `TinyDBDriverin` tai `wrapper.py`:n tiedostolukituksia, vaan ne on karsittu (Scrap). EPIC 152 korjaa ajurista ainoastaan puhtaan `isinstance(data, BaseModel)` -tyyppiturvallisuuden, ja keskittää paukut DTO-malleihin (`models/dtos/`), jotka siirtyvät sellaisenaan PostgreSQL-malliin. | **100 % TAKLATTU** |
-| **7. Alastomat sanakirjat ja skeemavuodot (`dict[str, Any]` in JSONB)** | JSONB-sarakkeiden typistäminen `dict[str, Any]` -muotoon on ehdottomasti kielletty. Kaikki JSONB-kentät sidotaan `PydanticJSONB`-kääreellä ja Pydantic V2 `TypeAdapter`-moottorilla suoraan vahvoihin DTO-malleihin (`WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `ReportDataDTO`, `EvaluatedAtomDTO`, `AnyPromptBlock`, `OutputProfile`, `SystemConfigModelRegistry`, `list[ExecutionStep]`, `dict[str, ExecutionStepState]`). SQLAlchemy ja TypeAdapter sarjallistavat ja validoivat datan automaattisesti ilman käsin koodattuja sanakirjamuunnoksia. | **100 % TAKLATTU** |
+| **7. Alastomat sanakirjat ja skeemavuodot (`dict[str, Any]` in JSONB)** | JSONB-sarakkeiden typistäminen `dict[str, Any]` -muotoon on ehdottomasti kielletty. Kaikki JSONB-kentät sidotaan `PydanticJSONB`-kääreellä ja Pydantic V2 `TypeAdapter`-moottorilla suoraan vahvoihin DTO-malleihin (`WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `ReportDataDTO`, `EvaluatedAtomDTO`, `TraceEventDTO`, `AnyPromptBlock`, `OutputProfile`, `SystemConfigModelRegistry`, `list[ExecutionStep]`, `dict[str, ExecutionStepState]`, `list[TraceEventDTO]`). SQLAlchemy ja TypeAdapter sarjallistavat ja validoivat datan automaattisesti ilman käsin koodattuja sanakirjamuunnoksia. | **100 % TAKLATTU** |
 | **8. Orkestroijan ja Repositoryn apusanakirjat (`updates: dict`, `cv_dict`)** | Orkestroijan ja tietokantakerroksen väliset tilapäiset päivityssanakirjat on kielletty. SQLAlchemy 2.0 async session päivittää tilan suoraan tyypitettyjen DTO-instanssien kautta (`execution.context_variables = new_dto`), ja repository rekonstituoi suoraan Pydantic domain-mallit. Väliaikaisten sanakirjojen tarve lakkaa olemasta. | **100 % TAKLATTU** |
 | **9. Staattinen laadunvarmistus & AST-valvonta** | Uusi `audit_orm_strictness.py` estää CI/CD-tasolla minkäänlaisten `dict[str, Any]`- tai `mapped_column(JSONB)`-rakenteiden pääsyn SQLAlchemy-malleihin ilman `PydanticJSONB`-sidosta. | **100 % TAKLATTU** |
 

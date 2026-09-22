@@ -502,4 +502,3 @@ def test_grid_schema_strategy_sequence_step_output_dto() -> None:
 
     fields = schema.model_fields
     assert "global_matrices" in fields
-
