@@ -439,8 +439,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               );
             }).toList(),
             onChanged: (track) {
-              if (track != null)
+              if (track != null) {
                 _updateActiveTda((t) => t.copyWith(evaluationTrack: track));
+              }
             },
           ),
           AppSpacing.h8,
@@ -672,8 +673,9 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
               );
             }).toList(),
             onChanged: (mode) {
-              if (mode != null)
+              if (mode != null) {
                 _updateActiveTda((t) => t.copyWith(aggregationMode: mode));
+              }
             },
           ),
         ],
@@ -897,7 +899,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                     Expanded(
                                       child: ListView.separated(
                                         itemCount: claims.length,
-                                        separatorBuilder: (_, __) =>
+                                        separatorBuilder: (_, _) =>
                                             AppSpacing.h8,
                                         itemBuilder: (context, idx) {
                                           final isSelected =
@@ -1022,10 +1024,11 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
                                         ),
                                         selected: _selectedClaimIndex == idx,
                                         onSelected: (sel) {
-                                          if (sel)
+                                          if (sel) {
                                             setState(
                                               () => _selectedClaimIndex = idx,
                                             );
+                                          }
                                         },
                                       ),
                                       AppSpacing.w8,
