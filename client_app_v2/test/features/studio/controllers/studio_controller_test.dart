@@ -1,8 +1,10 @@
 import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
+import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
@@ -37,9 +39,18 @@ void main() {
     instructionText: 'Test Instruction',
   );
 
+  final validConfig = const ModelConfig(
+    id: 'cfg_0123456789abcdef',
+    name: 'Test Registry',
+    slug: 'test-registry',
+    type: 'model_registry',
+    defaultProvider: 'ai_studio',
+  );
+
   setUpAll(() {
     registerFallbackValue(validWorkflow);
     registerFallbackValue(validBlock);
+    registerFallbackValue(validConfig);
     registerFallbackValue(StackTrace.current);
   });
 
@@ -250,5 +261,69 @@ void main() {
         );
       },
     );
+  });
+
+  group('ModelRegistryController Operations & Exception Handling', () {
+    test('Positive: saveConfig saves typed ModelConfig and updates state', () async {
+      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+      when(
+        () => mockClient.saveSystemConfig(any(), any()),
+      ).thenAnswer((_) async => validConfig);
+
+      final controller = container.read(modelRegistryControllerProvider.notifier);
+      final result = await controller.saveConfig('cfg_0123456789abcdef', validConfig);
+
+      expect(result.id, 'cfg_0123456789abcdef');
+      verify(
+        () => mockClient.saveSystemConfig(
+          'cfg_0123456789abcdef',
+          any(that: isA<ModelConfig>()),
+        ),
+      ).called(1);
+    });
+
+    test('Negative 1: saveConfig rolls back and throws on server error', () async {
+      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+      when(
+        () => mockClient.saveSystemConfig(any(), any()),
+      ).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/studio/system-configs/cfg_0123456789abcdef'),
+          type: DioExceptionType.badResponse,
+        ),
+      );
+
+      final controller = container.read(modelRegistryControllerProvider.notifier);
+      expect(
+        () => controller.saveConfig('cfg_0123456789abcdef', validConfig),
+        throwsA(isA<AppException>()),
+      );
+    });
+
+    test('Negative 2: deleteConfig throws AppException on orphan rejection', () async {
+      final appError = AppException(
+        extensions: const {'error_code': 'RESOURCE_IN_USE'},
+        detail: 'Cannot delete system config in use by workflow',
+        status: 400,
+      );
+
+      when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
+      when(() => mockClient.deleteSystemConfig('cfg_0123456789abcdef')).thenThrow(
+        DioException(
+          requestOptions: RequestOptions(path: '/studio/system-configs/cfg_0123456789abcdef'),
+          error: appError,
+        ),
+      );
+
+      final controller = container.read(modelRegistryControllerProvider.notifier);
+      expect(
+        () => controller.deleteConfig('cfg_0123456789abcdef'),
+        throwsA(
+          isA<AppException>()
+              .having((e) => e.errorCode, 'errorCode', 'RESOURCE_IN_USE')
+              .having((e) => e.status, 'status', 400),
+        ),
+      );
+    });
   });
 }
