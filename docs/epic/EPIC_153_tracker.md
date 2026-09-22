@@ -53,15 +53,16 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Phase 4: Studio Modals, Dialogs UX Hardening & E2E Quality Gates
-**Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+**Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --phase=4`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+  - [ ] Step 4.0: Pre-Implementation Technical Debt Cleanups
   - [ ] Step 4.1: HumanOverrideDialog Hardening & Test Suite
   - [ ] Step 4.2: Studio Modals & Complex Editors Hardening
   - [ ] Step 4.3: Universal Quality Gates & Static Guardrails
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit:** Ensure no @pytest.mark.skip, // ignore:, or commented-out tests were left behind in the modified domains.
@@ -102,6 +103,7 @@
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
+  - [ ] [NEW] @[client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies remain across touched packages.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving client business logic.
 
@@ -162,29 +164,24 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully executed and audited Phase 3: Desktop Pro Tool Studio Master Views Virtualization & Containment (`cf810f6d`):
-  - Pre-implementation technical debt cleanups: eradicated dead fallbacks in `MatricesMasterView`, localized clone tooltips via `l10n.studioMasterDuplicateTooltip`, centered empty state displays, and added `_bannerError` handling in `McpGatewaysMasterView`.
-  - Implemented reusable `StudioMasterHeader` (`studio_master_header.dart`) with pinned title, subtitle, real-time instant search input with clear trigger, active count pill badge (`l10n.studioMasterItemCount`), primary action button, and 100% theme token adherence.
-  - Virtualized all 4 Quorum Studio master list views (`WorkflowsMasterView`, `MatricesMasterView`, `OutputProfileListView`, `McpGatewaysMasterView`) with `ListView.builder` using `prototypeItem` inside `Expanded`.
-  - Enforced centered 1200px max-width containment boundary via `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 1200), child: ...))` across all 4 master views.
-  - Eradicated Freezed `.when()` calls in touched master views in favor of Dart 3 native `switch` pattern matching.
-  - Replaced raw string filters with `PromptBlockCategoryGroups.matrixCategories` enum grouping in `MatricesMasterView`.
-  - Created 5 comprehensive widget test suites passing 100% (24 tests total): `studio_master_header_test.dart`, `workflows_master_view_test.dart`, `matrices_master_view_test.dart`, `output_profile_list_view_test.dart`, `mcp_gateways_master_view_test.dart`.
-  - Completed Tier 8 post-implementation audit (`red_team_audit_phase3_plan.md`) with 100% pass across all 8 DoD criteria, Dart guardrails, and full test suite (454 tests passed).
+- Successfully authored Phase 4 Implementation Plan: `@[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]`:
+  - Verified with `audit_markdown_boundaries.py` with 100% pass (SUCCESS: Audit passed).
+  - Verified with `audit_planner_output.py` with 100% pass against `docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` (all 13 line bounds preserved verbatim, all target files verified, mandatory XML blocks present, all KI references and domain rules validated).
+  - Synchronized `EPIC_153_tracker.md` to check off `[OK] Create Plan` and injected execution steps 4.0, 4.1, 4.2, 4.3.
 
 ## Learned
-- In `ListView.builder`, providing a representative `prototypeItem` with bounded subtitle text (`maxLines` or fixed line layout) guarantees constant O(1) scroll extents and prevents scroll position jumpiness on desktop viewports.
-- Keeping `StudioMasterHeader` pinned above the `Expanded` list inside a 1200px `ConstrainedBox` guarantees that search controls, creation actions, and the count badge never scroll off-screen, even when browsing 50+ items.
-- Differentiating between `unfilteredTotal == 0` (initial zero-state) and `unfilteredTotal > 0 && filteredCount == 0` (search miss) provides clear visual feedback without confusing the user.
+- In `HumanOverrideDialog`, `PopScope` must schedule dirty evaluation in `addPostFrameCallback` after `FocusScope.of(context).unfocus()` to ensure child controller blur listeners flush before evaluating `jsonEncode(_buildRequestDto().toJson()) != _initialRequestJson`.
+- In `ScaleEditorModal`, auto-scrolling to the invalid field via `Scrollable.ensureVisible` prevents user disorientation in complex TDA assertion rubrics.
+- In `ProfileEditorView`, wrapping the form body in centered 1200px containment guarantees desktop pro-tool ergonomics on 4K monitors without horizontal stretch.
 
 ## Remaining
-- Author Phase 4 Plan: `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --phase=4`
-- Red-Team Phase 4 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
-- Execute Phase 4: `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
-- Audit Phase 4 Plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md]`
+- Red-Team Phase 4 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- Execute Phase 4: `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+- Audit Phase 4 Plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- Execute Post-Implementation Gates: `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md] @[docs/epic/EPIC_153_tracker.md] --phase=4
+/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]
 ```
 
