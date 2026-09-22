@@ -280,3 +280,76 @@ def test_logic_exports() -> None:
 
     assert hasattr(logic, "__all__")
     assert "LogicNodeStrategy" in logic.__all__
+
+
+@pytest.mark.asyncio
+async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: LogicNodeStrategy) -> None:
+    """Regression test: LogicNodeStrategy must not crash with ExecutionInputsDTO ValidationError
+
+    when StateProjector contains raw_inputs and inputs TraceEvents from DAGExecutor.
+    """
+    from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.enums import StepType
+    from backend_v2.models.state import TraceEvent
+
+    step = StepRule.model_construct(id="step_scoring", task_blueprint="bp_scoring")
+    projector = StateProjector()
+    projector.apply_delta(
+        TraceEvent(
+            step_name="raw_inputs",
+            event_type="input",
+            content={
+                "simulation_mode": False,
+                "language": "en",
+                "dynamic_inputs": {
+                    "chat_log": "# Chat history",
+                    "product_text": "Product text",
+                    "document_date": "2026-07-22T08:57:19Z",
+                },
+            },
+        )
+    )
+    projector.apply_delta(
+        TraceEvent(
+            step_name="inputs",
+            event_type="input",
+            content={
+                "chat_log": "# Chat history",
+                "product_text": "Product text",
+            },
+        )
+    )
+    context = StrategyContext(
+        execution_id="e1",
+        workflow_id="w1",
+        metadata=ExecutionMetadata(),
+    )
+    semaphore = asyncio.Semaphore(1)
+
+    step_def = {
+        "id": "stp_0123456789abcdef",
+        "slug": "scoring_engine",
+        "name": {"translations": {"en": "Scoring Engine"}},
+        "hook": "apply_scoring_logic",
+        "description": {"translations": {"en": "Scoring"}},
+        "type": StepType.LOGIC,
+    }
+    from typing import cast
+    from unittest.mock import patch
+
+    mock_repo = cast(AsyncMock, logic_strategy.workflow_repo)
+    mock_repo.get_step_by_id.return_value = step_def
+
+    with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
+        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta=None))
+
+        traces = await logic_strategy.execute(step, projector, context, None, None, semaphore)
+
+        assert len(traces) == 1
+        assert traces[0].event_type == "output"
+        mock_execute.assert_called_once()
+        hook_name, hook_state, hook_deps = mock_execute.call_args.args
+        assert hook_name == "apply_scoring_logic"
+        assert isinstance(hook_state.inputs, ExecutionInputsDTO)
+        assert "steps" in hook_state.inputs.dynamic_inputs
+

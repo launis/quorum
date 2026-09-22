@@ -15,6 +15,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import FrozenContext
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
@@ -129,21 +130,19 @@ class LogicNodeStrategy(NodeStrategy):
             system_repo=self.system_repo,
         )
 
-        inputs_payload = {
+        inputs_payload: dict[str, DomainInputValue] = {
             d.block_id: d.payload
             for d in current_steps
             if isinstance(d, StepOutputDTO) and d.step_id == "inputs" and d.block_id
         }
-        raw_inputs_payload = {
-            d.block_id: d.payload
-            for d in current_steps
-            if isinstance(d, StepOutputDTO) and d.step_id == "raw_inputs" and d.block_id
-        }
-        dynamic_inputs_map: dict[str, Any] = {"steps": current_state.steps}
-        if inputs_payload:
-            dynamic_inputs_map["inputs"] = inputs_payload
-        if raw_inputs_payload:
-            dynamic_inputs_map["raw_inputs"] = raw_inputs_payload
+        if not inputs_payload:
+            for d in current_steps:
+                if isinstance(d, StepOutputDTO) and d.step_id == "raw_inputs" and d.block_id:
+                    if d.block_id == "dynamic_inputs" and isinstance(d.payload, Mapping):
+                        for k, v in d.payload.items():
+                            inputs_payload[k] = v
+                    elif d.block_id not in ("simulation_mode", "language", "organization_id", "user_id"):
+                        inputs_payload[d.block_id] = d.payload
 
         safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,
@@ -153,8 +152,8 @@ class LogicNodeStrategy(NodeStrategy):
             metadata=context.metadata,
             global_context_vars=context.global_context_vars,
             inputs=ExecutionInputsDTO(
-                dynamic_inputs=dynamic_inputs_map,
-                raw_inputs=raw_inputs_payload,
+                dynamic_inputs={"steps": current_state.steps},
+                raw_inputs=inputs_payload,
             ),
             target_locale=context.target_locale,
         )
@@ -209,8 +208,6 @@ class LogicNodeStrategy(NodeStrategy):
             delta_val = main_res.state_delta.delta
             if isinstance(delta_val, BaseModel):
                 final_outputs.update(delta_val.model_dump(mode="json"))
-            elif isinstance(delta_val, Mapping):
-                final_outputs.update(dict(delta_val))
         final_outputs["_step_metadata"] = {"task_blueprint": blueprint_id}
 
         # 5. Emit Immutable Event
