@@ -5,7 +5,7 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -203,7 +203,7 @@ class LogicNodeStrategy(NodeStrategy):
             hook_state=hook_state,
             hook_deps=hook_deps,
         )
-        final_outputs: dict[str, object] = {}
+        final_outputs: dict[str, JsonValue] = {}
         if main_res.state_delta and main_res.state_delta.delta:
             delta_val = main_res.state_delta.delta
             if isinstance(delta_val, BaseModel):

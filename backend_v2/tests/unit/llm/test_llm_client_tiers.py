@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -28,7 +28,7 @@ def _get_seed_model_registry(registry_id: str | None = None) -> dict[str, Any]:
     for cfg in data.get("system_config", []):
         if cfg.get("type") == "model_registry":
             if registry_id is None or cfg.get("id") == registry_id:
-                return cfg
+                return cast(dict[str, Any], cfg)
     raise RuntimeError(f"model_registry '{registry_id}' not found in seed_data.json")
 
 

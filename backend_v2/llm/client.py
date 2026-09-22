@@ -3,10 +3,11 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from collections.abc import Mapping, Sequence
 from typing import Any, Self, cast
 
 import pydantic
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -23,6 +24,7 @@ from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
 from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
 from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
@@ -41,13 +43,13 @@ class LLMClient:
     Replaces legacy Instructor/OpenAI implementation with unified V2.9 LLMProvider.
     """
 
-    def __init__(self, config: dict[str, Any] | LLMProviderConfig | None = None) -> None:
+    def __init__(self, config: Mapping[str, JsonValue] | LLMProviderConfig | None = None) -> None:
         self._config: LLMProviderConfig | None
         if config is not None:
             self._config = LLMProviderConfig.model_validate(config)
         else:
             self._config = None
-        self.model_config: dict[str, Any] | None = None
+        self.model_config: dict[str, JsonValue] | None = None
         self._initialize()
 
     def _initialize(self) -> None:
@@ -73,8 +75,8 @@ class LLMClient:
     def _build_structured_schema(
         self,
         response_model: type[BaseModel],
-        final_messages: list[LLMMessageDTO] | list[dict[str, Any]],
-        validation_context: dict[str, Any] | None,
+        final_messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]],
+        validation_context: Mapping[str, JsonValue] | None,
     ) -> Any:
         """Build the structured JSON schema for the provider, applying caching and strictness constraints."""
         adapter_schema: Any = {"type": "json_schema"}
@@ -82,12 +84,17 @@ class LLMClient:
             try:
                 adapter = LLMCacheAdapterFactory.get_adapter(self._config.provider, model_name=self.model_name)
                 adapter_schema = adapter.prepare_structured_output(response_model)
-            except Exception as e:  # noqa: QGR003 [REASON: Non-fatal fallback to basic JSON mode if custom adapter fails]
+            except Exception as e:
                 logger.error(
-                    "[LLMClient] Could not fetch adapter for structured output. Fallback to basic JSON mode. Error: %s",
+                    "[LLMClient] Could not fetch adapter for structured output: %s",
                     e,
+                    exc_info=True,
                 )
-                adapter_schema = {"type": "json_object"}
+                raise AppException(
+                    message=f"Could not prepare structured output for {self._config.provider}: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from e
         else:
             # Fallback for unconfigured clients
             adapter_schema = {"type": "json_object"}
@@ -124,13 +131,10 @@ class LLMClient:
             raise ConfigurationError("Repository dependency must be provided to LLMClient.from_tier.")
 
         # 0. Load Execution Pipelines from static registry
-        try:
-            if pipeline_name and pipeline_name in PIPELINE_REGISTRY:
-                pipeline = PIPELINE_REGISTRY[pipeline_name]
-                if execution_profile is None and pipeline.profile:
-                    execution_profile = ExecutionProfile(pipeline.profile.value.lower())
-        except (KeyError, ValueError, AttributeError) as e:
-            logger.warning("[LLMClient] Execution pipelines lookup failed: %s", e)
+        if pipeline_name and pipeline_name in PIPELINE_REGISTRY:
+            pipeline = PIPELINE_REGISTRY[pipeline_name]
+            if execution_profile is None and pipeline.profile is not None:
+                execution_profile = ExecutionProfile(pipeline.profile.value.lower())
 
         # 1. Fetch Raw Registry (Opaque ID Standard Supported)
         try:
@@ -260,13 +264,13 @@ class LLMClient:
 
     async def run_structured_task[T: BaseModel](
         self,
-        messages: list[LLMMessageDTO] | list[ChatMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
+        messages: Sequence[LLMMessageDTO | ChatMessageDTO | Mapping[str, JsonValue]] | CompiledPrompt,
         response_model: type[T],
         model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
         mock_identity: str | None = None,
-        validation_context: dict[str, Any] | None = None,
+        validation_context: Mapping[str, JsonValue] | None = None,
     ) -> tuple[T, TokenUsage]:
         """Execute a structured LLM task enforcing a Pydantic schema using LLMProvider.
 
@@ -320,7 +324,7 @@ class LLMClient:
             presence_penalty = None
 
         compiled_prompt: CompiledPrompt | None = None
-        final_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+        final_messages: list[LLMMessageDTO]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
             final_messages = compiled_prompt.to_flat_messages()
@@ -345,7 +349,7 @@ class LLMClient:
             )
             has_ephemeral_caching = True
 
-        extra_kwargs: dict[str, Any] = {}
+        extra_kwargs = {}
 
         if self._config and self._config.provider:
             try:
@@ -371,7 +375,9 @@ class LLMClient:
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
             )
-            final_messages = caching_messages
+            final_messages = [
+                m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in caching_messages
+            ]
             extra_kwargs.update(caching_kwargs)
 
             # V3 Cache Fix: Observability telemetry for caching diagnostics
@@ -440,7 +446,7 @@ class LLMClient:
                         presence_penalty=presence_penalty,
                         mock_identity=mock_identity,
                         timeout=strict_timeout,
-                        validation_context=validation_context,
+                        validation_context=dict(validation_context) if validation_context is not None else None,
                         **extra_kwargs,
                     )
                 except Exception as gen_err:
@@ -454,7 +460,7 @@ class LLMClient:
                             extra_kwargs["extra_body"].pop("cachedContent", None)
                             extra_kwargs["extra_body"].pop("cached_content", None)
 
-                        fallback_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+                        fallback_messages: list[LLMMessageDTO]
                         if compiled_prompt is not None:
                             fallback_messages = compiled_prompt.to_flat_messages()
                         else:
@@ -471,7 +477,7 @@ class LLMClient:
                             presence_penalty=presence_penalty,
                             mock_identity=mock_identity,
                             timeout=strict_timeout,
-                            validation_context=validation_context,
+                            validation_context=dict(validation_context) if validation_context is not None else None,
                             **extra_kwargs,
                         )
                     else:
@@ -603,13 +609,13 @@ class LLMClient:
 
     async def run_chat(
         self,
-        messages: list[LLMMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
+        messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]] | CompiledPrompt,
         model: str | None = None,
-        tools: list[dict[str, Any]] | None = None,
+        tools: Sequence[MCPToolDeclarationDTO | Mapping[str, JsonValue]] | None = None,
         tool_choice: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
-    ) -> str | dict[str, Any]:
+    ) -> str | dict[str, JsonValue]:
         """Execute a free-form chat task returning a string or tool_calls dict.
 
         Args:
@@ -663,7 +669,7 @@ class LLMClient:
         strict_timeout = get_settings().llm_default_timeout_seconds
 
         compiled_prompt: CompiledPrompt | None = None
-        final_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+        final_messages: list[LLMMessageDTO]
         if isinstance(messages, CompiledPrompt):
             compiled_prompt = messages
             final_messages = compiled_prompt.to_flat_messages()
@@ -676,17 +682,21 @@ class LLMClient:
         if self._config and self._config.caching_strategy in caching_strategies:
             has_ephemeral_caching = True
 
-        extra_kwargs: dict[str, Any] = {}
+        extra_kwargs = {}
         if has_ephemeral_caching and self._config:
             if not compiled_prompt:
                 prompt_adapter = PromptCompilerAdapter()
                 compiled_prompt = prompt_adapter.compile_prompt(final_messages)
 
-            final_messages, extra_kwargs = await LLMCachingService.prepare_caching_payload(
+            caching_messages, caching_kwargs = await LLMCachingService.prepare_caching_payload(
                 provider_name=self._config.provider,
                 compiled_prompt=compiled_prompt,
                 model_name=str(target_model_name),
             )
+            final_messages = [
+                m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in caching_messages
+            ]
+            extra_kwargs.update(caching_kwargs)
 
         # Create Provider — pass self._config for TPM/RPM (Strict Mode compliance)
         provider = LLMFactory.create_provider(
@@ -725,7 +735,7 @@ class LLMClient:
                         extra_kwargs["extra_body"].pop("cachedContent", None)
                         extra_kwargs["extra_body"].pop("cached_content", None)
 
-                    fallback_messages: list[LLMMessageDTO] | list[dict[str, Any]]
+                    fallback_messages: list[LLMMessageDTO]
                     if compiled_prompt is not None:
                         fallback_messages = compiled_prompt.to_flat_messages()
                     else:
@@ -749,7 +759,10 @@ class LLMClient:
 
             # If LLM returned tool_calls, return as dict for Tool Loop processing
             if response.tool_calls:
-                return {"tool_calls": response.tool_calls, "content": response.content}
+                tc_list: list[JsonValue] = [
+                    tc.model_dump(mode="json") if isinstance(tc, BaseModel) else tc for tc in response.tool_calls
+                ]
+                return {"tool_calls": tc_list, "content": response.content}
 
             return response.content
         except Exception as e:

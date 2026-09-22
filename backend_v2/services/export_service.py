@@ -138,7 +138,7 @@ class ExportService:
         else:
             h = _EXCEL_HEADERS_EN
 
-        summary_rows: list[dict[str, Any]] = []
+        summary_rows = []
         matrix_title_lookup: dict[str, str] = {}
         if report_dto.inner_sdui_blocks is not None:
             matrices: list[Any] = []
@@ -171,7 +171,7 @@ class ExportService:
             comp_list = await self.comp_repo.get_all_components("prompt_block")
             blocks_by_id = {b.id: b for b in comp_list}
 
-        rows: list[dict[str, Any]] = []
+        rows = []
         hydrated_refs = report_dto.hydrated_references
         for atom in report_dto.results:
             matrix_label = ""

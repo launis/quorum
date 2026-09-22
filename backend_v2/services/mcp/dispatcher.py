@@ -17,7 +17,7 @@ class ToolDispatcher:
         """
         self._registry: dict[str, BaseTool] = {tool.tool_id: tool for tool in tools}
 
-    def get_declarations(self, allowed_tools: list[str]) -> list[MCPToolDeclarationDTO | dict[str, Any]]:
+    def get_declarations(self, allowed_tools: list[str]) -> list[MCPToolDeclarationDTO]:
         """Get the OpenAI schema declarations for the specified tools.
 
         Args:

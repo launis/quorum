@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import BaseModel, JsonValue, ValidationError
 
@@ -113,7 +113,7 @@ class MatrixReducer:
         total_atoms = 0
         evaluated_matrix_ids: set[str] = set()
         seen_tda_ids: set[str] = set()
-        raw_extensions: list[dict[str, Any]] = []
+        raw_extensions = []
 
         # 1. Primary: Extract evaluated atoms and extensions from execution_trace (real DAG runtime)
         for evt in record.execution_trace:
@@ -180,7 +180,7 @@ class MatrixReducer:
                     if atom.status == ExecutionStatus.PASSED and not has_extracted_data:
                         continue
 
-                    extracted_data_dict: dict[str, Any] | None = None
+                    extracted_data_dict: dict[str, JsonValue] | None = None
                     if atom.extracted_data:
                         extracted_data_dict = atom.extracted_data.model_dump(mode="json")
 
@@ -199,9 +199,7 @@ class MatrixReducer:
 
         logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", total_atoms, len(reduced_atoms))
 
-        evaluated_matrices: list[dict[str, JsonValue]] = [
-            {"matrix_id": mid} for mid in sorted(list(evaluated_matrix_ids))
-        ]
+        evaluated_matrices = [{"matrix_id": cast(JsonValue, mid)} for mid in sorted(list(evaluated_matrix_ids))]
         global_metrics: dict[str, JsonValue] = {
             "total_atoms": total_atoms,
             "evaluated": total_atoms,

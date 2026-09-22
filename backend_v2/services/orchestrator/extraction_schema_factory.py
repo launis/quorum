@@ -186,7 +186,7 @@ def create_extraction_model(
     unique_facts = sorted(set(facts))
 
     # 2. Build the dynamic ExtractedFactsDTO model
-    facts_fields: dict[str, Any] = {}
+    facts_fields: dict[str, tuple[Any, Any]] = {}
     for index, fact in enumerate(unique_facts):
         alias_name = f"fact_{index + 1}"
         facts_fields[fact] = (
@@ -197,7 +197,8 @@ def create_extraction_model(
     model_suffix = secrets.token_hex(4)
     extracted_facts_dto_name = f"ExtractedFactsDTO_{model_suffix}"
 
-    ExtractedFactsDTO = create_model(
+    create_model_fn: Any = create_model
+    ExtractedFactsDTO = create_model_fn(
         extracted_facts_dto_name,
         __base__=ExtractedFactsDTOBase,
         __config__=ConfigDict(populate_by_name=True, extra="forbid", strict=True, frozen=True),
@@ -205,7 +206,7 @@ def create_extraction_model(
     )
 
     # 3. Build the dynamic DynamicExtractionResponse root model
-    root_fields: dict[str, Any] = {
+    root_fields: dict[str, tuple[Any, Any]] = {
         "chunk_index": (int, Field(..., description="Zero-based index of the chunk")),
         "context_scan_trace": (str, Field(..., max_length=400, description="Short trace of LLM reasoning")),
         "search_context_anchor": (str | None, Field(default=None, description="Optional raw quote anchor")),
@@ -225,7 +226,7 @@ def create_extraction_model(
     )
 
     response_model_name = f"DynamicExtractionResponse_{model_suffix}"
-    DynamicExtractionResponse = create_model(
+    DynamicExtractionResponse = create_model_fn(
         response_model_name,
         __base__=DynamicExtractionResponseBase,
         __config__=ConfigDict(extra="forbid", strict=True, frozen=True),

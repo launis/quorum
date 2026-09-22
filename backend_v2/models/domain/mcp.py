@@ -232,3 +232,15 @@ class CitationCorrectionResult(V2CoreBase):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     corrected_claim: Annotated[str, Field(description="The verbatim corrected claim text found in the source context.")]
+
+
+class CitationExtractionFailure(V2CoreBase):
+    """Ensemble citation extraction worker failure.
+
+    Attributes:
+        error_message: Error message from failed ensemble run.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    error_message: Annotated[str, Field(description="Error message from failed ensemble run.")]

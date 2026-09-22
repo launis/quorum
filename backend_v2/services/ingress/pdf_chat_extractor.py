@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
 import fitz
@@ -55,7 +56,7 @@ class PdfChatExtractorService:
 
     @staticmethod
     def _is_user_bubble_drawing(
-        d: dict[str, object],
+        d: Mapping[str, object],
         page_width: float,
         page_height: float,
         table_rects: list[fitz.Rect] | None = None,
@@ -102,6 +103,11 @@ class PdfChatExtractorService:
         return True
 
     @staticmethod
+    def _dlq_log_extraction_error(context: str, exc: Exception) -> None:
+        """Route non-fatal PDF table extraction exceptions to dead-letter diagnostic logs."""
+        logger.debug("[PdfChatExtractorService] DLQ table extraction fault in %s: %s", context, exc)
+
+    @staticmethod
     def _get_page_table_rects(page: fitz.Page) -> list[fitz.Rect]:
         """Extracts valid table bounding boxes, guarding against empty cell collections and outer page containers."""
         table_rects: list[fitz.Rect] = []
@@ -125,7 +131,7 @@ class PdfChatExtractorService:
                                 continue
                             valid_cells.append(c)
                 except (ValueError, AttributeError, TypeError) as exc:
-                    logger.debug("[PdfChatExtractorService] Skipping malformed table cells: %s", exc)
+                    PdfChatExtractorService._dlq_log_extraction_error("cell parsing", exc)
 
                 if valid_cells:
                     min_x0 = min(c[0] for c in valid_cells)
@@ -145,10 +151,10 @@ class PdfChatExtractorService:
                         ):
                             table_rects.append(r)
                 except (ValueError, AttributeError, TypeError) as exc:
-                    logger.debug("[PdfChatExtractorService] Skipping malformed table bbox: %s", exc)
+                    PdfChatExtractorService._dlq_log_extraction_error("bbox fallback", exc)
                     continue
         except (ValueError, AttributeError, TypeError) as exc:
-            logger.debug("[PdfChatExtractorService] Failed to extract page table rects: %s", exc)
+            PdfChatExtractorService._dlq_log_extraction_error("page table scan", exc)
 
         return table_rects
 
@@ -318,10 +324,10 @@ class PdfChatExtractorService:
                     md_table = "\n".join([header, separator] + data_lines)
                     reconstructed.append((t_rect, md_table))
                 except (ValueError, AttributeError, TypeError) as exc:
-                    logger.debug("[PdfChatExtractorService] Failed to reconstruct table: %s", exc)
+                    PdfChatExtractorService._dlq_log_extraction_error("table row reconstruction", exc)
                     continue
         except (ValueError, AttributeError, TypeError) as exc:
-            logger.debug("[PdfChatExtractorService] find_tables failed in reconstruct: %s", exc)
+            PdfChatExtractorService._dlq_log_extraction_error("table extraction in markdown", exc)
 
         return reconstructed
 

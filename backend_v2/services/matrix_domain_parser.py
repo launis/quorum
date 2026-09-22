@@ -14,7 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import AnyPromptBlock, MatrixPromptBlock
-from backend_v2.models.domain.step import StepRule
+from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
@@ -79,7 +79,7 @@ class MatrixDomainParser:
         mcp_audit_map: dict[str, MCPAuditTrace] | None = None,
         source_identity_manifest: dict[str, str] | None = None,
         execution: Any = None,
-        expected_inputs_map: dict[str, Any] | None = None,
+        expected_inputs_map: dict[str, ExpectedInput] | None = None,
     ) -> ParsedMatricesResultDTO:
         """Parses folded results into MatrixScorecardRowDTOs.
 

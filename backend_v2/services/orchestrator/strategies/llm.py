@@ -14,7 +14,7 @@ import time
 from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.settings import get_settings
 
@@ -32,6 +32,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
@@ -47,8 +48,10 @@ from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluati
 from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, VirtualSystemStepID
+from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
@@ -68,6 +71,8 @@ _SCHEMA_BLOCK_MATRIX = "MATRIX"
 _SCHEMA_BLOCK_TEXT = "TEXT"
 _SCHEMA_BLOCK_EXTENSION = "EXTENSION"
 _SCHEMA_BLOCK_SYSTEM = "SYSTEM"
+
+type NodeStatePayload = DomainInputValue | ExecutionMetadata | Mapping[str, DomainInputValue] | list[Any] | JsonValue
 
 
 class LLMNodeStrategy(NodeStrategy):
@@ -111,7 +116,7 @@ class LLMNodeStrategy(NodeStrategy):
         Returns:
             StepContextMetadataDTO containing gvars, doc_aliases, and dag_results.
         """
-        gvars: dict[str, object] = {}
+        gvars = {}
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
             gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
         elif (
@@ -136,7 +141,7 @@ class LLMNodeStrategy(NodeStrategy):
             elif "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
                 blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
 
-        atoms_by_input: dict[str, Any] = {}
+        atoms_by_input = {}
         if blackboard is not None:
             if isinstance(blackboard, GlobalAtomBlackboard):
                 atoms_by_input = blackboard.atoms_by_input
@@ -147,8 +152,8 @@ class LLMNodeStrategy(NodeStrategy):
         if atoms_by_input:
             doc_aliases = list(atoms_by_input.keys())
 
-        raw_inputs_dict: Mapping[str, Any] = {}
-        dynamic_inputs_dict: Mapping[str, Any] = {}
+        raw_inputs_dict: Mapping[str, object] = {}
+        dynamic_inputs_dict: Mapping[str, object] = {}
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             raw_inputs_dict = hook_state.inputs.raw_inputs
             dynamic_inputs_dict = hook_state.inputs.dynamic_inputs
@@ -258,10 +263,10 @@ class LLMNodeStrategy(NodeStrategy):
             targets=targets,
             step_outputs=projector.snapshot,
         )
-        snapshot_steps: list[Any] = []
+        snapshot_steps: list[StepOutputDTO] = []
         if isinstance(projector.snapshot, list):
             snapshot_steps = list(projector.snapshot)
-        current_state: dict[str, Any] = {
+        current_state: dict[str, DomainInputValue] = {
             "steps": snapshot_steps,
         }
 
@@ -281,8 +286,7 @@ class LLMNodeStrategy(NodeStrategy):
             )
 
         step_def_raw = await self.workflow_repo.get_step_by_id(blueprint_id)
-        step_def = cast(dict[str, Any], step_def_raw)
-        if not step_def:
+        if not step_def_raw:
             logger.error(
                 f"Configuration error: Step '{blueprint_id}' not found.",
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.name, "step_id": step.id},
@@ -293,7 +297,7 @@ class LLMNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
 
-        step_obj = V2Step.model_validate(step_def)
+        step_obj = V2Step.model_validate(step_def_raw)
         hook_deps = HookDependencies(
             exec_repo=self.exec_repo,
             workflow_repo=self.workflow_repo,
@@ -310,8 +314,6 @@ class LLMNodeStrategy(NodeStrategy):
             for ei in context.expected_inputs:
                 input_keys.add(ei.input_key)
 
-        state_data = current_state
-
         if isinstance(context.global_context_vars, GlobalContextVarsDTO):
             initial_gvars = context.global_context_vars
         elif isinstance(context.global_context_vars, Mapping) and context.global_context_vars:
@@ -320,7 +322,8 @@ class LLMNodeStrategy(NodeStrategy):
             initial_gvars = GlobalContextVarsDTO.model_validate(filtered_vars)
         else:
             initial_gvars = GlobalContextVarsDTO()
-        safe_raw_inputs: dict[str, Any] = {}
+
+        safe_raw_inputs = {}
         if isinstance(inputs_unwrapped, Mapping):
             safe_raw_inputs = dict(inputs_unwrapped)
         hook_state = HookState(
@@ -330,10 +333,11 @@ class LLMNodeStrategy(NodeStrategy):
             task_blueprint=blueprint_id,
             metadata=context.metadata,
             global_context_vars=initial_gvars,
-            inputs=ExecutionInputsDTO(dynamic_inputs=state_data, raw_inputs=safe_raw_inputs),
+            inputs=ExecutionInputsDTO(dynamic_inputs=current_state, raw_inputs=safe_raw_inputs),
         )
 
         hook_state, pre_events = await self.run_pre_hooks(step_obj, step, hook_state, hook_deps)
+        state_data: dict[str, NodeStatePayload]
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             state_data = dict(hook_state.inputs.dynamic_inputs)
             if "inputs" not in state_data and hook_state.inputs.raw_inputs:
@@ -428,7 +432,6 @@ class LLMNodeStrategy(NodeStrategy):
         input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
 
         workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
-        workflow_def = cast(dict[str, Any], workflow_def_raw)
 
         output_profile = None
         if target_profile:
@@ -446,17 +449,16 @@ class LLMNodeStrategy(NodeStrategy):
 
         schema_map: dict[str, str] = {}
         blueprint_labels: dict[str, str] = {}
-        if workflow_def:
-            workflow_obj = Workflow.model_validate(workflow_def)
+        if workflow_def_raw:
+            workflow_obj = Workflow.model_validate(workflow_def_raw)
 
             for s in workflow_obj.steps:
                 is_matrix = False
                 blueprint_def_raw = await self.workflow_repo.get_step(s.task_blueprint)
-                blueprint_def = cast(dict[str, Any], blueprint_def_raw)
-                if blueprint_def:
-                    if "name" in blueprint_def:
-                        blueprint_labels[s.id] = self.compiler.resolve_i18n(blueprint_def["name"], "en")
-                    blueprint_obj = V2Step.model_validate(blueprint_def)
+                if blueprint_def_raw:
+                    if isinstance(blueprint_def_raw, Mapping) and "name" in blueprint_def_raw:
+                        blueprint_labels[s.id] = self.compiler.resolve_i18n(blueprint_def_raw["name"], "en")
+                    blueprint_obj = V2Step.model_validate(blueprint_def_raw)
                     all_bp_blocks: list[str] = []
                     if blueprint_obj.role_block_id:
                         all_bp_blocks.append(blueprint_obj.role_block_id)
@@ -619,7 +621,7 @@ class LLMNodeStrategy(NodeStrategy):
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
 
-            req = ChunkingRequest[FlattenedAtom | dict[str, Any]](
+            req = ChunkingRequest(
                 parent_id=context.workflow_id,
                 items=shuffled_atoms,
                 max_chunk_size=get_settings().schema_max_evaluations,
@@ -660,9 +662,7 @@ class LLMNodeStrategy(NodeStrategy):
                     exec_obj = execution_record_raw
                 else:
                     exec_obj = ExecutionRecord.model_validate(execution_record_raw, strict=False)
-                manifest: dict[str, Any] = {}
-                if exec_obj.source_identity_manifest:
-                    manifest = exec_obj.source_identity_manifest
+                manifest = exec_obj.source_identity_manifest if exec_obj.source_identity_manifest else {}
 
                 source_docs = []
                 inputs_dict: object = inputs_payload
@@ -738,7 +738,7 @@ class LLMNodeStrategy(NodeStrategy):
 
         MAX_RETRIES = get_settings().llm_max_retries
         retry_count = 0
-        final_dict: dict[str, Any] = {}
+        final_dict = {}
         usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         latency_ms = 0
 
@@ -903,7 +903,7 @@ class LLMNodeStrategy(NodeStrategy):
                 usage_agg = engine_result.usage
             else:
                 usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-            all_prompt_contexts: list[dict[str, Any]] = []
+            all_prompt_contexts: list[JsonValue] = []
             post_target_locale: str | None = None
             post_user_role: Any | None = None
             if isinstance(hook_state.inputs, ExecutionInputsDTO):
@@ -972,7 +972,7 @@ class LLMNodeStrategy(NodeStrategy):
             if key in state_data:
                 final_dict[key] = state_data[key]
 
-        meta_dict: dict[str, Any] = {}
+        meta_dict = {}
         if "_step_metadata" in final_dict:
             existing_meta = final_dict["_step_metadata"]
             if isinstance(existing_meta, BaseModel):
@@ -997,7 +997,7 @@ class LLMNodeStrategy(NodeStrategy):
                 meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
         final_dict["_step_metadata"] = meta_dict
 
-        metadata: dict[str, Any] = {
+        metadata = {
             "latency_ms": latency_ms,
             "chunk_size": len(chunks_list),
             "context_char_length": context_char_length,

@@ -10,13 +10,15 @@ Adheres to RFC 7807 Dual-Reporting and Graceful Degradation (§6.3) mandates.
 
 import asyncio
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import AppException, ErrorCodes, SemanticEvidenceError
 from backend_v2.models.domain.mcp import (
     CitationCorrectionResult,
+    CitationExtractionFailure,
     CitationExtractionResult,
     MCPSynthesisInstructionsDTO,
     MCPToolLoopResult,
@@ -24,6 +26,7 @@ from backend_v2.models.domain.mcp import (
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import CognitiveTier, SourceSufficiencyThreshold
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts import (
     CITATION_SELF_CORRECTION_SYSTEM_INSTRUCTION,
     MCP_EVIDENCE_INJECTION_DIRECTIVE,
@@ -130,14 +133,14 @@ def _build_tool_evidence_message(audit: MCPAuditTrace, tool_call_id: str) -> dic
 async def execute_tool_loop[T: BaseModel](
     llm_client: Any,
     executor: Any,
-    messages: list[dict[str, Any]],
+    messages: Sequence[LLMMessageDTO | Mapping[str, JsonValue]],
     response_model: type[T],
     allowed_tools: list[str],
     step_name: str,
     mock_identity: str | None = None,
     target_language: str = "en",
-    synthesis_instructions: dict[str, Any] | None = None,
-    validation_context: dict[str, Any] | None = None,
+    synthesis_instructions: MCPSynthesisInstructionsDTO | Mapping[str, JsonValue] | None = None,
+    validation_context: dict[str, JsonValue] | None = None,
     source_context: str = "",
     alias_engine: AliasEngine | None = None,
     repository: Any = None,
@@ -215,7 +218,11 @@ async def execute_tool_loop[T: BaseModel](
 
     strictness_level = 100
     if validation_context and "strictness_level" in validation_context:
-        strictness_level = validation_context["strictness_level"]
+        strictness_val = validation_context["strictness_level"]
+        if isinstance(strictness_val, int):
+            strictness_level = strictness_val
+        elif isinstance(strictness_val, (str, float)):
+            strictness_level = int(strictness_val)
 
     total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
@@ -224,8 +231,13 @@ async def execute_tool_loop[T: BaseModel](
 
         extraction_messages = [{"role": "system", "content": extraction_sys_msg}]
         for msg in messages:
-            if "role" in msg and msg["role"] == "user":
-                extraction_messages.append(msg)
+            if isinstance(msg, LLMMessageDTO):
+                if msg.role == "user":
+                    extraction_messages.append({"role": "user", "content": msg.content})
+            elif isinstance(msg, Mapping) and "role" in msg and msg["role"] == "user":
+                role_val = str(msg["role"])
+                content_val = str(msg["content"]) if "content" in msg else ""
+                extraction_messages.append({"role": role_val, "content": content_val})
 
         # Internal Utility rule: lazy load LLMClient
         from backend_v2.llm.client import LLMClient
@@ -237,10 +249,17 @@ async def execute_tool_loop[T: BaseModel](
                 fast_client = await LLMClient.from_tier(
                     CognitiveTier.FAST, repository=repository, pipeline_name="mcp_tool_loop"
                 )
-            except (AppException, ValueError, RuntimeError, TypeError, OSError) as e:
-                logger.warning("Could not initialize 'fast' client for extraction, falling back to step client: %s", e)
+            except Exception as e:
+                logger.error("Could not initialize 'fast' client for extraction: %s", e, exc_info=True)
+                raise AppException(
+                    message=f"Could not initialize 'fast' client for extraction: {e}",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
+                ) from e
 
-        async def run_single_extraction() -> tuple[CitationExtractionResult | None, TokenUsage | None]:
+        async def run_single_extraction() -> tuple[
+            CitationExtractionResult | CitationExtractionFailure, TokenUsage | None
+        ]:
             try:
                 res, usage = await executor.execute_structured_task(
                     client=fast_client,
@@ -252,9 +271,9 @@ async def execute_tool_loop[T: BaseModel](
                 if not isinstance(res, CitationExtractionResult):
                     res = CitationExtractionResult.model_validate(res)
                 return res, usage
-            except (AppException, ValueError, RuntimeError, TypeError, OSError) as ex:
+            except Exception as ex:
                 logger.warning("Ensemble citation extraction call failed: %s", ex, exc_info=True)
-                return None, None
+                return CitationExtractionFailure(error_message=str(ex)), None
 
         try:
             async with asyncio.TaskGroup() as tg:
@@ -272,9 +291,9 @@ async def execute_tool_loop[T: BaseModel](
                 message=err_msg, status_code=502, details={"error_code": ErrorCodes.FETCH_FAILED.value}
             ) from e
 
-        successful_runs = []
+        successful_runs: list[tuple[CitationExtractionResult, TokenUsage | None]] = []
         for res, usage in [(res1, usage1), (res2, usage2), (res3, usage3)]:
-            if res is not None:
+            if isinstance(res, CitationExtractionResult):
                 successful_runs.append((res, usage))
                 if usage:
                     total_usage += usage
@@ -415,14 +434,24 @@ async def execute_tool_loop[T: BaseModel](
 
     # --- PHASE 2: Completion with evidence injected ---
     # Build final messages: original system/user + any evidence injected
-    final_messages = list(messages)
+    final_messages = []
+    for m in messages:
+        if isinstance(m, LLMMessageDTO):
+            final_messages.append({"role": m.role, "content": m.content})
+        elif isinstance(m, Mapping):
+            role_val = str(m["role"]) if "role" in m else "user"
+            content_val = str(m["content"]) if "content" in m else ""
+            final_messages.append({"role": role_val, "content": content_val})
 
     if audit_traces:
         evidence_blocks = []
         if validation_context is None:
             validation_context = {}
-        if "mcp_source_texts" not in validation_context:
-            validation_context["mcp_source_texts"] = {}
+        source_texts: dict[str, JsonValue] = {}
+        if "mcp_source_texts" in validation_context and isinstance(validation_context["mcp_source_texts"], Mapping):
+            source_texts = dict(validation_context["mcp_source_texts"])
+        else:
+            validation_context["mcp_source_texts"] = source_texts
 
         # Tier 4 Fix: Use AliasEngine as the single source of truth for alias generation.
         # Removed ad-hoc doc{N} counter and alias_map mutation that bypassed AliasEngine.
@@ -438,7 +467,7 @@ async def execute_tool_loop[T: BaseModel](
             if audit.source_urls:
                 text_payload += f"Sources: {', '.join(audit.source_urls)}\n"
 
-            validation_context["mcp_source_texts"][local_id] = text_payload
+            source_texts[local_id] = text_payload
 
             evidence_blocks.append(f'<source ID="{local_id}">\n{text_payload}\n</source>')
 

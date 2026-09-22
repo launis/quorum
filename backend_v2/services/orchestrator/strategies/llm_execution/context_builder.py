@@ -19,7 +19,7 @@ from backend_v2.models.domain.prompt_blocks import (
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
+from backend_v2.models.dtos.prompt import ContextInputValue, LLMContextDataDTO, PromptMappingDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.context_router import ContextRouter
 from backend_v2.settings import get_settings
@@ -65,7 +65,7 @@ class ContextBuilder:
                 raw = {d.block_id: d.payload for d in dtos}
                 return {k: ContextBuilder._project_compressed(v) for k, v in raw.items()}
 
-        pruned_step_output: dict[str, Any] = {}
+        pruned_step_output = {}
         for dto in dtos:
             key: str = dto.block_id
             value: Any = dto.payload
@@ -93,7 +93,7 @@ class ContextBuilder:
                         if not pruned:
                             continue
 
-                        pruned_dict: dict[str, Any] = pruned.model_dump()
+                        pruned_dict = pruned.model_dump()
 
                         if "evaluated_atoms" in pruned_dict:
                             del pruned_dict["evaluated_atoms"]
@@ -138,7 +138,7 @@ class ContextBuilder:
         elif isinstance(obj, (str, int, float, bool)) or obj is None:
             return obj
         elif isinstance(obj, Mapping):
-            result: dict[str, Any] = {}
+            result = {}
             for k, v in obj.items():
                 if k in ("shuffled_atoms", "original_text", "raw_content"):
                     continue
@@ -255,8 +255,8 @@ class ContextBuilder:
             TokenLimitExceededError: Triggered when token limit is violated.
             AppException: Raised if validation or context parsing fails.
         """
-        extracted_raw_inputs: dict[str, Any] = {}
-        extracted_inputs: dict[str, Any] = {}
+        extracted_raw_inputs: dict[str, ContextInputValue] = {}
+        extracted_inputs: dict[str, ContextInputValue] = {}
         extracted_metadata: ExecutionMetadata | None = None
         new_input_mappings: dict[str, str] = {}
         if schema_map is None:
@@ -432,12 +432,14 @@ class ContextBuilder:
                     new_input_mappings[_logical_name] = f"${_logical_name}"
                 else:
                     parts = clean_path.split(".")
-                    curr = extracted_inputs
+                    curr_node: Any = extracted_inputs
                     for i, part in enumerate(parts):
                         if i == len(parts) - 1:
-                            curr[part] = copy.deepcopy(resolved_value)
+                            curr_node[part] = copy.deepcopy(resolved_value)
                         else:
-                            curr = curr.setdefault(part, {})
+                            if part not in curr_node or not isinstance(curr_node[part], Mapping):
+                                curr_node[part] = {}
+                            curr_node = curr_node[part]
                     extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)
                     new_input_mappings[_logical_name] = path
             except Exception as e:

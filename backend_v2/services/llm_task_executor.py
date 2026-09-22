@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, JsonValue
 
 from backend_v2.exceptions import (
     AgentExecutionError,
@@ -122,7 +122,7 @@ class LLMTaskExecutor:
     """
 
     def __init__(
-        self, prompt_compiler: PromptCompiler, default_validation_context: dict[str, Any] | None = None
+        self, prompt_compiler: PromptCompiler, default_validation_context: Mapping[str, JsonValue] | None = None
     ) -> None:
         """Initialize the executor.
 
@@ -168,7 +168,7 @@ class LLMTaskExecutor:
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
-        effective_validation_context: dict[str, Any] = {}
+        effective_validation_context: dict[str, JsonValue] = {}
         if self.default_validation_context is not None:
             effective_validation_context.update(self.default_validation_context)
         if isinstance(validation_context, BaseModel):
@@ -498,7 +498,7 @@ class LLMTaskExecutor:
         )
         raise AgentExecutionError(detail=ErrorCodes.AGENT_EXECUTION_CRITICAL)
 
-    async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, Any]:
+    async def execute_chat_task(self, client: LLMClient, **kwargs: Any) -> str | dict[str, JsonValue]:
         """Execute a free-form chat task, delegating cleanly to the client.
 
         Args:

@@ -22,7 +22,7 @@ class BaseTool(ABC):
 
     @property
     @abstractmethod
-    def declaration(self) -> MCPToolDeclarationDTO | dict[str, Any]:
+    def declaration(self) -> MCPToolDeclarationDTO:
         """The tool declaration in OpenAI JSON schema format."""
         pass
 

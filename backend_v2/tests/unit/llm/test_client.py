@@ -13,6 +13,7 @@ from backend_v2.exceptions import (
 )
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.enums import CognitiveTier, ExecutionProfile
+from backend_v2.models.llm import LLMMessageDTO
 
 
 class DummyConfig(BaseModel):
@@ -106,7 +107,7 @@ async def test_semantic_self_healing_retry(mock_create_provider: MagicMock) -> N
     mock_provider.generate.side_effect = [mock_fail_response, mock_success_response]
 
     client = LLMClient(config=DummyConfig().model_dump())
-    messages = [{"role": "user", "content": "Evaluate text"}]
+    messages = [LLMMessageDTO(role="user", content="Evaluate text")]
 
     from backend_v2.services.llm_task_executor import LLMTaskExecutor
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -176,7 +177,7 @@ async def test_client_delegates_to_caching_service(mock_prepare: AsyncMock, mock
 
     # Verify that the generate call receives the manipulated messages and extra kwargs
     args, kwargs = mock_provider.generate.call_args
-    assert kwargs["messages"] == [{"role": "system", "content": "mocked"}]
+    assert kwargs["messages"] == [LLMMessageDTO(role="system", content="mocked")]
     assert kwargs["caching_injected"] is True
 
 
@@ -373,15 +374,15 @@ async def test_build_adapter_structured_schema_unconfigured() -> None:
 
 @pytest.mark.asyncio
 async def test_build_adapter_structured_schema_adapter_error() -> None:
-    """Verify _build_structured_schema falls back to json_object on adapter exception."""
+    """Verify _build_structured_schema fails fast on adapter exception."""
     c = DummyConfig()
     client = LLMClient(config=c.model_dump())
     with patch(
         "backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter",
         side_effect=Exception("Adapter boom"),
     ):
-        schema = client._build_structured_schema(DummyStrictModel, final_messages=[], validation_context=None)
-        assert schema == {"type": "json_object"}
+        with pytest.raises(AppException):
+            client._build_structured_schema(DummyStrictModel, final_messages=[], validation_context=None)
 
 
 @pytest.mark.asyncio
@@ -445,6 +446,7 @@ async def test_from_tier_one_shot_execution_profile(
         repository=mock_repository,
         execution_profile=ExecutionProfile.ONE_SHOT,
     )
+    assert client.config is not None
     assert client.config.caching_strategy == "none"
 
 

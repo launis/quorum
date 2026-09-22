@@ -3,19 +3,22 @@
 from __future__ import annotations
 
 import datetime
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
+from collections.abc import ItemsView, Iterator, KeysView, Mapping, ValuesView
 from typing import Annotated, Any
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.inputs import DomainInputValue, IngressInputValue
 from backend_v2.models.execution_core import ExecutionMetadata
 
 __all__ = [
+    "ContextInputValue",
     "LLMContextDataDTO",
     "PromptMappingDTO",
 ]
+
+type ContextInputValue = IngressInputValue | DomainInputValue | Mapping[str, DomainInputValue] | JsonValue
 
 
 class PromptMappingDTO(V2CoreBase):
@@ -59,7 +62,7 @@ class LLMContextDataDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     raw_inputs: Annotated[
-        dict[str, IngressInputValue | DomainInputValue] | None,
+        dict[str, ContextInputValue] | None,
         Field(default=None, description="Raw ingress input parameters."),
     ] = None
     metadata: Annotated[
@@ -71,7 +74,7 @@ class LLMContextDataDTO(V2CoreBase):
         Field(default=None, description="Execution timestamp."),
     ] = None
     inputs: Annotated[
-        dict[str, Any] | None,
+        dict[str, ContextInputValue] | None,
         Field(default=None, description="Resolved domain inputs."),
     ] = None
 
