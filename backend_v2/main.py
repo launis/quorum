@@ -78,12 +78,12 @@ def _audit_storage_and_database_sync(db: TinyDB, logger: logging.Logger, storage
     orphaned_db_ids: list[str] = []
 
     for rec in db_records:
-        rec_id = rec.get("id")
+        rec_id = rec["id"] if "id" in rec else None
         if not rec_id:
             continue
         db_execution_ids.add(str(rec_id))
 
-        trace_path_raw = rec.get("execution_trace_storage_path")
+        trace_path_raw = rec["execution_trace_storage_path"] if "execution_trace_storage_path" in rec else None
         trace_exists = False
         if trace_path_raw and Path(trace_path_raw).exists():
             trace_exists = True

@@ -281,11 +281,11 @@ class AuthService:
         try:
             # We enforce the secret check here.
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            id = payload.get("sub")
-            if not id:
+            if "sub" not in payload or not payload["sub"]:
                 raise AuthenticationError(
                     message="Invalid internal token: missing 'sub'.", details={"error_code": "INVALID_TOKEN"}
                 )
+            id = str(payload["sub"])
 
             user = await self.repo.get_by_id(id)
             if not user:
@@ -335,7 +335,7 @@ class AuthService:
             # Verify ID token
             decoded_token = self.firebase_auth.verify_id_token(token)
             user_id = decoded_token["uid"]
-            email = decoded_token.get("email")
+            email = decoded_token["email"] if "email" in decoded_token else None
 
             # Sync/Get User from our DB
             user = await self.repo.get_by_id(user_id)

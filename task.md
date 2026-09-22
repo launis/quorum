@@ -38,11 +38,11 @@
   - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py backend_v2/tests/unit/llm/`
   - [x] Git commit Phase 4
 
-- [ ] **Phase 5: Core Services & Infrastructure**
-  - [ ] Update `backend_v2/services/auth.py` (positive check on sub and email)
-  - [ ] Update `backend_v2/main.py` (positive check on id and trace path)
-  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/test_auth.py`
-  - [ ] Git commit Phase 5
+- [x] **Phase 5: Core Services & Infrastructure**
+  - [x] Update `backend_v2/services/auth.py` (positive check on sub and email)
+  - [x] Update `backend_v2/main.py` (positive check on id and trace path)
+  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/test_auth.py`
+  - [x] Git commit Phase 5
 
 - [ ] **Phase 6: Test Suite Modernization (Eradicating `getattr()` Reflection)**
   - [ ] Modernize `backend_v2/tests/test_worker_models_used.py`
