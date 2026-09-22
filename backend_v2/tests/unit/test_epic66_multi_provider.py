@@ -154,7 +154,7 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         model_name="anthropic/claude-3-5-sonnet",
         limits={"tpm": 1000, "rpm": 10},
     )
-    assert getattr(provider, "api_key", None) == "anthropic-key"
+    assert provider.api_key == "anthropic-key"
 
     # 2. Test explicit API key override with litellm provider type
     provider_litellm = LLMFactory.create_provider(
@@ -163,4 +163,4 @@ def test_llm_factory_api_key_resolution(mock_get_settings: MagicMock) -> None:
         api_key="anthropic-key",
         limits={"tpm": 1000, "rpm": 10},
     )
-    assert getattr(provider_litellm, "api_key", None) == "anthropic-key"
+    assert provider_litellm.api_key == "anthropic-key"

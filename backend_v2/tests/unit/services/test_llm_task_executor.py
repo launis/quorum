@@ -188,8 +188,8 @@ async def test_execute_structured_task_logical_error_retry(
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
     expected_model = MockResponseSchema(value="fixed logic")
 
-    async def mock_validator(model: Any) -> None:
-        if getattr(model, "value", None) == "bad logic":
+    async def mock_validator(model: MockResponseSchema) -> None:
+        if model.value == "bad logic":
             raise LogicalValidationError(validation_error_msg="Logical flaw detected")
 
     mock_client.run_structured_task.side_effect = [
@@ -674,9 +674,7 @@ async def test_validate_non_empty_payload_with_dict_and_non_sequence() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execute_structured_task_loop_exhaustion(
-    mock_prompt_compiler: MagicMock, mock_client: AsyncMock
-) -> None:
+async def test_execute_structured_task_loop_exhaustion(mock_prompt_compiler: MagicMock, mock_client: AsyncMock) -> None:
     """PROMISE: Prove loop exhaustion raises AGENT_EXECUTION_CRITICAL when 0 attempts are allowed."""
     executor = LLMTaskExecutor(prompt_compiler=mock_prompt_compiler)
 
@@ -689,4 +687,3 @@ async def test_execute_structured_task_loop_exhaustion(
             max_logical_retries=-1,
         )
     assert exc_info.value.error_code == str(ErrorCodes.AGENT_EXECUTION_CRITICAL)
-

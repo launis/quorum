@@ -1,4 +1,3 @@
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -147,8 +146,8 @@ async def test_execute_structured_task_logical_error_retry(
     expected_model = MockResponseSchema(value="fixed logic")
 
     # The client returns valid model, but validator_hook fails
-    async def mock_validator(model: Any) -> None:
-        if getattr(model, "value", None) == "bad logic":
+    async def mock_validator(model: MockResponseSchema) -> None:
+        if model.value == "bad logic":
             raise LogicalValidationError(validation_error_msg="Logical flaw detected")
 
     mock_client.run_structured_task.side_effect = [

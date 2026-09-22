@@ -1,3 +1,5 @@
+import typing
+
 import pytest
 from pydantic import BaseModel
 
@@ -230,8 +232,8 @@ def test_dynamic_schema_descriptions_are_present() -> None:
 
     records_field = ChunkSchema.model_fields["records"]
     assert records_field.annotation is not None
-    records_annotation_args = getattr(records_field.annotation, "__args__", None)
-    assert records_annotation_args is not None
+    records_annotation_args = typing.get_args(records_field.annotation)
+    assert len(records_annotation_args) > 0
     chunk_record_model = records_annotation_args[0]
     assert (
         chunk_record_model.model_fields["original_id"].description
@@ -521,7 +523,8 @@ def test_build_xml_context_endorsed_deliverable_provenance() -> None:
 
     xml = compiler.build_xml_context(input_mappings, state, "en", expected_inputs=expected_inputs)
 
-    # doc_deliv: must emit <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance> inside <document_metadata>
+    # doc_deliv: must emit <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>
+    # inside <document_metadata>
     assert '<matrix_input source_id="doc_deliv">' in xml
     deliv_section = xml.split('source_id="doc_deliv"')[1].split("</matrix_input>")[0]
     assert "<document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>" in deliv_section

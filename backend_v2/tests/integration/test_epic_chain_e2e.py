@@ -170,6 +170,9 @@ async def test_epic_93_e2e_golden_master() -> None:
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
     mock_comp_repo.get_all_components.return_value = [mock_pb]
 
+    mock_system_repo = AsyncMock()
+    mock_system_repo.get_mcp_gateways.return_value = None
+
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
         workflow_repo=mock_workflow_repo,
@@ -177,7 +180,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         prompt_block_repo=mock_prompt_block_repo,
         output_profile_repo=mock_output_profile_repo,
         identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        system_repo=mock_system_repo,
     )
 
     # 2. Map Execution to ReportDataDTO
@@ -192,7 +195,7 @@ async def test_epic_93_e2e_golden_master() -> None:
     assert isinstance(view, ReportView)
     assert view.view_id == execution_id
     assert view.metrics is not None
-    assert view.metrics["global_score"] == 85.0
+    assert view.metrics.global_score == 85.0
 
     # Verify that ReportDataDTO.inner_sdui_blocks are populated
     assert len(view.inner_sdui_blocks) > 0
@@ -201,7 +204,7 @@ async def test_epic_93_e2e_golden_master() -> None:
         (
             b
             for b in view.inner_sdui_blocks
-            if getattr(b, "block_type", "") in ("executive_summary", "data_grid", "hero_insight", "metadata")
+            if b.block_type in ("executive_summary", "data_grid", "hero_insight", "metadata")
         ),
         None,
     )
@@ -249,19 +252,16 @@ async def test_epic_95_na_cascade_e2e() -> None:
     view = mapper.map_report(dto, execution_id=execution_id)
 
     # Assertions
-    na_section = next(
-        (s for s in view.sections if getattr(s.type, "value", s.type) == "MARKDOWN_BLOCK" and s.id == "na_outcomes"),
+    from backend_v2.models.view.sdui import SduiNACard
+
+    na_card = next(
+        (b for b in view.inner_sdui_blocks if isinstance(b, SduiNACard)),
         None,
     )
-    assert na_section is not None, "N/A outcomes section missing"
-
-    na_data = na_section.data
-    assert len(na_data) == 1
-
-    na_card = na_data[0]
-    assert na_card["block_type"] == "n_a_card"
-    assert tda_id in na_card["short_circuit_reason_tda_ids"]
-    assert "Ohitettu säännön perusteella: This is the NA reason claim" in na_card["message"]
+    assert na_card is not None, "N/A outcomes block missing from inner_sdui_blocks"
+    assert na_card.block_type == "n_a_card"
+    assert tda_id in na_card.short_circuit_reason_tda_ids
+    assert "Ohitettu säännön perusteella: This is the NA reason claim" in na_card.message
 
 
 @pytest.mark.asyncio
@@ -308,6 +308,9 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
     mock_output_profile_repo.get_all_output_profiles.return_value = []
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = []
 
+    mock_system_repo = AsyncMock()
+    mock_system_repo.get_mcp_gateways.return_value = None
+
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
         workflow_repo=mock_workflow_repo,
@@ -315,14 +318,14 @@ async def test_epic_chain_e2e_invalid_profile_raises_app_exception() -> None:
         prompt_block_repo=mock_prompt_block_repo,
         output_profile_repo=mock_output_profile_repo,
         identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        system_repo=mock_system_repo,
     )
 
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto(execution_id, non_existent_profile_id)
 
     assert exc_info.value.status_code == 404
-    assert exc_info.value.details.get("error_code") == ErrorCodes.RESOURCE_NOT_FOUND.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.RESOURCE_NOT_FOUND.value
 
 
 @pytest.mark.asyncio
@@ -366,6 +369,9 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
     }
     mock_workflow_repo.get_workflow.return_value = Workflow.model_validate(mock_workflow, strict=False)
 
+    mock_system_repo = AsyncMock()
+    mock_system_repo.get_mcp_gateways.return_value = None
+
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
         workflow_repo=mock_workflow_repo,
@@ -373,14 +379,14 @@ async def test_epic_chain_e2e_missing_locale_raises_app_exception() -> None:
         prompt_block_repo=mock_prompt_block_repo,
         output_profile_repo=mock_output_profile_repo,
         identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        system_repo=mock_system_repo,
     )
 
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto(execution_id, "prf_22222222222222222222222222222222", accept_language=None)
 
     assert exc_info.value.status_code == 400
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
 
 
 @pytest.mark.asyncio
@@ -500,6 +506,9 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
     mock_prompt_block_repo.get_all_prompt_blocks.return_value = [mock_pb]
     mock_comp_repo.get_all_components.return_value = [mock_pb]
 
+    mock_system_repo = AsyncMock()
+    mock_system_repo.get_mcp_gateways.return_value = None
+
     transformer = BlueprintTransformer(
         exec_repo=mock_exec_repo,
         workflow_repo=mock_workflow_repo,
@@ -507,11 +516,11 @@ async def test_epic_chain_e2e_malformed_matrix_payload_raises_app_exception() ->
         prompt_block_repo=mock_prompt_block_repo,
         output_profile_repo=mock_output_profile_repo,
         identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        system_repo=mock_system_repo,
     )
 
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto(execution_id, profile_id)
 
     assert exc_info.value.status_code == 500
-    assert exc_info.value.details.get("error_code") == ErrorCodes.VALIDATION_FAILED.value
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value

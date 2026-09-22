@@ -87,9 +87,7 @@ async def test_worker_preserves_models_used() -> None:
 
     # The payload is the second argument
     update_payload = args[1]
-    models_used = getattr(update_payload, "models_used", None) or (
-        update_payload.get("models_used") if isinstance(update_payload, dict) else None
-    )
+    models_used = update_payload.models_used
     assert models_used is not None, "models_used missing from update payload"
     assert models_used == {"gemini-2.5-flash": 1500}, (
         f"Bug reproduced: models_used was overwritten! Found: {models_used}"

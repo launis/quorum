@@ -93,8 +93,8 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
         )
 
         # Assert execution
-        assert getattr(result, "name", "") == "Fixed"
         assert isinstance(result, DummyModel)
+        assert result.name == "Fixed"
         assert mock_provider.generate.call_count == 2
         assert usage.total_tokens == 40  # 20 from first attempt + 20 from second attempt
 

@@ -44,18 +44,18 @@
   - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/test_auth.py`
   - [x] Git commit Phase 5
 
-- [ ] **Phase 6: Test Suite Modernization (Eradicating `getattr()` Reflection)**
-  - [ ] Modernize `backend_v2/tests/test_worker_models_used.py`
-  - [ ] Modernize `backend_v2/tests/integration/test_epic_chain_e2e.py`
-  - [ ] Modernize `backend_v2/tests/test_caching_schema_scrub_bug.py`
-  - [ ] Modernize `backend_v2/tests/unit/llm/test_structured_retry.py`
-  - [ ] Modernize `backend_v2/tests/unit/test_llm_task_executor.py`
-  - [ ] Modernize `backend_v2/tests/unit/services/test_llm_task_executor.py`
-  - [ ] Modernize `backend_v2/tests/unit/test_litellm_redis_timeout.py`
-  - [ ] Modernize `backend_v2/tests/unit/test_epic66_multi_provider.py`
-  - [ ] Modernize `backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py`
-  - [ ] Run quality gate: `uv run pytest` on modernized test files
-  - [ ] Git commit Phase 6
+- [x] **Phase 6: Test Suite Modernization (Eradicating `getattr()` Reflection)**
+  - [x] Modernize `backend_v2/tests/test_worker_models_used.py`
+  - [x] Modernize `backend_v2/tests/integration/test_epic_chain_e2e.py`
+  - [x] Modernize `backend_v2/tests/test_caching_schema_scrub_bug.py`
+  - [x] Modernize `backend_v2/tests/unit/llm/test_structured_retry.py`
+  - [x] Modernize `backend_v2/tests/unit/test_llm_task_executor.py`
+  - [x] Modernize `backend_v2/tests/unit/services/test_llm_task_executor.py`
+  - [x] Modernize `backend_v2/tests/unit/test_litellm_redis_timeout.py`
+  - [x] Modernize `backend_v2/tests/unit/test_epic66_multi_provider.py`
+  - [x] Modernize `backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py`
+  - [x] Run quality gate: `uv run pytest` on modernized test files
+  - [x] Git commit Phase 6
 
 - [ ] **Phase 7: Codebase-Wide Verification & Quality Gates**
   - [ ] Run `uv run python scripts/_ast_guardrails.py backend_v2`

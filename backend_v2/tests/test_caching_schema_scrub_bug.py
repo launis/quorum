@@ -18,7 +18,7 @@ async def test_caching_schema_scrub_bug() -> None:
     config = LLMProviderConfig(
         id="prv_1234567890",
         model_name="test_model",
-        provider="google",
+        provider="ai_studio",
         tpm_limit=100000,
         rpm_limit=100,
         parsing_mode="STRUCTURED_JSON",
@@ -43,17 +43,13 @@ async def test_caching_schema_scrub_bug() -> None:
     with patch("backend_v2.llm.client.LLMFactory.create_provider", return_value=mock_provider):
         await client.run_structured_task(messages=messages, response_model=MockSchema)
 
-    # Capture the exact kwargs passed to generate()
     call_kwargs = mock_provider.generate.call_args.kwargs
-    final_messages = call_kwargs.get("messages", [])
+    final_messages = call_kwargs["messages"]
 
     # If the bug exists, client.py injected it as a SYSTEM message.
     # Our RED state test will assert that it is NOT a system message, meaning it fails BEFORE the fix.
 
-    has_system_msg = any(
-        (getattr(msg, "role", None) == "system" or (isinstance(msg, dict) and msg.get("role") == "system"))
-        for msg in final_messages
-    )
+    has_system_msg = any(msg.role == "system" for msg in final_messages)
 
     # The fix should ensure the schema mandate is injected into a USER message.
     # So if has_system_msg is True, we fail the test to prove the bug exists.

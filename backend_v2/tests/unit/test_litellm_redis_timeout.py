@@ -51,9 +51,9 @@ async def test_litellm_router_in_memory_cache(monkeypatch: pytest.MonkeyPatch) -
         config=config,
     )
 
-    assert hasattr(provider.router, "cache")
+    assert provider.router.cache is not None
     # Verify redis_cache is None (in-memory DualCache mode)
-    assert getattr(provider.router.cache, "redis_cache", None) is None
+    assert provider.router.cache.redis_cache is None
 
     # Mock the actual LLM call
     async def mock_acompletion(*args: Any, **kwargs: Any) -> Any:
@@ -82,7 +82,9 @@ async def test_litellm_router_in_memory_cache(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_litellm_router_generation_with_unreachable_redis_config(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Verify that even with non-existent Redis configuration in settings, Router executes in-memory with zero network errors."""
+    """Verify that even with non-existent Redis configuration in settings,
+    Router executes in-memory with zero network errors.
+    """
     LiteLLMProvider._router_cache.clear()
     LiteLLMProvider._semaphores.clear()
 
