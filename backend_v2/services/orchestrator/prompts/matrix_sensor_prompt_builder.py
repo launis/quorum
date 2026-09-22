@@ -147,7 +147,16 @@ class MatrixSensorPromptBuilder:
                     details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                 )
             alias = tda_id_to_alias[tda_id]
-            assertion = matrix_assertions_map.get(tda_id)
+            if matrix_assertions_map:
+                if tda_id not in matrix_assertions_map:
+                    raise AppException(
+                        message=f"Missing matrix assertion for atom '{tda_id}'",
+                        status_code=400,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value, "tda_id": tda_id},
+                    )
+                assertion = matrix_assertions_map[tda_id]
+            else:
+                assertion = None
 
             if assertion:
                 if not assertion.question or not assertion.question.strip():

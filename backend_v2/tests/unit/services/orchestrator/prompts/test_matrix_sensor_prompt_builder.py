@@ -1,6 +1,6 @@
 import pytest
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.matrix import TheoryGrounding
 from backend_v2.models.dtos.dag_models import CausalEdge, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
@@ -446,3 +446,43 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
     assert "<target_speaker>" in dynamic_content
     assert "<![CDATA[USER" in dynamic_content
     assert "<![CDATA[AI" in dynamic_content
+
+
+def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -> None:
+    """Anti-happy path: Ensure missing matrix assertion for an atom raises AppException."""
+    matrix_assertions = [
+        FlattenedAtom(
+            atom_id="tda_11111111",
+            question="Is it blue?",
+            extraction_rule="Check blue.",
+            anchor_target="blue",
+            is_inverse=False,
+            depends_on=(),
+        )
+    ]
+    matrix_context = MatrixEvaluationContext(matrix_assertions=matrix_assertions)
+
+    node_missing = LinkedAtomGraph(
+        atom=ExtractedAtom(
+            tda_id="tda_99999999",
+            resolved_claim="Claim text.",
+            reasoning="R",
+            source_quote="Q",
+            source_id="chk_1",
+            source_sequence_index=1,
+        ),
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        MatrixSensorPromptBuilder.build_compiled_prompt(
+            context_text="Context",
+            nodes=[node_missing],
+            tda_id_to_alias={"tda_99999999": "a0"},
+            target_locale="en",
+            matrix_context=matrix_context,
+        )
+    assert exc_info.value.status_code == 400
+    assert "Missing matrix assertion for atom 'tda_99999999'" in exc_info.value.message
+    assert exc_info.value.details is not None
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+

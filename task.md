@@ -22,10 +22,10 @@
   - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/models/` and `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/quote_evidence.py --test`
   - [x] Git commit Phase 2
 
-- [ ] **Phase 3: Orchestration & Prompt Compilation Layer**
-  - [ ] Update `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py` (Fail-Fast AppException on missing atom)
-  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py`
-  - [ ] Git commit Phase 3
+- [x] **Phase 3: Orchestration & Prompt Compilation Layer**
+  - [x] Update `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py` (Fail-Fast AppException on missing atom)
+  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py`
+  - [x] Git commit Phase 3
 
 - [ ] **Phase 4: External Ingress & LLM Adapters Layer**
   - [ ] Update `backend_v2/services/ingress/pdf_chat_extractor.py` (positive drawing dict checks)
