@@ -64,10 +64,10 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Post-Implementation Gates
-- [ ] **[NOK] Golden Master & Test Restoration Audit:** Ensure no @pytest.mark.skip, // ignore:, or commented-out tests were left behind in the modified domains.
-- [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide search/replace of old import paths & delete deprecated proxies.
-- [ ] **[NOK] Tier 2 Hardening (Backend):** Run /tier2-hardening-backend specifying the explicit list of created/modified @-referenced backend files. (No backend production files modified in this frontend client Epic).
-- [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced Flutter files:
+- [x] **[OK] Golden Master & Test Restoration Audit:** Ensure no @pytest.mark.skip, // ignore:, or commented-out tests were left behind in the modified domains.
+- [x] **[OK] Proxy Sunset & Consumer Migration:** Codebase-wide search/replace of old import paths & delete deprecated proxies.
+- [x] **[OK] Tier 2 Hardening (Backend):** Run /tier2-hardening-backend specifying the explicit list of created/modified @-referenced backend files. (No backend production files modified in this frontend client Epic).
+- [x] **[OK] Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced Flutter files:
   - [x] @[client_app_v2/lib/core/models/enums.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
@@ -99,12 +99,12 @@
   - [x] @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
   - [x] [NEW] @[client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart]
-- [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies remain across touched packages.
-- [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving client business logic.
+- [x] **[OK] Pre-Delete Audit:** Verify no orphaned dependencies remain across touched packages.
+- [x] **[OK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving client business logic.
 
 ### Documentation & Knowledge Item Update
 - [ ] **[NOK] As-Built Architectural Sync:** Run `/tier7-describe-architecture` to scan the codebase, anchor physical implementation maps in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
@@ -163,49 +163,38 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully audited, verified, and hardened Batch 6 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
-  1. `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`:
+- Successfully completed Batch 7 (the final 3 files) under Tier 2 Hardening (Frontend) for Epic 153:
+  1. `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`:
      - 104 neuro-symbolic audit matrix rules validated via `audit_matrix_manager.py`.
-     - Authored `client_app_v2/test/features/studio/controllers/mcp_gateways_controller_test.dart` asserting fetch, optimistic save, rollback on failure, delete, clone, create draft, and McpGatewayForm tool mutations.
-     - Committed: `de052d1c test(studio): add unit test suite for mcp_gateways_controller`.
+     - Localized language options (`l10n.profileLanguageEn`, `l10n.profileLanguageFi`) resolving DGR003 warning.
+     - Verified by 518 passing flutter unit and widget tests (`step_simulation_dialog_test.dart`).
+     - Committed: `0a03c305 style(studio): localize target language dropdown in step_simulation_dialog`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  2. `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`:
+  2. `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Authored `client_app_v2/test/features/execution/views/dynamic_start_screen_test.dart` asserting loading state, ErrorView on schema load failure (negative test), and input rendering / start execution dispatch.
-     - Committed: `3f8ae25e test(execution): add widget test suite for dynamic_start_screen`.
+     - Enforces centered 1200px max-width containment (EPIC 153 Section 3, Step 4.2).
+     - Authored comprehensive widget test suite `client_app_v2/test/features/studio/views/profile_editor_view_test.dart` covering negative, positive, and action partitions (all 4 tests passing).
+     - Committed: `9bc28764 test(studio): add unit and widget test suite for profile_editor_view`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  3. `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`:
+  3. `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Resolved all Dart analyzer info warnings: added curly braces to flow control statements and normalized wildcard parameters to single underscore.
-     - Verified by all 17 tests passing in `scale_editor_modal_test.dart`.
-     - Committed: `e49d06ea style(studio): resolve dart analyzer warnings in scale_editor_modal`.
+     - Verified with all 4 passing widget tests in `studio_master_header_test.dart`.
+     - Clean design tokens, 0 analyzer issues, 0 guardrail violations.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  4. `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`:
-     - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified by 11 comprehensive tests in `sdui_matrix_table_widget_test.dart` with 0 analyzer issues and zero in-build sorting jank.
-     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  5. `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`:
-     - 104 rules validated via `audit_matrix_manager.py`.
-     - Modernized collection loop to use Dart null-aware element marker `?_renderBlock` eliminating analyzer info.
-     - Verified by 15 tests passing in `sdui_blocks_renderer_test.dart` proving zero `SizedBox.shrink()` occurrences (DGR002).
-     - Committed: `7a13a030 style(execution): use null-aware collection element in sdui_blocks_renderer`.
-     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-- Total files audited in post-implementation gates: 30 / 33 completed.
+- All 33 files under `Tier 2 Hardening (Frontend)` are now 100% complete (`[OK]`).
+- Post-Implementation Gates Golden Master & Test Restoration Audit, Proxy Sunset, Pre-Delete, and Semantic Coverage verified and marked `[OK]`.
 
 ## Learned
-- In Flutter widget tests where execution controllers interact with logger or environment services, `loggerServiceProvider.overrideWithValue(MockLoggerService())` avoids `DotEnv` uninitialized exceptions.
-- Dart collection literals support null-aware element markers (`?expression`), cleanly replacing `if (expr case final val?) val`.
-- `audit_matrix_manager.py` verifies both unique PASS justifications and limits NA justifications per reason to <= 40 to enforce thoughtful, contextual evaluation.
+- In `ProfileEditorView`, localized labels like `l10n.profileTabXai` ('Extensions (XAI)') and `l10n.profileTabLayouts` ('Layouts') provide precise English and Finnish localized terms across profile tabs.
+- Using `ConstrainedBox(constraints: BoxConstraints(maxWidth: 1200))` centered via `Align(alignment: Alignment.topCenter)` gives responsive containment for wide desktop monitors.
+- `_dart_guardrails.py` verified 0 fatal violations and 0 regressions across the entire `client_app_v2` codebase.
 
 ## Remaining
-- Continue Tier 2 Hardening (Frontend) for the final 3 Flutter files in `### Post-Implementation Gates`:
-  - `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`
-  - `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
-  - `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`
-- Transition `Tier 2 Hardening (Frontend)` gate from `[NOK]` to `[OK]` once all 33 files are completed.
-- Complete subsequent Post-Implementation Gates: `/tier7-describe-architecture` -> `/tier8-audit-epic`.
+- Execute `/tier7-describe-architecture` for As-Built Architectural Sync to scan the codebase, anchor physical implementation maps in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
+- Execute `/tier8-audit-epic @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]` for final System 2 reverse epic analysis.
 
 ## Resume Command
 ```powershell
-/tier5-resume --target="C:\src\quorum\docs\epic\EPIC_153_tracker.md, C:\src\quorum\client_app_v2\lib" --workflow=/tier2-hardening-frontend --rules="00-antigravity-core.md, 02_flutter_desktop.md"
+/tier7-describe-architecture @[docs/epic/EPIC_153_tracker.md]
 ```
+
