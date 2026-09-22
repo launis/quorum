@@ -83,11 +83,11 @@
   - [x] @[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]
   - [x] @[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]
   - [x] @[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]
-  - [ ] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/studio/models/llm_platform.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]
-  - [ ] [NEW] @[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]
+  - [x] @[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/studio/models/mcp_gateway.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/studio/models/llm_platform.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]
+  - [x] [NEW] @[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]
   - [ ] [NEW] @[client_app_v2/lib/features/studio/models/workflow_simulation.dart]
   - [ ] @[client_app_v2/lib/core/api/execution_client.dart]
@@ -163,45 +163,58 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully audited and verified Batch 3 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
-  1. `@[client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart]`:
+- Successfully audited, verified, and hardened Batch 4 (5 files) under Tier 2 Hardening (Frontend) for Epic 153:
+  1. `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]`:
      - 104 neuro-symbolic audit matrix rules validated via `audit_matrix_manager.py`.
-     - Authored `create_report_dialog_test.dart` asserting profile loading, inline error banner, dirty state discard prompt on `Escape`, and form submission.
-     - Committed: `6a4af7d7 test(reports): add ISTQB widget tests for create_report_dialog`.
+     - Verified by 7 widget tests in `xai_axis_telemetry_grid_test.dart` asserting full/titlesOnly/none delivery modes, contextual override lighting, and distinct evidence icons.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  2. `@[client_app_v2/lib/features/studio/controllers/output_profile_controller.dart]`:
+  2. `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Expanded `output_profile_controller_test.dart` with tests for `SelectedOutputProfileConfigSection`, form ID validation, and name validation.
-     - Committed: `a500f0d8 test(studio): expand unit tests for output_profile_controller`.
+     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
+     - Verified by 2 contract unit tests in `mcp_gateway_test.dart` asserting valid JSON deserialization and strict rejection of hallucinated keys (`disallowUnrecognizedKeys: true`).
+     - Committed: `34dd2aaa chore(studio): remove redundant lint suppression from mcp_gateway`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  3. `@[client_app_v2/lib/features/studio/views/workflow_builder_view.dart]`:
+  3. `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Authored `workflow_builder_view_test.dart` verifying `ErrorView` on load failure, 4-tab layout with localized title, and empty ID validation snackbar.
-     - Committed: `d7d301ca test(studio): add ISTQB widget tests for workflow_builder_view`.
+     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
+     - Authored `llm_platform_test.dart` asserting valid JSON deserialization, missing field failure, and hallucinated key rejection.
+     - Committed: `b3cc9a59 test(studio): add contract tests and clean lint suppression in llm_platform`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  4. `@[client_app_v2/lib/features/studio/views/prompt_block_builder_view.dart]`:
+  4. `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified by existing comprehensive suite of 18 widget tests in `prompt_block_builder_view_test.dart` (Zero-XML forms, SystemRule, ExecutionPersona, AgentRole, Protocol, RuntimeVariables, Matrix, PromptPreviewDialog simulation modal, 1200px max-width containment, category switching sanitization).
+     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
+     - Expanded `workflow_ui_schema_test.dart` with ISTQB negative tests for hallucinated keys and invalid types throwing `CheckedFromJsonException`.
+     - Committed: `04738f19 test(studio): expand ISTQB contract tests for workflow_ui_schema`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  5. `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]`:
+  5. `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`:
      - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified by 6 widget tests in `atom_matrix_table_widget_test.dart` asserting table rendering, mobile list layout switching (< 800px macro-breakpoint), null levelBreakdown handling, and EU AI Act Human Override display box.
+     - Eliminated redundant `// ignore_for_file: invalid_annotation_target` (DGR004) comment.
+     - Expanded `human_override_request_dto_test.dart` with deserialization verification and negative fail-fast tests for hallucinated attributes.
+     - Committed: `68bd90e0 test(execution): expand contract tests and clean lint suppression in human_override_request_dto`.
      - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-- All audited files passed `scripts/flutter_audit_loop.py` cleanly with 0 fatal errors, 0 analysis issues, and 0 formatting discrepancies.
+- Overall Dart codebase warnings (DGR001-DGR004) decreased from 75 to 71 as a direct result of systematically removing handwritten lint suppressions.
+- All 5 files passed `scripts/flutter_audit_loop.py` cleanly with 0 fatal errors, 0 analysis issues, and 0 formatting discrepancies.
 
 ## Learned
-- In `scripts/audit_matrix_manager.py`, `check_conflicting_file_references()` enforces that justifications must anchor exclusively to the target file itself or globally permitted names (`settings.py`, `enums.py`, `conftest.py`, `audit_matrix_manager.py`, `flutter_audit_loop.py`).
-- For NA justifications in `tmp/audit_matrix.json`, categorizing NA rules by domain (ide_orchestration, backend_runtime, llm_architecture, database_persistence, sdui_pipeline, chart_semantics, testing_standards, git_persistence) prevents any single NA string from repeating more than 40 times across 104 rules.
-- Running `flutter test <path_to_test.dart>` directly from `client_app_v2/` avoids long repository-wide coverage runs while maintaining ISTQB unit/widget test verification for each target file.
+- In Flutter Freezed models configured with `@JsonSerializable(disallowUnrecognizedKeys: true)`, `CheckedFromJsonException` is thrown when unrecognized keys are present or types mismatch. Tests asserting fail-fast should check `anyOf(isA<FormatException>(), isA<TypeError>(), isA<CheckedFromJsonException>())`.
+- `client_app_v2/analysis_options.yaml` already sets `invalid_annotation_target: ignore` globally at the analyzer level, making `// ignore_for_file: invalid_annotation_target` redundant and a trigger for DGR004 warnings. Removing them cleanses the codebase of unnecessary lint suppressions.
 
 ## Remaining
-- Continue Tier 2 Hardening (Frontend) for the remaining 19 Flutter files in `### Post-Implementation Gates`:
-  - `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]`
-  - `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`
-  - `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`
-  - `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`
-  - `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`
-  - ... and remaining models, controllers, and views.
+- Continue Tier 2 Hardening (Frontend) for the remaining 14 Flutter files in `### Post-Implementation Gates`:
+  - `@[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`
+  - `@[client_app_v2/lib/features/studio/models/workflow_simulation.dart]`
+  - `@[client_app_v2/lib/core/api/execution_client.dart]`
+  - `@[client_app_v2/lib/features/studio/controllers/prompt_blocks_controller.dart]`
+  - `@[client_app_v2/lib/features/studio/controllers/studio_controller.dart]`
+  - `@[client_app_v2/lib/features/studio/controllers/model_registry_controller.dart]`
+  - `@[client_app_v2/lib/features/studio/controllers/mcp_gateways_controller.dart]`
+  - `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]`
+  - `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]`
+  - `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]`
+  - `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`
+  - `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`
+  - `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`
+  - `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`
 - Complete subsequent Post-Implementation Gates: `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
