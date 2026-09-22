@@ -32,10 +32,7 @@ class SduiBlocksRenderer extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final block in blocks)
-          if (_renderBlock(context, block) case final widget?) widget,
-      ],
+      children: [for (final block in blocks) ?_renderBlock(context, block)],
     );
   }
 
