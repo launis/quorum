@@ -218,57 +218,56 @@ void main() {
     },
   );
 
-  testWidgets(
-    'test_xai_axis_telemetry_grid_declarative_rendering',
-    (WidgetTester tester) async {
-      const axes = [
-        MatrixScorecardRowDto(
-          blockId: 'blk_1',
-          name: 'Axis 1',
-          labelI18n: I18nText(translations: {'en': 'Axis 1'}),
-          rowExplanation: 'Explanation 1',
-          confidence: 0.95,
-          coaching: 'Coaching 1',
-          falsification: 'Falsification 1',
-          remediationSteps: 'Remediation 1',
-          isEvaluative: true,
-          allowContextualOverride: false,
-        ),
-        MatrixScorecardRowDto(
-          blockId: 'blk_2',
-          name: 'Axis 2',
-          labelI18n: I18nText(translations: {'en': 'Axis 2'}),
-          rowExplanation: 'Explanation 2',
-          confidence: 0.85,
-          coaching: 'Coaching 2',
-          isEvaluative: true,
-          allowContextualOverride: false,
-        ),
-        MatrixScorecardRowDto(
-          blockId: 'blk_3',
-          name: 'Axis 3',
-          labelI18n: I18nText(translations: {'en': 'Axis 3'}),
-          rowExplanation: 'Explanation 3',
-          falsification: 'Falsification 3',
-          isEvaluative: false,
-          allowContextualOverride: false,
-        ),
-        MatrixScorecardRowDto(
-          blockId: 'blk_4',
-          name: 'Axis 4',
-          labelI18n: I18nText(translations: {'en': 'Axis 4'}),
-          rowExplanation: 'Explanation 4',
-          remediationSteps: 'Remediation 4',
-          isEvaluative: false,
-          allowContextualOverride: false,
-        ),
-      ];
+  testWidgets('test_xai_axis_telemetry_grid_declarative_rendering', (
+    WidgetTester tester,
+  ) async {
+    const axes = [
+      MatrixScorecardRowDto(
+        blockId: 'blk_1',
+        name: 'Axis 1',
+        labelI18n: I18nText(translations: {'en': 'Axis 1'}),
+        rowExplanation: 'Explanation 1',
+        confidence: 0.95,
+        coaching: 'Coaching 1',
+        falsification: 'Falsification 1',
+        remediationSteps: 'Remediation 1',
+        isEvaluative: true,
+        allowContextualOverride: false,
+      ),
+      MatrixScorecardRowDto(
+        blockId: 'blk_2',
+        name: 'Axis 2',
+        labelI18n: I18nText(translations: {'en': 'Axis 2'}),
+        rowExplanation: 'Explanation 2',
+        confidence: 0.85,
+        coaching: 'Coaching 2',
+        isEvaluative: true,
+        allowContextualOverride: false,
+      ),
+      MatrixScorecardRowDto(
+        blockId: 'blk_3',
+        name: 'Axis 3',
+        labelI18n: I18nText(translations: {'en': 'Axis 3'}),
+        rowExplanation: 'Explanation 3',
+        falsification: 'Falsification 3',
+        isEvaluative: false,
+        allowContextualOverride: false,
+      ),
+      MatrixScorecardRowDto(
+        blockId: 'blk_4',
+        name: 'Axis 4',
+        labelI18n: I18nText(translations: {'en': 'Axis 4'}),
+        rowExplanation: 'Explanation 4',
+        remediationSteps: 'Remediation 4',
+        isEvaluative: false,
+        allowContextualOverride: false,
+      ),
+    ];
 
-      for (final a in axes) {
-        await tester.pumpWidget(buildTestableWidget(axis: a));
-        await tester.pumpAndSettle();
-        expect(find.text(a.rowExplanation), findsOneWidget);
-      }
-    },
-  );
+    for (final a in axes) {
+      await tester.pumpWidget(buildTestableWidget(axis: a));
+      await tester.pumpAndSettle();
+      expect(find.text(a.rowExplanation), findsOneWidget);
+    }
+  });
 }

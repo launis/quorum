@@ -64,61 +64,53 @@ void main() {
   }
 
   group('WorkflowsMasterView Widget Tests', () {
-    testWidgets(
-      'test_workflows_master_view_virtualized_rendering',
-      (tester) async {
-        final mockList = generateMockWorkflows(50);
-        await tester.pumpWidget(createTestWidget(mockList));
-        await tester.pumpAndSettle();
+    testWidgets('test_workflows_master_view_virtualized_rendering', (
+      tester,
+    ) async {
+      final mockList = generateMockWorkflows(50);
+      await tester.pumpWidget(createTestWidget(mockList));
+      await tester.pumpAndSettle();
 
-        // Verify ListView.builder exists and uses virtualization
-        final listViewFinder = find.byType(ListView);
-        expect(listViewFinder, findsOneWidget);
+      // Verify ListView.builder exists and uses virtualization
+      final listViewFinder = find.byType(ListView);
+      expect(listViewFinder, findsOneWidget);
 
-        final listView = tester.widget<ListView>(listViewFinder);
-        expect(listView.prototypeItem, isNotNull);
+      final listView = tester.widget<ListView>(listViewFinder);
+      expect(listView.prototypeItem, isNotNull);
 
-        // Virtualized ListView should NOT inflate all 50 items simultaneously in an 1080p viewport
-        final visibleTiles = find.byType(ListTile);
-        expect(visibleTiles.evaluate().length, lessThan(50));
-        expect(visibleTiles.evaluate().length, greaterThan(0));
+      // Virtualized ListView should NOT inflate all 50 items simultaneously in an 1080p viewport
+      final visibleTiles = find.byType(ListTile);
+      expect(visibleTiles.evaluate().length, lessThan(50));
+      expect(visibleTiles.evaluate().length, greaterThan(0));
 
-        // Header shows count pill 'Showing 50 of 50 items'
-        expect(find.text('Showing 50 of 50 items'), findsOneWidget);
-      },
-    );
+      // Header shows count pill 'Showing 50 of 50 items'
+      expect(find.text('Showing 50 of 50 items'), findsOneWidget);
+    });
 
-    testWidgets(
-      'test_master_views_4k_display_containment',
-      (tester) async {
-        tester.view.physicalSize = const Size(3840, 2160);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('test_master_views_4k_display_containment', (tester) async {
+      tester.view.physicalSize = const Size(3840, 2160);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        final mockList = generateMockWorkflows(5);
-        await tester.pumpWidget(
-          createTestWidget(
-            mockList,
-            screenSize: const Size(3840, 2160),
-          ),
-        );
-        await tester.pumpAndSettle();
+      final mockList = generateMockWorkflows(5);
+      await tester.pumpWidget(
+        createTestWidget(mockList, screenSize: const Size(3840, 2160)),
+      );
+      await tester.pumpAndSettle();
 
-        // Verify ConstrainedBox clamps maxWidth to 1200
-        final constrainedBoxFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is ConstrainedBox &&
-              widget.constraints.maxWidth == 1200.0,
-        );
-        expect(constrainedBoxFinder, findsOneWidget);
+      // Verify ConstrainedBox clamps maxWidth to 1200
+      final constrainedBoxFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is ConstrainedBox && widget.constraints.maxWidth == 1200.0,
+      );
+      expect(constrainedBoxFinder, findsOneWidget);
 
-        final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
-        expect(box.size.width, lessThanOrEqualTo(1200.0));
-      },
-    );
+      final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
+      expect(box.size.width, lessThanOrEqualTo(1200.0));
+    });
 
     testWidgets('instant search filters workflows in-memory', (tester) async {
       final mockList = [
@@ -185,14 +177,15 @@ void main() {
       expect(find.text('Showing 0 of 1 items'), findsOneWidget);
     });
 
-    testWidgets('shows initial zero-state message when 0 workflows configured', (
-      tester,
-    ) async {
-      await tester.pumpWidget(createTestWidget([]));
-      await tester.pumpAndSettle();
+    testWidgets(
+      'shows initial zero-state message when 0 workflows configured',
+      (tester) async {
+        await tester.pumpWidget(createTestWidget([]));
+        await tester.pumpAndSettle();
 
-      expect(find.text('No workflows configured.'), findsOneWidget);
-      expect(find.text('Showing 0 of 0 items'), findsOneWidget);
-    });
+        expect(find.text('No workflows configured.'), findsOneWidget);
+        expect(find.text('Showing 0 of 0 items'), findsOneWidget);
+      },
+    );
   });
 }

@@ -57,97 +57,86 @@ void main() {
   }
 
   group('MatricesMasterView Widget Tests', () {
-    testWidgets(
-      'test_matrices_master_view_instant_search_filtering',
-      (tester) async {
-        final mockBlocks = [
-          createMatrixBlock('blk_empathy', 'Empathy Matrix', 'empathy-matrix'),
-          createMatrixBlock('blk_clarity', 'Clarity Matrix', 'clarity-matrix'),
-        ];
+    testWidgets('test_matrices_master_view_instant_search_filtering', (
+      tester,
+    ) async {
+      final mockBlocks = [
+        createMatrixBlock('blk_empathy', 'Empathy Matrix', 'empathy-matrix'),
+        createMatrixBlock('blk_clarity', 'Clarity Matrix', 'clarity-matrix'),
+      ];
 
-        await tester.pumpWidget(createTestWidget(mockBlocks));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createTestWidget(mockBlocks));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Empathy Matrix'), findsOneWidget);
-        expect(find.text('Clarity Matrix'), findsOneWidget);
-        expect(find.text('Showing 2 of 2 items'), findsOneWidget);
+      expect(find.text('Empathy Matrix'), findsOneWidget);
+      expect(find.text('Clarity Matrix'), findsOneWidget);
+      expect(find.text('Showing 2 of 2 items'), findsOneWidget);
 
-        // Search for 'clarity'
-        await tester.enterText(find.byType(TextField), 'clarity');
-        await tester.pumpAndSettle();
+      // Search for 'clarity'
+      await tester.enterText(find.byType(TextField), 'clarity');
+      await tester.pumpAndSettle();
 
-        expect(find.text('Empathy Matrix'), findsNothing);
-        expect(find.text('Clarity Matrix'), findsOneWidget);
-        expect(find.text('Showing 1 of 2 items'), findsOneWidget);
+      expect(find.text('Empathy Matrix'), findsNothing);
+      expect(find.text('Clarity Matrix'), findsOneWidget);
+      expect(find.text('Showing 1 of 2 items'), findsOneWidget);
 
-        // Clear search
-        await tester.tap(find.byIcon(Icons.clear));
-        await tester.pumpAndSettle();
+      // Clear search
+      await tester.tap(find.byIcon(Icons.clear));
+      await tester.pumpAndSettle();
 
-        expect(find.text('Empathy Matrix'), findsOneWidget);
-        expect(find.text('Clarity Matrix'), findsOneWidget);
-        expect(find.text('Showing 2 of 2 items'), findsOneWidget);
-      },
-    );
+      expect(find.text('Empathy Matrix'), findsOneWidget);
+      expect(find.text('Clarity Matrix'), findsOneWidget);
+      expect(find.text('Showing 2 of 2 items'), findsOneWidget);
+    });
 
-    testWidgets(
-      'test_master_views_4k_display_containment',
-      (tester) async {
-        tester.view.physicalSize = const Size(3840, 2160);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('test_master_views_4k_display_containment', (tester) async {
+      tester.view.physicalSize = const Size(3840, 2160);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        final mockBlocks = [
-          createMatrixBlock('blk_1', 'Matrix 1', 'matrix-1'),
-        ];
+      final mockBlocks = [createMatrixBlock('blk_1', 'Matrix 1', 'matrix-1')];
 
-        await tester.pumpWidget(
-          createTestWidget(
-            mockBlocks,
-            screenSize: const Size(3840, 2160),
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createTestWidget(mockBlocks, screenSize: const Size(3840, 2160)),
+      );
+      await tester.pumpAndSettle();
 
-        final constrainedBoxFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is ConstrainedBox &&
-              widget.constraints.maxWidth == 1200.0,
-        );
-        expect(constrainedBoxFinder, findsOneWidget);
+      final constrainedBoxFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is ConstrainedBox && widget.constraints.maxWidth == 1200.0,
+      );
+      expect(constrainedBoxFinder, findsOneWidget);
 
-        final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
-        expect(box.size.width, lessThanOrEqualTo(1200.0));
-      },
-    );
+      final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
+      expect(box.size.width, lessThanOrEqualTo(1200.0));
+    });
 
-    testWidgets(
-      'test_matrices_master_view_virtualized_rendering',
-      (tester) async {
-        final mockBlocks = List.generate(
-          40,
-          (i) => createMatrixBlock('blk_$i', 'Matrix $i', 'matrix-slug-$i'),
-        );
+    testWidgets('test_matrices_master_view_virtualized_rendering', (
+      tester,
+    ) async {
+      final mockBlocks = List.generate(
+        40,
+        (i) => createMatrixBlock('blk_$i', 'Matrix $i', 'matrix-slug-$i'),
+      );
 
-        await tester.pumpWidget(createTestWidget(mockBlocks));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createTestWidget(mockBlocks));
+      await tester.pumpAndSettle();
 
-        final listViewFinder = find.byType(ListView);
-        expect(listViewFinder, findsOneWidget);
+      final listViewFinder = find.byType(ListView);
+      expect(listViewFinder, findsOneWidget);
 
-        final listView = tester.widget<ListView>(listViewFinder);
-        expect(listView.prototypeItem, isNotNull);
+      final listView = tester.widget<ListView>(listViewFinder);
+      expect(listView.prototypeItem, isNotNull);
 
-        final visibleTiles = find.byType(ListTile);
-        expect(visibleTiles.evaluate().length, lessThan(40));
-        expect(visibleTiles.evaluate().length, greaterThan(0));
+      final visibleTiles = find.byType(ListTile);
+      expect(visibleTiles.evaluate().length, lessThan(40));
+      expect(visibleTiles.evaluate().length, greaterThan(0));
 
-        expect(find.text('Showing 40 of 40 items'), findsOneWidget);
-      },
-    );
+      expect(find.text('Showing 40 of 40 items'), findsOneWidget);
+    });
 
     testWidgets('excludes non-matrix category blocks', (tester) async {
       final mockBlocks = [

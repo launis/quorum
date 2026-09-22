@@ -57,103 +57,94 @@ void main() {
   }
 
   group('McpGatewaysMasterView Widget Tests', () {
-    testWidgets(
-      'test_mcp_gateways_master_view_search_and_clone',
-      (tester) async {
-        String clonedId = '';
-        final gateways = [
-          const McpGateway(id: 'gw_web_search'),
-          const McpGateway(id: 'gw_database_query'),
-        ];
+    testWidgets('test_mcp_gateways_master_view_search_and_clone', (
+      tester,
+    ) async {
+      String clonedId = '';
+      final gateways = [
+        const McpGateway(id: 'gw_web_search'),
+        const McpGateway(id: 'gw_database_query'),
+      ];
 
-        await tester.pumpWidget(
-          createTestWidget(
-            gateways,
-            onClone: (id) async {
-              clonedId = id;
-              return McpGateway(id: '${id}_clone');
-            },
-          ),
-        );
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        createTestWidget(
+          gateways,
+          onClone: (id) async {
+            clonedId = id;
+            return McpGateway(id: '${id}_clone');
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.text('gw_web_search'), findsOneWidget);
-        expect(find.text('gw_database_query'), findsOneWidget);
-        expect(find.text('Showing 2 of 2 items'), findsOneWidget);
+      expect(find.text('gw_web_search'), findsOneWidget);
+      expect(find.text('gw_database_query'), findsOneWidget);
+      expect(find.text('Showing 2 of 2 items'), findsOneWidget);
 
-        // Search for 'database'
-        await tester.enterText(find.byType(TextField), 'database');
-        await tester.pumpAndSettle();
+      // Search for 'database'
+      await tester.enterText(find.byType(TextField), 'database');
+      await tester.pumpAndSettle();
 
-        expect(find.text('gw_web_search'), findsNothing);
-        expect(find.text('gw_database_query'), findsOneWidget);
-        expect(find.text('Showing 1 of 2 items'), findsOneWidget);
+      expect(find.text('gw_web_search'), findsNothing);
+      expect(find.text('gw_database_query'), findsOneWidget);
+      expect(find.text('Showing 1 of 2 items'), findsOneWidget);
 
-        // Click Clone button (CloneEntityButton renders Icons.copy)
-        final cloneButtonFinder = find.byIcon(Icons.copy);
-        expect(cloneButtonFinder, findsOneWidget);
-        await tester.tap(cloneButtonFinder);
-        await tester.pumpAndSettle();
+      // Click Clone button (CloneEntityButton renders Icons.copy)
+      final cloneButtonFinder = find.byIcon(Icons.copy);
+      expect(cloneButtonFinder, findsOneWidget);
+      await tester.tap(cloneButtonFinder);
+      await tester.pumpAndSettle();
 
-        expect(clonedId, 'gw_database_query');
-      },
-    );
+      expect(clonedId, 'gw_database_query');
+    });
 
-    testWidgets(
-      'test_master_views_4k_display_containment',
-      (tester) async {
-        tester.view.physicalSize = const Size(3840, 2160);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('test_master_views_4k_display_containment', (tester) async {
+      tester.view.physicalSize = const Size(3840, 2160);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        final gateways = [const McpGateway(id: 'gw_1')];
-        await tester.pumpWidget(
-          createTestWidget(
-            gateways,
-            screenSize: const Size(3840, 2160),
-          ),
-        );
-        await tester.pumpAndSettle();
+      final gateways = [const McpGateway(id: 'gw_1')];
+      await tester.pumpWidget(
+        createTestWidget(gateways, screenSize: const Size(3840, 2160)),
+      );
+      await tester.pumpAndSettle();
 
-        final constrainedBoxFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is ConstrainedBox &&
-              widget.constraints.maxWidth == 1200.0,
-        );
-        expect(constrainedBoxFinder, findsOneWidget);
+      final constrainedBoxFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is ConstrainedBox && widget.constraints.maxWidth == 1200.0,
+      );
+      expect(constrainedBoxFinder, findsOneWidget);
 
-        final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
-        expect(box.size.width, lessThanOrEqualTo(1200.0));
-      },
-    );
+      final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
+      expect(box.size.width, lessThanOrEqualTo(1200.0));
+    });
 
-    testWidgets(
-      'test_mcp_gateways_master_view_virtualized_rendering',
-      (tester) async {
-        final mockList = List.generate(
-          30,
-          (i) => McpGateway(id: 'gw_${i.toString().padLeft(3, '0')}'),
-        );
+    testWidgets('test_mcp_gateways_master_view_virtualized_rendering', (
+      tester,
+    ) async {
+      final mockList = List.generate(
+        30,
+        (i) => McpGateway(id: 'gw_${i.toString().padLeft(3, '0')}'),
+      );
 
-        await tester.pumpWidget(createTestWidget(mockList));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createTestWidget(mockList));
+      await tester.pumpAndSettle();
 
-        final listViewFinder = find.byType(ListView);
-        expect(listViewFinder, findsOneWidget);
+      final listViewFinder = find.byType(ListView);
+      expect(listViewFinder, findsOneWidget);
 
-        final listView = tester.widget<ListView>(listViewFinder);
-        expect(listView.prototypeItem, isNotNull);
+      final listView = tester.widget<ListView>(listViewFinder);
+      expect(listView.prototypeItem, isNotNull);
 
-        final visibleTiles = find.byType(ListTile);
-        expect(visibleTiles.evaluate().length, lessThan(30));
-        expect(visibleTiles.evaluate().length, greaterThan(0));
+      final visibleTiles = find.byType(ListTile);
+      expect(visibleTiles.evaluate().length, lessThan(30));
+      expect(visibleTiles.evaluate().length, greaterThan(0));
 
-        expect(find.text('Showing 30 of 30 items'), findsOneWidget);
-      },
-    );
+      expect(find.text('Showing 30 of 30 items'), findsOneWidget);
+    });
 
     testWidgets('renders zero-state when no gateways defined', (tester) async {
       await tester.pumpWidget(createTestWidget([]));

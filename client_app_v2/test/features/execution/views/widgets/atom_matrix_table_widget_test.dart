@@ -297,76 +297,73 @@ void main() {
     },
   );
 
-  testWidgets(
-    'test_atom_matrix_table_widget_macro_breakpoint_switching',
-    (WidgetTester tester) async {
-      final matrices = [
-        const MatrixScorecardRowDto(
-          blockId: 'block_bp',
-          labelI18n: I18nText(
-            translations: {'en': 'Breakpoint Test'},
-          ),
-          name: 'Breakpoint Test',
-          score: 4.0,
-          scaleMax: 5.0,
-          scoreDisplayLabel: '4.0 / 5.0',
-          levelBreakdown: {'1': '1 / 1'},
-        ),
-      ];
+  testWidgets('test_atom_matrix_table_widget_macro_breakpoint_switching', (
+    WidgetTester tester,
+  ) async {
+    final matrices = [
+      const MatrixScorecardRowDto(
+        blockId: 'block_bp',
+        labelI18n: I18nText(translations: {'en': 'Breakpoint Test'}),
+        name: 'Breakpoint Test',
+        score: 4.0,
+        scaleMax: 5.0,
+        scoreDisplayLabel: '4.0 / 5.0',
+        levelBreakdown: {'1': '1 / 1'},
+      ),
+    ];
 
-      // Test width 799 (mobile linear layout using ListView)
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('en'),
-            home: Scaffold(
-              body: Center(
-                child: SizedBox(
-                  width: 799,
-                  child: AtomMatrixTableWidget(
-                    matrices: matrices,
-                    visibleColumns: const ['label', 'score', 'distribution'],
-                    executionId: 'test_execution_1',
-                  ),
+    // Test width 799 (mobile linear layout using ListView)
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 799,
+                child: AtomMatrixTableWidget(
+                  matrices: matrices,
+                  visibleColumns: const ['label', 'score', 'distribution'],
+                  executionId: 'test_execution_1',
                 ),
               ),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.byType(ListView), findsOneWidget);
-      expect(find.byType(ExpansionTile), findsOneWidget);
+    expect(find.byType(ListView), findsOneWidget);
+    expect(find.byType(ExpansionTile), findsOneWidget);
 
-      // Test width 800 (desktop tabular layout using Column/Row)
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
-            locale: const Locale('en'),
-            home: Scaffold(
-              body: Center(
-                child: SizedBox(
-                  width: 800,
-                  child: AtomMatrixTableWidget(
-                    matrices: matrices,
-                    visibleColumns: const ['label', 'score', 'distribution'],
-                    executionId: 'test_execution_1',
-                  ),
+    // Test width 800 (desktop tabular layout using Column/Row)
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 800,
+                child: AtomMatrixTableWidget(
+                  matrices: matrices,
+                  visibleColumns: const ['label', 'score', 'distribution'],
+                  executionId: 'test_execution_1',
                 ),
               ),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(find.byType(ListView), findsNothing);
-      expect(find.byType(ExpansionTile), findsNothing);
-    },
-  );
+    expect(find.byType(ListView), findsNothing);
+    expect(find.byType(ExpansionTile), findsNothing);
+  });
 }

@@ -714,9 +714,7 @@ void main() {
               chartDisplayLabel: 'Atom Label $i',
               visualIntent: VisualIntent.info,
               extractedFacts: {},
-              exactQuotes: [
-                QuoteEvidenceDto(quote: 'Quote for atom $i'),
-              ],
+              exactQuotes: [QuoteEvidenceDto(quote: 'Quote for atom $i')],
               internalLogicEn: const ReasoningStepDto(
                 step1IdentifyPremise: '',
                 step2ScanSource: '',
@@ -766,84 +764,88 @@ void main() {
     },
   );
 
-  testWidgets(
-    'test_sdui_matrix_table_widget_narrow_viewport_no_overflow',
-    (WidgetTester tester) async {
-      const row = MatrixScorecardRowDto(
-        blockId: 'axis_narrow',
-        name: 'Narrow Viewport Dimension with long text',
-        labelI18n: I18nText(
-          translations: {
-            'en': 'Very Long Dimension Name That Tests Overflow In Narrow Viewports',
-          },
-        ),
-        rowExplanation: 'Very extensive multiline explanation that tests line wrapping and containment.',
-        scoreDisplayLabel: '10 / 10',
-        normalizedScore: 100.0,
-        uiPlotRatio: 1.0,
-        isEvaluative: true,
-        allowContextualOverride: true,
-        levelNames: {'1': 'L1 Long Name'},
-        levelBreakdown: {'1': '10 / 10'},
-        evaluatedAtoms: [
-          ScorecardAtomDto(
-            atomId: 'atom_narrow',
-            level: 1,
-            levelName: 'L1 Long Name',
-            claimLabel: 'Extensive Claim Label Description That Stretches Horizontally',
-            chartDisplayLabel: 'Extensive Atom Display Label',
-            visualIntent: VisualIntent.success,
-            extractedFacts: {},
-            exactQuotes: [
-              QuoteEvidenceDto(
-                quote: 'Very long verbatim quote that spans multiple lines and needs constrained rendering.',
-              ),
-            ],
-            internalLogicEn: ReasoningStepDto(
-              step1IdentifyPremise: '',
-              step2ScanSource: '',
-              step3EvaluateAntiPatterns: '',
-              step4FinalConclusion: '',
+  testWidgets('test_sdui_matrix_table_widget_narrow_viewport_no_overflow', (
+    WidgetTester tester,
+  ) async {
+    const row = MatrixScorecardRowDto(
+      blockId: 'axis_narrow',
+      name: 'Narrow Viewport Dimension with long text',
+      labelI18n: I18nText(
+        translations: {
+          'en':
+              'Very Long Dimension Name That Tests Overflow In Narrow Viewports',
+        },
+      ),
+      rowExplanation:
+          'Very extensive multiline explanation that tests line wrapping and containment.',
+      scoreDisplayLabel: '10 / 10',
+      normalizedScore: 100.0,
+      uiPlotRatio: 1.0,
+      isEvaluative: true,
+      allowContextualOverride: true,
+      levelNames: {'1': 'L1 Long Name'},
+      levelBreakdown: {'1': '10 / 10'},
+      evaluatedAtoms: [
+        ScorecardAtomDto(
+          atomId: 'atom_narrow',
+          level: 1,
+          levelName: 'L1 Long Name',
+          claimLabel:
+              'Extensive Claim Label Description That Stretches Horizontally',
+          chartDisplayLabel: 'Extensive Atom Display Label',
+          visualIntent: VisualIntent.success,
+          extractedFacts: {},
+          exactQuotes: [
+            QuoteEvidenceDto(
+              quote:
+                  'Very long verbatim quote that spans multiple lines and needs constrained rendering.',
             ),
-            status: ExecutionStatus.passed,
-            semanticReasoning: 'Long semantic reasoning text explaining the evaluation outcome.',
-            contextualOverride: false,
+          ],
+          internalLogicEn: ReasoningStepDto(
+            step1IdentifyPremise: '',
+            step2ScanSource: '',
+            step3EvaluateAntiPatterns: '',
+            step4FinalConclusion: '',
           ),
-        ],
-      );
+          status: ExecutionStatus.passed,
+          semanticReasoning:
+              'Long semantic reasoning text explaining the evaluation outcome.',
+          contextualOverride: false,
+        ),
+      ],
+    );
 
-      final block = SduiMatrixTableBlock(
-        matrixVisibleColumns: const [
-          'label',
-          'distribution',
-          'criteria',
-          'quotes',
-          'normalized_score',
-          'score',
-        ],
-        axes: const [row],
-      );
+    final block = SduiMatrixTableBlock(
+      matrixVisibleColumns: const [
+        'label',
+        'distribution',
+        'criteria',
+        'quotes',
+        'normalized_score',
+        'score',
+      ],
+      axes: const [row],
+    );
 
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          supportedLocales: AppLocalizations.supportedLocales,
-          locale: const Locale('en'),
-          home: MediaQuery(
-            data: const MediaQueryData(size: Size(360, 640)),
-            child: Scaffold(
-              body: SingleChildScrollView(
-                child: SduiMatrixTableWidget(block: block),
-              ),
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('en'),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(360, 640)),
+          child: Scaffold(
+            body: SingleChildScrollView(
+              child: SduiMatrixTableWidget(block: block),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      await tester.pumpAndSettle();
+    await tester.pumpAndSettle();
 
-      expect(tester.takeException(), isNull);
-      expect(find.byType(SduiMatrixTableWidget), findsOneWidget);
-    },
-  );
+    expect(tester.takeException(), isNull);
+    expect(find.byType(SduiMatrixTableWidget), findsOneWidget);
+  });
 }

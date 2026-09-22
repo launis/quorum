@@ -20,9 +20,9 @@ class MockOutputProfilesController extends OutputProfilesController {
     return switch (initialValue) {
       AsyncData(:final value) => value,
       AsyncError(:final error, :final stackTrace) => Error.throwWithStackTrace(
-          error,
-          stackTrace,
-        ),
+        error,
+        stackTrace,
+      ),
       _ => Completer<List<OutputProfile>>().future,
     };
   }
@@ -67,93 +67,89 @@ void main() {
   }
 
   group('OutputProfileListView Widget Tests', () {
-    testWidgets(
-      'test_output_profile_list_view_empty_and_error_states',
-      (tester) async {
-        // 1. Empty state: 0 profiles
-        await tester.pumpWidget(createTestWidget(const AsyncData([])));
-        await tester.pumpAndSettle();
+    testWidgets('test_output_profile_list_view_empty_and_error_states', (
+      tester,
+    ) async {
+      // 1. Empty state: 0 profiles
+      await tester.pumpWidget(createTestWidget(const AsyncData([])));
+      await tester.pumpAndSettle();
 
-        expect(find.text('No Output Profiles defined.'), findsOneWidget);
-        expect(find.text('Showing 0 of 0 items'), findsOneWidget);
+      expect(find.text('No Output Profiles defined.'), findsOneWidget);
+      expect(find.text('Showing 0 of 0 items'), findsOneWidget);
 
-        // 2. Search miss: matching 0 items
-        final profiles = [createProfile('prf_1', 'Executive Summary', 'exec-sum')];
-        await tester.pumpWidget(createTestWidget(AsyncData(profiles)));
-        await tester.pumpAndSettle();
+      // 2. Search miss: matching 0 items
+      final profiles = [
+        createProfile('prf_1', 'Executive Summary', 'exec-sum'),
+      ];
+      await tester.pumpWidget(createTestWidget(AsyncData(profiles)));
+      await tester.pumpAndSettle();
 
-        await tester.enterText(find.byType(TextField), 'NonexistentQuery');
-        await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'NonexistentQuery');
+      await tester.pumpAndSettle();
 
-        expect(find.text('No matching items found.'), findsOneWidget);
-        expect(find.text('Showing 0 of 1 items'), findsOneWidget);
+      expect(find.text('No matching items found.'), findsOneWidget);
+      expect(find.text('Showing 0 of 1 items'), findsOneWidget);
 
-        // 3. Error state: AsyncError emitted
-        final testError = AppException.validation('Network failure');
-        await tester.pumpWidget(
-          createTestWidget(AsyncError(testError, StackTrace.current)),
-        );
-        await tester.pumpAndSettle();
+      // 3. Error state: AsyncError emitted
+      final testError = AppException.validation('Network failure');
+      await tester.pumpWidget(
+        createTestWidget(AsyncError(testError, StackTrace.current)),
+      );
+      await tester.pumpAndSettle();
 
-        expect(find.byType(ErrorView), findsOneWidget);
-      },
-    );
+      expect(find.byType(ErrorView), findsOneWidget);
+    });
 
-    testWidgets(
-      'test_master_views_4k_display_containment',
-      (tester) async {
-        tester.view.physicalSize = const Size(3840, 2160);
-        tester.view.devicePixelRatio = 1.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
+    testWidgets('test_master_views_4k_display_containment', (tester) async {
+      tester.view.physicalSize = const Size(3840, 2160);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-        final profiles = [createProfile('prf_1', 'Profile 1', 'prf-1')];
-        await tester.pumpWidget(
-          createTestWidget(
-            AsyncData(profiles),
-            screenSize: const Size(3840, 2160),
-          ),
-        );
-        await tester.pumpAndSettle();
+      final profiles = [createProfile('prf_1', 'Profile 1', 'prf-1')];
+      await tester.pumpWidget(
+        createTestWidget(
+          AsyncData(profiles),
+          screenSize: const Size(3840, 2160),
+        ),
+      );
+      await tester.pumpAndSettle();
 
-        final constrainedBoxFinder = find.byWidgetPredicate(
-          (widget) =>
-              widget is ConstrainedBox &&
-              widget.constraints.maxWidth == 1200.0,
-        );
-        expect(constrainedBoxFinder, findsOneWidget);
+      final constrainedBoxFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is ConstrainedBox && widget.constraints.maxWidth == 1200.0,
+      );
+      expect(constrainedBoxFinder, findsOneWidget);
 
-        final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
-        expect(box.size.width, lessThanOrEqualTo(1200.0));
-      },
-    );
+      final box = tester.renderObject(constrainedBoxFinder) as RenderBox;
+      expect(box.size.width, lessThanOrEqualTo(1200.0));
+    });
 
-    testWidgets(
-      'test_output_profile_list_view_virtualized_rendering',
-      (tester) async {
-        final mockList = List.generate(
-          35,
-          (i) => createProfile('prf_$i', 'Profile $i', 'profile-slug-$i'),
-        );
+    testWidgets('test_output_profile_list_view_virtualized_rendering', (
+      tester,
+    ) async {
+      final mockList = List.generate(
+        35,
+        (i) => createProfile('prf_$i', 'Profile $i', 'profile-slug-$i'),
+      );
 
-        await tester.pumpWidget(createTestWidget(AsyncData(mockList)));
-        await tester.pumpAndSettle();
+      await tester.pumpWidget(createTestWidget(AsyncData(mockList)));
+      await tester.pumpAndSettle();
 
-        final listViewFinder = find.byType(ListView);
-        expect(listViewFinder, findsOneWidget);
+      final listViewFinder = find.byType(ListView);
+      expect(listViewFinder, findsOneWidget);
 
-        final listView = tester.widget<ListView>(listViewFinder);
-        expect(listView.prototypeItem, isNotNull);
+      final listView = tester.widget<ListView>(listViewFinder);
+      expect(listView.prototypeItem, isNotNull);
 
-        final visibleTiles = find.byType(ListTile);
-        expect(visibleTiles.evaluate().length, lessThan(35));
-        expect(visibleTiles.evaluate().length, greaterThan(0));
+      final visibleTiles = find.byType(ListTile);
+      expect(visibleTiles.evaluate().length, lessThan(35));
+      expect(visibleTiles.evaluate().length, greaterThan(0));
 
-        expect(find.text('Showing 35 of 35 items'), findsOneWidget);
-      },
-    );
+      expect(find.text('Showing 35 of 35 items'), findsOneWidget);
+    });
 
     testWidgets('instant search filters profiles in-memory', (tester) async {
       final profiles = [
