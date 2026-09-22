@@ -42,14 +42,15 @@
 - [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Phase 3: Desktop Pro Tool Studio Master Views Virtualization & Containment
-**Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md]
-- [ ] **[NOK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --phase=3`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+**Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md]
+- [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md] --phase=3`
+- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+  - [ ] Step 3.0: Pre-Implementation Technical Debt Cleanups
   - [ ] Step 3.1: Standardized Master View Virtualization & Containment
   - [ ] Step 3.2: Banned Freezed .when() Purge & Enum Alignment
 - [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md]`
+- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Phase 4: Studio Modals, Dialogs UX Hardening & E2E Quality Gates
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_placeholder_phase4.md]
@@ -100,6 +101,7 @@
   - [ ] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
+  - [ ] [NEW] @[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]
 - [ ] **[NOK] Pre-Delete Audit:** Verify no orphaned dependencies remain across touched packages.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving client business logic.
 
@@ -142,7 +144,9 @@
 | Purge nested in-build sorting from SduiMatrixTableWidget | EPIC 153 Section 3, Step 2.1 | Phase 2, Step 2.1 | DONE |
 | Eliminate mutable list allocations and token-bind colors in XAIAxisTelemetryGrid | EPIC 153 Section 3, Step 2.2 | Phase 2, Step 2.2 | DONE |
 | Align AtomMatrixTableWidget to canonical macro-breakpoint standard (&lt; 800px) | EPIC 153 Section 3, Step 2.2 | Phase 2, Step 2.2 | DONE |
+| Pre-implementation technical debt cleanups across SDUI matrix widgets | EPIC 153 Section 3, Step 2.0 | Phase 2, Step 2.0 | DONE |
 | Purge all 9 SizedBox.shrink() occurrences in SduiBlocksRenderer (DGR002) | EPIC 153 Section 3, Step 2.3 | Phase 2, Step 2.3 | DONE |
+| Pre-implementation technical debt cleanups across 4 master views | EPIC 153 Section 3, Step 3.0 | Phase 3, Step 3.0 | PENDING |
 | Virtualize all 4 Quorum Studio master list views with prototypeItem | EPIC 153 Section 3, Step 3.1 | Phase 3, Step 3.1 | PENDING |
 | Mount sticky StudioMasterHeader controls across all 4 master views | EPIC 153 Section 3, Step 3.1 | Phase 3, Step 3.1 | PENDING |
 | Enforce centered 1200px max-width containment on master list views | EPIC 153 Section 3, Step 3.1 | Phase 3, Step 3.1 | PENDING |
@@ -158,28 +162,25 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully audited Phase 2 of Epic 153: SDUI Dumb Painter Performance & Cell Decomposition via `/tier8-audit-plan`:
-  - Verified planner fidelity via `audit_planner_output.py` with 100% boundary preservation.
-  - Verified `SduiMatrixTableWidget` decomposition into 4 private Dumb Painter cell sub-widgets (`_MatrixSummaryCriteriaCell`, `_MatrixSummaryQuotesCell`, `_MatrixSummaryDistributionCell`, `_MatrixSummaryScoreCell`) adhering strictly to `<contract_freeze>`.
-  - Confirmed total eradication of in-build sorting (`..sort(...)`), mutable list allocations (`itemsToRender`), and hardcoded colors (`Colors.amber`, `Colors.black`, `AppColors.*`).
-  - Confirmed 0 `const SizedBox.shrink()` and 0 `const SizedBox()` occurrences in `sdui_blocks_renderer.dart` (passing DGR002 with 0 violations).
-  - Verified responsive macro-breakpoint switching (< 800px) in `AtomMatrixTableWidget`.
-  - Verified cross-domain SDUI semantic parity: `test_sdui_semantic_parity.py` passed in 15.12s; `sdui_golden_master_parity_test.dart` passed 100% across all 17 blocks in `en` and `fi`.
-  - Updated golden snapshot `atom_matrix_table_snapshot.png` for M3 token alignment.
-  - Verified that all 110 execution feature tests pass 100% green.
-  - Generated audit artifact `red_team_audit_phase2_plan.md`.
+- Successfully drafted Phase 3 Implementation Plan for Epic 153: Desktop Pro Tool Studio Master Views Virtualization & Containment via `/tier0-create-plan`:
+  - Itemized pre-implementation technical debt cleanups in Step 3.0 (dead fallbacks, hardcoded tooltips, raw exception banners, uncentered empty text widgets).
+  - Designed `StudioMasterHeader` contract in `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]` with pinned title, subtitle, real-time instant search input with clear trigger, active count badge (`X / Y kohteesta`), and primary action button.
+  - Planned pure virtualized `ListView.builder` with `prototypeItem` and 1200px max-width boundary across all 4 master views (`WorkflowsMasterView`, `MatricesMasterView`, `OutputProfileListView`, `McpGatewaysMasterView`).
+  - Planned Freezed `.when()` eradication and `PromptBlockCategoryGroups.matrixCategories` enum grouping.
+  - Specified comprehensive widget test suite with positive, boundary (4K 3840px viewport containment), and negative search partitions.
+  - Verified 100% boundary compliance via `audit_markdown_boundaries.py` and planner output fidelity via `audit_planner_output.py`.
 
 ## Learned
-- **Zero Empty Nodes in Render Trees:** Combining Dart 3 pattern matching `if (_renderBlock(...) case final widget?) widget` with `Widget?` returns completely eliminates empty nodes (`SizedBox.shrink()` or `SizedBox()`) from Flutter element trees, achieving 0 DGR002 violations while minimizing layout tree bloat.
-- **Dumb Painter Semantic Preservation:** Cell decomposition into private sub-widgets with typed domain models (`ScorecardAtomDto`, `QuoteEvidenceDto`) cleanly isolates cell layout without leaking sub-widgets to public scope or losing presentation fidelity.
-- **Golden Snapshot Alignment with Material 3 Tokens:** Replacing hardcoded static colors (`Colors.amber`) with semantic Material 3 tokens (`tertiaryContainer`) alters pixel rendering slightly, requiring standard `flutter test --update-goldens` synchronization to maintain regression parity.
+- `prototypeItem` in Flutter's `ListView.builder` enables O(1) item extent calculation for buttery 60 FPS scrolling without measuring every individual tile dynamically.
+- Pinned top headers in desktop master list views eliminate scroll fatigue and anchor instant search filtering and active count feedback without requiring complex nested slivers.
 
 ## Remaining
-- Formulate Phase 3 Implementation Plan: `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --phase=3`.
-- Execute Phase 3 Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`.
-- Execute Phase 3 Implementation: `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`.
+- Execute Phase 3 Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- Execute Phase 3 Implementation: `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+- Audit Phase 3 Plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ## Resume Command
 ```powershell
-/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_placeholder_phase3.md] @[docs/epic/EPIC_153_tracker.md] --phase=3
+/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/03_phase3_plan.md] @[docs/epic/EPIC_153_tracker.md]
 ```
+
