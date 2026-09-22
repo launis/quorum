@@ -32,8 +32,9 @@
 
 ### Phase 2: SDUI Dumb Painter Performance & Cell Decomposition
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md]
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+  - [ ] Step 2.0: Pre-Implementation Technical Debt Cleanups
   - [ ] Step 2.1: SduiMatrixTableWidget Cell Decomposition & In-Build Sorting Purge
   - [ ] Step 2.2: XAIAxisTelemetryGrid & AtomMatrixTableWidget Refactoring
   - [ ] Step 2.3: Purge SizedBox.shrink() Concealment (DGR002)
@@ -158,26 +159,24 @@
 
 ## Achieved
 - Successfully executed Phase 1 of Epic 153 with 0 fatal DGR violations across all modified files.
-- Generated and compiled 6 new Freezed models with `disallowUnrecognizedKeys: true`: `McpGateway`, `AllowedMcpTool`, `LlmPlatform`, `WorkflowUiSchema`, `HumanOverrideRequestDto`, `PromptBlockSimulationRequest`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`.
-- Strongly typed all 33 endpoints in `StudioClient`, purged banned `?? []` default, refactored `WorkflowClient.getWorkflowUiSchema` to `Future<WorkflowUiSchema>`, and `ExecutionClient.overrideAtom` to take `HumanOverrideRequestDto`.
-- Modernized 5 Riverpod controllers (`PromptBlocksController`, `StudioController`, `OutputProfileController`, `ModelRegistryController`, `McpGatewaysController`).
-- Refactored all views, modals, tabs, and downstream consumers (`NewExecutionView`, `DynamicStartScreen`, `McpGatewaysMasterView`, `McpGatewayView`, `MatricesMasterView`, `WorkflowsMasterView`, `OutputProfileListView`, `CreateReportDialog`, `WorkflowBuilderView`, `PromptBlockBuilderView`, `ScaleEditorModal`, `HumanOverrideDialog`, `StepBuilderView`, `DashboardView`, `WorkflowGeneralTab`, `WorkflowStepCard`, `WorkflowStepsTab`, `AtomMatrixTableWidget`, `XAIAxisTelemetryGrid`).
-- Verified all mock clients and controllers across test suites (`MockExecutionClient`, `MockExecutionClientPending`, `MockMcpGatewaysController`) to strictly enforce `HumanOverrideRequestDto` and `McpGateway` types.
-- Executed and passed 100% of the complete `client_app_v2` Flutter test suite (425 tests passed), verifying all 9 test contracts from the plan.
-- Quality gates verified: `flutter_audit_loop.py` passed with exit code 0 across views, controllers, and core APIs with 0 errors and 0 warnings, and `_dart_guardrails.py` verified 0 fatal violations.
-- Completed Tier 8 Plan Audit (`/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/01_phase1_plan.md] @[docs/epic/EPIC_153_tracker.md]`) with PASSED verdict documented in `red_team_audit_01_phase1_plan.md`.
+- Completed Tier 0 Red-Team Research of Phase 2 Plan (`02_phase2_plan.md`):
+  - Verified line boundaries with `audit_planner_output.py` (all 13 line bounds and 7 target files verified).
+  - Executed 7-item technical debt sweep across `sdui_matrix_table_widget.dart`, `xai_axis_telemetry_grid.dart`, `atom_matrix_table_widget.dart`, and `sdui_blocks_renderer.dart`.
+  - Discovered and resolved contract freeze misalignment: corrected overly primitive cell signatures (`List<String> quotes`) to domain-typed models (`ScorecardAtomDto`, `QuoteEvidenceDto`) to preserve rich evidence quote and cognitive override rendering.
+  - Injected Step 2.0 (Pre-Implementation Technical Debt Cleanups) into the plan to eradicate mutable widget lists (`itemsToRender`), in-build sorting passes, and hardcoded colors from `atom_matrix_table_widget.dart`.
+  - Defined 5-Column Directives Table and 3 Red-Team Falsification Scenarios in `02_phase2_plan.md`.
+  - Added `atom_matrix_table_widget_test.dart` to plan target files and validation gate.
 
 ## Learned
-- **Type Propagation Downstream:** When controllers (`mcpGatewaysControllerProvider`, `availableWorkflowsProvider`) become strongly typed, all secondary views and test mocks consuming them (`MockExecutionClient`, `MockMcpGatewaysController`, `step_builder_view.dart`, `dashboard_view.dart`) must also be typed to prevent downstream compiler regressions.
-- **CheckedFromJsonException vs FormatException:** In `json_annotation`, `disallowUnrecognizedKeys: true` throws `CheckedFromJsonException` when unrecognized keys are encountered, which satisfies strict fail-fast contracts.
-- **Isolate Deserialization:** Direct typed parsing inside `studio_client.dart` eliminates redundant `safeIsolateRun` wrapping in controllers while maintaining background parse capability.
-- **Golden Snapshot Synchronization:** Visual design token improvements (replacing magic numbers with theme tokens) alter pixel rendering slightly, requiring test goldens to be explicitly synchronized.
+- **Dumb Painter Semantic Preservation:** Cell decomposition must never flatten complex multi-field domain entities (like `ScorecardAtomDto` with quotes, reasoning, overrides, and URLs) into basic string lists, which destroys presentation fidelity and breaks unit test assertions.
+- **Collection-If Null Omission:** Rather than swapping `SizedBox.shrink()` for `SizedBox()` (which merely evades DGR002 regex), helper methods returning `Widget?` combined with `for (final b in blocks) if (_renderBlock(...) case final w?) w` eliminate empty nodes entirely from the element tree.
+- **Pre-Sorting Key Propagation:** Passing pre-sorted keys (`sortedLevels`, `sortedKeys`) from the parent row builder to child cell widgets eliminates repetitive O(N log N) `..sort(...)` passes on every frame without requiring external state management.
 
 ## Remaining
-- Execute Phase 2 Red-Teaming: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]`.
 - Execute Phase 2 implementation: SDUI Dumb Painter Performance & Cell Decomposition (`02_phase2_plan.md`).
+- Run validation gate: `_dart_guardrails.py` and `flutter test` across all 4 targeted test suites.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md]
+/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/02_phase2_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto
 ```
