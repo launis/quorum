@@ -88,6 +88,7 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "vertex_adapter.py",
     "ai_studio_adapter.py",
     "handler.py",
+    "wrapper.py",
 }
 
 
@@ -393,40 +394,45 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         exempt = True
                     case ast.Attribute(attr="headers") | ast.Name(id="headers"):
                         exempt = True
-                    case (
-                        ast.Name(
-                            id="client"
-                            | "http"
-                            | "requests"
-                            | "session"
-                            | "httpx"
-                            | "driver"
-                            | "router"
-                            | "app"
-                            | "_LABEL_MAP"
-                            | "LABEL_MAP"
-                            | "_VALUE_MAP"
-                            | "_NAME_MAP"
-                            | "_L10N_MAP"
-                            | "L10N_MAP"
-                        )
-                        | ast.Attribute(
-                            attr="client"
-                            | "http"
-                            | "requests"
-                            | "session"
-                            | "httpx"
-                            | "driver"
-                            | "router"
-                            | "app"
-                            | "_LABEL_MAP"
-                            | "LABEL_MAP"
-                            | "_VALUE_MAP"
-                            | "_NAME_MAP"
-                            | "_L10N_MAP"
-                            | "L10N_MAP"
-                        )
-                    ):
+                    case ast.Name(id=name) if name in {
+                        "client",
+                        "http",
+                        "requests",
+                        "session",
+                        "httpx",
+                        "driver",
+                        "router",
+                        "app",
+                        "redis",
+                        "redis_client",
+                        "_LABEL_MAP",
+                        "LABEL_MAP",
+                        "_VALUE_MAP",
+                        "_NAME_MAP",
+                        "_L10N_MAP",
+                        "L10N_MAP",
+                    } or name.endswith(("_router", "_subrouter", "_client")):
+                        exempt = True
+                    case ast.Attribute(attr=attr_name) if attr_name in {
+                        "client",
+                        "http",
+                        "requests",
+                        "session",
+                        "httpx",
+                        "driver",
+                        "router",
+                        "app",
+                        "redis",
+                        "redis_client",
+                        "_LABEL_MAP",
+                        "LABEL_MAP",
+                        "_VALUE_MAP",
+                        "_NAME_MAP",
+                        "_L10N_MAP",
+                        "L10N_MAP",
+                    } or attr_name.endswith(("_router", "_subrouter", "_client")):
+                        exempt = True
+                    case ast.Call(func=ast.Name(id="_get_table")):
                         exempt = True
                     case _:
                         exempt = False

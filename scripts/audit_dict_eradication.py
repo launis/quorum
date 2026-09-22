@@ -37,6 +37,10 @@ LOCKED_PHYSICAL_DRIVERS: set[str] = {
     "firestore_driver.py",
     "provider.py",
     "logging_config.py",
+    "vertex_adapter.py",
+    "ai_studio_adapter.py",
+    "handler.py",
+    "wrapper.py",
 }
 
 BANNED_REASON_PLACEHOLDERS: set[str] = {
@@ -116,22 +120,22 @@ class DictEradicationReport:
 class DictEradicationVisitor(ast.NodeVisitor):
     """AST Visitor scanning Python files for permissive dict and reflection patterns."""
 
-    def __init__(self, filepath: str, source_bytes: bytes) -> None:
+    def __init__(self, filepath: str, source_bytes: bytes, strict: bool = False) -> None:
         """Initialize the visitor with target file path and source bytes.
 
         Args:
             filepath: Target file path to scan.
             source_bytes: Source code content in bytes.
+            strict: Whether strict reflection checking on tests is enabled.
         """
         self.filepath = filepath
         self.source_bytes = source_bytes
         self.filename = Path(filepath).name
+        self.strict = strict
         self.is_exempt = self.filename in LOCKED_PHYSICAL_DRIVERS
-        self.is_test = "tests" in Path(filepath).parts
-        self.is_domain_or_service = any(
-            p in Path(filepath).parts
-            for p in ("services", "models", "hooks", "orchestrator", "api", "database", "workers")
-        )
+        path_parts = set(Path(filepath).parts)
+        self.is_test = "tests" in path_parts or Path(filepath).name.startswith("test_")
+        self.is_domain_or_service = not self.is_test and not ("scripts" in path_parts or "migrations" in path_parts)
         self.violations: list[AuditViolation] = []
 
     def _is_naked_dict_subscript(self, node: ast.AST) -> bool:
@@ -228,6 +232,24 @@ class DictEradicationVisitor(ast.NodeVisitor):
                     elif isinstance(inner, ast.Attribute) and inner.attr in ("dict", "Dict"):
                         return sub
         return None
+
+    def visit_Attribute(self, node: ast.Attribute) -> None:
+        """Inspects dynamic reflection attribute access like .__dict__.
+
+        Args:
+            node: Attribute node to inspect.
+        """
+        if not self.is_exempt and self.is_domain_or_service:
+            if node.attr == "__dict__":
+                self.violations.append(
+                    AuditViolation(
+                        filepath=self.filepath,
+                        line=node.lineno,
+                        metric="reflection_calls",
+                        message=f"Banned dynamic `.__dict__` access: `{ast.unparse(node)}`",
+                    )
+                )
+        self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         """Inspects variable type annotations for naked dicts and primitive obsession nested dicts.
@@ -392,106 +414,140 @@ class DictEradicationVisitor(ast.NodeVisitor):
         Args:
             node: Call node to inspect.
         """
-        if not self.is_exempt and not self.is_test and self.is_domain_or_service:
+        if not self.is_exempt:
             # 1. Banned isinstance duck-typing
-            if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
-                target_type = node.args[1]
-                is_dict = False
-                match target_type:
-                    case ast.Name(id="dict"):
-                        is_dict = True
-                    case ast.Tuple(elts=elts):
-                        for elt in elts:
-                            if isinstance(elt, ast.Name) and elt.id == "dict":
-                                is_dict = True
-                                break
-                    case _:
-                        is_dict = False
-
-                if is_dict:
-                    self.violations.append(
-                        AuditViolation(
-                            filepath=self.filepath,
-                            line=node.lineno,
-                            metric="service_duck_typing",
-                            message=f"Banned isinstance(..., dict) duck-typing: `{ast.unparse(node)}`",
-                        )
-                    )
-
-            # 2. Banned dynamic reflection
-            if isinstance(node.func, ast.Name) and node.func.id in {"getattr", "hasattr", "setattr", "vars"}:
-                self.violations.append(
-                    AuditViolation(
-                        filepath=self.filepath,
-                        line=node.lineno,
-                        metric="reflection_calls",
-                        message=f"Banned dynamic reflection call `{node.func.id}`: `{ast.unparse(node)}`",
-                    )
-                )
-
-            # 3. Banned .get() lookups on internal state / variables
-            if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
-                if len(node.args) == 0 and not any(
-                    kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
-                ):
-                    pass
-                else:
-                    exempt = False
-                    receiver = node.func.value
-                    match receiver:
-                        case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
-                            exempt = True
-                        case ast.Attribute(attr="headers") | ast.Name(id="headers"):
-                            exempt = True
-                        case (
-                            ast.Name(
-                                id="client"
-                                | "http"
-                                | "requests"
-                                | "session"
-                                | "httpx"
-                                | "driver"
-                                | "_LABEL_MAP"
-                                | "LABEL_MAP"
-                                | "_VALUE_MAP"
-                                | "_NAME_MAP"
-                                | "_L10N_MAP"
-                                | "L10N_MAP"
-                            )
-                            | ast.Attribute(
-                                attr="client"
-                                | "http"
-                                | "requests"
-                                | "session"
-                                | "httpx"
-                                | "driver"
-                                | "_LABEL_MAP"
-                                | "LABEL_MAP"
-                                | "_VALUE_MAP"
-                                | "_NAME_MAP"
-                                | "_L10N_MAP"
-                                | "L10N_MAP"
-                            )
-                        ):
-                            exempt = True
+            if not self.is_test and self.is_domain_or_service:
+                if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
+                    target_type = node.args[1]
+                    is_dict = False
+                    match target_type:
+                        case ast.Name(id="dict"):
+                            is_dict = True
+                        case ast.Tuple(elts=elts):
+                            for elt in elts:
+                                if isinstance(elt, ast.Name) and elt.id == "dict":
+                                    is_dict = True
+                                    break
                         case _:
-                            exempt = False
+                            is_dict = False
 
-                    if not exempt:
-                        for kw in node.keywords:
-                            if kw.arg in {"params", "headers", "timeout", "auth", "cookies"}:
-                                exempt = True
-                                break
-
-                    if not exempt:
+                    if is_dict:
                         self.violations.append(
                             AuditViolation(
                                 filepath=self.filepath,
                                 line=node.lineno,
-                                metric="banned_get_calls",
-                                message=f"Banned .get() lookup on internal state/variable: `{ast.unparse(node)}`",
+                                metric="service_duck_typing",
+                                message=f"Banned isinstance(..., dict) duck-typing: `{ast.unparse(node)}`",
                             )
                         )
+
+            # 2. Banned dynamic reflection
+            check_reflection = (not self.is_test and self.is_domain_or_service) or (self.is_test and self.strict)
+            if check_reflection:
+                match node.func:
+                    case ast.Name(id="getattr" | "hasattr" | "setattr" | "vars"):
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="reflection_calls",
+                                message=f"Banned dynamic reflection call `{node.func.id}`: `{ast.unparse(node)}`",
+                            )
+                        )
+                    case ast.Name(id="attrgetter") | ast.Attribute(value=ast.Name(id="operator"), attr="attrgetter"):
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="reflection_calls",
+                                message=f"Banned dynamic `operator.attrgetter` reflection call: `{ast.unparse(node)}`",
+                            )
+                        )
+                    case ast.Attribute(value=ast.Name(id="object"), attr="__setattr__"):
+                        self.violations.append(
+                            AuditViolation(
+                                filepath=self.filepath,
+                                line=node.lineno,
+                                metric="reflection_calls",
+                                message=f"Banned dynamic `object.__setattr__` reflection call: `{ast.unparse(node)}`",
+                            )
+                        )
+                    case _:
+                        pass
+
+            # 3. Banned .get() lookups on internal state / variables
+            if not self.is_test and self.is_domain_or_service:
+                if isinstance(node.func, ast.Attribute) and node.func.attr == "get":
+                    if len(node.args) == 0 and not any(
+                        kw.arg not in {"params", "headers", "timeout", "auth", "cookies"} for kw in node.keywords
+                    ):
+                        pass
+                    else:
+                        exempt = False
+                        receiver = node.func.value
+                        match receiver:
+                            case ast.Attribute(value=ast.Name(id="os"), attr="environ") | ast.Name(id="environ"):
+                                exempt = True
+                            case ast.Attribute(attr="headers") | ast.Name(id="headers"):
+                                exempt = True
+                            case ast.Name(id=name) if name in {
+                                "client",
+                                "http",
+                                "requests",
+                                "session",
+                                "httpx",
+                                "driver",
+                                "router",
+                                "app",
+                                "redis",
+                                "redis_client",
+                                "_LABEL_MAP",
+                                "LABEL_MAP",
+                                "_VALUE_MAP",
+                                "_NAME_MAP",
+                                "_L10N_MAP",
+                                "L10N_MAP",
+                            } or name.endswith(("_router", "_subrouter", "_client")):
+                                exempt = True
+                            case ast.Attribute(attr=attr_name) if attr_name in {
+                                "client",
+                                "http",
+                                "requests",
+                                "session",
+                                "httpx",
+                                "driver",
+                                "router",
+                                "app",
+                                "redis",
+                                "redis_client",
+                                "_LABEL_MAP",
+                                "LABEL_MAP",
+                                "_VALUE_MAP",
+                                "_NAME_MAP",
+                                "_L10N_MAP",
+                                "L10N_MAP",
+                            } or attr_name.endswith(("_router", "_subrouter", "_client")):
+                                exempt = True
+                            case ast.Call(func=ast.Name(id="_get_table")):
+                                exempt = True
+                            case _:
+                                exempt = False
+
+                        if not exempt:
+                            for kw in node.keywords:
+                                if kw.arg in {"params", "headers", "timeout", "auth", "cookies", "model"}:
+                                    exempt = True
+                                    break
+
+                        if not exempt:
+                            self.violations.append(
+                                AuditViolation(
+                                    filepath=self.filepath,
+                                    line=node.lineno,
+                                    metric="banned_get_calls",
+                                    message=f"Banned .get() lookup on internal state/variable: `{ast.unparse(node)}`",
+                                )
+                            )
 
         self.generic_visit(node)
 
@@ -602,33 +658,29 @@ def audit_file_comments(filepath: str, source_bytes: bytes) -> list[AuditViolati
 
 def audit_dict_eradication(
     targets: Path | str | Sequence[Path | str] = "backend_v2",
+    strict: bool = False,
 ) -> DictEradicationReport:
     """Executes the complete multi-layer dict eradication audit on target directory or files.
 
     Args:
         targets: Directory or sequence of files/directories to audit.
+        strict: Whether strict reflection checking on tests is enabled.
 
     Returns:
         DictEradicationReport containing metrics and discovered violations.
     """
     report = DictEradicationReport()
 
+    target_items = [targets] if isinstance(targets, (str, Path)) else list(targets)
     target_list: list[Path] = []
-    if isinstance(targets, (str, Path)):
-        p = Path(targets)
+    for t in target_items:
+        p = Path(t)
+        if not p.exists():
+            raise FileNotFoundError(f"Target path does not exist on disk: {p}")
         if p.is_dir():
             target_list.extend(sorted(p.rglob("*.py")))
         elif p.is_file():
             target_list.append(p)
-        elif not p.exists():
-            return report
-    else:
-        for t in targets:
-            p = Path(t)
-            if p.is_dir():
-                target_list.extend(sorted(p.rglob("*.py")))
-            elif p.is_file():
-                target_list.append(p)
 
     for file_path in target_list:
         try:
@@ -648,7 +700,7 @@ def audit_dict_eradication(
             )
             continue
 
-        visitor = DictEradicationVisitor(str(file_path), source_bytes)
+        visitor = DictEradicationVisitor(str(file_path), source_bytes, strict=strict)
         visitor.visit(tree)
 
         for v in visitor.violations:
@@ -698,9 +750,17 @@ def main(argv: list[str] | None = None) -> int:
     print("  QUORUM DETERMINISTIC AST DICT ERADICATION AUDITOR")
     print("=" * 80)
 
-    args = argv if argv is not None else sys.argv[1:]
-    target = args if args else "backend_v2"
-    report = audit_dict_eradication(target)
+    flags = {"--strict", "--ast-strict"}
+    raw_args = argv if argv is not None else sys.argv[1:]
+    is_strict = any(a in flags for a in raw_args)
+    filtered_args = [a for a in raw_args if a not in flags]
+    target = filtered_args if filtered_args else ["backend_v2"]
+
+    try:
+        report = audit_dict_eradication(target, strict=is_strict)
+    except FileNotFoundError as e:
+        print(f"\n[ERROR] {e}\n")
+        return 1
 
     print(f"1. Naked Dict Annotations (dict[str, Any]):     {report.naked_dict_annotations}")
     print(f"2. Primitive Obsession (Nested dict[..., dict]): {report.primitive_obsession_nested_dicts}")

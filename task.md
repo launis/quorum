@@ -1,56 +1,64 @@
-# Direct-ID Relational Architecture & Heuristic Prefix Eradication Tracker
+# Eradication of Lazy `.get()` and `getattr()` Calls Tracker
 
 ## Plan Context
-- Source Plan: `@[C:\Users\risto\.gemini\antigravity-ide\brain\ddaa7db7-f5a0-4cd9-8443-e2fbf66a2bd6\implementation_plan.md]`
-- Status: Completed
+- Source Plan: `@[docs/implementationplans/plan_lazy_get_getattr_eradication.md]`
+- Status: In Progress (Continuous Full-Auto)
 
 ## Tasks Checklist
 
-- [x] **Milestone 1: Core Directives, System Rules & Knowledge Base SSOT**
-  - [x] Strengthen `<rule_block id="ban_heuristic_identifier_matching">` in `AGENTS.md`
-  - [x] Synchronize `00-antigravity-core.md` with catastrophic ban and add `<rule_block id="positive_id_set_filtering_mandate">`
-  - [x] Add `<rule_block id="direct_id_relational_mandate">` in `01-python-backend.md`
-  - [x] Add `<rule_block id="positive_id_relations_and_zero_heterogeneous_bags">` in `ki_zero_permissive_typing.md`
-  - [x] Verify formatting and git checkpoint
+- [x] **Phase 1: Knowledge Item SSOT Synchronization, Pre-Implementation Cleanups & AST Guardrail Calibration**
+  - [x] Update `ki_zero_permissive_typing.md` (lock 8 boundary files, router/redis exemptions, external ACL standard, 4 canonical patterns)
+  - [x] Update `scripts/_ast_guardrails.py` (exempt wrapper.py, subrouters, Redis clients, _get_table)
+  - [x] Update `scripts/audit_dict_eradication.py` (CLI --strict fix, expand is_domain_or_service to all non-test backend_v2, reflection visitor checks, receiver exemptions)
+  - [x] Run quality gate: `uv run python scripts/_ast_guardrails.py backend_v2` and `uv run python scripts/audit_dict_eradication.py`
+  - [x] Git commit Phase 1
 
-- [x] **Milestone 2: Domain Model Separation (`Workflow`)**
-  - [x] Add `get_allowed_prompt_block_targets` returning strictly concrete `blk_...` PromptBlock IDs in `backend_v2/models/domain/workflow.py`
-  - [x] Refactor `get_allowed_layout_targets` to compose `get_allowed_prompt_block_targets` with `TargetBlockType`
-  - [x] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/models/domain/workflow.py --test`
-  - [x] Git checkpoint
+- [ ] **Phase 2: Models & DTO Validation Layer**
+  - [ ] Update `backend_v2/models/dtos/quote_evidence.py` (resolve_source_id & resolve_and_verify_aliases)
+  - [ ] Update `backend_v2/models/domain/mechanical_anchors.py` (from_context accepting LLMContextDataDTO | None, positive checks)
+  - [ ] Update `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (pass llm_context_data directly)
+  - [ ] Update `backend_v2/tests/unit/models/domain/test_mechanical_anchors.py` (fixtures with LLMContextDataDTO)
+  - [ ] Update `backend_v2/models/dtos/evaluation_steps.py` (_sanitize_source_aliases)
+  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/models/` and `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/quote_evidence.py --test`
+  - [ ] Git commit Phase 2
 
-- [x] **Milestone 3: Studio Service & Resumption Service Modernization**
-  - [x] Update `output_profile_service.py` to call `target_wf.get_allowed_prompt_block_targets(all_steps)` directly (eradicate `startswith("glb_")`)
-  - [x] Update `test_output_profile_service.py` mock to bind `get_allowed_prompt_block_targets`
-  - [x] Modernize `resumption_service.py` to verify `workflow_step_ids.issubset(record.step_states.keys())` (eradicate `sys_` and `system.rag.preflight` prefix checks)
-  - [x] Run quality gates on both services and add ISTQB negative tests
-  - [x] Git checkpoint
+- [ ] **Phase 3: Orchestration & Prompt Compilation Layer**
+  - [ ] Update `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py` (Fail-Fast AppException on missing atom)
+  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py`
+  - [ ] Git commit Phase 3
 
-- [x] **Milestone 4: Matrix Domain Parser Cleanups & Strict Hydration**
-  - [x] Modernize payload parsing with `TraceMatrixPayloadDTO.model_validate` (eradicate duck-typing & `# noqa: QGR012`)
-  - [x] Eradicate lazy fallback chaining on `profile_syntheses`
-  - [x] Hydrate step evals into `dict[str, AtomResultDTO]` (eradicate duck-typing & `# noqa: QGR012`)
-  - [x] Modernize `input_mappings` resolution via direct dot notation and positive key filtering (eradicate `elif not mapped_val.startswith("$")` and `# noqa: QGR012`)
-  - [x] Expand `test_matrix_domain_parser.py` with positive `expected_inputs_map` and ISTQB negative partitions
-  - [x] Run quality gate on `matrix_domain_parser.py`
-  - [x] Git checkpoint
+- [ ] **Phase 4: External Ingress & LLM Adapters Layer**
+  - [ ] Update `backend_v2/services/ingress/pdf_chat_extractor.py` (positive drawing dict checks)
+  - [ ] Update `backend_v2/llm/adapters/openai_adapter.py` (positive checks on info and schema)
+  - [ ] Update `backend_v2/llm/adapters/anthropic_adapter.py` (positive check on call_kwargs)
+  - [ ] Update `backend_v2/llm/adapters/base_adapter.py` (positive check on discriminator propertyName)
+  - [ ] Update `backend_v2/llm/ingress_pipeline.py` (positive checks on discriminator_field)
+  - [ ] Update `backend_v2/llm/client.py` (positive check on schema_err.details error_code)
+  - [ ] Update `backend_v2/llm/mock.py` (positive check on response_schema title)
+  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py backend_v2/tests/unit/llm/`
+  - [ ] Git commit Phase 4
 
-- [x] **Milestone 5: SourceDocumentPacker & Orchestrator LLM Strategy Modernization**
-  - [x] Create `ContextTargetFilterDTO` in `source_document_packer.py`
-  - [x] Refactor `resolve_context_targets(input_mappings)` returning `ContextTargetFilterDTO`
-  - [x] Modernize `pack()` signature (eradicate `inputs_payload: Any`, `list[Any]`, and legacy `allowed_keys` shim)
-  - [x] Modernize filtering to inspect `ContextTargetFilterDTO` directly (eradicate `not k.startswith("$steps")`)
-  - [x] Fix Python 2 exception syntax (`except (TypeError, ValueError):`) and variable scoping (`item.block_id`)
-  - [x] Modernize `llm.py` caller site
-  - [x] Modernize `test_source_document_packer.py` and implement ISTQB negative boundary tests
-  - [x] Run quality gate on `source_document_packer.py` and `llm.py`
-  - [x] Git checkpoint
+- [ ] **Phase 5: Core Services & Infrastructure**
+  - [ ] Update `backend_v2/services/auth.py` (positive check on sub and email)
+  - [ ] Update `backend_v2/main.py` (positive check on id and trace path)
+  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/test_auth.py`
+  - [ ] Git commit Phase 5
 
-- [x] **Milestone 6: PrintableSourcesAdapter Sanitization Modernization**
-  - [x] Modernize internal step reference filtering using `EntityPrefix.STEP_REFERENCE` while preserving Harvard academic citations
-  - [x] Run quality gate on `printable_sources_adapter.py`
-  - [x] Git checkpoint
+- [ ] **Phase 6: Test Suite Modernization (Eradicating `getattr()` Reflection)**
+  - [ ] Modernize `backend_v2/tests/test_worker_models_used.py`
+  - [ ] Modernize `backend_v2/tests/integration/test_epic_chain_e2e.py`
+  - [ ] Modernize `backend_v2/tests/test_caching_schema_scrub_bug.py`
+  - [ ] Modernize `backend_v2/tests/unit/llm/test_structured_retry.py`
+  - [ ] Modernize `backend_v2/tests/unit/test_llm_task_executor.py`
+  - [ ] Modernize `backend_v2/tests/unit/services/test_llm_task_executor.py`
+  - [ ] Modernize `backend_v2/tests/unit/test_litellm_redis_timeout.py`
+  - [ ] Modernize `backend_v2/tests/unit/test_epic66_multi_provider.py`
+  - [ ] Modernize `backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py`
+  - [ ] Run quality gate: `uv run pytest` on modernized test files
+  - [ ] Git commit Phase 6
 
-- [x] **Milestone 7: Global Completion & Regression Verification**
-  - [x] Run full test suite regression across all modified components
-  - [x] Final audit reporting and session wrap-up
+- [ ] **Phase 7: Codebase-Wide Verification & Quality Gates**
+  - [ ] Run `uv run python scripts/_ast_guardrails.py backend_v2`
+  - [ ] Run `uv run python scripts/audit_dict_eradication.py --strict`
+  - [ ] Run full `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+  - [ ] Final audit reporting and session wrap-up
