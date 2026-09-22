@@ -3,7 +3,6 @@ import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
-import 'package:client_app/theme/app_colors.dart';
 
 /// Renders explainable AI (XAI) telemetry, evidence quotes, semantic explanations,
 /// and remediation coaching for a matrix scorecard axis.
@@ -95,10 +94,10 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             margin: const EdgeInsets.only(top: AppSpacing.s12),
             padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: AppColors.intentNeutral.withValues(alpha: 0.1),
-              border: const Border(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              border: Border(
                 left: BorderSide(
-                  color: AppColors.intentNeutral,
+                  color: theme.colorScheme.outlineVariant,
                   width: AppSpacing.s4,
                 ),
               ),
@@ -106,12 +105,12 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
                   child: Icon(
                     Icons.format_quote,
                     size: AppSpacing.s16,
-                    color: AppColors.intentNeutral,
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 AppSpacing.w8,
@@ -176,17 +175,17 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const Icon(
+                Icon(
                   Icons.gavel,
                   size: AppSpacing.s16,
-                  color: AppColors.intentInfo,
+                  color: theme.colorScheme.primary,
                 ),
                 AppSpacing.w8,
                 Expanded(
                   child: Text(
                     l10n.reportFrameworkReference(axis.citedSourceId!),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.intentInfo,
+                      color: theme.colorScheme.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -202,22 +201,22 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
               vertical: AppSpacing.s8,
             ),
             decoration: BoxDecoration(
-              color: AppColors.intentSuccess.withValues(alpha: 0.1),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppSpacing.s6),
               border: Border.all(
-                color: AppColors.intentSuccess.withValues(alpha: 0.3),
+                color: theme.colorScheme.outlineVariant,
               ),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
                   child: Icon(
                     Icons.verified,
                     size: AppSpacing.s16,
-                    color: AppColors.intentSuccess,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
                 AppSpacing.w8,
@@ -225,7 +224,7 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
                   child: Text(
                     l10n.reportGoogleVerified(axis.citedWebCitation!),
                     style: theme.textTheme.labelSmall?.copyWith(
-                      color: AppColors.intentSuccess,
+                      color: theme.colorScheme.onSurface,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -351,12 +350,12 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: AppSpacing.s2),
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.s2),
                   child: Icon(
                     Icons.build,
                     size: AppSpacing.s16,
-                    color: AppColors.intentInfo,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
                 AppSpacing.w8,
@@ -387,9 +386,9 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
   Widget _buildEvidenceIcon(BuildContext context, EvidenceType type) {
     final theme = Theme.of(context);
     return switch (type) {
-      EvidenceType.explicitQuote => const Icon(
+      EvidenceType.explicitQuote => Icon(
         Icons.check_circle,
-        color: AppColors.intentSuccess,
+        color: theme.colorScheme.primary,
         size: AppSpacing.s16,
       ),
       EvidenceType.impliedIntent => Icon(

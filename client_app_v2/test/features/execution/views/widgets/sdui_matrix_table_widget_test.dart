@@ -688,4 +688,162 @@ void main() {
       expect(find.text('-'), findsNWidgets(7));
     },
   );
+
+  testWidgets(
+    'test_sdui_matrix_table_widget_renders_cells_without_sorting_jank',
+    (WidgetTester tester) async {
+      final rows = List.generate(5, (i) {
+        return MatrixScorecardRowDto(
+          blockId: 'axis_$i',
+          name: 'Dimension $i',
+          labelI18n: I18nText(translations: {'en': 'Dimension $i'}),
+          rowExplanation: 'Explanation for $i',
+          scoreDisplayLabel: '$i / 5',
+          normalizedScore: i * 20.0,
+          uiPlotRatio: i * 0.2,
+          isEvaluative: true,
+          allowContextualOverride: false,
+          levelNames: {'1': 'Level 1', '2': 'Level 2'},
+          levelBreakdown: {'1': '$i/2', '2': '$i/3'},
+          evaluatedAtoms: [
+            ScorecardAtomDto(
+              atomId: 'atom_$i',
+              level: 1,
+              levelName: 'Level 1',
+              claimLabel: 'Claim $i',
+              chartDisplayLabel: 'Atom Label $i',
+              visualIntent: VisualIntent.info,
+              extractedFacts: {},
+              exactQuotes: [
+                QuoteEvidenceDto(quote: 'Quote for atom $i'),
+              ],
+              internalLogicEn: const ReasoningStepDto(
+                step1IdentifyPremise: '',
+                step2ScanSource: '',
+                step3EvaluateAntiPatterns: '',
+                step4FinalConclusion: '',
+              ),
+              status: ExecutionStatus.passed,
+              semanticReasoning: 'Reasoning $i',
+              contextualOverride: false,
+            ),
+          ],
+        );
+      });
+
+      final block = SduiMatrixTableBlock(
+        matrixVisibleColumns: const [
+          'label',
+          'distribution',
+          'criteria',
+          'quotes',
+          'normalized_score',
+          'score',
+        ],
+        axes: rows,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: SduiMatrixTableWidget(block: block),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 5; i++) {
+        expect(find.text('Dimension $i *'), findsOneWidget);
+        expect(find.text('- Atom Label $i'), findsOneWidget);
+        expect(find.text('"Quote for atom $i"'), findsOneWidget);
+      }
+    },
+  );
+
+  testWidgets(
+    'test_sdui_matrix_table_widget_narrow_viewport_no_overflow',
+    (WidgetTester tester) async {
+      const row = MatrixScorecardRowDto(
+        blockId: 'axis_narrow',
+        name: 'Narrow Viewport Dimension with long text',
+        labelI18n: I18nText(
+          translations: {
+            'en': 'Very Long Dimension Name That Tests Overflow In Narrow Viewports',
+          },
+        ),
+        rowExplanation: 'Very extensive multiline explanation that tests line wrapping and containment.',
+        scoreDisplayLabel: '10 / 10',
+        normalizedScore: 100.0,
+        uiPlotRatio: 1.0,
+        isEvaluative: true,
+        allowContextualOverride: true,
+        levelNames: {'1': 'L1 Long Name'},
+        levelBreakdown: {'1': '10 / 10'},
+        evaluatedAtoms: [
+          ScorecardAtomDto(
+            atomId: 'atom_narrow',
+            level: 1,
+            levelName: 'L1 Long Name',
+            claimLabel: 'Extensive Claim Label Description That Stretches Horizontally',
+            chartDisplayLabel: 'Extensive Atom Display Label',
+            visualIntent: VisualIntent.success,
+            extractedFacts: {},
+            exactQuotes: [
+              QuoteEvidenceDto(
+                quote: 'Very long verbatim quote that spans multiple lines and needs constrained rendering.',
+              ),
+            ],
+            internalLogicEn: ReasoningStepDto(
+              step1IdentifyPremise: '',
+              step2ScanSource: '',
+              step3EvaluateAntiPatterns: '',
+              step4FinalConclusion: '',
+            ),
+            status: ExecutionStatus.passed,
+            semanticReasoning: 'Long semantic reasoning text explaining the evaluation outcome.',
+            contextualOverride: false,
+          ),
+        ],
+      );
+
+      final block = SduiMatrixTableBlock(
+        matrixVisibleColumns: const [
+          'label',
+          'distribution',
+          'criteria',
+          'quotes',
+          'normalized_score',
+          'score',
+        ],
+        axes: const [row],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('en'),
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(360, 640)),
+            child: Scaffold(
+              body: SingleChildScrollView(
+                child: SduiMatrixTableWidget(block: block),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SduiMatrixTableWidget), findsOneWidget);
+    },
+  );
 }

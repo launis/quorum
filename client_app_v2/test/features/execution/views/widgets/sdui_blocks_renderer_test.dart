@@ -296,5 +296,35 @@ void main() {
       expect(find.textContaining('Model: gemini-1.5-pro'), findsOneWidget);
       expect(find.text('88.50/100'), findsOneWidget);
     });
+
+    testWidgets('test_sdui_blocks_renderer_zero_sized_box_shrink', (
+      tester,
+    ) async {
+      final blocks = [
+        SduiMarkdownBlock(text: ''),
+        SduiParagraphBlock(text: ''),
+        SduiHeroInsightBlock(text: ''),
+        SduiBulletListBlock(items: const []),
+        SduiQuoteCardBlock(
+          quote: '',
+          sourceAliases: const [],
+          citations: const [],
+        ),
+        SduiWarningCardBlock(message: ''),
+        const SduiScoreCardBlock(globalScore: null),
+        const SduiAuditTrailBlock(),
+      ];
+
+      await tester.pumpWidget(
+        buildTestableWidget(SduiBlocksRenderer(blocks: blocks)),
+      );
+      await tester.pumpAndSettle();
+
+      final columnFinder = find.byType(Column);
+      expect(columnFinder, findsOneWidget);
+      final columnWidget = tester.widget<Column>(columnFinder);
+      expect(columnWidget.children, isEmpty);
+      expect(find.byType(SizedBox), findsNothing);
+    });
   });
 }

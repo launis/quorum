@@ -32,73 +32,78 @@ class SduiBlocksRenderer extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: blocks.map((block) {
-        return switch (block) {
-          SduiAccordionBlock() => _buildAccordion(context, block),
-          SduiMetadataBlock() => _buildMetadata(context, block),
-          SduiScoreCardBlock() => _buildScoreCard(context, block),
-          SduiAuditTrailBlock() => _buildAuditTrail(context, block),
-          SduiAlertBoxBlock() => SduiAlertBoxWidget(block: block),
-          SduiGridBlock() => SduiGridWidget(block: block),
-          SduiMarkdownBlock() =>
-            block.text.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                    child: OutputRenderer(markdownContent: block.text),
-                  )
-                : const SizedBox.shrink(),
-          SduiParagraphBlock() =>
-            block.text.isNotEmpty
-                ? Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.s8),
-                    child: OutputRenderer(markdownContent: block.text),
-                  )
-                : const SizedBox.shrink(),
-          SduiRadarChartBlock() => _buildChartWithTitle(
-            context,
-            block.title,
-            LogicRadarChart(axes: block.axes),
-          ),
-          SduiScatterPlotBlock() => _buildChartWithTitle(
-            context,
-            block.title,
-            LogicMatrixChart(
-              xAxis: block.axes[0],
-              yAxis: block.axes[1],
-              zAxis: block.axes.length > 2 ? block.axes[2] : null,
-            ),
-          ),
-          SduiQuadrantMatrixBlock() => _buildChartWithTitle(
-            context,
-            block.title,
-            QuadrantMatrixChart(
-              xAxis: block.axes[0],
-              yAxis: block.axes[1],
-              zAxis: block.axes.length > 2 ? block.axes[2] : null,
-            ),
-          ),
-          SduiMetrics1DBlock() => _buildChartWithTitle(
-            context,
-            block.title,
-            Column(
-              children: block.axes
-                  .map((axis) => MatrixRowItemWidget(matrix: axis))
-                  .toList(),
-            ),
-          ),
-          SduiMatrixTableBlock() => SduiMatrixTableWidget(block: block),
-          SduiBulletListBlock() => _buildBulletList(context, block),
-          SduiHeroInsightBlock() => _buildHeroInsight(context, block),
-          SduiQuoteCardBlock() => _buildQuoteCard(context, block),
-          SduiWarningCardBlock() => _buildWarningCard(context, block),
-          SduiNACardBlock() => _buildNACard(context, block),
-        };
-      }).toList(),
+      children: [
+        for (final block in blocks)
+          if (_renderBlock(context, block) case final widget?) widget,
+      ],
     );
   }
 
-  Widget _buildHeroInsight(BuildContext context, SduiHeroInsightBlock block) {
-    if (block.text.isEmpty) return const SizedBox.shrink();
+  Widget? _renderBlock(BuildContext context, SduiBlockDTO block) {
+    return switch (block) {
+      SduiAccordionBlock() => _buildAccordion(context, block),
+      SduiMetadataBlock() => _buildMetadata(context, block),
+      SduiScoreCardBlock() => _buildScoreCard(context, block),
+      SduiAuditTrailBlock() => _buildAuditTrail(context, block),
+      SduiAlertBoxBlock() => SduiAlertBoxWidget(block: block),
+      SduiGridBlock() => SduiGridWidget(block: block),
+      SduiMarkdownBlock() =>
+        block.text.isNotEmpty
+            ? Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                child: OutputRenderer(markdownContent: block.text),
+              )
+            : null,
+      SduiParagraphBlock() =>
+        block.text.isNotEmpty
+            ? Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                child: OutputRenderer(markdownContent: block.text),
+              )
+            : null,
+      SduiRadarChartBlock() => _buildChartWithTitle(
+        context,
+        block.title,
+        LogicRadarChart(axes: block.axes),
+      ),
+      SduiScatterPlotBlock() => _buildChartWithTitle(
+        context,
+        block.title,
+        LogicMatrixChart(
+          xAxis: block.axes[0],
+          yAxis: block.axes[1],
+          zAxis: block.axes.length > 2 ? block.axes[2] : null,
+        ),
+      ),
+      SduiQuadrantMatrixBlock() => _buildChartWithTitle(
+        context,
+        block.title,
+        QuadrantMatrixChart(
+          xAxis: block.axes[0],
+          yAxis: block.axes[1],
+          zAxis: block.axes.length > 2 ? block.axes[2] : null,
+        ),
+      ),
+      SduiMetrics1DBlock() => _buildChartWithTitle(
+        context,
+        block.title,
+        Column(
+          children: block.axes
+              .map((axis) => MatrixRowItemWidget(matrix: axis))
+              .toList(),
+        ),
+      ),
+      SduiMatrixTableBlock() => SduiMatrixTableWidget(block: block),
+      SduiBulletListBlock() => _buildBulletList(context, block),
+      SduiHeroInsightBlock() => _buildHeroInsight(context, block),
+      SduiQuoteCardBlock() => _buildQuoteCard(context, block),
+      SduiWarningCardBlock() => _buildWarningCard(context, block),
+      SduiNACardBlock() => _buildNACard(context, block),
+    };
+  }
+
+  Widget? _buildHeroInsight(BuildContext context, SduiHeroInsightBlock block) {
+    if (block.text.isEmpty) return null;
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
@@ -128,43 +133,48 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildBulletList(BuildContext context, SduiBulletListBlock block) {
-    if (block.items.isEmpty) return const SizedBox.shrink();
+  Widget? _buildBulletList(BuildContext context, SduiBulletListBlock block) {
+    if (block.items.isEmpty) return null;
+    final validItems = [
+      for (final item in block.items)
+        if (item.text.isNotEmpty) item,
+    ];
+    if (validItems.isEmpty) return null;
     final theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: block.items.map((item) {
-          if (item.text.isEmpty) return const SizedBox.shrink();
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s6),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(
-                    top: AppSpacing.s8,
-                    left: AppSpacing.s4,
-                    right: AppSpacing.s8,
+        children: [
+          for (final item in validItems)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s6),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.s8,
+                      left: AppSpacing.s4,
+                      right: AppSpacing.s8,
+                    ),
+                    child: Icon(
+                      Icons.circle,
+                      size: AppSpacing.s6,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
-                  child: Icon(
-                    Icons.circle,
-                    size: AppSpacing.s6,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-                Expanded(child: OutputRenderer(markdownContent: item.text)),
-              ],
+                  Expanded(child: OutputRenderer(markdownContent: item.text)),
+                ],
+              ),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }
 
-  Widget _buildQuoteCard(BuildContext context, SduiQuoteCardBlock block) {
-    if (block.quote.isEmpty) return const SizedBox.shrink();
+  Widget? _buildQuoteCard(BuildContext context, SduiQuoteCardBlock block) {
+    if (block.quote.isEmpty) return null;
     final theme = Theme.of(context);
     return Card(
       elevation: 1,
@@ -249,8 +259,8 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildWarningCard(BuildContext context, SduiWarningCardBlock block) {
-    if (block.message.isEmpty) return const SizedBox.shrink();
+  Widget? _buildWarningCard(BuildContext context, SduiWarningCardBlock block) {
+    if (block.message.isEmpty) return null;
     final theme = Theme.of(context);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
@@ -550,8 +560,8 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreCard(BuildContext context, SduiScoreCardBlock block) {
-    if (block.globalScore == null) return const SizedBox.shrink();
+  Widget? _buildScoreCard(BuildContext context, SduiScoreCardBlock block) {
+    if (block.globalScore == null) return null;
     final l10n = AppLocalizations.of(context)!;
     return Container(
       margin: const EdgeInsets.symmetric(vertical: AppSpacing.s16),
@@ -582,9 +592,8 @@ class SduiBlocksRenderer extends StatelessWidget {
     );
   }
 
-  Widget _buildAuditTrail(BuildContext context, SduiAuditTrailBlock block) {
-    if (mcpToolAudit == null || mcpToolAudit!.isEmpty)
-      return const SizedBox.shrink();
+  Widget? _buildAuditTrail(BuildContext context, SduiAuditTrailBlock block) {
+    if (mcpToolAudit == null || mcpToolAudit!.isEmpty) return null;
     final l10n = AppLocalizations.of(context)!;
     return Card(
       elevation: 2,

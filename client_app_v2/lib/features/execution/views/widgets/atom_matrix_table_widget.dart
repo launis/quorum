@@ -159,12 +159,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
             .map((m) {
               final levelMap = m.levelBreakdown!;
               final levelNames = m.levelNames ?? {};
-              final sortedLevels = levelMap.keys.toList()
-                ..sort((a, b) {
-                  final numA = double.tryParse(a) ?? 0;
-                  final numB = double.tryParse(b) ?? 0;
-                  return numB.compareTo(numA);
-                });
+              final sortedLevels = _sortBreakdownKeys(levelMap);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(
@@ -203,9 +198,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                                 padding: const EdgeInsets.only(top: 4.0),
                                 child: Text(
                                   m.description!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.black54,
+                                    color: theme.colorScheme.onSurfaceVariant,
                                     fontStyle: FontStyle.italic,
                                   ),
                                 ),
@@ -312,12 +307,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
       separatorBuilder: (context, index) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final m = tableMatrices[index];
-        final sortedLevels = m.levelBreakdown!.keys.toList()
-          ..sort((a, b) {
-            final numA = double.tryParse(a) ?? 0;
-            final numB = double.tryParse(b) ?? 0;
-            return numB.compareTo(numA);
-          });
+        final sortedLevels = _sortBreakdownKeys(m.levelBreakdown!);
 
         return ExpansionTile(
           title: Column(
@@ -341,9 +331,9 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   padding: const EdgeInsets.only(top: 4.0),
                   child: Text(
                     m.description!,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: Colors.black54,
+                      color: theme.colorScheme.onSurfaceVariant,
                       fontStyle: FontStyle.italic,
                     ),
                   ),
@@ -399,7 +389,7 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                 ),
               if (visibleColumns.contains('quotes'))
                 Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
+                  padding: const EdgeInsets.only(top: AppSpacing.s8),
                   child: _buildQuotesColumn(context, ref, m),
                 ),
             ],
@@ -411,10 +401,8 @@ class AtomMatrixTableWidget extends ConsumerWidget {
                   final display = m.levelBreakdown![lvl]!;
                   final name = m.levelNames?[lvl] ?? 'T$lvl';
                   final numLvl = double.tryParse(lvl)?.toInt() ?? lvl;
-                  return ListTile(
-                    dense: true,
-                    title: Text('$numLvl - $name: $display'),
-                  );
+                  final levelTitle = '$numLvl - $name: $display';
+                  return ListTile(dense: true, title: Text(levelTitle));
                 }).toList()
               : [],
         );
@@ -439,225 +427,232 @@ class AtomMatrixTableWidget extends ConsumerWidget {
       );
     }
 
-    final sortedLevels = m.atomsByLevel.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final sortedLevels = _sortLevelIntKeys(m.atomsByLevel);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: sortedLevels.map((level) {
-        final atoms = m.atomsByLevel[level]!;
-        final levelName = m.levelNames?['$level'] ?? 'T$level';
+      children: [
+        for (final level in sortedLevels)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$level - ${m.levelNames?['$level'] ?? 'T$level'}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ..._buildLevelAtoms(context, m.atomsByLevel[level]!, theme),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Column(
+  List<Widget> _buildLevelAtoms(
+    BuildContext context,
+    List<ScorecardAtomDto> atoms,
+    ThemeData theme,
+  ) {
+    final validAtoms = atoms.where((atom) {
+      final statusName = atom.status?.name.toLowerCase() ?? '';
+      return statusName != 'systemerror' &&
+          !atom.semanticReasoning.startsWith('Chunk Processing Failed');
+    }).toList();
+
+    if (validAtoms.isEmpty) {
+      return [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4.0),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '$level - $levelName',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+              const Text('- ', style: TextStyle(fontSize: 13)),
+              Expanded(
+                child: Text(
+                  '-',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Builder(
-                builder: (context) {
-                  final itemsToRender = <Widget>[];
-
-                  for (final atom in atoms) {
-                    final statusName = atom.status?.name.toLowerCase() ?? '';
-                    // Filter non-renderable atoms from Display Tier
-                    final isSkipped =
-                        statusName == 'systemerror' ||
-                        atom.semanticReasoning.startsWith(
-                          'Chunk Processing Failed',
-                        );
-                    if (isSkipped) continue;
-
-                    bool hasOverride = atom.humanOverride != null;
-                    final isPass = hasOverride
-                        ? (atom.humanOverride!.newStatus ==
-                              ExecutionStatus.passed)
-                        : (atom.status == ExecutionStatus.passed);
-
-                    // 1. AI Evidence rendering
-                    final aiQuotes = _buildQuoteWidgets(
-                      atom.exactQuotes,
-                      isPass,
-                      hasOverride,
-                      theme: theme,
-                    ); // Fade if overridden
-
-                    // 2. Human Override rendering
-                    Widget? overrideBox;
-                    if (hasOverride) {
-                      final humanQuotes = _buildQuoteWidgets(
-                        atom.humanOverride!.evidenceQuotes,
-                        isPass,
-                        false,
-                        theme: theme,
-                      );
-                      overrideBox = Container(
-                        margin: const EdgeInsets.only(top: 8.0, bottom: 4.0),
-                        padding: const EdgeInsets.all(8.0),
-                        decoration: BoxDecoration(
-                          color: Colors.amber.withValues(alpha: 0.1),
-                          border: Border.all(color: Colors.amber.shade300),
-                          borderRadius: BorderRadius.circular(4.0),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.gavel,
-                                  size: 16,
-                                  color: Colors.amber,
-                                ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    AppLocalizations.of(
-                                      context,
-                                    )!.humanOverrideHumanDecisionBadge,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.amber.shade900,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              AppLocalizations.of(
-                                context,
-                              )!.humanOverrideReasonPrefix(
-                                atom.humanOverride!.reason,
-                              ),
-                              style: TextStyle(
-                                fontStyle: FontStyle.italic,
-                                color: Colors.amber.shade900,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (humanQuotes.isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 6.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: humanQuotes,
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    itemsToRender.add(
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('- ', style: TextStyle(fontSize: 13)),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          atom.chartDisplayLabel,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: isPass
-                                                ? FontWeight.bold
-                                                : FontWeight.normal,
-                                            color: AppColors.fromIntent(
-                                              atom.visualIntent,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (aiQuotes.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 2.0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: aiQuotes,
-                                      ),
-                                    ),
-                                  if (atom.semanticReasoning.isNotEmpty)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4.0),
-                                      child: Text(
-                                        '${AppLocalizations.of(context)!.lblReasoning}: ${atom.semanticReasoning}',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontStyle: FontStyle.italic,
-                                          color: isPass
-                                              ? (hasOverride
-                                                    ? Colors.black26
-                                                    : Colors.black54)
-                                              : (hasOverride
-                                                    ? Colors.black26
-                                                    : Colors.black38),
-                                        ),
-                                      ),
-                                    ),
-                                  if (overrideBox != null) overrideBox,
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  if (itemsToRender.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('- ', style: TextStyle(fontSize: 13)),
-                          Expanded(
-                            child: Text(
-                              '-',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontStyle: FontStyle.italic,
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: itemsToRender,
-                  );
-                },
               ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ];
+    }
+
+    return [for (final atom in validAtoms) _buildAtomRow(context, atom, theme)];
+  }
+
+  Widget _buildAtomRow(
+    BuildContext context,
+    ScorecardAtomDto atom,
+    ThemeData theme,
+  ) {
+    final hasOverride = atom.humanOverride != null;
+    final isPass = hasOverride
+        ? (atom.humanOverride!.newStatus == ExecutionStatus.passed)
+        : (atom.status == ExecutionStatus.passed);
+
+    // 1. AI Evidence rendering
+    final aiQuotes = _buildQuoteWidgets(
+      atom.exactQuotes,
+      isPass,
+      hasOverride,
+      theme: theme,
     );
+
+    // 2. Human Override rendering
+    Widget? overrideBox;
+    if (hasOverride) {
+      final humanQuotes = _buildQuoteWidgets(
+        atom.humanOverride!.evidenceQuotes,
+        isPass,
+        false,
+        theme: theme,
+      );
+      overrideBox = Container(
+        margin: const EdgeInsets.only(
+          top: AppSpacing.s8,
+          bottom: AppSpacing.s4,
+        ),
+        padding: const EdgeInsets.all(AppSpacing.s8),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.15),
+          border: Border.all(color: theme.colorScheme.tertiaryContainer),
+          borderRadius: BorderRadius.circular(4.0),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.gavel,
+                  size: 16,
+                  color: theme.colorScheme.onTertiaryContainer,
+                ),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    )!.humanOverrideHumanDecisionBadge,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onTertiaryContainer,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              AppLocalizations.of(
+                context,
+              )!.humanOverrideReasonPrefix(atom.humanOverride!.reason),
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: theme.colorScheme.onTertiaryContainer,
+                fontSize: 12,
+              ),
+            ),
+            if (humanQuotes.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: humanQuotes,
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('- ', style: TextStyle(fontSize: 13)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        atom.chartDisplayLabel,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isPass
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                          color: AppColors.fromIntent(atom.visualIntent),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (aiQuotes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: aiQuotes,
+                    ),
+                  ),
+                if (atom.semanticReasoning.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      '${AppLocalizations.of(context)!.lblReasoning}: ${atom.semanticReasoning}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: hasOverride
+                            ? theme.colorScheme.onSurfaceVariant.withValues(
+                                alpha: 0.38,
+                              )
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ?overrideBox,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static List<String> _sortBreakdownKeys(Map<String, String> breakdown) {
+    final list = breakdown.keys.toList();
+    list.sort((a, b) {
+      final numA = double.tryParse(a) ?? 0;
+      final numB = double.tryParse(b) ?? 0;
+      return numB.compareTo(numA);
+    });
+    return list;
+  }
+
+  static List<int> _sortLevelIntKeys(Map<int, List<ScorecardAtomDto>> map) {
+    final list = map.keys.toList();
+    list.sort((a, b) => b.compareTo(a));
+    return list;
   }
 
   List<Widget> _buildQuoteWidgets(
