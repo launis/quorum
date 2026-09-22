@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:client_app/features/studio/models/workflow_ui_schema.dart';
 
 void main() {
@@ -38,6 +39,29 @@ void main() {
       expect(input.isEndorsedDeliverable, isTrue);
       expect(input.scanForPerformativePatterns, isTrue);
       expect(input.aiDescription, 'Executive strategy report');
+    });
+
+    test('test_workflow_ui_schema_hallucinated_fields_fail_fast', () {
+      final hallucinatedJson = {
+        'expected_inputs': [],
+        'hallucinated_property': 'illegal_payload',
+      };
+
+      expect(
+        () => WorkflowUiSchema.fromJson(hallucinatedJson),
+        throwsA(anyOf(isA<FormatException>(), isA<TypeError>(), isA<CheckedFromJsonException>())),
+      );
+    });
+
+    test('test_workflow_ui_schema_invalid_type_fail_fast', () {
+      final invalidTypeJson = {
+        'expected_inputs': 'not_a_list',
+      };
+
+      expect(
+        () => WorkflowUiSchema.fromJson(invalidTypeJson),
+        throwsA(anyOf(isA<TypeError>(), isA<FormatException>(), isA<CheckedFromJsonException>())),
+      );
     });
   });
 }
