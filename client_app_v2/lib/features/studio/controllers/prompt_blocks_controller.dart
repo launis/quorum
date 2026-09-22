@@ -53,7 +53,7 @@ class PromptBlockForm extends _$PromptBlockForm {
 
 // --- Controllers ---
 
-/// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
+/// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
 /// Implements Optimistic UI principles where possible.
 @riverpod
 class PromptBlocksController extends _$PromptBlocksController {

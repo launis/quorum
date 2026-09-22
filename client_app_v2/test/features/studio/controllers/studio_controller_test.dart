@@ -3,6 +3,7 @@ import 'package:client_app/core/error/app_exception.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/features/studio/controllers/prompt_blocks_controller.dart';
 import 'package:client_app/features/studio/controllers/studio_controller.dart';
+import 'package:client_app/features/studio/models/prompt_block.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:dio/dio.dart';
@@ -28,8 +29,17 @@ void main() {
     outputProfiles: {},
   );
 
+  final validBlock = PromptBlock.systemRule(
+    id: 'blk_0123456789abcdef',
+    slug: 'test-block',
+    label: const I18nText(translations: {'en': 'Test Block'}),
+    description: const I18nText(translations: {'en': 'Test Desc'}),
+    instructionText: 'Test Instruction',
+  );
+
   setUpAll(() {
     registerFallbackValue(validWorkflow);
+    registerFallbackValue(validBlock);
     registerFallbackValue(StackTrace.current);
   });
 
@@ -55,7 +65,15 @@ void main() {
     container.dispose();
   });
 
-  group('PromptBlocksController Exception Handling', () {
+  group('PromptBlocksController Operations & Exception Handling', () {
+    final validBlock = PromptBlock.systemRule(
+      id: 'blk_0123456789abcdef',
+      slug: 'test-block',
+      label: const I18nText(translations: {'en': 'Test Block'}),
+      description: const I18nText(translations: {'en': 'Test Desc'}),
+      instructionText: 'Test Instruction',
+    );
+
     test(
       'deletePromptBlock throws AppError if DioException contains one (RFC 7807 Fail-Fast)',
       () async {
@@ -94,6 +112,68 @@ void main() {
         verify(() => mockClient.deletePromptBlock(id)).called(1);
       },
     );
+
+    test('Positive: savePromptBlock saves typed PromptBlock model', () async {
+      when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+      when(
+        () => mockClient.savePromptBlock(any(), any()),
+      ).thenAnswer((_) async => validBlock);
+
+      final controller = container.read(
+        promptBlocksControllerProvider.notifier,
+      );
+      final result = await controller.savePromptBlock(
+        'blk_0123456789abcdef',
+        validBlock,
+      );
+
+      expect(result.id, 'blk_0123456789abcdef');
+      verify(
+        () => mockClient.savePromptBlock(
+          'blk_0123456789abcdef',
+          any(that: isA<PromptBlock>()),
+        ),
+      ).called(1);
+    });
+
+    test(
+      'Negative 1: savePromptBlock rolls back and throws on server error',
+      () async {
+        when(() => mockClient.getPromptBlocks()).thenAnswer((_) async => []);
+        when(() => mockClient.savePromptBlock(any(), any())).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(path: '/studio/prompt-blocks/save'),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+
+        final controller = container.read(
+          promptBlocksControllerProvider.notifier,
+        );
+        expect(
+          () => controller.savePromptBlock('blk_0123456789abcdef', validBlock),
+          throwsA(isA<AppException>()),
+        );
+      },
+    );
+
+    test('Negative 2: PromptBlockForm submit throws on empty ID', () async {
+      final form = container.read(promptBlockFormProvider('new').notifier);
+      final emptyBlock = validBlock.copyWith(id: '');
+
+      await form.submit(emptyBlock);
+
+      final state = container.read(promptBlockFormProvider('new'));
+      expect(state.hasError, isTrue);
+      expect(
+        state.error,
+        isA<AppException>().having(
+          (e) => e.detail,
+          'detail',
+          contains('Block ID is required'),
+        ),
+      );
+    });
   });
 
   group('WorkflowsController Form & Serialization (Bug Fix 422)', () {
