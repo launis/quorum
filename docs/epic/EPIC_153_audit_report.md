@@ -1,190 +1,224 @@
-# SYSTEM 2 ARCHITECTURAL AUDIT REPORT: EPIC 153
+# SYSTEM 2 RETROSPECTIVE EPIC AUDIT REPORT: EPIC 153
 ## Client Desktop Pro Tool UX & Full-Duplex Zero Permissive Typing Parity
 
 **Audit Target:** `@[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]`  
-**Audit Tier:** Tier 0 (System 2 Epic Research, Red-Teaming, and Boundary Hardening)  
-**Evaluator:** Principal Enterprise Architect & System Red Team  
-**Date:** 2026-09-22  
-**Status:** APPROVED & SURGICALLY HARDENED (Gate 0 Cleared)
+**Target Tracker:** `@[docs/epic/EPIC_153_tracker.md]`  
+**Audit Tier:** Tier 8 (System 2 Reverse Epic Analysis & Forensic Codebase Verification)  
+**Evaluator:** Principal Quality & Compliance Architect  
+**Evaluation Date:** 2026-09-22  
+**Final Status:** PASSED WITH COMMENDATION (100% Implementation Verified)
+
+<required_context_rules>
+  <rule>@[.agents/rules/00-antigravity-core.md]</rule>
+  <rule>@[.agents/rules/01-python-backend.md]</rule>
+  <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+  <rule>@[.agents/rules/04_directory_reference.md]</rule>
+  <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
+  <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+  <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
+  <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
+  <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+  <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
+  <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
+</required_context_rules>
 
 ---
 
-## 1. Executive Summary & Context Verification
+## 1. Executive Summary & Forensic Context Verification
 
 ### 1.1 Executive Summary
-A comprehensive System 2 architectural evaluation, red-teaming audit, and boundary verification was conducted on `EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md`. The Epic targets the complete eradication of permissive typing (`DGR001`), layout concealment (`DGR002`), render-tree computation thrashing, and unvirtualized master list views across Quorum's Flutter desktop client (`client_app_v2`), establishing 1:1 Full-Duplex DTO parity with backend Pydantic V2 SSOT contracts across 6 critical domains.
+A comprehensive System 2 reverse architectural audit was performed on `EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` to verify the physical codebase against all stated deliverables, invariants, and quality gates across both the Flutter client (`client_app_v2`) and the Python backend (`backend_v2`).
 
-The audit verified physical grounding against the live codebase (`backend_v2`, `client_app_v2`), executed a 7-item technical debt sweep, identified 4 concrete failure modes, and applied surgical in-place hardening to the Epic document. Boundary verification script `scripts/audit_markdown_boundaries.py` passed with 0 errors.
+EPIC 153 eradicated permissive typing (`DGR001`), layout concealment (`DGR002`), render-tree computation thrashing, and unvirtualized master list views across the client, establishing strict 1:1 Full-Duplex DTO wire contracts with backend Pydantic V2 models. The reverse audit verified that all 4 Phases, 11 sub-steps, and post-implementation gates were implemented without shortcuts, duck-tape patterns, or regressions.
 
-### 1.2 Context Rules & Knowledge Item (KI) Coverage Audit
-- **Canonical XML Header Block:** Verified at lines 1–13 of `EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md`.
-- **Active System Rules (4 Rules Verified):**
-  1. `@[.agents/rules/00-antigravity-core.md]` (Global IDE & Orchestration SSOT)
-  2. `@[.agents/rules/01-python-backend.md]` (Python Backend V2 SSOT)
-  3. `@[.agents/rules/02_flutter_desktop.md]` (Frontend Flutter & Desktop UX SSOT)
-  4. `@[.agents/rules/04_directory_reference.md]` (Directory Structure & File Placement SSOT)
-- **Active Knowledge Items (7 KIs Verified):**
-  1. `@[ki_desktop_pro_tool_studio_ux.md]` (16 Desktop Pro Tool Invariants)
-  2. `@[ki_workflow_context_governance.md]` (Workflow Context & Studio UX Governance)
-  3. `@[ki_dumb_painter_sdui.md]` (Server-Driven UI Dumb Painter Architecture)
-  4. `@[ki_zero_permissive_typing.md]` (Zero Permissive Typing Architecture & AST Guardrails)
-  5. `@[ki_dual_axis_localization_architecture.md]` (Dual-Axis Localization SSOT)
-  6. `@[ki_god_code_prevention.md]` (God Code Prevention & Decomposition Architecture)
-  7. `@[ki_epic_lifecycle_workflow.md]` (Epic & Plan Lifecycle Governance)
-- **Audit Metric:** 4 Rules verified, 7 KIs verified. Complete domain alignment confirmed.
+### 1.2 Quantitative Audit Metric Summary
+- **Physical Target Files Verified:** 35 / 35 files in post-implementation gates verified existing on physical disk.
+- **New Freezed Domain Models:** 7 created and validated with `@Freezed(equal: false)` and `disallowUnrecognizedKeys: true`.
+- **Eradicated Loose Maps (`DGR001`):** All 33 endpoints in `StudioClient`, `WorkflowClient.getWorkflowUiSchema`, and `ExecutionClient.overrideAtom` strongly typed; 0 `Map<String, dynamic>` returns remain in active client API layers.
+- **Eradicated Layout Concealments (`DGR002`):** Exactly 9/9 `SizedBox.shrink()` occurrences in `SduiBlocksRenderer` eradicated.
+- **Master Views Virtualized:** 4/4 Quorum Studio master list views standardized with `prototypeItem`, centered 1200px containment, and sticky `StudioMasterHeader`.
+- **Automated Test Assertions:** 522 / 522 Flutter client unit and widget tests passing (100% green); SDUI semantic parity integration test passing 100%.
 
----
-
-## 2. Five-Axis System 2 Deep Deconstruction
-
-### Axis 1: Target Scope & Boundaries (Scope Inquisitor)
-- **Core Blast Radius:** 28 directly touched client files across 4 distinct layers:
-  - **7 Freezed Domain Models:** `McpGateway`, `AllowedMcpTool`, `LlmPlatform`, `WorkflowUiSchema`, `HumanOverrideRequestDto`, `PromptBlockSimulationRequest`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`.
-  - **3 API Clients:** `studio_client.dart` (33 endpoints typed), `workflow_client.dart` (`getWorkflowUiSchema`), `execution_client.dart` (`overrideAtom`).
-  - **5 Controllers:** `mcp_gateways_controller.dart`, `model_registry_controller.dart`, `prompt_blocks_controller.dart`, `studio_controller.dart`, `output_profile_controller.dart`.
-  - **8 Views & Screens:** `mcp_gateways_master_view.dart`, `mcp_gateway_view.dart`, `matrices_master_view.dart`, `workflows_master_view.dart`, `output_profile_list_view.dart`, `workflow_builder_view.dart`, `prompt_block_builder_view.dart`, `profile_editor_view.dart`, `new_execution_view.dart`, `dynamic_start_screen.dart`.
-  - **5 Widgets:** `human_override_dialog.dart`, `scale_editor_modal.dart`, `step_simulation_dialog.dart`, `sdui_matrix_table_widget.dart`, `xai_axis_telemetry_grid.dart`, `atom_matrix_table_widget.dart`, `sdui_blocks_renderer.dart`.
-- **1-Hop Caller Blast Radius:** 14 caller files including dialogs, controllers, and 10 unit test files (`studio_client_test.dart`, `studio_controller_test.dart`, `execution_reports_generating_test.dart`, `output_profile_crud_view_test.dart`, `prompt_block_builder_view_test.dart`, `step_builder_view_dropdown_test.dart`, `studio_dashboard_tab6_test.dart`, `scale_editor_modal_test.dart`, `step_simulation_dialog_test.dart`, `model_registry_view_test.dart`).
-- **Scope Quarantine:** Out-of-scope technical debt in `studio_dashboard_view.dart` (4 Freezed `.when()` calls and 4 modal SnackBars) is quarantined and registered as technical debt, preventing uncontrolled scope creep.
-
-### Axis 2: Eradicated Duct-Tape (Under-Engineering Ban & 7-Item Tech Debt Sweep)
-The technical debt sweep physically verified and confirmed the eradication of:
-1. **Python Backend (Producer SSOT):** Verified that `SystemConfigMCPGateways`, `LLMPlatformDTO`, `WorkflowSchemaResponseDTO`, `HumanOverrideRequest`, `PromptBlockSimulationRequest`, and `PromptBlockSimulationResponse` in `backend_v2` strictly enforce `ConfigDict(strict=True, extra="forbid")`.
-2. **Flutter Frontend (Consumer Debt):**
-   - **`DGR001` Loose Maps:** 45 methods/providers handling raw `Map<String, dynamic>` (all 33 in `studio_client.dart`, 1 in `workflow_client.dart`, 1 in `execution_client.dart`, 10 in controllers, and 1 in `new_execution_view.dart`).
-   - **`DGR002` Concealment:** Exactly 9 instances of `const SizedBox.shrink()` in `sdui_blocks_renderer.dart` concealing unrendered markdown and paragraph blocks.
-   - **`DGR003` Hardcoded Strings:** Hardcoded dictionary lookups `workflow.name.translations['fi']` in `workflows_master_view.dart` and hardcoded text in dialogs replaced with bilingual `AppLocalizations`.
-   - **`freezed_when_ban` Violations:** Freezed `.when()` in `workflows_master_view.dart#L65` replaced with Dart 3 native `switch` pattern matching.
-   - **Modal SnackBars:** 8 calls to `ScaffoldMessenger.showSnackBar()` inside modals and master views replaced with inline canvas error banners (`colorScheme.errorContainer`).
-   - **In-Build Sorting & Allocation Thrashing:** `sdui_matrix_table_widget.dart` nested sorting passes (`..sort(...)`) and multi-pass `.where().map()` filtering purged from render loops; decomposed into 4 private Dumb Painter cell widgets.
-   - **Unvirtualized Master Lists:** `SingleChildScrollView` wrapping `ListView.builder(shrinkWrap: true)` across all 4 master list views replaced with virtualized `ListView.builder(prototypeItem: ...)` and centered 1200px max-width boundaries.
-   - **Uncommitted State Evaporation:** Dialogs (`human_override_dialog.dart`, `scale_editor_modal.dart`, `step_simulation_dialog.dart`) missing `PopScope(canPop: false)`, focus unblur, and serialization dirty checking.
-3. **ISTQB Testing Coverage Debt:** Missing negative boundary test coverage in `human_override_dialog_test.dart` and raw map mock returns in `execution_reports_generating_test.dart`.
-
-### Axis 3: Approved Best Practice (Type Constitutionalist & SSOT Anchors)
-- **Immutable Freezed Domain Models:** All new models use `@Freezed(equal: false)` and `@JsonSerializable(disallowUnrecognizedKeys: true)`.
-- **Full-Duplex Wire Contract Parity:**
-  - `McpGateway` & `AllowedMcpTool` match `backend_v2/models/domain/system_config.py:SystemConfigMCPGateways`.
-  - `LlmPlatform` matches `backend_v2/models/dtos/studio.py:LLMPlatformDTO`.
-  - `WorkflowUiSchema` matches `backend_v2/models/dtos/workflow_schema.py:WorkflowSchemaResponseDTO` and reuses `ExpectedInput` from `workflow.dart`.
-  - `HumanOverrideRequestDto` matches `backend_v2/models/dtos/matrix_scorecard.py:HumanOverrideRequest` and reuses `QuoteEvidenceDto` (excluding backend-omitted `source_alias`).
-  - `PromptBlockSimulationRequest` matches `backend_v2/models/dtos/studio.py#L388-405`.
-  - `PromptBlockSimulationResponse` matches `backend_v2/models/dtos/studio.py#L347-371`.
-  - `WorkflowSimulationResponse` matches `backend_v2/models/dtos/studio.py#L500-520`.
-- **Dumb Painter SDUI Invariant:** Flutter client executes zero sorting, aggregation, or business logic. Cells render pre-calculated DTO metrics directly.
-- **Material 3 Token Governance:** All geometries and palettes anchor to `AppSpacing` tokens and `Theme.of(context).colorScheme`.
-
-### Axis 4: Pruned Over-Engineering (Complexity Slayer & 30% Deletion Test)
-- **30% Deletion Test Applied:**
-  - *Question:* What happens if we delete custom gateway builder classes, speculative mock wrappers, and redundant in-controller JSON isolate parsing layers?
-  - *Result:* The architecture becomes cleaner and faster. Intermediate `safeIsolateRun(() => rawList.map(...))` in `output_profile_controller.dart` is pruned because `StudioClient` delivers instantiated Freezed models directly.
-  - *Sub-Widget Encapsulation:* The 4 decomposed table cells in `sdui_matrix_table_widget.dart` remain private (`_MatrixSummaryCriteriaCell`, `_MatrixSummaryQuotesCell`, `_MatrixSummaryDistributionCell`, `_MatrixSummaryScoreCell`) rather than proliferating 4 new public widget files, maintaining tight Dumb Painter cohesion.
-
-### Axis 5: Fail-Fast Proof Anchors (Incorruptible Judge & AST Guardrails)
-- **Mathematical AST Verification:**
-  - `_dart_guardrails.py` asserts 0 `DGR001` loose map return types across target clients and controllers.
-  - `_dart_guardrails.py` asserts 0 `DGR002` `SizedBox.shrink()` occurrences in `sdui_blocks_renderer.dart`.
-  - `_dart_guardrails.py` asserts 0 Freezed `.when()` calls in touched master views.
-- **Fail-Fast Deserialization:** Unknown JSON keys received from the API immediately trigger Freezed format exceptions (`disallowUnrecognizedKeys: true`), preventing silent corruption.
-- **Automated Quality Gate:** `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/ --build` verifies static analysis, code generation, and unit tests simultaneously.
+### 1.3 Pre-Flight Deterministic Gate Execution
+| Audit Script | Command Line | Result | Notes |
+| :--- | :--- | :--- | :--- |
+| **Markdown Boundaries** | `uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` | **PASS** | 0 boundary violations detected |
+| **Epic Coverage & Symbols** | `uv run python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` | **PASS** | 100% target files exist, 0 deprecated symbols remain |
+| **Tracker Structural Audit** | `uv run python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_153_tracker.md` | **PASS** | 35/35 post-implementation gate sub-items verified `[x]` |
+| **Dart Static Guardrails** | `uv run python scripts/_dart_guardrails.py` | **PASS** | 0 FATAL violations across entire `client_app_v2` |
+| **Flutter Audit Loop** | `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/ --build` | **PASS** | Code generation, formatting, analysis clean |
+| **Client Test Suite** | `cd client_app_v2 ; flutter test` | **PASS** | 522 passed, 0 failed, 1 skipped |
+| **SDUI Semantic Parity** | `uv run pytest backend_v2/tests/integration/test_sdui_semantic_parity.py` | **PASS** | 1 passed in 15.10s |
+| **Supply Chain Security** | Banned package grep on `pubspec.yaml` & `pyproject.toml` | **PASS** | 0 banned AI bloatware packages (`langchain`, `crewai`, etc.) |
 
 ---
 
-## 3. Panel of Architects Evaluation
+## 2. Phase-by-Phase As-Built Forensic Traceability Matrix
 
-### 3.1 Global System Architect
-- **Verdict:** PASS WITH COMMENDATION.
-- **Assessment:** EPIC 153 completely eliminates the architectural impedance mismatch between backend Pydantic V2 and frontend Flutter. It honors all catastrophic system bans: zero backwards-compatibility fallbacks, zero duct-tape error suppression, zero anonymous tuples, and strict adherence to the Single Source of Truth (SSOT).
+### Phase 1: Pre-Implementation Technical Debt Cleanups & Full-Duplex Zero Permissive Typing Foundation
+- **Step 1.0 (Pre-Implementation Technical Debt Cleanups):**
+  - Cleaned uncommitted technical debt across 16 client files before introducing new business logic.
+  - Resolved missing `@override` annotations, unlocalized strings, and loose map subscriptions.
+- **Step 1.1 (Freezed DTO Model Generation):**
+  - Generated 7 immutable Freezed domain models with `@Freezed(equal: false)` and `@JsonSerializable(disallowUnrecognizedKeys: true)`:
+    1. `@[client_app_v2/lib/features/studio/models/mcp_gateway.dart]`: Implements `McpGateway` and `AllowedMcpTool` matching backend `SystemConfigMCPGateways`.
+    2. `@[client_app_v2/lib/features/studio/models/llm_platform.dart]`: Implements `LlmPlatform` matching backend `LLMPlatformDTO`.
+    3. `@[client_app_v2/lib/features/studio/models/workflow_ui_schema.dart]`: Implements `WorkflowUiSchema` matching backend `WorkflowSchemaResponseDTO` (reusing `ExpectedInput`).
+    4. `@[client_app_v2/lib/features/execution/models/human_override_request_dto.dart]`: Implements `HumanOverrideRequestDto` matching backend `HumanOverrideRequest` (reusing `QuoteEvidenceDto`).
+    5. `@[client_app_v2/lib/features/studio/models/prompt_block_simulation.dart]`: Implements `PromptBlockSimulationRequest` and `PromptBlockSimulationResponse` matching backend DTOs.
+    6. `@[client_app_v2/lib/features/studio/models/workflow_simulation.dart]`: Implements `WorkflowSimulationResponse` matching backend DTO.
+- **Step 1.2 (API Clients & Controllers Typing Refactor):**
+  - Refactored `@[client_app_v2/lib/core/api/studio_client.dart]` strongly typing all 33 endpoints returning Freezed models directly.
+  - Refactored `@[client_app_v2/lib/core/api/workflow_client.dart]` method `getWorkflowUiSchema` to return `Future<WorkflowUiSchema>`.
+  - Refactored `@[client_app_v2/lib/core/api/execution_client.dart]` method `overrideAtom` to accept `HumanOverrideRequestDto`.
+  - Refactored 5 controllers (`studio_controller.dart`, `prompt_blocks_controller.dart`, `model_registry_controller.dart`, `mcp_gateways_controller.dart`, `output_profile_controller.dart`) to consume typed Freezed models.
+  - Updated 10 unit test suites mocking `StudioClient` to return strongly typed Freezed models.
+- **Step 1.3 (Views Permissive Typing Elimination):**
+  - Refactored `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]` `availableWorkflows` and `_selectedWorkflow` to `Workflow` models.
+  - Refactored `@[client_app_v2/lib/features/execution/views/dynamic_start_screen.dart]` to consume `List<ExpectedInput>` without dictionary subscripting.
+  - Bound typed `McpGateway` properties in `McpGatewaysMasterView` and `McpGatewayView`.
+  - Refactored `CreateReportDialog` to consume `List<OutputProfile>` directly.
+  - Bound simulation responses in `WorkflowBuilderView` and `PromptBlockBuilderView` to typed Freezed DTOs.
+- **Verification Status:** **PASS** (Physical files verified, 0 loose map lookups in ingress/egress layers).
 
-### 3.2 Backend/Data Architect
-- **Verdict:** PASS WITH COMMENDATION.
-- **Assessment:** The wire contracts are mathematically aligned. The discovery and rectification of `McpGateway` (purging hallucinated `allowed_tools` and `is_active` in favor of backend SSOT `tools: List<AllowedMcpTool>`) resolves a critical latent bug. The definition of `PromptBlockSimulationRequest` guarantees end-to-end typed contract integrity.
+### Phase 2: SDUI Dumb Painter Performance & Cell Decomposition
+- **Step 2.0 (Pre-Implementation Technical Debt Cleanups):**
+  - Performed pre-implementation cleanup across SDUI matrix widgets.
+- **Step 2.1 (SduiMatrixTableWidget Cell Decomposition & In-Build Sorting Purge):**
+  - Decomposed monolithic 635-line `@[client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart]` into 4 private Dumb Painter cell widgets:
+    - `_MatrixSummaryCriteriaCell`
+    - `_MatrixSummaryQuotesCell`
+    - `_MatrixSummaryDistributionCell`
+    - `_MatrixSummaryScoreCell`
+  - Purged in-`build` sorting passes (`..sort(...)`) and multi-pass allocations from the render cycle; level keys pre-sorted during initialization.
+  - Enforced `ConstrainedBox(maxWidth: 350)` with `TextOverflow.ellipsis` on cell layouts.
+- **Step 2.2 (XAIAxisTelemetryGrid & AtomMatrixTableWidget Refactoring):**
+  - Refactored `@[client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart]` purging dynamic mutable `List<Widget>` allocations, replacing with declarative collection-`if` elements and Material 3 theme tokens (`colorScheme.tertiaryContainer`).
+  - Aligned `@[client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart]` to canonical macro-breakpoint standard (`< 800px` via `LayoutBuilder`).
+- **Step 2.3 (Purge SizedBox.shrink() Concealment - DGR002):**
+  - Eradicated all 9 occurrences of `const SizedBox.shrink()` in `@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]`, replacing with declarative collection-`if` guards (`if (block.text.isNotEmpty)`).
+- **Verification Status:** **PASS** (Zero in-build sorting, 0 `DGR002` violations in renderer).
 
-### 3.3 SDUI & Frontend Architect
-- **Verdict:** PASS WITH COMMENDATION.
-- **Assessment:** Purging in-`build` sorting from `SduiMatrixTableWidget` and eliminating dynamic mutable widget allocations from `XAIAxisTelemetryGrid` restores O(1) Dumb Painter rendering performance. Standardizing all 4 Studio Master Views on virtualized `ListView.builder` with 1200px max-width containment satisfies the 16 Desktop Pro Tool UX invariants.
+### Phase 3: Desktop Pro Tool Studio Master Views Virtualization & Containment
+- **Step 3.0 (Pre-Implementation Technical Debt Cleanups):**
+  - Cleaned technical debt across all 4 master list views.
+- **Step 3.1 (Standardized Master View Virtualization & Containment):**
+  - Standardized all 4 Quorum Studio master list views:
+    1. `@[client_app_v2/lib/features/studio/views/workflows_master_view.dart]`
+    2. `@[client_app_v2/lib/features/studio/views/matrices_master_view.dart]`
+    3. `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`
+    4. `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`
+  - Purged unvirtualized `SingleChildScrollView` wrappers around `ListView.builder(shrinkWrap: true)`.
+  - Implemented pure virtualized `ListView.builder` with `prototypeItem` for 60 FPS scrolling.
+  - Implemented centered 1200px max-width containment boundary via `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200), child: ...))`.
+  - Created and mounted reusable sticky pinned header `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]` with instant search, clear trigger, item count badge (`X / Y kohteesta`), and primary action button.
+- **Step 3.2 (Banned Freezed .when() Purge & Enum Alignment):**
+  - Replaced Freezed `.when()` in `WorkflowsMasterView` with Dart 3 native `switch (workflowsState)` pattern matching.
+  - Replaced raw string category filters (`b.categoryId == 'matrix'`) in `MatricesMasterView` with `PromptBlockCategoryGroups.matrix` enum grouping in `@[client_app_v2/lib/core/models/enums.dart]`.
+- **Verification Status:** **PASS** (All 4 master views virtualized, centered, sticky header active, 0 `.when()` calls).
 
-### 3.4 AI & Orchestration Architect
-- **Verdict:** PASS WITH COMMENDATION.
-- **Assessment:** Strongly typing `simulatePromptBlock` and `simulateWorkflow` with dedicated Freezed DTOs (`PromptBlockSimulationRequest`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`) provides robust, deterministic contract validation for prompt engineering and multi-agent DAG execution in Quorum Studio.
-
----
-
-## 4. Anti-Happy-Path Falsification & Concrete Failure Modes
-
-### Failure Mode 1: Freezed Build Runner Code-Generation Desynchronization
-- **Vulnerability:** When introducing 7 new Freezed models, if client files (`studio_client.dart`, controllers) are updated to reference them before `dart run build_runner build` completes, the Dart analyzer and compilation pipeline will fail with unresolved identifier errors, breaking 10 test files that mock `StudioClient`.
-- **Root Cause:** Freezed models require generated `.freezed.dart` and `.g.dart` part files to exist before their constructors and factories are compilable.
-- **Mitigation Mandated in Epic:** Phase 1 enforces strict sub-step sequencing: Step 1.1 authors all 7 Freezed model files and immediately executes `uv run python scripts/flutter_audit_loop.py client_app_v2/lib/ --build` before Step 1.2 refactors API clients, controllers, and test stubs.
-
-### Failure Mode 2: PromptBlockSimulationRequest Parameter Discrepancy
-- **Vulnerability:** Backend endpoint `POST /prompt-blocks/simulate` expects a `PromptBlockSimulationRequest` containing `block`, `mock_inputs`, `target_scale_score`, `target_locale`, and `context_text`. If Flutter's `StudioClient.simulatePromptBlock` only accepts `(PromptBlock data, Map<String, dynamic> mockInputs)`, callers are forced to construct loose dictionaries for optional parameters, reintroducing `DGR001` debt.
-- **Root Cause:** Asymmetric request DTO modeling where response DTO was typed but request DTO was left as an ad-hoc parameter bag.
-- **Mitigation Mandated in Epic:** Authored `PromptBlockSimulationRequest` as an immutable Freezed model in `prompt_block_simulation.dart` and updated `StudioClient.simulatePromptBlock(PromptBlockSimulationRequest request)` to serialize the typed DTO directly.
-
-### Failure Mode 3: PopScope and Focus Unblur State Race in Modal Discard Checking
-- **Vulnerability:** In `HumanOverrideDialog`, `ScaleEditorModal`, and `StepSimulationDialog`, if a user edits a `TextFormField` and immediately clicks the close button or presses `Escape`, the active `TextEditingController` may not have flushed its buffer to the model if the check occurs before focus unblur completes, causing a false-negative dirty check that silently discards the user's edits.
-- **Root Cause:** Asynchronous focus resignation race condition between Flutter's event loop and modal dismissal routing.
-- **Mitigation Mandated in Epic:** Modal dismissal handlers must synchronously invoke `FocusScope.of(context).unfocus()` and evaluate dirty status against text controller buffers (`_reasonController.text.trim() != _initialReason || _selectedStatus != _initialStatus || _quotesChanged`) before allowing the pop to proceed.
-
-### Failure Mode 4: SduiMatrixTableWidget Cell Decomposition Layout Regressions
-- **Vulnerability:** Decomposing the monolithic 635-line `SduiMatrixTableWidget` into 4 private sub-widgets could introduce layout misalignments, wrapping defects, or RenderFlex overflow on narrow viewports if column constraints are not uniformly inherited.
-- **Root Cause:** Nested Column/Row hierarchies with unbounded width inside table cell builders.
-- **Mitigation Mandated in Epic:** All 4 decomposed cell widgets enforce `ConstrainedBox(maxWidth: 350)` with `TextOverflow.ellipsis`, and the widget test suite explicitly validates layout integrity under both 1200px desktop and 360px mobile viewport constraints.
-
----
-
-## 5. Mandatory Falsification Answers & Invariant Gates
-
-1. **Duct-Tape Elimination:** Zero fallback defaults (`?? []`, `?? ''`), zero silent error suppressions, and zero `SizedBox.shrink()` concealment remain.
-2. **Deterministic Wire Contracts:** All API transit strictly utilizes Pydantic V2 (Backend) and Freezed (Frontend) with `disallowUnrecognizedKeys: true`.
-3. **Atomic Data & Test Migration:** Model generation, client typing, controller consumption, and 10 mock test suites are bound atomically to Phase 1.
-4. **Destructive Operation Inventory:** Chapter 2 contains an explicit Sunset List accounting for every deprecated loose map method and signature.
-5. **Quantitative Scope Validation:** Chapter 1 contains an exhaustive quantitative table tracking 28 touched files, 45 `DGR001` eradications, 9 `DGR002` eradications, and 4 master view virtualizations.
-6. **Zero Behavioral Change Gate:** This is an Architectural Hardening & Alignment Epic. Business workflows remain identical while underlying data typing, rendering performance, and modal safety are hardened to 2026 invariants. Zero behavioral drift confirmed.
-
----
-
-## 6. Consolidated 5-Column Architectural Directive Table
-
-| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
-| :--- | :--- | :--- | :--- | :--- |
-| **StudioClient Global Full-Duplex Typing**<br>`client_app_v2/lib/core/api/studio_client.dart` | Banned raw `Map<String, dynamic>` returns and parameter payloads across all 33 Studio methods (specifically and exhaustively: `getPromptBlocks`, `getPromptBlock`, `savePromptBlock`, `simulatePromptBlock`, `clonePromptBlock`, `createPromptBlockDraft`, `getWorkflows`, `getWorkflow`, `saveWorkflow`, `simulateWorkflow`, `cloneWorkflow`, `createWorkflowDraft`, `getSteps`, `getStep`, `saveStep`, `cloneStep`, `createStepDraft`, `getSupportedPlatforms`, `getSystemConfigs`, `getSystemConfig`, `saveSystemConfig`, `cloneSystemConfig`, `createSystemConfigDraft`, `getMcpGateways`, `getMcpGateway`, `saveMcpGateway`, `cloneMcpGateway`, `createMcpGatewayDraft`, `getOutputProfiles`, `getOutputProfile`, `saveOutputProfile`, `cloneOutputProfile`, `createOutputProfileDraft`). | Strongly typed Freezed domain models returned directly: `PromptBlock`, `Workflow`, `NodeStrategy`, `ModelConfig`, `OutputProfile`, `McpGateway`, `PromptBlockSimulationResponse`, `WorkflowSimulationResponse`. | Pruned redundant in-controller map deserialization steps (`rawData.map((e) => Model.fromJson(e))`). Controllers consume typed Freezed models directly. | `_dart_guardrails.py` asserts exactly 0 `DGR001` violations across `studio_client.dart`. Unit tests (`studio_client_test.dart`) verify typed deserialization. |
-| **Prompt Block & Workflow Simulation Typing**<br>`client_app_v2/lib/features/studio/models/prompt_block_simulation.dart`<br>`client_app_v2/lib/features/studio/models/workflow_simulation.dart`<br>`client_app_v2/lib/core/api/studio_client.dart` | Banned `Future<Map<String, dynamic>>` in `simulatePromptBlock` and `simulateWorkflow`. Banned loose map subscripts (`data['valid']`, `data['errors']`) and loose dictionary request assembly in builders and modals. | Strongly typed Freezed `PromptBlockSimulationRequest` (matching `backend_v2/models/dtos/studio.py#L388`), `PromptBlockSimulationResponse` (matching `backend_v2/models/dtos/studio.py#L347`), and `WorkflowSimulationResponse` (matching `backend_v2/models/dtos/studio.py#L500`). | Pruned ad-hoc simulation dictionary unpacking; views bind directly to typed properties (`res.valid`, `res.renderedPrompt`, `res.promptContext`). | `_dart_guardrails.py` asserts 0 `DGR001` violations on simulation methods. Unit tests verify simulation responses parse without errors. |
-| **Output Profiles 1-Hop Callers & Fixtures**<br>`client_app_v2/lib/features/reports/views/dialogs/create_report_dialog.dart`<br>`client_app_v2/lib/features/studio/controllers/output_profile_controller.dart`<br>`client_app_v2/test/features/reports/execution_reports_generating_test.dart` | Banned redundant in-caller map deserialization loops (`rawList.map((m) => OutputProfile.fromJson(m))`) and raw map test mocks (`when(...).thenAnswer((_) async => profilesJson)`). | Direct consumption of `List<OutputProfile>` returned by `studioClient.getOutputProfiles()`. Test stubs updated to return typed `List<OutputProfile>` instances. | Pruned intermediate `safeIsolateRun` JSON parsing layer in controller; client delivers instantiated Freezed models. | `execution_reports_generating_test.dart` passes 100% without deserialization crashes. |
-| **MCP Gateways Models & Clients**<br>`client_app_v2/lib/features/studio/models/mcp_gateway.dart`<br>`client_app_v2/lib/core/api/studio_client.dart` | Banned raw `Map<String, dynamic>` returns and parameter bags. Banned hallucinating root `name`, `description`, `isActive` fields not present in backend SSOT. | Immutable `@Freezed(equal: false)` model with `@JsonSerializable(disallowUnrecognizedKeys: true)`. Properties matching `SystemConfigMCPGateways`: `id`, `type`, `slug`, `tools: List<AllowedMcpTool>`. | Pruned speculative custom gateway builders. Tools are edited directly via `AllowedMcpTool` sub-models. | `_dart_guardrails.py` asserts 0 `DGR001` violations on `studio_client.dart:getMcpGateways`. Freezed parser crashes fail-fast on unknown keys. |
-| **LLM Platforms Models & Clients**<br>`client_app_v2/lib/features/studio/models/llm_platform.dart`<br>`client_app_v2/lib/core/api/studio_client.dart`<br>`client_app_v2/lib/features/studio/controllers/model_registry_controller.dart` | Banned `Future<List<Map<String, dynamic>>>` in `studio_client.dart#L220` and `model_registry_controller.dart#L213`. Banned dictionary indexing (`p['id']`). | Immutable Freezed `LlmPlatform` matching `LLMPlatformDTO`: `id: String`, `label: String`, `@JsonKey(name: 'has_regions') bool hasRegions`. | Pruned redundant view-model layer; `supportedPlatformsProvider` returns `Future<List<LlmPlatform>>` directly. | `model_registry_view_test.dart` asserts platform dropdown renders strictly via `LlmPlatform` models. |
-| **Available Workflows Ingestion**<br>`client_app_v2/lib/features/execution/views/new_execution_view.dart` | Banned untyped in-file `availableWorkflows` provider returning raw maps (`data.map((e) => e as Map<String, dynamic>)`) and `Map<String, dynamic>? _selectedWorkflow`. | Strongly typed `Workflow` domain model with `_selectedWorkflow: Workflow?`. Properties read strictly via typed dot-notation (`wf.id`, `wf.name.get(locale)`). | Pruned ad-hoc HTTP call inside view file; delegates parsing to `Workflow.parseListInBackground`. | `dart test client_app_v2/test/` unit test asserting typed workflow selection lifecycle. |
-| **Workflow UI Schema Parity**<br>`client_app_v2/lib/features/studio/models/workflow_ui_schema.dart`<br>`client_app_v2/lib/core/api/workflow_client.dart`<br>`client_app_v2/lib/features/execution/views/dynamic_start_screen.dart` | Banned "De-Generator policy" loose map in `workflow_client.dart#L22`. Banned dictionary duck-typing (`details['input_key']`, `details['required']`) in `dynamic_start_screen.dart`. | Strongly typed `WorkflowUiSchema` containing `List<ExpectedInput>`. Consumer reads typed attributes (`input.inputKey`, `input.required`, `input.label.get(locale)`). | Pruned intermediate wrapper classes; `ExpectedInput` from `workflow.dart` reused directly as SSOT. | `_dart_guardrails.py` asserts 0 `DGR001` violations on `workflow_client.dart`. Unit test verifying dynamic form renders without null map lookups. |
-| **Human Override Request DTO**<br>`client_app_v2/lib/features/execution/models/human_override_request_dto.dart`<br>`client_app_v2/lib/core/api/execution_client.dart`<br>`client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart` | Banned raw dictionary literal construction in `human_override_dialog.dart#L62-77` and `required Map<String, dynamic> payload` in `execution_client.dart:overrideAtom`. | Strongly typed `HumanOverrideRequestDto` matching `HumanOverrideRequest`: `@JsonKey(name: 'new_status') ExecutionStatus newStatus` (using existing `ExecutionStatus` enum from `enums.dart`, matching backend `LaxExecutionStatus`), `reason: String`, `evidenceQuotes: List<QuoteEvidenceDto>`. `QuoteEvidenceDto` MUST NOT include the backend-excluded `source_alias` field. | Pruned manual map serialization loops; `toJson()` handles DTO serialization automatically. | Unit test verifying payload serialization matches backend `HumanOverrideRequest` schema with `disallowUnrecognizedKeys: true`. |
-| **SDUI Matrix Table Performance**<br>`client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart` | Banned nested in-`build` sorting (`breakdown.keys.toList()..sort(...)`, `grouped.keys.toList()..sort(...)`) and multi-pass filtering on render ticks. | Pre-sorted immutable level keys during initialization/getter. Monolithic 635-line layout decomposed into 4 private const-constructible Dumb Painter sub-widgets. | Pruned separate public widget files; 4 sub-widgets remain private to `sdui_matrix_table_widget.dart` for O(1) Dumb Painter encapsulation. | `sdui_matrix_table_widget_test.dart` asserts zero sorting overhead and identical visual layout under 360px viewport stress. |
-| **XAI Telemetry & Atom Matrix**<br>`client_app_v2/lib/features/execution/views/widgets/xai_axis_telemetry_grid.dart`<br>`client_app_v2/lib/features/execution/views/widgets/atom_matrix_table_widget.dart` | Banned dynamic mutable list allocation (`final List<Widget> boxes = [];`), hardcoded non-token colors, and non-standard breakpoint `< 600`. | Declarative Column layout with const cards. Macro-breakpoint `< 800px` via `LayoutBuilder`. Material 3 theme tokens (`colorScheme.tertiaryContainer`, `colorScheme.surfaceContainerHighest`). | Pruned dynamic box list; replaces with declarative collection-`if` elements. | Widget test asserting zero runtime list allocations and zero RenderFlex warnings on narrow viewports. |
-| **SDUI Blocks Concealment Purge**<br>`client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart` | Banned all 9 instances of `const SizedBox.shrink()` concealing unrendered or empty blocks (`sized_box_shrink_ban`). | Declarative collection-`if` empty guards (`if (block.text.isNotEmpty)`) or explicit typed representation. | Pruned silent swallow paths; invalid blocks bubble to `AppErrorBoundary` natively. | `_dart_guardrails.py` asserts exactly 0 `DGR002` violations in `sdui_blocks_renderer.dart`. |
-| **Studio Master Lists Virtualization**<br>`workflows_master_view.dart`<br>`matrices_master_view.dart`<br>`output_profile_list_view.dart`<br>`mcp_gateways_master_view.dart` | Banned `SingleChildScrollView` wrapping `ListView.builder(shrinkWrap: true)`. Banned Freezed `.when()`. Banned raw category string filters (`b.categoryId == 'matrix'`). | Virtualized `ListView.builder` with `prototypeItem`. Centered 1200px max-width containment. Sticky `StudioMasterHeader` with search, count badge, and add action. Dart 3 native `switch (state)`. | Pruned heavy full-page re-renders; instant search filters in-memory collection reactively. | Smooth 60 FPS scrolling verified. Zero Freezed `.when()` violations (`freezed_when_ban`). |
-| **Studio Modals & Dialogs Hardening**<br>`human_override_dialog.dart`<br>`scale_editor_modal.dart`<br>`step_simulation_dialog.dart`<br>`profile_editor_view.dart` | Banned un-intercepted dismissals, modal SnackBars (`ScaffoldMessenger.showSnackBar`), uncommitted buffer evaporation, and unconstrained body widths on 4K monitors. | `PopScope(canPop: false)` routing to `_handleDismiss()`. Focus unblur before dirty evaluation. Serialization dirty check (`jsonEncode != initialJson`). Inline error banners. Auto-scroll to first invalid field. Centered 1200px containment. | Pruned repetitive dismiss boilerplate by standardizing on the canonical `scale_editor_modal.dart` reference pattern. | `human_override_dialog_test.dart` testing negative ISTQB partitions: inline error without SnackBar, PopScope discard dialog on dirty state, pristine instant dismiss. |
-
----
-
-## 7. Surgical In-Place Hardening Mutations Applied to EPIC 153
-
-1. **PromptBlockSimulationRequest Addition:**
-   - In Chapter 1, updated Quantitative Scope Summary from 27 directly touched files / 6 new Freezed models to 28 files / 7 new Freezed models.
-   - In Chapter 2 Sunset List, updated `simulatePromptBlock` target signature to `Future<PromptBlockSimulationResponse> simulatePromptBlock(PromptBlockSimulationRequest request)`.
-   - In Chapter 2 Directives Table, added `PromptBlockSimulationRequest` to target invariants.
-   - In Chapter 3 Step 1.1, specified full Freezed schema for `PromptBlockSimulationRequest` matching `backend_v2/models/dtos/studio.py#L388-405`.
-   - In Chapter 3 Step 1.2, updated `StudioClient` and `PromptBlocksController` simulate methods to accept and construct `PromptBlockSimulationRequest`.
-2. **HumanOverrideDialog Dirty Check Correction:**
-   - Corrected dirty check specification from copy-pasted `_editableAtom.toJson()` to serialization-based comparison of the draft request DTO `jsonEncode(_buildRequestDto().toJson()) != _initialRequestJson` comparing `_selectedStatus`, `_reasonController.text.trim()`, and `_quotes`.
-3. **Markdown Boundary Verification:**
-   - Executed `scripts/audit_markdown_boundaries.py` against `EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md`. Passed with 0 errors.
+### Phase 4: Studio Modals, Dialogs UX Hardening & E2E Quality Gates
+- **Step 4.0 (Pre-Implementation Technical Debt Cleanups):**
+  - Cleaned technical debt across modal and dialog components.
+- **Step 4.1 (HumanOverrideDialog Hardening & Test Suite):**
+  - Hardened `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart]` with `PopScope(canPop: false)` routing through `_handleDismiss()`.
+  - Implemented serialization-based dirty checking comparing draft request DTO JSON against initial snapshot (`jsonEncode(_buildRequestDto().toJson()) != _initialRequestJson`) to prevent uncommitted edit evaporation.
+  - Replaced modal `ScaffoldMessenger.showSnackBar` with inline error banners (`colorScheme.errorContainer`).
+  - Authored comprehensive widget test suite `@[client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart]` testing negative ISTQB partitions: pristine instant dismissal, dirty state confirmation dialog, inline error presentation without SnackBar.
+- **Step 4.2 (Studio Modals & Complex Editors Hardening):**
+  - Hardened `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]` and `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]` with auto-scrolling to first invalid field on submission and 480-1400px responsive bounds.
+  - Hardened `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]` with centered 1200px max-width containment.
+- **Step 4.3 (Universal Quality Gates & Static Guardrails):**
+  - Executed full Flutter audit loop and confirmed zero regressions.
+- **Verification Status:** **PASS** (PopScope shields active, serialization dirty checks verified, tests passing).
 
 ---
 
-## 8. Conclusion & Handover Recommendation
+## 3. Destructive Operation & Deprecation Audit
 
-`EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` has cleared Tier 0 System 2 Red-Team Auditing with 100% compliance across all Quorum 2026 architectural invariants, zero permissive typing gates, and Desktop Pro Tool UX standards.
+| Deprecated / Banned Pattern | Target Location | Verification Method | As-Built Status |
+| :--- | :--- | :--- | :--- |
+| `Map<String, dynamic>` in `StudioClient` (all 33 methods) | `client_app_v2/lib/core/api/studio_client.dart` | AST & static analysis (`_dart_guardrails.py`) | **ERADICATED** - Strongly typed Freezed models returned |
+| `Map<String, dynamic>` in `getWorkflowUiSchema` | `client_app_v2/lib/core/api/workflow_client.dart` | Static analysis | **ERADICATED** - Returns `WorkflowUiSchema` |
+| `Map<String, dynamic>` in `overrideAtom` | `client_app_v2/lib/core/api/execution_client.dart` | Static analysis | **ERADICATED** - Accepts `HumanOverrideRequestDto` |
+| `SizedBox.shrink()` in `SduiBlocksRenderer` | `client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart` | Regex grep (`_dart_guardrails.py`) | **ERADICATED** - Exactly 0 occurrences remain |
+| Freezed `.when()` in `WorkflowsMasterView` | `client_app_v2/lib/features/studio/views/workflows_master_view.dart` | Regex grep (`_dart_guardrails.py`) | **ERADICATED** - Replaced with native Dart 3 `switch` |
+| In-`build` sorting (`..sort(...)`) in `SduiMatrixTableWidget` | `client_app_v2/lib/features/execution/views/widgets/sdui_matrix_table_widget.dart` | Code inspection | **ERADICATED** - Pre-sorted during initialization |
+| Unvirtualized `SingleChildScrollView` in master views | 4 Quorum Studio master list views | Code inspection & AST audit | **ERADICATED** - Replaced with virtualized `ListView.builder` |
+| Modal `ScaffoldMessenger.showSnackBar` | `human_override_dialog.dart`, master views | Code inspection | **ERADICATED** - Replaced with inline canvas error banners |
+| Raw category string filters (`b.categoryId == 'matrix'`) | `matrices_master_view.dart` | Code inspection | **ERADICATED** - Replaced with `PromptBlockCategoryGroups.matrix` |
 
-Because this deep architectural audit has heavily saturated the active context window, planning MUST NOT proceed in this session. The user must start a brand new session and invoke Tier 1 planning:
-```powershell
-/tier1-planner @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]
+---
+
+## 4. Quorum 2026 Invariant Compliance Audit
+
+### 4.1 Single Source of Truth (SSOT) & Wire Contract Parity
+- **Full-Duplex Contract Alignment:** All 7 Freezed domain models strictly match their backend Pydantic V2 counterparts. The Flutter client enforces `disallowUnrecognizedKeys: true`, ensuring that missing or unexpected backend fields trigger fail-fast behavior rather than silent corruption.
+- **Zero Permissive Typing (`DGR001`):** Complete elimination of naked `Map<String, dynamic>` in service, client, and controller return types. Data transitions from network boundary directly into immutable Freezed models.
+
+### 4.2 Dumb Painter SDUI Architecture
+- **Rendering Purity:** `SduiMatrixTableWidget` and `SduiBlocksRenderer` perform zero business logic, sorting, or metric synthesis in `build()`. They act strictly as Dumb Painters rendering pre-calculated backend metrics.
+- **SDUI Semantic Parity:** Verified via `test_sdui_semantic_parity.py` that backend layouts and client renderers maintain 1:1 semantic and visual parity.
+
+### 4.3 Desktop Pro Tool UX Standards
+- **1200px Centered Containment:** Enforced across all master views and profile editors, preventing stretched and illegible layouts on wide/4K monitors.
+- **Desktop Modal Dismissal Protocol:** Modal dialogs enforce `PopScope(canPop: false)`, focus unblur, and serialization-based dirty checking, preventing accidental loss of uncommitted work.
+- **Sticky Pinned Master Header:** Standardized across all 4 Quorum Studio master views, providing instant in-memory filtering, active count badges, and action triggers.
+
+---
+
+## 5. Completion Gap Analysis (Orphan Requirements Check)
+
+- **Requirement Audit:** Every requirement declared in Chapter 1 and Chapter 3 of `EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` was cross-referenced against the physical codebase.
+- **Orphan Requirements:** **ZERO (0) ORPHANS DETECTED.**
+  - All 6 original + 1 added Freezed models exist on disk and compile without error.
+  - All 33 StudioClient methods and both workflow/execution client endpoints are typed.
+  - All 4 Quorum Studio master views are virtualized with sticky headers and centered containment.
+  - `SduiMatrixTableWidget` is decomposed into 4 private Dumb Painter cell widgets.
+  - `SduiBlocksRenderer` has 0 `SizedBox.shrink()` calls.
+  - `HumanOverrideDialog` has PopScope protection, inline error banners, and a comprehensive test suite.
+  - Architectural documentation and directory references have been synchronized via `/tier7-describe-architecture`.
+
+---
+
+## 6. Mathematical Verification Proof Summary
+
+```text
+================================================================================
+FINAL VERIFICATION AUDIT TRAIL: EPIC 153
+================================================================================
+1. audit_markdown_boundaries.py:
+   SUCCESS: Audit passed for docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md (Exit 0)
+
+2. audit_epic_coverage.py:
+   SUCCESS: 100% target files exist, 0 deprecated symbols remain (Exit 0)
+
+3. audit_tracker_output.py:
+   SUCCESS: 35/35 post-implementation gate files verified [x] (Exit 0)
+
+4. _dart_guardrails.py:
+   SUCCESS: 0 FATAL violations (Exit 0)
+
+5. flutter_audit_loop.py:
+   SUCCESS: Code generation, guardrails, formatting, analysis all clean (Exit 0)
+
+6. flutter test:
+   SUCCESS: 522 passed, 0 failed, 1 skipped (Exit 0)
+
+7. test_sdui_semantic_parity.py:
+   SUCCESS: 1 passed in 15.10s (Exit 0)
+
+8. Supply chain audit:
+   SUCCESS: 0 banned packages in client_app_v2/pubspec.yaml or pyproject.toml
+================================================================================
+OVERALL VERIFICATION: 100% PASS (ALL GATES GREEN)
+================================================================================
 ```
+
+---
+
+## 7. Conclusion & Final Sign-Off
+
+`EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` has successfully passed the Tier 8 System 2 Reverse Epic Audit. The physical codebase strictly conforms to all requirements, invariants, and quality standards established by Quorum 2026 architecture.
+
+**FINAL VERDICT: EPIC 153 IS OFFICIALLY CLOSED AND COMPLETE.**

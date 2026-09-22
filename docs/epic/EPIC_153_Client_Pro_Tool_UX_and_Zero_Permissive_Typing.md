@@ -359,7 +359,7 @@ Workflow / WorkflowResponseDTO                  -> Workflow (workflow.dart)
   2. `@[client_app_v2/lib/features/studio/views/matrices_master_view.dart]`
   3. `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`
   4. `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`
-- Eradicate `SingleChildScrollView` wrapping `ListView.builder(shrinkWrap: true, physics: NeverScrollableScrollPhysics())` in all 4 views.
+- Purge unvirtualized `SingleChildScrollView` wrapping `ListView.builder(shrinkWrap: true, physics: NeverScrollableScrollPhysics())` in all 4 views.
 - Implement pure virtualized `ListView.builder` with `prototypeItem` for buttery 60 FPS scrolling.
 - Implement centered 1200px max-width boundary via `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200), child: ...))` to eliminate stretched layouts on 4K displays.
 - Implement sticky pinned header (`StudioMasterHeader`) containing view title, subtitle, real-time instant search input with clear trigger, active item count badge (`X / Y kohteesta`), and primary action button (`+ Uusi`).

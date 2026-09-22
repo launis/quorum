@@ -181,17 +181,17 @@ abstract class _$PromptBlockForm extends $AsyncNotifier<PromptBlock> {
   }
 }
 
-/// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
+/// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
 /// Implements Optimistic UI principles where possible.
 
 @ProviderFor(PromptBlocksController)
 final promptBlocksControllerProvider = PromptBlocksControllerProvider._();
 
-/// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
+/// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
 /// Implements Optimistic UI principles where possible.
 final class PromptBlocksControllerProvider
     extends $AsyncNotifierProvider<PromptBlocksController, List<PromptBlock>> {
-  /// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
+  /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
   /// Implements Optimistic UI principles where possible.
   PromptBlocksControllerProvider._()
     : super(
@@ -215,7 +215,7 @@ final class PromptBlocksControllerProvider
 String _$promptBlocksControllerHash() =>
     r'2e255bf0f83f193a5a1feaedcf729632ad54680a';
 
-/// Controller managing the Prompt Blocks strictly using `Map<String, dynamic>`.
+/// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
 /// Implements Optimistic UI principles where possible.
 
 abstract class _$PromptBlocksController
