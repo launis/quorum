@@ -94,7 +94,9 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
             margin: const EdgeInsets.only(top: AppSpacing.s12),
             padding: const EdgeInsets.all(AppSpacing.s12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.4,
+              ),
               border: Border(
                 left: BorderSide(
                   color: theme.colorScheme.outlineVariant,
@@ -201,11 +203,11 @@ class XAIAxisTelemetryGrid extends StatelessWidget {
               vertical: AppSpacing.s8,
             ),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(AppSpacing.s6),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant,
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
               ),
+              borderRadius: BorderRadius.circular(AppSpacing.s6),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
