@@ -162,13 +162,15 @@
 - Strongly typed all 33 endpoints in `StudioClient`, purged banned `?? []` default, refactored `WorkflowClient.getWorkflowUiSchema` to `Future<WorkflowUiSchema>`, and `ExecutionClient.overrideAtom` to take `HumanOverrideRequestDto`.
 - Modernized 5 Riverpod controllers (`PromptBlocksController`, `StudioController`, `OutputProfileController`, `ModelRegistryController`, `McpGatewaysController`).
 - Refactored all views, modals, tabs, and downstream consumers (`NewExecutionView`, `DynamicStartScreen`, `McpGatewaysMasterView`, `McpGatewayView`, `MatricesMasterView`, `WorkflowsMasterView`, `OutputProfileListView`, `CreateReportDialog`, `WorkflowBuilderView`, `PromptBlockBuilderView`, `ScaleEditorModal`, `HumanOverrideDialog`, `StepBuilderView`, `DashboardView`, `WorkflowGeneralTab`, `WorkflowStepCard`, `WorkflowStepsTab`, `AtomMatrixTableWidget`, `XAIAxisTelemetryGrid`).
-- Executed and passed 87 unit and characterization tests across 14 test suites, verifying all 9 test contracts from the plan.
-- Quality gates verified: `flutter_audit_loop.py` passed with exit code 0 across views, controllers, and core APIs, and `_dart_guardrails.py` verified 0 fatal violations.
+- Verified all mock clients and controllers across test suites (`MockExecutionClient`, `MockExecutionClientPending`, `MockMcpGatewaysController`) to strictly enforce `HumanOverrideRequestDto` and `McpGateway` types.
+- Executed and passed 100% of the complete `client_app_v2` Flutter test suite (425 tests passed), verifying all 9 test contracts from the plan.
+- Quality gates verified: `flutter_audit_loop.py` passed with exit code 0 across views, controllers, and core APIs with 0 errors and 0 warnings, and `_dart_guardrails.py` verified 0 fatal violations.
 
 ## Learned
-- **Type Propagation Downstream:** When controllers (`mcpGatewaysControllerProvider`, `availableWorkflowsProvider`) become strongly typed, all secondary views consuming them (such as `step_builder_view.dart` and `dashboard_view.dart`) must also be typed to prevent downstream compiler regressions.
+- **Type Propagation Downstream:** When controllers (`mcpGatewaysControllerProvider`, `availableWorkflowsProvider`) become strongly typed, all secondary views and test mocks consuming them (`MockExecutionClient`, `MockMcpGatewaysController`, `step_builder_view.dart`, `dashboard_view.dart`) must also be typed to prevent downstream compiler regressions.
 - **CheckedFromJsonException vs FormatException:** In `json_annotation`, `disallowUnrecognizedKeys: true` throws `CheckedFromJsonException` when unrecognized keys are encountered, which satisfies strict fail-fast contracts.
 - **Isolate Deserialization:** Direct typed parsing inside `studio_client.dart` eliminates redundant `safeIsolateRun` wrapping in controllers while maintaining background parse capability.
+- **Golden Snapshot Synchronization:** Visual design token improvements (replacing magic numbers with theme tokens) alter pixel rendering slightly, requiring test goldens to be explicitly synchronized.
 
 ## Remaining
 - Run `/tier8-audit-plan` on Phase 1 implementation plan and tracker.
