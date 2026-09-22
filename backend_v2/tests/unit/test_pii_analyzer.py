@@ -156,3 +156,41 @@ def test_smooth_text_exceeds_spacy_limit(
         res = pii_service.smooth_text(text, language="en")
         assert mock_nlp.call_count >= 2
         assert res.replace(" ", "") == text.replace(" ", "")
+
+
+def test_ensure_initialized_already_loaded(pii_service: PIIAnalyzerService) -> None:
+    """Test that _ensure_initialized returns early if already initialized."""
+    pii_service._analyzer = MagicMock()
+    pii_service._anonymizer = MagicMock()
+    # Calling ensure_initialized should return early
+    pii_service._ensure_initialized()
+    assert pii_service._analyzer is not None
+
+
+def test_smooth_text_empty(pii_service: PIIAnalyzerService) -> None:
+    """Test that smooth_text returns early for empty or whitespace-only text."""
+    assert pii_service.smooth_text("", language="en") == ""
+    assert pii_service.smooth_text("   ", language="fi") == "   "
+
+
+def test_get_spacy_model_success_and_cache(pii_service: PIIAnalyzerService) -> None:
+    """Test SpaCy model loading and caching in _nlp_models."""
+    mock_spacy_model = MagicMock()
+    with patch("spacy.load", return_value=mock_spacy_model) as mock_load:
+        model1 = pii_service._get_spacy_model("fi")
+        assert model1 is mock_spacy_model
+        assert mock_load.call_count == 1
+
+        # Second call should use cache
+        model2 = pii_service._get_spacy_model("fi")
+        assert model2 is mock_spacy_model
+        assert mock_load.call_count == 1
+
+
+def test_get_spacy_model_os_error(pii_service: PIIAnalyzerService) -> None:
+    """Test Fail-Fast AppException when SpaCy model raises OSError."""
+    with patch("spacy.load", side_effect=OSError("Model not found")):
+        with pytest.raises(AppException) as exc_info:
+            pii_service._get_spacy_model("en")
+        assert "not found. Please install it." in str(exc_info.value)
+

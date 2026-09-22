@@ -12,6 +12,8 @@ from pydantic import AliasChoices, BeforeValidator, Field, computed_field, model
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.dtos.system import SafetySettingDTO
 
 logger = logging.getLogger(__name__)
 
@@ -303,7 +305,7 @@ class Settings(BaseSettings):
         str | None, Field(description="Default LLM strategy key (Optional). If None, explicit strategy is required.")
     ] = None
     model_registry: Annotated[
-        dict[str, Any] | None,
+        SystemConfigModelRegistry | None,
         Field(default=None, description="System Config Model Registry snapshot (Optional)."),
     ] = None
     # Phase 2, Step 2.1: Restore llm_default_timeout SSOT for LiteLLM network timeouts
@@ -423,29 +425,29 @@ class Settings(BaseSettings):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def default_safety_settings(self) -> list[dict[str, str]]:
+    def default_safety_settings(self) -> list[SafetySettingDTO]:
         """Returns standard safety settings (Auditing Mode: BLOCK_NONE).
 
         Returns:
-            List of dictionaries defining non-blocking threshold rules.
+            List of SafetySettingDTO defining non-blocking threshold rules.
         """
         return [
-            {
-                "category": "HARM_CATEGORY_HATE_SPEECH",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
-            {
-                "category": "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
-            {
-                "category": "HARM_CATEGORY_HARASSMENT",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
-            {
-                "category": "HARM_CATEGORY_DANGEROUS_CONTENT",
-                "threshold": "BLOCK_ONLY_HIGH",
-            },
+            SafetySettingDTO(
+                category="HARM_CATEGORY_HATE_SPEECH",
+                threshold="BLOCK_ONLY_HIGH",
+            ),
+            SafetySettingDTO(
+                category="HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                threshold="BLOCK_ONLY_HIGH",
+            ),
+            SafetySettingDTO(
+                category="HARM_CATEGORY_HARASSMENT",
+                threshold="BLOCK_ONLY_HIGH",
+            ),
+            SafetySettingDTO(
+                category="HARM_CATEGORY_DANGEROUS_CONTENT",
+                threshold="BLOCK_ONLY_HIGH",
+            ),
         ]
 
     # --- Storage ---

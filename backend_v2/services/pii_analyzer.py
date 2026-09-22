@@ -18,7 +18,7 @@ class PIIAnalyzerService:
     def __init__(self) -> None:
         self._analyzer: Any | None = None
         self._anonymizer: Any | None = None
-        self._nlp_models: dict[str, Any] = {}
+        self._nlp_models: dict[str, object] = {}
         self._lock = threading.Lock()
 
     def _ensure_initialized(self) -> None:

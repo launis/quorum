@@ -328,10 +328,10 @@ class StudioSimulationService:
                 # Very simple loose formatting for dry-run safely
                 t = string.Formatter()
                 keys = [k[1] for k in t.parse(rendered) if k[1] is not None]
-                clean_mocks: dict[str, object] = {}
+                clean_mocks: dict[str, str] = {}
                 for k in keys:
                     if k in request.mock_inputs:
-                        clean_mocks[k] = request.mock_inputs[k]
+                        clean_mocks[k] = str(request.mock_inputs[k])
                     else:
                         clean_mocks[k] = f"[{k} MOCKED]"
                 rendered = rendered.format(**clean_mocks)

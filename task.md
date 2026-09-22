@@ -1,79 +1,97 @@
-# Eradication of Lazy `.get()` and `getattr()` Calls Tracker
+# Codebase-Wide State Eradication of dict[str, Any] & Double-Serialization Elimination Tracker
 
 ## Plan Context
-- Source Plan: `@[docs/implementationplans/plan_lazy_get_getattr_eradication.md]`
-- Status: In Progress (Continuous Full-Auto)
+- Source Plan: `@[docs/implementationplans/plan_dict_to_dto_state_eradication.md]`
+- Status: In Progress (Step-by-Step Mode)
 
 ## Tasks Checklist
 
-- [x] **Phase 1: Knowledge Item SSOT Synchronization, Pre-Implementation Cleanups & AST Guardrail Calibration**
-  - [x] Update `ki_zero_permissive_typing.md` (lock 8 boundary files, router/redis exemptions, external ACL standard, 4 canonical patterns)
-  - [x] Update `scripts/_ast_guardrails.py` (exempt wrapper.py, subrouters, Redis clients, _get_table)
-  - [x] Update `scripts/audit_dict_eradication.py` (CLI --strict fix, expand is_domain_or_service to all non-test backend_v2, reflection visitor checks, receiver exemptions)
-  - [x] Run quality gate: `uv run python scripts/_ast_guardrails.py backend_v2` and `uv run python scripts/audit_dict_eradication.py`
-  - [x] Git commit Phase 1
+- [x] **Step 0: Phase 1 Pre-Implementation Cleanups & AST Baseline**
+  - [x] Execute baseline AST scan: `uv run python scripts/audit_dict_eradication.py backend_v2 --strict`
+  - [x] Review `ki_python_314_concurrency_strictness.md`
+  - [x] Sanitize Presidio NLP model cache in `@[backend_v2/services/pii_analyzer.py#L18-L22]` (`dict[str, object]`)
+  - [x] Sanitize settings model registry in `@[backend_v2/settings.py#L52-L851]` (`SystemConfigModelRegistry | None`)
+  - [x] Sanitize settings safety settings in `@[backend_v2/settings.py#L424-L449]` (`list[SafetySettingDTO]`)
+  - [x] Sanitize simulation service clean mocks in `@[backend_v2/services/studio/simulation_service.py#L170-L351]` (`dict[str, str]`)
+  - [x] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/services/pii_analyzer.py --test`
 
-- [x] **Phase 2: Models & DTO Validation Layer**
-  - [x] Update `backend_v2/models/dtos/quote_evidence.py` (resolve_source_id & resolve_and_verify_aliases)
-  - [x] Update `backend_v2/models/domain/mechanical_anchors.py` (from_context accepting LLMContextDataDTO | None, positive checks)
-  - [x] Update `backend_v2/services/orchestrator/strategies/llm_execution/prompt_factory.py` (pass llm_context_data directly)
-  - [x] Update `backend_v2/tests/unit/models/domain/test_mechanical_anchors.py` (fixtures with LLMContextDataDTO)
-  - [x] Update `backend_v2/models/dtos/evaluation_steps.py` (_sanitize_source_aliases)
-  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/models/` and `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/quote_evidence.py --test`
-  - [x] Git commit Phase 2
+- [ ] **Step 1: Core DTO Models & Sealed State Transit Payload Unions**
+  - [ ] Define payload DTOs in `@[backend_v2/models/dtos/hook_delta.py]`: `PassivityDetectionResultDTO`, `AnomalyRetryResultDTO`, `InputControlRatioResultDTO`, `ExternalEvidenceResultDTO`, `ExecutionMetadataDeltaDTO`, `ArchivistPrecedentsResultDTO`, `StepContextMetadataDTO`, `WorkerJobResultDTO`
+  - [ ] Assemble closed union `HookPayloadDTO` in `@[backend_v2/models/dtos/hook_delta.py]` (reusing `FlatteningHookOutput` from `atom_flattening.py`)
+  - [ ] Update `HookDeltaDTO`: `delta: HookPayloadDTO | None`, `metadata_updates: ExecutionMetadataDeltaDTO | None`, eradicate `| dict[str, Any]`
+  - [ ] Update `@[backend_v2/models/dtos/step_output.py]`: `frozen=True`, `StepPayloadValue` closed union, constrain `payload: StepPayloadValue`
+  - [ ] Update `@[backend_v2/models/dtos/context_variables.py]`: tighten blackboard, matrix reducer, report_context, step_detector, evaluated_matrices, and variables to `dict[str, DomainInputValue]`
+  - [ ] Update `@[backend_v2/models/execution_core.py]`: tighten `global_context_vars: GlobalContextVarsDTO | None`
+  - [ ] Update `@[backend_v2/models/dtos/engine.py]`: tighten `synthesis_output: BaseModel | None`
+  - [ ] Run quality gate on models: `uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/hook_delta.py --test`
 
-- [x] **Phase 3: Orchestration & Prompt Compilation Layer**
-  - [x] Update `backend_v2/services/orchestrator/prompts/matrix_sensor_prompt_builder.py` (Fail-Fast AppException on missing atom)
-  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/orchestrator/prompts/test_matrix_sensor_prompt_builder.py`
-  - [x] Git commit Phase 3
+- [ ] **Step 2: Sovereign State Reducer & Context Router Decoupling**
+  - [ ] Update `@[backend_v2/services/orchestrator/state_reducer.py]`: pure constructor in `merge_execution_inputs`, implement `reduce_hook_delta`
+  - [ ] Update `@[backend_v2/services/orchestrator/context_router.py]`: delete `SnapshotState`, refactor `normalize_and_validate_variable(path, steps: Sequence[StepOutputDTO])`, refactor `validate_routing_mode`
+  - [ ] Update `@[backend_v2/services/orchestrator/dag_executor.py]`: pass `projector.snapshot` directly to `ContextRouter.normalize_and_validate_variable`, sanitize signatures
+  - [ ] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/state_reducer.py --test`
 
-- [x] **Phase 4: External Ingress & LLM Adapters Layer**
-  - [x] Update `backend_v2/services/ingress/pdf_chat_extractor.py` (positive drawing dict checks)
-  - [x] Update `backend_v2/llm/adapters/openai_adapter.py` (positive checks on info and schema)
-  - [x] Update `backend_v2/llm/adapters/anthropic_adapter.py` (positive check on call_kwargs)
-  - [x] Update `backend_v2/llm/adapters/base_adapter.py` (positive check on discriminator propertyName)
-  - [x] Update `backend_v2/llm/ingress_pipeline.py` (positive checks on discriminator_field)
-  - [x] Update `backend_v2/llm/client.py` (positive check on schema_err.details error_code)
-  - [x] Update `backend_v2/llm/mock.py` (positive check on response_schema title)
-  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/services/ingress/test_pdf_chat_extractor.py backend_v2/tests/unit/llm/`
-  - [x] Git commit Phase 4
+- [ ] **Step 3: Execution Strategies & Context Builder Decoupling**
+  - [ ] Update `@[backend_v2/services/orchestrator/strategies/base.py]`: delegate pre-hooks and post-hooks to `state_reducer.reduce_hook_delta`, eradicate `isinstance(delta, Mapping)`
+  - [ ] Update `@[backend_v2/services/orchestrator/strategies/llm.py]`: `_extract_step_context_metadata` returning `StepContextMetadataDTO`, dot notation access
+  - [ ] Update `@[backend_v2/services/orchestrator/strategies/logic.py]`: delegate to `state_reducer.reduce_hook_delta`
+  - [ ] Update `@[backend_v2/services/orchestrator/strategies/llm_execution/context_builder.py]`: document terminal rendering boundary in `_project_compressed`, constrain `build()` signatures
+  - [ ] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/services/orchestrator/strategies/base.py --test`
 
-- [x] **Phase 5: Core Services & Infrastructure**
-  - [x] Update `backend_v2/services/auth.py` (positive check on sub and email)
-  - [x] Update `backend_v2/main.py` (positive check on id and trace path)
-  - [x] Run quality gate: `uv run pytest backend_v2/tests/unit/test_auth.py`
-  - [x] Git commit Phase 5
+- [ ] **Step 4: Step Lifecycle, Hook Contracts & State Reducer Integration**
+  - [ ] Modernize all 24 hooks across 18 modules to return typed DTOs directly in `HookDeltaDTO`:
+    - [ ] `atom_flattening.py`: `FlatteningHookOutput`
+    - [ ] `synthesis_distiller.py`: `distillation_dto`
+    - [ ] `security.py`: `sanitization_dto`
+    - [ ] `references.py`: `bibliography_dto`
+    - [ ] `validation.py`: `validation_dto`, `AnomalyRetryResultDTO`
+    - [ ] `scoring/passivity_hook.py`: `PassivityDetectionResultDTO`
+    - [ ] `metrics.py`: `InputControlRatioResultDTO`, `audit_metrics`
+    - [ ] `scoring/matrix_hook.py`: `matrix_hook_result`
+    - [ ] `interaction_hook.py`: `response_dto`
+    - [ ] `linguistics.py`: `result_dto`
+    - [ ] `scoring/falsifier_hook.py`: `score_dto`
+    - [ ] `scoring/normalization_hook.py`: `matrix_dto`
+    - [ ] `source_verification_hook.py`: `ExternalEvidenceResultDTO`, `ExecutionMetadataDeltaDTO`
+    - [ ] `llm.py`: `llm_config`
+    - [ ] `input_processing.py`: `ExecutionMetadataDeltaDTO(estimated_token_count=...)`
+    - [ ] `hydration.py`: `raw_inputs`
+    - [ ] `integrity.py`: `parsed_payload`
+    - [ ] `archival.py`: `ArchivistPrecedentsResultDTO`
+  - [ ] Run quality gate: `uv run pytest backend_v2/tests/unit/hooks/`
 
-- [x] **Phase 6: Test Suite Modernization (Eradicating `getattr()` Reflection)**
-  - [x] Modernize `backend_v2/tests/test_worker_models_used.py`
-  - [x] Modernize `backend_v2/tests/integration/test_epic_chain_e2e.py`
-  - [x] Modernize `backend_v2/tests/test_caching_schema_scrub_bug.py`
-  - [x] Modernize `backend_v2/tests/unit/llm/test_structured_retry.py`
-  - [x] Modernize `backend_v2/tests/unit/test_llm_task_executor.py`
-  - [x] Modernize `backend_v2/tests/unit/services/test_llm_task_executor.py`
-  - [x] Modernize `backend_v2/tests/unit/test_litellm_redis_timeout.py`
-  - [x] Modernize `backend_v2/tests/unit/test_epic66_multi_provider.py`
-  - [x] Modernize `backend_v2/tests/unit/services/orchestrator/test_prompt_compiler.py`
-  - [x] Run quality gate: `uv run pytest` on modernized test files
-  - [x] Git commit Phase 6
+- [ ] **Step 5: Background Workers & Task Pipeline Modernization**
+  - [ ] Modernize `@[backend_v2/workers/execution_worker.py]`: `inputs: ExecutionInputsDTO`, return `WorkerJobResultDTO`
+  - [ ] Modernize `@[backend_v2/workers/synthesis_tasks.py]`: `list[ChatMessageDTO]` message arrays
+  - [ ] Modernize `@[backend_v2/workers/synthesis_worker.py]`: `dict[str, RenderedSynthesisCache]`
+  - [ ] Modernize `@[backend_v2/workers/variance_synthesis.py]`: `list[ChatMessageDTO]`
+  - [ ] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/workers/execution_worker.py --test`
 
-- [x] **Phase 7: Codebase-Wide Verification & Quality Gates**
-  - [x] Run `uv run python scripts/_ast_guardrails.py backend_v2` (0 Fatal QGR001/QGR002 violations)
-  - [x] Run `uv run python scripts/audit_dict_eradication.py` (0 banned_get_calls, 0 reflection_calls across entire backend_v2)
-  - [x] Run full audit loops and unit tests across modernized modules (100% pass)
-  - [x] Final audit reporting and session wrap-up
+- [ ] **Step 6: Orchestrator Services, Compilers, Registry & Compressor Modernization**
+  - [ ] Modernize `@[backend_v2/services/orchestrator/rag_preflight_service.py]`: return `GlobalAtomBlackboard`, `ExecutionInputsDTO`
+  - [ ] Modernize `@[backend_v2/services/orchestrator/prompt_compiler.py]` & adapter: `Sequence[StepOutputDTO]`, `ExecutionInputsDTO | LLMContextDataDTO`
+  - [ ] Modernize `@[backend_v2/services/orchestrator/schema_factory.py]`: `Sequence[StepOutputDTO]`
+  - [ ] Modernize `@[backend_v2/core/registry.py]`: `Sequence[StepOutputDTO]`, eradicate `isinstance(atom_item, Mapping)`
+  - [ ] Modernize `@[backend_v2/services/orchestrator/synthesis_payload_compressor.py]`: `BaseModel | StepPayloadValue`, `Sequence[EvaluatedAtomDTO]`
+  - [ ] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/core/registry.py --test`
+
+- [ ] **Step 7: Utilities & Shared Service Sanitization**
+  - [ ] Modernize or prune `hydrate_dict_list` in `@[backend_v2/utils/alias_engine.py]`
+  - [ ] Clean `model_pricing_config` in `@[backend_v2/services/usage_service.py]`
+  - [ ] Clean `clean_mocks` in `@[backend_v2/services/studio/simulation_service.py]`
+  - [ ] Run quality gate: `uv run python scripts/backend_audit_loop.py backend_v2/utils/alias_engine.py --test`
+
+- [ ] **Step 8: Test Fixture Modernization & Unit Verification**
+  - [ ] Modernize unit test fixtures (`test_context_router.py`, `test_state_reducer.py`, `test_strategies_base.py`, `test_rag_preflight_service.py`, `test_worker.py`, etc.)
+  - [ ] Implement ISTQB negative test scenarios (raw dict in delta, orphaned step, legacy `.output`, etc.)
+  - [ ] Run unit test suite across modified modules
+
+- [ ] **Step 9: Quality Gates & AST Guardrails Verification**
+  - [ ] Run `uv run python scripts/audit_dict_eradication.py backend_v2 --strict`
+  - [ ] Run `uv run python scripts/backend_audit_loop.py backend_v2 --test`
+  - [ ] Run `uv run python scripts/audit_markdown_boundaries.py --file docs/implementationplans/plan_dict_to_dto_state_eradication.md`
 
 ## Session Handover Context
-- **Achieved:**
-  - Synchronized `ki_zero_permissive_typing.md` with explicit external ACL standards and reflection ban rules.
-  - Eradicated all lazy `.get()` and dynamic reflection `getattr()` calls across models, DTOs, prompt builders, ingress extractors, LLM adapters, auth service, and startup lifecycle in `backend_v2`.
-  - Fixed AST guardrail visitors in `scripts/_ast_guardrails.py` and `scripts/audit_dict_eradication.py`.
-  - Modernized 9 test files, eliminating duck-typing assertions and reflective `getattr()`/`hasattr()` calls in favor of typed dot-notation and standard library `typing.get_args()`.
-  - Verified mathematical zero violations for banned `.get()` and reflection calls across all of `backend_v2`.
-- **Learned:**
-  - PyMuPDF drawing dictionaries and external SDK configurations require explicit positive key containment guards (`key in d`) rather than falling back to `.get()`.
-  - `typing.get_args()` is the typed SSOT replacement for `getattr(annotation, "__args__", None)`.
-  - `Workflow.mcp_gateway_id` defaults to `"sys_8172bda70c8641c5"`; `system_repo` mock in `BlueprintTransformer` tests must explicitly configure `get_mcp_gateways.return_value = None` to avoid validating an `AsyncMock` into `SystemConfigMCPGateways`.
-- **Remaining:**
-  - Route through mandatory `/tier8-audit-plan` red-team review gate.
-
+- **Achieved:** Initialized execution tracking and loaded all required context rules and knowledge items.
+- **Learned:** None yet.
+- **Remaining:** Execute Step 0 through Step 9 systematically.

@@ -4,7 +4,7 @@ All DTOs defined here adhere to strict Pydantic V2 configurations and PEP 695
 standards for type hint safety and runtime validation.
 """
 
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from pydantic import ConfigDict, Field, TypeAdapter
 
@@ -14,6 +14,7 @@ from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
 __all__ = [
     "HookListResponse",
     "ClientErrorPayload",
+    "SafetySettingDTO",
     "StrictnessConfigDTO",
     "StrictnessConfigListResponse",
     "SystemSettingsDTO",
@@ -23,6 +24,20 @@ __all__ = [
     "SystemConfigCreateDTO",
     "SystemConfigUpsertDTO",
 ]
+
+
+class SafetySettingDTO(BaseDTO):
+    """DTO representing a single Google/Vertex AI safety setting category and threshold.
+
+    Attributes:
+        category: The harm category identifier.
+        threshold: The threshold blocking rule.
+    """
+
+    model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
+
+    category: Annotated[str, Field(description="The harm category identifier")]
+    threshold: Annotated[str, Field(description="The threshold blocking rule")]
 
 
 class HookListResponse(BaseResponseDTO):
@@ -61,7 +76,7 @@ class ClientErrorPayload(BaseDTO):
     stack_trace: Annotated[str | None, Field(description="The Dart stack trace lines")] = None
     severity: Annotated[str, Field(description="Severity level, usually 'error' or 'fatal'")] = "error"
     context_data: Annotated[
-        dict[str, Any],  # noqa: QGR001 [REASON: Client error telemetry payload at external HTTP ingress boundary]
+        dict[str, object],
         Field(default_factory=dict, description="Additional context or state dump"),
     ]
 
