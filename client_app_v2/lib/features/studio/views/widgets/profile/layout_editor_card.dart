@@ -47,14 +47,26 @@ class LayoutEditorCard extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              l10n.layoutBlocksTitle,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            Expanded(
+              child: Text(
+                l10n.layoutBlocksTitle,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            FilledButton.icon(
-              onPressed: _addGroup,
-              icon: const Icon(Icons.add_box),
-              label: Text(l10n.addLayoutBlockBtn),
+            AppSpacing.w16,
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  onPressed: _addGroup,
+                  icon: const Icon(Icons.add_box),
+                  label: Text(l10n.addLayoutBlockBtn),
+                ),
+              ],
             ),
           ],
         ),

@@ -12,9 +12,12 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 import 'package:client_app/features/studio/models/prompt_block_simulation.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
+
+class MockLoggerService extends Mock implements LoggerService {}
 
 class FakePromptBlockSimulationRequest extends Fake
     implements PromptBlockSimulationRequest {}
@@ -25,8 +28,12 @@ void main() {
   });
 
   Widget createTestWidget(Widget child, {List overrides = const []}) {
+    final mockLogger = MockLoggerService();
     return ProviderScope(
-      overrides: overrides.cast(),
+      overrides: [
+        loggerServiceProvider.overrideWithValue(mockLogger),
+        ...overrides.cast(),
+      ],
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -906,7 +913,7 @@ void main() {
     );
 
     testWidgets(
-      'tapping preview button displays AlertDialog (not SnackBar) on simulation failure',
+      'tapping preview button displays inline error banner (zero AlertDialog, zero SnackBar) on simulation failure',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(1920, 1080);
         tester.view.devicePixelRatio = 1.0;
@@ -947,10 +954,9 @@ void main() {
         await tester.tap(previewBtn);
         await tester.pumpAndSettle();
 
-        // Must display AlertDialog and not SnackBar (Debt 9)
-        expect(find.byType(AlertDialog), findsOneWidget);
-        expect(find.text('Unknown error'), findsOneWidget);
-        expect(find.text('OK'), findsOneWidget);
+        // Must display inline error banner, zero AlertDialog, and zero SnackBar
+        expect(find.textContaining('Simulated failure error'), findsOneWidget);
+        expect(find.byType(AlertDialog), findsNothing);
         expect(find.byType(SnackBar), findsNothing);
       },
     );

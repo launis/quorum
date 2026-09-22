@@ -62,26 +62,28 @@
   </touched_artifacts>
 
   <step id="4.0" name="Pre-Implementation Technical Debt Cleanups">
-    <action>In @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L62-77]:</action>
-    <action>- Replace hardcoded grey colors (Colors.grey.shade50, Colors.grey.shade300, Colors.grey) with Material 3 theme tokens (colorScheme.surfaceContainerLow, colorScheme.outlineVariant, colorScheme.onSurfaceVariant).</action>
-    <action>- Replace mutable bool _isLoading = false with atomic submission lock bool _isSaving = false.</action>
-    <action>In @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]:</action>
-    <action>- Eradicate all instances of const SizedBox.shrink() (violates sized_box_shrink_ban and DGR002) by filtering available and block extension lists via .where(...) prior to .map(...) in the visibleBlockExtensions section.</action>
-    <action>In @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]:</action>
+    <action>In @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L1-L251] (specifically preserving @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L62-77]):</action>
+    <action>- Replace hardcoded grey colors (Colors.grey.shade50 at #L181, Colors.grey.shade300 at #L183, Colors.grey at #L175) with Material 3 theme tokens (colorScheme.surfaceContainerLow, colorScheme.outlineVariant, colorScheme.onSurfaceVariant).</action>
+    <action>- Replace mutable bool _isLoading = false with atomic submission lock bool _isSaving = false (#L29, #L59, #L88, #L234, #L239).</action>
+    <action>In @[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L680] (anchored to #L417-L520):</action>
+    <action>- Eradicate all instances of const SizedBox.shrink() at #L475 and #L484 (violates sized_box_shrink_ban and DGR002) by filtering available and block extension lists via .where(...) prior to .map(...) in the visibleBlockExtensions section.</action>
+    <action>In @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart#L1-L410] (anchored to #L82-L95):</action>
     <action>- Replace modal AlertDialog popups on error (showDialog(builder: (errCtx) => AlertDialog(...))) with inline canvas error banners using theme.colorScheme.errorContainer.</action>
-    <demolish>REMOVE: `const SizedBox.shrink()` in @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]. REPLACE WITH: declarative `.where(...)` collections.</demolish>
+    <action>In @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart#L1-L1015] (anchored to #L196-L209):</action>
+    <action>- Replace modal AlertDialog error popup in _previewScalePrompt() with an inline canvas error banner using colorScheme.errorContainer.</action>
+    <demolish>REMOVE: `const SizedBox.shrink()` at #L475/#L484 in @[client_app_v2/lib/features/studio/views/profile_editor_view.dart] and modal AlertDialog error popups in @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart] and @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]. REPLACE WITH: declarative `.where(...)` collections and inline canvas error banners.</demolish>
   </step>
 
   <step id="4.1" name="HumanOverrideDialog Hardening &amp; Test Suite">
-    <action>In @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L62-77]:</action>
-    <action>- Implement modern PopScope(canPop: false, onPopInvokedWithResult: (didPop, result) { if (!didPop) _handleDismiss(); }) wrapping the dialog tree.</action>
+    <action>In @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L1-L251] (specifically preserving @[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L62-77]):</action>
+    <action>- Implement modern PopScope(canPop: false, onPopInvokedWithResult: (didPop, result) { if (!didPop) _handleDismiss(); }) wrapping the dialog tree (#L96-L248).</action>
     <action>- Implement synchronous FocusScope.of(context).unfocus() inside _handleDismiss() prior to exit check.</action>
     <action>- Schedule dirty check evaluation inside WidgetsBinding.instance.addPostFrameCallback to ensure child focus-loss listeners flush.</action>
     <action>- Implement serialization-based dirty check: compare current draft DTO jsonEncode(_buildRequestDto().toJson()) != _initialRequestJson (capturing changes across _selectedStatus, _reasonController.text.trim(), and _quotes).</action>
     <action>- If pristine, dismiss cleanly via Navigator.of(context).pop(false). If dirty, display discard confirmation AlertDialog using l10n.discardChangesConfirmTitle, l10n.discardChangesConfirmMessage, l10n.keepEditingButtonLabel, and l10n.discardButtonLabel.</action>
     <action>- Replace modal ScaffoldMessenger.of(context).showSnackBar() calls with inline canvas error banner (colorScheme.errorContainer).</action>
-    <action>- Enforce modal bounds ConstrainedBox(constraints: const BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600)).</action>
-    <action>- Implement atomic submission lock in _submitOverride(): if (_isSaving) return; _isSaving = true; and disable submit and cancel buttons during save.</action>
+    <action>- Enforce modal bounds ConstrainedBox(constraints: const BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600)) (#L98-L100).</action>
+    <action>- Implement atomic submission lock in _submitOverride(): if (_isSaving) return; _isSaving = true; and disable submit and cancel buttons during save (#L51-L90, #L233-L247).</action>
     <action>- Wire Cancel button and AppBar close action to _handleDismiss().</action>
     <action>Author [NEW] @[client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart] with mandatory ISTQB partitions:</action>
     <action>- Test 1: Empty reason validation error rendered inline without SnackBar.</action>
@@ -94,20 +96,20 @@
   </step>
 
   <step id="4.2" name="Studio Modals &amp; Complex Editors Hardening">
-    <action>In @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart]:</action>
-    <action>- Enforce auto-scroll to first invalid FocusNode via Scrollable.ensureVisible: when _formKey.currentState!.validate() fails, locate the first invalid field context or FocusNode and execute Scrollable.ensureVisible(targetContext, duration: const Duration(milliseconds: 300), curve: Curves.easeOut).</action>
-    <action>- Verify modal bounds ConstrainedBox(constraints: const BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600)).</action>
-    <action>- Replace showDialog AlertDialog on simulation preview failure with an inline error banner on the modal canvas.</action>
-    <action>In @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]:</action>
-    <action>- Enforce canonical modal bounds BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600).</action>
-    <action>- Implement PopScope(canPop: false, onPopInvokedWithResult: ...) and serialization-based dirty check on expected input controllers and context text against initial snapshot.</action>
+    <action>In @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart#L1-L1015] (anchored to #L103-L210 &amp; #L761-L833):</action>
+    <action>- Enforce auto-scroll to first invalid FocusNode via Scrollable.ensureVisible: when _formKey.currentState!.validate() fails, locate the first invalid field context or FocusNode and execute Scrollable.ensureVisible(targetContext, duration: const Duration(milliseconds: 300), curve: Curves.easeOut) instead of blind animateTo(0).</action>
+    <action>- Verify modal bounds ConstrainedBox(constraints: const BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600)) (#L797-L802).</action>
+    <action>- Replace showDialog AlertDialog on simulation preview failure (#L196-L209) with an inline error banner on the modal canvas.</action>
+    <action>In @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart#L1-L410] (anchored to #L50-L147 &amp; #L190-L268):</action>
+    <action>- Enforce canonical modal bounds BoxConstraints(minWidth: 480, maxWidth: 1400, minHeight: 600) (#L106-L111).</action>
+    <action>- Implement PopScope(canPop: false, onPopInvokedWithResult: ...) and serialization-based dirty check on expected input controllers and context text against initial snapshot (#L103-L131).</action>
     <action>- Enforce auto-scroll to first invalid input: when form validation fails, scroll to the invalid input via Scrollable.ensureVisible.</action>
     <action>- Ensure simulation errors render strictly inline via colorScheme.errorContainer banner (zero modal AlertDialogs or SnackBars).</action>
-    <action>In @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]:</action>
-    <action>- Wrap single-column form body in centered 1200px max-width containment: Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200), child: ListView(...))).</action>
+    <action>In @[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L680] (anchored to #L224-L260):</action>
+    <action>- Wrap single-column form body in centered 1200px max-width containment: Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1200), child: ListView(...))) (#L224-L260).</action>
     <action>- Verify relational sub-collection card header flexbox triad (Expanded title + AppSpacing.w16 + Row actions) and language-neutral indexing (#${index + 1}).</action>
     <action>Update test suites @[client_app_v2/test/features/studio/views/widgets/scale_editor_modal_test.dart] and @[client_app_v2/test/features/studio/widgets/step_simulation_dialog_test.dart] to assert auto-scroll and inline error banner behavior.</action>
-    <demolish>REMOVE: modal SnackBars in @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart] and @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]. REPLACE WITH: inline error surfaces.</demolish>
+    <demolish>REMOVE: modal SnackBars and modal AlertDialogs in @[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart] and @[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]. REPLACE WITH: inline error surfaces.</demolish>
   </step>
 
   <step id="4.3" name="Universal Quality Gates &amp; Static Guardrails">
@@ -128,6 +130,16 @@
     <action>- cd client_app_v2; flutter test test/core/api/studio_client_test.dart</action>
     <action>Verify bilingual localization parity: cd client_app_v2; flutter gen-l10n.</action>
   </step>
+
+  <five_column_directives>
+    <!-- 5-Column Architectural Directives Table -->
+    | 1. Target Scope &amp; Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification &amp; Fail-Fast (Proof Anchor) |
+    | :--- | :--- | :--- | :--- | :--- |
+    | **HumanOverrideDialog** `@[client_app_v2/lib/features/execution/views/widgets/human_override_dialog.dart#L1-L251]` (anchored to `#[L62-77]`) | Unintercepted modal dismiss (Esc/barrier tap silently dropping reason/quotes), hardcoded `Colors.grey` tokens, mutable `_isLoading` flag, modal `ScaffoldMessenger.showSnackBar()`. | `PopScope(canPop: false)` with `FocusScope.unfocus()` and `addPostFrameCallback` blur flush, serialization dirty check (`jsonEncode != initialJson`), inline error banner (`colorScheme.errorContainer`), Material 3 theme tokens (`colorScheme.surfaceContainerLow`, `outlineVariant`), atomic `_isSaving` lock, and `ConstrainedBox(minWidth: 480, maxWidth: 1400, minHeight: 600)`. | Direct `PopScope` integration and standard Riverpod consumer state; zero external dialog wrapper dependencies. | Author [NEW] `client_app_v2/test/features/execution/views/widgets/human_override_dialog_test.dart` passing 6 positive/negative ISTQB test partitions; 0 unhandled exceptions. |
+    | **ScaleEditorModal** `@[client_app_v2/lib/features/studio/views/widgets/scale_editor_modal.dart#L1-L1015]` (anchored to `#[L103-L210]` &amp; `#[L761-L833]`) | Blind `_scrollController.animateTo(0)` on validation failure, modal `showDialog(AlertDialog)` on prompt simulation failure. | Auto-scroll to first invalid `FocusNode` via `Scrollable.ensureVisible` (300ms, easeOut), inline error banner on preview failure, and pro-tool bounds (`minWidth: 480, maxWidth: 1400, minHeight: 600`). | Reuse existing Form validation state and focus hierarchy; zero speculative custom focus managers. | `cd client_app_v2; flutter test test/features/studio/views/widgets/scale_editor_modal_test.dart` passes 100% green. |
+    | **StepSimulationDialog** `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart#L1-L410]` (anchored to `#[L50-L147]` &amp; `#[L190-L268]`) | Unintercepted modal dismiss, modal `showDialog(AlertDialog)` on simulation error, narrow constraints (`maxWidth: 1100, minHeight: 550`). | `PopScope(canPop: false)` with dirty checking on input controllers and context text, inline error banner (`colorScheme.errorContainer`), auto-scroll to invalid expected inputs, and canonical bounds (`minWidth: 480, maxWidth: 1400, minHeight: 600`). | Pure `ConsumerStatefulWidget` using standard Flutter controllers; zero unnecessary custom state stores. | `cd client_app_v2; flutter test test/features/studio/widgets/step_simulation_dialog_test.dart` passes 100% green. |
+    | **ProfileEditorView** `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L680]` (anchored to `#[L224-L260]` &amp; `#[L417-L520]`) | `const SizedBox.shrink()` concealment (violates `sized_box_shrink_ban` and `DGR002`), unconstrained form canvas stretching across 4K displays. | Declarative `.where(...)` filtering prior to `.map(...)` in `visibleBlockExtensions`, centered 1200px containment `Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: BoxConstraints(maxWidth: 1200), child: ListView(...)))`, and language-neutral indexing (`#${index + 1}`). | Zero custom layout managers or empty placeholder widgets; direct standard Flutter Flex and Alignment containment. | `uv run python scripts/_dart_guardrails.py client_app_v2/lib/features/studio/views/profile_editor_view.dart` reports 0 `DGR002` violations. |
+  </five_column_directives>
 
   <test_contracts>
     <test name="test_human_override_dialog_dirty_state_shows_discard_prompt" category="boundary">

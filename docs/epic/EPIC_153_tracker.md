@@ -55,13 +55,13 @@
 ### Phase 4: Studio Modals, Dialogs UX Hardening & E2E Quality Gates
 **Plan:** @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]
 - [x] **[OK] Create Plan:** `/tier0-create-plan @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md] @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --phase=4`
-- [ ] **[NOK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
-  - [ ] Step 4.0: Pre-Implementation Technical Debt Cleanups
-  - [ ] Step 4.1: HumanOverrideDialog Hardening & Test Suite
-  - [ ] Step 4.2: Studio Modals & Complex Editors Hardening
-  - [ ] Step 4.3: Universal Quality Gates & Static Guardrails
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+- [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
+  - [x] Step 4.0: Pre-Implementation Technical Debt Cleanups
+  - [x] Step 4.1: HumanOverrideDialog Hardening & Test Suite
+  - [x] Step 4.2: Studio Modals & Complex Editors Hardening
+  - [x] Step 4.3: Universal Quality Gates & Static Guardrails
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 
 ### Post-Implementation Gates
@@ -154,34 +154,33 @@
 | Enforce centered 1200px max-width containment on master list views | EPIC 153 Section 3, Step 3.1 | Phase 3, Step 3.1 | DONE |
 | Replace Freezed .when() with Dart 3 native switch pattern matching in WorkflowsMasterView | EPIC 153 Section 3, Step 3.2 | Phase 3, Step 3.2 | DONE |
 | Replace raw string filters with PromptBlockCategoryGroups enum grouping | EPIC 153 Section 3, Step 3.2 | Phase 3, Step 3.2 | DONE |
-| Implement PopScope discard interception and dirty check shield in HumanOverrideDialog | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | PENDING |
-| Replace modal SnackBars with inline error banners in HumanOverrideDialog | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | PENDING |
-| Author human_override_dialog_test.dart with negative ISTQB partitions | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | PENDING |
-| Auto-scroll to first invalid field and enforce 480-1400px bounds in Studio modals | EPIC 153 Section 3, Step 4.2 | Phase 4, Step 4.2 | PENDING |
-| Enforce centered 1200px max-width containment in ProfileEditorView | EPIC 153 Section 3, Step 4.2 | Phase 4, Step 4.2 | PENDING |
-| Execute full Flutter audit loop and verify 0 DGR001/DGR002 violations | EPIC 153 Section 3, Step 4.3 | Phase 4, Step 4.3 | PENDING |
+| Implement PopScope discard interception and dirty check shield in HumanOverrideDialog | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | DONE |
+| Replace modal SnackBars with inline error banners in HumanOverrideDialog | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | DONE |
+| Author human_override_dialog_test.dart with negative ISTQB partitions | EPIC 153 Section 3, Step 4.1 | Phase 4, Step 4.1 | DONE |
+| Auto-scroll to first invalid field and enforce 480-1400px bounds in Studio modals | EPIC 153 Section 3, Step 4.2 | Phase 4, Step 4.2 | DONE |
+| Enforce centered 1200px max-width containment in ProfileEditorView | EPIC 153 Section 3, Step 4.2 | Phase 4, Step 4.2 | DONE |
+| Execute full Flutter audit loop and verify 0 DGR001/DGR002 violations | EPIC 153 Section 3, Step 4.3 | Phase 4, Step 4.3 | DONE |
 
 # Session Handover Context
 
 ## Achieved
-- Successfully authored Phase 4 Implementation Plan: `@[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]`:
-  - Verified with `audit_markdown_boundaries.py` with 100% pass (SUCCESS: Audit passed).
-  - Verified with `audit_planner_output.py` with 100% pass against `docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md` (all 13 line bounds preserved verbatim, all target files verified, mandatory XML blocks present, all KI references and domain rules validated).
-  - Synchronized `EPIC_153_tracker.md` to check off `[OK] Create Plan` and injected execution steps 4.0, 4.1, 4.2, 4.3.
+- Successfully completed Phase 4 Implementation Plan: `@[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]`:
+  - Step 4.0: Pre-implementation cleanups completed. Replaced hardcoded grey colors in `HumanOverrideDialog` with Material 3 tokens. Eradicated `const SizedBox.shrink()` in `ProfileEditorView` (0 DGR002 violations). Replaced modal `AlertDialog` popups with inline canvas error banners in `ScaleEditorModal` and `StepSimulationDialog`.
+  - Step 4.1: Hardened `HumanOverrideDialog` with `PopScope(canPop: false)`, focus unblur, serialization dirty check (`jsonEncode != initialJson`), 480-1400px bounds, and atomic `_isSaving` lock. Authored `human_override_dialog_test.dart` passing all 6 positive/negative ISTQB boundary partitions.
+  - Step 4.2: Hardened `ScaleEditorModal` with auto-scroll via `Scrollable.ensureVisible`, inline error banner on preview failure, and clean `LayoutBuilder` containment (all 17 tests passed). Hardened `StepSimulationDialog` with `PopScope`, serialization dirty check, auto-scroll, inline error banner, and canonical bounds (all 8 tests passed). Wrapped `ProfileEditorView` form body in centered 1200px containment with relational sub-collection header triad and language-neutral indexing.
+  - Step 4.3: Executed `flutter gen-l10n`, `_dart_guardrails.py` (0 fatal, 0 DGR001/DGR002 violations in touched code), full touched widget test suite (92 tests passed 100%), and `flutter_audit_loop.py` (all clean, code formatted and analyzed).
 
 ## Learned
-- In `HumanOverrideDialog`, `PopScope` must schedule dirty evaluation in `addPostFrameCallback` after `FocusScope.of(context).unfocus()` to ensure child controller blur listeners flush before evaluating `jsonEncode(_buildRequestDto().toJson()) != _initialRequestJson`.
-- In `ScaleEditorModal`, auto-scrolling to the invalid field via `Scrollable.ensureVisible` prevents user disorientation in complex TDA assertion rubrics.
-- In `ProfileEditorView`, wrapping the form body in centered 1200px containment guarantees desktop pro-tool ergonomics on 4K monitors without horizontal stretch.
+- In `ScaleEditorModal`, placing the inline preview error banner inside `_buildDetailCanvas` (which is already inside `SingleChildScrollView`) avoids inserting an unscrollable outer flex container in `Scaffold.body`, maintaining unconstrained `LayoutBuilder` layout semantics and preventing RenderFlex overflow.
+- In Riverpod controller tests, mock exception pathways that log via `loggerServiceProvider` require overriding `loggerServiceProvider.overrideWithValue(MockLoggerService())` in `ProviderScope` to prevent uninitialized `DotEnv` exceptions in test environments.
+- In `StepSimulationDialog`, serializing input controllers and context text into an initial JSON snapshot allows robust value-based dirty checking for modal dismissal interception.
 
 ## Remaining
-- Red-Team Phase 4 Plan: `/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
-- Execute Phase 4: `/tier2-execute @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md] --full-auto`
 - Audit Phase 4 Plan: `/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]`
 - Execute Post-Implementation Gates: `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
-/tier0-research-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]
+/tier8-audit-plan @[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md] @[docs/epic/EPIC_153_tracker.md]
 ```
 

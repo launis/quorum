@@ -221,42 +221,48 @@ class ProfileEditorView extends HookConsumerWidget {
               ),
           ],
         ),
-        body: ListView(
-          padding: AppSpacing.p16,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: ListView(
+              padding: AppSpacing.p16,
               children: [
-                Expanded(
-                  child: Text(
-                    l10n.outputProfilesDictionary,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        l10n.outputProfilesDictionary,
+                        style: Theme.of(context).textTheme.headlineSmall,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    AppSpacing.w8,
+                    FilledButton.icon(
+                      onPressed: addProfileDialog,
+                      icon: const Icon(Icons.add),
+                      label: Text(l10n.addVariantBtn),
+                    ),
+                  ],
                 ),
-                AppSpacing.w8,
-                FilledButton.icon(
-                  onPressed: addProfileDialog,
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.addVariantBtn),
+                AppSpacing.h16,
+                ...payload.outputProfiles.entries.map(
+                  (entry) => _buildProfileCard(
+                    context,
+                    ref,
+                    l10n,
+                    payload,
+                    entry.key,
+                    entry.value,
+                    allowedBlockIds,
+                    promptBlocksState,
+                    availableExtensionsState,
+                  ),
                 ),
               ],
             ),
-            AppSpacing.h16,
-            ...payload.outputProfiles.entries.map(
-              (entry) => _buildProfileCard(
-                context,
-                ref,
-                l10n,
-                payload,
-                entry.key,
-                entry.value,
-                allowedBlockIds,
-                promptBlocksState,
-                availableExtensionsState,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -418,96 +424,103 @@ class ProfileEditorView extends HookConsumerWidget {
                             AsyncData(value: final availableExtensions) =>
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: XaiExtensionType.values.map((ext) {
-                                  final l10n = AppLocalizations.of(context)!;
-                                  String label = ext.name;
-                                  switch (ext) {
-                                    case XaiExtensionType.citation:
-                                      label = l10n.xaiSourceCitation;
-                                      break;
-                                    case XaiExtensionType.justification:
-                                      label = l10n.xaiJustification;
-                                      break;
-                                    case XaiExtensionType.falsification:
-                                      label = l10n.xaiDevilsAdvocate;
-                                      break;
-                                    case XaiExtensionType.theoryLink:
-                                      label = l10n.xaiTheoryLink;
-                                      break;
-                                    case XaiExtensionType.riskFlag:
-                                      label = l10n.xaiRiskFlag;
-                                      break;
-                                    case XaiExtensionType.coaching:
-                                      label = l10n.xaiCoachingTip;
-                                      break;
-                                    case XaiExtensionType.missingContext:
-                                      label = l10n.xaiMissingContext;
-                                      break;
-                                    case XaiExtensionType.remediationSteps:
-                                      label = l10n.xaiRemediation;
-                                      break;
-                                    case XaiExtensionType.emotionalSentiment:
-                                      label = l10n.xaiSentiment;
-                                      break;
-                                    case XaiExtensionType.confidence:
-                                      label = l10n.xaiConfidence;
-                                      break;
-                                    case XaiExtensionType.sourceId:
-                                      label = l10n.xaiSourceId;
-                                      break;
-                                    case XaiExtensionType.contextualOverride:
-                                      label = l10n.xaiContextualOverride;
-                                      break;
-                                    case XaiExtensionType.varianceValidation:
-                                      label = l10n.xaiVarianceValidationTitle;
-                                      break;
-                                    case XaiExtensionType
-                                        .authenticityEvaluation:
-                                      label =
-                                          l10n.xaiAuthenticityEvaluationTitle;
-                                      break;
-                                  }
-
-                                  // Dynamic Dropdown Population
-                                  if (!availableExtensions.contains(
-                                    ext.backendValue,
-                                  )) {
-                                    return const SizedBox.shrink();
-                                  }
-
-                                  final isWorkflowExtension = [
-                                    XaiExtensionType.varianceValidation,
-                                    XaiExtensionType.authenticityEvaluation,
-                                  ].contains(ext);
-
-                                  if (isWorkflowExtension)
-                                    return const SizedBox.shrink();
-
-                                  return CheckboxListTile(
-                                    title: Text(label),
-                                    value: profileDef.visibleBlockExtensions
-                                        .contains(ext),
-                                    onChanged: (val) {
-                                      final updatedList =
-                                          List<XaiExtensionType>.from(
-                                            profileDef.visibleBlockExtensions,
-                                          );
-                                      if (val == true) {
-                                        updatedList.add(ext);
-                                      } else {
-                                        updatedList.remove(ext);
+                                children: XaiExtensionType.values
+                                    .where((ext) {
+                                      if (!availableExtensions.contains(
+                                        ext.backendValue,
+                                      )) {
+                                        return false;
                                       }
-                                      rebuildProfile(
-                                        profileDef.copyWith(
-                                          visibleBlockExtensions: updatedList,
-                                        ),
+                                      final isWorkflowExtension = [
+                                        XaiExtensionType.varianceValidation,
+                                        XaiExtensionType.authenticityEvaluation,
+                                      ].contains(ext);
+                                      return !isWorkflowExtension;
+                                    })
+                                    .map((ext) {
+                                      final l10n = AppLocalizations.of(
+                                        context,
+                                      )!;
+                                      String label = ext.name;
+                                      switch (ext) {
+                                        case XaiExtensionType.citation:
+                                          label = l10n.xaiSourceCitation;
+                                          break;
+                                        case XaiExtensionType.justification:
+                                          label = l10n.xaiJustification;
+                                          break;
+                                        case XaiExtensionType.falsification:
+                                          label = l10n.xaiDevilsAdvocate;
+                                          break;
+                                        case XaiExtensionType.theoryLink:
+                                          label = l10n.xaiTheoryLink;
+                                          break;
+                                        case XaiExtensionType.riskFlag:
+                                          label = l10n.xaiRiskFlag;
+                                          break;
+                                        case XaiExtensionType.coaching:
+                                          label = l10n.xaiCoachingTip;
+                                          break;
+                                        case XaiExtensionType.missingContext:
+                                          label = l10n.xaiMissingContext;
+                                          break;
+                                        case XaiExtensionType.remediationSteps:
+                                          label = l10n.xaiRemediation;
+                                          break;
+                                        case XaiExtensionType
+                                            .emotionalSentiment:
+                                          label = l10n.xaiSentiment;
+                                          break;
+                                        case XaiExtensionType.confidence:
+                                          label = l10n.xaiConfidence;
+                                          break;
+                                        case XaiExtensionType.sourceId:
+                                          label = l10n.xaiSourceId;
+                                          break;
+                                        case XaiExtensionType
+                                            .contextualOverride:
+                                          label = l10n.xaiContextualOverride;
+                                          break;
+                                        case XaiExtensionType
+                                            .varianceValidation:
+                                          label =
+                                              l10n.xaiVarianceValidationTitle;
+                                          break;
+                                        case XaiExtensionType
+                                            .authenticityEvaluation:
+                                          label = l10n
+                                              .xaiAuthenticityEvaluationTitle;
+                                          break;
+                                      }
+
+                                      return CheckboxListTile(
+                                        title: Text(label),
+                                        value: profileDef.visibleBlockExtensions
+                                            .contains(ext),
+                                        onChanged: (val) {
+                                          final updatedList =
+                                              List<XaiExtensionType>.from(
+                                                profileDef
+                                                    .visibleBlockExtensions,
+                                              );
+                                          if (val == true) {
+                                            updatedList.add(ext);
+                                          } else {
+                                            updatedList.remove(ext);
+                                          }
+                                          rebuildProfile(
+                                            profileDef.copyWith(
+                                              visibleBlockExtensions:
+                                                  updatedList,
+                                            ),
+                                          );
+                                        },
+                                        controlAffinity:
+                                            ListTileControlAffinity.leading,
+                                        dense: true,
                                       );
-                                    },
-                                    controlAffinity:
-                                        ListTileControlAffinity.leading,
-                                    dense: true,
-                                  );
-                                }).toList(),
+                                    })
+                                    .toList(),
                               ),
                             AsyncLoading() => const Center(
                               child: CircularProgressIndicator(),

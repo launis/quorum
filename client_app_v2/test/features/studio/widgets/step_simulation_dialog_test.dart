@@ -7,10 +7,13 @@ import 'package:client_app/core/api/studio_client.dart';
 import 'package:client_app/features/studio/models/step_simulation.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/views/widgets/step_simulation_dialog.dart';
+import 'package:client_app/core/logging/logger_service.dart';
 import 'package:client_app/shared/models/i18n_text.dart';
 import 'package:client_app/l10n/gen/app_localizations.dart';
 
 class MockStudioClient extends Mock implements StudioClient {}
+
+class MockLoggerService extends Mock implements LoggerService {}
 
 class FakeStepSimulationRequest extends Fake implements StepSimulationRequest {}
 
@@ -20,8 +23,12 @@ void main() {
   });
 
   Widget createTestWidget(Widget child, {List overrides = const []}) {
+    final mockLogger = MockLoggerService();
     return ProviderScope(
-      overrides: overrides.cast(),
+      overrides: [
+        loggerServiceProvider.overrideWithValue(mockLogger),
+        ...overrides.cast(),
+      ],
       child: MaterialApp(
         localizationsDelegates: const [
           AppLocalizations.delegate,
@@ -248,35 +255,143 @@ void main() {
       expect(find.byType(TabBarView), findsWidgets);
     });
 
-    testWidgets('shows error dialog when simulation call throws an exception', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(1920, 1080);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(tester.view.resetPhysicalSize);
+    testWidgets(
+      'displays inline error banner (zero AlertDialog, zero SnackBar) when simulation call throws an exception',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
 
-      final mockClient = MockStudioClient();
-      when(
-        () => mockClient.simulateStep(any()),
-      ).thenThrow(Exception('Network connection drop during simulation'));
+        final mockClient = MockStudioClient();
+        when(
+          () => mockClient.simulateStep(any()),
+        ).thenThrow(Exception('Network connection drop during simulation'));
 
-      final step = createSampleStep(expectedInputs: ['input_data']);
+        final step = createSampleStep(expectedInputs: ['input_data']);
 
-      await tester.pumpWidget(
-        createTestWidget(
-          overrides: [studioClientProvider.overrideWithValue(mockClient)],
-          StepSimulationDialog(step: step),
-        ),
-      );
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(
+          createTestWidget(
+            overrides: [studioClientProvider.overrideWithValue(mockClient)],
+            StepSimulationDialog(step: step),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-      final runBtn = find.widgetWithText(FilledButton, 'Run Simulation');
-      await tester.tap(runBtn);
-      await tester.pumpAndSettle();
+        final runBtn = find.widgetWithText(FilledButton, 'Run Simulation');
+        await tester.tap(runBtn);
+        await tester.pumpAndSettle();
 
-      expect(find.byType(AlertDialog), findsOneWidget);
-      expect(find.text('Unknown error'), findsOneWidget);
-      expect(find.text('OK'), findsOneWidget);
-    });
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(SnackBar), findsNothing);
+        expect(
+          find.textContaining('Network connection drop during simulation'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'PopScope intercepts dismissal with discard dialog when input controllers are dirty',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final step = createSampleStep(expectedInputs: ['query']);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => StepSimulationDialog(step: step),
+                  );
+                },
+                child: const Text('Open Simulation'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Simulation'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StepSimulationDialog), findsOneWidget);
+
+        // Enter text into expected input field to make it dirty
+        final inputField = find.widgetWithText(TextFormField, 'query');
+        await tester.enterText(inputField, 'dirty input value');
+        await tester.pumpAndSettle();
+
+        // Tap close icon in AppBar
+        final closeBtn = find.byIcon(Icons.close);
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+
+        // Discard confirmation dialog must appear
+        expect(find.byType(AlertDialog), findsOneWidget);
+        expect(find.text('Discard changes?'), findsOneWidget);
+        expect(find.text('Continue Editing'), findsOneWidget);
+        expect(find.text('Discard Changes'), findsOneWidget);
+
+        // Tapping 'Continue Editing' retains dialog
+        await tester.tap(find.text('Continue Editing'));
+        await tester.pumpAndSettle();
+        expect(find.byType(StepSimulationDialog), findsOneWidget);
+
+        // Tap close again and choose 'Discard Changes'
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Discard Changes'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StepSimulationDialog), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'dismisses immediately without discard dialog when inputs are pristine',
+      (tester) async {
+        tester.view.physicalSize = const Size(1920, 1080);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(tester.view.resetPhysicalSize);
+
+        final step = createSampleStep(expectedInputs: ['query']);
+
+        await tester.pumpWidget(
+          createTestWidget(
+            Builder(
+              builder: (context) => ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => StepSimulationDialog(step: step),
+                  );
+                },
+                child: const Text('Open Simulation'),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('Open Simulation'));
+        await tester.pumpAndSettle();
+
+        expect(find.byType(StepSimulationDialog), findsOneWidget);
+
+        // Tap close icon without edits
+        final closeBtn = find.byIcon(Icons.close);
+        await tester.tap(closeBtn);
+        await tester.pumpAndSettle();
+
+        // Must pop cleanly without AlertDialog
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(find.byType(StepSimulationDialog), findsNothing);
+      },
+    );
   });
 }

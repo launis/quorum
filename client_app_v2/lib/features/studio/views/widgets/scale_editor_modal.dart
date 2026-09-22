@@ -44,6 +44,7 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
   int _selectedClaimIndex = 0;
   bool _isSaving = false;
   bool _isLoadingPreview = false;
+  String? _previewErrorMessage;
 
   @override
   void initState() {
@@ -109,7 +110,27 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
     // 1. Validate active claim first via Form
     if (!_formKey.currentState!.validate()) {
       _isSaving = false;
-      if (_scrollController.hasClients) {
+      BuildContext? targetContext;
+      void visitor(Element element) {
+        if (targetContext != null) return;
+        if (element is StatefulElement && element.state is FormFieldState) {
+          final fieldState = element.state as FormFieldState;
+          if (fieldState.hasError) {
+            targetContext = element;
+            return;
+          }
+        }
+        element.visitChildElements(visitor);
+      }
+
+      _formKey.currentContext?.visitChildElements(visitor);
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      } else if (_scrollController.hasClients) {
         _scrollController.animateTo(
           0,
           duration: const Duration(milliseconds: 200),
@@ -191,21 +212,10 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isLoadingPreview = false);
-      final l10n = AppLocalizations.of(context)!;
-      await showDialog<void>(
-        context: context,
-        builder: (errCtx) => AlertDialog(
-          title: Text(l10n.errorUnknown),
-          content: Text(e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(errCtx).pop(),
-              child: Text(l10n.dialogOk),
-            ),
-          ],
-        ),
-      );
+      setState(() {
+        _isLoadingPreview = false;
+        _previewErrorMessage = e.toString();
+      });
     }
   }
 
@@ -694,9 +704,47 @@ class _ScaleEditorModalState extends ConsumerState<ScaleEditorModal> {
             aggregationMode: AggregationMode.exists,
           );
 
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (_previewErrorMessage != null) ...[
+          Container(
+            padding: AppSpacing.p12,
+            margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  color: theme.colorScheme.onErrorContainer,
+                  size: 20,
+                ),
+                AppSpacing.w8,
+                Expanded(
+                  child: Text(
+                    _previewErrorMessage!,
+                    style: TextStyle(
+                      color: theme.colorScheme.onErrorContainer,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.close,
+                    size: 18,
+                    color: theme.colorScheme.onErrorContainer,
+                  ),
+                  onPressed: () => setState(() => _previewErrorMessage = null),
+                ),
+              ],
+            ),
+          ),
+        ],
         I18nTextField(
           label: l10n.scaleGradeNameLabel,
           initialData: _editableScale.name,

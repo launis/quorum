@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/core/theme/app_spacing.dart';
@@ -20,10 +21,13 @@ class StepSimulationDialog extends ConsumerStatefulWidget {
 
 class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final Map<String, TextEditingController> _inputControllers = {};
   late final TextEditingController _contextTextController;
+  late final String _initialSnapshotJson;
   String _targetLocale = 'en';
   bool _isRunning = false;
+  String? _errorMessage;
   StepSimulationResponse? _simulationResult;
 
   @override
@@ -36,10 +40,27 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
     for (final inputName in widget.step.expectedInputs) {
       _inputControllers[inputName] = TextEditingController();
     }
+
+    _initialSnapshotJson = _computeSnapshot();
   }
+
+  String _computeSnapshot() {
+    final inputs = <String, String>{};
+    for (final entry in _inputControllers.entries) {
+      inputs[entry.key] = entry.value.text.trim();
+    }
+    return jsonEncode({
+      'locale': _targetLocale,
+      'context': _contextTextController.text.trim(),
+      'inputs': inputs,
+    });
+  }
+
+  bool _isDirty() => _computeSnapshot() != _initialSnapshotJson;
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _contextTextController.dispose();
     for (final controller in _inputControllers.values) {
       controller.dispose();
@@ -47,12 +68,71 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
     super.dispose();
   }
 
+  void _handleDismiss() {
+    FocusScope.of(context).unfocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!_isDirty()) {
+        Navigator.of(context).pop();
+        return;
+      }
+      final l10n = AppLocalizations.of(context)!;
+      showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(l10n.discardChangesConfirmTitle),
+          content: Text(l10n.discardChangesConfirmMessage),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(l10n.keepEditingButtonLabel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(l10n.discardButtonLabel),
+            ),
+          ],
+        ),
+      ).then((shouldDiscard) {
+        if (shouldDiscard == true && mounted) {
+          Navigator.of(context).pop();
+        }
+      });
+    });
+  }
+
   Future<void> _runSimulation() async {
     if (_isRunning) return;
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      BuildContext? targetContext;
+      void visitor(Element element) {
+        if (targetContext != null) return;
+        if (element is StatefulElement && element.state is FormFieldState) {
+          final fieldState = element.state as FormFieldState;
+          if (fieldState.hasError) {
+            targetContext = element;
+            return;
+          }
+        }
+        element.visitChildElements(visitor);
+      }
+
+      _formKey.currentContext?.visitChildElements(visitor);
+      if (targetContext != null) {
+        Scrollable.ensureVisible(
+          targetContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+      return;
+    }
     _formKey.currentState!.save();
 
-    setState(() => _isRunning = true);
+    setState(() {
+      _isRunning = true;
+      _errorMessage = null;
+    });
 
     final mockInputs = <String, dynamic>{};
     for (final entry in _inputControllers.entries) {
@@ -73,25 +153,15 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
       if (!mounted) return;
       setState(() {
         _simulationResult = response;
+        _errorMessage = null;
         _isRunning = false;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() => _isRunning = false);
-      final l10n = AppLocalizations.of(context)!;
-      await showDialog<void>(
-        context: context,
-        builder: (errCtx) => AlertDialog(
-          title: Text(l10n.errorUnknown),
-          content: Text(e.toString()),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(errCtx).pop(),
-              child: Text(l10n.dialogOk),
-            ),
-          ],
-        ),
-      );
+      setState(() {
+        _isRunning = false;
+        _errorMessage = e.toString();
+      });
     }
   }
 
@@ -100,87 +170,95 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
 
-    return Dialog(
-      insetPadding: AppSpacing.p16,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: 640,
-          maxWidth: 1100,
-          minHeight: 550,
-          maxHeight: 850,
-        ),
-        child: Scaffold(
-          appBar: AppBar(
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(l10n.stepSimulationTitle),
-                Text(
-                  l10n.stepSimulationSubtitle,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _handleDismiss();
+        }
+      },
+      child: Dialog(
+        insetPadding: AppSpacing.p16,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: 480,
+            maxWidth: 1400,
+            minHeight: 600,
+            maxHeight: 850,
+          ),
+          child: Scaffold(
+            appBar: AppBar(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(l10n.stepSimulationTitle),
+                  Text(
+                    l10n.stepSimulationSubtitle,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _handleDismiss,
+              ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16.0),
+                  child: FilledButton.icon(
+                    onPressed: _isRunning ? null : _runSimulation,
+                    icon: _isRunning
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow),
+                    label: Text(l10n.runSimulationBtn),
                   ),
                 ),
               ],
             ),
-            leading: IconButton(
-              icon: const Icon(Icons.close),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: FilledButton.icon(
-                  onPressed: _isRunning ? null : _runSimulation,
-                  icon: _isRunning
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.play_arrow),
-                  label: Text(l10n.runSimulationBtn),
-                ),
-              ),
-            ],
-          ),
-          body: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 900;
-              if (isWide) {
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(width: 380, child: _buildConfigForm(context)),
-                    const VerticalDivider(width: 1),
-                    Expanded(child: _buildPreviewPane(context)),
-                  ],
-                );
-              } else {
-                return DefaultTabController(
-                  length: 2,
-                  child: Column(
+            body: LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 900;
+                if (isWide) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TabBar(
-                        tabs: [
-                          Tab(text: l10n.expectedInputsSection),
-                          Tab(text: l10n.previewPromptTitle),
-                        ],
-                      ),
-                      Expanded(
-                        child: TabBarView(
-                          children: [
-                            _buildConfigForm(context),
-                            _buildPreviewPane(context),
+                      SizedBox(width: 380, child: _buildConfigForm(context)),
+                      const VerticalDivider(width: 1),
+                      Expanded(child: _buildPreviewPane(context)),
+                    ],
+                  );
+                } else {
+                  return DefaultTabController(
+                    length: 2,
+                    child: Column(
+                      children: [
+                        TabBar(
+                          tabs: [
+                            Tab(text: l10n.expectedInputsSection),
+                            Tab(text: l10n.previewPromptTitle),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-            },
+                        Expanded(
+                          child: TabBarView(
+                            children: [
+                              _buildConfigForm(context),
+                              _buildPreviewPane(context),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+              },
+            ),
           ),
         ),
       ),
@@ -194,8 +272,46 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
     return Form(
       key: _formKey,
       child: ListView(
+        controller: _scrollController,
         padding: AppSpacing.p16,
         children: [
+          if (_errorMessage != null) ...[
+            Container(
+              padding: AppSpacing.p12,
+              margin: const EdgeInsets.only(bottom: AppSpacing.s16),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    color: theme.colorScheme.onErrorContainer,
+                    size: 20,
+                  ),
+                  AppSpacing.w8,
+                  Expanded(
+                    child: Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        color: theme.colorScheme.onErrorContainer,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      size: 18,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                    onPressed: () => setState(() => _errorMessage = null),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Row(
             children: [
               Expanded(
