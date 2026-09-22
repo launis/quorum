@@ -112,12 +112,17 @@
 
     <module path="client_app_v2/lib/features/">
         <responsibility>RIVERPOD SDUI VERTICAL FEATURES (O(1) STATE PROVIDERS)</responsibility>
-        <key_domains>studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; widgets: tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart), execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart), shell/ (Pillar 4 Presentation), auth/, settings/</key_domains>
+        <key_domains>
+          - studio/ (Pillar 2/4 Workflow, Profile & Matrix Editors; master views: mcp_gateways_master_view.dart, matrices_master_view.dart, workflows_master_view.dart, output_profile_list_view.dart; widgets: studio_master_header.dart, tag_chip_input.dart, dynamic_item_list_editor.dart, contrastive_pair_editor.dart, linguistic_shield_banner.dart, scale_editor_modal.dart, step_simulation_dialog.dart; models: mcp_gateway.dart, llm_platform.dart, workflow_ui_schema.dart, prompt_block_simulation.dart, workflow_simulation.dart)
+          - execution/ (Pillar 4 SDUI Dashboards, Controllers & Sub-DTOs: execution_record.dart, execution_step.dart, execution_summary_snapshot.dart, workflow_inputs.dart, frozen_context_snapshot.dart, human_override_request_dto.dart; views & widgets: new_execution_view.dart, dynamic_start_screen.dart, human_override_dialog.dart, sdui_matrix_table_widget.dart, sdui_blocks_renderer.dart, atom_matrix_table_widget.dart, xai_axis_telemetry_grid.dart)
+          - reports/ (Pillar 4 Presentation & Materialized Reports: execution_reports_view.dart, create_report_dialog.dart, report_artifact.dart)
+          - shell/ (Pillar 4 Presentation), auth/, settings/
+        </key_domains>
     </module>
 
     <module path="client_app_v2/lib/core/">
         <responsibility>FLUTTER FOUNDATION & GLOBAL BOUNDARIES</responsibility>
-        <key_domains>api/execution_client.dart (Typed Future<ExecutionRecord> Client), api/reports_client.dart, error/app_error_boundary.dart, models/enums.dart, models/generic_status_response_dto.dart, network/</key_domains>
+        <key_domains>api/ (execution_client.dart, reports_client.dart, workflow_client.dart, studio_client.dart), error/app_error_boundary.dart, models/enums.dart, models/generic_status_response_dto.dart, network/</key_domains>
     </module>
     
     <module path="client_app_v2/lib/shared/">

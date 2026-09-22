@@ -66,14 +66,18 @@ Output length constraints and character limits are governed by sentence-boundary
 
 If no sentence boundary exists within a reasonable threshold of the budget limit, the engine preserves the first complete sentence or trims at the nearest word boundary with terminal punctuation. This prevents mid-sentence truncation, broken words, and dangling clauses, maintaining high editorial quality and semantic integrity in executive reports.
 
-### 2.12. Static AST Architectural Guardrails & Evidentiary Verification
-Architectural invariants and coding standards are statically enforced at build and test time through an automated AST Codebase Guardrails Engine. The engine inspects Python abstract syntax trees to detect and block architectural anti-patterns prior to test execution:
+### 2.12. Static AST & Dart Architectural Guardrails & Evidentiary Verification
+Architectural invariants and coding standards are statically enforced at build and test time through an automated AST Codebase Guardrails Engine and client-side Dart Guardrails Engine. The engines inspect source trees to detect and block architectural anti-patterns prior to test execution:
 - Prohibition of runtime reflection and dynamic duck-typing.
 - Ban on lazy dictionary fallback lookups, multi-variable fallback chains, and default fallback operators in domain code.
 - Elimination of unstructured concurrency in favor of structured task groups.
 - Prohibition of permissive model configurations and in-place mutation of frozen models.
 - Ban on anonymous multi-value state tuples, hardcoded magic timeouts, and naive timestamps.
 - Prevention of unverified persistence mocking in automated tests.
+- Elimination of permissive untyped map returns in client API clients, controllers, and providers (DGR001).
+- Ban on UI component concealment via empty box placeholders (DGR002).
+- Enforcement of compile-time localization for client UI text (DGR003).
+- Prohibition of unauthorized linter suppressions in handwritten client code (DGR004).
 
 In cognitive processing, evidentiary quotes are strictly validated against source texts using exact lexical matching and XML entity escaping, guaranteeing evidentiary integrity and eliminating quote hallucination.
 

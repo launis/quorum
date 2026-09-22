@@ -107,7 +107,7 @@
 - [x] **[OK] Semantic Coverage & Zero-Loss Audit:** Mathematically verify line coverage >90% for surviving client business logic.
 
 ### Documentation & Knowledge Item Update
-- [ ] **[NOK] As-Built Architectural Sync:** Run `/tier7-describe-architecture` to scan the codebase, anchor physical implementation maps in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
+- [x] **[OK] As-Built Architectural Sync:** Run `/tier7-describe-architecture` to scan the codebase, anchor physical implementation maps in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
 
 ### Final Epic Audit
 - [ ] **[NOK] System 2 Reverse Epic Analysis:** Run `/tier8-audit-epic @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]` to verify all requirements and Quorum 2026 invariants were physically implemented across the codebase.
@@ -163,38 +163,27 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully completed Batch 7 (the final 3 files) under Tier 2 Hardening (Frontend) for Epic 153:
-  1. `@[client_app_v2/lib/features/studio/views/widgets/step_simulation_dialog.dart]`:
-     - 104 neuro-symbolic audit matrix rules validated via `audit_matrix_manager.py`.
-     - Localized language options (`l10n.profileLanguageEn`, `l10n.profileLanguageFi`) resolving DGR003 warning.
-     - Verified by 518 passing flutter unit and widget tests (`step_simulation_dialog_test.dart`).
-     - Committed: `0a03c305 style(studio): localize target language dropdown in step_simulation_dialog`.
-     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  2. `@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`:
-     - 104 rules validated via `audit_matrix_manager.py`.
-     - Enforces centered 1200px max-width containment (EPIC 153 Section 3, Step 4.2).
-     - Authored comprehensive widget test suite `client_app_v2/test/features/studio/views/profile_editor_view_test.dart` covering negative, positive, and action partitions (all 4 tests passing).
-     - Committed: `9bc28764 test(studio): add unit and widget test suite for profile_editor_view`.
-     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-  3. `@[client_app_v2/lib/features/studio/views/widgets/studio_master_header.dart]`:
-     - 104 rules validated via `audit_matrix_manager.py`.
-     - Verified with all 4 passing widget tests in `studio_master_header_test.dart`.
-     - Clean design tokens, 0 analyzer issues, 0 guardrail violations.
-     - Marked DONE in `tmp/hardening_state.json` and `[x]` in `EPIC_153_tracker.md`.
-- All 33 files under `Tier 2 Hardening (Frontend)` are now 100% complete (`[OK]`).
-- Post-Implementation Gates Golden Master & Test Restoration Audit, Proxy Sunset, Pre-Delete, and Semantic Coverage verified and marked `[OK]`.
+- Successfully executed `/tier7-describe-architecture` for As-Built Architectural Sync:
+  1. Performed theoretical ingestion across all 6 pillar documents (`01_` through `06_`) and meta-architecture `00_README_META_ARCHITECTURE.md`.
+  2. Conducted top-down physical verification and bottom-up orphan scan; verified 0 orphans and 0 rogue legacy modules across `client_app_v2/` and `backend_v2/`.
+  3. Evaluated Knowledge Items (`ki_desktop_pro_tool_studio_ux.md` and `ki_zero_permissive_typing.md`).
+  4. Synthesized timeless, present-tense theoretical architectural descriptions into:
+     - `@[docs/architecture/01_system_context_and_invariants.md]` (Full-Duplex DTO Cross-Examination, Client-Side Static Dart Guardrails DGR001-DGR004).
+     - `@[docs/architecture/04_server_driven_ui_and_presentation.md]` (Dumb Painter matrix cell decomposition, Scalable Master List Browsing & Virtualization Standard, Desktop Modal Dismissal Protocol with serialization-based dirty checking).
+     - `@[docs/architecture/05_resilience_and_observability.md]` (Client-side static Dart guardrails DGR001-DGR004 alongside Python AST guardrails).
+  5. Synchronized physical directory map in `@[.agents/rules/04_directory_reference.md]` mapping `client_app_v2/lib/features/reports/`, updated `studio/` and `execution/` models and widgets, and updated `core/api/` clients.
+  6. Verified `audit_tracker_output.py` on tracker file (PASS with 0 errors).
 
 ## Learned
-- In `ProfileEditorView`, localized labels like `l10n.profileTabXai` ('Extensions (XAI)') and `l10n.profileTabLayouts` ('Layouts') provide precise English and Finnish localized terms across profile tabs.
-- Using `ConstrainedBox(constraints: BoxConstraints(maxWidth: 1200))` centered via `Align(alignment: Alignment.topCenter)` gives responsive containment for wide desktop monitors.
-- `_dart_guardrails.py` verified 0 fatal violations and 0 regressions across the entire `client_app_v2` codebase.
+- The Dual-Axis Documentation Paradigm cleanly isolates timeless narrative architecture in `docs/architecture/` from concrete physical paths in `.agents/rules/04_directory_reference.md`.
+- Both Python AST guardrails (QGR000-QGR018) and Dart static guardrails (DGR001-DGR004) function as automated pre-commit gates ensuring zero permissive typing and zero duct-tape UI patterns across full-stack boundaries.
 
 ## Remaining
-- Execute `/tier7-describe-architecture` for As-Built Architectural Sync to scan the codebase, anchor physical implementation maps in `docs/architecture/`, update KIs, and update `.agents/rules/04_directory_reference.md`.
 - Execute `/tier8-audit-epic @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]` for final System 2 reverse epic analysis.
 
 ## Resume Command
 ```powershell
-/tier7-describe-architecture @[docs/epic/EPIC_153_tracker.md]
+/tier8-audit-epic @[docs/epic/EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing.md]
 ```
+
 
