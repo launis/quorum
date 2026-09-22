@@ -629,12 +629,22 @@ class DAGExecutor:
                         delta_payload = processed_result.state_delta.delta
                         if delta_payload is None:
                             delta_content_dict = {}
+                        elif isinstance(delta_payload, ExecutionInputsDTO):
+                            delta_content_dict = {
+                                **dict(delta_payload.raw_inputs),
+                                **dict(delta_payload.dynamic_inputs),
+                            }
                         elif isinstance(delta_payload, BaseModel):
                             delta_content_dict = delta_payload.model_dump(mode="json")
                         elif isinstance(delta_payload, (str, int, float, bool, list)):
                             delta_content_dict = {"value": delta_payload}
                         elif isinstance(delta_payload, Mapping):
                             delta_content_dict = dict(delta_payload)
+                    elif isinstance(processed_result.state_delta, ExecutionInputsDTO):
+                        delta_content_dict = {
+                            **dict(processed_result.state_delta.raw_inputs),
+                            **dict(processed_result.state_delta.dynamic_inputs),
+                        }
                     elif isinstance(processed_result.state_delta, BaseModel):
                         delta_content_dict = processed_result.state_delta.model_dump(mode="json")
                     elif isinstance(processed_result.state_delta, (str, int, float, bool, list)):
