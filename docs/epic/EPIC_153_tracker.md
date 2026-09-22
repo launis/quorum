@@ -68,11 +68,11 @@
 - [ ] **[NOK] Proxy Sunset & Consumer Migration:** Codebase-wide search/replace of old import paths & delete deprecated proxies.
 - [ ] **[NOK] Tier 2 Hardening (Backend):** Run /tier2-hardening-backend specifying the explicit list of created/modified @-referenced backend files. (No backend production files modified in this frontend client Epic).
 - [ ] **[NOK] Tier 2 Hardening (Frontend):** Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced Flutter files:
-  - [ ] @[client_app_v2/lib/core/models/enums.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
-  - [ ] @[client_app_v2/lib/features/studio/views/workflows_master_view.dart]
+  - [x] @[client_app_v2/lib/core/models/enums.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/matrices_master_view.dart]
+  - [x] @[client_app_v2/lib/features/studio/views/workflows_master_view.dart]
   - [ ] @[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]
   - [ ] @[client_app_v2/lib/core/api/workflow_client.dart]
   - [ ] @[client_app_v2/lib/features/execution/views/new_execution_view.dart]
@@ -163,23 +163,29 @@
 # Session Handover Context
 
 ## Achieved
-- Successfully completed and audited Phase 4 Implementation Plan: `@[docs/epic/tasks_EPIC_153_Client_Pro_Tool_UX_and_Zero_Permissive_Typing/04_phase4_plan.md]`:
-  - Step 4.0: Pre-implementation cleanups completed. Replaced hardcoded grey colors in `HumanOverrideDialog` with Material 3 tokens. Eradicated `const SizedBox.shrink()` in `ProfileEditorView` (0 DGR002 violations). Replaced modal `AlertDialog` popups with inline canvas error banners in `ScaleEditorModal` and `StepSimulationDialog`.
-  - Step 4.1: Hardened `HumanOverrideDialog` with `PopScope(canPop: false)`, focus unblur, serialization dirty check (`jsonEncode != initialJson`), 480-1400px bounds, and atomic `_isSaving` lock. Authored `human_override_dialog_test.dart` passing all 6 positive/negative ISTQB boundary partitions.
-  - Step 4.2: Hardened `ScaleEditorModal` with auto-scroll via `Scrollable.ensureVisible`, inline error banner on preview failure, and clean `LayoutBuilder` containment (all 17 tests passed). Hardened `StepSimulationDialog` with `PopScope`, serialization dirty check, auto-scroll, inline error banner, and canonical bounds (all 8 tests passed). Wrapped `ProfileEditorView` form body in centered 1200px containment with relational sub-collection header triad and language-neutral indexing.
-  - Step 4.3: Executed `flutter gen-l10n`, `_dart_guardrails.py` (0 fatal, 0 DGR001/DGR002 violations in touched code), full touched widget test suite (92 tests passed 100%), and `flutter_audit_loop.py` (all clean, code formatted and analyzed).
-  - Tier 8 Red-Team Audit: `red_team_audit_phase4_plan.md` certified 100% compliant. All 4 phases of Epic 153 are now DONE!
+- Successfully audited and verified 5 files under Tier 2 Hardening (Frontend) for Epic 153:
+  - `@[client_app_v2/lib/core/models/enums.dart]`: Resolved dangling library doc comment (`library;`), verified strict `@JsonEnum` and `@JsonValue` mappings, `PromptBlockCategoryGroups`, `TargetSpeaker`, and concurrency limits (all 104 matrix rules validated).
+  - `@[client_app_v2/lib/features/studio/views/mcp_gateways_master_view.dart]`: Verified virtualized `ListView.builder` with `prototypeItem`, sticky `StudioMasterHeader`, centered 1200px max-width containment, and GoRoute string ID navigation (all 5 widget tests passed, 104 matrix rules validated).
+  - `@[client_app_v2/lib/features/studio/views/mcp_gateway_view.dart]`: Authored `mcp_gateway_view_test.dart` with positive (metadata, add/remove tool) and negative ISTQB boundary partitions (invalid JSON schema, ErrorView on missing gateway). Verified read-only ID fields, MaterialBanner error display, and Riverpod SRP separation (all 5 widget tests passed, 104 matrix rules validated).
+  - `@[client_app_v2/lib/features/studio/views/matrices_master_view.dart]`: Verified virtualized `ListView.builder` with `prototypeItem`, sticky header, instant search, and `PromptBlockCategoryGroups.matrixCategories` filtering (all 6 widget tests passed, 104 matrix rules validated).
+  - `@[client_app_v2/lib/features/studio/views/workflows_master_view.dart]`: Verified virtualized `ListView.builder` with `prototypeItem`, sticky header, instant search, and Dart 3 native `switch` pattern matching (all 5 widget tests passed, 104 matrix rules validated).
+- Updated `tmp/hardening_state.json` and tracked gates in `docs/epic/EPIC_153_tracker.md`.
 
 ## Learned
-- In `ScaleEditorModal`, placing the inline preview error banner inside `_buildDetailCanvas` (which is already inside `SingleChildScrollView`) avoids inserting an unscrollable outer flex container in `Scaffold.body`, maintaining unconstrained `LayoutBuilder` layout semantics and preventing RenderFlex overflow.
-- In Riverpod controller tests, mock exception pathways that log via `loggerServiceProvider` require overriding `loggerServiceProvider.overrideWithValue(MockLoggerService())` in `ProviderScope` to prevent uninitialized `DotEnv` exceptions in test environments.
-- In `StepSimulationDialog`, serializing input controllers and context text into an initial JSON snapshot allows robust value-based dirty checking for modal dismissal interception.
+- In `McpGatewayView`, the English localization string for invalid JSON validation is `'Invalid JSON'` (`l10n.invalidJsonError`). Ensuring widget tests query for the exact localized string prevents test assertion mismatches.
+- In `enums.dart`, adding a canonical `library;` directive immediately after top-level library doc comments cleanly satisfies the Dart linter (`dangling_library_doc_comments`) without modifying architectural semantics.
 
 ## Remaining
-- Execute Post-Implementation Gates: `/tier2-hardening-frontend` -> `/tier7-describe-architecture` -> `/tier8-audit-epic`.
+- Continue Tier 2 Hardening (Frontend) for the remaining 30 Flutter files in `### Post-Implementation Gates`:
+  - `@[client_app_v2/lib/features/studio/views/output_profile_list_view.dart]`
+  - `@[client_app_v2/lib/core/api/workflow_client.dart]`
+  - `@[client_app_v2/lib/features/execution/views/new_execution_view.dart]`
+  - ... and subsequent files.
+- Complete subsequent Post-Implementation Gates: `/tier7-describe-architecture` -> `/tier8-audit-epic`.
 
 ## Resume Command
 ```powershell
 /tier2-hardening-frontend @[docs/epic/EPIC_153_tracker.md]
 ```
+
 
