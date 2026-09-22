@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
@@ -66,10 +67,12 @@ class TestExecutionCoreFieldsDefaults:
         instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
         assert instance.execution_trace_storage_path is None
 
-    def test_default_context_variables_is_empty_dict(self) -> None:
-        """Context variables must default to an empty dict."""
+    def test_default_context_variables_is_empty_dto(self) -> None:
+        """Context variables must default to an empty ContextVariablesDTO."""
         instance = ExecutionCoreFields.model_validate({"target_locale": "en"})
-        assert instance.context_variables == {}
+        assert isinstance(instance.context_variables, ContextVariablesDTO)
+        assert len(instance.context_variables) == 0
+        assert instance.context_variables.variables == {}
 
     def test_default_context_variables_storage_path_is_none(self) -> None:
         """Context variables storage path must default to None."""

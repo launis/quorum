@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import ItemsView, KeysView, ValuesView
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -22,7 +22,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     schemas: Annotated[
-        dict[str, Any],
+        dict[str, JsonValue],
         Field(default_factory=dict, description="Mapping of step IDs to schema definitions"),
     ] = Field(default_factory=dict)
 
@@ -37,7 +37,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return key in self.schemas
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> JsonValue:
         """Retrieve schema definition by step or schema ID.
 
         Args:
@@ -64,7 +64,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return self.schemas.keys()
 
-    def items(self) -> ItemsView[str, Any]:
+    def items(self) -> ItemsView[str, JsonValue]:
         """Return schema items.
 
         Returns:
@@ -72,7 +72,7 @@ class GeneratedSchemaManifestDTO(V2CoreBase):
         """
         return self.schemas.items()
 
-    def values(self) -> ValuesView[Any]:
+    def values(self) -> ValuesView[JsonValue]:
         """Return schema values.
 
         Returns:

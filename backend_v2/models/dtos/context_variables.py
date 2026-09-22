@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import ItemsView, KeysView, Mapping, ValuesView
 from typing import Annotated, Self
 
-from pydantic import AliasChoices, ConfigDict, Field, TypeAdapter
+from pydantic import AliasChoices, ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
@@ -13,7 +13,9 @@ from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
-__all__ = ["ContextVariablesDTO"]
+type ContextVariableValue = DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO
+
+__all__ = ["ContextVariableValue", "ContextVariablesDTO"]
 
 
 class ContextVariablesDTO(V2CoreBase):
@@ -56,7 +58,7 @@ class ContextVariablesDTO(V2CoreBase):
 
     def with_update(
         self,
-        **updates: DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO | LightweightMatrixOutput,
+        **updates: ContextVariableValue,
     ) -> Self:
         """Return a new immutable instance with updated fields or dynamic blackboard variables."""
         known_fields = {
@@ -81,102 +83,38 @@ class ContextVariablesDTO(V2CoreBase):
         field_updates["variables"] = var_updates
         return self.model_copy(update=field_updates)
 
-    def to_dict(self) -> dict[str, object]:
-        """Convert to flat dictionary for database serialization boundary."""
-        res: dict[str, object] = dict(self.variables)
-        if self.global_atom_blackboard is not None:
-            res["__GLOBAL_ATOM_BLACKBOARD__"] = self.global_atom_blackboard
-        if self.matrix_reducer_output is not None:
-            res["__MATRIX_REDUCER_OUTPUT__"] = self.matrix_reducer_output
-        if self.report_context is not None:
-            res["report_context"] = self.report_context
-        if self.step_detector is not None:
-            res["step_detector"] = self.step_detector
-        if self.evaluated_matrices is not None:
-            res["evaluated_matrices"] = self.evaluated_matrices
-        return res
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, DomainInputValue] | None) -> Self:
-        """Hydrate ContextVariablesDTO from a dictionary."""
-        if not data:
-            return cls()
-        global_atom_blackboard: GlobalAtomBlackboard | None = None
-        matrix_reducer_output: LightweightMatrixDTO | LightweightMatrixOutput | None = None
-        report_context: DomainInputValue | None = None
-        step_detector: DomainInputValue | None = None
-        evaluated_matrices: DomainInputValue | None = None
-        variables: dict[str, DomainInputValue] = {}
-
-        if "variables" in data and isinstance(data["variables"], Mapping):
-            for vk, vv in data["variables"].items():
-                variables[str(vk)] = vv
-
-        for k, v in data.items():
-            if k == "variables":
-                continue
-            if k in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
-                if isinstance(v, GlobalAtomBlackboard) or v is None:
-                    global_atom_blackboard = v
-                elif isinstance(v, Mapping):
-                    global_atom_blackboard = GlobalAtomBlackboard.model_validate(v)
-            elif k in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
-                if isinstance(v, (LightweightMatrixDTO, LightweightMatrixOutput)) or v is None:
-                    matrix_reducer_output = v
-                elif isinstance(v, Mapping):
-                    matrix_reducer_output = TypeAdapter(LightweightMatrixDTO | LightweightMatrixOutput).validate_python(
-                        v
-                    )
-            elif k == "report_context":
-                report_context = v
-            elif k == "step_detector":
-                step_detector = v
-            elif k == "evaluated_matrices":
-                evaluated_matrices = v
-            else:
-                variables[k] = v
-
-        return cls(
-            global_atom_blackboard=global_atom_blackboard,
-            matrix_reducer_output=matrix_reducer_output,
-            report_context=report_context,
-            step_detector=step_detector,
-            evaluated_matrices=evaluated_matrices,
-            variables=variables,
-        )
-
-    def __getitem__(self, key: str) -> object:
-        """Allow subscript access for backward-compatible blackboard lookups."""
+    def __getitem__(self, key: str) -> ContextVariableValue:
+        """Retrieve variable by key. Fail-fast with KeyError on absent keys."""
         if key in ("__GLOBAL_ATOM_BLACKBOARD__", "global_atom_blackboard"):
             if self.global_atom_blackboard is not None:
                 return self.global_atom_blackboard
             if key in self.variables:
                 return self.variables[key]
-            return None
+            raise KeyError(key)
         if key in ("__MATRIX_REDUCER_OUTPUT__", "matrix_reducer_output"):
             if self.matrix_reducer_output is not None:
                 return self.matrix_reducer_output
             if key in self.variables:
                 return self.variables[key]
-            return None
+            raise KeyError(key)
         if key == "report_context":
             if self.report_context is not None:
                 return self.report_context
             if key in self.variables:
                 return self.variables[key]
-            return None
+            raise KeyError(key)
         if key == "step_detector":
             if self.step_detector is not None:
                 return self.step_detector
             if key in self.variables:
                 return self.variables[key]
-            return None
+            raise KeyError(key)
         if key == "evaluated_matrices":
             if self.evaluated_matrices is not None:
                 return self.evaluated_matrices
             if key in self.variables:
                 return self.variables[key]
-            return None
+            raise KeyError(key)
         if key in self.variables:
             return self.variables[key]
         raise KeyError(key)
@@ -196,3 +134,44 @@ class ContextVariablesDTO(V2CoreBase):
         if key == "evaluated_matrices" and self.evaluated_matrices is not None:
             return True
         return key in self.variables
+
+    def _to_view_dict(self) -> dict[str, ContextVariableValue]:
+        """Materialize active keys and values for dictionary views."""
+        d: dict[str, ContextVariableValue] = dict(self.variables)
+        if self.global_atom_blackboard is not None:
+            d["__GLOBAL_ATOM_BLACKBOARD__"] = self.global_atom_blackboard
+            d["global_atom_blackboard"] = self.global_atom_blackboard
+        if self.matrix_reducer_output is not None:
+            d["__MATRIX_REDUCER_OUTPUT__"] = self.matrix_reducer_output
+            d["matrix_reducer_output"] = self.matrix_reducer_output
+        if self.report_context is not None:
+            d["report_context"] = self.report_context
+        if self.step_detector is not None:
+            d["step_detector"] = self.step_detector
+        if self.evaluated_matrices is not None:
+            d["evaluated_matrices"] = self.evaluated_matrices
+        return d
+
+    def __len__(self) -> int:
+        """Return total count of distinct keys."""
+        return len(self._to_view_dict())
+
+    def keys(self) -> KeysView[str]:
+        """Return a view of all present keys."""
+        return self._to_view_dict().keys()
+
+    def values(self) -> ValuesView[ContextVariableValue]:
+        """Return a view of all present values."""
+        return self._to_view_dict().values()
+
+    def items(self) -> ItemsView[str, ContextVariableValue]:
+        """Return a view of all present key-value pairs."""
+        return self._to_view_dict().items()
+
+    @classmethod
+    def empty(cls) -> Self:
+        """Convenience constructor for empty blackboard."""
+        return cls(variables={})
+
+
+Mapping.register(ContextVariablesDTO)

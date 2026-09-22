@@ -1,9 +1,17 @@
-from typing import Annotated, Any
+from __future__ import annotations
 
-from pydantic import ConfigDict, Field
+from typing import Annotated
+
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxExecutionStatus
+
+__all__ = [
+    "LightweightMatrixDTO",
+    "ReasoningStepDTO",
+    "ReducedAtomDTO",
+]
 
 
 class ReasoningStepDTO(V2CoreBase):
@@ -28,7 +36,7 @@ class ReducedAtomDTO(V2CoreBase):
     status: LaxExecutionStatus
     reasoning: str | None = None
     source_quote: str | None = None
-    extracted_data: dict[str, Any] | None = None
+    extracted_data: dict[str, JsonValue] | None = None
 
 
 class LightweightMatrixDTO(V2CoreBase):
@@ -38,12 +46,12 @@ class LightweightMatrixDTO(V2CoreBase):
 
     execution_id: str
     reduced_atoms: list[ReducedAtomDTO]
-    global_metrics: dict[str, Any]
+    global_metrics: dict[str, JsonValue]
     evaluated_matrices: Annotated[
-        list[dict[str, Any]],
+        list[dict[str, JsonValue]],
         Field(default_factory=list, description="Evaluated matrix references"),
     ]
     raw_extensions: Annotated[
-        list[dict[str, Any]],
+        list[dict[str, JsonValue]],
         Field(default_factory=list, description="Raw XAI extensions from execution trace"),
     ]

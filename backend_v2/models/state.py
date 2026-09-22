@@ -23,7 +23,7 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.execution_core import ExecutionCoreFields
+from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -267,6 +267,7 @@ from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.xai import XAIOutput
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
@@ -274,6 +275,8 @@ _state_localns = {
     **{k: v for k, v in _inputs_mod.__dict__.items() if not k.startswith("__")},
     **{k: v for k, v in _step_output_mod.__dict__.items() if not k.startswith("__")},
     "Any": Any,
+    "ContextVariablesDTO": ContextVariablesDTO,
+    "ExecutionMetadata": ExecutionMetadata,
     "MCPAuditTrace": MCPAuditTrace,
     "TraceEvent": TraceEvent,
     "ErrorTraceEvent": ErrorTraceEvent,

@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+    from backend_v2.models.dtos.context_variables import ContextVariablesDTO
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 from pydantic import ConfigDict, Field, field_validator
@@ -198,7 +199,7 @@ class ExecutionRecord(ExecutionCoreFields):
         target_locale: str = Field(...)
         execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
         execution_trace_storage_path: str | None = Field(default=None)
-        context_variables: dict[str, Any] = Field(default_factory=dict)
+        context_variables: ContextVariablesDTO = Field(default_factory=ContextVariablesDTO)
         context_variables_storage_path: str | None = Field(default=None)
         progress: int | None = Field(default=None)
         status_message: str | None = Field(default=None)

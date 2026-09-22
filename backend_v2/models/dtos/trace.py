@@ -11,7 +11,6 @@ from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
-from backend_v2.models.execution_core import ExecutionMetadata
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.execution import (
@@ -23,6 +22,8 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.usage import TokenUsage
+    from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+    from backend_v2.models.execution_core import ExecutionMetadata
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 __all__ = [
@@ -88,7 +89,7 @@ class ExecutionUpdateDTO(BaseDTO):
     output_profile_id: Annotated[str | None, Field(default=None, description="Target profile ID")] = None
     metadata: Annotated[ExecutionMetadata | None, Field(default=None, description="Execution metadata SSOT")] = None
     context_variables: Annotated[
-        dict[str, Any] | None,
+        ContextVariablesDTO | None,
         Field(default=None, description="Dynamic blackboard dictionary"),
     ] = None
     is_resumable: Annotated[bool | None, Field(default=None, description="Resumable execution flag")] = None

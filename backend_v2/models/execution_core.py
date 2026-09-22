@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LLMProvider
 
@@ -88,9 +89,9 @@ class ExecutionCoreFields(V2CoreBase):
         Field(default=None, description="Path to offloaded trace JSON in Cloud Storage."),
     ]
     context_variables: Annotated[
-        dict[str, Any],
-        Field(default_factory=dict, description="Current snapshots of context variables (the dynamic blackboard)."),
-    ]
+        ContextVariablesDTO,
+        Field(default_factory=ContextVariablesDTO, description="Current snapshots of context variables (the dynamic blackboard)."),
+    ] = Field(default_factory=ContextVariablesDTO)
     context_variables_storage_path: Annotated[
         str | None,
         Field(default=None, description="Path to offloaded context variables JSON in Cloud Storage."),

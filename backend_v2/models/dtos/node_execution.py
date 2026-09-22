@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState
 from backend_v2.models.domain.inputs import DomainInputValue
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
@@ -47,7 +48,7 @@ class NodeExecutionUpdateDTO(V2CoreBase):
     step_states: Annotated[dict[str, ExecutionStepState], Field(description="Step states mapping")]
     frozen_context: Annotated[Any | None, Field(default=None, description="Frozen context snapshot")] = None
     context_variables: Annotated[
-        dict[str, Any] | None, Field(default=None, description="Context variables mapping")
+        ContextVariablesDTO | None, Field(default=None, description="Context variables mapping")
     ] = None
     error: Annotated[str | None, Field(default=None, description="Error message if failed")] = None
     steps: Annotated[list[ExecutionStep] | None, Field(default=None, description="Execution steps list")] = None
@@ -58,17 +59,15 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         Returns:
             ExecutionUpdateDTO populated with instance fields.
         """
-        data: dict[str, Any] = {
-            "status": self.status,
-            "execution_trace": self.execution_trace,
-            "step_states": self.step_states,
-            "frozen_context": self.frozen_context,
-            "context_variables": self.context_variables,
-            "error": self.error,
-        }
-        if self.steps is not None:
-            data["steps"] = self.steps
-        return ExecutionUpdateDTO.model_validate(data)
+        return ExecutionUpdateDTO(
+            status=self.status,
+            execution_trace=self.execution_trace,
+            step_states=self.step_states,
+            frozen_context=self.frozen_context,
+            context_variables=self.context_variables,
+            error=self.error,
+            steps=self.steps,
+        )
 
 
 class LogicNodeStateDTO(V2CoreBase):

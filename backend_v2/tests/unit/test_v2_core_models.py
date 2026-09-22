@@ -82,11 +82,12 @@ def test_execution_record_has_context_variables() -> None:
         "target_locale": "fi",
         "metadata": {},
         "raw_inputs": {},
-        "context_variables": {"report_context": {"output_extensions": []}},
+        "context_variables": {"report_context": "summary text"},
     }
 
     record = ExecutionRecord.model_validate(data, strict=False)
-    assert record.context_variables == {"report_context": {"output_extensions": []}}
+    assert record.context_variables.report_context == "summary text"
+    assert record.context_variables["report_context"] == "summary text"
 
 
 def test_execution_core_fields_inheritance_on_execution_record() -> None:
