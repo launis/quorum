@@ -35,17 +35,41 @@ __all__ = [
 
 MAX_TOTAL_PENALTY_RATIO: float = 0.40
 
+SCORING_PAYLOAD_KEYS: frozenset[str] = frozenset(
+    {
+        "sanitization_result",
+        "step_input_processing",
+        "step_falsifier",
+        "step_panel",
+        "_evaluative_matrices",
+        "evaluative_matrices",
+        "passivity_detected",
+        "justification",
+    }
+)
+
+STATE_INPUT_KEYS: frozenset[str] = frozenset(
+    {
+        "steps",
+        "inputs",
+        "raw_inputs",
+        "passivity_detected",
+        "_evaluative_matrices",
+        "evaluative_matrices",
+    }
+)
+
 
 class ScoringPayloadWrapper(V2CoreBase):
     """Wrapper for intermediate payload extraction during scoring logic execution."""
 
-    model_config = ConfigDict(strict=True, extra="ignore", frozen=True, from_attributes=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, from_attributes=True)
 
     sanitization_result: SanitizationResultDTO | None = None
     step_input_processing: InputProcessingOutputDTO | None = None
     step_falsifier: StepFalsifierDTO | None = None
     step_panel: StepPanelDTO | None = None
-    evaluative_matrices: Annotated[dict[str, float] | None, Field(alias="_evaluative_matrices")] = None
+    evaluative_matrices: Annotated[dict[str, float] | None, Field(default=None, alias="_evaluative_matrices")] = None
     passivity_detected: bool | None = None
     justification: str | None = None
 
@@ -68,11 +92,11 @@ class ScoringPayloadWrapper(V2CoreBase):
 class StateInputWrapper(V2CoreBase):
     """Wrapper for structured state inputs passed into the scoring context."""
 
-    model_config = ConfigDict(strict=True, extra="ignore", frozen=True, from_attributes=True)
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, from_attributes=True)
 
     steps: list[StepOutputDTO] | None = None
-    inputs: ExecutionInputsDTO | dict[str, Any] | None = None
-    raw_inputs: ExecutionInputsDTO | dict[str, Any] | None = None
+    inputs: ExecutionInputsDTO | None = None
+    raw_inputs: ExecutionInputsDTO | None = None
     passivity_detected: bool | None = None
     evaluative_matrices: Annotated[dict[str, float] | None, Field(default=None, alias="_evaluative_matrices")] = None
 
@@ -97,7 +121,10 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
             hydrated_state = data
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
-            hydrated_state = StateInputWrapper.model_validate(raw_source)
+            filtered_source: dict[str, Any] = {}
+            if isinstance(raw_source, Mapping):
+                filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
+            hydrated_state = StateInputWrapper.model_validate(filtered_source)
     except ValidationError as e:
         msg = f"Strict Fail-Fast Enforced: Execution snapshot validation failed: {e}"
         logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -126,6 +153,8 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 ) from e
+        if isinstance(valid_dto.payload, Mapping) and SCORING_PAYLOAD_KEYS.isdisjoint(valid_dto.payload.keys()):
+            continue
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
             if wrapper.has_scoring_data:
@@ -167,6 +196,12 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                         if k == "_evaluative_matrices":
                             continue
                         if isinstance(val, (str, int, float, bool, list)) or val is None:
+                            continue
+                        if (
+                            k not in SCORING_PAYLOAD_KEYS
+                            and isinstance(val, Mapping)
+                            and SCORING_PAYLOAD_KEYS.isdisjoint(val.keys())
+                        ):
                             continue
                         try:
                             wrapper = ScoringPayloadWrapper.model_validate(val)
@@ -261,7 +296,10 @@ def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> boo
             hydrated_state = data
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
-            hydrated_state = StateInputWrapper.model_validate(raw_source)
+            filtered_source: dict[str, Any] = {}
+            if isinstance(raw_source, Mapping):
+                filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
+            hydrated_state = StateInputWrapper.model_validate(filtered_source)
         if hydrated_state.passivity_detected is True:
             return True
     except ValidationError as e:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
 
 from pydantic import ValidationError
 
@@ -16,10 +15,12 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxXaiExtensionType
@@ -247,27 +248,36 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
     return HookResult(success=True, state_delta=HookDeltaDTO())
 
 
-async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: HookDependencies) -> dict[str, Any]:
+async def recalculate(
+    payload: ContextVariablesDTO, profile_id: str | None, deps: HookDependencies
+) -> ContextVariablesDTO:
     """Decoupled Hybrid Calculation for matrix scores.
 
     Recalculates matrix scores by analyzing the atoms present in the payload.
-    Prioritizes 'human_override' values if present. Returns updated dictionary without in-place mutation.
+    Prioritizes 'human_override' values if present. Returns updated ContextVariablesDTO without in-place mutation.
 
     Args:
-        payload: The state dictionary to calculate.
+        payload: The ContextVariablesDTO state to calculate.
         profile_id: Output Profile ID defining strictness and strategy.
         deps: Hook dependencies for fetching config.
 
     Returns:
-        New dictionary with updated matrix calculation payloads and atom counts.
+        New ContextVariablesDTO with updated matrix calculation payloads and atom counts.
 
     Raises:
-        AppException: With ErrorCodes.VALIDATION_FAILED if matrix format or extensions are invalid.
+        AppException: With ErrorCodes.VALIDATION_FAILED if payload type, matrix format, or extensions are invalid.
     """
-    if profile_id is None:
-        return dict(payload)
+    if not isinstance(payload, ContextVariablesDTO):
+        msg = f"Strict Fail-Fast Enforced: recalculate requires ContextVariablesDTO, got {type(payload).__name__}."
+        logger.error("[ScoringHook] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+        raise AppException(
+            message=msg,
+            status_code=400,
+            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+        )
 
-    result_payload = dict(payload)
+    if profile_id is None:
+        return payload
 
     profile_dict = await deps.output_profile_repo.get_output_profile_by_id(profile_id)
     if not profile_dict:
@@ -336,6 +346,7 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
                 message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
             ) from e
 
+    variable_updates: dict[str, DomainInputValue] = {}
     for pb_id in matrix_keys:
         raw_data = payload[pb_id]
         existing_matrix = LightweightMatrixOutput.model_validate(raw_data)
@@ -440,8 +451,8 @@ async def recalculate(payload: dict[str, Any], profile_id: str | None, deps: Hoo
             allowed_extensions=allowed_exts,
         )
 
-        result_payload[pb_id] = parsed_payload.model_dump(mode="json", exclude_none=True)
+        variable_updates[pb_id] = parsed_payload
 
-    result_payload["true_atoms_count"] = total_true_atoms
-    result_payload["false_atoms_count"] = total_false_atoms
-    return result_payload
+    variable_updates["true_atoms_count"] = total_true_atoms
+    variable_updates["false_atoms_count"] = total_false_atoms
+    return payload.with_update(**variable_updates)

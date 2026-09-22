@@ -27,6 +27,7 @@ from backend_v2.hooks.scoring import (
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_delta import (
     MatrixHookResultDTO,
     PassivityDetectionResultDTO,
@@ -625,13 +626,15 @@ async def test_normalize_matrix_scores_recalculate_invalid_lightweight_matrix_ra
     scales = [_build_valid_scale(1, ["atom_1"])]
     pb_dict = _build_valid_pb_dict("pb_1234567890123456", scales=scales)
 
-    payload: dict[str, Any] = {
-        "pb_1234567890123456": {
-            "evaluated_atoms": {"atom_1": "PASSED"},
-            "justification": "some text",
-            "raw_score": "not_a_float",
+    payload = ContextVariablesDTO.model_construct(
+        variables={
+            "pb_1234567890123456": {
+                "evaluated_atoms": {"atom_1": "PASSED"},
+                "justification": "some text",
+                "raw_score": "not_a_float",
+            }
         }
-    }
+    )
 
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
@@ -707,9 +710,11 @@ async def test_normalize_matrix_scores_recalculate_success() -> None:
         extensions={},
     )
 
-    payload: dict[str, Any] = {
-        "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
-    }
+    payload = ContextVariablesDTO(
+        variables={
+            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+        }
+    )
 
     mock_repo = MockRepoWaterfall()
     mock_repo.pb_id = "pb_1234567890123456"
@@ -780,9 +785,11 @@ async def test_recalculate_unsupported_xai_extension_raises() -> None:
         extensions={},
     )
 
-    payload: dict[str, Any] = {
-        "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
-    }
+    payload = ContextVariablesDTO(
+        variables={
+            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+        }
+    )
 
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
@@ -836,7 +843,7 @@ async def test_recalculate_none_profile_returns_early() -> None:
     """Test that recalculate returns early when profile_id is None."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    payload: dict[str, Any] = {"pb_1": 123}
+    payload = ContextVariablesDTO(variables={"pb_1": 123})
     mock_workflow = AsyncMock()
     deps = HookDependencies(
         exec_repo=cast(Any, mock_workflow),
@@ -849,8 +856,8 @@ async def test_recalculate_none_profile_returns_early() -> None:
         system_repo=cast(Any, mock_workflow),
     )
 
-    await recalculate(payload, None, deps)
-    assert payload == {"pb_1": 123}
+    result = await recalculate(payload, None, deps)
+    assert result == payload
 
 
 @pytest.mark.asyncio
@@ -858,7 +865,7 @@ async def test_recalculate_profile_not_found_raises() -> None:
     """Test recalculate raises VALIDATION_FAILED when output profile is not found."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    payload: dict[str, Any] = {"pb_1": 123}
+    payload = ContextVariablesDTO(variables={"pb_1": 123})
     mock_workflow = AsyncMock()
     mock_workflow.get_output_profile_by_id.return_value = None
     deps = HookDependencies(
@@ -881,7 +888,7 @@ async def test_recalculate_workflow_not_found_raises() -> None:
     """Test recalculate raises VALIDATION_FAILED when associated workflow is not found."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    payload: dict[str, Any] = {"pb_1": 123}
+    payload = ContextVariablesDTO(variables={"pb_1": 123})
     mock_workflow = AsyncMock()
     mock_workflow.get_output_profile_by_id.return_value = {
         "id": "prof_1111111111111111",
@@ -976,9 +983,11 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
         },
         extensions={},
     )
-    payload: dict[str, Any] = {
-        "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
-    }
+    payload = ContextVariablesDTO(
+        variables={
+            "pb_1234567890123456": matrix_dto.model_dump(mode="json"),
+        }
+    )
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_dict
     mock_workflow.get_workflow_by_id.return_value = {
@@ -1019,7 +1028,9 @@ async def test_recalculate_indeterminate_and_na_atom_coverage() -> None:
         system_repo=cast(Any, mock_workflow),
     )
     recalculated = await recalculate(payload, "prof_1111111111111111", deps)
-    assert "[INDETERMINATE]" in recalculated["pb_1234567890123456"]["justification"]
+    pb_output = recalculated["pb_1234567890123456"]
+    assert isinstance(pb_output, LightweightMatrixOutput)
+    assert "[INDETERMINATE]" in pb_output.justification
 
 
 @pytest.mark.asyncio
@@ -1035,9 +1046,11 @@ async def test_recalculate_skips_non_matrix_prompt_block() -> None:
         evaluated_atoms={"atom_1": ExecutionStatus.PASSED},
         extensions={},
     )
-    payload: dict[str, Any] = {
-        "pi_1234567890123456": matrix_dto.model_dump(mode="json"),
-    }
+    payload = ContextVariablesDTO(
+        variables={
+            "pi_1234567890123456": matrix_dto.model_dump(mode="json"),
+        }
+    )
     mock_workflow = AsyncMock()
     mock_workflow.get_prompt_block_by_id.return_value = pb_instruction
     mock_workflow.get_workflow_by_id.return_value = {
@@ -4394,7 +4407,7 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
     )
 
     with pytest.raises(AppException) as exc:
-        await recalculate({"blk_1111222233334444": {}}, "prf_1111222233334444", deps)
+        await recalculate(ContextVariablesDTO(variables={"blk_1111222233334444": {}}), "prf_1111222233334444", deps)
     assert exc.value.error_code == "VALIDATION_FAILED"
 
 
@@ -4443,7 +4456,7 @@ async def test_falsifier_hook_coverage_branches() -> None:
 
     # 3. Invalid top-level _evaluative_matrices raises
     invalid_top_level = StateInputWrapper(
-        raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": "not-a-float"}},
+        raw_inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "_evaluative_matrices": {"blk_1": "not-a-float"}}),
         steps=[],
     )
     with pytest.raises(AppException) as exc2:
@@ -4452,12 +4465,33 @@ async def test_falsifier_hook_coverage_branches() -> None:
 
     # 4. Invalid scoring payload in extra_dict raises
     invalid_extra = StateInputWrapper(
-        raw_inputs={"steps": [], "step_falsifier": {"step_falsifier": "not-a-dto"}},
+        raw_inputs=ExecutionInputsDTO(raw_inputs={"steps": [], "step_falsifier": {"step_falsifier": "not-a-dto"}}),
         steps=[],
     )
     with pytest.raises(AppException) as exc3:
         _extract_payloads(invalid_extra)
     assert "Invalid scoring payload for key 'step_falsifier'" in exc3.value.message
+
+
+@pytest.mark.asyncio
+async def test_recalculate_fails_fast_on_raw_dict() -> None:
+    """Test that passing a raw dict to recalculate fails fast with VALIDATION_FAILED."""
+    from backend_v2.hooks.scoring.normalization_hook import recalculate
+
+    deps = HookDependencies(
+        exec_repo=cast(Any, AsyncMock()),
+        workflow_repo=cast(Any, AsyncMock()),
+        comp_repo=cast(Any, AsyncMock()),
+        prompt_block_repo=cast(Any, AsyncMock()),
+        output_profile_repo=cast(Any, AsyncMock()),
+        identity_repo=cast(Any, AsyncMock()),
+        audit_repo=cast(Any, AsyncMock()),
+        system_repo=cast(Any, AsyncMock()),
+    )
+    with pytest.raises(AppException) as exc:
+        await recalculate({"raw": "dict"}, "prf_123", deps)  # type: ignore[arg-type]
+    assert exc.value.error_code == "VALIDATION_FAILED"
+    assert "recalculate requires ContextVariablesDTO" in exc.value.message
 
 
 @pytest.mark.asyncio

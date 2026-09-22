@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 if TYPE_CHECKING:
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
@@ -21,7 +21,7 @@ from pydantic import ConfigDict, Field, field_validator
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
 from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.system_config import DataDictionaryField, MCPAuditTrace
-from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.context_variables import EvaluatedMatrixContextDTO
 from backend_v2.models.dtos.matrix_scorecard import ScorecardAtomDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 from backend_v2.models.dtos.theory_manifest import InjectedTheoryManifestDTO
@@ -173,20 +173,6 @@ class ExecutionSummarySnapshot(V2CoreBase):
     system_concurrency_snapshot: dict[str, int] = Field(
         default_factory=dict, description="Concurrency metric snapshot at termination"
     )
-
-
-class EvaluatedMatrixContextDTO(V2CoreBase):
-    """DTO for evaluated matrix context within execution context_variables."""
-
-    model_config = ConfigDict(strict=True, extra="forbid")
-    evaluated_atoms: Annotated[
-        dict[str, str],
-        Field(default_factory=dict, description="Map of atom IDs to evaluation status"),
-    ]
-    raw_atoms: Annotated[
-        list[EvaluatedAtomDTO],
-        Field(default_factory=list, description="Raw evaluated atom payloads"),
-    ] = Field(default_factory=list)
 
 
 class ExecutionRecord(ExecutionCoreFields):

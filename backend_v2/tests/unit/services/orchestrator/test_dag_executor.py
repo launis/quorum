@@ -13,6 +13,7 @@ from backend_v2.models.domain.execution import ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
@@ -158,7 +159,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
         status=ExecutionStatus.PENDING,
         step_states={},
         error="test error",
-        context_variables={"test_key": "test_val"},
+        context_variables=ContextVariablesDTO(variables={"test_key": "test_val"}),
     )
 
     mock_repo.update_execution.assert_called_once()
@@ -166,7 +167,7 @@ async def test_execution_committer_commit_trace(mock_repo: Any) -> None:
     assert args[0] == "exec_123"
     assert args[1].status == ExecutionStatus.PENDING
     assert args[1].error == "test error"
-    assert args[1].context_variables == {"test_key": "test_val"}
+    assert args[1].context_variables == ContextVariablesDTO(variables={"test_key": "test_val"})
 
 
 @pytest.mark.asyncio
@@ -1021,7 +1022,7 @@ async def test_dag_executor_progress_callback_and_context_updates(mock_repo: Any
             workflow=workflow,
             raw_inputs=WorkflowInputs(dynamic_inputs={}),
         )
-        assert record.context_variables.get("custom_var") == "updated_value"
+        assert record.context_variables["custom_var"] == "updated_value"
 
 
 @pytest.mark.asyncio

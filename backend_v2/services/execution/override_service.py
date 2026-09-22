@@ -21,6 +21,7 @@ from backend_v2.hooks import scoring
 from backend_v2.models.auth import TokenData
 from backend_v2.models.domain.execution import EvaluatedMatrixContextDTO, ExecutionRecord
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.context_variables import ContextVariableValue
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideDTO, HumanOverrideRequest
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.state import EvidenceOverrideDTO, TraceEvent
@@ -179,20 +180,25 @@ class ExecutionOverrideService:
         )
         record = record.model_copy(update={"step_states": new_step_states})
 
-        updated_context_vars = dict(record.context_variables)
-        for k, v in updated_context_vars.items():
+        cv_updates: dict[str, ContextVariableValue] = {}
+        for k, v in record.context_variables.variables.items():
             if isinstance(v, EvaluatedMatrixContextDTO):
                 matrix_ctx = v
                 if atom_id in matrix_ctx.evaluated_atoms:
-                    matrix_ctx.evaluated_atoms[atom_id] = payload.new_status
+                    new_evaluated_atoms = dict(matrix_ctx.evaluated_atoms)
+                    new_evaluated_atoms[atom_id] = payload.new_status
                     updated_raw_atoms = [
                         ra.model_copy(update={"human_override": payload.new_status})
                         if (ra.tda_id == atom_id or ra.atom_id == atom_id)
                         else ra
                         for ra in matrix_ctx.raw_atoms
                     ]
-                    updated_context_vars[k] = matrix_ctx.model_copy(update={"raw_atoms": updated_raw_atoms})
-        record = record.model_copy(update={"context_variables": updated_context_vars})
+                    cv_updates[k] = matrix_ctx.model_copy(
+                        update={"evaluated_atoms": new_evaluated_atoms, "raw_atoms": updated_raw_atoms}
+                    )
+        if cv_updates:
+            updated_context_vars = record.context_variables.with_update(**cv_updates)
+            record = record.model_copy(update={"context_variables": updated_context_vars})
 
         if (
             self.comp_repo is None

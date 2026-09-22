@@ -11,6 +11,7 @@ from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_evaluation import ReasoningStepDTO
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest, ScorecardAtomDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode, VisualIntent
 from backend_v2.services.execution.override_service import ExecutionOverrideService
@@ -66,7 +67,7 @@ def _create_mock_record(
         pdf_report_path=pdf_path,
         step_states={"sr_1": step_state},
         profile_syntheses={"prf_0123456789abcdef": RenderedSynthesisCache()},
-        context_variables={},
+        context_variables=ContextVariablesDTO(),
     )
 
 
@@ -111,7 +112,7 @@ async def test_override_atom_success() -> None:
     )
 
     with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
-        mock_recalc.return_value = {"recalculated": True}
+        mock_recalc.return_value = ContextVariablesDTO(variables={"recalculated": True})
         await service.override_atom(
             initiator=initiator,
             execution_id=record.id,
@@ -122,7 +123,7 @@ async def test_override_atom_success() -> None:
         mock_recalc.assert_called_once()
         assert exec_repo.update_execution.called
         update_dto = exec_repo.update_execution.call_args[0][1]
-        assert update_dto.context_variables == {"recalculated": True}
+        assert update_dto.context_variables == ContextVariablesDTO(variables={"recalculated": True})
         updated_atom = update_dto.step_states["sr_1"].scorecard_atoms["tda_1"]
         assert updated_atom.human_override is not None
         assert updated_atom.human_override.new_status == ExecutionStatus.PASSED
@@ -143,7 +144,7 @@ async def test_override_atom_with_evaluated_matrix_context() -> None:
         evaluated_atoms={"tda_1": ExecutionStatus.FAILED},
         raw_atoms=[raw_atom],
     )
-    record = record.model_copy(update={"context_variables": {"mat_1": matrix_ctx}})
+    record = record.model_copy(update={"context_variables": ContextVariablesDTO(variables={"mat_1": matrix_ctx})})
     exec_repo.get_execution = AsyncMock(return_value=record)
 
     initiator = TokenData(id="usr_1", role=UserRole.MEMBER, organization_id="org_1")
@@ -154,7 +155,7 @@ async def test_override_atom_with_evaluated_matrix_context() -> None:
     )
 
     with patch("backend_v2.hooks.scoring.recalculate", new_callable=AsyncMock) as mock_recalc:
-        mock_recalc.return_value = {}
+        mock_recalc.return_value = ContextVariablesDTO()
         await service.override_atom(
             initiator=initiator,
             execution_id=record.id,

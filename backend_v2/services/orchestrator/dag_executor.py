@@ -13,7 +13,7 @@ import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend_v2.core.hook_registry import (
@@ -86,7 +86,7 @@ class ExecutionCommitter:
         step_states: dict[str, ExecutionStepState],
         error: str | None = None,
         frozen_context: Any | None = None,
-        context_variables: ContextVariablesDTO | Mapping[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | None = None,
         steps: list[ExecutionStep] | None = None,
     ) -> None:
         """Flushes the event array to persistent DB safely.
@@ -104,19 +104,12 @@ class ExecutionCommitter:
             AppException: Triggered with PROGRESS_UPDATE_FAILED if db commit transaction fails.
         """
         try:
-            cv_dict: dict[str, Any] | None
-            if isinstance(context_variables, ContextVariablesDTO):
-                cv_dict = context_variables.to_dict()
-            elif isinstance(context_variables, Mapping):
-                cv_dict = dict(context_variables)
-            else:
-                cv_dict = None
             update_node = NodeExecutionUpdateDTO(
                 status=status,
                 execution_trace=trace,
                 step_states=step_states,
                 frozen_context=frozen_context,
-                context_variables=cv_dict,
+                context_variables=context_variables,
                 error=error,
                 steps=steps,
             )
@@ -199,7 +192,7 @@ class NodeExecutor:
         strictness_level: int = StrictnessAnchor.STANDARD.value,
         arq_pool: Any | None = None,
         running_event: asyncio.Event | None = None,
-        context_variables: ContextVariablesDTO | Mapping[str, Any] | None = None,
+        context_variables: ContextVariablesDTO | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
         global_context_vars: GlobalContextVarsDTO | None = None,
@@ -315,8 +308,6 @@ class NodeExecutor:
             resolved_context_vars: ContextVariablesDTO
             if isinstance(context_variables, ContextVariablesDTO):
                 resolved_context_vars = context_variables
-            elif isinstance(context_variables, Mapping):
-                resolved_context_vars = ContextVariablesDTO.from_dict(dict(context_variables))
             else:
                 resolved_context_vars = ContextVariablesDTO()
 
@@ -776,9 +767,10 @@ class DAGExecutor:
                             exec_record.execution_trace.append(reduce_event)
                             projector.apply_delta(reduce_event)
 
-                            new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
-                            new_cv = new_cv.with_update(__MATRIX_REDUCER_OUTPUT__=lightweight_matrix.model_dump())
-                            exec_record = exec_record.model_copy(update={"context_variables": new_cv.to_dict()})
+                            new_cv = exec_record.context_variables.with_update(
+                                __MATRIX_REDUCER_OUTPUT__=lightweight_matrix
+                            )
+                            exec_record = exec_record.model_copy(update={"context_variables": new_cv})
                         logger.info("[DAGExecutor] Successfully applied MatrixReducer pre-synthesis.")
                     except Exception as e:
                         logger.error(
@@ -905,8 +897,8 @@ class DAGExecutor:
                 has_error_evt = any(isinstance(evt, ErrorTraceEvent) for evt in events)
                 async with _update_lock:
                     step_mcp_traces: list[MCPAuditTrace] = []
-                    step_generated_schemas: dict[str, Any] = {}
-                    new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
+                    step_generated_schemas: dict[str, JsonValue] = {}
+                    new_cv = exec_record.context_variables
                     has_cv_updates = False
                     for evt in events:
                         exec_record.execution_trace.append(evt)
@@ -951,7 +943,7 @@ class DAGExecutor:
                     schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
                     updates: dict[str, Any] = {}
                     if has_cv_updates:
-                        updates["context_variables"] = new_cv.to_dict()
+                        updates["context_variables"] = new_cv
 
                     fc_updates: dict[str, Any] = {}
                     base_fc = exec_record.frozen_context or FrozenContext()
@@ -1134,13 +1126,14 @@ class DAGExecutor:
                             else s
                             for s in exec_record.steps
                         ]
-                        new_cv = ContextVariablesDTO.from_dict(exec_record.context_variables)
-                        new_cv = new_cv.with_update(__GLOBAL_ATOM_BLACKBOARD__=blackboard_payload)
+                        new_cv = exec_record.context_variables.with_update(
+                            __GLOBAL_ATOM_BLACKBOARD__=blackboard_payload
+                        )
                         exec_record = exec_record.model_copy(
                             update={
                                 "step_states": new_states,
                                 "steps": new_steps,
-                                "context_variables": new_cv.to_dict(),
+                                "context_variables": new_cv,
                             }
                         )
                     await _safe_commit()

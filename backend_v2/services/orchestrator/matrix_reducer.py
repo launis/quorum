@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Literal
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.execution import ExecutionRecord
@@ -199,8 +199,10 @@ class MatrixReducer:
 
         logger.info("[MatrixReducer] Reduced %d atoms to %d for synthesis.", total_atoms, len(reduced_atoms))
 
-        evaluated_matrices = [{"matrix_id": mid} for mid in sorted(list(evaluated_matrix_ids))]
-        global_metrics: dict[str, Any] = {
+        evaluated_matrices: list[dict[str, JsonValue]] = [
+            {"matrix_id": mid} for mid in sorted(list(evaluated_matrix_ids))
+        ]
+        global_metrics: dict[str, JsonValue] = {
             "total_atoms": total_atoms,
             "evaluated": total_atoms,
             "duration_ms": record.duration_ms,

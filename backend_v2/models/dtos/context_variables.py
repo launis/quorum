@@ -11,11 +11,27 @@ from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 
-type ContextVariableValue = DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO
 
-__all__ = ["ContextVariableValue", "ContextVariablesDTO"]
+class EvaluatedMatrixContextDTO(V2CoreBase):
+    """DTO for evaluated matrix context within execution context_variables."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+    evaluated_atoms: Annotated[
+        dict[str, str],
+        Field(default_factory=dict, description="Map of atom IDs to evaluation status"),
+    ]
+    raw_atoms: Annotated[
+        list[EvaluatedAtomDTO],
+        Field(default_factory=list, description="Raw evaluated atom payloads"),
+    ] = Field(default_factory=list)
+
+
+type ContextVariableValue = DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO | EvaluatedMatrixContextDTO
+
+__all__ = ["ContextVariableValue", "ContextVariablesDTO", "EvaluatedMatrixContextDTO"]
 
 
 class ContextVariablesDTO(V2CoreBase):
@@ -52,7 +68,7 @@ class ContextVariablesDTO(V2CoreBase):
         Field(default=None, description="Evaluated matrices summary"),
     ] = None
     variables: Annotated[
-        dict[str, DomainInputValue],
+        dict[str, ContextVariableValue],
         Field(default_factory=dict, description="Typed arbitrary context variables"),
     ] = Field(default_factory=dict)
 
@@ -70,7 +86,7 @@ class ContextVariablesDTO(V2CoreBase):
             "variables",
         }
         field_updates: dict[str, object] = {}
-        var_updates: dict[str, DomainInputValue] = dict(self.variables)
+        var_updates: dict[str, ContextVariableValue] = dict(self.variables)
         for k, v in updates.items():
             if k == "__GLOBAL_ATOM_BLACKBOARD__":
                 field_updates["global_atom_blackboard"] = v
