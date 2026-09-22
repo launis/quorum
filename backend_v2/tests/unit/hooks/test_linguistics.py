@@ -17,6 +17,7 @@ from backend_v2.hooks.linguistics import detect_performative_patterns
 from backend_v2.models.domain.linguistics import (
     DynamicLinguisticsExtractorDTO,
     LinguisticsPayloadDTO,
+    LinguisticsResultDTO,
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.settings import get_lexical_fuzz_threshold, get_settings
@@ -108,9 +109,10 @@ async def test_detect_performative_patterns_skip_override(mock_deps: HookDepende
     result = await detect_performative_patterns(state, mock_deps)
     assert result.success
     assert result.state_delta is not None
-    res_dict = result.state_delta.delta["step_linguistics"]
-    assert res_dict["performative_patterns"] == []
-    assert res_dict["total_word_count"] == 6
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    res_dto = result.state_delta.delta
+    assert res_dto.performative_patterns == []
+    assert res_dto.total_word_count == 6
 
 
 @pytest.mark.asyncio
@@ -150,11 +152,12 @@ async def test_detect_performative_patterns_prioritizes_user_only(
 
     assert result.success
     assert result.state_delta is not None
-    res_dict = result.state_delta.delta["step_linguistics"]
-    patterns = res_dict.get("performative_patterns", [])
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    res_dto = result.state_delta.delta
+    patterns = res_dto.performative_patterns
     # "delve into" was not in user text, so it got discarded
     assert len(patterns) == 0
-    assert res_dict["total_word_count"] == 2
+    assert res_dto.total_word_count == 2
 
 
 @pytest.mark.asyncio
@@ -193,11 +196,12 @@ async def test_detect_performative_patterns_exact_substring(
 
     assert result.success
     assert result.state_delta is not None
-    res_dict = result.state_delta.delta["step_linguistics"]
-    patterns = res_dict.get("performative_patterns", [])
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    res_dto = result.state_delta.delta
+    patterns = res_dto.performative_patterns
     assert len(patterns) == 1
-    assert patterns[0]["detected_phrase"] == "delve into"
-    assert res_dict["total_word_count"] == 8
+    assert patterns[0].detected_phrase == "delve into"
+    assert res_dto.total_word_count == 8
 
 
 @pytest.mark.asyncio
@@ -237,10 +241,11 @@ async def test_detect_performative_patterns_morphological_inflection(
 
     assert result.success
     assert result.state_delta is not None
-    res_dict = result.state_delta.delta["step_linguistics"]
-    patterns = res_dict.get("performative_patterns", [])
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    res_dto = result.state_delta.delta
+    patterns = res_dto.performative_patterns
     assert len(patterns) == 1
-    assert patterns[0]["detected_phrase"] == "syvennytään tarkemmin"
+    assert patterns[0].detected_phrase == "syvennytään tarkemmin"
 
 
 @pytest.mark.asyncio
@@ -278,8 +283,9 @@ async def test_detect_performative_patterns_unanchored_discarded(
 
     assert result.success is True
     assert result.state_delta is not None
-    patterns = result.state_delta.delta["step_linguistics"]["performative_patterns"]
-    detected_phrases = [p["detected_phrase"] for p in patterns]
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    patterns = result.state_delta.delta.performative_patterns
+    detected_phrases = [p.detected_phrase for p in patterns]
     # "delve into" is anchored; "paradigm shifting synergy" was discarded
     assert "delve into" in detected_phrases
     assert "paradigm shifting synergy" not in detected_phrases
@@ -309,7 +315,8 @@ async def test_detect_performative_patterns_disabled_setting(
 
     assert result.success is True
     assert result.state_delta is not None
-    patterns = result.state_delta.delta["step_linguistics"]["performative_patterns"]
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    patterns = result.state_delta.delta.performative_patterns
     assert len(patterns) == 0
 
 
@@ -337,7 +344,8 @@ async def test_detect_performative_patterns_llm_exception_graceful(
     # Does not crash; gracefully returns empty patterns
     assert result.success is True
     assert result.state_delta is not None
-    patterns = result.state_delta.delta["step_linguistics"]["performative_patterns"]
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    patterns = result.state_delta.delta.performative_patterns
     assert len(patterns) == 0
 
 
@@ -357,8 +365,9 @@ async def test_detect_performative_patterns_computes_total_word_count(mock_deps:
         metadata=ExecutionMetadata(),
     )
     result = await detect_performative_patterns(state, mock_deps)
-    res_dict = result.state_delta.delta["step_linguistics"]
-    assert res_dict["total_word_count"] == 10
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    assert result.state_delta.delta.total_word_count == 10
 
 
 @pytest.mark.asyncio
@@ -378,5 +387,6 @@ async def test_detect_performative_patterns_prioritizes_any_user_only_suffix(moc
         metadata=ExecutionMetadata(),
     )
     result = await detect_performative_patterns(state, mock_deps)
-    res_dict = result.state_delta.delta["step_linguistics"]
-    assert res_dict["total_word_count"] == 3
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, LinguisticsResultDTO)
+    assert result.state_delta.delta.total_word_count == 3

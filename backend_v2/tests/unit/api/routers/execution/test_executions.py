@@ -470,4 +470,3 @@ def test_render_execution_precompiled_with_local_time_str_hits_cache(
     assert response.headers["content-disposition"] == 'attachment; filename="cached_report.pdf"'
     assert response.content == b"%PDF-1.4"
     mock_execution_service.render_execution.assert_not_called()
-

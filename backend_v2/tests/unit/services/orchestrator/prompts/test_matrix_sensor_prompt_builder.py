@@ -485,4 +485,3 @@ def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -
     assert "Missing matrix assertion for atom 'tda_99999999'" in exc_info.value.message
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

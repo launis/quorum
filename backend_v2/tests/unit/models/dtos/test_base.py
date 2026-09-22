@@ -91,4 +91,3 @@ def test_data_starvation_event() -> None:
     # Frozen immutability check
     with pytest.raises(ValidationError, match="Instance is frozen"):
         event.total_atoms = 5  # type: ignore[misc]
-

@@ -24,7 +24,7 @@ def test_context_builder_build_prune_raw_data(monkeypatch: pytest.MonkeyPatch) -
 
     state_data = {
         "steps": [
-            StepOutputDTO(
+            StepOutputDTO.model_construct(
                 step_id="eval_step",
                 block_id="blk_invalid",
                 data_type="matrix",
@@ -344,7 +344,7 @@ def test_project_compressed_preserves_exact_quote_and_reasoning() -> None:
 def test_apply_spatial_slicing_and_rule_descriptions() -> None:
     """Test spatial slicing when chronological markers are detected in rule blocks."""
     from backend_v2.models.core_base import I18nText
-    from backend_v2.models.domain.matrix import MatrixClaim, MatrixRow, MatrixScale, TDAAssertion
+    from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
     from backend_v2.models.domain.prompt_blocks import (
         MatrixPromptBlock,
         PersonaPromptBlock,
@@ -436,7 +436,7 @@ def test_apply_spatial_slicing_and_rule_descriptions() -> None:
 def test_process_trace_dtos_non_matrix_and_primitive_validation() -> None:
     """Test non-matrix trace processing and validation of primitive values in matrix block."""
     dtos = [
-        StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"text": "Hello"}),
+        StepOutputDTO.model_construct(step_id="step1", block_id="b1", data_type="text", payload={"text": "Hello"}),
     ]
 
     # Non-matrix returns compressed dict
@@ -526,7 +526,7 @@ def test_build_global_context_vars_with_steps(monkeypatch: pytest.MonkeyPatch) -
     """Test resolving global_context_vars containing steps."""
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
-    dto = StepOutputDTO(step_id="step1", block_id="b1", data_type="text", payload={"val": 42})
+    dto = StepOutputDTO.model_construct(step_id="step1", block_id="b1", data_type="text", payload={"val": 42})
     state_data = {
         "global_context_vars": {
             "steps": [dto],
@@ -615,5 +615,3 @@ def test_build_matrix_pruning_with_evaluated_atoms(monkeypatch: pytest.MonkeyPat
     assert ctx.inputs is not None
     assert "matrix_step" in ctx.inputs
     assert "evaluated_atoms" not in ctx.inputs["matrix_step"]
-
-

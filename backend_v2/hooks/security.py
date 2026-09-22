@@ -122,7 +122,6 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
             security_status="DATA_CHECKED_AND_SECURED",
             threat_detected=threat_detected,
         )
-        result = dto.model_dump(mode="json")
     except Exception as e:
         msg = f"Failed to create SanitizationResult: {e}"
         logger.error("[SecurityHook] %s: %s", ErrorCodes.SECURITY_CONFIG_ERROR.name, msg, exc_info=True)
@@ -137,4 +136,4 @@ def sanitize_text_hook(state: HookState, deps: HookDependencies) -> HookResult:
     else:
         logger.debug("[SecurityHook] No PII detected.")
 
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"sanitization_result": result}))
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta=dto))

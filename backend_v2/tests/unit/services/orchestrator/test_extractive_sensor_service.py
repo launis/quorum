@@ -1185,4 +1185,3 @@ async def test_evaluate_atom_boolean_batch_exception_group_propagation() -> None
             context_text="Primary context text with valid quote text here",
             target_locale="fi",
         )
-

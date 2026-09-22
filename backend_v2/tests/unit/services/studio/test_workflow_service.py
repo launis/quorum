@@ -950,13 +950,10 @@ async def test_clone_workflow_corrupted_profile_raises_validation_failed(
     mock_workflow_repo.get_workflow_by_id.return_value = wf
 
     # Corrupted dictionary missing mandatory OutputProfile fields
-    mock_output_profile_repo.get_all_output_profiles.return_value = [
-        {"id": "prf_corrupted", "workflow_id": wf.id}
-    ]
+    mock_output_profile_repo.get_all_output_profiles.return_value = [{"id": "prf_corrupted", "workflow_id": wf.id}]
 
     with pytest.raises(AppException) as exc_info:
         await workflow_service.clone_workflow(admin_token, wf.id)
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

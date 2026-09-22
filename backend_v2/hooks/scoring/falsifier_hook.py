@@ -1,6 +1,7 @@
 """Falsifier and security scoring hook logic."""
 
 import logging
+from collections.abc import Mapping
 from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field, ValidationError
@@ -89,7 +90,7 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
         AppException: With ErrorCodes.VALIDATION_FAILED if data validation fails.
     """
     payloads: list[ScoringPayloadWrapper] = []
-    raw_source: dict[str, Any] | None = None
+    raw_source: Mapping[str, Any] | None = None
 
     try:
         if isinstance(data, StateInputWrapper):
@@ -393,9 +394,7 @@ async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> 
             )
             return HookResult(
                 success=True,
-                state_delta=HookDeltaDTO(
-                    delta={"scoring_result": indet_dto.model_dump(mode="json", exclude_none=True)}
-                ),
+                state_delta=HookDeltaDTO(delta=indet_dto),
             )
 
         msg = (
@@ -429,5 +428,5 @@ async def apply_scoring_logic_hook(state: HookState, deps: HookDependencies) -> 
     )
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(delta={"scoring_result": score_dto.model_dump(mode="json", exclude_none=True)}),
+        state_delta=HookDeltaDTO(delta=score_dto),
     )

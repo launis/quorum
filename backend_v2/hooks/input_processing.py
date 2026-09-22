@@ -25,6 +25,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.step import ExpectedInput
 from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_delta import ExecutionInputsDTO, ExecutionMetadataDeltaDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
 from backend_v2.models.enums import LLMProvider
 from backend_v2.services.chat_normalizer import ChatNormalizerService
@@ -414,7 +415,7 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
     return HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            delta={"inputs": output_dict},
-            metadata_updates={"estimated_token_count": estimated_token_count},
+            delta=ExecutionInputsDTO(raw_inputs=output_dict),
+            metadata_updates=ExecutionMetadataDeltaDTO(estimated_token_count=estimated_token_count),
         ),
     )

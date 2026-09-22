@@ -162,4 +162,3 @@ def test_metadata_adapter_all_fields_with_local_time_and_costs() -> None:
 def test_metadata_rules() -> None:
     """Verify METADATA_RULES export is a valid MetadataAestheticsDTO."""
     assert isinstance(METADATA_RULES, MetadataAestheticsDTO)
-

@@ -68,7 +68,7 @@ def test_hydrate_global_inputs_success() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {"inputs": {"existing": "overridden", "new": "data"}}
+    assert result.state_delta.delta == ExecutionInputsDTO(raw_inputs={"existing": "overridden", "new": "data"})
 
 
 def test_hydrate_global_inputs_none_source() -> None:

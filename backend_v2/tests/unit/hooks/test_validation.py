@@ -12,6 +12,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.validation import verify_output_language, verify_structure
+from backend_v2.models.dtos.hook_delta import AnomalyRetryResultDTO, ValidationResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -45,10 +46,10 @@ def test_verify_output_language_detects_english_leakage() -> None:
     # Assert
     assert result.success is True
     assert result.state_delta is not None
-    assert "_system_warnings" in result.state_delta.delta
-    assert len(result.state_delta.delta["_system_warnings"]) == 1
-    assert result.state_delta.delta["_system_warnings"][0]["error_code"] == "VALIDATION_FAILED"
-    assert "leaked English" in result.state_delta.delta["_system_warnings"][0]["detail"]
+    assert isinstance(result.state_delta.delta, ValidationResultDTO)
+    assert len(result.state_delta.delta.errors) == 1
+    assert result.state_delta.delta.errors[0].error_code == "VALIDATION_FAILED"
+    assert "leaked English" in result.state_delta.delta.errors[0].detail
 
 
 def test_verify_output_language_ignores_finnish_text() -> None:
@@ -82,7 +83,7 @@ def test_verify_output_language_ignores_finnish_text() -> None:
 
     # Assert no warnings injected
     assert result.state_delta is not None
-    assert "_system_warnings" not in result.state_delta.delta
+    assert result.state_delta.delta is None
 
 
 def test_verify_output_language_allows_english_when_target_en() -> None:
@@ -167,8 +168,8 @@ def test_verify_structure_success_with_valid_content() -> None:
 
     result = cast(HookResult, verify_structure(state, deps))
     assert result.success is True
-    assert "validation_result" in result.state_delta.delta
-    assert result.state_delta.delta["validation_result"]["is_valid"] is True
+    assert isinstance(result.state_delta.delta, ValidationResultDTO)
+    assert result.state_delta.delta.is_valid is True
 
 
 def test_verify_structure_fails_on_short_or_empty_field() -> None:
@@ -512,7 +513,8 @@ def test_verify_anomaly_detects_guttman_inversion() -> None:
     result = cast(HookResult, verify_anomaly(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta.get("llm_anomaly_retry_requested") is True
+    assert isinstance(result.state_delta.delta, AnomalyRetryResultDTO)
+    assert result.state_delta.delta.llm_anomaly_retry_requested is True
 
 
 def test_verify_anomaly_passes_when_no_inversion() -> None:

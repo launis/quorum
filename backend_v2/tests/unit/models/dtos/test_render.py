@@ -6,9 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.execution import JobAcceptedDTO
-from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
 from backend_v2.models.dtos.render import RenderExecutionResultDTO
-from backend_v2.models.dtos.report_data import ReportDataDTO
 
 
 def test_render_execution_result_dto_bytes_payload() -> None:

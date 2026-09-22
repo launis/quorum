@@ -85,10 +85,6 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "firestore_driver.py",
     "provider.py",
     "logging_config.py",
-    "vertex_adapter.py",
-    "ai_studio_adapter.py",
-    "handler.py",
-    "wrapper.py",
 }
 
 
@@ -720,6 +716,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     )
                     if ret_name.endswith(("DTO", "Result", "Response", "Failure")):
                         has_dlq_or_typed_dispatch = True
+                case ast.Return(value=ast.Tuple(elts=tuple_elts)):
+                    for elt in tuple_elts:
+                        if isinstance(elt, ast.Call):
+                            ret_func = elt.func
+                            ret_name = (
+                                ret_func.id
+                                if isinstance(ret_func, ast.Name)
+                                else (ret_func.attr if isinstance(ret_func, ast.Attribute) else "")
+                            )
+                            if ret_name.endswith(("DTO", "Result", "Response", "Failure")):
+                                has_dlq_or_typed_dispatch = True
+                                break
                 case _:
                     pass
 

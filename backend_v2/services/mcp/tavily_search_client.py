@@ -19,6 +19,7 @@ from backend_v2.models.domain.mcp import (
     TavilyApiResponseDTO,
     TavilySearchResult,
 )
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.dtos.mcp import TavilySearchRequestDTO
 from backend_v2.models.dtos.retrieval import BatchSearchQueryDTO, TavilySearchResultDTO
 from backend_v2.models.enums import SearchStatus
@@ -283,7 +284,10 @@ async def batch_tavily_search(
     )
     user_msg = f"<source_data>\n{document_text}\n</source_data>"
 
-    messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_msg}]
+    messages = [
+        ChatMessageDTO(role="system", content=system_prompt),
+        ChatMessageDTO(role="user", content=user_msg),
+    ]
 
     try:
         dto, _usage = await task_executor.execute_structured_task(

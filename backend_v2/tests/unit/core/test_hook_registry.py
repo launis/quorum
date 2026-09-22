@@ -60,15 +60,16 @@ def test_hook_state_strictness() -> None:
 
 def test_hook_result_strictness() -> None:
     """Test HookResult strictness and state_delta typing."""
-    res = HookResult(success=True, state_delta=HookDeltaDTO(delta={"test": 123}))
+    payload = GlobalContextVarsDTO(language="fi")
+    res = HookResult(success=True, state_delta=HookDeltaDTO(delta=payload))
     assert res.success is True
     assert res.state_delta is not None
-    assert res.state_delta.delta == {"test": 123}
+    assert res.state_delta.delta == payload
 
     with pytest.raises(ValidationError):
         HookResult(
             success=True,
-            state_delta=HookDeltaDTO(delta={"test": 123}),
+            state_delta=HookDeltaDTO(delta=payload),
             extra="fail",  # type: ignore[call-arg]
         )
 
@@ -80,15 +81,18 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
     try:
         hook_registry.clear()
 
+        sync_payload = GlobalContextVarsDTO(language="fi")
+        async_payload = GlobalContextVarsDTO(language="en")
+
         # Sync hook
         @hook_registry.register("sync_test_hook")
         def sync_hook(state: HookState, deps: HookDependencies) -> HookResult:
-            return HookResult(success=True, state_delta=HookDeltaDTO(delta={"sync": "ok"}))
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta=sync_payload))
 
         # Async hook
         @hook_registry.register("async_test_hook")
         async def async_hook(state: HookState, deps: HookDependencies) -> HookResult:
-            return HookResult(success=True, state_delta=HookDeltaDTO(delta={"async": "ok"}))
+            return HookResult(success=True, state_delta=HookDeltaDTO(delta=async_payload))
 
         state = HookState(
             execution_id="exec_1",
@@ -112,12 +116,12 @@ async def test_hook_registry_register_and_execute_sync_and_async() -> None:
         res_sync = await hook_registry.execute("sync_test_hook", state, deps)
         assert res_sync.success is True
         assert res_sync.state_delta is not None
-        assert res_sync.state_delta.delta == {"sync": "ok"}
+        assert res_sync.state_delta.delta == sync_payload
 
         res_async = await hook_registry.execute("async_test_hook", state, deps)
         assert res_async.success is True
         assert res_async.state_delta is not None
-        assert res_async.state_delta.delta == {"async": "ok"}
+        assert res_async.state_delta.delta == async_payload
 
         assert set(hook_registry.get_all_hooks()) == {"sync_test_hook", "async_test_hook"}
     finally:

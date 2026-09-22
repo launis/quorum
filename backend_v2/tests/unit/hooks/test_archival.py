@@ -12,6 +12,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.archival import retrieve_precedent_hook
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 
@@ -139,10 +140,10 @@ async def test_retrieve_precedent_hook_success() -> None:
 
     result = await retrieve_precedent_hook(state, deps)
     assert result.success is True
-    assert "archivist_precedents" in result.state_delta.delta
-    precedents = result.state_delta.delta["archivist_precedents"]
+    assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
+    precedents = result.state_delta.delta.archivist_precedents
     assert len(precedents) == 1
-    assert precedents[0]["id"] == "exe_1234567890abcdef12"
+    assert precedents[0].id == "exe_1234567890abcdef12"
 
 
 @pytest.mark.asyncio
@@ -197,7 +198,8 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
 
     result = await retrieve_precedent_hook(state, deps)
     assert result.success is True
-    assert len(result.state_delta.delta["archivist_precedents"]) == 1
+    assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
+    assert len(result.state_delta.delta.archivist_precedents) == 1
 
 
 @pytest.mark.asyncio
@@ -284,7 +286,8 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
 
     result = await retrieve_precedent_hook(state, deps)
     assert result.success is True
-    assert result.state_delta.delta["archivist_precedents"] == []
+    assert isinstance(result.state_delta.delta, ArchivistPrecedentsResultDTO)
+    assert result.state_delta.delta.archivist_precedents == []
 
 
 @pytest.mark.asyncio

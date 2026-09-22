@@ -13,6 +13,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.security import sanitize_text_hook
+from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -104,9 +105,9 @@ def test_sanitize_text_hook_success(mock_get_pii_service: MagicMock, mock_reposi
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "sanitization_result" in result.state_delta.delta
-    assert result.state_delta.delta["sanitization_result"]["security_status"] == "DATA_CHECKED_AND_SECURED"
-    assert "test_field" in result.state_delta.delta["sanitization_result"]["sanitized_inputs"]
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
+    assert result.state_delta.delta.security_status == "DATA_CHECKED_AND_SECURED"
+    assert "test_field" in result.state_delta.delta.sanitized_inputs
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
@@ -145,9 +146,10 @@ def test_sanitize_text_hook_skips_non_strings(mock_get_pii_service: MagicMock, m
     assert result.success is True
     # mask_pii should only be called once, for the string field.
     assert mock_service.mask_pii.call_count == 1
-    assert "string_field" in result.state_delta.delta["sanitization_result"]["sanitized_inputs"]
-    assert "dict_field" not in result.state_delta.delta["sanitization_result"]["sanitized_inputs"]
-    assert "list_field" not in result.state_delta.delta["sanitization_result"]["sanitized_inputs"]
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
+    assert "string_field" in result.state_delta.delta.sanitized_inputs
+    assert "dict_field" not in result.state_delta.delta.sanitized_inputs
+    assert "list_field" not in result.state_delta.delta.sanitized_inputs
 
 
 @patch("backend_v2.hooks.security.get_pii_service")
@@ -181,7 +183,7 @@ def test_sanitize_text_hook_resolves_language_from_execution_metadata(
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "sanitization_result" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
 
 
 def test_sanitize_text_hook_fails_fast_on_missing_state() -> None:
@@ -253,9 +255,10 @@ def test_sanitize_text_hook_detects_threats(mock_get_pii_service: MagicMock) -> 
     result = cast(HookResult, sanitize_text_hook(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    res = result.state_delta.delta["sanitization_result"]
-    assert res["threat_detected"] is True
-    assert res["sanitized_inputs"]["name"] == "[REDACTED]"
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
+    res = result.state_delta.delta
+    assert res.threat_detected is True
+    assert res.sanitized_inputs["name"] == "[REDACTED]"
 
 
 @patch("backend_v2.hooks.security.get_pii_service")

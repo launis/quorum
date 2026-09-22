@@ -65,26 +65,33 @@ def _is_preflight_candidate_key(key: str, excluded_keys: list[str]) -> bool:
     return True
 
 
-def _extract_inputs_from_record(exec_record: ExecutionRecord) -> dict[str, Any]:
-    """Extract input dictionary from execution trace (processed) or fallback to raw inputs.
+def _extract_inputs_from_record(exec_record: ExecutionRecord) -> ExecutionInputsDTO:
+    """Extract input DTO from execution trace (processed) or fallback to raw inputs.
 
     Args:
         exec_record: ExecutionRecord containing trace events and raw inputs.
 
     Returns:
-        Dictionary of dynamic inputs.
+        Strongly typed ExecutionInputsDTO.
     """
+    from backend_v2.models.domain.inputs import WorkflowInputs
+
     for event in reversed(exec_record.execution_trace):
         if event.step_name == "inputs" and event.event_type == "input":
             content = event.content
             if isinstance(content, ExecutionInputsDTO):
-                return dict(content.dynamic_inputs)
+                return content
             if isinstance(content, Mapping):
-                if "inputs" in content and isinstance(content["inputs"], Mapping):
-                    return dict(content["inputs"])
                 if "dynamic_inputs" in content and isinstance(content["dynamic_inputs"], Mapping):
-                    return dict(content["dynamic_inputs"])
-    return dict(exec_record.raw_inputs.dynamic_inputs)
+                    return ExecutionInputsDTO(dynamic_inputs=content["dynamic_inputs"])
+                if "inputs" in content and isinstance(content["inputs"], Mapping):
+                    return ExecutionInputsDTO(dynamic_inputs=content["inputs"])
+                return ExecutionInputsDTO(dynamic_inputs=content)
+    if isinstance(exec_record.raw_inputs, ExecutionInputsDTO):
+        return exec_record.raw_inputs
+    if isinstance(exec_record.raw_inputs, WorkflowInputs):
+        return ExecutionInputsDTO(dynamic_inputs=exec_record.raw_inputs.dynamic_inputs)
+    return ExecutionInputsDTO.model_validate(exec_record.raw_inputs)
 
 
 class RAGPreflightService:
@@ -119,7 +126,7 @@ class RAGPreflightService:
         step_def: Step,
         exec_record: ExecutionRecord,
         emit_progress: Callable[[str, int], Awaitable[None]],
-    ) -> dict[str, Any]:
+    ) -> GlobalAtomBlackboard:
         """Phase 1B RAG Pre-flight Pipeline execution.
 
         Args:
@@ -129,7 +136,7 @@ class RAGPreflightService:
             emit_progress: Callback to push progress events.
 
         Returns:
-            The serialized GlobalAtomBlackboard payload.
+            The strongly typed GlobalAtomBlackboard payload.
 
         Raises:
             AppException: If task_blueprint is missing (CONFIGURATION_ERROR).
@@ -163,12 +170,12 @@ class RAGPreflightService:
                 status_code=500,
             )
 
-        inputs = _extract_inputs_from_record(exec_record)
+        inputs_dto = _extract_inputs_from_record(exec_record)
         settings = get_settings()
 
         candidate_inputs = {
             k: v
-            for k, v in inputs.items()
+            for k, v in inputs_dto.dynamic_inputs.items()
             if isinstance(v, str) and _is_preflight_candidate_key(k, settings.rag_preflight_excluded_keys)
         }
 
@@ -182,7 +189,7 @@ class RAGPreflightService:
                 settings.rag_preflight_min_input_chars,
             )
             await emit_progress("Input data sparse/empty. Preflight extraction skipped.", 100)
-            return GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True).model_dump(mode="json")
+            return GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
 
         provider = None
         registry_id = None
@@ -280,5 +287,4 @@ class RAGPreflightService:
 
         await emit_progress("Knowledge extraction complete.", 100)
 
-        blackboard = GlobalAtomBlackboard(atoms_by_input=atoms_by_input)
-        return blackboard.model_dump(mode="json")
+        return GlobalAtomBlackboard(atoms_by_input=atoms_by_input)

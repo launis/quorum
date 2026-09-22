@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -20,6 +21,7 @@ from backend_v2.models.dtos.synthesis import (
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus, RoleClassification
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
@@ -672,7 +674,12 @@ async def test_worker_synthesis_matrix_layout_directives(
     for call in mock_client.run_structured_task.call_args_list:
         if "messages" in call.kwargs:
             messages = call.kwargs["messages"]
-            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
+            all_user_content += " ".join(
+                m.content
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
+                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                for m in messages
+            )
 
     if expected_snippet is not None:
         assert expected_snippet in all_user_content
@@ -740,7 +747,12 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     for call in mock_client.run_structured_task.call_args_list:
         if "messages" in call.kwargs:
             messages = call.kwargs["messages"]
-            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
+            all_user_content += " ".join(
+                m.content
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
+                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                for m in messages
+            )
     assert "2D COMPARISON SYNTHESIS MANDATE:" not in all_user_content
 
 
@@ -808,7 +820,12 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     for call in mock_client.run_structured_task.call_args_list:
         if "messages" in call.kwargs:
             messages = call.kwargs["messages"]
-            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
+            all_user_content += " ".join(
+                m.content
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
+                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                for m in messages
+            )
     assert '<section_instruction id="executive_summary_block" title="Executive Summary">' in all_user_content
     assert "EXECUTIVE SUMMARY SYNTHESIS MANDATE:" in all_user_content
 
@@ -1071,7 +1088,12 @@ async def test_worker_synthesis_custom_directives_resolution(
     for call in mock_client.run_structured_task.call_args_list:
         if "messages" in call.kwargs:
             messages = call.kwargs["messages"]
-            all_user_content += " ".join(m["content"] for m in messages if isinstance(m, dict) and "content" in m)
+            all_user_content += " ".join(
+                m.content
+                if isinstance(m, (ChatMessageDTO, LLMMessageDTO))
+                else (m["content"] if isinstance(m, dict) and "content" in m else "")
+                for m in messages
+            )
 
     assert "CUSTOM XAI SYNTHESIS DIRECTIVE" in all_user_content
     assert "CUSTOM VARIANCE DIRECTIVE" in all_user_content

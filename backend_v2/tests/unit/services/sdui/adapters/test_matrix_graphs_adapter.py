@@ -18,7 +18,6 @@ from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.matrix_graphs_adapter import MATRIX_GRAPHS_RULES, MatrixGraphsAdapter
 
 
-
 def test_matrix_graphs_adapter_empty_groups() -> None:
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -467,4 +466,3 @@ def test_matrix_graphs_rules() -> None:
     assert MATRIX_GRAPHS_RULES["radar"].min_axes == 3
     assert MATRIX_GRAPHS_RULES["scatter"].min_axes == 2
     assert MATRIX_GRAPHS_RULES["metrics"].min_axes == 1
-

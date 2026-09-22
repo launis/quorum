@@ -3,12 +3,22 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import BaseModel, ConfigDict
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.blackboard import DraftAtomList, GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
+
+
+class DummySynthesisOutputDTO(BaseModel):
+    model_config = ConfigDict(extra="allow")
+    output: str = ""
 
 
 @pytest.fixture
@@ -759,7 +769,9 @@ async def test_execute_synthesis_engine_path(
     context.execution_id = "exec_1"
     context.workflow_id = "wf_1"
     context.global_context_vars = GlobalContextVarsDTO()
-    context.context_variables = {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_1": []}}}
+    context.context_variables = ContextVariablesDTO(
+        global_atom_blackboard=GlobalAtomBlackboard(atoms_by_input={"doc_1": DraftAtomList(atoms=[])})
+    )
     context.metadata = ExecutionMetadata()
     context.expected_inputs = []
     context.strictness_level = 0
@@ -796,8 +808,23 @@ async def test_execute_synthesis_engine_path(
         },
     ]
 
+    from backend_v2.models.dtos.atom_result import AtomResultDTO, ExtractedValueDTO
+    from backend_v2.models.enums import ExecutionStatus
+
     mock_hook_state = MagicMock()
-    mock_hook_state.inputs = {"prev_step": {"results": [{"tda_id": "tda_123", "score": 4.0}]}}
+    mock_hook_state.inputs = ExecutionInputsDTO(
+        dynamic_inputs={
+            "prev_step": [
+                AtomResultDTO(
+                    tda_id="tda_123",
+                    status=ExecutionStatus.PASSED,
+                    evaluation_reasoning="Evaluation passed based on criteria.",
+                    contextual_override=True,
+                    extracted_data=ExtractedValueDTO(value=4.0),
+                )
+            ]
+        }
+    )
     mock_hook_state.global_context_vars = context.global_context_vars
 
     from pydantic import BaseModel
@@ -824,7 +851,7 @@ async def test_execute_synthesis_engine_path(
     ):
         mock_pre.return_value = (mock_hook_state, [])
         mock_post_hook_state = MagicMock()
-        mock_post_hook_state.inputs = {"summary": "Synthesized Analysis"}
+        mock_post_hook_state.inputs = ExecutionInputsDTO(dynamic_inputs={"summary": "Synthesized Analysis"})
         mock_post.return_value = (mock_post_hook_state, [])
 
         traces = await llm_strategy.execute(
@@ -1300,8 +1327,8 @@ def test_configure_llm_context_hook_success() -> None:
 
         assert result.success is True
         assert result.state_delta is not None
-        assert "llm_config" in result.state_delta.delta
-        assert result.state_delta.delta["llm_config"]["provider"] == "google"
+        assert isinstance(result.state_delta.delta, LLMProviderConfig)
+        assert result.state_delta.delta.provider == "google"
 
 
 def test_configure_llm_context_hook_empty_state() -> None:
@@ -1326,7 +1353,7 @@ def test_configure_llm_context_hook_empty_state() -> None:
     )
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert result.state_delta.delta is None
 
 
 def test_configure_llm_context_hook_error() -> None:
@@ -2152,7 +2179,7 @@ async def test_execute_with_expected_inputs_and_source_document_packer(
 
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(
-        results=[], hydrated_references={}, synthesis_output={"output": "Packed synthesis output"}
+        results=[], hydrated_references={}, synthesis_output=DummySynthesisOutputDTO(output="Packed synthesis output")
     )
 
     mock_hook_state = MagicMock()
@@ -2290,7 +2317,7 @@ async def test_execute_with_step_scoped_inputs_filtering(llm_strategy: LLMNodeSt
 
     mock_engine = llm_strategy._engine
     mock_engine.execute.return_value = EngineExecutionResult(
-        results=[], hydrated_references={}, synthesis_output={"output": "Scoped output"}
+        results=[], hydrated_references={}, synthesis_output=DummySynthesisOutputDTO(output="Scoped output")
     )
 
     mock_hook_state = MagicMock()
@@ -2553,7 +2580,9 @@ async def test_execute_fails_fast_on_missing_cognitive_tier(
 def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNodeStrategy) -> None:
     """Test _extract_step_context_metadata with typed DTO and atom_id extraction."""
     from backend_v2.core.hook_registry import HookState
+    from backend_v2.models.domain.blackboard import DraftAtomList, GlobalAtomBlackboard
     from backend_v2.models.dtos.atom_result import AtomResultDTO
+    from backend_v2.models.dtos.context_variables import ContextVariablesDTO
     from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
     from backend_v2.models.enums import ExecutionStatus
     from backend_v2.services.orchestrator.strategies.base import StrategyContext
@@ -2587,12 +2616,14 @@ def test_extract_step_context_metadata_dto_and_atom_branches(llm_strategy: LLMNo
         execution_id="exec_1",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
-        context_variables={"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {"doc_a": []}}},
+        context_variables=ContextVariablesDTO(
+            global_atom_blackboard=GlobalAtomBlackboard(atoms_by_input={"doc_a": DraftAtomList(atoms=[])})
+        ),
     )
-    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state, context)
-    assert doc_aliases == ["doc_a"]
-    assert "atm_1" in dag_results
-    assert "atm_2" in dag_results
+    context_meta = llm_strategy._extract_step_context_metadata(hook_state, context)
+    assert context_meta.doc_aliases == ["doc_a"]
+    assert "atm_1" in context_meta.dag_results
+    assert "atm_2" in context_meta.dag_results
 
 
 def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy: LLMNodeStrategy) -> None:
@@ -2606,8 +2637,8 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
     inputs_dto = ExecutionInputsDTO.model_construct(
         raw_inputs={
             "step_list": [
-                {"tda_id": "tda_from_dict"},
-                {"atom_id": "atom_from_dict"},
+                {"tda_id": "tda_from_dict", "status": ExecutionStatus.PASSED, "evaluation_reasoning": "Reason 1"},
+                {"atom_id": "atom_from_dict", "status": ExecutionStatus.PASSED, "evaluation_reasoning": "Reason 2"},
             ],
             "single_atom": AtomResultDTO(
                 tda_id="tda_direct_dto",
@@ -2619,8 +2650,8 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
         dynamic_inputs={
             "nested_results": {
                 "results": [
-                    {"tda_id": "tda_nested"},
-                    {"atom_id": "atom_nested"},
+                    {"tda_id": "tda_nested", "status": ExecutionStatus.PASSED, "evaluation_reasoning": "Reason 3"},
+                    {"atom_id": "atom_nested", "status": ExecutionStatus.PASSED, "evaluation_reasoning": "Reason 4"},
                 ]
             }
         },
@@ -2638,13 +2669,13 @@ def test_extract_step_context_metadata_mapping_and_results_branches(llm_strategy
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
     )
-    gvars, doc_aliases, dag_results = llm_strategy._extract_step_context_metadata(hook_state, context)
-    assert doc_aliases == ["doc_gvar"]
-    assert "tda_from_dict" in dag_results
-    assert "atom_from_dict" in dag_results
-    assert "tda_direct_dto" in dag_results
-    assert "tda_nested" in dag_results
-    assert "atom_nested" in dag_results
+    context_meta = llm_strategy._extract_step_context_metadata(hook_state, context)
+    assert context_meta.doc_aliases == ["doc_gvar"]
+    assert "tda_from_dict" in context_meta.dag_results
+    assert "atom_from_dict" in context_meta.dag_results
+    assert "tda_direct_dto" in context_meta.dag_results
+    assert "tda_nested" in context_meta.dag_results
+    assert "atom_nested" in context_meta.dag_results
 
 
 def test_dlq_handle_debug_log_error() -> None:
@@ -2695,5 +2726,3 @@ def test_llm_strategy_metadata_synthesis_engine_branch(llm_strategy: LLMNodeStra
     assert meta_dict["cognitive_tier"] == "deep"
     assert meta_dict["physical_model"] == "gemini-1.5-pro"
     assert meta_dict["token_usage"]["total_tokens"] == 150
-
-

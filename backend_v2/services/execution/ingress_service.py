@@ -24,7 +24,7 @@ from backend_v2.exceptions import (
 from backend_v2.models.auth import TokenData
 from backend_v2.models.core_base import generate_opaque_id
 from backend_v2.models.domain.execution import ExecutionCreate, ExecutionRecord, ExecutionStep, FrozenContext
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
@@ -215,13 +215,16 @@ class ExecutionIngressService:
 
         target_locale = payload.target_locale
         resolver = SmartIngressResolver()
-        resolved_ingress = resolver.resolve(payload.raw_inputs, workflow.expected_inputs, target_locale)
+        ingress_inputs: WorkflowInputsIngress | None = None
+        if isinstance(payload.raw_inputs, WorkflowInputsIngress):
+            ingress_inputs = payload.raw_inputs
+        resolved_ingress = resolver.resolve(ingress_inputs, workflow.expected_inputs, target_locale)
 
         if payload.raw_inputs is not None:
             updated_raw = payload.raw_inputs.model_copy(update={"dynamic_inputs": resolved_ingress.resolved_inputs})
             payload = payload.model_copy(update={"raw_inputs": updated_raw})
 
-        if doc_service and payload.raw_inputs:
+        if doc_service and isinstance(payload.raw_inputs, WorkflowInputsIngress):
             processed_ingress = await doc_service.process_ingress_payload(payload.raw_inputs)
             payload = payload.model_copy(update={"raw_inputs": processed_ingress})
 

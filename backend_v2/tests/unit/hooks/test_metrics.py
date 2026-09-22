@@ -5,7 +5,6 @@ import pytest
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDeltaDTO,
     HookState,
 )
 from backend_v2.exceptions import AppException
@@ -16,6 +15,7 @@ from backend_v2.hooks.metrics import (
     calculate_control_ratio_hook,
     text_metrics,
 )
+from backend_v2.models.dtos.hook_delta import InputControlRatioResultDTO, ProfilerMetricsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -44,11 +44,10 @@ def test_text_metrics_uses_user_only_data(mock_settings: MagicMock) -> None:
     result = text_metrics(state, deps)
 
     assert result.success
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    metrics = delta["profiler_metrics"]
-
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, ProfilerMetricsDTO)
     # Word count should only count "Hello AI!" which is 2 words, not 500+
-    assert metrics["word_count"] == 2
+    assert result.state_delta.delta.word_count == 2
 
 
 def test_analyze_text_empty_and_valid() -> None:
@@ -95,7 +94,8 @@ def test_calculate_control_ratio_hook() -> None:
     deps = MagicMock()
     res = calculate_control_ratio_hook(state, deps)
     assert res.success is True
-    assert "input_control_ratio" in res.state_delta.delta
+    assert isinstance(res.state_delta.delta, InputControlRatioResultDTO)
+    assert 0.0 < res.state_delta.delta.input_control_ratio < 1.0
 
 
 def test_calculate_control_ratio_hook_invalid_payload() -> None:

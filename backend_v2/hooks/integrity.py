@@ -1,7 +1,6 @@
 """Integrity hooks for verifying citations and hypothesis linking."""
 
 import asyncio
-import copy
 import functools
 import logging
 from pathlib import Path
@@ -233,8 +232,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     except ValidationError:
         # Hook is attached to a non-citation schema step, bypass gracefully
         logger.info("[IntegrityHook] Payload is neither AnalystOutput nor EvaluationResult. Bypassing.")
-        delta = copy.deepcopy(inputs_source)
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     system_locale = state.global_context_vars.system_locale
     from backend_v2.settings import get_lexical_fuzz_threshold
@@ -247,9 +245,7 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
 
     if total_count == 0:
         logger.warning("[IntegrityHook] No structured citations found to verify.")
-        return HookResult(
-            success=True, state_delta=HookDeltaDTO(delta=parsed_payload.model_dump(mode="json", exclude_none=True))
-        )
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=parsed_payload))
 
     if not norm_corpus:
         msg = f"Data Integrity Violation: {total_count} citations found, but Source Corpus is empty."
@@ -271,9 +267,8 @@ async def verify_citation_integrity_hook(state: HookState, deps: HookDependencie
     )
 
     parsed_payload = parsed_payload.model_copy(update={"integrity_audit": audit})
-    delta = parsed_payload.model_dump(mode="json", exclude_none=True)
 
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta=parsed_payload))
 
 
 @hook_registry.register(name="enforce_hypothesis_linking")

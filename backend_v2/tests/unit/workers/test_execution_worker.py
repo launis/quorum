@@ -6,8 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.trace import StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
@@ -74,7 +76,7 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result["status"] == "COMPLETED"
+    assert result.status == "COMPLETED"
     assert mock_repo.update_execution.called
     update_call = mock_repo.update_execution.call_args
     update_dto = update_call[0][1]
@@ -115,7 +117,7 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result["status"] == "COMPLETED"
+    assert result.status == "COMPLETED"
     assert not hasattr(mock_redis, "enqueue_job") or not mock_redis.enqueue_job.called
 
 
@@ -138,7 +140,7 @@ async def test_execution_worker_missing_workflow_raises() -> None:
         inputs={},
         execution_id="exe_0123456789abcdef",
     )
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
 
 
@@ -162,7 +164,7 @@ async def test_execution_worker_missing_execution_raises() -> None:
         inputs={},
         execution_id="exe_0123456789abcdef",
     )
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
 
 
@@ -188,7 +190,7 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
         inputs={},
         execution_id="exe_0123456789abcdef",
     )
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
 
 
@@ -273,7 +275,7 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
         user_id="usr_test12345678",
     )
 
-    assert result["status"] == "COMPLETED"
+    assert result.status == "COMPLETED"
     update_call = mock_repo.update_execution.call_args[0][1]
     assert update_call.prompt_tokens == 100
     assert update_call.completion_tokens == 50
@@ -342,7 +344,7 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
             execution_id="exe_0123456789abcdef",
         )
 
-    assert result["status"] == "COMPLETED"
+    assert result.status == "COMPLETED"
     update_call = mock_repo.update_execution.call_args[0][1]
     assert update_call.prompt_tokens == 40
 
@@ -384,7 +386,7 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
             execution_id="exe_0123456789abcdef",
         )
 
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
     update_dto = mock_repo.update_execution.call_args[0][1]
     assert update_dto.status == ExecutionStatus.FAILED
@@ -423,7 +425,7 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
     update_dto = mock_repo.update_execution.call_args[0][1]
     assert update_dto.status == ExecutionStatus.FAILED
@@ -456,7 +458,7 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
     update_dto = mock_repo.update_execution.call_args[0][1]
     assert update_dto.status == ExecutionStatus.FAILED
@@ -489,7 +491,7 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
     assert mock_repo.update_execution.called
     update_dto = mock_repo.update_execution.call_args[0][1]
     assert update_dto.status == ExecutionStatus.FAILED
@@ -522,4 +524,116 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result == {"_dlq_status": "FAILED/DLQ"}
+    assert result.status == "FAILED/DLQ"
+ 
+ 
+@pytest.mark.asyncio
+async def test_execution_worker_with_execution_inputs_dto_and_telemetry() -> None:
+    """Verify worker processes ExecutionInputsDTO and populates step telemetry."""
+    step_id = "stp_0123456789abcdef"
+    mock_workflow = _create_mock_workflow()
+    mock_record = _create_mock_record()
+    mock_record = mock_record.model_copy(
+        update={
+            "execution_trace": [
+                TraceEvent(
+                    step_name="Analytical Step",
+                    event_type="output",
+                    content=TraceEventMetadataEnvelope(
+                        step_metadata=StepTraceMetadataDTO(
+                            step_id=step_id,
+                            model_strategy="fast",
+                            physical_model="gpt-5.4",
+                            system_fingerprint="fp_123",
+                            chunk_size=2,
+                            token_usage=TokenUsage(
+                                prompt_tokens=100,
+                                completion_tokens=50,
+                                cached_tokens=10,
+                                reasoning_tokens=5,
+                                total_tokens=150,
+                                cost_usd=0.002,
+                            ),
+                        )
+                    ).model_dump(by_alias=True, mode="json"),
+                ),
+            ],
+            "step_states": {
+                step_id: ExecutionStep(
+                    id=step_id,
+                    label="Analytical Step",
+                    status=ExecutionStatus.PASSED,
+                    progress=100,
+                )
+            },
+        }
+    )
+
+    mock_repo = MagicMock()
+    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
+    mock_repo.get_execution = AsyncMock(return_value=mock_record)
+    mock_repo.update_execution = AsyncMock()
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    inputs = ExecutionInputsDTO(
+        raw_inputs={"organization_id": "org_abc", "user_id": "usr_xyz"},
+        dynamic_inputs={"custom": "val"},
+    )
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=inputs,
+        execution_id="exe_0123456789abcdef",
+    )
+
+    assert result.status == "COMPLETED"
+    assert mock_repo.update_execution.called
+    update_dto = mock_repo.update_execution.call_args[0][1]
+    assert update_dto.prompt_tokens == 100
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
+    """Verify worker processes WorkflowInputs instance and generates execution_id if omitted."""
+    mock_workflow = _create_mock_workflow()
+    mock_record = _create_mock_record()
+
+    mock_repo = MagicMock()
+    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
+    mock_repo.get_execution = AsyncMock(return_value=mock_record)
+    mock_repo.update_execution = AsyncMock()
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    inputs = WorkflowInputs(
+        organization_id="org_default",
+        user_id="usr_default",
+        dynamic_inputs={},
+    )
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=inputs,
+        execution_id=None,
+    )
+
+    assert result.status == "COMPLETED"
+    assert result.execution_id.startswith("exe_")
+

@@ -312,4 +312,3 @@ async def test_build_variance_metrics_trace_extraction_direct_models() -> None:
         assert metrics.performative_phrases_count == 1.0
         assert metrics.total_word_count == 50
         assert isinstance(task, VarianceExplanationResult)
-

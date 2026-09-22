@@ -13,7 +13,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
     ScoringResultDTO,
     XAILogDto,
 )
-from backend_v2.models.enums import ExecutionStatus, LaxXaiExtensionType, XaiExtensionType
+from backend_v2.models.enums import ExecutionStatus, XaiExtensionType
 
 
 def test_lightweight_matrix_output_coerces_failed_string() -> None:
@@ -133,4 +133,3 @@ def test_merged_facts_dto() -> None:
 
     with pytest.raises(ValidationError):
         MergedFactsDTO(extra="bad")  # type: ignore[call-arg]
-

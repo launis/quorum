@@ -330,7 +330,9 @@ class ReportService:
                     if refreshed:
                         execution = ExecutionRecord.model_validate(refreshed, strict=False)
                 else:
-                    msg = f"Profile '{report.profile_id}' has not been synthesized for execution '{report.execution_id}'."
+                    msg = (
+                        f"Profile '{report.profile_id}' has not been synthesized for execution '{report.execution_id}'."
+                    )
                     logger.error(
                         "[ReportService] %s: %s",
                         ErrorCodes.VALIDATION_FAILED.name,

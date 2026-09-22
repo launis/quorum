@@ -12,7 +12,6 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.metadata import MetadataHookResultDTO, StepMetadataDTO
-from backend_v2.models.enums import VirtualSystemStepID
 
 logger = logging.getLogger(__name__)
 
@@ -75,17 +74,14 @@ def inject_step_metadata(state: HookState, deps: HookDependencies) -> HookResult
         task_blueprint=state.task_blueprint,
     )
 
-    result_dto = MetadataHookResultDTO(step_metadata=metadata)
+    result_dto = MetadataHookResultDTO(
+        step_metadata=metadata,
+        audit_signature=f"{step_id}:{execution_id}:{unix_time}",
+    )
 
     logger.debug("[MetadataHook] Injected metadata for step %s", step_id)
 
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(
-            delta={
-                VirtualSystemStepID.STEP_METADATA.value: result_dto.step_metadata.model_dump(mode="json"),
-                # Ensure we always provide a deterministic audit signature
-                "_audit_signature": f"{step_id}:{execution_id}:{unix_time}",
-            }
-        ),
+        state_delta=HookDeltaDTO(delta=result_dto),
     )

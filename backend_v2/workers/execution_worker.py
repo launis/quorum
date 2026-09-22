@@ -20,6 +20,8 @@ from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundErro
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_delta import WorkerJobResultDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus
@@ -33,13 +35,25 @@ __all__ = ["execute_workflow_job"]
 logger = logging.getLogger(__name__)
 
 
-def _format_dlq_failure() -> dict[str, str]:
+def _format_dlq_failure(
+    execution_id: str | None = None,
+    workflow_id: str | None = None,
+) -> WorkerJobResultDTO:
     """Format Dead Letter Queue failure payload.
 
+    Args:
+        execution_id: Optional ID of the execution record.
+        workflow_id: Optional ID of the workflow configuration.
+
     Returns:
-        Dictionary indicating DLQ failure status.
+        WorkerJobResultDTO indicating DLQ failure status.
     """
-    return {"_dlq_status": "FAILED/DLQ"}
+    return WorkerJobResultDTO(
+        status="FAILED/DLQ",
+        execution_id=execution_id,
+        workflow_id=workflow_id,
+        duration_ms=0,
+    )
 
 
 def _record_dlq_error(err_msg: str) -> None:
@@ -59,11 +73,11 @@ def _record_dlq_error(err_msg: str) -> None:
 async def execute_workflow_job(
     ctx: Any,
     workflow_id: str,
-    inputs: dict[str, Any],
+    inputs: ExecutionInputsDTO,
     execution_id: str | None = None,
     organization_id: str | None = None,
     user_id: str | None = None,
-) -> dict[str, Any]:
+) -> WorkerJobResultDTO:
     """Background job to execute a workflow using GraphEngine.
 
     Performs Phase 1 analytical execution, updates the execution record to PASSED,
@@ -72,13 +86,13 @@ async def execute_workflow_job(
     Args:
         ctx: Arq worker context containing initialized services.
         workflow_id: ID of the workflow configuration to run.
-        inputs: Raw input arguments for the workflow.
+        inputs: Strongly typed execution inputs DTO for the workflow.
         execution_id: ID of the execution record to update.
         organization_id: Organization ID context.
         user_id: User ID context.
 
     Returns:
-        The final workflow execution summary dictionary.
+        WorkerJobResultDTO containing execution status, ID, and duration.
 
     Raises:
         AppException: With ErrorCodes.RESOURCE_NOT_FOUND if workflow or execution is missing,
@@ -100,11 +114,45 @@ async def execute_workflow_job(
     span_execution_id = exec_id
 
     with logfire.span("execute_workflow_job", tags={"execution_id": span_execution_id}):
-        if organization_id and "organization_id" not in inputs:
-            inputs["organization_id"] = organization_id
-
-        if user_id and "user_id" not in inputs:
-            inputs["user_id"] = user_id
+        if isinstance(inputs, WorkflowInputs):
+            inputs_obj = inputs
+        elif isinstance(inputs, ExecutionInputsDTO):
+            merged_dynamic = dict(inputs.dynamic_inputs)
+            merged_dynamic.update(inputs.raw_inputs)
+            org_id = organization_id
+            if not org_id and "organization_id" in inputs.raw_inputs:
+                raw_org = inputs.raw_inputs["organization_id"]
+                if isinstance(raw_org, str):
+                    org_id = raw_org
+            u_id = user_id
+            if not u_id and "user_id" in inputs.raw_inputs:
+                raw_u = inputs.raw_inputs["user_id"]
+                if isinstance(raw_u, str):
+                    u_id = raw_u
+            inputs_obj = WorkflowInputs(
+                organization_id=org_id,
+                user_id=u_id,
+                dynamic_inputs=merged_dynamic,
+            )
+        else:
+            inputs_dto = ExecutionInputsDTO.model_validate(inputs)
+            merged_dynamic = dict(inputs_dto.dynamic_inputs)
+            merged_dynamic.update(inputs_dto.raw_inputs)
+            org_id = organization_id
+            if not org_id and "organization_id" in inputs_dto.raw_inputs:
+                raw_dto_org = inputs_dto.raw_inputs["organization_id"]
+                if isinstance(raw_dto_org, str):
+                    org_id = raw_dto_org
+            u_id = user_id
+            if not u_id and "user_id" in inputs_dto.raw_inputs:
+                raw_dto_u = inputs_dto.raw_inputs["user_id"]
+                if isinstance(raw_dto_u, str):
+                    u_id = raw_dto_u
+            inputs_obj = WorkflowInputs(
+                organization_id=org_id,
+                user_id=u_id,
+                dynamic_inputs=merged_dynamic,
+            )
 
         engine = ctx["engine"]
         repository = ctx["repository"]
@@ -123,7 +171,6 @@ async def execute_workflow_job(
 
             workflow_def = Workflow.model_validate(workflow_dict)
             start_time = datetime.now(UTC)
-            inputs_obj = WorkflowInputs.model_validate(inputs)
 
             execution_data = await repository.get_execution(exec_id)
             if not execution_data:
@@ -436,12 +483,12 @@ async def execute_workflow_job(
             final_duration: int = 0
             if exec_id:
                 final_duration = duration_ms
-            return {
-                "status": "COMPLETED",
-                "execution_id": exec_id,
-                "workflow_id": workflow_id,
-                "duration_ms": final_duration,
-            }
+            return WorkerJobResultDTO(
+                status="COMPLETED",
+                execution_id=exec_id,
+                workflow_id=workflow_id,
+                duration_ms=final_duration,
+            )
 
         except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
             if not isinstance(e, AppException):
@@ -466,7 +513,7 @@ async def execute_workflow_job(
                 except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution failure status: {update_err}"
                     _record_dlq_error(update_msg)
-            return _format_dlq_failure()
+            return _format_dlq_failure(execution_id=exec_id, workflow_id=workflow_id)
         except asyncio.CancelledError:
             logger.warning("[Job] Workflow %s CANCELLED (Timeout/Shutdown). Execution ID: %s", workflow_id, exec_id)
             if exec_id:
@@ -482,4 +529,4 @@ async def execute_workflow_job(
                 except (OSError, ValidationError, ValueError, KeyError, RuntimeError) as update_err:
                     update_msg = f"Failed to update execution cancellation status: {update_err}"
                     _record_dlq_error(update_msg)
-            return _format_dlq_failure()
+            return _format_dlq_failure(execution_id=exec_id, workflow_id=workflow_id)

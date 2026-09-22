@@ -573,5 +573,3 @@ async def test_get_public_report_execution_missing_raises() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     with pytest.raises(ResourceNotFoundError):
         await service.get_public_report(report.id)
-
-

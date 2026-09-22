@@ -9,6 +9,8 @@ from pydantic import ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.enums import LaxExecutionStatus
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import (
     ContextTargetFilterDTO,
@@ -375,7 +377,14 @@ def test_source_document_packer_dotted_step_reference_and_matrix_reducer() -> No
             step_id="matrix_reducer",
             block_id="reduced_atoms",
             data_type="unknown",
-            payload=[{"tda_id": "tda_1", "status": "FAILED"}],
+            payload=[
+                AtomResultDTO(
+                    tda_id="tda_1",
+                    status=LaxExecutionStatus.PASSED,
+                    evaluation_reasoning="Claim was supported.",
+                    source_quote="Verbatim quote for tda_1.",
+                )
+            ],
         ),
         StepOutputDTO(
             step_id="sr_03c1d71000000006",
@@ -450,7 +459,7 @@ def test_source_document_packer_extended_coverage() -> None:
     class DummyPayload(BaseModel):
         summary: str = Field(description="Summary")
 
-    step_output_model = StepOutputDTO(
+    step_output_model = StepOutputDTO.model_construct(
         step_id="step_pydantic",
         block_id="blk_1",
         data_type="matrix",
@@ -464,7 +473,7 @@ def test_source_document_packer_extended_coverage() -> None:
     bad_dict: dict[str, object] = {}
     bad_dict["self"] = bad_dict
 
-    invalid_step = StepOutputDTO(
+    invalid_step = StepOutputDTO.model_construct(
         step_id="step_unserializable",
         block_id="blk_bad",
         data_type="matrix",
@@ -473,4 +482,3 @@ def test_source_document_packer_extended_coverage() -> None:
     with pytest.raises(AppException) as exc_info:
         SourceDocumentPacker.pack(step_outputs=[invalid_step])
     assert "Failed to serialize step payload for step step_unserializable" in str(exc_info.value)
-

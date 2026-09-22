@@ -74,4 +74,3 @@ def test_tavily_search_request_dto_negative_strict_type() -> None:
     """Test strict type validation rejects integer for query string."""
     with pytest.raises(ValidationError):
         TavilySearchRequestDTO(api_key="k", query=12345)  # type: ignore[arg-type]
-

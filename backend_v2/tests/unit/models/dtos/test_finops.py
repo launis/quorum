@@ -68,4 +68,3 @@ def test_finops_dto_negative_strict_type() -> None:
     """Test strict type validation rejects non-integer duration."""
     with pytest.raises(ValidationError):
         FinOpsMonitorSummaryDTO(total_duration_ms="invalid", total_calls=2)  # type: ignore[arg-type]
-

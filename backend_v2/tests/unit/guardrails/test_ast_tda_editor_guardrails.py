@@ -50,8 +50,8 @@ def test_ast_tda_assertion_contrastive_example() -> None:
 
 def test_ast_flattened_atom_structured_fields() -> None:
     """Verify that FlattenedAtom defines structured fields instead of loose strings."""
-    engine_path = Path("backend_v2/models/dtos/engine.py")
-    tree = ast.parse(engine_path.read_text(encoding="utf-8"))
+    matrix_path = Path("backend_v2/models/domain/matrix.py")
+    tree = ast.parse(matrix_path.read_text(encoding="utf-8"))
 
     atom_class: ast.ClassDef | None = None
     for node in ast.walk(tree):
@@ -59,7 +59,7 @@ def test_ast_flattened_atom_structured_fields() -> None:
             atom_class = node
             break
 
-    assert atom_class is not None, "FlattenedAtom class not found in engine.py"
+    assert atom_class is not None, "FlattenedAtom class not found in matrix.py"
 
     fields: dict[str, str] = {}
     for stmt in atom_class.body:

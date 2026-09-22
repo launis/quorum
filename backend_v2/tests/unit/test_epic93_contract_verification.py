@@ -265,6 +265,8 @@ class TestPhase2PipelineUnification:
 
         Falsification: Build scenario with matching and non-matching data.
         """
+        from backend_v2.models.dtos.atom_result import AtomResultDTO
+        from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
         from backend_v2.models.enums import ExecutionStatus
         from backend_v2.models.state import StepOutputDTO
         from backend_v2.services.orchestrator.matrix_explanation_service import (
@@ -277,42 +279,46 @@ class TestPhase2PipelineUnification:
         tda_2 = "tda_00000000000000000000000000000002"
         dtos = [
             StepOutputDTO(
+                step_id="s_atoms",
+                block_id="blk_atoms",
+                data_type="text",
+                payload=[
+                    AtomResultDTO(
+                        tda_id=tda_1,
+                        status=ExecutionStatus.PASSED,
+                        evaluation_reasoning="Reason",
+                        source_quote="Q1 verbatim quote longer than 15 chars",
+                        depends_on_tda_ids=[],
+                        short_circuit_reason_tda_ids=[],
+                    ),
+                    AtomResultDTO(
+                        tda_id=tda_2,
+                        status=ExecutionStatus.PASSED,
+                        evaluation_reasoning="Reason",
+                        source_quote=None,
+                        contextual_override=True,
+                        depends_on_tda_ids=[],
+                        short_circuit_reason_tda_ids=[],
+                    ),
+                ],
+            ),
+            StepOutputDTO(
                 step_id="s1",
                 block_id=block_id_1,
                 data_type="matrix",
-                payload={
-                    "normalized_score": 80.0,
-                    "results": [
-                        {
-                            "tda_id": tda_1,
-                            "status": "PASSED",
-                            "evaluation_reasoning": "Reason",
-                            "source_quote": "Q1 verbatim quote longer than 15 chars",
-                            "depends_on_tda_ids": [],
-                            "short_circuit_reason_tda_ids": [],
-                        }
-                    ],
-                    "evaluated_atoms": {tda_1: ExecutionStatus.PASSED},
-                },
+                payload=LightweightMatrixOutput(
+                    normalized_score=80.0,
+                    evaluated_atoms={tda_1: ExecutionStatus.PASSED},
+                ),
             ),
             StepOutputDTO(
                 step_id="s2",
                 block_id=block_id_2,
                 data_type="matrix",
-                payload={
-                    "normalized_score": 60.0,
-                    "results": [
-                        {
-                            "tda_id": tda_2,
-                            "status": "PASSED",
-                            "evaluation_reasoning": "Reason",
-                            "source_quote": None,
-                            "depends_on_tda_ids": [],
-                            "short_circuit_reason_tda_ids": [],
-                        }
-                    ],
-                    "evaluated_atoms": {tda_2: ExecutionStatus.PASSED},
-                },
+                payload=LightweightMatrixOutput(
+                    normalized_score=60.0,
+                    evaluated_atoms={tda_2: ExecutionStatus.PASSED},
+                ),
             ),
         ]
         from backend_v2.models.core_base import I18nText

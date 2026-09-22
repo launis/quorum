@@ -20,6 +20,7 @@ from backend_v2.models.domain.source_verification import (
     VerifiedSourceDTO,
 )
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
@@ -69,8 +70,8 @@ async def test_source_verification_hook_empty_inputs(mock_deps: HookDependencies
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
-    assert result.state_delta.delta == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+    assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
 
 
 @pytest.mark.asyncio
@@ -88,8 +89,8 @@ async def test_source_verification_hook_empty_prior_analysis(mock_deps: HookDepe
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
-    assert result.state_delta.delta == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+    assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
 
 
 @pytest.mark.asyncio
@@ -109,8 +110,8 @@ async def test_source_verification_hook_whitespace_prior_analysis_returns_zero_c
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
-    assert result.state_delta.delta == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+    assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
 
 
 @pytest.mark.asyncio
@@ -128,8 +129,8 @@ async def test_source_verification_hook_short_text_short_circuit(mock_deps: Hook
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
-    assert result.state_delta.delta == {"external_evidence": ""}
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+    assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")
 
 
 @pytest.mark.asyncio
@@ -193,13 +194,14 @@ async def test_source_verification_hook_success(
     assert result.success is True
     assert result.state_delta is not None
     assert result.state_delta.metadata_updates is not None
-    assert "mcp_audit_traces" in result.state_delta.metadata_updates
-    traces = result.state_delta.metadata_updates["mcp_audit_traces"]
+    assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[mock_trace])
+    traces = result.state_delta.metadata_updates.mcp_audit_traces
+    assert traces is not None
     assert len(traces) == 1
-    assert traces[0]["id"] == "tavily_12345678"
+    assert traces[0].id == "tavily_12345678"
 
-    assert "external_evidence" in result.state_delta.delta
-    evidence_xml = result.state_delta.delta["external_evidence"]
+    assert isinstance(result.state_delta.delta, ExternalEvidenceResultDTO)
+    evidence_xml = result.state_delta.delta.external_evidence
     assert '<claim status="VERIFIED" query="Quantum supremacy was demonstrated by Google in 2019">' in evidence_xml
     assert "<answer>Google claimed quantum supremacy in Nature in 2019.</answer>" in evidence_xml
 
@@ -476,5 +478,5 @@ async def test_source_verification_hook_bypasses_when_tavily_max_results_zero(
 
         assert result.success is True
         assert result.state_delta is not None
-        assert result.state_delta.metadata_updates == {"mcp_audit_traces": []}
-        assert result.state_delta.delta == {"external_evidence": ""}
+        assert result.state_delta.metadata_updates == ExecutionMetadataDeltaDTO(mcp_audit_traces=[])
+        assert result.state_delta.delta == ExternalEvidenceResultDTO(external_evidence="")

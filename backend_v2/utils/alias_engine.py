@@ -231,40 +231,6 @@ class AliasEngine:
 
         return alias
 
-    def hydrate_dict_list(self, items: list[dict[str, Any]], field_name: str) -> int:
-        """Hydrate a list of dictionaries in-place by replacing aliases with real IDs.
-
-        Recursively navigates through nested dictionaries and lists (e.g., LinkedAtomGraph
-        with atom and depends_on).
-
-        Args:
-            items: List of dictionaries containing aliased fields.
-            field_name: The key within each dictionary to hydrate.
-
-        Returns:
-            The number of successfully hydrated items.
-        """
-        hydrated_count = 0
-        if not items:
-            return hydrated_count
-
-        def _recurse(node: Any) -> None:
-            nonlocal hydrated_count
-            if type(node) is dict:
-                for key, value in node.items():
-                    if key == field_name:
-                        if value and isinstance(value, str) and value in self.alias_map:
-                            node[key] = self.alias_map[value]
-                            hydrated_count += 1
-                    else:
-                        _recurse(value)
-            elif isinstance(node, list):
-                for item in node:
-                    _recurse(item)
-
-        _recurse(items)
-        return hydrated_count
-
     def hydrate_reasoning_text(self, text: str) -> str:
         """Replace internal aliases with their real IDs in text fields."""
         if not text:

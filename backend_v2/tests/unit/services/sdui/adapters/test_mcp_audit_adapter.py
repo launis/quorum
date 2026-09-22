@@ -119,4 +119,3 @@ def test_build_returns_empty_when_data_starved(sample_profile: OutputProfile, sa
 def test_mcp_audit_rules() -> None:
     """Verify MCP_AUDIT_RULES export is a valid McpAuditAestheticsDTO."""
     assert isinstance(MCP_AUDIT_RULES, McpAuditAestheticsDTO)
-

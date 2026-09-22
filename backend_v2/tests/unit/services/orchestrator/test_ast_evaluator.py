@@ -183,4 +183,3 @@ def test_ast_evaluator_unhandled_allowed_node_fallback() -> None:
         )
     assert "Disallowed node 'Expression'" in str(exc.value.message)
     assert exc.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-

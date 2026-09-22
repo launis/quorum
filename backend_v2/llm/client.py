@@ -21,7 +21,7 @@ from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.ingress_pipeline import UniversalIngress
 from backend_v2.llm.provider import LLMFactory
-from backend_v2.models.domain.system_config import SystemConfigModelRegistry
+from backend_v2.models.domain.system_config import ChatMessageDTO, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.enums import PIPELINE_REGISTRY, CognitiveTier, ExecutionProfile, LLMProvider
 from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
@@ -260,7 +260,7 @@ class LLMClient:
 
     async def run_structured_task[T: BaseModel](
         self,
-        messages: list[LLMMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
+        messages: list[LLMMessageDTO] | list[ChatMessageDTO] | list[dict[str, Any]] | CompiledPrompt,
         response_model: type[T],
         model: str | None = None,
         temperature: float | None = None,
@@ -325,7 +325,14 @@ class LLMClient:
             compiled_prompt = messages
             final_messages = compiled_prompt.to_flat_messages()
         else:
-            final_messages = [m if isinstance(m, LLMMessageDTO) else LLMMessageDTO.model_validate(m) for m in messages]
+            final_messages = [
+                m
+                if isinstance(m, LLMMessageDTO)
+                else LLMMessageDTO(role=m.role, content=m.content)
+                if isinstance(m, ChatMessageDTO)
+                else LLMMessageDTO.model_validate(m)
+                for m in messages
+            ]
 
         # 1. Evaluate Context Caching Requirements (Epic 5 Context Segregation)
         # We process the raw messages array dynamically before handing it to the provider.

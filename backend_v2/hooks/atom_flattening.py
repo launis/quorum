@@ -9,7 +9,7 @@ LLM context fatigue and JSON token explosion.
 import logging
 import random
 
-from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic import ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -22,22 +22,11 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.engine import FlattenedAtom
+from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["FlatteningHookOutput", "process_matrix_flattening"]
-
-
-class FlatteningHookOutput(BaseModel):
-    """Strict Pydantic schema for the entire hook state delta payload.
-
-    Attributes:
-        shuffled_atoms: List of selected and randomized extraction items.
-    """
-
-    shuffled_atoms: list[FlattenedAtom]
-
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
 
 
 @hook_registry.register(name="atom_flattening_hook")
@@ -204,8 +193,7 @@ async def process_matrix_flattening(state: HookState, deps: HookDependencies) ->
 
         logger.info("[AtomFlatteningHook] Flattened %d total atoms. Executing deterministic sort.", len(model_list))
 
-        # Enforce Rule 'No Naked Dicts': explicitly dump the structured model
         output_payload = FlatteningHookOutput(shuffled_atoms=model_list)
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta=output_payload.model_dump(mode="json")))
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=output_payload))
 
     return HookResult(success=True, state_delta=HookDeltaDTO())

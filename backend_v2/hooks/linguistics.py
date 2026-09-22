@@ -111,12 +111,7 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
         empty_dto = LinguisticsResultDTO(performative_patterns=[], total_word_count=total_word_count)
         return HookResult(
             success=True,
-            state_delta=HookDeltaDTO(
-                delta={
-                    "step_linguistics": empty_dto.model_dump(mode="json"),
-                    "global_context_vars": {"step_linguistics": empty_dto},
-                }
-            ),
+            state_delta=HookDeltaDTO(delta=empty_dto),
         )
 
     # Dynamic LLM Extraction (feature-flagged)
@@ -199,10 +194,5 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
 
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(
-            delta={
-                "step_linguistics": result_dto.model_dump(mode="json"),
-                "global_context_vars": {"step_linguistics": result_dto},
-            }
-        ),
+        state_delta=HookDeltaDTO(delta=result_dto),
     )

@@ -193,4 +193,3 @@ def test_get_spacy_model_os_error(pii_service: PIIAnalyzerService) -> None:
         with pytest.raises(AppException) as exc_info:
             pii_service._get_spacy_model("en")
         assert "not found. Please install it." in str(exc_info.value)
-

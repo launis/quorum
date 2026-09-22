@@ -22,6 +22,11 @@ __all__ = ["log_structured_task_prompt", "write_debug_prompt_log", "write_llm_te
 _debug_file_locks: dict[asyncio.AbstractEventLoop, asyncio.Lock] = {}
 
 
+def _dlq_record_debug_log_failure(context: str, exc: Exception) -> None:
+    """Record debug logger failure to DLQ trace."""
+    logger.warning("[LLMDebugLogger] %s failed: %s", context, exc)
+
+
 def _get_debug_file_lock() -> asyncio.Lock:
     """Lazily resolves or creates an asyncio.Lock bound to the active event loop.
 
@@ -124,7 +129,7 @@ async def write_debug_prompt_log(
             with open(debug_file, "a", encoding="utf-8") as df:
                 df.write("\n".join(lines) + "\n")
         except (OSError, ValueError, TypeError) as exc:
-            logger.warning("[LLMDebugLogger] Failed to write debug prompt log: %s", exc)
+            _dlq_record_debug_log_failure("Failed to write debug prompt log", exc)
 
 
 async def log_structured_task_prompt(
@@ -193,7 +198,7 @@ async def log_structured_task_prompt(
             with open(debug_file, "a", encoding="utf-8") as df:
                 df.write("\n".join(lines) + "\n")
         except (OSError, ValueError, TypeError) as exc:
-            logger.warning("[LLMDebugLogger] Failed to write structured task prompt debug log: %s", exc)
+            _dlq_record_debug_log_failure("Failed to write structured task prompt debug log", exc)
 
 
 async def write_llm_telemetry_log(
@@ -240,4 +245,4 @@ async def write_llm_telemetry_log(
             with open(telemetry_file, "a", encoding="utf-8") as tf:
                 tf.write(json.dumps(data) + "\n")
         except (OSError, ValueError, TypeError) as exc:
-            logger.warning("[LLMDebugLogger] Failed to write telemetry log: %s", exc)
+            _dlq_record_debug_log_failure("Failed to write telemetry log", exc)

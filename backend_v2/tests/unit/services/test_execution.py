@@ -24,14 +24,17 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.atom_result import HydratedAtomDTO
+from backend_v2.models.dtos.flat_record import FlatExecutionRecordDTO
 from backend_v2.models.dtos.matrix_scorecard import HumanOverrideRequest
 from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.dtos.workflow_schema import WorkflowSchemaResponseDTO
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.models.enums import ExecutionStatus, SDUIComponentType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import (
     MarkdownBlock,
+    ReportView,
 )
 from backend_v2.services.execution import ExecutionService, create_execution_record
 
@@ -509,7 +512,13 @@ async def test_render_execution_flat() -> None:
         mock_transformer.build_report_dto.return_value = mock_dto
         mock_transformer_class.return_value = mock_transformer
 
-        with patch("backend_v2.services.flattener.FlatFileService.flatten_results", return_value={"flat": "data"}):
+        flat_rec = FlatExecutionRecordDTO(
+            execution_id="exe_1",
+            workflow_id="wf_1",
+            status="PASSED",
+            matrix_metrics={"flat": "data"},
+        )
+        with patch("backend_v2.services.flattener.FlatFileService.flatten_results", return_value=flat_rec):
             data, mime, filename = await service.render_execution(
                 initiator=initiator,
                 execution_id="exe_1",
@@ -519,7 +528,7 @@ async def test_render_execution_flat() -> None:
                 arq_pool=arq_pool,
             )
 
-    assert data == {"flat": "data"}
+    assert data == flat_rec
     assert mime == "application/json"
     assert filename is None
 
@@ -569,11 +578,11 @@ async def test_render_execution_json() -> None:
 
     from unittest.mock import patch
 
-    # Mocking BlueprintTransformer
-    mock_dto = Mock()
-    mock_dto.inner_sdui_blocks = []
-    mock_dto.has_warning = False
-    mock_dto.model_dump.return_value = {"workflow_id": "wf_1", "profile_id": "prof_1"}
+    mock_dto = ReportDataDTO(
+        workflow_id="wf_1",
+        execution_id="exe_1",
+        profile_id="prof_1",
+    )
 
     with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
@@ -592,9 +601,9 @@ async def test_render_execution_json() -> None:
                 arq_pool=arq_pool,
             )
 
-    assert isinstance(data, dict)
-    assert data["workflow_id"] == "wf_1"
-    assert data["profile_id"] == "prof_1"
+    assert isinstance(data, ReportDataDTO)
+    assert data.workflow_id == "wf_1"
+    assert data.profile_id == "prof_1"
     assert mime == "application/json"
     assert filename is None
 
@@ -809,7 +818,12 @@ async def test_get_execution_export_bytes_success() -> None:
     )
     mock_report_dto = Mock(
         results=[mock_atom],
-        hydrated_references={},
+        hydrated_references={
+            "tda_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 1",
+            )
+        },
         inner_sdui_blocks=[],
     )
 
@@ -920,7 +934,12 @@ async def test_get_execution_export_bytes_quotes_bug() -> None:
     )
     mock_report_dto = Mock(
         results=[mock_atom],
-        hydrated_references={},
+        hydrated_references={
+            "tda_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 1",
+            )
+        },
         inner_sdui_blocks=[],
     )
 
@@ -1604,7 +1623,6 @@ async def test_get_frozen_context_bytes() -> None:
 
 @pytest.mark.asyncio
 async def test_clear_profile_synthesis() -> None:
-    from unittest.mock import patch
 
     from backend_v2.exceptions import ResourceNotFoundError
 
@@ -1649,11 +1667,10 @@ async def test_clear_profile_synthesis() -> None:
         "steps": [],
     }
 
-    with patch("backend_v2.services.storage.get_storage_driver") as mock_storage:
-        driver = AsyncMock()
-        mock_storage.return_value = driver
-        await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
-        driver.delete.assert_called_once_with("reports/report.pdf")
+    driver = AsyncMock()
+    service._override.storage = driver
+    await service.clear_profile_synthesis(initiator, "exe_1", "prof_1")
+    driver.delete.assert_called_once_with("reports/report.pdf")
 
     workflow_repo.get_workflow_by_id.return_value = None
     with pytest.raises(ResourceNotFoundError):
@@ -1714,9 +1731,11 @@ async def test_render_execution_formats() -> None:
 
     rec.status = ExecutionStatus.PASSED
     rec.step_states = {}
-    mock_dto = Mock()
-    mock_dto.inner_sdui_blocks = []
-    mock_dto.has_warning = False
+    mock_dto = ReportDataDTO(
+        workflow_id="wor_0123456789abcdef",
+        execution_id="exe_1",
+        profile_id="prof_1",
+    )
 
     with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_cls:
         mock_trans = AsyncMock()
@@ -1894,7 +1913,12 @@ async def test_get_execution_export_bytes_different_block_types() -> None:
     )
     mock_report_dto = Mock()
     mock_report_dto.results = [mock_atom]
-    mock_report_dto.hydrated_references = {}
+    mock_report_dto.hydrated_references = {
+        "tda_1": HydratedAtomDTO(
+            sdui_component=SDUIComponentType.BOOLEAN_CARD,
+            resolved_claim="Claim 1",
+        )
+    }
     mock_report_dto.overall_score = 85.0
     mock_report_dto.executive_summary = "Summary text"
     mock_report_dto.strengths = []
@@ -1994,14 +2018,14 @@ async def test_get_sdui_view_branches() -> None:
     mock_dto = Mock(spec=ReportDataDTO)
     mock_dto.inner_sdui_blocks = [MarkdownBlock(text="Synthetic Overview Title")]
     with patch.object(service, "get_report_dto", return_value=mock_dto):
-        mock_view = Mock()
+        mock_view = Mock(spec=ReportView)
+        mock_view.title = "Synthetic Overview Title"
         mock_view.model_copy.return_value = mock_view
-        mock_view.model_dump.return_value = {"title": "Synthetic Overview Title", "components": []}
         with patch(
             "backend_v2.services.sdui_mapper_service.SduiMapperService.map_report_to_sdui", return_value=mock_view
         ):
             view_dict = await service.get_sdui_view(initiator, "exe_0123456789abcdef")
-            assert view_dict["title"] == "Synthetic Overview Title"
+            assert view_dict.title == "Synthetic Overview Title"
 
 
 @pytest.mark.asyncio
@@ -2337,6 +2361,7 @@ async def test_clear_profile_synthesis_storage_delete_branches() -> None:
     initiator = TokenData(id="usr_root", role=UserRole.ROOT)
 
     storage_mock = AsyncMock()
+    service._override.storage = storage_mock
 
     # 404 is ignored
     storage_mock.delete.side_effect = AppException("Not found", status_code=404)
@@ -2731,7 +2756,12 @@ async def test_get_execution_export_bytes_excel_writer_error() -> None:
     )
     mock_report_dto = Mock(
         results=[mock_atom],
-        hydrated_references={},
+        hydrated_references={
+            "tda_1": HydratedAtomDTO(
+                sdui_component=SDUIComponentType.BOOLEAN_CARD,
+                resolved_claim="Claim 1",
+            )
+        },
         inner_sdui_blocks=[],
     )
     with (

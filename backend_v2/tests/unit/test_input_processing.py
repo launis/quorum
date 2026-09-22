@@ -158,9 +158,9 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "inputs" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
 
-    processed = result.state_delta.delta["inputs"]
+    processed = result.state_delta.delta.raw_inputs
     assert "QUESTIONNAIRE" in processed
     assert "DOCUMENT_TEXT" in processed
 
@@ -288,7 +288,8 @@ async def test_process_inputs_with_spacy_and_presidio(monkeypatch: pytest.Monkey
 
     assert result.success is True
     assert result.state_delta is not None
-    processed = result.state_delta.delta["inputs"]
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    processed = result.state_delta.delta.raw_inputs
     assert "DOCUMENT_TEXT" in processed
     # Due to ordering in the hook, Presidio masks the output of SpaCy.
     assert "Masked text." in processed["DOCUMENT_TEXT"]

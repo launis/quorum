@@ -40,8 +40,8 @@ def test_ast_tda_assertion_depends_on_tuple() -> None:
 
 def test_ast_flattened_atom_depends_on_tuple() -> None:
     """Verify that FlattenedAtom.depends_on is annotated as a tuple."""
-    engine_dto_path = Path("backend_v2/models/dtos/engine.py")
-    tree = ast.parse(engine_dto_path.read_text(encoding="utf-8"))
+    matrix_model_path = Path("backend_v2/models/domain/matrix.py")
+    tree = ast.parse(matrix_model_path.read_text(encoding="utf-8"))
 
     atom_class: ast.ClassDef | None = None
     for node in ast.walk(tree):
@@ -49,7 +49,7 @@ def test_ast_flattened_atom_depends_on_tuple() -> None:
             atom_class = node
             break
 
-    assert atom_class is not None, "FlattenedAtom class not found in engine.py"
+    assert atom_class is not None, "FlattenedAtom class not found in matrix.py"
 
     depends_on_field: ast.AnnAssign | None = None
     for stmt in atom_class.body:

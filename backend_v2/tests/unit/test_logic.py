@@ -77,12 +77,14 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     ]
 
     from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
     from backend_v2.models.execution_core import ExecutionMetadata
 
     context = MagicMock()
     context.execution_id = "exe_1"
     context.workflow_id = "wf_1"
-    context.global_context_vars = {}
+    context.target_locale = "en"
+    context.global_context_vars = GlobalContextVarsDTO()
     context.metadata = ExecutionMetadata()
 
     v2_step_mock = MagicMock()
@@ -92,7 +94,7 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         patch(
             "backend_v2.core.hook_registry.hook_registry.execute",
             new_callable=AsyncMock,
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={})),
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=None)),
         ) as mock_hook,
         patch("backend_v2.models.domain.step.Step.model_validate", return_value=v2_step_mock),
     ):

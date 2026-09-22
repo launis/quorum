@@ -20,6 +20,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
+from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
@@ -134,8 +135,8 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         return HookResult(
             success=True,
             state_delta=HookDeltaDTO(
-                delta={"external_evidence": ""},
-                metadata_updates={"mcp_audit_traces": []},
+                delta=ExternalEvidenceResultDTO(external_evidence=""),
+                metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=[]),
             ),
         )
 
@@ -143,8 +144,8 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         return HookResult(
             success=True,
             state_delta=HookDeltaDTO(
-                delta={"external_evidence": ""},
-                metadata_updates={"mcp_audit_traces": []},
+                delta=ExternalEvidenceResultDTO(external_evidence=""),
+                metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=[]),
             ),
         )
 
@@ -154,8 +155,8 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         return HookResult(
             success=True,
             state_delta=HookDeltaDTO(
-                delta={"external_evidence": ""},
-                metadata_updates={"mcp_audit_traces": []},
+                delta=ExternalEvidenceResultDTO(external_evidence=""),
+                metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=[]),
             ),
         )
 
@@ -215,13 +216,11 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
             joined_lines = "\n".join(evidence_lines)
             external_evidence_xml = f"<external_evidence>\n{joined_lines}\n</external_evidence>"
 
-        raw_traces = [trace.model_dump(mode="python") for trace in result.audit_traces]
-
         return HookResult(
             success=True,
             state_delta=HookDeltaDTO(
-                delta={"external_evidence": external_evidence_xml},
-                metadata_updates={"mcp_audit_traces": raw_traces},
+                delta=ExternalEvidenceResultDTO(external_evidence=external_evidence_xml),
+                metadata_updates=ExecutionMetadataDeltaDTO(mcp_audit_traces=result.audit_traces),
             ),
         )
     except Exception as e:

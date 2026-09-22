@@ -169,7 +169,8 @@ async def test_analyze_interaction_role_prompt_injection(
 
     assert res.success is True
     assert res.state_delta is not None
-    assert "interaction_analysis" in res.state_delta.delta
+    assert isinstance(res.state_delta.delta, InteractionAnalysisDTO)
+    assert res.state_delta.delta == mock_llm_response
 
     # Assert Fencing
     mock_execute_structured_task.assert_called_once()

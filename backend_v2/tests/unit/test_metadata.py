@@ -13,6 +13,7 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metadata import inject_step_metadata
+from backend_v2.models.domain.metadata import MetadataHookResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -173,14 +174,14 @@ def test_inject_step_metadata_custom_values() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    meta = result.state_delta.delta["_step_metadata"]
-    assert "step_metadata" not in result.state_delta.delta, "Hook must use underscore-prefixed SSOT key"
-    assert meta["execution_id"] == "exec_555"
-    assert meta["workflow_id"] == "wf_999"
-    assert meta["step_id"] == "step_123"
-    assert meta["initiator_id"] == "usr_777"
+    assert isinstance(result.state_delta.delta, MetadataHookResultDTO)
+    meta = result.state_delta.delta.step_metadata
+    assert meta.execution_id == "exec_555"
+    assert meta.workflow_id == "wf_999"
+    assert meta.step_id == "step_123"
+    assert meta.initiator_id == "usr_777"
 
-    audit_sig = result.state_delta.delta["_audit_signature"]
+    audit_sig = result.state_delta.delta.audit_signature
     assert audit_sig.startswith("step_123:exec_555:")
 
 

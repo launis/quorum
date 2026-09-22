@@ -6,6 +6,7 @@ target_locale fail-fast boundaries, handles DTO hydration, and strictly enforces
 Zero Backwards Compatibility by purging legacy keys.
 """
 
+import json
 from collections.abc import Awaitable
 from typing import Any, cast
 from unittest.mock import AsyncMock, patch
@@ -105,20 +106,24 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
         step_id="stp_sensor_1",
         block_id="blk_sensor_1",
         data_type="text",
-        payload={
-            "findings": ["Leadership resilience verified in stress interview."],
-            "evidence_quotes": [{"quote": "Leader maintained composure under pressure.", "is_verified": True}],
-        },
+        payload=json.dumps(
+            {
+                "findings": ["Leadership resilience verified in stress interview."],
+                "evidence_quotes": [{"quote": "Leader maintained composure under pressure.", "is_verified": True}],
+            }
+        ),
     )
     # Step 2: Cognitive sensor finding step
     step2 = StepOutputDTO(
         step_id="stp_sensor_2",
         block_id="blk_sensor_2",
         data_type="text",
-        payload={
-            "findings": ["Strategic alignment demonstrated across portfolio."],
-            "evidence_quotes": [{"quote": "Portfolio roadmap aligned with 2026 goals.", "is_verified": True}],
-        },
+        payload=json.dumps(
+            {
+                "findings": ["Strategic alignment demonstrated across portfolio."],
+                "evidence_quotes": [{"quote": "Portfolio roadmap aligned with 2026 goals.", "is_verified": True}],
+            }
+        ),
     )
     # Step 3: Matrix step
     matrix_output = LightweightMatrixOutput(
@@ -131,7 +136,7 @@ async def test_synthesis_distiller_wiring_passes_unfiltered_dtos() -> None:
         step_id="stp_matrix_1",
         block_id="blk_matrix_1",
         data_type="matrix",
-        payload=matrix_output.model_dump(mode="json"),
+        payload=matrix_output,
     )
 
     state = HookState(

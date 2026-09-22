@@ -134,7 +134,7 @@ async def test_verify_citation_integrity_hook_bypass() -> None:
 
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {"not_analyst": "data"}
+    assert result.state_delta.delta is None
 
 
 def test_verify_payload_citations_analyst() -> None:
@@ -242,8 +242,9 @@ async def test_verify_citation_integrity_hook_full_success_with_citations() -> N
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "integrity_audit" in result.state_delta.delta
-    assert result.state_delta.delta["integrity_audit"]["integrity_score"] == 1.0
+    assert result.state_delta.delta is not None
+    assert result.state_delta.delta.integrity_audit is not None
+    assert result.state_delta.delta.integrity_audit.integrity_score == 1.0
 
 
 @pytest.mark.asyncio

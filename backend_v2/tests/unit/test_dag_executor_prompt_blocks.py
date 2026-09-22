@@ -113,7 +113,9 @@ def mock_compiler() -> Any:
     from pydantic import BaseModel, Field
 
     class MockSchema(BaseModel):
-        blk_0123456789abcdef0123456789ab: Any = Field(default=None)
+        blk_0123456789abcdef0123456789ab: str | None = Field(default=None)
+
+    MockSchema.model_rebuild()
 
     compiler = MagicMock()
     compiler.build_xml_context.return_value = "<test>context</test>"
@@ -166,8 +168,9 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
 
         from backend_v2.models.domain.usage import TokenUsage
 
+        mock_schema_cls = mock_compiler.build_dynamic_schema.return_value
         mock_bound_client.run_structured_task.return_value = (
-            {"blk_0123456789abcdef0123456789ab": "test"},
+            mock_schema_cls(blk_0123456789abcdef0123456789ab="test"),
             TokenUsage(prompt_tokens=10, completion_tokens=20, total_tokens=30),
         )
 
@@ -228,12 +231,15 @@ async def test_dag_executor_uses_prompt_blocks_instead_of_matrices(mock_repo: An
             # Also mock the hook registry to prevent "Hook not found" errors in isolated tests
             with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
                 from backend_v2.core.hook_registry import HookDeltaDTO
+                from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 
                 mock_hooks.execute = AsyncMock(
                     return_value=HookResult(
                         success=True,
                         state_delta=HookDeltaDTO(
-                            delta={"inputs": {"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}}
+                            delta=ExecutionInputsDTO(
+                                dynamic_inputs={"chat_log": "this_is_a_very_long_test_string_to_bypass_fail_fast"}
+                            )
                         ),
                     )
                 )

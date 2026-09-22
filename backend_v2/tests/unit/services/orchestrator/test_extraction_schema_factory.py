@@ -174,4 +174,3 @@ def test_canonicalise_nulls_invalid_container_type() -> None:
     with pytest.raises(AppException) as exc_resp:
         DynamicExtractionResponseBase.canonicalise_nulls({1, 2, 3})
     assert exc_resp.value.status_code == 400
-

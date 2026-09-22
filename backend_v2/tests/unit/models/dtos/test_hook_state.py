@@ -58,9 +58,13 @@ def test_global_context_vars_dto_strictness() -> None:
 
 def test_hook_delta_dto_instantiation() -> None:
     """Verify HookDeltaDTO instantiation and field defaults."""
-    dto = HookDeltaDTO(delta={"result": "ok"}, metadata_updates={"tokens": 100})
-    assert dto.delta == {"result": "ok"}
-    assert dto.metadata_updates == {"tokens": 100}
+    from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, PassivityDetectionResultDTO
+
+    payload = PassivityDetectionResultDTO(passivity_detected=True)
+    meta = ExecutionMetadataDeltaDTO(estimated_token_count=100)
+    dto = HookDeltaDTO(delta=payload, metadata_updates=meta)
+    assert dto.delta == payload
+    assert dto.metadata_updates == meta
 
     default_dto = HookDeltaDTO()
     assert default_dto.delta is None

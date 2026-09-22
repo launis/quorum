@@ -18,6 +18,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
+from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.step_output import StepOutputDTO
 
@@ -161,6 +162,9 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
 
     if passivity_detected:
         logger.info("[ScoringHook] Passivity detected in step '%s'; emitting semantic flag.", blueprint_id)
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"passivity_detected": True}))
+        return HookResult(
+            success=True,
+            state_delta=HookDeltaDTO(delta=PassivityDetectionResultDTO(passivity_detected=True)),
+        )
 
     return HookResult(success=True, state_delta=HookDeltaDTO())

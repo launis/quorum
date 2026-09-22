@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from enum import Enum, StrEnum
 from typing import Annotated, Any, cast
 
@@ -21,6 +21,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
@@ -204,7 +205,7 @@ class SchemaBuilderStrategy(ABC):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build and return the Pydantic model for this SDUI type."""
         pass
@@ -343,7 +344,7 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build the static MarkdownBlock response model."""
         return MarkdownBlock
@@ -365,7 +366,7 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build the static HeroInsightBlock response model."""
         return HeroInsightBlock
@@ -387,7 +388,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         allowed_atom_ids: list[str] | None = None,
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build dynamic column grid response model."""
         step_strict_class: type[BaseModel] = StepDTOStrict
@@ -519,21 +520,27 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 break
                             for tda in claim.tda_assertions:
                                 atom_id = str(tda.tda_id)
-                                if atom_id in dag_results:
-                                    atom_item = dag_results[atom_id]
-                                    if isinstance(atom_item, AtomResultDTO):
-                                        if atom_item.status == ExecutionStatus.PASSED:
-                                            has_evidence = True
-                                            break
-                                    elif isinstance(atom_item, Mapping):
-                                        if "status" in atom_item:
-                                            raw_status = atom_item["status"]
-                                            if (
-                                                raw_status == ExecutionStatus.PASSED
-                                                or raw_status == ExecutionStatus.PASSED.value
-                                            ):
+                                if isinstance(dag_results, Mapping):
+                                    if atom_id in dag_results:
+                                        atom_item = dag_results[atom_id]
+                                        if isinstance(atom_item, AtomResultDTO):
+                                            if atom_item.status == ExecutionStatus.PASSED:
                                                 has_evidence = True
                                                 break
+                                else:
+                                    for step_out in dag_results:
+                                        if isinstance(step_out, StepOutputDTO):
+                                            payload = step_out.payload
+                                            if isinstance(payload, AtomResultDTO) and payload.tda_id == atom_id:
+                                                if payload.status == ExecutionStatus.PASSED:
+                                                    has_evidence = True
+                                                    break
+                                            elif isinstance(payload, list):
+                                                for item in payload:
+                                                    if isinstance(item, AtomResultDTO) and item.tda_id == atom_id:
+                                                        if item.status == ExecutionStatus.PASSED:
+                                                            has_evidence = True
+                                                            break
                     if not has_evidence:
                         logger.warning("Zero evidence found for Matrix %s, omitting from LLM schema", matrix_id)
                         continue

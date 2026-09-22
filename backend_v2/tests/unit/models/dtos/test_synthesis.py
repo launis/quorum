@@ -226,4 +226,3 @@ def test_row_explanation_and_matrix_explanations_result_strictness() -> None:
             explanations=[row],
             extra="forbidden",
         )  # type: ignore[call-arg]
-

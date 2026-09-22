@@ -8,10 +8,13 @@ from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.auth import User, UserRole
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionStep, FrozenContext
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -81,7 +84,10 @@ async def test_dag_executor_runs_and_remains_running_for_async_render(mock_repo:
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={"chat_log": "test"})),
+            )
         )
         record = await executor.execute_workflow(
             execution_id="exe_1231231231231231",
@@ -198,7 +204,10 @@ async def test_dag_executor_hoists_and_passes_semaphore(mock_repo: Any, mock_com
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={"chat_log": "test"})),
+            )
         )
         mock_node_execute.return_value = []
 
@@ -279,7 +288,10 @@ async def test_dag_executor_exceptiongroup_dlq_routing(mock_repo: Any, mock_comp
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"chat_log": "test"}}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs={"chat_log": "test"})),
+            )
         )
         # Force the node executor to raise a generic exception to trigger the TaskGroup crash
         mock_node_execute.side_effect = Exception("System Crash")
@@ -702,7 +714,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
     from backend_v2.models.state import TraceEvent
 
     mock_rag_preflight = AsyncMock()
-    mock_rag_preflight.execute.return_value = {"atoms": ["a1", "a2"]}
+    mock_rag_preflight.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
     executor = DAGExecutor(
         rag_preflight=mock_rag_preflight,
@@ -766,8 +778,7 @@ async def test_dag_executor_resumes_existing_record_and_handles_preflight(mock_r
         patch("backend_v2.services.orchestrator.matrix_reducer.MatrixReducer.reduce_matrix") as mock_matrix_reducer,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
     ):
-        mock_reduced = MagicMock()
-        mock_reduced.model_dump.return_value = {"reduced": True}
+        mock_reduced = LightweightMatrixOutput(raw_score=4.0, normalized_score=80.0, justification="Reduced")
         mock_matrix_reducer.return_value = mock_reduced
 
         event_with_mcp = TraceEvent(
@@ -1299,7 +1310,7 @@ async def test_dag_executor_step_states_resolves_human_readable_step_labels(mock
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
         mock_node_exec.return_value = []
         record = await executor.execute_workflow(
@@ -1375,9 +1386,7 @@ async def test_dag_executor_intermediate_progress_callback_lock_failure_does_not
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             result = await executor.execute_workflow(
                 execution_id="exe_1111222233334444",
@@ -1406,7 +1415,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
                 await emit_progress("Indexing ontology...", 50)
             finally:
                 in_preflight_progress = False
-        return {"context": "preflight_done"}
+        return GlobalAtomBlackboard(atoms_by_input={})
 
     mock_rag_preflight.execute = AsyncMock(side_effect=mock_rag_execute)
 
@@ -1465,9 +1474,7 @@ async def test_dag_executor_preflight_progress_lock_failure_does_not_crash_workf
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             result = await executor.execute_workflow(
                 execution_id="exe_2222333344445555",
@@ -1591,9 +1598,7 @@ async def test_dag_executor_resumes_missing_metadata_populates_workflow_model_re
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
     ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
             execution_id="exe_2222333344445555",
             workflow=workflow,
@@ -1689,9 +1694,7 @@ async def test_dag_executor_resumption_skips_passed_steps_and_resets_failed_step
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
     ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
             execution_id="exe_3333444455556666",
             workflow=workflow,
@@ -1767,9 +1770,7 @@ async def test_dag_executor_watch_running_event_transitions_queued_step(mock_rep
         patch.object(executor.node_executor, "execute", side_effect=mock_node_execute),
         patch.object(executor.committer, "commit_trace", new_callable=AsyncMock) as mock_commit,
     ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         record = await executor.execute_workflow(
             execution_id="exe_5555666677778888",
             workflow=workflow,
@@ -1837,9 +1838,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
         patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_exec,
     ):
-        mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
-        )
+        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
         mock_node_exec.return_value = [schema_event]
         record = await executor.execute_workflow(
             execution_id="exe_6666777788889999",

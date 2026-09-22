@@ -158,6 +158,3 @@ def test_map_report_to_sdui_na_unhydrated_reference() -> None:
     assert len(view.inner_sdui_blocks) == 1
     assert isinstance(view.inner_sdui_blocks[0], SduiNACard)
     assert view.inner_sdui_blocks[0].message == "Not applicable (N/A)"
-
-
-

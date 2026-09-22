@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -15,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation
 from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.step_output import StepPayloadValue
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class SynthesisPayloadCompressor:
 
     @staticmethod
     def compress_synthesis_payload(
-        v: dict[str, Any] | list[Any] | str | int | float | bool | BaseModel,
+        v: BaseModel | StepPayloadValue,
     ) -> str:
         """Deep copy and strip heavy Pydantic metadata and AI internal logs before sending to final synthesis.
 
@@ -70,11 +72,43 @@ class SynthesisPayloadCompressor:
             return trimmed
 
         if isinstance(v, BaseModel):
-            v = v.model_dump(mode="json")
-        elif isinstance(v, list):
-            v = [item.model_dump(mode="json") if isinstance(item, BaseModel) else item for item in v]
+            dumped = v.model_dump(
+                mode="json",
+                exclude={
+                    "shuffled_atoms",
+                    "atom_quotes",
+                    "hydrated_references",
+                    "_step_metadata",
+                    "_audit_signature",
+                    "_evaluative_matrices",
+                },
+                exclude_none=True,
+            )
+            return json.dumps(dumped, ensure_ascii=False, indent=2)
 
-        if not (type(v) is dict or isinstance(v, list)):
+        clean_v: Any
+        if isinstance(v, list):
+            clean_list = [
+                item.model_dump(
+                    mode="json",
+                    exclude={
+                        "shuffled_atoms",
+                        "atom_quotes",
+                        "hydrated_references",
+                        "_step_metadata",
+                        "_audit_signature",
+                        "_evaluative_matrices",
+                    },
+                    exclude_none=True,
+                )
+                if isinstance(item, BaseModel)
+                else item
+                for item in v
+            ]
+            clean_v = copy.deepcopy(clean_list)
+        elif isinstance(v, Mapping):
+            clean_v = copy.deepcopy(dict(v))
+        else:
             logger.error(
                 "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
                 ErrorCodes.VALIDATION_FAILED.name,
@@ -85,14 +119,11 @@ class SynthesisPayloadCompressor:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             )
 
-        validated_payload: dict[str, Any] | list[Any] = v
-
-        clean_v = copy.deepcopy(validated_payload)
         settings = get_settings()
 
         def _prune_and_stratify_evaluations(
-            evals: list[EvaluatedAtomDTO] | list[dict[str, Any]], limit: int
-        ) -> list[EvaluatedAtomDTO] | list[dict[str, Any]]:
+            evals: Sequence[EvaluatedAtomDTO] | Sequence[object], limit: int
+        ) -> list[EvaluatedAtomDTO] | list[object]:
             """Prune and stratify evaluations with deterministic prioritized stratification.
 
             When limit == 0: Unbounded mode (forward all without truncation).
@@ -103,7 +134,7 @@ class SynthesisPayloadCompressor:
               - Canonically sort by atom_id for byte-for-byte deterministic serialization.
             """
             if limit == 0 or len(evals) <= limit:
-                return evals
+                return list(evals)
 
             deficits: list[Any] = []
             strengths: list[Any] = []

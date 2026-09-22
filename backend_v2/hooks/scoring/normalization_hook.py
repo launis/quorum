@@ -20,6 +20,7 @@ from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlockAdapter
 from backend_v2.models.domain.step import Step
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, LaxXaiExtensionType
 from backend_v2.utils.math_utils import normalize_score_to_100
@@ -93,7 +94,8 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             ) from e
 
         updates_made = False
-        new_payload = content_payload.copy()
+        normalized_matrix_outputs: dict[str, LightweightMatrixOutput] = {}
+        new_payload = dict(content_payload)
 
         eval_map: dict[str, float] = {}
         if "_evaluative_matrices" in new_payload:
@@ -200,6 +202,7 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
                 allowed_extensions=parsed_payload.allowed_extensions,
             )
 
+            normalized_matrix_outputs[pb_id] = matrix_dto
             dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
             new_payload[pb_id] = dumped_matrix
 
@@ -217,7 +220,16 @@ async def normalize_matrix_scores_hook(state: HookState, deps: HookDependencies)
             )
 
         if updates_made:
-            return HookResult(success=True, state_delta=HookDeltaDTO(delta=new_payload))
+            return HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(
+                    delta=MatrixHookResultDTO(
+                        matrix_outputs=normalized_matrix_outputs,
+                        missing_contexts={},
+                        atom_quotes={},
+                    )
+                ),
+            )
 
     except Exception as e:
         if isinstance(e, AppException):

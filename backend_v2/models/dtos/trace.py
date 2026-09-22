@@ -20,7 +20,7 @@ if TYPE_CHECKING:
         ExecutionSummarySnapshot,
         FrozenContext,
     )
-    from backend_v2.models.domain.inputs import WorkflowInputsIngress
+    from backend_v2.models.domain.inputs import WorkflowInputs, WorkflowInputsIngress
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.usage import TokenUsage
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -53,7 +53,9 @@ class ExecutionCreateDTO(BaseDTO):
     output_profile_id: Annotated[
         str | None, Field(default=None, description="Optional presentation profile identifier")
     ] = None
-    raw_inputs: Annotated[WorkflowInputsIngress | None, Field(default=None, description="Raw workflow inputs")] = None
+    raw_inputs: Annotated[
+        WorkflowInputsIngress | WorkflowInputs | None, Field(default=None, description="Raw workflow inputs")
+    ] = None
     organization_id: Annotated[str | None, Field(default=None, description="Organization ID")] = None
     created_by: Annotated[str | None, Field(default=None, description="Creator user ID")] = None
     metadata: Annotated[ExecutionMetadata | None, Field(default=None, description="Typed metadata SSOT")] = None

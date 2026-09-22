@@ -12,7 +12,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,8 +22,10 @@ from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes, MissingInputMappingError
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import ExpectedInput
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.services.orchestrator.localization_compiler import LocalizationCompiler
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 from backend_v2.utils.math_utils import resolve_dot_notation
@@ -151,7 +153,7 @@ class PromptCompiler:
         allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -203,7 +205,7 @@ class PromptCompiler:
     def build_xml_context(
         self,
         input_mappings: PromptMappingDTO | dict[str, str],
-        state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any],
+        state_data: ExecutionInputsDTO | LLMContextDataDTO,
         target_locale: str,
         expected_inputs: list[Any] | None = None,
         alias_engine: Any = None,
@@ -312,14 +314,12 @@ class PromptCompiler:
 
         return compiled
 
-    def _extract_value_from_state(
-        self, path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any] | Any
-    ) -> str:
+    def _extract_value_from_state(self, path: str, state_data: ExecutionInputsDTO | LLMContextDataDTO) -> str:
         """Extract a value from workflow state using a path like '$inputs.history_text'.
 
         Args:
             path: The dot-notation path string (e.g., '$inputs.document').
-            state_data: The current workflow execution state dictionary or DTO.
+            state_data: The current workflow execution state DTO.
 
         Returns:
             The extracted and stringified value.
@@ -349,26 +349,77 @@ class PromptCompiler:
                             state_type=type(state_data).__name__,
                             reason=f"Key '{sub_key}' missing from LLMContextDataDTO",
                         )
+                elif clean_path.startswith("steps."):
+                    sub_key = clean_path.split(".", 1)[1]
+                    if state_data.inputs and clean_path in state_data.inputs:
+                        current = state_data.inputs[clean_path]
+                    elif state_data.inputs and sub_key in state_data.inputs:
+                        current = state_data.inputs[sub_key]
+                    else:
+                        raise MissingInputMappingError(
+                            path=clean_path,
+                            state_type=type(state_data).__name__,
+                            reason=f"Step '{sub_key}' missing from LLMContextDataDTO inputs",
+                        )
                 elif state_data.inputs and clean_path in state_data.inputs:
                     current = state_data.inputs[clean_path]
                 elif state_data.raw_inputs and clean_path in state_data.raw_inputs:
                     current = state_data.raw_inputs[clean_path]
+                elif "." in clean_path:
+                    root_key, sub_path = clean_path.split(".", 1)
+                    if state_data.inputs and root_key in state_data.inputs:
+                        current = resolve_dot_notation(state_data.inputs[root_key], sub_path)
+                    elif state_data.raw_inputs and root_key in state_data.raw_inputs:
+                        current = resolve_dot_notation(state_data.raw_inputs[root_key], sub_path)
+                    else:
+                        current = resolve_dot_notation(state_data, clean_path)
                 else:
                     current = resolve_dot_notation(state_data, clean_path)
-            elif isinstance(state_data, ExecutionInputsDTO) and clean_path.startswith("inputs."):
-                sub_key = clean_path.split(".", 1)[1]
-                if sub_key in state_data.raw_inputs:
-                    current = state_data.raw_inputs[sub_key]
-                elif sub_key in state_data.dynamic_inputs:
-                    current = state_data.dynamic_inputs[sub_key]
+            elif isinstance(state_data, ExecutionInputsDTO):
+                if clean_path.startswith("inputs."):
+                    sub_key = clean_path.split(".", 1)[1]
+                    if sub_key in state_data.raw_inputs:
+                        current = state_data.raw_inputs[sub_key]
+                    elif sub_key in state_data.dynamic_inputs:
+                        current = state_data.dynamic_inputs[sub_key]
+                    else:
+                        raise MissingInputMappingError(
+                            path=clean_path,
+                            state_type=type(state_data).__name__,
+                            reason=f"Key '{sub_key}' missing from ExecutionInputsDTO",
+                        )
+                elif clean_path.startswith("steps."):
+                    sub_key = clean_path.split(".", 1)[1]
+                    if clean_path in state_data.dynamic_inputs:
+                        current = state_data.dynamic_inputs[clean_path]
+                    elif sub_key in state_data.dynamic_inputs:
+                        current = state_data.dynamic_inputs[sub_key]
+                    else:
+                        raise MissingInputMappingError(
+                            path=clean_path,
+                            state_type=type(state_data).__name__,
+                            reason=f"Step '{sub_key}' missing from ExecutionInputsDTO dynamic_inputs",
+                        )
+                elif clean_path in state_data.raw_inputs:
+                    current = state_data.raw_inputs[clean_path]
+                elif clean_path in state_data.dynamic_inputs:
+                    current = state_data.dynamic_inputs[clean_path]
+                elif "." in clean_path:
+                    root_key, sub_path = clean_path.split(".", 1)
+                    if root_key in state_data.dynamic_inputs:
+                        current = resolve_dot_notation(state_data.dynamic_inputs[root_key], sub_path)
+                    elif root_key in state_data.raw_inputs:
+                        current = resolve_dot_notation(state_data.raw_inputs[root_key], sub_path)
+                    else:
+                        current = resolve_dot_notation(state_data, clean_path)
                 else:
-                    raise MissingInputMappingError(
-                        path=clean_path,
-                        state_type=type(state_data).__name__,
-                        reason=f"Key '{sub_key}' missing from ExecutionInputsDTO",
-                    )
+                    current = resolve_dot_notation(state_data, clean_path)
             else:
-                current = resolve_dot_notation(state_data, clean_path)
+                msg = f"Unsupported state_data type for prompt compilation: {type(state_data)}"
+                logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                raise AppException(
+                    message=msg, status_code=400, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
+                )
         except (MissingInputMappingError, KeyError, IndexError, AttributeError) as e:
             msg = f"Path resolution failed: '{path}'. Component missing from state context: {e}"
             logger.error("[PromptCompiler] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

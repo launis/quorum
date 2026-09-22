@@ -393,5 +393,3 @@ def test_state_projector_fold_trace_string_content() -> None:
     projector = StateProjector()
     with pytest.raises(AppException, match="Legacy flat trace detected"):
         projector.fold_trace([event], max_tokens=100)
-
-

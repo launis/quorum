@@ -11,6 +11,7 @@ from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import CognitiveTier
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.services.orchestrator.rag_preflight_service import RAGPreflightService
@@ -121,7 +122,10 @@ async def test_dag_executor_atom_ceiling(mock_repo: MagicMock, mock_compiler: Ma
             "fast check in LLM Task Executor and ensure preflight proceeds to atomization!"
         )
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {"doc_1": doc_text}}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"doc_1": doc_text})),
+            )
         )
 
         mock_settings.return_value.rag_preflight_min_input_chars = 50

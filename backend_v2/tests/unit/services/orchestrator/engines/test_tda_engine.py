@@ -255,6 +255,7 @@ async def test_tda_engine_corrupted_blackboard_raises_validation_failed(
     mock_compiler: MagicMock,
 ) -> None:
     """Test that a corrupted blackboard raises AppException with VALIDATION_FAILED."""
+
     class CorruptedMapping:
         def __contains__(self, key: object) -> bool:
             raise TypeError("Corrupted mapping simulation")
@@ -368,4 +369,3 @@ async def test_tda_engine_execute_with_matrix_context(
     assert passed_matrix_context is not None
     assert passed_matrix_context.matrix_objective == "Objective test"
     assert passed_matrix_context.matrix_assertions == req.shuffled_atoms
-

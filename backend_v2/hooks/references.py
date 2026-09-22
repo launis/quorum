@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import uuid
-from typing import Any
 
 from pydantic import ValidationError
 
@@ -137,12 +136,8 @@ async def generate_bibliography_hook(state: HookState, deps: HookDependencies) -
         result_dto = BibliographyResultDTO(references=generated_references)
 
         logger.debug("[ReferenceHook] Generated %s references.", len(generated_references))
-        delta: dict[str, Any] = {"bibliography_result": result_dto.model_dump(mode="json")}
 
-        if state.global_context_vars.knowledge_base is None:
-            delta["knowledge_base"] = knowledge_base
-
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=result_dto))
 
     except AppException:
         # Re-raise AppExceptions directly (Fail Fast)

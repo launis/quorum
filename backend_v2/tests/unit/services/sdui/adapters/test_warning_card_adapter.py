@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 """Unit tests for the WarningCardAdapter."""
 
 import pytest
@@ -142,4 +143,3 @@ def test_warning_card_rules_attributes() -> None:
     assert WARNING_CARD_RULES.model_config.get("extra") == "forbid"
     assert "starvation" in WARNING_CARD_RULES
     assert WARNING_CARD_RULES["starvation"].severity == VisualIntent.WARNING
-

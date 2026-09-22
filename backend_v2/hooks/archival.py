@@ -16,6 +16,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.judge import JudgeOutput
+from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
 from backend_v2.utils.pydantic_utils import inflate
 
 logger = logging.getLogger(__name__)
@@ -159,15 +160,18 @@ async def retrieve_precedent_hook(state: HookState, deps: HookDependencies) -> H
                     scores=score_summary,
                     verdict=verdict_text[:150],  # Truncate
                 )
-                precedents.append(dto.model_dump(mode="json"))
+                precedents.append(dto)
 
         # Keep only last 3
         precedents = precedents[-3:]
 
         logger.debug(f"[ArchivalHook] Found {len(precedents)} precedents.")
 
-        # 4. Return STRUCTURED data matching ArchivalPrecedentDTO schema (dumped to dict for state_delta)
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"archivist_precedents": precedents}))
+        # 4. Return STRUCTURED data matching ArchivistPrecedentsResultDTO schema
+        return HookResult(
+            success=True,
+            state_delta=HookDeltaDTO(delta=ArchivistPrecedentsResultDTO(archivist_precedents=precedents)),
+        )
 
     except AppException:
         raise

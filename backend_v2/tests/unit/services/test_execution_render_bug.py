@@ -4,6 +4,7 @@ import pytest
 
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.report_data import ReportDataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.execution import ExecutionService
@@ -55,11 +56,11 @@ async def test_render_execution_json_default_profile_resolves() -> None:
 
     from unittest.mock import patch
 
-    # Mockataan BlueprintTransformer
-    mock_dto = Mock()
-    mock_dto.inner_sdui_blocks = []
-    mock_dto.has_warning = False
-    mock_dto.model_dump.return_value = {"execution_id": "exe_1", "workflow_id": "wf_1"}
+    mock_dto = ReportDataDTO(
+        workflow_id="wf_1",
+        execution_id="exe_1",
+        profile_id="prof_1",
+    )
 
     with patch("backend_v2.services.blueprint.BlueprintTransformer") as mock_transformer_class:
         mock_transformer = AsyncMock()
@@ -83,7 +84,8 @@ async def test_render_execution_json_default_profile_resolves() -> None:
         "exe_1", profile_id=None, accept_language="en", custom_preface_md=None, local_time_str=None
     )
 
-    assert data["execution_id"] == "exe_1"
-    assert data["workflow_id"] == "wf_1"
+    assert isinstance(data, ReportDataDTO)
+    assert data.execution_id == "exe_1"
+    assert data.workflow_id == "wf_1"
     assert mime == "application/json"
     assert filename is None

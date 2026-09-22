@@ -14,6 +14,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import (
@@ -268,11 +269,11 @@ async def build_variance_metrics_and_task(
         var_dynamic_parts.append(f"<section_budget>{active_profile_dto.variance_length_constraint}</section_budget>")
     var_dynamic_ctx = "\n\n".join(var_dynamic_parts)
 
-    var_messages: list[dict[str, Any]] = [
-        {"role": "system", "content": var_sys_prompt},
-        {
-            "role": "user",
-            "content": (
+    var_messages: list[ChatMessageDTO] = [
+        ChatMessageDTO(role="system", content=var_sys_prompt),
+        ChatMessageDTO(
+            role="user",
+            content=(
                 f"<dynamic_context>\n{var_dynamic_ctx}\n</dynamic_context>\n\n"
                 "SCORES TO EXPLAIN:\n"
                 f"Cognitive Authenticity Score: {authenticity_score} "
@@ -283,7 +284,7 @@ async def build_variance_metrics_and_task(
                 f"({jargon_density:.2f} per 100 words) "
                 "(Scale: 0.0 = Zero Clichés, 5.0+ = Heavy Jargon/Cliché Load)"
             ),
-        },
+        ),
     ]
 
     var_task = await sem_runner(

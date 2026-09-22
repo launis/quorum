@@ -5,6 +5,7 @@ import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector
 from backend_v2.services.orchestrator.strategies.base import StrategyContext, StrategyDependencies
@@ -142,7 +143,10 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
     from backend_v2.core.hook_registry import HookResult
 
     with patch("backend_v2.services.orchestrator.strategies.logic.hook_registry.execute") as mock_execute:
-        mock_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={"test_key": "test_val"}))
+        mock_execute.return_value = HookResult(
+            success=True,
+            state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"test_key": "test_val"})),
+        )
 
         traces = await logic_strategy.execute(
             step, projector, context, None, None, semaphore, running_event=running_event
@@ -151,7 +155,7 @@ async def test_execute_sets_running_event_and_merges_state_delta(logic_strategy:
         assert running_event.is_set()
         assert len(traces) == 1
         assert traces[0].event_type == "output"
-        assert traces[0].content["test_key"] == "test_val"
+        assert traces[0].content["dynamic_inputs"]["test_key"] == "test_val"
 
 
 @pytest.mark.asyncio
@@ -271,10 +275,8 @@ async def test_execute_with_base_model_delta(logic_strategy: LogicNodeStrategy) 
         assert traces[0].content["payload"] == "hello"
 
 
-
 def test_logic_exports() -> None:
     from backend_v2.services.orchestrator.strategies import logic
 
     assert hasattr(logic, "__all__")
     assert "LogicNodeStrategy" in logic.__all__
-

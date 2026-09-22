@@ -384,7 +384,7 @@ class StudioSimulationService:
         if data.criteria_block_ids:
             prompt_blocks_refs.extend(data.criteria_block_ids)
 
-        resolved_mock_inputs = mock_inputs.raw_inputs
+        resolved_mock_inputs = dict(mock_inputs.raw_inputs)
 
         prompt_context_msgs: list[LLMMessageDTO] = []
         dynamic_messages_aggregated: list[LLMMessageDTO] = []

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from typing import Annotated, Any
 
@@ -29,12 +29,11 @@ from backend_v2.models.domain.step import ExpectedInput, StepRule
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest
-from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
+from backend_v2.models.dtos.hook_state import GlobalContextVarsDTO
 from backend_v2.models.enums import CognitiveTier, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.services.orchestrator.state_reducer import merge_execution_inputs
+from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
 from backend_v2.services.usage_service import UsageService
 
 __all__ = ["NodeStrategy", "StrategyContext", "StrategyDependencies"]
@@ -267,63 +266,8 @@ class NodeStrategy(ABC):
         for pre_hook in step_obj.pre_hooks:
             res = await hook_registry.execute(pre_hook, hook_state, hook_deps)
             if res.success and res.state_delta:
-                state_delta = res.state_delta
-                metadata_updates = state_delta.metadata_updates
-                if metadata_updates:
-                    new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
-                    hook_state = hook_state.model_copy(update={"metadata": new_metadata})
-
-                    if "mcp_audit_traces" in metadata_updates and metadata_updates["mcp_audit_traces"]:
-                        emitted_events.append(
-                            TraceEvent(
-                                step_name=step.id,
-                                event_type="decision",
-                                content={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]},
-                                metadata={"mcp_audit_traces": metadata_updates["mcp_audit_traces"]},
-                            )
-                        )
-
-                delta = state_delta.delta
-                if isinstance(delta, Mapping) and "global_context_vars" in delta:
-                    gvars_updates = delta["global_context_vars"]
-                    if isinstance(gvars_updates, Mapping):
-                        updated_gvars = hook_state.global_context_vars.model_copy(update=dict(gvars_updates))
-                        hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
-                    elif isinstance(gvars_updates, GlobalContextVarsDTO):
-                        hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
-
-                    # V2 Mandate: Emit an explicit event sourcing trace for context updates
-                    # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
-                    trace_content = (
-                        dict(gvars_updates)
-                        if isinstance(gvars_updates, Mapping)
-                        else gvars_updates.model_dump(mode="json")
-                    )
-                    emitted_events.append(
-                        TraceEvent(
-                            step_name=step.id,
-                            event_type="decision",
-                            content=trace_content,
-                            metadata={"is_context_update": True},
-                        )
-                    )
-
-                if isinstance(delta, Mapping):
-                    delta_dyn: dict[str, Any] = {}
-                    if "dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping):
-                        delta_dyn = dict(delta["dynamic_inputs"])
-
-                    delta_raw: dict[str, Any] = {}
-                    if "inputs" in delta and isinstance(delta["inputs"], Mapping):
-                        delta_raw = dict(delta["inputs"])
-                    for k, v in delta.items():
-                        if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
-                            delta_dyn[k] = v
-                            delta_raw[k] = v
-                    delta_inputs = ExecutionInputsDTO(raw_inputs=delta_raw, dynamic_inputs=delta_dyn)
-                    hook_state = hook_state.model_copy(
-                        update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
-                    )
+                hook_state, events = reduce_hook_delta(hook_state, res.state_delta, step.id)
+                emitted_events.extend(events)
             elif not res.success:
                 # RFC 7807: Hook signaled non-success — log explicitly so the audit trail captures it.
                 logger.warning(
@@ -362,66 +306,8 @@ class NodeStrategy(ABC):
         for post_hook in step_obj.post_hooks:
             ph_res = await hook_registry.execute(post_hook, hook_state, hook_deps)
             if ph_res.success and ph_res.state_delta:
-                state_delta = ph_res.state_delta
-                metadata_updates = state_delta.metadata_updates
-                if metadata_updates:
-                    new_metadata = hook_state.metadata.model_copy(update=metadata_updates)
-                    hook_state = hook_state.model_copy(update={"metadata": new_metadata})
-
-                delta = state_delta.delta
-                if isinstance(delta, Mapping) and "global_context_vars" in delta:
-                    gvars_updates = delta["global_context_vars"]
-                    if isinstance(gvars_updates, Mapping):
-                        updated_gvars = hook_state.global_context_vars.model_copy(update=dict(gvars_updates))
-                        hook_state = hook_state.model_copy(update={"global_context_vars": updated_gvars})
-                    elif isinstance(gvars_updates, GlobalContextVarsDTO):
-                        hook_state = hook_state.model_copy(update={"global_context_vars": gvars_updates})
-
-                    # V2 Mandate: Emit an explicit event sourcing trace for context updates
-                    # Use existing allowed Literal 'decision' to preserve cross-language enum parity with Flutter
-                    trace_content = (
-                        dict(gvars_updates)
-                        if isinstance(gvars_updates, Mapping)
-                        else gvars_updates.model_dump(mode="json")
-                    )
-                    emitted_events.append(
-                        TraceEvent(
-                            step_name=step.id,
-                            event_type="decision",
-                            content=trace_content,
-                            metadata={"is_context_update": True},
-                        )
-                    )
-
-                if isinstance(delta, Mapping):
-                    delta_dyn: dict[str, Any] = {}
-                    if "dynamic_inputs" in delta and isinstance(delta["dynamic_inputs"], Mapping):
-                        delta_dyn = dict(delta["dynamic_inputs"])
-
-                    delta_raw: dict[str, Any] = {}
-                    if "inputs" in delta and isinstance(delta["inputs"], Mapping):
-                        delta_raw = dict(delta["inputs"])
-                    for k, v in delta.items():
-                        if k not in ("global_context_vars", "inputs", "dynamic_inputs"):
-                            delta_dyn[k] = v
-                            delta_raw[k] = v
-                    delta_inputs = ExecutionInputsDTO(raw_inputs=delta_raw, dynamic_inputs=delta_dyn)
-                    hook_state = hook_state.model_copy(
-                        update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
-                    )
-                elif isinstance(delta, MatrixHookResultDTO):
-                    new_dynamic = dict(hook_state.inputs.dynamic_inputs)
-                    new_raw = dict(hook_state.inputs.raw_inputs)
-                    for pb_id, matrix_out in delta.matrix_outputs.items():
-                        new_dynamic[pb_id] = matrix_out
-                        new_raw[pb_id] = matrix_out
-                    for pb_id, missing_ctx in delta.missing_contexts.items():
-                        new_dynamic[f"{pb_id}_missing_context"] = missing_ctx
-                        new_raw[f"{pb_id}_missing_context"] = missing_ctx
-                    new_inputs = hook_state.inputs.model_copy(
-                        update={"raw_inputs": new_raw, "dynamic_inputs": new_dynamic}
-                    )
-                    hook_state = hook_state.model_copy(update={"inputs": new_inputs})
+                hook_state, events = reduce_hook_delta(hook_state, ph_res.state_delta, step.id)
+                emitted_events.extend(events)
             elif not ph_res.success:
                 # RFC 7807: Post-hook signaled non-success — log explicitly so the audit trail captures it.
                 logger.warning(

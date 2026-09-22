@@ -808,4 +808,3 @@ def test_vertex_adapter_is_system_turn_and_dict_message_handling() -> None:
     prepared = adapter.prepare_kwargs(call_kwargs)
     assert len(prepared["messages"]) == 1
     assert prepared["messages"][0]["role"] == "user"
-

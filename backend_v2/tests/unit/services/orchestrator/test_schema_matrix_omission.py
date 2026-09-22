@@ -1,7 +1,8 @@
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.services.orchestrator.schema_factory import SchemaFactory
 
 
@@ -47,7 +48,14 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
     assert "blk_0123456789abcdef" in schema_no_dag.model_fields["global_matrices"].annotation.model_fields
 
     # 2. dag_results with PASSED -> Matrix is included
-    dag_passed = {"tda_1234567890abcdef1234567890abcdef": {"status": "PASSED"}}
+    dag_passed = {
+        "tda_1234567890abcdef1234567890abcdef": AtomResultDTO(
+            tda_id="tda_1234567890abcdef1234567890abcdef",
+            status=ExecutionStatus.PASSED,
+            source_quote="Valid quote",
+            evaluation_reasoning="Valid reason",
+        )
+    }
     schema_passed = factory.build_dynamic_schema(
         "TestSchemaPassed", criteria=[matrix], strictness_level=50, dag_results=dag_passed, expected_sdui_type="grid"
     )
@@ -55,7 +63,13 @@ def test_build_dynamic_schema_omits_zero_evidence_matrix() -> None:
     assert "blk_0123456789abcdef" in schema_passed.model_fields["global_matrices"].annotation.model_fields
 
     # 4. dag_results with FAILED -> Matrix is OMITTED
-    dag_failed = {"tda_1234567890abcdef1234567890abcdef": {"status": "FAILED"}}
+    dag_failed = {
+        "tda_1234567890abcdef1234567890abcdef": AtomResultDTO(
+            tda_id="tda_1234567890abcdef1234567890abcdef",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Valid failed reason",
+        )
+    }
     schema_failed = factory.build_dynamic_schema(
         "TestSchemaFailed", criteria=[matrix], strictness_level=50, dag_results=dag_failed, expected_sdui_type="grid"
     )

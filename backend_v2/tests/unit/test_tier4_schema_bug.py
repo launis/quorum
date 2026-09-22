@@ -48,4 +48,4 @@ def test_reproduce_tier4_schema_bug() -> None:
         schema.model_validate(llm_output)
 
     errs = exc_info.value.errors()
-    assert errs[0]["type"] in ("model_type", "model_attributes_type")
+    assert errs[0]["type"] in ("model_type", "model_attributes_type", "value_error", "string_type")

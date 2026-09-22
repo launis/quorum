@@ -426,4 +426,3 @@ def test_result_projector_external_edge_and_missing_context() -> None:
     assert "Child concept" in proj_matrix.missing_context.missing_atoms
     assert "System concept (DLQ - Unscorable)" in proj_matrix.missing_context.missing_atoms
     assert "Unprojected concept" in proj_matrix.missing_context.missing_atoms
-

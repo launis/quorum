@@ -308,7 +308,7 @@ class TestPhase3SduiEndpoint:
             view_id="exe_test_sdui",
             title="SDUI Report",
             status_theme=VisualIntent.SUCCESS,
-            sections=[],
+            inner_sdui_blocks=[],
             metrics=None,
             system_notification=None,
             references=[],
@@ -320,7 +320,7 @@ class TestPhase3SduiEndpoint:
         assert response.status_code == 200
         data = response.json()
         assert data["view_id"] == "exe_test_sdui"
-        assert "sections" in data
+        assert "inner_sdui_blocks" in data
         assert "title" in data
 
     def test_sdui_endpoint_delegates_to_service(self, override_dependencies: Any, mock_execution_service: Any) -> None:
@@ -330,7 +330,7 @@ class TestPhase3SduiEndpoint:
             view_id="x",
             title="T",
             status_theme=VisualIntent.SUCCESS,
-            sections=[],
+            inner_sdui_blocks=[],
             metrics=None,
             system_notification=None,
             references=[],

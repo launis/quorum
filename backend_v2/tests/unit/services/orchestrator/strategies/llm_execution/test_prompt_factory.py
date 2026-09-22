@@ -379,9 +379,9 @@ def test_prompt_factory_system_rule_and_default_branches(mock_compiler: MagicMoc
 def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: MagicMock) -> None:
     """Test PromptFactory formats execution_time in document_date and injects external evidence."""
     from datetime import datetime, timezone
+
     from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
     from backend_v2.models.dtos.prompt import LLMContextDataDTO
-    from backend_v2.models.execution_core import ExecutionMetadata
 
     context_data = LLMContextDataDTO(
         execution_time=datetime(2026, 9, 21, 14, 30, 0, tzinfo=timezone.utc),
@@ -406,4 +406,3 @@ def test_prompt_factory_execution_time_and_external_evidence(mock_compiler: Magi
 
     assert "<document_date>2026-09-21 14:30:00+00:00</document_date>" in payload.user_payload
     assert "Aggregated external research evidence text." in payload.user_payload
-

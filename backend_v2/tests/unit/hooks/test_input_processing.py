@@ -235,9 +235,9 @@ async def test_process_inputs_valid_questionnaire(monkeypatch: pytest.MonkeyPatc
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "inputs" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
 
-    processed = result.state_delta.delta["inputs"]
+    processed = result.state_delta.delta.raw_inputs
     assert "QUESTIONNAIRE" in processed
     assert "DOCUMENT_TEXT" in processed
     assert '<questionnaire title="My Form">' in processed["QUESTIONNAIRE"]
@@ -359,9 +359,10 @@ async def test_process_inputs_with_chat_history_step(monkeypatch: pytest.MonkeyP
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "CHAT_LOG" in result.state_delta.delta["inputs"]
-    assert "CHAT_LOG_user_only" in result.state_delta.delta["inputs"]
-    assert "CHAT_LOG_ai_only" in result.state_delta.delta["inputs"]
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    assert "CHAT_LOG" in result.state_delta.delta.raw_inputs
+    assert "CHAT_LOG_user_only" in result.state_delta.delta.raw_inputs
+    assert "CHAT_LOG_ai_only" in result.state_delta.delta.raw_inputs
     assert any("input_CHAT_LOG.md" in p for p in saved_files)
     assert any("input_CHAT_LOG_user_only.md" in p for p in saved_files)
     assert any("input_CHAT_LOG_ai_only.md" in p for p in saved_files)
@@ -431,7 +432,8 @@ async def test_process_inputs_with_smoothing_and_anonymization(monkeypatch: pyte
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta["inputs"]["DOC"] == "Masked text"
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    assert result.state_delta.delta.raw_inputs["DOC"] == "Masked text"
 
 
 @pytest.mark.asyncio
@@ -474,7 +476,8 @@ async def test_process_inputs_dynamic_inputs_resolution(monkeypatch: pytest.Monk
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta["inputs"]["DOCUMENT_TEXT"] == "Dynamic input document text"
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    assert result.state_delta.delta.raw_inputs["DOCUMENT_TEXT"] == "Dynamic input document text"
 
 
 @pytest.mark.asyncio
@@ -567,7 +570,8 @@ async def test_process_inputs_with_gvars_resolution(monkeypatch: pytest.MonkeyPa
     result = await cast(Awaitable[HookResult], process_inputs(state, deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta["inputs"]["DOCUMENT_TEXT"] == "Gvars doc text"
+    assert isinstance(result.state_delta.delta, ExecutionInputsDTO)
+    assert result.state_delta.delta.raw_inputs["DOCUMENT_TEXT"] == "Gvars doc text"
 
 
 @pytest.mark.asyncio

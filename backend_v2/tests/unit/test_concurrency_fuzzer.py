@@ -10,6 +10,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
@@ -204,7 +205,10 @@ async def test_concurrency_fuzzer_peak_limit(
     with patch("litellm.Router.acompletion", side_effect=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             await executor.execute_workflow(
@@ -243,7 +247,10 @@ async def test_concurrency_fuzzer_zero_concurrency(
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+            )
         )
 
         with pytest.raises(asyncio.TimeoutError):
@@ -314,7 +321,10 @@ async def test_concurrency_fuzzer_exceeding_physical_limit(
     with patch("litellm.Router.acompletion", side_effect=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             await asyncio.wait_for(

@@ -107,4 +107,3 @@ def test_build_boundary_scores(sample_profile: OutputProfile) -> None:
 def test_aesthetics_rules() -> None:
     """Verify AESTHETICS_RULES export is a valid GlobalScoreAestheticsDTO."""
     assert isinstance(AESTHETICS_RULES, GlobalScoreAestheticsDTO)
-

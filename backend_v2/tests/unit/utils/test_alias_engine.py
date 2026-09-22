@@ -66,57 +66,6 @@ class TestAliasEngineCore:
             engine.resolve_alias("a99")
         assert exc_info.value.status_code == 422
 
-    def test_hydrate_dict_list_replaces_aliases(self) -> None:
-        """Verify hydrate_dict_list replaces aliases in-place."""
-        engine = AliasEngine()
-        engine.register("tda_real_1", prefix="a")
-        engine.register("tda_real_2", prefix="a")
-
-        items = [{"atom_id": "a0", "score": 5}, {"atom_id": "a1", "score": 3}]
-        count = engine.hydrate_dict_list(items, field_name="atom_id")
-
-        assert count == 2
-        assert items[0]["atom_id"] == "tda_real_1"
-        assert items[1]["atom_id"] == "tda_real_2"
-
-    def test_hydrate_dict_list_recursive_hydration(self) -> None:
-        """Verify recursive hydration of complex nested structures like LinkedAtomGraph."""
-        engine = AliasEngine()
-        engine.register("tda_real_parent", prefix="a")
-        engine.register("tda_real_child", prefix="a")
-
-        items = [
-            {
-                "atom": {
-                    "tda_id": "a0",
-                    "reasoning": "Test",
-                },
-                "depends_on": [
-                    {
-                        "tda_id": "a1",
-                        "source_id": "chunk_0",
-                    }
-                ],
-            }
-        ]
-
-        count = engine.hydrate_dict_list(items, field_name="tda_id")
-
-        assert count == 2
-        assert items[0]["atom"]["tda_id"] == "tda_real_parent"
-        assert items[0]["depends_on"][0]["tda_id"] == "tda_real_child"
-
-    def test_hydrate_dict_list_skips_unknown_aliases(self) -> None:
-        """Verify unknown aliases are left untouched during hydration."""
-        engine = AliasEngine()
-        engine.register("tda_real", prefix="a")
-
-        items = [{"atom_id": "a0"}, {"atom_id": "unknown_alias"}]
-        count = engine.hydrate_dict_list(items, field_name="atom_id")
-
-        assert count == 1
-        assert items[1]["atom_id"] == "unknown_alias"
-
 
 class TestAliasManifest:
     """Tests for AliasManifest serialization boundary."""

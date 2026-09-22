@@ -91,7 +91,7 @@ class ExecutionCreate(V2CoreBase):
             ),
         ),
     ]
-    raw_inputs: WorkflowInputsIngress = Field(
+    raw_inputs: WorkflowInputsIngress | WorkflowInputs = Field(
         default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
     )
     provider_override: LLMProvider | None = Field(

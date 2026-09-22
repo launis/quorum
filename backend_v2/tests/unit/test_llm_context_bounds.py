@@ -11,6 +11,7 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -169,7 +170,10 @@ async def test_context_window_exceeded_error_maps_critical(
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             with pytest.raises(AppException) as exc_info:
@@ -229,7 +233,10 @@ async def test_non_context_400_error_maps_malformed(
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             with pytest.raises(AppException):
@@ -292,7 +299,10 @@ async def test_transient_503_error_triggers_resilience_loop(
     with patch("litellm.Router.acompletion", new=mock_acompletion):
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             with pytest.raises(AppException) as exc_info:

@@ -145,4 +145,3 @@ def test_finops_models_strictness() -> None:
 
     with pytest.raises(ValidationError):
         TraceStepRecord.model_validate({"extra_field": 123})
-

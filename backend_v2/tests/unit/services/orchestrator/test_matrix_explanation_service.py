@@ -4,13 +4,17 @@ Tests for matrix explanation context generation, Status-Aware Dual Reporting,
 and Ranked Round-Robin quote and unmet criteria curation.
 """
 
+from typing import Any
+
 import pytest
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, LaxExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.matrix_explanation_service import (
     MatrixExplanationService,
@@ -60,41 +64,91 @@ def _create_matrix_block(
     )
 
 
+def _to_status(val: Any) -> ExecutionStatus:
+    """Helper to safely convert raw string or enum to ExecutionStatus."""
+    if isinstance(val, ExecutionStatus):
+        return val
+    raw = str(val.value if hasattr(val, "value") else val)
+    return ExecutionStatus(raw)
+
+
+def _make_step_dtos(
+    block_id: str,
+    normalized_score: float,
+    evaluated_atoms: dict[str, Any],
+    results: list[dict[str, Any]] | None = None,
+    level_breakdown: dict[str, LevelStatsDTO] | None = None,
+    step_id: str = "step1",
+) -> list[StepOutputDTO]:
+    """Helper to construct strictly typed StepOutputDTO collections for atom and matrix steps."""
+    dtos: list[StepOutputDTO] = []
+    if results:
+        atom_dtos = [
+            AtomResultDTO(
+                tda_id=r["tda_id"],
+                status=_to_status(r["status"]),
+                evaluation_reasoning=r.get("evaluation_reasoning"),
+                source_quote=r.get("source_quote"),
+                contextual_override=r.get("contextual_override", False),
+                is_inverse_evidence=r.get("is_inverse_evidence", False),
+            )
+            for r in results
+            if r is not None and isinstance(r, dict) and "tda_id" in r
+        ]
+        if atom_dtos:
+            dtos.append(
+                StepOutputDTO(
+                    step_id="step_atoms",
+                    block_id="blk_atom_eval",
+                    data_type="unknown",
+                    payload=atom_dtos,
+                )
+            )
+    dtos.append(
+        StepOutputDTO(
+            step_id=step_id,
+            block_id=block_id,
+            data_type="matrix",
+            payload=LightweightMatrixOutput(
+                normalized_score=normalized_score,
+                evaluated_atoms={k: _to_status(v) for k, v in evaluated_atoms.items()},
+                level_breakdown=level_breakdown,
+            ),
+        )
+    )
+    return dtos
+
+
 def test_assemble_matrices_to_explain_basic() -> None:
     """Test basic assembly of matrices_to_explain from scored payloads with evaluated_atoms."""
     block_id = "blk_111111111111111111111111"
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 78.5,
-                "results": [
-                    {
-                        "tda_id": "tda_00000000000000000000000000000001",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "Quote A from source verbatim statement.",
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                    {
-                        "tda_id": "tda_00000000000000000000000000000002",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "Quote B from source verbatim statement.",
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                ],
-                "evaluated_atoms": {
-                    "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
-                    "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
-                },
-            },
-        ),
+    results = [
+        {
+            "tda_id": "tda_00000000000000000000000000000001",
+            "status": "PASSED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": "Quote A from source verbatim statement.",
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
+        {
+            "tda_id": "tda_00000000000000000000000000000002",
+            "status": "PASSED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": "Quote B from source verbatim statement.",
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
     ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=78.5,
+        evaluated_atoms={
+            "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
+            "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
+        },
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
 
@@ -119,7 +173,7 @@ def test_assemble_matrices_to_explain_no_matching_quotes() -> None:
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
-            payload={"normalized_score": 78.5},
+            payload=LightweightMatrixOutput(normalized_score=78.5),
         ),
     ]
 
@@ -138,28 +192,23 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
     Prevents Fail-Fast crash in blueprint.py.
     """
     block_id = "blk_333333333333333333333333"
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 78.5,
-                "results": [
-                    {
-                        "tda_id": "tda_00000000000000000000000000000001",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": None,
-                        "contextual_override": True,
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    }
-                ],
-                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
-            },
-        ),
+    results = [
+        {
+            "tda_id": "tda_00000000000000000000000000000001",
+            "status": "PASSED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": None,
+            "contextual_override": True,
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        }
     ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=78.5,
+        evaluated_atoms={"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
 
@@ -174,46 +223,37 @@ def test_assemble_matrices_to_explain_empty_quotes_list() -> None:
 def test_assemble_matrices_to_explain_deduplicates_by_block_id() -> None:
     """Test that duplicate block_id entries are deduplicated (first wins)."""
     block_id = "blk_444444444444444444444444"
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 50.0,
-                "results": [
-                    {
-                        "tda_id": "tda_00000000000000000000000000000001",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "Quote 1 from the first step output.",
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    }
-                ],
-                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
-            },
-        ),
-        StepOutputDTO(
-            step_id="step2",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 90.0,
-                "results": [
-                    {
-                        "tda_id": "tda_00000000000000000000000000000001",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "Quote 2 from the second step output.",
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    }
-                ],
-                "evaluated_atoms": {"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
-            },
-        ),
-    ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=50.0,
+        evaluated_atoms={"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
+        results=[
+            {
+                "tda_id": "tda_00000000000000000000000000000001",
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": "Quote 1 from the first step output.",
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        ],
+        step_id="step1",
+    ) + _make_step_dtos(
+        block_id=block_id,
+        normalized_score=90.0,
+        evaluated_atoms={"tda_00000000000000000000000000000001": ExecutionStatus.PASSED},
+        results=[
+            {
+                "tda_id": "tda_00000000000000000000000000000001",
+                "status": "PASSED",
+                "evaluation_reasoning": "Reason",
+                "source_quote": "Quote 2 from the second step output.",
+                "depends_on_tda_ids": [],
+                "short_circuit_reason_tda_ids": [],
+            }
+        ],
+        step_id="step2",
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
 
@@ -230,38 +270,33 @@ def test_assemble_matrices_to_explain_includes_failed_claims() -> None:
     tda_id_1 = "tda_11111111111111111111111111111111"
     tda_id_3 = "tda_33333333333333333333333333333333"
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 78.5,
-                "results": [
-                    {
-                        "tda_id": tda_id_1,
-                        "status": "FAILED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": None,
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                    {
-                        "tda_id": tda_id_3,
-                        "status": "N_A",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": None,
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                ],
-                "evaluated_atoms": {
-                    tda_id_1: ExecutionStatus.FAILED,
-                    tda_id_3: ExecutionStatus.N_A,
-                },
-            },
-        ),
+    results = [
+        {
+            "tda_id": tda_id_1,
+            "status": "FAILED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": None,
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
+        {
+            "tda_id": tda_id_3,
+            "status": "N_A",
+            "evaluation_reasoning": "Reason",
+            "source_quote": None,
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
     ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=78.5,
+        evaluated_atoms={
+            tda_id_1: ExecutionStatus.FAILED,
+            tda_id_3: ExecutionStatus.N_A,
+        },
+        results=results,
+    )
 
     scale = MatrixScale(
         score=1,
@@ -308,7 +343,6 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
     """Verify alternating quote selection across claims up to max synthesis quotes per matrix (5)."""
     block_id = "blk_666666666666666666666666"
 
-    # Claim A has 4 quotes, Claim B has 4 quotes
     scale = MatrixScale(
         score=1,
         ai_label="DIVERSITY_SCALE",
@@ -368,18 +402,12 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
         evaluated_atoms[tda_a] = ExecutionStatus.PASSED
         evaluated_atoms[tda_b] = ExecutionStatus.PASSED
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 85.0,
-                "results": results,
-                "evaluated_atoms": evaluated_atoms,
-            },
-        )
-    ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=85.0,
+        evaluated_atoms=evaluated_atoms,
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
@@ -389,10 +417,8 @@ def test_assemble_matrices_to_explain_round_robin_diversity() -> None:
 
     assert len(result) == 1
     justification = result[0].justification
-    # Must contain quotes from both Claim Alpha and Claim Beta
     assert "Alpha long verbatim quote" in justification
     assert "Beta long verbatim quote" in justification
-    # Exactly 5 quotes total
     quote_count = justification.count('- "')
     assert quote_count == 5
 
@@ -434,11 +460,9 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
 
     results = []
     evaluated_atoms = {}
-    # da_0, da_1 share exact duplicate quote with db_0, db_1
     for i in range(5):
         tda_a = f"tda_da00000000000000000000000000000{i}"
         tda_b = f"tda_db00000000000000000000000000000{i}"
-        # Unique quotes for i >= 2, duplicate for i < 2
         quote_a = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_a_{i}'}."
         quote_b = f"Duplicate shared verbatim quote index {i if i < 2 else f'unique_b_{i}'}."
 
@@ -465,18 +489,12 @@ def test_assemble_matrices_to_explain_deduplication_starvation_prevention() -> N
         evaluated_atoms[tda_a] = ExecutionStatus.PASSED
         evaluated_atoms[tda_b] = ExecutionStatus.PASSED
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 90.0,
-                "results": results,
-                "evaluated_atoms": evaluated_atoms,
-            },
-        )
-    ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=90.0,
+        evaluated_atoms=evaluated_atoms,
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
@@ -567,18 +585,12 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
             )
             evaluated_atoms[tda_id] = ExecutionStatus.FAILED
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 30.0,
-                "results": results,
-                "evaluated_atoms": evaluated_atoms,
-            },
-        )
-    ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=30.0,
+        evaluated_atoms=evaluated_atoms,
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=scales)}
 
@@ -589,60 +601,46 @@ def test_assemble_matrices_to_explain_unmet_criteria_severity_order() -> None:
     assert len(result) == 1
     justification = result[0].justification
     assert "UNMET CRITERIA / DEFICITS:" in justification
-
-    # Exactly 5 unmet criteria selected
     unmet_count = justification.count("- Deficit Level")
     assert unmet_count == 5
-
-    # All 3 Level 1 claims must be present
     assert "Deficit Level 1 Claim 0" in justification
     assert "Deficit Level 1 Claim 1" in justification
     assert "Deficit Level 1 Claim 2" in justification
-
-    # 2 Level 2 claims must be present
     assert "Deficit Level 2 Claim 0" in justification
     assert "Deficit Level 2 Claim 1" in justification
-
-    # Level 5 claims must NOT be present (discarded due to lower priority)
     assert "Deficit Level 5" not in justification
 
 
 def test_assemble_matrices_to_explain_short_quote_filtering() -> None:
     """Verify quotes < 15 characters are excluded from SUPPORTING EVIDENCE."""
     block_id = "blk_999999999999999999999999"
-
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 80.0,
-                "results": [
-                    {
-                        "tda_id": "tda_00000000000000000000000000000001",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "yes",  # 3 chars < 15
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                    {
-                        "tda_id": "tda_00000000000000000000000000000002",
-                        "status": "PASSED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": "This is a sufficiently long valid quote from document.",
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    },
-                ],
-                "evaluated_atoms": {
-                    "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
-                    "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
-                },
-            },
-        )
+    results = [
+        {
+            "tda_id": "tda_00000000000000000000000000000001",
+            "status": "PASSED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": "yes",  # 3 chars < 15
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
+        {
+            "tda_id": "tda_00000000000000000000000000000002",
+            "status": "PASSED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": "This is a sufficiently long valid quote from document.",
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        },
     ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=80.0,
+        evaluated_atoms={
+            "tda_00000000000000000000000000000001": ExecutionStatus.PASSED,
+            "tda_00000000000000000000000000000002": ExecutionStatus.PASSED,
+        },
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
 
@@ -678,27 +676,22 @@ def test_assemble_matrices_to_explain_multilingual_resolution() -> None:
         ],
     )
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 25.0,
-                "results": [
-                    {
-                        "tda_id": tda_id,
-                        "status": "FAILED",
-                        "evaluation_reasoning": "Reason",
-                        "source_quote": None,
-                        "depends_on_tda_ids": [],
-                        "short_circuit_reason_tda_ids": [],
-                    }
-                ],
-                "evaluated_atoms": {tda_id: ExecutionStatus.FAILED},
-            },
-        )
+    results = [
+        {
+            "tda_id": tda_id,
+            "status": "FAILED",
+            "evaluation_reasoning": "Reason",
+            "source_quote": None,
+            "depends_on_tda_ids": [],
+            "short_circuit_reason_tda_ids": [],
+        }
     ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=25.0,
+        evaluated_atoms={tda_id: ExecutionStatus.FAILED},
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
@@ -724,7 +717,7 @@ def test_assemble_matrices_to_explain_corrupt_level_stats_raises() -> None:
     block_id = "blk_bbbbbbbbbbbbbbbbbbbbbbbb"
 
     dtos = [
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
@@ -803,18 +796,12 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
         )
         evaluated_atoms[tda_id] = ExecutionStatus.FAILED
 
-    dtos = [
-        StepOutputDTO(
-            step_id="step1",
-            block_id=block_id,
-            data_type="matrix",
-            payload={
-                "normalized_score": 60.0,
-                "results": results,
-                "evaluated_atoms": evaluated_atoms,
-            },
-        )
-    ]
+    dtos = _make_step_dtos(
+        block_id=block_id,
+        normalized_score=60.0,
+        evaluated_atoms=evaluated_atoms,
+        results=results,
+    )
 
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id, scales=[scale])}
 
@@ -829,11 +816,8 @@ def test_assemble_matrices_to_explain_with_synthesis_config_profile_overrides() 
 
     assert len(result) == 1
     justification = result[0].justification
-    # Verify quotes count is capped at 2
     quote_count = justification.count('- "')
     assert quote_count == 2
-
-    # Verify unmet count is capped at 1
     unmet_count = justification.count("- Claim ")
     assert unmet_count == 1
 
@@ -842,15 +826,20 @@ def test_assemble_matrices_to_explain_malformed_atom_result_raises() -> None:
     """Test that malformed atom results raise AppException(VALIDATION_FAILED)."""
     block_id = "blk_333333333333333333333333"
     dtos = [
+        StepOutputDTO.model_construct(
+            step_id="step_atoms",
+            block_id=block_id,
+            data_type="unknown",
+            payload=[{"invalid_field": "corrupted"}],
+        ),
         StepOutputDTO(
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
-            payload={
-                "normalized_score": 78.5,
-                "results": [{"invalid_field": "corrupted"}],
-                "evaluated_atoms": {},
-            },
+            payload=LightweightMatrixOutput(
+                normalized_score=78.5,
+                evaluated_atoms={},
+            ),
         ),
     ]
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
@@ -865,7 +854,7 @@ def test_assemble_matrices_to_explain_invalid_matrix_payload_raises() -> None:
     """Test that invalid matrix payload raises AppException(VALIDATION_FAILED)."""
     block_id = "blk_333333333333333333333333"
     dtos = [
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
@@ -891,11 +880,10 @@ def test_assemble_matrices_to_explain_atom_missing_from_claim_map_raises() -> No
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
-            payload={
-                "normalized_score": 50.0,
-                "results": [],
-                "evaluated_atoms": {"tda_undeclared00000000000000000000": ExecutionStatus.PASSED},
-            },
+            payload=LightweightMatrixOutput(
+                normalized_score=50.0,
+                evaluated_atoms={"tda_undeclared00000000000000000000": LaxExecutionStatus.PASSED},
+            ),
         ),
     ]
     blocks_by_id = {block_id: _create_matrix_block(block_id=block_id)}
@@ -912,7 +900,7 @@ def test_assemble_matrices_to_explain_raw_level_breakdown_variations() -> None:
 
     # 1. Non-mapping raw_level_breakdown raises AppException
     dtos_invalid = [
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
@@ -937,15 +925,14 @@ def test_assemble_matrices_to_explain_raw_level_breakdown_variations() -> None:
             step_id="step1",
             block_id=block_id,
             data_type="matrix",
-            payload={
-                "normalized_score": 70.0,
-                "results": [],
-                "evaluated_atoms": {},
-                "level_breakdown": {
-                    "1": {"hits": 2, "total": 3},
-                    "2": {"hits": 1, "total": 2},
+            payload=LightweightMatrixOutput(
+                normalized_score=70.0,
+                evaluated_atoms={},
+                level_breakdown={
+                    "1": LevelStatsDTO(hits=2, total=3),
+                    "2": LevelStatsDTO(hits=1, total=2),
                 },
-            },
+            ),
         ),
     ]
     result = MatrixExplanationService.assemble_matrices_to_explain(
@@ -976,19 +963,24 @@ def test_assemble_matrices_to_explain_payload_skips() -> None:
         # None payload
         StepOutputDTO(step_id="s2", block_id=block_id, data_type="matrix", payload=None),
         # Unknown block_id
-        StepOutputDTO(step_id="s3", block_id="blk_unknown0000000000000000000", data_type="matrix", payload={}),
+        StepOutputDTO(step_id="s3", block_id="blk_unknown0000000000000000000", data_type="matrix", payload=None),
         # Non-matrix block category (system_rule)
-        StepOutputDTO(step_id="s4", block_id="blk_444444444444444444444444", data_type="text", payload={}),
+        StepOutputDTO(step_id="s4", block_id="blk_444444444444444444444444", data_type="text", payload=None),
         # Results containing None and scalar atoms
+        StepOutputDTO.model_construct(
+            step_id="s_atoms",
+            block_id=block_id,
+            data_type="unknown",
+            payload=[None, "invalid_scalar_atom"],
+        ),
         StepOutputDTO(
             step_id="s5",
             block_id=block_id,
             data_type="matrix",
-            payload={
-                "normalized_score": 85.0,
-                "results": [None, "invalid_scalar_atom"],
-                "evaluated_atoms": {},
-            },
+            payload=LightweightMatrixOutput(
+                normalized_score=85.0,
+                evaluated_atoms={},
+            ),
         ),
     ]
 
@@ -1009,7 +1001,7 @@ def test_quote_candidate_dto_model() -> None:
     assert candidate.claim_label == "Test Claim"
     assert candidate.quote_length == 56
 
-    with pytest.raises(Exception):
+    with pytest.raises((TypeError, ValueError)):
         candidate.quote = "mutated"  # type: ignore[misc]
 
 
@@ -1020,7 +1012,7 @@ def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> N
     blocks_by_id = {block_id: matrix_block}
 
     dtos = [
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="s_set",
             block_id=block_id,
             data_type="matrix",
@@ -1032,4 +1024,3 @@ def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> N
         dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
     )
     assert len(result) == 0
-

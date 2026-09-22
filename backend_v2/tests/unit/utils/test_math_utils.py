@@ -55,7 +55,6 @@ def test_clamp_score_invalid_scale() -> None:
 
 def test_calculate_linear_ratio_score() -> None:
     """Test weighted average calculation across scale levels."""
-
     stats = {
         1.0: LevelStatsDTO(hits=100, total=100),
         2.0: LevelStatsDTO(hits=50, total=100),

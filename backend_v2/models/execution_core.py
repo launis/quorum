@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Annotated, Any
 from pydantic import ConfigDict, Field
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LLMProvider
 
 if TYPE_CHECKING:
@@ -38,7 +39,7 @@ class ExecutionMetadata(V2CoreBase):
         Field(default=1, ge=1, description="Version number of the executing workflow."),
     ] = 1
     global_context_vars: Annotated[
-        dict[str, Any] | None,
+        GlobalContextVarsDTO | None,
         Field(default=None, description="Global context variables for hooks."),
     ] = None
     provider_override: Annotated[

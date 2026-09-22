@@ -9,9 +9,13 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.exceptions import AppException
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.step import StepRule
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, ReducedAtomDTO
+from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest
+from backend_v2.models.enums import LaxExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
@@ -69,16 +73,18 @@ def base_request() -> EngineExecutionRequest:
         output_profile_id="prof_1",
         target_locale="en",
         metadata=ExecutionMetadata(),
-        context_variables={
-            "__GLOBAL_ATOM_BLACKBOARD__": {
-                "atoms_by_input": {"doc_0": {"atoms": [make_atom(f"atm_{i}") for i in range(1, 10)]}},
-            },
-            "__MATRIX_REDUCER_OUTPUT__": {
-                "reduced_atoms": [{"atom_id": "atm_1"}],
-                "evaluated_matrices": [{"matrix_id": "mat_1"}],
-                "raw_extensions": {},
-            },
-        },
+        context_variables=ContextVariablesDTO(
+            global_atom_blackboard=GlobalAtomBlackboard(
+                atoms_by_input={"doc_0": {"atoms": [make_atom(f"atm_{i}") for i in range(1, 10)]}},
+            ),
+            matrix_reducer_output=LightweightMatrixDTO(
+                execution_id="exec_1",
+                reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                global_metrics={},
+                evaluated_matrices=[{"matrix_id": "mat_1"}],
+                raw_extensions=[],
+            ),
+        ),
     )
 
     return EngineExecutionRequest(
@@ -129,9 +135,9 @@ async def test_synthesis_engine_happy_path(
     assert result.results == []
     assert result.hydrated_references == {}
     assert result.synthesis_output is not None
-    assert isinstance(result.synthesis_output, dict)
-    assert result.synthesis_output["title"] == "Test"
-    assert result.synthesis_output["content"] == "Data"
+    assert isinstance(result.synthesis_output, MockSynthesisOutput)
+    assert result.synthesis_output.title == "Test"
+    assert result.synthesis_output.content == "Data"
 
     assert len(result.trace_events) == 1
     trace = result.trace_events[0]
@@ -202,8 +208,8 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": ContextVariablesDTO.from_dict(
-                        {"__GLOBAL_ATOM_BLACKBOARD__": {"atoms_by_input": {}}}
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(atoms_by_input={}),
                     )
                 }
             )
@@ -214,10 +220,10 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 
     assert mock_executor.execute_structured_task.called is False
     assert result.synthesis_output is not None
-    assert isinstance(result.synthesis_output, dict)
-    assert result.synthesis_output["event_type"] == "starvation"
-    assert result.synthesis_output["total_atoms"] == 0
-    assert "zero atoms extracted" in result.synthesis_output["reason"]
+    assert isinstance(result.synthesis_output, DataStarvationEvent)
+    assert result.synthesis_output.event_type == "starvation"
+    assert result.synthesis_output.total_atoms == 0
+    assert "zero atoms extracted" in result.synthesis_output.reason
     assert len(result.trace_events) == 1
     assert result.trace_events[0].content["event_type"] == "starvation"
     assert result.trace_events[0].step_name == "sr_1234567890abcdef1234"
@@ -227,21 +233,21 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": ContextVariablesDTO.from_dict(
-                        {
-                            "__GLOBAL_ATOM_BLACKBOARD__": {
-                                "atoms_by_input": {
-                                    "doc_0": {
-                                        "atoms": [make_atom(f"atm_{i}") for i in range(1, 5)],
-                                    }
-                                },
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={
+                                "doc_0": {
+                                    "atoms": [make_atom(f"atm_{i}") for i in range(1, 5)],
+                                }
                             },
-                            "__MATRIX_REDUCER_OUTPUT__": {
-                                "reduced_atoms": [],
-                                "evaluated_matrices": [],
-                                "raw_extensions": {},
-                            },
-                        }
+                        ),
+                        matrix_reducer_output=LightweightMatrixDTO(
+                            execution_id="exec_1",
+                            reduced_atoms=[],
+                            global_metrics={},
+                            evaluated_matrices=[],
+                            raw_extensions=[],
+                        ),
                     )
                 }
             )
@@ -252,10 +258,10 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
 
     assert mock_executor.execute_structured_task.called is False
     assert result_sparse_noise.synthesis_output is not None
-    assert isinstance(result_sparse_noise.synthesis_output, dict)
-    assert result_sparse_noise.synthesis_output["event_type"] == "starvation"
-    assert result_sparse_noise.synthesis_output["total_atoms"] == 4
-    assert "sparse atoms (4) yielded zero evaluative matrix evidence" in result_sparse_noise.synthesis_output["reason"]
+    assert isinstance(result_sparse_noise.synthesis_output, DataStarvationEvent)
+    assert result_sparse_noise.synthesis_output.event_type == "starvation"
+    assert result_sparse_noise.synthesis_output.total_atoms == 4
+    assert "sparse atoms (4) yielded zero evaluative matrix evidence" in result_sparse_noise.synthesis_output.reason
 
 
 @pytest.mark.asyncio
@@ -267,23 +273,23 @@ async def test_synthesis_engine_sparse_data_rule_injected(
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": ContextVariablesDTO.from_dict(
-                        {
-                            "__GLOBAL_ATOM_BLACKBOARD__": {
-                                "atoms_by_input": {
-                                    "doc_0": {
-                                        "atoms": [
-                                            make_atom("atm_1", claim="Single observation"),
-                                        ]
-                                    }
-                                },
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={
+                                "doc_0": {
+                                    "atoms": [
+                                        make_atom("atm_1", claim="Single observation"),
+                                    ]
+                                }
                             },
-                            "__MATRIX_REDUCER_OUTPUT__": {
-                                "reduced_atoms": [{"atom_id": "atm_1"}],
-                                "evaluated_matrices": [],
-                                "raw_extensions": {},
-                            },
-                        }
+                        ),
+                        matrix_reducer_output=LightweightMatrixDTO(
+                            execution_id="exec_1",
+                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            global_metrics={},
+                            evaluated_matrices=[],
+                            raw_extensions=[],
+                        ),
                     )
                 }
             )
@@ -302,8 +308,8 @@ async def test_synthesis_engine_sparse_data_rule_injected(
     user_message = messages[-1]
     assert user_message.role == "user"
     assert SPARSE_DATA_SYNTHESIS_MANDATE in user_message.content
-    assert isinstance(result.synthesis_output, dict)
-    assert result.synthesis_output["title"] == "Sparse"
+    assert isinstance(result.synthesis_output, MockSynthesisOutput)
+    assert result.synthesis_output.title == "Sparse"
 
 
 @pytest.mark.asyncio
@@ -316,23 +322,23 @@ async def test_synthesis_engine_prompt_injection_cdata_shielding(
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": ContextVariablesDTO.from_dict(
-                        {
-                            "__GLOBAL_ATOM_BLACKBOARD__": {
-                                "atoms_by_input": {
-                                    "doc_0": {
-                                        "atoms": [
-                                            make_atom("atm_1", quote=malicious_text),
-                                        ]
-                                    }
-                                },
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={
+                                "doc_0": {
+                                    "atoms": [
+                                        make_atom("atm_1", quote=malicious_text),
+                                    ]
+                                }
                             },
-                            "__MATRIX_REDUCER_OUTPUT__": {
-                                "reduced_atoms": [{"atom_id": "atm_1"}],
-                                "evaluated_matrices": [],
-                                "raw_extensions": {},
-                            },
-                        }
+                        ),
+                        matrix_reducer_output=LightweightMatrixDTO(
+                            execution_id="exec_1",
+                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            global_metrics={},
+                            evaluated_matrices=[],
+                            raw_extensions=[],
+                        ),
                     )
                 }
             )
@@ -389,8 +395,15 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": base_request.context.context_variables.with_update(
-                        __MATRIX_REDUCER_OUTPUT__={"raw_extensions": {"risk_flag": True, "coaching": "Improve focus"}}
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=base_request.context.context_variables.global_atom_blackboard,
+                        matrix_reducer_output=LightweightMatrixDTO(
+                            execution_id="exec_1",
+                            reduced_atoms=[ReducedAtomDTO(tda_id="atm_1", status=LaxExecutionStatus.PASSED)],
+                            global_metrics={},
+                            evaluated_matrices=[],
+                            raw_extensions=[{"risk_flag": True, "coaching": "Improve focus"}],
+                        ),
                     )
                 }
             ),
@@ -404,8 +417,8 @@ async def test_synthesis_engine_with_raw_extensions_and_progress(
 
     result = await engine.execute(req)
 
-    assert isinstance(result.synthesis_output, dict)
-    assert result.synthesis_output["title"] == "ExtTest"
+    assert isinstance(result.synthesis_output, MockSynthesisOutput)
+    assert result.synthesis_output.title == "ExtTest"
     assert progress_mock.call_count == 2
     progress_mock.assert_any_call(10, 100)
     progress_mock.assert_any_call(90, 100)
@@ -424,8 +437,8 @@ async def test_synthesis_engine_validation_error(engine: SynthesisEngine, base_r
         update={
             "context": base_request.context.model_copy(
                 update={
-                    "context_variables": base_request.context.context_variables.with_update(
-                        __GLOBAL_ATOM_BLACKBOARD__={"atoms_by_input": "not_a_valid_dict"}
+                    "context_variables": ContextVariablesDTO(
+                        variables={"__GLOBAL_ATOM_BLACKBOARD__": "not_a_valid_dict"}
                     )
                 }
             )

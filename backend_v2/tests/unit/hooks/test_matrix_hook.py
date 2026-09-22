@@ -472,7 +472,7 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips(matrix_setup: dict[str
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {}
+    assert result.state_delta.delta is None
 
 
 @pytest.mark.asyncio

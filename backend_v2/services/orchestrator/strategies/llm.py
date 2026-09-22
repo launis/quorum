@@ -30,6 +30,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ConfigurationError, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.chunking import ChunkingRequest
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord, FrozenContext
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import (
@@ -43,10 +44,11 @@ from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest, MatrixEvaluationContext
+from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
-from backend_v2.models.enums import PromptBlockCategory, VirtualSystemStepID
+from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, VirtualSystemStepID
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
 from backend_v2.services.orchestrator.chunking_service import ChunkingService
@@ -99,7 +101,7 @@ class LLMNodeStrategy(NodeStrategy):
         self,
         hook_state: HookState,
         context: StrategyContext | None = None,
-    ) -> tuple[dict[str, Any], list[str], dict[str, Any]]:
+    ) -> StepContextMetadataDTO:
         """Extract global vars, document aliases, and DAG input results from HookState.
 
         Args:
@@ -107,9 +109,9 @@ class LLMNodeStrategy(NodeStrategy):
             context: Strategy configuration parameters holding context_variables.
 
         Returns:
-            Tuple of (gvars, doc_aliases, dag_results).
+            StepContextMetadataDTO containing gvars, doc_aliases, and dag_results.
         """
-        gvars: dict[str, Any] = {}
+        gvars: dict[str, object] = {}
         if isinstance(hook_state.global_context_vars, GlobalContextVarsDTO):
             gvars = hook_state.global_context_vars.model_dump(exclude_none=True)
         elif (
@@ -118,41 +120,42 @@ class LLMNodeStrategy(NodeStrategy):
         ):
             gvars = dict(hook_state.global_context_vars)
 
-        blackboard: dict[str, Any] = {}
-        if "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
-            bb_val = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
-            if isinstance(bb_val, Mapping):
-                blackboard = dict(bb_val)
-            elif not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
-                blackboard = dict(bb_val)
-        elif context is not None and "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
-            bb_val = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-            if isinstance(bb_val, Mapping):
-                blackboard = dict(bb_val)
-            elif not isinstance(bb_val, (str, int, float, bool, list)) and bb_val is not None:
-                blackboard = dict(bb_val)
+        blackboard: Any = None
+        if context is not None:
+            if context.context_variables.global_atom_blackboard:
+                blackboard = context.context_variables.global_atom_blackboard
+            elif "__GLOBAL_ATOM_BLACKBOARD__" in context.context_variables:
+                blackboard = context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+
+        if blackboard is None:
+            if (
+                isinstance(hook_state.global_context_vars, Mapping)
+                and "__GLOBAL_ATOM_BLACKBOARD__" in hook_state.global_context_vars
+            ):
+                blackboard = hook_state.global_context_vars["__GLOBAL_ATOM_BLACKBOARD__"]
+            elif "__GLOBAL_ATOM_BLACKBOARD__" in gvars:
+                blackboard = gvars["__GLOBAL_ATOM_BLACKBOARD__"]
 
         atoms_by_input: dict[str, Any] = {}
-        if "atoms_by_input" in blackboard:
-            atoms_val = blackboard["atoms_by_input"]
-            if isinstance(atoms_val, Mapping):
-                atoms_by_input = dict(atoms_val)
-            elif not isinstance(atoms_val, (str, int, float, bool, list)) and atoms_val is not None:
-                atoms_by_input = dict(atoms_val)
+        if blackboard is not None:
+            if isinstance(blackboard, GlobalAtomBlackboard):
+                atoms_by_input = blackboard.atoms_by_input
+            elif isinstance(blackboard, Mapping) and "atoms_by_input" in blackboard:
+                atoms_by_input = dict(blackboard["atoms_by_input"])
 
         doc_aliases: list[str] = ["N/A"]
         if atoms_by_input:
             doc_aliases = list(atoms_by_input.keys())
 
-        raw_inputs_dict: dict[str, Any] = {}
-        dynamic_inputs_dict: dict[str, Any] = {}
+        raw_inputs_dict: Mapping[str, Any] = {}
+        dynamic_inputs_dict: Mapping[str, Any] = {}
         if isinstance(hook_state.inputs, ExecutionInputsDTO):
             raw_inputs_dict = hook_state.inputs.raw_inputs
             dynamic_inputs_dict = hook_state.inputs.dynamic_inputs
         elif isinstance(hook_state.inputs, Mapping):
             dynamic_inputs_dict = dict(hook_state.inputs)
 
-        dag_results: dict[str, Any] = {}
+        dag_results: dict[str, AtomResultDTO] = {}
         combined_inputs: list[Any] = list(raw_inputs_dict.values()) + list(dynamic_inputs_dict.values())
         for step_res in combined_inputs:
             if isinstance(step_res, list):
@@ -160,28 +163,54 @@ class LLMNodeStrategy(NodeStrategy):
                     if isinstance(item, AtomResultDTO):
                         dag_results[item.tda_id] = item
                     elif isinstance(item, Mapping):
-                        a_id: str | None = None
-                        if "tda_id" in item:
-                            a_id = str(item["tda_id"])
-                        elif "atom_id" in item:
-                            a_id = str(item["atom_id"])
+                        a_id = item["tda_id"] if "tda_id" in item else (item["atom_id"] if "atom_id" in item else None)
                         if a_id:
-                            dag_results[a_id] = item
+                            if isinstance(item, AtomResultDTO):
+                                dag_results[str(a_id)] = item
+                            else:
+                                item_dict = dict(item)
+                                item_dict.pop("atom_id", None)
+                                if "status" not in item_dict:
+                                    item_dict["status"] = ExecutionStatus.PASSED
+                                if "source_quote" not in item_dict and (
+                                    "contextual_override" not in item_dict or not item_dict["contextual_override"]
+                                ):
+                                    item_dict["contextual_override"] = True
+                                if "evaluation_reasoning" not in item_dict:
+                                    item_dict["evaluation_reasoning"] = "Extracted"
+                                if "tda_id" not in item_dict:
+                                    item_dict["tda_id"] = str(a_id)
+                                dag_results[str(a_id)] = AtomResultDTO.model_validate(item_dict, strict=False)
             elif isinstance(step_res, AtomResultDTO):
                 dag_results[step_res.tda_id] = step_res
-            elif isinstance(step_res, Mapping):
-                if "results" in step_res and isinstance(step_res["results"], list):
-                    for ev in step_res["results"]:
-                        if isinstance(ev, Mapping):
-                            extracted_a_id: str | None = None
-                            if "tda_id" in ev:
-                                extracted_a_id = str(ev["tda_id"])
-                            elif "atom_id" in ev:
-                                extracted_a_id = str(ev["atom_id"])
-                            if extracted_a_id:
-                                dag_results[extracted_a_id] = ev
+            elif isinstance(step_res, Mapping) and "results" in step_res and isinstance(step_res["results"], list):
+                for ev in step_res["results"]:
+                    if isinstance(ev, AtomResultDTO):
+                        dag_results[ev.tda_id] = ev
+                    elif isinstance(ev, Mapping):
+                        extracted_a_id = (
+                            ev["tda_id"] if "tda_id" in ev else (ev["atom_id"] if "atom_id" in ev else None)
+                        )
+                        if extracted_a_id:
+                            ev_dict = dict(ev)
+                            ev_dict.pop("atom_id", None)
+                            if "status" not in ev_dict:
+                                ev_dict["status"] = ExecutionStatus.PASSED
+                            if "source_quote" not in ev_dict and (
+                                "contextual_override" not in ev_dict or not ev_dict["contextual_override"]
+                            ):
+                                ev_dict["contextual_override"] = True
+                            if "evaluation_reasoning" not in ev_dict:
+                                ev_dict["evaluation_reasoning"] = "Extracted"
+                            if "tda_id" not in ev_dict:
+                                ev_dict["tda_id"] = str(extracted_a_id)
+                            dag_results[str(extracted_a_id)] = AtomResultDTO.model_validate(ev_dict, strict=False)
 
-        return gvars, doc_aliases, dag_results
+        return StepContextMetadataDTO(
+            gvars=gvars,
+            doc_aliases=doc_aliases,
+            dag_results=dag_results,
+        )
 
     async def execute(
         self,
@@ -218,7 +247,7 @@ class LLMNodeStrategy(NodeStrategy):
         if running_event:
             running_event.set()
 
-        inputs_unwrapped = inputs_payload
+        inputs_unwrapped: object = inputs_payload
         if "inputs" in inputs_payload:
             inputs_unwrapped = inputs_payload["inputs"]
 
@@ -396,7 +425,7 @@ class LLMNodeStrategy(NodeStrategy):
             raise ConfigurationError(msg, details={"error_code": ErrorCodes.CONFIGURATION_ERROR.value})
         effective_mcp_tools = step_obj.allowed_mcp_tools
 
-        input_mappings: PromptMappingDTO | dict[str, str] = PromptMappingDTO(mappings=dict(step.input_mappings))
+        input_mappings = PromptMappingDTO(mappings=dict(step.input_mappings))
 
         workflow_def_raw = await self.workflow_repo.get_workflow(context.workflow_id)
         workflow_def = cast(dict[str, Any], workflow_def_raw)
@@ -462,6 +491,15 @@ class LLMNodeStrategy(NodeStrategy):
             schema_map["matrix_reducer"] = _SCHEMA_BLOCK_SYSTEM
 
         criteria_blocks = sorted(criteria_blocks_models, key=lambda x: str(x.id))
+
+        if "metadata" not in state_data and hook_state.metadata:
+            state_data["metadata"] = hook_state.metadata
+        if (
+            "raw_inputs" not in state_data
+            and isinstance(hook_state.inputs, ExecutionInputsDTO)
+            and hook_state.inputs.raw_inputs
+        ):
+            state_data["raw_inputs"] = hook_state.inputs.raw_inputs
 
         llm_context_data, new_input_mappings = ContextBuilder.build(
             input_mappings=input_mappings,
@@ -627,7 +665,7 @@ class LLMNodeStrategy(NodeStrategy):
                     manifest = exec_obj.source_identity_manifest
 
                 source_docs = []
-                inputs_dict = inputs_payload
+                inputs_dict: object = inputs_payload
                 if "inputs" in inputs_payload:
                     inputs_dict = inputs_payload["inputs"]
                 if isinstance(inputs_dict, Mapping):
@@ -742,7 +780,9 @@ class LLMNodeStrategy(NodeStrategy):
 
             if is_synthesis_step:
                 target_locale = context.target_locale
-                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state, context)
+                step_meta = self._extract_step_context_metadata(hook_state, context)
+                doc_aliases = step_meta.doc_aliases
+                dag_results = step_meta.dag_results
                 expected_sdui_type = "grid"
                 if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
                     expected_sdui_type = step.expected_sdui_type
@@ -781,7 +821,9 @@ class LLMNodeStrategy(NodeStrategy):
                 )
             elif matrix_block is None:
                 target_locale = context.target_locale
-                _, doc_aliases, dag_results = self._extract_step_context_metadata(hook_state, context)
+                step_meta = self._extract_step_context_metadata(hook_state, context)
+                doc_aliases = step_meta.doc_aliases
+                dag_results = step_meta.dag_results
                 expected_sdui_type = "grid"
                 if step.expected_sdui_type is not None and step.expected_sdui_type.strip():
                     expected_sdui_type = step.expected_sdui_type

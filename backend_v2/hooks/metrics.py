@@ -24,6 +24,7 @@ from backend_v2.models.domain.metrics import (
     ProfilerMetricsDTO,
     TextMetricsDTO,
 )
+from backend_v2.models.dtos.hook_delta import InputControlRatioResultDTO
 from backend_v2.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -251,7 +252,10 @@ def calculate_control_ratio_hook(state: HookState, deps: HookDependencies) -> Ho
     inputs = payload.root
     all_text = " ".join(str(v) for v in inputs.values() if v)
     ratio = calculate_control_ratio(all_text)
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"input_control_ratio": ratio}))
+    return HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(delta=InputControlRatioResultDTO(input_control_ratio=ratio)),
+    )
 
 
 @hook_registry.register(name="calculate_text_metrics")
@@ -326,11 +330,7 @@ def text_metrics(state: HookState, deps: HookDependencies) -> HookResult:
 
         return HookResult(
             success=True,
-            state_delta=HookDeltaDTO(
-                delta={
-                    "profiler_metrics": audit_metrics.model_dump(mode="json"),
-                }
-            ),
+            state_delta=HookDeltaDTO(delta=audit_metrics),
         )
 
     except Exception as e:

@@ -13,6 +13,10 @@ from backend_v2.core.hook_registry import (
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.metrics import calculate_control_ratio_hook, text_metrics
+from backend_v2.models.dtos.hook_delta import (
+    InputControlRatioResultDTO,
+    ProfilerMetricsDTO,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -50,14 +54,12 @@ def test_text_metrics_hook_valid_payload(mock_deps: HookDependencies) -> None:
     result = cast(HookResult, text_metrics(state, mock_deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "profiler_metrics" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, ProfilerMetricsDTO)
 
-    metrics = result.state_delta.delta["profiler_metrics"]
-    assert "word_count" in metrics
-    assert "sentence_count" in metrics
-    assert metrics["word_count"] > 0
-    assert metrics["sentence_count"] > 0
-    assert metrics["control_ratio"] > 0.0
+    metrics = result.state_delta.delta
+    assert metrics.word_count > 0
+    assert metrics.sentence_count > 0
+    assert metrics.control_ratio > 0.0
 
 
 def test_text_metrics_hook_invalid_payload_fails_fast(mock_deps: HookDependencies) -> None:
@@ -97,8 +99,8 @@ def test_control_ratio_hook_valid(mock_deps: HookDependencies) -> None:
     result = cast(HookResult, calculate_control_ratio_hook(state, mock_deps))
     assert result.success is True
     assert result.state_delta is not None
-    assert "input_control_ratio" in result.state_delta.delta
-    assert result.state_delta.delta["input_control_ratio"] > 0.0
+    assert isinstance(result.state_delta.delta, InputControlRatioResultDTO)
+    assert result.state_delta.delta.input_control_ratio > 0.0
 
 
 @patch("backend_v2.hooks.metrics.MetricsPayloadDTO.model_validate")

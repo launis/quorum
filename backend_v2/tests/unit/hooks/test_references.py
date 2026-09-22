@@ -7,12 +7,12 @@ import pytest
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDeltaDTO,
     HookDependencies,
     HookState,
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.references import generate_bibliography, generate_bibliography_hook
+from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -67,10 +67,9 @@ async def test_generate_bibliography_hook_success() -> None:
     )
     result = await generate_bibliography_hook(state, deps)
     assert result.success is True
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is not None
-    assert "bibliography_result" in delta
-    assert len(delta["bibliography_result"]["references"]) == 1
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, BibliographyResultDTO)
+    assert len(result.state_delta.delta.references) == 1
 
 
 @pytest.mark.asyncio

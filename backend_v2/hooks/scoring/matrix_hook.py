@@ -154,7 +154,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
         # If no matrix blocks exist, then waterfall scoring natively skips without demanding evaluations
         if not matrix_blocks:
             logger.debug("[ScoringHook] Step '%s' contains no matrix blocks. Skipping waterfall scoring.", blueprint_id)
-            return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
+            return HookResult(success=True, state_delta=HookDeltaDTO())
 
         if not state.execution_id or not deps.exec_repo:
             msg = "Strict Fail-Fast Enforced: Missing execution_id or exec_repo in matrix_scoring_hook."

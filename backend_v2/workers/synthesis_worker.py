@@ -474,7 +474,7 @@ async def generate_profile_synthesis_and_pdf_task(
             extension_metrics=ext_metrics,
         )
 
-        current_syntheses: dict[str, Any] = {}
+        current_syntheses: dict[str, RenderedSynthesisCache] = {}
         if execution.profile_syntheses is not None:
             current_syntheses = dict(execution.profile_syntheses)
         pid = "default"

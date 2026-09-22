@@ -251,7 +251,7 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
             step_id="stp_1",
             block_id="blk_1",
             data_type="matrix",
-            payload={"results": [atom_with_meta.model_dump(), duplicate_atom.model_dump()]},
+            payload=[atom_with_meta, duplicate_atom],
         ),
     )
     evt_dto_list = MagicMock(
@@ -261,7 +261,7 @@ def test_reduce_matrix_from_step_output_dto_in_execution_trace() -> None:
             step_id="stp_2",
             block_id="blk_2",
             data_type="matrix",
-            payload=[atom_in_list.model_dump()],
+            payload=[atom_in_list],
         ),
     )
     record.execution_trace = [evt_dto_dict, evt_dto_list]

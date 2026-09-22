@@ -47,7 +47,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
     logger.debug("[LLMHook] Running configure_llm_context_hook...")
 
     if not state:
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta={}))
+        return HookResult(success=True, state_delta=HookDeltaDTO())
 
     # 2. Get Strategy (SSOT)
     if not state.step_id:
@@ -155,9 +155,7 @@ def configure_llm_context_hook(state: HookState, deps: HookDependencies) -> Hook
             llm_config.model_name,
         )
 
-        return HookResult(
-            success=True, state_delta=HookDeltaDTO(delta={"llm_config": llm_config.model_dump(mode="json")})
-        )
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=llm_config))
 
     except Exception as e:
         # Distinguish strictly raised ConfigErrors vs generic exceptions

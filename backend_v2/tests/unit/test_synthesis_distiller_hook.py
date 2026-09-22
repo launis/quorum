@@ -15,6 +15,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.synthesis_distiller import synthesis_distiller_hook
@@ -80,20 +81,18 @@ async def test_synthesis_distiller_hook_evidence_quotes_conversion(mock_validate
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
 
-    payload = {
-        "evidence_quotes": [
-            {"quote": "Test quote 1", "verified_source_ids": ["src_1"], "unverified_aliases": [], "is_verified": True},
-            {"quote": "Test quote 2", "verified_source_ids": ["src_2"], "unverified_aliases": [], "is_verified": True},
-        ]
-    }
-
-    step_output = StepOutputDTOFactory.build(payload=payload)
+    step_output = StepOutputDTO(
+        step_id="stp_1",
+        block_id="blk_1",
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=100.0, justification="Test quote 1"),
+    )
 
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}, target_locale="en"),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}, target_locale="en"),
         global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
     )
 
@@ -134,6 +133,8 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
         "id": "exe_0123456789abcdef01",
         "workflow_id": "wf_0123456789abcdef01",
         "status": "PASSED",
+        "target_locale": "en",
+        "metadata": {},
         "output_profile_id": "prof_1111111111111111",
         "raw_inputs": {"dynamic_inputs": {}},
         "step_states": {},
@@ -154,14 +155,19 @@ async def test_synthesis_distiller_hook_negative_missing_locale(mock_validate: M
     cast(AsyncMock, deps.workflow_repo.get_all_steps).return_value = []
     cast(AsyncMock, deps.prompt_block_repo.get_all_prompt_blocks).return_value = []
 
-    step_output = StepOutputDTOFactory.build(payload={"evidence_quotes": []})
+    step_output = StepOutputDTO(
+        step_id="stp_1",
+        block_id="blk_1",
+        data_type="matrix",
+        payload=TraceMatrixPayloadDTO(raw_score=100.0),
+    )
 
     # State intentionally missing target_locale in metadata
     state = HookState(
         execution_id="exe_0123456789abcdef01",
         workflow_id="wf_0123456789abcdef01",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output.model_dump()]}),
+        inputs=ExecutionInputsDTO(dynamic_inputs={"steps": [step_output]}),
         global_context_vars=GlobalContextVarsDTO(organization_id="org1"),
     )
 

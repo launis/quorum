@@ -7,7 +7,7 @@ synthesis distiller to prevent God Code and maintain Single Responsibility.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -17,6 +17,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
+from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.settings import get_settings
@@ -90,23 +91,34 @@ class MatrixExplanationService:
             effective_max_unmet = settings_obj.max_synthesis_unmet_criteria_per_matrix
 
         # Build map of tda_id -> list of quotes
+        # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
         for dto in available_dtos:
-            if isinstance(dto.payload, (str, int, float, bool, list)) or dto.payload is None:
+            if isinstance(dto.payload, (str, int, float, bool)) or dto.payload is None:
                 continue
 
-            results_list: Any = None
-            if isinstance(dto.payload, Mapping) and "results" in dto.payload:
-                results_list = dto.payload["results"]
+            results_list: Sequence[Any] | None = None
+            if isinstance(dto.payload, list):
+                results_list = dto.payload
+            elif isinstance(dto.payload, AtomResultDTO):
+                results_list = [dto.payload]
+            elif isinstance(dto.payload, Mapping) and "results" in dto.payload:
+                res = dto.payload["results"]
+                if isinstance(res, list):
+                    results_list = res
 
-            if not isinstance(results_list, list):
+            if not results_list:
                 continue
 
-            for atom_dict in results_list:
-                if isinstance(atom_dict, (str, int, float, bool)) or atom_dict is None:
+            for atom_item in results_list:
+                if isinstance(atom_item, (str, int, float, bool)) or atom_item is None:
                     continue
                 try:
-                    atom_res = AtomResultDTO.model_validate(atom_dict, strict=False)
+                    atom_res = (
+                        atom_item
+                        if isinstance(atom_item, AtomResultDTO)
+                        else AtomResultDTO.model_validate(atom_item, strict=False)
+                    )
                     if atom_res.source_quote:
                         cleaned = atom_res.source_quote.strip()
                         if len(cleaned) >= 15:
@@ -138,28 +150,39 @@ class MatrixExplanationService:
             if isinstance(payload, (str, int, float, bool, list)) or payload is None:
                 continue
 
-            if not isinstance(payload, Mapping):
-                continue
-
-            payload_to_validate = dict(payload)
-            payload_to_validate.pop("results", None)
-
-            # Strict Pydantic parsing probe boundary
-            try:
-                lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
-            except (ValidationError, ValueError) as e:
-                logger.error(
-                    "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",
-                    ErrorCodes.VALIDATION_FAILED.name,
-                    block_id,
-                    e,
-                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
+            lw_matrix: LightweightMatrixOutput
+            if isinstance(payload, LightweightMatrixOutput):
+                lw_matrix = payload
+            elif isinstance(payload, TraceMatrixPayloadDTO):
+                lw_matrix = LightweightMatrixOutput(
+                    raw_score=payload.raw_score,
+                    normalized_score=payload.normalized_score,
+                    level_breakdown=payload.level_breakdown,
+                    justification=payload.justification or "",
+                    evaluated_atoms=payload.evaluated_atoms or {},
                 )
-                raise AppException(
-                    message=f"Invalid matrix payload for block {block_id}: {e}",
-                    status_code=422,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from e
+            elif isinstance(payload, Mapping):
+                payload_to_validate = dict(payload)
+                payload_to_validate.pop("results", None)
+
+                # Strict Pydantic parsing probe boundary
+                try:
+                    lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
+                except (ValidationError, ValueError) as e:
+                    logger.error(
+                        "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",
+                        ErrorCodes.VALIDATION_FAILED.name,
+                        block_id,
+                        e,
+                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "details": str(e)},
+                    )
+                    raise AppException(
+                        message=f"Invalid matrix payload for block {block_id}: {e}",
+                        status_code=422,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from e
+            else:
+                continue
 
             # Precompute claim labels and scale scores localized to target_locale
             tda_to_claim: dict[str, str] = {}

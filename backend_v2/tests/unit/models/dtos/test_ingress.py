@@ -104,4 +104,3 @@ def test_resolved_ingress_dto_extra_fields_forbidden() -> None:
                 "extra_key": "forbidden",
             }
         )
-

@@ -22,7 +22,9 @@ from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     SystemRulePromptBlock,
 )
-from backend_v2.models.enums import BlockDataType, PromptBlockCategory
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.view.sdui import HeroInsightBlock, MarkdownBlock
 
 
@@ -234,7 +236,14 @@ def test_grid_schema_strategy_matrix_and_criteria() -> None:
         output_extensions=["confidence", "risk_flag", "notes"],
     )
 
-    dag_results = {"tda_12345678901234567890123456789012": {"status": "PASSED"}}
+    dag_results = {
+        "tda_12345678901234567890123456789012": AtomResultDTO(
+            tda_id="tda_12345678901234567890123456789012",
+            status=ExecutionStatus.PASSED,
+            source_quote="Valid quote",
+            evaluation_reasoning="Valid reason",
+        )
+    }
 
     schema = strat.build_schema(
         "MatrixGridSchema",
@@ -391,6 +400,7 @@ def test_grid_schema_strategy_numeric_and_boolean_output_extensions() -> None:
 def test_grid_schema_strategy_compilation_failure_raises_app_exception(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test that unexpected failure in dynamic schema create_model raises AppException."""
     import pydantic
+
     from backend_v2.exceptions import AppException, ErrorCodes
 
     strat = GridSchemaStrategy(resolve_i18n=_mock_resolve_i18n)
@@ -414,4 +424,82 @@ def test_grid_schema_strategy_compilation_failure_raises_app_exception(monkeypat
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.details["error_code"] == ErrorCodes.INTERNAL_SERVER_ERROR.value
+
+
+def test_grid_schema_strategy_sequence_step_output_dto() -> None:
+    strat = GridSchemaStrategy(_mock_resolve_i18n)
+
+    matrix_block = MatrixPromptBlock(
+        id="pb_1234567890abcdef",
+        slug="test-matrix",
+        label=I18nText(translations={"en": "Test Matrix"}),
+        description=I18nText(translations={"en": "Test desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Claim 1"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                tda_id="tda_12345678901234567890123456789012",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description="Concept description 1",
+                                depends_on=(),
+                            ),
+                            TDAAssertion(
+                                tda_id="tda_99999999999999999999999999999999",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                concept_description="Concept description 2",
+                                depends_on=(),
+                            ),
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    dag_results = [
+        StepOutputDTO(
+            step_id="stp_1",
+            block_id="pb_1234567890abcdef",
+            data_type="matrix",
+            payload=AtomResultDTO(
+                tda_id="tda_12345678901234567890123456789012",
+                status=ExecutionStatus.PASSED,
+                source_quote="Valid quote 1",
+                evaluation_reasoning="Valid reason 1",
+            ),
+        ),
+        StepOutputDTO(
+            step_id="stp_2",
+            block_id="pb_1234567890abcdef",
+            data_type="matrix",
+            payload=[
+                AtomResultDTO(
+                    tda_id="tda_99999999999999999999999999999999",
+                    status=ExecutionStatus.PASSED,
+                    source_quote="Valid quote 2",
+                    evaluation_reasoning="Valid reason 2",
+                )
+            ],
+        ),
+    ]
+
+    schema = strat.build_schema(
+        "SeqMatrixGridSchema",
+        criteria=[matrix_block],
+        has_shuffled_atoms=False,
+        strictness_level=100,
+        dag_results=dag_results,
+    )
+
+    fields = schema.model_fields
+    assert "global_matrices" in fields
 

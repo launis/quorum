@@ -16,6 +16,7 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
+from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 
@@ -127,9 +128,11 @@ async def test_sampling_determinism_across_distinct_execution_ids() -> None:
     assert res2.success is True
     assert res1.state_delta is not None
     assert res2.state_delta is not None
+    assert isinstance(res1.state_delta.delta, FlatteningHookOutput)
+    assert isinstance(res2.state_delta.delta, FlatteningHookOutput)
 
-    atoms1 = [item["atom_id"] for item in res1.state_delta.delta["shuffled_atoms"]]
-    atoms2 = [item["atom_id"] for item in res2.state_delta.delta["shuffled_atoms"]]
+    atoms1 = [item.atom_id for item in res1.state_delta.delta.shuffled_atoms]
+    atoms2 = [item.atom_id for item in res2.state_delta.delta.shuffled_atoms]
 
     # 5 scales * 2 samples = 10 atoms
     assert len(atoms1) == 10
@@ -172,9 +175,11 @@ async def test_sampling_divergence_across_distinct_workflow_ids() -> None:
 
     assert res1.state_delta is not None
     assert res2.state_delta is not None
+    assert isinstance(res1.state_delta.delta, FlatteningHookOutput)
+    assert isinstance(res2.state_delta.delta, FlatteningHookOutput)
 
-    atoms1 = [item["atom_id"] for item in res1.state_delta.delta["shuffled_atoms"]]
-    atoms2 = [item["atom_id"] for item in res2.state_delta.delta["shuffled_atoms"]]
+    atoms1 = [item.atom_id for item in res1.state_delta.delta.shuffled_atoms]
+    atoms2 = [item.atom_id for item in res2.state_delta.delta.shuffled_atoms]
 
     assert len(atoms1) == 5
     assert len(atoms2) == 5
@@ -203,7 +208,8 @@ async def test_sampling_boundary_values_bva() -> None:
     )
     res_all = await process_matrix_flattening(state_all, deps)
     assert res_all.state_delta is not None
-    assert len(res_all.state_delta.delta["shuffled_atoms"]) == 25
+    assert isinstance(res_all.state_delta.delta, FlatteningHookOutput)
+    assert len(res_all.state_delta.delta.shuffled_atoms) == 25
 
     # 2. BVA Exact Boundary (strategy=5: exactly equal to num_atoms_per_scale, all 25 retained)
     state_exact = HookState(
@@ -217,7 +223,8 @@ async def test_sampling_boundary_values_bva() -> None:
     )
     res_exact = await process_matrix_flattening(state_exact, deps)
     assert res_exact.state_delta is not None
-    assert len(res_exact.state_delta.delta["shuffled_atoms"]) == 25
+    assert isinstance(res_exact.state_delta.delta, FlatteningHookOutput)
+    assert len(res_exact.state_delta.delta.shuffled_atoms) == 25
 
     # 3. BVA Minimum Sampling (strategy=1: 1 per scale = 5 atoms)
     state_min = HookState(
@@ -231,7 +238,8 @@ async def test_sampling_boundary_values_bva() -> None:
     )
     res_min = await process_matrix_flattening(state_min, deps)
     assert res_min.state_delta is not None
-    assert len(res_min.state_delta.delta["shuffled_atoms"]) == 5
+    assert isinstance(res_min.state_delta.delta, FlatteningHookOutput)
+    assert len(res_min.state_delta.delta.shuffled_atoms) == 5
 
 
 @pytest.mark.asyncio

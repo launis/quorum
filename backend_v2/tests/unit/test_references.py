@@ -45,12 +45,14 @@ async def test_generate_bibliography_hook_success() -> None:
 
     assert result.success is True
     assert isinstance(result.state_delta, HookDeltaDTO)
-    assert "bibliography_result" in result.state_delta.delta
-    refs = result.state_delta.delta["bibliography_result"]["references"]
+    from backend_v2.models.domain.references import BibliographyResultDTO
+
+    assert isinstance(result.state_delta.delta, BibliographyResultDTO)
+    refs = result.state_delta.delta.references
 
     assert len(refs) == 1
-    assert refs[0]["source_id"].startswith("ref_")
-    assert "url" in refs[0]
+    assert refs[0].source_id.startswith("ref_")
+    assert refs[0].url is not None
 
 
 @pytest.mark.asyncio
@@ -177,8 +179,10 @@ async def test_generate_bibliography_hook_with_step_coach_and_no_kb_in_gvars() -
 
     result = await cast(Awaitable[HookResult], generate_bibliography_hook(state, deps))
     assert result.success is True
-    assert "bibliography_result" in result.state_delta.delta
-    assert "knowledge_base" in result.state_delta.delta
+    from backend_v2.models.domain.references import BibliographyResultDTO
+
+    assert isinstance(result.state_delta.delta, BibliographyResultDTO)
+    assert len(result.state_delta.delta.references) > 0
 
 
 def test_generate_bibliography_generic_error_raises() -> None:

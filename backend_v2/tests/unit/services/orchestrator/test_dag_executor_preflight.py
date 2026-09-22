@@ -5,10 +5,12 @@ import pytest
 import backend_v2.llm.client
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.models.core_base import I18nText
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
@@ -72,7 +74,7 @@ async def test_dag_executor_preflight_skip(mock_repo: MagicMock, mock_compiler: 
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
 
         await executor.execute_workflow(
@@ -127,7 +129,7 @@ async def test_dag_executor_preflight_execution(mock_repo: MagicMock, mock_compi
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
@@ -194,7 +196,7 @@ async def test_dag_executor_preflight_triggered_by_model_strategy(
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
@@ -251,7 +253,7 @@ async def test_dag_executor_virtual_step(mock_repo: MagicMock, mock_compiler: Ma
         patch.object(executor.node_executor, "execute", new_callable=AsyncMock),
     ):
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": {}}))
+            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO()))
         )
         executor.rag_preflight.execute.return_value = {"atoms_by_input": {}}
 
@@ -429,7 +431,7 @@ async def test_rag_preflight_service_input_chars_below_threshold_skips_atomizati
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}, "is_data_starved": True}
+        assert result == GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
         emit_mock.assert_called_once_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 
 
@@ -507,4 +509,4 @@ async def test_rag_preflight_service_concise_reflection_proceeds_to_atomization(
         assert mock_atomizer_cls.called is True
         assert mock_atomizer.execute_phase_0.called is True
         assert mock_atomizer.execute_phase_1_drafts.called is True
-        assert "reflection_text" in result["atoms_by_input"]
+        assert "reflection_text" in result.atoms_by_input

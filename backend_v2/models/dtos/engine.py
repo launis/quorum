@@ -148,10 +148,10 @@ class EngineExecutionResult(BaseModel):
     results: Annotated[list[AtomResultDTO], Field(description="Projected atom results.")]
     hydrated_references: Annotated[dict[str, HydratedAtomDTO], Field(description="Hydrated atom references.")]
     synthesis_output: Annotated[
-        dict[str, Any] | BaseModel | None,
+        BaseModel | None,
         Field(
             default=None,
-            description="Typed structured synthesis DTO or dictionary (specifically RenderedSynthesisCache).",
+            description="Typed structured synthesis DTO (specifically RenderedSynthesisCache).",
         ),
     ] = None
     trace_events: Annotated[

@@ -7,13 +7,15 @@ monolithic PromptCompiler, following SRP (Rule 88).
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
 from backend_v2.core.registry import StrippedBaseTDAExtraction, get_schema_strategy
 from backend_v2.models.domain.prompt_blocks import PromptBlock
+from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 
 __all__ = ["SchemaFactory", "StrippedBaseTDAExtraction"]
 
@@ -52,7 +54,7 @@ class SchemaFactory:
         allowed_dynamic_keys: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 

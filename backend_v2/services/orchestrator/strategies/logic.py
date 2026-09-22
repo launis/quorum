@@ -18,8 +18,8 @@ from backend_v2.models.domain.execution import FrozenContext
 from backend_v2.models.domain.step import Step as V2Step
 from backend_v2.models.domain.step import StepRule
 from backend_v2.models.dtos.node_execution import LogicEvaluationContextDTO, LogicNodeStateDTO
-from backend_v2.models.state import StateProjector, TraceEvent
-from backend_v2.services.orchestrator.state_reducer import merge_execution_inputs
+from backend_v2.models.state import StateProjector, StepOutputDTO, TraceEvent
+from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
 from backend_v2.services.orchestrator.strategies.base import NodeStrategy, StrategyContext, StrategyDependencies
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,22 @@ class LogicNodeStrategy(NodeStrategy):
             system_repo=self.system_repo,
         )
 
+        inputs_payload = {
+            d.block_id: d.payload
+            for d in current_steps
+            if isinstance(d, StepOutputDTO) and d.step_id == "inputs" and d.block_id
+        }
+        raw_inputs_payload = {
+            d.block_id: d.payload
+            for d in current_steps
+            if isinstance(d, StepOutputDTO) and d.step_id == "raw_inputs" and d.block_id
+        }
+        dynamic_inputs_map: dict[str, Any] = {"steps": current_state.steps}
+        if inputs_payload:
+            dynamic_inputs_map["inputs"] = inputs_payload
+        if raw_inputs_payload:
+            dynamic_inputs_map["raw_inputs"] = raw_inputs_payload
+
         safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,
             workflow_id=context.workflow_id,
@@ -136,7 +152,10 @@ class LogicNodeStrategy(NodeStrategy):
             task_blueprint=blueprint_id,
             metadata=context.metadata,
             global_context_vars=context.global_context_vars,
-            inputs=ExecutionInputsDTO(dynamic_inputs={"steps": current_state.steps}),
+            inputs=ExecutionInputsDTO(
+                dynamic_inputs=dynamic_inputs_map,
+                raw_inputs=raw_inputs_payload,
+            ),
             target_locale=context.target_locale,
         )
         hook_state = HookState(
@@ -157,18 +176,9 @@ class LogicNodeStrategy(NodeStrategy):
         # hook_registry.execute inherently handles sync/async routing.
         main_res = await hook_registry.execute(logic_hook, hook_state, hook_deps)
 
-        if main_res.success and main_res.state_delta and main_res.state_delta.delta:
-            delta_val = main_res.state_delta.delta
-            delta_dict: dict[str, Any] = {}
-            if isinstance(delta_val, BaseModel):
-                delta_dict = delta_val.model_dump(mode="json")
-            elif isinstance(delta_val, Mapping):
-                delta_dict = dict(delta_val)
-
-            delta_inputs = ExecutionInputsDTO(dynamic_inputs=delta_dict)
-            hook_state = hook_state.model_copy(
-                update={"inputs": merge_execution_inputs(hook_state.inputs, delta_inputs)}
-            )
+        if main_res.success and main_res.state_delta:
+            hook_state, main_events = reduce_hook_delta(hook_state, main_res.state_delta, step.id)
+            pre_events.extend(main_events)
         elif not main_res.success:
             # Fail-Fast: The primary logic hook returning success=False is a hard execution error.
             msg = f"Logic hook '{logic_hook}' for step '{step.id}' returned success=False."
@@ -188,22 +198,10 @@ class LogicNodeStrategy(NodeStrategy):
                 details={"error_code": ErrorCodes.AGENT_EXECUTION_CRITICAL.value},
             )
         # 4. Post-Hooks
-        post_hook_state = hook_state.model_copy(
-            update={
-                "global_context_vars": hook_state.global_context_vars,
-                "inputs": ExecutionInputsDTO(
-                    dynamic_inputs=hook_state.inputs.dynamic_inputs,
-                    raw_inputs=hook_state.inputs.dynamic_inputs,
-                    target_locale=hook_state.inputs.target_locale,
-                    user_role=hook_state.inputs.user_role,
-                ),
-            }
-        )
-
         post_hook_state, post_events = await self.run_post_hooks(
             step_obj=step_obj,
             step=step,
-            hook_state=post_hook_state,
+            hook_state=hook_state,
             hook_deps=hook_deps,
         )
         final_outputs: dict[str, object] = {}

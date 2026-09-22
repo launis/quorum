@@ -5,7 +5,8 @@ SSOT for rendered execution outputs across multi-channel presentation formats.
 
 from __future__ import annotations
 
-from typing import Annotated
+from collections.abc import Iterator
+from typing import Annotated, Any
 
 from pydantic import ConfigDict, Field
 
@@ -34,3 +35,7 @@ class RenderExecutionResultDTO(V2CoreBase):
     ]
     media_type: Annotated[str, Field(description="MIME media type string")]
     filename: Annotated[str | None, Field(default=None, description="Suggested attachment filename")] = None
+
+    def __iter__(self) -> Iterator[Any]:  # type: ignore[override]
+        """Support 3-tuple destructuring (content, media_type, filename)."""
+        return iter((self.content, self.media_type, self.filename))

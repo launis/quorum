@@ -155,9 +155,7 @@ async def test_start_execution(
 
 
 @pytest.mark.asyncio
-async def test_get_workflow_ui_schema(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]]
-) -> None:
+async def test_get_workflow_ui_schema(mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]]) -> None:
     """Verify get_workflow_ui_schema delegates to _ingress.get_workflow_ui_schema."""
     service, subs = mock_execution_service
     expected = MagicMock(spec=WorkflowSchemaResponseDTO)
@@ -169,9 +167,7 @@ async def test_get_workflow_ui_schema(
 
 
 @pytest.mark.asyncio
-async def test_check_resumability(
-    mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]]
-) -> None:
+async def test_check_resumability(mock_execution_service: tuple[ExecutionService, dict[str, MagicMock]]) -> None:
     """Verify check_resumability delegates to _resumption.check_resumability."""
     service, subs = mock_execution_service
     subs["resumption"].check_resumability = AsyncMock(return_value=True)

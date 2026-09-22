@@ -147,9 +147,7 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
 
         logger.info("[InteractionRoleHook] Role classified: %s", response_dto.role_classification.name)
 
-        dumped = response_dto.model_dump(mode="json")
-
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"interaction_analysis": dumped}))
+        return HookResult(success=True, state_delta=HookDeltaDTO(delta=response_dto))
 
     except Exception as e:
         logger.error(

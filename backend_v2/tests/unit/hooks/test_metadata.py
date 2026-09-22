@@ -7,13 +7,12 @@ import pytest
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDeltaDTO,
     HookDependencies,
     HookState,
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.metadata import inject_step_metadata
-from backend_v2.models.enums import VirtualSystemStepID
+from backend_v2.models.domain.metadata import MetadataHookResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -60,14 +59,13 @@ def test_inject_step_metadata_success() -> None:
     )
     result = inject_step_metadata(state, deps)
     assert result.success is True
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is not None
-    assert VirtualSystemStepID.STEP_METADATA.value in delta
-    step_meta = delta[VirtualSystemStepID.STEP_METADATA.value]
-    assert step_meta["execution_id"] == "exec_123"
-    assert step_meta["step_id"] == "step_789"
-    assert step_meta["initiator_id"] == "user_admin"
-    assert "_audit_signature" in delta
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, MetadataHookResultDTO)
+    step_meta = result.state_delta.delta.step_metadata
+    assert step_meta.execution_id == "exec_123"
+    assert step_meta.step_id == "step_789"
+    assert step_meta.initiator_id == "user_admin"
+    assert result.state_delta.delta.audit_signature.startswith("step_789:exec_123:")
 
 
 def test_inject_step_metadata_missing_execution_id_raises() -> None:

@@ -20,6 +20,7 @@ from backend_v2.models.dtos.atom_evaluation import (
     ReasoningStepDTO,
 )
 from backend_v2.models.dtos.atom_result import AtomResultDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.matrix_parser import ParsedMatricesResultDTO, ScorecardAtomCollectionDTO
 from backend_v2.models.dtos.matrix_scorecard import MatrixScorecardRowDTO, ScorecardAtomDTO
 from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
@@ -126,7 +127,12 @@ class MatrixDomainParser:
                 continue
 
             try:
-                matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
+                if isinstance(block_data, TraceMatrixPayloadDTO):
+                    matrix_payload = block_data
+                elif isinstance(block_data, LightweightMatrixOutput):
+                    matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data.model_dump(mode="python"))
+                else:
+                    matrix_payload = TraceMatrixPayloadDTO.model_validate(block_data)
             except (ValidationError, TypeError, ValueError) as e:
                 msg = f"Strict Fail-Fast: Invalid matrix payload format for '{b_id}': {e}"
                 logger.error("[MatrixDomainParser] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)

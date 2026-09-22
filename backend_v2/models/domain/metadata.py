@@ -87,8 +87,10 @@ class MetadataHookResultDTO(V2CoreBase):
 
     Attributes:
         step_metadata: The metadata DTO.
+        audit_signature: Deterministic audit signature.
     """
 
-    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid", populate_by_name=True)
 
     step_metadata: StepMetadataDTO
+    audit_signature: Annotated[str, Field(default="", alias="_audit_signature")] = ""

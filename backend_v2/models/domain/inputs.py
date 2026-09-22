@@ -8,12 +8,14 @@ from typing import Annotated
 from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.analyst import Hypothesis
+from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
+from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.matrix import FlattenedAtom
-from backend_v2.models.domain.metadata import StepMetadataDTO
-from backend_v2.models.domain.metrics import TextMetricsDTO
+from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
+from backend_v2.models.domain.metrics import ProfilerMetricsDTO, TextMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
@@ -21,7 +23,12 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
+from backend_v2.models.dtos.trace import (
+    StepTraceMetadataDTO,
+    TraceMatrixPayloadDTO,
+    TraceScoringPayloadDTO,
+)
 from backend_v2.models.llm import LLMProviderConfig
 
 logger = logging.getLogger(__name__)
@@ -88,6 +95,8 @@ type DomainInputValue = Annotated[
     | LightweightMatrixOutput
     | ScoringResultDTO
     | TraceScoringPayloadDTO
+    | TraceMatrixPayloadDTO
+    | StepTraceMetadataDTO
     | dict[str, float]
     | dict[str, str]
     | GuttmanAtomItemDTO
@@ -95,10 +104,18 @@ type DomainInputValue = Annotated[
     | ValidationResultDTO
     | Hypothesis
     | list[Hypothesis]
+    | AnalystOutput
+    | EvaluationResult
+    | MetadataHookPayloadDTO
+    | MetadataHookResultDTO
+    | SynthesisDistillationDTO
+    | ArchivalPrecedentDTO
+    | list[ArchivalPrecedentDTO]
     | GuidedReflectionInputDTO
     | StepMetadataDTO
     | LinguisticsResultDTO
     | SanitizationResultDTO
+    | ProfilerMetricsDTO
     | TextMetricsDTO
     | BibliographyResultDTO
     | InteractionAnalysisDTO

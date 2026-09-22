@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from scripts.audit_dict_eradication import (
     audit_dict_eradication,
     main,
@@ -195,8 +197,8 @@ def test_audit_dict_eradication_detects_unauthorized_suppressions(tmp_path: Path
 def test_audit_dict_eradication_targets_handling(tmp_path: Path) -> None:
     """Verifies directory scanning, sequence of targets, and non-existent targets."""
     # 1. Non-existent path
-    empty_report = audit_dict_eradication(tmp_path / "does_not_exist")
-    assert empty_report.total_violations == 0
+    with pytest.raises(FileNotFoundError):
+        audit_dict_eradication(tmp_path / "does_not_exist")
 
     # 2. Directory with multiple files
     f1 = tmp_path / "f1.py"
@@ -259,4 +261,3 @@ def test_audit_dict_eradication_main_clean_execution(tmp_path: Path, monkeypatch
 
     exit_code = main([str(clean_file)])
     assert exit_code == 0
-

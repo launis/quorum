@@ -391,5 +391,5 @@ async def synthesis_distiller_hook(state: HookState, deps: HookDependencies) -> 
 
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(delta=distillation_dto.model_dump(mode="json")),
+        state_delta=HookDeltaDTO(delta=distillation_dto),
     )

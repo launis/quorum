@@ -8,7 +8,11 @@ import pytest
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import I18nText
-from backend_v2.models.domain.blackboard import DraftAtomList, DraftExtractedAtom
+from backend_v2.models.domain.blackboard import (
+    DraftAtomList,
+    DraftExtractedAtom,
+    GlobalAtomBlackboard,
+)
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
@@ -196,7 +200,7 @@ async def test_rag_preflight_input_below_character_threshold_skips(
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}, "is_data_starved": True}
+        assert result == GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
         emit_mock.assert_called_once_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 
 
@@ -267,8 +271,9 @@ async def test_rag_preflight_happy_path_with_progress_callbacks(
             emit_progress=emit_mock,
         )
 
-        assert "doc_1" in result["atoms_by_input"]
-        assert len(result["atoms_by_input"]["doc_1"]["atoms"]) == 1
+        assert isinstance(result, GlobalAtomBlackboard)
+        assert "doc_1" in result.atoms_by_input
+        assert len(result.atoms_by_input["doc_1"].atoms) == 1
         assert emit_mock.call_count >= 3
 
 
@@ -373,7 +378,7 @@ async def test_rag_preflight_excludes_metadata_keys_from_count_and_atomization(
 
         # Since document_date is excluded and doc_1 has < 100 chars, it should skip
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}, "is_data_starved": True}
+        assert result == GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
 
 
 @pytest.mark.asyncio
@@ -414,7 +419,7 @@ async def test_rag_preflight_chat_log_with_large_ai_text_sparse_user_text_skips(
         )
 
         assert mock_atomizer_cls.called is False
-        assert result == {"atoms_by_input": {}, "is_data_starved": True}
+        assert result == GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
 
 
 @pytest.mark.asyncio
@@ -482,9 +487,10 @@ async def test_rag_preflight_chat_log_with_substantial_user_text_proceeds(
             emit_progress=emit_mock,
         )
 
-        assert "chat_log" in result["atoms_by_input"]
-        assert "document_date" not in result["atoms_by_input"]
-        assert len(result["atoms_by_input"]["chat_log"]["atoms"]) == 1
+        assert isinstance(result, GlobalAtomBlackboard)
+        assert "chat_log" in result.atoms_by_input
+        assert "document_date" not in result.atoms_by_input
+        assert len(result.atoms_by_input["chat_log"].atoms) == 1
 
 
 @pytest.mark.asyncio
@@ -552,7 +558,7 @@ async def test_rag_preflight_extracts_inputs_from_trace_and_ignores_auxiliary_ke
         # 10 + 19 + 48 = 77 characters (< 100 chars min threshold).
         # Auxiliary keys (chat_log_user_only, chat_log_ai_only) and metadata (document_date) are ignored.
         mock_atomizer_cls.assert_not_called()
-        assert result == {"atoms_by_input": {}, "is_data_starved": True}
+        assert result == GlobalAtomBlackboard(atoms_by_input={}, is_data_starved=True)
         emit_mock.assert_called_with("Input data sparse/empty. Preflight extraction skipped.", 100)
 
 
@@ -574,7 +580,7 @@ def test_extract_inputs_from_record_variations() -> None:
         execution_trace=[event_dto],
     )
     extracted_dto = _extract_inputs_from_record(rec_dto)
-    assert extracted_dto == {"file_a": "content from dto"}
+    assert extracted_dto.dynamic_inputs == {"file_a": "content from dto"}
 
     # 2. Test with content containing dynamic_inputs mapping
     event_dict = TraceEvent(
@@ -592,6 +598,4 @@ def test_extract_inputs_from_record_variations() -> None:
         execution_trace=[event_dict],
     )
     extracted_dict = _extract_inputs_from_record(rec_dict)
-    assert extracted_dict == {"file_b": "content from dict"}
-
-
+    assert extracted_dict.dynamic_inputs == {"file_b": "content from dict"}

@@ -94,7 +94,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
     }
     mock_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
-        "workflow_id": "wf_123",
+        "workflow_id": "wf_1234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
         "id": "prof_1111111111111111",
         "max_extension_items": 3,

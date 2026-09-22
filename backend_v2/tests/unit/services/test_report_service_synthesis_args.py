@@ -55,10 +55,6 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
     repo.get_execution.return_value = execution.model_dump(mode="json")
 
     mock_synthesis_task = AsyncMock()
-    monkeypatch.setattr(
-        "backend_v2.services.report_service.generate_profile_synthesis_and_pdf_task",
-        mock_synthesis_task,
-    )
 
     storage = AsyncMock()
     storage.save.side_effect = lambda path, data: path
@@ -79,7 +75,13 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
 
     monkeypatch.setattr(blueprint.BlueprintTransformer, "build_report_dto", AsyncMock(return_value=dummy_dto))
 
-    service = ReportService(repo=repo, storage_driver=storage, export_service=export_service, pdf_service=pdf_service)
+    service = ReportService(
+        repo=repo,
+        storage_driver=storage,
+        export_service=export_service,
+        pdf_service=pdf_service,
+        synthesis_runner=mock_synthesis_task,
+    )
     await service.process_artifact_compilation(report.id)
 
     # Verify that generate_profile_synthesis_and_pdf_task was called with:

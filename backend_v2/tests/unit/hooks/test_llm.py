@@ -13,13 +13,14 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.llm import configure_llm_context_hook
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.models.llm import LLMProviderConfig
 
 
 def test_configure_llm_context_hook_no_state() -> None:
     result = cast(HookResult, configure_llm_context_hook(None, MagicMock(spec=HookDependencies)))  # type: ignore[arg-type]
     assert result.success is True
     assert result.state_delta is not None
-    assert not result.state_delta.delta
+    assert result.state_delta.delta is None
 
 
 def test_configure_llm_context_hook_no_step_id() -> None:
@@ -99,8 +100,8 @@ async def test_configure_llm_context_hook_valid(mock_get_settings: MagicMock) ->
 
     result = cast(HookResult, configure_llm_context_hook(state, deps))
     assert result.success is True
-    assert "llm_config" in result.state_delta.delta
-    assert result.state_delta.delta["llm_config"]["model_name"] == "gpt-4o-mini"
+    assert isinstance(result.state_delta.delta, LLMProviderConfig)
+    assert result.state_delta.delta.model_name == "gpt-4o-mini"
 
 
 @pytest.mark.asyncio
@@ -151,7 +152,8 @@ async def test_configure_llm_context_hook_workflow_model_mapping(mock_get_settin
 
     result = cast(HookResult, configure_llm_context_hook(state, deps))
     assert result.success is True
-    assert result.state_delta.delta["llm_config"]["model_name"] == "gemini-2.0-flash"
+    assert isinstance(result.state_delta.delta, LLMProviderConfig)
+    assert result.state_delta.delta.model_name == "gemini-2.0-flash"
 
 
 @patch("backend_v2.hooks.llm.get_settings")

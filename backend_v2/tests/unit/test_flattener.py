@@ -192,4 +192,3 @@ def test_flat_file_service_all_chart_blocks_and_other_blocks() -> None:
     assert "matrix_blk_none_reasoning" not in flat_data.matrix_metrics
     assert "matrix_blk_none_quote" not in flat_data.matrix_metrics
     assert "matrix_blk_none_source" not in flat_data.matrix_metrics
-

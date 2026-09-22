@@ -99,15 +99,13 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
         HookResult,
         hook_registry,
     )
+    from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO
 
     mock_result = HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            metadata_updates={"matrix_sampling_strategy": 5},
-            delta={
-                "global_context_vars": {"target_locale": "en"},
-                "extra_input": "data1",
-            },
+            metadata_updates=ExecutionMetadataDeltaDTO(matrix_sampling_strategy=5),
+            delta=GlobalContextVarsDTO(language="fi", target_locale="en"),
         ),
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
@@ -126,10 +124,10 @@ async def test_run_pre_hooks_success(dummy_strategy: DummyStrategy, monkeypatch:
     assert res_state.metadata.matrix_sampling_strategy == 5
     assert res_state.global_context_vars.language == "fi"
     assert res_state.global_context_vars.target_locale == "en"
-    assert res_state.inputs.dynamic_inputs == {"in": "1", "extra_input": "data1"}
+    assert res_state.inputs.dynamic_inputs == {"in": "1"}
     assert len(res_events) == 1
     assert res_events[0].step_name == "node_1"
-    assert res_events[0].content == {"target_locale": "en"}
+    assert res_events[0].content["target_locale"] == "en"
 
 
 @pytest.mark.asyncio
@@ -185,15 +183,13 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
         HookResult,
         hook_registry,
     )
+    from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO
 
     mock_result = HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            metadata_updates={"matrix_sampling_strategy": 5},
-            delta={
-                "global_context_vars": {"target_locale": "en"},
-                "post_input": "data2",
-            },
+            metadata_updates=ExecutionMetadataDeltaDTO(matrix_sampling_strategy=5),
+            delta=GlobalContextVarsDTO(language="fi", target_locale="en"),
         ),
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
@@ -212,10 +208,10 @@ async def test_run_post_hooks_success(dummy_strategy: DummyStrategy, monkeypatch
     assert res_state.metadata.matrix_sampling_strategy == 5
     assert res_state.global_context_vars.language == "fi"
     assert res_state.global_context_vars.target_locale == "en"
-    assert res_state.inputs.dynamic_inputs == {"in": "1", "post_input": "data2"}
+    assert res_state.inputs.dynamic_inputs == {"in": "1"}
     assert len(res_events) == 1
     assert res_events[0].step_name == "node_1"
-    assert res_events[0].content == {"target_locale": "en"}
+    assert res_events[0].content["target_locale"] == "en"
 
 
 @pytest.mark.asyncio
@@ -304,15 +300,13 @@ async def test_run_pre_and_post_hooks_with_dto_and_explicit_inputs(
         hook_registry,
     )
 
-    gvars_dto = GlobalContextVarsDTO(language="fi", target_locale="fi")
     mock_result = HookResult(
         success=True,
         state_delta=HookDeltaDTO(
-            delta={
-                "global_context_vars": gvars_dto,
-                "dynamic_inputs": {"dyn_key": "dyn_val"},
-                "inputs": {"raw_key": "raw_val"},
-            },
+            delta=ExecutionInputsDTO(
+                dynamic_inputs={"dyn_key": "dyn_val"},
+                raw_inputs={"raw_key": "raw_val"},
+            ),
         ),
     )
     monkeypatch.setattr(hook_registry, "execute", AsyncMock(return_value=mock_result))
@@ -323,7 +317,7 @@ async def test_run_pre_and_post_hooks_with_dto_and_explicit_inputs(
         execution_id="e1",
         workflow_id="w1",
         metadata=ExecutionMetadata(),
-        global_context_vars=GlobalContextVarsDTO(),
+        global_context_vars=GlobalContextVarsDTO(language="fi"),
         inputs=ExecutionInputsDTO(),
     )
 
@@ -356,4 +350,3 @@ def test_strategy_context_validation_and_immutability() -> None:
             metadata=ExecutionMetadata(),
             extra_field="rejected",  # type: ignore[call-arg]
         )
-

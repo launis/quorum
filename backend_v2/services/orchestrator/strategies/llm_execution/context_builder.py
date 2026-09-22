@@ -121,6 +121,10 @@ class ContextBuilder:
         modified nodes, shares immutable leaf values (str, int, float, bool, None)
         by reference. Original payload is never mutated. No GIL-blocking deepcopy.
 
+        NOTE: obj.model_dump(mode="json") at line 133 is a documented Terminal
+        Rendering Boundary for prompt assembly and text serialization, NOT an
+        intermediate pipeline data transit handoff.
+
         Args:
             obj: Dictionary, list, or primitive to project.
 
@@ -227,8 +231,8 @@ class ContextBuilder:
     @classmethod
     def build(
         cls,
-        input_mappings: PromptMappingDTO | dict[str, Any],
-        state_data: HookState | dict[str, Any],
+        input_mappings: PromptMappingDTO,
+        state_data: HookState | Mapping[str, Any],
         output_profile: Any | None = None,
         schema_map: dict[str, str] | None = None,
         criteria_blocks: list[Any] | None = None,
@@ -237,8 +241,8 @@ class ContextBuilder:
         """Extracts values based on mappings, prunes traces, and enforces token limits.
 
         Args:
-            input_mappings: The mapping DTO or dictionary defining what to extract.
-            state_data: The HookState or state dictionary.
+            input_mappings: The PromptMappingDTO defining what to extract.
+            state_data: The HookState or Mapping holding execution context and inputs.
             output_profile: Optional output profile to filter matrix extensions.
             schema_map: Optional map of step IDs to 'MATRIX' or 'TEXT' to dictate parsing logic.
             criteria_blocks: Optional list of PromptBlocks for spatial slicing.
@@ -323,7 +327,12 @@ class ContextBuilder:
 
                 if clean_path == "steps":
                     dto_list: list[Any] = []
-                    if isinstance(state_data, Mapping) and "steps" in state_data:
+                    if isinstance(state_data, HookState):
+                        if "steps" in state_data.inputs.dynamic_inputs:
+                            steps_val = state_data.inputs.dynamic_inputs["steps"]
+                            if isinstance(steps_val, list):
+                                dto_list = steps_val
+                    elif isinstance(state_data, Mapping) and "steps" in state_data:
                         dto_list = state_data["steps"]
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
@@ -352,7 +361,12 @@ class ContextBuilder:
                         )
                     step_type = schema_map[step_key]
                     all_steps: list[Any] = []
-                    if isinstance(state_data, Mapping) and "steps" in state_data:
+                    if isinstance(state_data, HookState):
+                        if "steps" in state_data.inputs.dynamic_inputs:
+                            steps_val = state_data.inputs.dynamic_inputs["steps"]
+                            if isinstance(steps_val, list):
+                                all_steps = steps_val
+                    elif isinstance(state_data, Mapping) and "steps" in state_data:
                         all_steps = state_data["steps"]
                     dtos = [d for d in all_steps if d.step_id == step_key]
 

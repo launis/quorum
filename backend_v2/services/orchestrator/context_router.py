@@ -7,7 +7,7 @@ and data culling/pruning logic matching the Phase 9 architecture standards.
 """
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -19,11 +19,11 @@ from backend_v2.exceptions import (
     MissingRoutingModeError,
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
+from backend_v2.models.state import StepOutputDTO
 
 __all__ = [
     "ContextRouter",
     "RoutingModeConfig",
-    "SnapshotState",
 ]
 
 logger = logging.getLogger(__name__)
@@ -44,29 +44,6 @@ class RoutingModeConfig(BaseModel):
     target: Annotated[str | None, Field(default=None, description="Optional destination key or path.")] = None
     source: Annotated[str | None, Field(default=None, description="Optional source key or path.")] = None
     description: Annotated[str | None, Field(default=None, description="Optional routing description.")] = None
-
-
-class SnapshotState(BaseModel):
-    """Pydantic model to encapsulate execution state snapshots without using naked dicts.
-
-    Attributes:
-        steps: Optional list of executed step data.
-        raw_inputs: Optional dictionary representing starting inputs.
-        inputs: Optional dynamic inputs structure.
-        metadata: Optional execution metadata.
-        global_context_vars: Optional global context variables.
-    """
-
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-    steps: Annotated[list[Any] | None, Field(default=None, description="Optional list of executed step data.")] = None
-    raw_inputs: Annotated[
-        dict[str, Any] | None, Field(default=None, description="Optional dictionary representing starting inputs.")
-    ] = None
-    inputs: Annotated[Any | None, Field(default=None, description="Optional dynamic inputs structure.")] = None
-    metadata: Annotated[Any | None, Field(default=None, description="Optional execution metadata.")] = None
-    global_context_vars: Annotated[
-        Any | None, Field(default=None, description="Optional global context variables.")
-    ] = None
 
 
 class ContextRouter:
@@ -176,21 +153,20 @@ class ContextRouter:
             raise MissingRoutingModeError(mapping_path=mapping_path) from e
 
     @staticmethod
-    def normalize_and_validate_variable(path: str, snapshot: Any) -> str:
+    def normalize_and_validate_variable(path: str, steps: Sequence[StepOutputDTO]) -> str:
         """Validates dynamic variables (Fail-Fast) and strictly forbids legacy V1 paths.
 
         Enforces strict V2 nomenclature: No implicit stripping of '.output'.
 
         Args:
-            path: The variable reference path (e.g. $steps.step_1.output).
-            snapshot: The execution context state snapshot.
+            path: The variable reference path (e.g. $steps.step_1).
+            steps: The sequence of executed StepOutputDTO objects.
 
         Returns:
             The normalized path string if validated successfully.
 
         Raises:
-            AppException: If snapshot validation fails, a legacy dictionary format is detected,
-                the step is not found, or legacy V1 '.output' notation is used.
+            AppException: If step is not found or legacy V1 '.output' notation is used.
         """
         if not path:
             return path
@@ -201,28 +177,30 @@ class ContextRouter:
             clean_path = path
 
         if clean_path.startswith("steps."):
+            if not isinstance(steps, Sequence) or isinstance(steps, (str, bytes, Mapping)):
+                msg = "Fail-Fast: Snapshot validation failed. Must match sequence of StepOutputDTO."
+                logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+                raise AppException(
+                    message=msg,
+                    status_code=500,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            for item in steps:
+                if not isinstance(item, StepOutputDTO):
+                    msg = "Fail-Fast: Snapshot validation failed. Items must be StepOutputDTO."
+                    logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    )
+
             parts = clean_path.split(".")
             if len(parts) >= 2:
                 step_key = parts[1]
 
-                try:
-                    state = SnapshotState.model_validate(snapshot)
-                except ValidationError as e:
-                    logger.error(
-                        "SnapshotState validation failed.",
-                        extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        exc_info=True,
-                    )
-                    raise AppException(
-                        message="Fail-Fast: Snapshot validation failed. Must match SnapshotState.",
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from e
-
-                found = False
-                if state.steps:
-                    found = any(dto.step_id == step_key for dto in state.steps)
-
+                found = any(dto.step_id == step_key for dto in steps)
                 if not found:
                     msg = f"Fail-Fast: Required step '{step_key}' not found in state (Orphaned Step)."
                     logger.error(msg, extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value})

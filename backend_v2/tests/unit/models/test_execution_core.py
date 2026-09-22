@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -193,7 +194,7 @@ class TestExecutionMetadata:
         )
         assert meta.matrix_sampling_strategy == 20
         assert meta.workflow_version == 2
-        assert meta.global_context_vars == {"language": "fi"}
+        assert meta.global_context_vars == GlobalContextVarsDTO(language="fi")
 
     def test_fail_fast_on_extra_fields(self) -> None:
         """Extra fields must crash immediately (extra=forbid)."""

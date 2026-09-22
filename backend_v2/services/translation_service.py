@@ -18,6 +18,11 @@ from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 logger = logging.getLogger(__name__)
 
 
+def _dlq_record_translation_failure(text: str, target_lang: str, exc: Exception) -> None:
+    """Record translation failure for telemetry and dead-letter tracing."""
+    logger.error("Failed to translate text to '%s': %s", target_lang, exc, exc_info=True)
+
+
 async def translate_text(
     text: str,
     target_lang: str,
@@ -74,5 +79,5 @@ async def translate_text(
 
         return translated_str if translated_str else text
     except (AppException, AttributeError, OSError, ValueError, KeyError, RuntimeError, TypeError) as e:
-        logger.error("Failed to translate text to '%s': %s", target_lang, e, exc_info=True)
+        _dlq_record_translation_failure(text, target_lang, e)
         return text

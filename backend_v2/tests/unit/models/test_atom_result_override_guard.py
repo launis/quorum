@@ -5,17 +5,16 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.enums import ExecutionStatus
 
 
-def test_failed_atom_strips_override_and_quote() -> None:
-    dto = AtomResultDTO(
-        tda_id="test_id",
-        status=ExecutionStatus.FAILED,
-        contextual_override=True,
-        source_quote="Should be stripped",
-        evaluation_reasoning="Because I said so",
-    )
-    # The null hypothesis enforces these become False and None
-    assert dto.contextual_override is False
-    assert dto.source_quote is None
+def test_failed_atom_rejects_override_and_quote() -> None:
+    # Fail-Fast: FAILED atoms cannot have contextual_override or source_quote
+    with pytest.raises(ValidationError, match="contextual_override cannot be True when status is FAILED"):
+        AtomResultDTO(
+            tda_id="test_id",
+            status=ExecutionStatus.FAILED,
+            contextual_override=True,
+            source_quote="Should be stripped",
+            evaluation_reasoning="Because I said so",
+        )
 
 
 def test_passed_atom_requires_quote_or_override() -> None:
@@ -53,14 +52,13 @@ def test_passed_atom_requires_quote_or_override() -> None:
     assert dto_o.contextual_override is True
 
 
-def test_passed_atom_with_override_and_quote_strips_quote() -> None:
-    # Existing behavior: if both provided, quote is stripped
-    dto = AtomResultDTO(
-        tda_id="test_id",
-        status=ExecutionStatus.PASSED,
-        contextual_override=True,
-        source_quote="This quote should be ignored",
-        evaluation_reasoning="Because I said so",
-    )
-    assert dto.contextual_override is True
-    assert dto.source_quote is None
+def test_passed_atom_with_override_and_quote_fails_fast() -> None:
+    # Fail-Fast: source_quote must be None when contextual_override is True
+    with pytest.raises(ValidationError, match="source_quote must be None when contextual_override"):
+        AtomResultDTO(
+            tda_id="test_id",
+            status=ExecutionStatus.PASSED,
+            contextual_override=True,
+            source_quote="This quote should be ignored",
+            evaluation_reasoning="Because I said so",
+        )

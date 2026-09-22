@@ -14,6 +14,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.synthesis import (
     ExecutiveSummarySectionResult,
@@ -113,15 +114,15 @@ async def create_executive_summary_task(
     exec_dynamic_parts.append(exec_section_rule)
     exec_dynamic_context = "\n\n".join(exec_dynamic_parts)
 
-    exec_messages: list[dict[str, Any]] = [
-        {"role": "system", "content": sys_prompt},
-        {
-            "role": "user",
-            "content": (
+    exec_messages: list[ChatMessageDTO] = [
+        ChatMessageDTO(role="system", content=sys_prompt),
+        ChatMessageDTO(
+            role="user",
+            content=(
                 f"<dynamic_context>\n{exec_dynamic_context}\n</dynamic_context>"
                 f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
             ),
-        },
+        ),
     ]
     return await sem_runner(
         client.run_structured_task(
@@ -214,15 +215,15 @@ async def create_matrix_sections_tasks(
         grp_dynamic_parts.append(grp_section_rule)
         grp_dynamic_context = "\n\n".join(grp_dynamic_parts)
 
-        grp_messages: list[dict[str, Any]] = [
-            {"role": "system", "content": sys_prompt},
-            {
-                "role": "user",
-                "content": (
+        grp_messages: list[ChatMessageDTO] = [
+            ChatMessageDTO(role="system", content=sys_prompt),
+            ChatMessageDTO(
+                role="user",
+                content=(
                     f"<dynamic_context>\n{grp_dynamic_context}\n</dynamic_context>"
                     f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
                 ),
-            },
+            ),
         ]
         res = await sem_runner(
             client.run_structured_task(
@@ -308,15 +309,15 @@ async def create_xai_highlights_task(
     xai_dynamic_parts.append(xai_cur)
     xai_dynamic_context = "\n\n".join(xai_dynamic_parts)
 
-    xai_messages: list[dict[str, Any]] = [
-        {"role": "system", "content": sys_prompt},
-        {
-            "role": "user",
-            "content": (
+    xai_messages: list[ChatMessageDTO] = [
+        ChatMessageDTO(role="system", content=sys_prompt),
+        ChatMessageDTO(
+            role="user",
+            content=(
                 f"<dynamic_context>\n{xai_dynamic_context}\n</dynamic_context>"
                 f"\n\nDATA TO SYNTHESIZE:\n{distilled_inputs}{matrix_context}"
             ),
-        },
+        ),
     ]
     return await sem_runner(
         client.run_structured_task(
@@ -405,12 +406,12 @@ async def create_row_explanations_task(
     row_user_content = (
         f"<dynamic_context>\n{row_dynamic_ctx}\n</dynamic_context>\n\nMATRICES TO EXPLAIN:\n{matrices_json}"
     )
-    row_messages: list[dict[str, Any]] = [
-        {"role": "system", "content": row_sys_prompt},
-        {
-            "role": "user",
-            "content": row_user_content,
-        },
+    row_messages: list[ChatMessageDTO] = [
+        ChatMessageDTO(role="system", content=row_sys_prompt),
+        ChatMessageDTO(
+            role="user",
+            content=row_user_content,
+        ),
     ]
     return await sem_runner(
         client.run_structured_task(

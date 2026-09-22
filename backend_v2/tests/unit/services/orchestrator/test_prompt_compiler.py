@@ -4,6 +4,8 @@ import pytest
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.prompt import LLMContextDataDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
 
@@ -361,13 +363,13 @@ def test_build_xml_context() -> None:
     from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
-    state = {
-        "inputs": {
+    state = ExecutionInputsDTO(
+        raw_inputs={
             "normal_input": "user data",
             "chat_input": "chat data",
         },
-        "steps": {"step_1": "ai drafted this"},
-    }
+        dynamic_inputs={"step_1": "ai drafted this"},
+    )
 
     expected_inputs = [
         ExpectedInput(
@@ -418,12 +420,12 @@ def test_build_xml_context_assignment_mode() -> None:
     from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
-    state = {
-        "inputs": {
+    state = ExecutionInputsDTO(
+        raw_inputs={
             "assignment_brief": "Analyze the financial liquidity risk under Basel III.",
             "deliverable": "Here is the comprehensive liquidity risk report.",
         },
-    }
+    )
 
     expected_inputs = [
         ExpectedInput(
@@ -488,12 +490,12 @@ def test_build_xml_context_endorsed_deliverable_provenance() -> None:
     assert meta_dto.is_endorsed_deliverable is True
 
     compiler = PromptCompiler()
-    state = {
-        "inputs": {
+    state = ExecutionInputsDTO(
+        raw_inputs={
             "deliverable": "Strategic transformation roadmap deliverable text.",
             "standard_doc": "Supporting document.",
         },
-    }
+    )
 
     expected_inputs = [
         ExpectedInput(
@@ -598,12 +600,12 @@ def test_build_xml_context_unmapped_inputs_raises_app_exception() -> None:
     from backend_v2.models.domain.step import ExpectedInput
 
     compiler = PromptCompiler()
-    state = {
-        "inputs": {
+    state = ExecutionInputsDTO(
+        raw_inputs={
             "declared_input": "Valid content",
             "undeclared_input": "Orphan content",
         }
-    }
+    )
     expected_inputs = [
         ExpectedInput(
             input_key="declared_input",
@@ -647,9 +649,9 @@ def test_all_standard_input_types_wrapped_in_user_payload() -> None:
         ("compliance_framework", "Statutory Safety Charter"),
     ]
 
-    state = {
-        "inputs": {key: f"Content for {key}" for key, _ in standard_keys},
-    }
+    state = ExecutionInputsDTO(
+        raw_inputs={key: f"Content for {key}" for key, _ in standard_keys},
+    )
 
     expected_inputs = [
         ExpectedInput(
@@ -694,11 +696,11 @@ def test_all_standard_input_types_wrapped_in_user_payload() -> None:
 
 def test_extract_value_from_state() -> None:
     compiler = PromptCompiler()
-    state = {
-        "a": "123",
-        "b": {"c": "456"},
-        "steps": {
-            "a": "789",
+    state = LLMContextDataDTO(
+        inputs={
+            "a": "123",
+            "b": {"c": "456"},
+            "steps.a": "789",
             "step_eval": {
                 "outputs": {
                     "results": [{"atom_id": "a1", "exact_quotes": ["quote"]}],
@@ -709,8 +711,8 @@ def test_extract_value_from_state() -> None:
                     "simple_key": "Simple value",
                 }
             },
-        },
-    }
+        }
+    )
     assert compiler._extract_value_from_state("a", state) == "123"
     assert compiler._extract_value_from_state("b.c", state) == "456"
     assert compiler._extract_value_from_state("steps.a", state) == "789"
@@ -820,7 +822,10 @@ def test_build_xml_context_with_alias_engine_and_generic_path() -> None:
             ai_description="Context mandate for doc1",
         )
     ]
-    state_data = {"inputs": {"doc1": "Document content"}, "other_var": 42}
+    state_data = ExecutionInputsDTO(
+        raw_inputs={"doc1": "Document content"},
+        dynamic_inputs={"other_var": 42},
+    )
     input_mappings = {"doc1": "$inputs.doc1", "other": "other_var"}
 
     result = compiler.build_xml_context(
@@ -841,13 +846,15 @@ def test_extract_value_from_state_complex_types() -> None:
         count: int
 
     compiler = PromptCompiler()
-    state = {
-        "model": DummyModel(field_a="hello", count=10),
-        "nested": {"nested_model": DummyModel(field_a="world", count=20)},
-        "number": 99,
-        "flag": True,
-        "json_list": ["item1", "item2"],
-    }
+    state = LLMContextDataDTO(
+        inputs={
+            "model": DummyModel(field_a="hello", count=10),
+            "nested": {"nested_model": DummyModel(field_a="world", count=20)},
+            "number": 99,
+            "flag": True,
+            "json_list": ["item1", "item2"],
+        }
+    )
     assert "hello" in compiler._extract_value_from_state("model", state)
     assert "world" in compiler._extract_value_from_state("nested.nested_model.field_a", state)
     assert compiler._extract_value_from_state("number", state) == "99"
@@ -872,7 +879,7 @@ def test_prompt_compiler_expected_inputs_validation_branches() -> None:
     ]
     xml = compiler.build_xml_context(
         input_mappings={},
-        state_data={},
+        state_data=ExecutionInputsDTO(),
         target_locale="en",
         expected_inputs=expected_inputs,
     )
@@ -939,12 +946,14 @@ def test_format_value_for_xml_branches() -> None:
     compiler = PromptCompiler()
 
     # Dict where value is not a Mapping (line 419)
-    res_scalar_in_dict = compiler._extract_value_from_state("data", {"data": {"SIMPLE_SECTION": "simple text value"}})
+    state1 = LLMContextDataDTO(inputs={"data": {"SIMPLE_SECTION": "simple text value"}})
+    res_scalar_in_dict = compiler._extract_value_from_state("data", state1)
     assert "<SIMPLE_SECTION>" in res_scalar_in_dict
     assert "simple text value" in res_scalar_in_dict
     assert "</SIMPLE_SECTION>" in res_scalar_in_dict
 
     # Non-str, non-mapping value (line 423)
-    res_list = compiler._extract_value_from_state("items", {"items": ["item1", "item2"]})
+    state2 = LLMContextDataDTO(inputs={"items": ["item1", "item2"]})
+    res_list = compiler._extract_value_from_state("items", state2)
     assert "item1" in res_list
     assert "item2" in res_list

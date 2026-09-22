@@ -397,6 +397,7 @@ async def test_create_xai_highlights_task_missing_directive_returns_none() -> No
 @pytest.mark.asyncio
 async def test_create_executive_summary_task_none_profile_returns_none() -> None:
     """Test create_executive_summary_task returns None when active_profile_dto is None."""
+
     async def dummy_sem(coro: Any) -> Any:
         return await coro
 
@@ -458,4 +459,3 @@ async def test_create_xai_highlights_task_with_block_extensions() -> None:
 
     res = await create_xai_highlights_task(mock_client, "sys", [], "distilled", "matrix", prof, dummy_sem)
     assert res is not None
-

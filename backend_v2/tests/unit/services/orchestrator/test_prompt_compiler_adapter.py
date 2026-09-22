@@ -181,4 +181,3 @@ def test_prompt_compiler_adapter_compile_prompt_invalid_message_negative() -> No
 
     with pytest.raises(ValidationError):
         adapter.compile_prompt(invalid_messages)  # type: ignore[arg-type]
-

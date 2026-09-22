@@ -858,9 +858,7 @@ class TestForceKillServices:
         with patch("subprocess.run", side_effect=mock_subprocess_run), patch("time.sleep"):
             force_kill_services()
 
-    def test_force_kill_services_port_busy_cleanup_loop(
-        self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-    ) -> None:
+    def test_force_kill_services_port_busy_cleanup_loop(self, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
         """Verify force_kill_services port verification loop kills lingering PID and drains port."""
         monkeypatch.chdir(tmp_path)
         calls = 0
@@ -927,9 +925,7 @@ class TestTriggerExecution:
             with pytest.raises(RuntimeError, match="has no default_profile_id and no --profile was specified"):
                 trigger_execution(raw_inputs={"a": "b"}, workflow_id="wf_1")
 
-    def test_trigger_execution_success_with_overrides(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_trigger_execution_success_with_overrides(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify trigger_execution sends correct POST body and saves execution trace to disk."""
         monkeypatch.chdir(tmp_path)
         mock_wf_resp = MagicMock()
@@ -982,11 +978,7 @@ class TestValidateExecutionKelvollisuus:
         """Verify data starvation event in profile_syntheses returns False."""
         record = {
             "status": "PASSED",
-            "profile_syntheses": {
-                "prf_1": {
-                    "data_starvation": {"reason": "Insufficient observations in matrix"}
-                }
-            },
+            "profile_syntheses": {"prf_1": {"data_starvation": {"reason": "Insufficient observations in matrix"}}},
         }
         valid, reason = validate_execution_kelvollisuus(record)
         assert valid is False
@@ -996,9 +988,9 @@ class TestValidateExecutionKelvollisuus:
         """Verify starvation event in execution_trace.json returns False."""
         trace_file = tmp_path / "execution_trace.json"
         trace_file.write_text(
-            json.dumps([
-                {"step_id": "stp_1", "content": {"event_type": "starvation", "reason": "No evidence extracted"}}
-            ]),
+            json.dumps(
+                [{"step_id": "stp_1", "content": {"event_type": "starvation", "reason": "No evidence extracted"}}]
+            ),
             encoding="utf-8",
         )
         record = {"status": "PASSED"}
@@ -1020,9 +1012,7 @@ class TestValidateExecutionKelvollisuus:
         trace_file.write_text(json.dumps([{"step_id": "stp_1", "content": "valid"}]), encoding="utf-8")
         record = {
             "status": "PASSED",
-            "profile_syntheses": {
-                "prf_1": {"data_starvation": None}
-            },
+            "profile_syntheses": {"prf_1": {"data_starvation": None}},
         }
         valid, reason = validate_execution_kelvollisuus(record, trace_path=trace_file)
         assert valid is True
@@ -1036,11 +1026,7 @@ class TestPollDatabaseForExecution:
         """Verify poll_database_for_execution returns record when status is PASSED."""
         db_file = tmp_path / "db.json"
         db_file.write_text(
-            json.dumps({
-                "executions": {
-                    "exe_1": {"id": "exe_1", "status": "PASSED"}
-                }
-            }),
+            json.dumps({"executions": {"exe_1": {"id": "exe_1", "status": "PASSED"}}}),
             encoding="utf-8",
         )
         with patch("time.sleep"):
@@ -1052,11 +1038,7 @@ class TestPollDatabaseForExecution:
         """Verify poll_database_for_execution returns record when status is FAILED."""
         db_file = tmp_path / "db.json"
         db_file.write_text(
-            json.dumps({
-                "executions": {
-                    "exe_2": {"id": "exe_2", "status": "FAILED"}
-                }
-            }),
+            json.dumps({"executions": {"exe_2": {"id": "exe_2", "status": "FAILED"}}}),
             encoding="utf-8",
         )
         with patch("time.sleep"):
@@ -1068,11 +1050,7 @@ class TestPollDatabaseForExecution:
         """Verify poll_database_for_execution returns None on timeout."""
         db_file = tmp_path / "db.json"
         db_file.write_text(
-            json.dumps({
-                "executions": {
-                    "exe_3": {"id": "exe_3", "status": "RUNNING"}
-                }
-            }),
+            json.dumps({"executions": {"exe_3": {"id": "exe_3", "status": "RUNNING"}}}),
             encoding="utf-8",
         )
         with patch("time.sleep"), patch("time.time", side_effect=[0.0, 5.0, 20.0]):
@@ -1155,9 +1133,7 @@ class TestPdfLoadingAndSpecialCases:
 class TestRunVarianceTestOrchestration:
     """Test suite for run_variance_test orchestration branches."""
 
-    def test_run_variance_test_single_run_success(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_single_run_success(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test executes single-run workflow cleanly with dev flags."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1202,9 +1178,7 @@ class TestRunVarianceTestOrchestration:
             )
             assert res == ["exe_1"]
 
-    def test_run_variance_test_backend_start_failure(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_backend_start_failure(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test exits with code 1 if check_backend returns False."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1220,9 +1194,7 @@ class TestRunVarianceTestOrchestration:
             with pytest.raises(SystemExit):
                 run_variance_test(num_runs=1, db_path=db_file)
 
-    def test_run_variance_test_no_workflows_found_exits(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_no_workflows_found_exits(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test exits with code 1 if no workflows are returned."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1244,9 +1216,7 @@ class TestRunVarianceTestOrchestration:
             with pytest.raises(SystemExit):
                 run_variance_test(num_runs=1, db_path=db_file)
 
-    def test_run_variance_test_data_starvation_exits(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_data_starvation_exits(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test exits with code 1 if validate_execution_kelvollisuus fails."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1319,10 +1289,12 @@ class TestNoiseInjectorAndFallback:
 
     def test_ensure_user_turn_marker_raw_list_format(self) -> None:
         """Verify _ensure_user_turn_marker modifies user turn when chat is a raw JSON list."""
-        raw_list_json = json.dumps([
-            {"role": "user", "content": "Hello there friend"},
-            {"role": "assistant", "content": "Greetings"},
-        ])
+        raw_list_json = json.dumps(
+            [
+                {"role": "user", "content": "Hello there friend"},
+                {"role": "assistant", "content": "Greetings"},
+            ]
+        )
         marker = "\u00a0"
         marked = _ensure_user_turn_marker(raw_list_json, marker)
         parsed = json.loads(marked)
@@ -1343,8 +1315,20 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
         """Verify _match_input_key raises ValueError when candidate matches multiple slots in Tier 1."""
         desc = I18nText(translations={"en": "Description"})
         expected = [
-            ExpectedInput(input_key="SlotA", label=I18nText(translations={"en": "Slot A"}), description=desc, input_modes=["file"], required=True),
-            ExpectedInput(input_key="slota", label=I18nText(translations={"en": "Slot A Lower"}), description=desc, input_modes=["file"], required=True),
+            ExpectedInput(
+                input_key="SlotA",
+                label=I18nText(translations={"en": "Slot A"}),
+                description=desc,
+                input_modes=["file"],
+                required=True,
+            ),
+            ExpectedInput(
+                input_key="slota",
+                label=I18nText(translations={"en": "Slot A Lower"}),
+                description=desc,
+                input_modes=["file"],
+                required=True,
+            ),
         ]
         with pytest.raises(ValueError, match="Ambiguous Tier 1 match"):
             _match_input_key("slota", expected)
@@ -1366,8 +1350,20 @@ class TestKeyMatchingAndInputLoadingEdgeCases:
         """Verify _match_input_key raises ValueError when candidate matches multiple slots in Tier 2."""
         desc = I18nText(translations={"en": "Description"})
         expected = [
-            ExpectedInput(input_key="slot_1", label=I18nText(translations={"en": "Report", "fi": "Raportti"}), description=desc, input_modes=["file"], required=True),
-            ExpectedInput(input_key="slot_2", label=I18nText(translations={"en": "Report Summary", "fi": "Raportti"}), description=desc, input_modes=["file"], required=True),
+            ExpectedInput(
+                input_key="slot_1",
+                label=I18nText(translations={"en": "Report", "fi": "Raportti"}),
+                description=desc,
+                input_modes=["file"],
+                required=True,
+            ),
+            ExpectedInput(
+                input_key="slot_2",
+                label=I18nText(translations={"en": "Report Summary", "fi": "Raportti"}),
+                description=desc,
+                input_modes=["file"],
+                required=True,
+            ),
         ]
         with pytest.raises(ValueError, match="Ambiguous Tier 2 match"):
             _match_input_key("raportti", expected)
@@ -1422,9 +1418,7 @@ class TestRunVarianceTestEdgeCases:
         with pytest.raises(ValueError, match="At least one strategy must be provided"):
             run_variance_test(strategies=[], db_path=db_file)
 
-    def test_run_variance_test_compare_registries_flow(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_compare_registries_flow(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test executes side-by-side comparison across two stacks."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1468,9 +1462,7 @@ class TestRunVarianceTestEdgeCases:
             )
             assert res == ["exe_a", "exe_b"]
 
-    def test_run_variance_test_no_whitespace_raises(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_no_whitespace_raises(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test raises RuntimeError if inputs have no whitespace to inject noise."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"
@@ -1493,9 +1485,7 @@ class TestRunVarianceTestEdgeCases:
             with pytest.raises(RuntimeError, match="No whitespace found in any string input fields"):
                 run_variance_test(inputs_target=str(tmp_path), num_runs=1, db_path=db_file)
 
-    def test_run_variance_test_no_execution_ids_warning(
-        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_run_variance_test_no_execution_ids_warning(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
         """Verify run_variance_test returns empty list when trigger_execution yields empty string."""
         monkeypatch.chdir(tmp_path)
         db_file = tmp_path / "db.json"

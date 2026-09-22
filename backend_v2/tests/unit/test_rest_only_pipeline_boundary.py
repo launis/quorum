@@ -176,7 +176,7 @@ async def test_execution_worker_zero_report_side_effects() -> None:
         execution_id="exe_0123456789abcdef",
     )
 
-    assert result["status"] == "COMPLETED"
+    assert result.status == "COMPLETED"
     # Invariant: Redis enqueue_job was never called
     if hasattr(mock_redis, "enqueue_job"):
         assert not mock_redis.enqueue_job.called

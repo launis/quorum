@@ -466,4 +466,3 @@ def test_xai_aesthetics_rules_attributes() -> None:
     assert XAI_AESTHETICS_RULES.model_config.get("extra") == "forbid"
     assert "coaching" in XAI_AESTHETICS_RULES
     assert XAI_AESTHETICS_RULES["coaching"].severity == VisualIntent.SUCCESS
-

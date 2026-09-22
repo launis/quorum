@@ -10,6 +10,7 @@ from backend_v2.core.hook_registry import (
     hook_registry,
 )
 from backend_v2.models.domain.hydration import HydrationInputSourceDTO
+from backend_v2.models.dtos.hook_delta import ExecutionInputsDTO
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
         logger.warning("[HydrationHook] No InputProcessorOutput found in data. Skipping hydration.")
         return HookResult(success=True, state_delta=HookDeltaDTO())
 
-    raw_inputs = state.inputs.raw_inputs.copy()
+    raw_inputs = dict(state.inputs.raw_inputs)
 
     # Extract updates safely via Pydantic model methods
     updates = hydration_source.extract_hydrated_inputs()
@@ -52,4 +53,4 @@ def hydrate_global_inputs_hook(state: HookState, deps: HookDependencies) -> Hook
 
     raw_inputs.update(updates)
 
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta={"inputs": raw_inputs}))
+    return HookResult(success=True, state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(raw_inputs=raw_inputs)))

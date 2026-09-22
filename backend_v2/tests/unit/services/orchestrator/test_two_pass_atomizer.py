@@ -335,4 +335,3 @@ async def test_extract_drafts_corrupted_atom_dropped(mock_executor, mock_client,
         sem=sem,
     )
     assert len(result.atoms) == 0
-

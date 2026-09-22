@@ -136,7 +136,7 @@ class LLMTaskExecutor:
     async def execute_structured_task[T: BaseModel](
         self,
         client: LLMClient,
-        messages: Sequence[LLMMessageDTO | dict[str, Any]] | CompiledPrompt | PromptContextDTO,
+        messages: Sequence[ChatMessageDTO | LLMMessageDTO] | CompiledPrompt | PromptContextDTO,
         response_model: type[T],
         max_schema_retries: int | None = None,
         max_logical_retries: int | None = None,

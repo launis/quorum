@@ -14,7 +14,6 @@ from backend_v2.services.sdui.adapters.matrix_summary_table_adapter import (
 )
 
 
-
 def test_matrix_summary_table_adapter_empty_parsed_matrices() -> None:
     profile = OutputProfile(
         id="prf_1234567890abcdef",
@@ -201,4 +200,3 @@ def test_matrix_summary_rules_and_columns() -> None:
     assert "label" in STANDARD_COLUMNS
     assert "score" in STANDARD_COLUMNS
     assert len(STANDARD_COLUMNS) == 9
-

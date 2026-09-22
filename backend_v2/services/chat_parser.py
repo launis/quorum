@@ -186,14 +186,14 @@ class ChatParserService:
         # Role Segregation: Isolated System Instruction prevents prompt injection
         encapsulated_paste = TemplateProcessor.encapsulate_payload(raw_paste)
         messages = [
-            {"role": "system", "content": _SYSTEM_INSTRUCTION},
-            {
-                "role": "user",
-                "content": (
+            ChatMessageDTO(role="system", content=_SYSTEM_INSTRUCTION),
+            ChatMessageDTO(
+                role="user",
+                content=(
                     "<context>\nHere is the raw text to process:\n</context>\n"
                     f"<source_data>\n{encapsulated_paste}\n</source_data>\n"
                 ),
-            },
+            ),
         ]
 
         try:

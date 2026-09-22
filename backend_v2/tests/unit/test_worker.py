@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Generator
 from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -9,6 +10,7 @@ from pydantic import ValidationError
 from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
 from backend_v2.exceptions import AppException, ErrorCodes, ResourceNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep
+from backend_v2.models.domain.metadata import MetadataHookPayloadDTO
 from backend_v2.models.domain.synthesis import RenderedSynthesisCache
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
@@ -88,6 +90,20 @@ def _get_base_model_registry_dict() -> dict[str, Any]:
     }
 
 
+@pytest.fixture(autouse=True)
+def mock_worker_report_service() -> Generator[MagicMock]:
+    """Mock ReportService for background worker synthesis tasks."""
+    mock_artifact = MagicMock()
+    mock_artifact.id = "rep_1234567890123456"
+    mock_svc = MagicMock()
+    mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+    with (
+        patch("backend_v2.workers.synthesis_worker.ReportService", return_value=mock_svc),
+        patch("backend_v2.workers.synthesis_reducers.ReportService", return_value=mock_svc),
+    ):
+        yield mock_svc
+
+
 @pytest.mark.asyncio
 async def test_health_check() -> None:
     """Verify health check task returns OK."""
@@ -147,7 +163,7 @@ async def test_execute_workflow_job_not_found() -> None:
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": mock_engine}
 
     res = await execute_workflow_job(ctx, "nonexistent", {})
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -171,7 +187,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_missing")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -202,7 +218,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -241,7 +257,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock(), "redis": None}
 
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -252,7 +268,7 @@ async def test_execute_workflow_job_cancelled() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -264,7 +280,7 @@ async def test_execute_workflow_job_failure_update_error() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -276,7 +292,7 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
     res = await execute_workflow_job(ctx, "wf_1234567890123456", {}, execution_id="exe_1234567890123456")
-    assert res == {"_dlq_status": "FAILED/DLQ"}
+    assert res.status == "FAILED/DLQ"
 
 
 @pytest.mark.asyncio
@@ -383,8 +399,8 @@ async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
         execution_id="exe_1234567890123456",
     )
 
-    assert res["status"] == "COMPLETED"
-    assert res["execution_id"] == "exe_1234567890123456"
+    assert res.status == "COMPLETED"
+    assert res.execution_id == "exe_1234567890123456"
     mock_repo.update_execution.assert_called()
 
 
@@ -484,30 +500,21 @@ async def test_generate_pdf_task_success_path() -> None:
                 },
             }
 
-            with patch("backend_v2.workers.report_worker.BlueprintTransformer") as mock_transformer_class:
-                mock_transformer = AsyncMock()
-                mock_transformer_class.return_value = mock_transformer
+            mock_artifact = MagicMock()
+            mock_artifact.id = "rep_1234567890123456"
 
-                mock_dto = MagicMock()
-                mock_dto.inner_sdui_blocks = []
-                mock_transformer.build_report_dto.return_value = mock_dto
+            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.get_or_create_default_artifact.return_value = mock_artifact
 
-                with patch("backend_v2.workers.report_worker.PdfReportService") as mock_pdf_class:
-                    mock_pdf = AsyncMock()
-                    mock_pdf_class.return_value = mock_pdf
-                    mock_pdf.generate_execution_pdf.return_value = b"%PDF-1.4 sample"
-
-                    with patch("backend_v2.workers.report_worker.get_storage_driver") as mock_storage_class:
-                        mock_storage = AsyncMock()
-                        mock_storage_class.return_value = mock_storage
-                        mock_storage.save.return_value = "executions/exe_1234567890123456/report.pdf"
-
-                        await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
-                        mock_transformer.build_report_dto.assert_called_once_with(
-                            "exe_1234567890123456", "prof_1111222233334444", "fi"
-                        )
-                        mock_storage.save.assert_called_once()
-                        assert mock_repo.update_execution.call_count >= 1
+                await generate_pdf_task("exe_1234567890123456", None, "prof_1111222233334444")
+                mock_service.get_or_create_default_artifact.assert_called_once_with(
+                    execution_id="exe_1234567890123456",
+                    profile_id="prof_1111222233334444",
+                    locale=None,
+                )
+                mock_service.process_artifact_compilation.assert_called_once_with(mock_artifact.id)
 
 
 @pytest.mark.asyncio
@@ -535,9 +542,10 @@ async def test_generate_pdf_task_exception_handling() -> None:
                 },
             }
 
-            with patch(
-                "backend_v2.workers.report_worker.BlueprintTransformer", side_effect=RuntimeError("Transformer error")
-            ):
+            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.get_or_create_default_artifact.side_effect = RuntimeError("Transformer error")
                 with pytest.raises(RuntimeError):
                     await generate_pdf_task("exe_1234567890123456", "en", "prof_1111222233334444")
                 assert mock_repo.update_execution.call_count >= 1
@@ -596,9 +604,7 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
             await generate_profile_synthesis_and_pdf_task(
                 "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
             )
-            mock_redis.enqueue_job.assert_called_once_with(
-                "generate_pdf_job", "exe_1234567890123456", "fi", "prof_1111222233334444"
-            )
+            mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
 
 
 @pytest.mark.asyncio
@@ -656,9 +662,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 )
 
                 assert mock_repo.update_execution.call_count >= 1
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_pdf_job", "exe_1234567890123456", "fi", "prof_1111222233334444"
-                )
+                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
 
 
 @pytest.mark.asyncio
@@ -858,9 +862,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 )
 
                 mock_repo.update_execution.assert_called()
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_pdf_job", "exe_1234567890123456", "fi", "prof_1111222233334444"
-                )
+                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
 
 
 @pytest.mark.asyncio
@@ -921,7 +923,7 @@ async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
         execution_id="exe_1234567890123456",
     )
 
-    assert res["status"] == "COMPLETED"
+    assert res.status == "COMPLETED"
     mock_redis.enqueue_job.assert_not_called()
     mock_repo.update_execution.assert_called()
     update_dto = mock_repo.update_execution.call_args[0][1]
@@ -1141,10 +1143,10 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
                 },
             }
 
-            with patch("backend_v2.workers.report_worker.BlueprintTransformer") as mock_transformer_class:
-                mock_transformer = AsyncMock()
-                mock_transformer_class.return_value = mock_transformer
-                mock_transformer.build_report_dto.side_effect = AppException(
+            with patch("backend_v2.workers.report_worker.report_service_mod.ReportService") as mock_service_class:
+                mock_service = AsyncMock()
+                mock_service_class.return_value = mock_service
+                mock_service.get_or_create_default_artifact.side_effect = AppException(
                     message="Blueprint render error",
                     status_code=500,
                     details={"error_code": ErrorCodes.PDF_GENERATION_FAILED.value},
@@ -1213,9 +1215,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             )
             assert ev_type == "starvation"
             assert total_atoms == 0
-            mock_redis.enqueue_job.assert_called_once_with(
-                "generate_pdf_job", "exe_1234567890123456", "en", "prof_1111222233334444"
-            )
+            mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
 
 
 @pytest.mark.asyncio
@@ -1313,7 +1313,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
             user_id="usr_test",
         )
 
-    assert res["status"] == "COMPLETED"
+    assert res.status == "COMPLETED"
     mock_storage.read.assert_called_once_with("executions/exe_1234567890123456/execution_trace.json")
 
     update_call = mock_repo.update_execution.call_args[0][1]
@@ -1781,7 +1781,7 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
         patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository", return_value=mock_repo),
         patch(
             "backend_v2.workers.synthesis_worker.synthesis_distiller_hook",
-            AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"other_key": 1}))),
+            AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta=MetadataHookPayloadDTO()))),
         ),
     ):
         with pytest.raises(AppException) as exc_info:

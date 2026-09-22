@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import uuid
 from datetime import UTC, datetime
-from typing import Any
 
 from backend_v2.database.interfaces import IAuditRepository, IIdentityRepository
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -49,7 +48,7 @@ class UsageService:
         system_fingerprint: str | None = None,
         cost_usd: float = 0.0,
         estimated_savings_usd: float = 0.0,
-        model_pricing_config: PricingConfig | dict[str, Any] | None = None,
+        model_pricing_config: PricingConfig | None = None,
     ) -> UsageRecord:
         """Tracks and logs usage securely to the audit repository.
 

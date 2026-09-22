@@ -16,6 +16,7 @@ from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAsserti
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.dag_models import CausalEdge
+from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 
@@ -181,17 +182,17 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "shuffled_atoms" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, FlatteningHookOutput)
 
-    shuffled_atoms = result.state_delta.delta["shuffled_atoms"]
+    shuffled_atoms = result.state_delta.delta.shuffled_atoms
     assert isinstance(shuffled_atoms, list)
     # 2 scales (1 and 5), 3 samples each = 6 total atoms
     assert len(shuffled_atoms) == 6
 
     # Verify keys
     for item in shuffled_atoms:
-        assert "atom_id" in item
-        assert "question" in item
+        assert item.atom_id
+        assert item.question
 
 
 @pytest.mark.asyncio
@@ -220,15 +221,15 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
 
     assert result.success is True
     assert result.state_delta is not None
-    assert "shuffled_atoms" in result.state_delta.delta
+    assert isinstance(result.state_delta.delta, FlatteningHookOutput)
 
-    shuffled_atoms = result.state_delta.delta["shuffled_atoms"]
+    shuffled_atoms = result.state_delta.delta.shuffled_atoms
     assert isinstance(shuffled_atoms, list)
     # 2 scales (1 and 5), 5 samples each = 10 total atoms
     assert len(shuffled_atoms) == 10
 
     # Semantic micro-batching requirement: ensure deterministic sorting based on atom_id
-    sorted_ids = [item["atom_id"] for item in shuffled_atoms]
+    sorted_ids = [item.atom_id for item in shuffled_atoms]
     assert sorted_ids == sorted(sorted_ids), "Atoms are not deterministically sorted by atom_id"
 
 
@@ -418,14 +419,15 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
 
     assert result.success is True
     assert result.state_delta is not None
-    shuffled = result.state_delta.delta["shuffled_atoms"]
+    assert isinstance(result.state_delta.delta, FlatteningHookOutput)
+    shuffled = result.state_delta.delta.shuffled_atoms
     assert len(shuffled) == 2
 
-    child_atom = next(a for a in shuffled if a["atom_id"] == "tda_00000000000000010000000000000001")
-    assert "depends_on" in child_atom
-    assert len(child_atom["depends_on"]) == 1
-    assert child_atom["depends_on"][0]["tda_id"] == "tda_00000000000000010000000000000000"
-    assert child_atom["depends_on"][0]["expected_status"] == "PASSED"
+    child_atom = next(a for a in shuffled if a.atom_id == "tda_00000000000000010000000000000001")
+    assert child_atom.depends_on is not None
+    assert len(child_atom.depends_on) == 1
+    assert child_atom.depends_on[0].tda_id == "tda_00000000000000010000000000000000"
+    assert child_atom.depends_on[0].expected_status == ExecutionStatus.PASSED
 
 
 @pytest.mark.asyncio
@@ -512,8 +514,9 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
 
     assert result.success is True
     assert result.state_delta is not None
-    shuffled = result.state_delta.delta["shuffled_atoms"]
-    atom_ids = {a["atom_id"] for a in shuffled}
+    assert isinstance(result.state_delta.delta, FlatteningHookOutput)
+    shuffled = result.state_delta.delta.shuffled_atoms
+    atom_ids = {a.atom_id for a in shuffled}
 
     # If atom_c was selected, atom_b and atom_a MUST also be in the output set
     if "tda_0000000000000001000000000000000c" in atom_ids:

@@ -6,10 +6,13 @@ Strategy engine executing Kahn-based causal wave graphs over propositional asser
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.dag_models import AtomExecutionState, ExtractedAtom, LinkedAtomGraph
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
 from backend_v2.models.enums import ExecutionStatus
@@ -80,29 +83,38 @@ class TDAEngine(ExecutionEngine):
             )
 
         # Circuit Breaker: If preflight determined analytical data is starved, short-circuit immediately.
-        raw_blackboard = None
-        if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
-            raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+        ctx_vars = request.context.context_variables
+        raw_blackboard: Any = None
+        if isinstance(ctx_vars, ContextVariablesDTO):
+            raw_blackboard = ctx_vars.global_atom_blackboard
+            if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in ctx_vars:
+                raw_blackboard = ctx_vars["__GLOBAL_ATOM_BLACKBOARD__"]
+        elif isinstance(ctx_vars, Mapping) and "__GLOBAL_ATOM_BLACKBOARD__" in ctx_vars:
+            raw_blackboard = ctx_vars["__GLOBAL_ATOM_BLACKBOARD__"]
 
         is_starved = False
-        if raw_blackboard and not isinstance(raw_blackboard, (str, int, float, bool, list)):
-            try:
-                is_starved_flag = False
-                if "is_data_starved" in raw_blackboard:
-                    is_starved_flag = bool(raw_blackboard["is_data_starved"])
-                atoms_map = None
-                if "atoms_by_input" in raw_blackboard:
-                    atoms_map = raw_blackboard["atoms_by_input"]
-                if is_starved_flag or not atoms_map:
+        if raw_blackboard is not None and not isinstance(raw_blackboard, (str, int, float, bool, list)):
+            if isinstance(raw_blackboard, GlobalAtomBlackboard):
+                if raw_blackboard.is_data_starved or not raw_blackboard.atoms_by_input:
                     is_starved = True
-            except (TypeError, KeyError) as err:
-                msg = f"Corrupted __GLOBAL_ATOM_BLACKBOARD__ in context_variables: {err}"
-                logger.error("[TDAEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                ) from err
+            else:
+                try:
+                    is_starved_flag = False
+                    if "is_data_starved" in raw_blackboard:
+                        is_starved_flag = bool(raw_blackboard["is_data_starved"])
+                    atoms_map = None
+                    if "atoms_by_input" in raw_blackboard:
+                        atoms_map = raw_blackboard["atoms_by_input"]
+                    if is_starved_flag or not atoms_map:
+                        is_starved = True
+                except (TypeError, KeyError) as err:
+                    msg = f"Corrupted __GLOBAL_ATOM_BLACKBOARD__ in context_variables: {err}"
+                    logger.error("[TDAEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                    raise AppException(
+                        message=msg,
+                        status_code=500,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from err
 
         if is_starved:
             logger.info(

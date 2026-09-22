@@ -4,15 +4,17 @@ from __future__ import annotations
 
 import datetime
 import re
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from pydantic import BaseModel
 
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.system_config import ChatMessageDTO
+from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.prompt import LLMContextDataDTO, PromptMappingDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -83,7 +85,7 @@ class PromptCompilerAdapter:
         allowed_mcp_prefixes: list[str] | None = None,
         max_evaluations: int | None = None,
         expected_sdui_type: str = "grid",
-        dag_results: dict[str, Any] | None = None,
+        dag_results: Sequence[StepOutputDTO] | Mapping[str, AtomResultDTO] | None = None,
     ) -> type[BaseModel]:
         """Build a dynamic Pydantic V2 model for LLM Structured Outputs.
 
@@ -134,7 +136,7 @@ class PromptCompilerAdapter:
     def build_xml_context(
         self,
         input_mappings: PromptMappingDTO | dict[str, str],
-        state_data: ExecutionInputsDTO | LLMContextDataDTO | dict[str, Any],
+        state_data: ExecutionInputsDTO | LLMContextDataDTO,
         target_locale: str,
         expected_inputs: list[Any] | None = None,
         alias_engine: Any = None,
@@ -215,14 +217,14 @@ class PromptCompilerAdapter:
             error_msg, is_logical_error, is_eof, strictness_level=strictness_level
         )
 
-    def compile_prompt(self, messages: Sequence[ChatMessageDTO | LLMMessageDTO | dict[str, Any]]) -> CompiledPrompt:
+    def compile_prompt(self, messages: Sequence[ChatMessageDTO | LLMMessageDTO]) -> CompiledPrompt:
         """Splits an existing list of messages into static_messages and dynamic_messages.
 
         Acts as a robust fallback for general inputs by extracting dynamic blocks (execution
         parameters and error blocks) from user messages and placing them in the dynamic tail.
 
         Args:
-            messages: The list of conversation messages (ChatMessageDTOs, LLMMessageDTOs, or raw dicts).
+            messages: The list of conversation messages (ChatMessageDTOs or LLMMessageDTOs).
 
         Returns:
             A CompiledPrompt object with separated static and dynamic messages.
@@ -231,14 +233,14 @@ class PromptCompilerAdapter:
         dynamic_msgs: list[ChatMessageDTO] = []
         in_dynamic_tail = False
 
-        typed_messages: list[ChatMessageDTO] = [
-            m
-            if isinstance(m, ChatMessageDTO)
-            else ChatMessageDTO(role=m.role, content=m.content)
-            if isinstance(m, LLMMessageDTO)
-            else ChatMessageDTO.model_validate(m)
-            for m in messages
-        ]
+        typed_messages: list[ChatMessageDTO] = []
+        for m in messages:
+            if isinstance(m, ChatMessageDTO):
+                typed_messages.append(m)
+            elif isinstance(m, LLMMessageDTO):
+                typed_messages.append(ChatMessageDTO(role=m.role, content=m.content))
+            else:
+                typed_messages.append(ChatMessageDTO.model_validate(m))
 
         for msg in typed_messages:
             role = msg.role

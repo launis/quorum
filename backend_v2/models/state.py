@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
@@ -237,6 +237,8 @@ class TombstoneEvent(TraceEvent):
     redacted_hash: Annotated[str, Field(description="Cryptographic hash or identifier of the original redacted data.")]
 
 
+import backend_v2.models.domain.inputs as _inputs_mod
+import backend_v2.models.dtos.step_output as _step_output_mod
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.causal import CausalOutput
@@ -269,6 +271,8 @@ from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _state_localns = {
+    **{k: v for k, v in _inputs_mod.__dict__.items() if not k.startswith("__")},
+    **{k: v for k, v in _step_output_mod.__dict__.items() if not k.startswith("__")},
     "Any": Any,
     "MCPAuditTrace": MCPAuditTrace,
     "TraceEvent": TraceEvent,
@@ -569,7 +573,16 @@ class StateProjector:
                 ) from err
 
             for block_id, payload in items_iter:
-                output.append(StepOutputDTO(step_id=step_id, block_id=block_id, data_type="unknown", payload=payload))
+                try:
+                    output.append(
+                        StepOutputDTO(step_id=step_id, block_id=block_id, data_type="unknown", payload=payload)
+                    )
+                except ValidationError:
+                    output.append(
+                        StepOutputDTO.model_construct(
+                            step_id=step_id, block_id=block_id, data_type="unknown", payload=payload
+                        )
+                    )
         return output
 
     def apply_delta(self, event: TraceEvent) -> None:

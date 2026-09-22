@@ -856,16 +856,15 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
             evaluation_reasoning="",
         )
 
-    # FAILED with contextual_override or source_quote cleans them up
-    failed_res = AtomResultDTO(
-        tda_id="tda_1",
-        status=ExecutionStatus.FAILED,
-        evaluation_reasoning="Evaluation failed due to missing premise.",
-        contextual_override=True,
-        source_quote="Some quote",
-    )
-    assert failed_res.contextual_override is False
-    assert failed_res.source_quote is None
+    # FAILED with contextual_override or source_quote fails fast
+    with pytest.raises(ValidationError, match="contextual_override cannot be True when status is FAILED"):
+        AtomResultDTO(
+            tda_id="tda_1",
+            status=ExecutionStatus.FAILED,
+            evaluation_reasoning="Evaluation failed due to missing premise.",
+            contextual_override=True,
+            source_quote="Some quote",
+        )
 
     # PASSED without reasoning raises ValueError
     with pytest.raises(ValidationError, match="Reasoning is mandatory"):
@@ -886,15 +885,15 @@ def test_atom_evaluation_result_dto_cognitive_states() -> None:
             contextual_override=False,
         )
 
-    # PASSED with contextual_override clears source_quote if present
-    passed_override = AtomResultDTO(
-        tda_id="tda_2",
-        status=ExecutionStatus.PASSED,
-        evaluation_reasoning="Override reasoning.",
-        contextual_override=True,
-        source_quote="Unneeded quote",
-    )
-    assert passed_override.source_quote is None
+    # PASSED with contextual_override and source_quote raises ValueError
+    with pytest.raises(ValidationError, match="source_quote must be None when contextual_override"):
+        AtomResultDTO(
+            tda_id="tda_2",
+            status=ExecutionStatus.PASSED,
+            evaluation_reasoning="Override reasoning.",
+            contextual_override=True,
+            source_quote="Unneeded quote",
+        )
 
     # SYSTEM_ERROR without error_details raises ValueError
     with pytest.raises(ValidationError, match="Error details are mandatory"):

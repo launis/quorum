@@ -238,4 +238,3 @@ def test_matrix_evaluation_context_assertions_list() -> None:
     assert len(ctx.matrix_assertions) == 1
     assert ctx.matrix_assertions[0].atom_id == "atm_01"
     assert ctx.allow_contextual_override is True
-

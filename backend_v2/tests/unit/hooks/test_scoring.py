@@ -27,6 +27,11 @@ from backend_v2.hooks.scoring import (
 from backend_v2.models.domain.falsifier import FalsifierData, ReasoningFidelity, WaltonStressTest
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO, SecurityCheck
+from backend_v2.models.dtos.hook_delta import (
+    MatrixHookResultDTO,
+    PassivityDetectionResultDTO,
+    TraceScoringPayloadDTO,
+)
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import (
     EvaluationMandate,
@@ -291,16 +296,16 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(
             raw_inputs={
-                "tb_1234567890123456": {
-                    "raw_score": 5.0,
-                    "normalized_score": 100.0,
-                    "justification": "Tämä on perustelu\n\nKitkaa on",
-                    "evaluated_atoms": {},
-                    "extensions": {
+                "tb_1234567890123456": LightweightMatrixOutput(
+                    raw_score=5.0,
+                    normalized_score=100.0,
+                    justification="Tämä on perustelu\n\nKitkaa on",
+                    evaluated_atoms={},
+                    extensions={
                         XaiExtensionType.CITATION: "Ote lähteestä",
                         XaiExtensionType.FALSIFICATION: "Vastalause",
                     },
-                }
+                )
             }
         ),
         global_context_vars=GlobalContextVarsDTO(),
@@ -321,14 +326,15 @@ async def test_normalize_matrix_scores_tapa_2_string_mapping() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
+    assert isinstance(delta, MatrixHookResultDTO)
 
-    parsed_output = delta["tb_1234567890123456"]
-    extensions = parsed_output["extensions"]
+    parsed_output = delta.matrix_outputs["tb_1234567890123456"]
+    extensions = parsed_output.extensions
 
-    assert extensions["citation"] == "Ote lähteestä"
-    assert extensions["falsification"] == "Vastalause"
+    assert extensions[XaiExtensionType.CITATION] == "Ote lähteestä" or extensions.get("citation") == "Ote lähteestä"
+    assert extensions[XaiExtensionType.FALSIFICATION] == "Vastalause" or extensions.get("falsification") == "Vastalause"
 
-    justification = parsed_output["justification"]
+    justification = parsed_output.justification
     assert "Tämä on perustelu" in justification
 
 
@@ -1423,7 +1429,7 @@ async def test_matrix_scoring_hook_no_matrix_blocks_skips() -> None:
     result = await matrix_scoring_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta == {}
+    assert delta is None
 
 
 @pytest.mark.asyncio
@@ -3183,12 +3189,11 @@ async def test_apply_scoring_logic_hook_success() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "scoring_result" in delta
-    scoring_result = delta["scoring_result"]
-    assert scoring_result["total_score"] == 85.0
-    assert scoring_result["final_score"] == 85.0
-    assert scoring_result["penalties_applied"] == []
-    assert scoring_result["aggregation_status"] == "V2 Commensurate Average of 2 matrices"
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.total_score == 85.0
+    assert delta.final_score == 85.0
+    assert delta.penalties_applied == []
+    assert delta.aggregation_status == "V2 Commensurate Average of 2 matrices"
 
 
 @pytest.mark.asyncio
@@ -3224,8 +3229,8 @@ async def test_apply_scoring_logic_hook_with_hoisted_step_output_dto() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
-    assert scoring_result["final_score"] == 80.0
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.final_score == 80.0
 
 
 @pytest.mark.asyncio
@@ -3273,13 +3278,13 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
 
     eval_matrices = {"blk_1": 100.0}
     steps = [
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="st_sec",
             block_id="step_input_processing",
             data_type="text",
             payload={"step_input_processing": sec_dto.model_dump(mode="json")},
         ),
-        StepOutputDTO(
+        StepOutputDTO.model_construct(
             step_id="st_falsifier",
             block_id="step_falsifier",
             data_type="text",
@@ -3297,7 +3302,7 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(raw_inputs=inputs),
+        inputs=ExecutionInputsDTO.model_construct(raw_inputs=inputs),
         global_context_vars=GlobalContextVarsDTO(),
     )
     deps = HookDependencies(
@@ -3315,10 +3320,10 @@ async def test_apply_scoring_logic_hook_with_security_and_falsifier_penalties() 
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
-    assert scoring_result["final_score"] == 100.0
-    assert "PENALTY_SECURITY" in scoring_result["penalties_applied"]
-    assert "PENALTY_POST_HOC" in scoring_result["penalties_applied"]
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.final_score == 100.0
+    assert "PENALTY_SECURITY" in delta.penalties_applied
+    assert "PENALTY_POST_HOC" in delta.penalties_applied
 
 
 @pytest.mark.asyncio
@@ -3355,9 +3360,9 @@ async def test_apply_scoring_logic_hook_with_passivity_penalty() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
-    assert scoring_result["final_score"] == 80.0
-    assert "PENALTY_PASSIVITY" in scoring_result["penalties_applied"]
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.final_score == 80.0
+    assert "PENALTY_PASSIVITY" in delta.penalties_applied
 
 
 @pytest.mark.asyncio
@@ -3392,10 +3397,10 @@ async def test_apply_scoring_logic_hook_indeterminate_matrices() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
-    assert scoring_result.get("total_score") is None
-    assert scoring_result.get("final_score") is None
-    assert "INDETERMINATE" in scoring_result["aggregation_status"]
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.total_score is None
+    assert delta.final_score is None
+    assert "INDETERMINATE" in delta.aggregation_status
 
 
 @pytest.mark.asyncio
@@ -3487,15 +3492,15 @@ async def test_apply_scoring_logic_hook_invalid_step_payload_raises() -> None:
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "steps": [
-                    {
-                        "step_id": "st_1",
-                        "block_id": "blk_1",
-                        "data_type": "text",
-                        "payload": {"step_falsifier": "invalid_not_a_model"},
-                    }
+                    StepOutputDTO.model_construct(
+                        step_id="st_1",
+                        block_id="blk_1",
+                        data_type="text",
+                        payload=cast(Any, {"step_falsifier": "invalid_not_a_model"}),
+                    )
                 ]
             }
         ),
@@ -3553,27 +3558,27 @@ async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> Non
         step_id="step_final",
         task_blueprint="step_final",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "steps": [
-                    {
-                        "step_id": "st_primitive",
-                        "block_id": "blk_prim",
-                        "data_type": "text",
-                        "payload": "primitive_string_payload",
-                    },
-                    {
-                        "step_id": "st_sanit",
-                        "block_id": "blk_sanit",
-                        "data_type": "text",
-                        "payload": {"sanitization_result": sanitization_dto.model_dump(mode="json")},
-                    },
-                    {
-                        "step_id": "st_panel",
-                        "block_id": "blk_panel",
-                        "data_type": "text",
-                        "payload": {"step_panel": step_panel_dto.model_dump(mode="json")},
-                    },
+                    StepOutputDTO.model_construct(
+                        step_id="st_primitive",
+                        block_id="blk_prim",
+                        data_type="text",
+                        payload="primitive_string_payload",
+                    ),
+                    StepOutputDTO.model_construct(
+                        step_id="st_sanit",
+                        block_id="blk_sanit",
+                        data_type="text",
+                        payload={"sanitization_result": sanitization_dto.model_dump(mode="json")},
+                    ),
+                    StepOutputDTO.model_construct(
+                        step_id="st_panel",
+                        block_id="blk_panel",
+                        data_type="text",
+                        payload={"step_panel": step_panel_dto.model_dump(mode="json")},
+                    ),
                 ],
                 "_evaluative_matrices": {"blk_1": 90.0},
                 "extra_primitive_key": "skipped_string",
@@ -3596,7 +3601,7 @@ async def test_apply_scoring_logic_hook_with_sanitization_and_panel_dto() -> Non
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert "scoring_result" in delta
+    assert isinstance(delta, TraceScoringPayloadDTO)
 
 
 @pytest.mark.asyncio
@@ -3690,10 +3695,10 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
         execution_id="exec_0000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "steps": [
-                    StepOutputDTO(
+                    StepOutputDTO.model_construct(
                         step_id="st_sec",
                         block_id="step_input_processing",
                         data_type="text",
@@ -3719,12 +3724,12 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
+    assert isinstance(delta, TraceScoringPayloadDTO)
     # security 0.15 + passivity 0.05 = 0.20 total penalty
     # final_score = 100.0 * (1.0 - 0.20) = 80.0
-    assert scoring_result["final_score"] == 80.0
-    assert "PENALTY_SECURITY:15" in scoring_result["penalties_applied"]
-    assert "PENALTY_PASSIVITY:5" in scoring_result["penalties_applied"]
+    assert delta.final_score == 80.0
+    assert "PENALTY_SECURITY:15" in delta.penalties_applied
+    assert "PENALTY_PASSIVITY:5" in delta.penalties_applied
 
 
 @pytest.mark.asyncio
@@ -3789,16 +3794,16 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
         execution_id="exec_0000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "steps": [
-                    StepOutputDTO(
+                    StepOutputDTO.model_construct(
                         step_id="st_sec",
                         block_id="step_input_processing",
                         data_type="text",
                         payload={"step_input_processing": sec_dto.model_dump(mode="json")},
                     ),
-                    StepOutputDTO(
+                    StepOutputDTO.model_construct(
                         step_id="st_falsifier",
                         block_id="step_falsifier",
                         data_type="text",
@@ -3824,10 +3829,10 @@ async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> Non
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    scoring_result = delta["scoring_result"]
+    assert isinstance(delta, TraceScoringPayloadDTO)
     # Total penalties: 0.30 + 0.20 + 0.15 = 0.65 -> clamped at 0.40
     # Final score: 80.0 * (1.0 - 0.40) = 48.0
-    assert scoring_result["final_score"] == 48.0
+    assert delta.final_score == 48.0
 
 
 @pytest.mark.asyncio
@@ -3837,14 +3842,14 @@ async def test_apply_scoring_logic_hook_invalid_state_input_wrapper_raises() -> 
         execution_id="exec_0000000000000001",
         workflow_id="wf_1",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
                 "steps": [
-                    StepOutputDTO(
+                    StepOutputDTO.model_construct(
                         step_id="st_1",
                         block_id="step_input_processing",
                         data_type="text",
-                        payload={"step_input_processing": {"invalid_shape": 123}},
+                        payload=cast(Any, {"step_input_processing": {"invalid_shape": 123}}),
                     )
                 ],
             }
@@ -3906,7 +3911,8 @@ async def test_enforce_passivity_penalty_hook_penalty_triggered() -> None:
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
     assert delta is not None
-    assert delta == {"passivity_detected": True}
+    assert isinstance(delta, PassivityDetectionResultDTO)
+    assert delta.passivity_detected is True
 
 
 @pytest.mark.asyncio
@@ -4162,13 +4168,13 @@ async def test_enforce_passivity_penalty_hook_invalid_matrix_format_raises() -> 
         step_id="st_1234567890123456",
         task_blueprint="st_1234567890123456",
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
+        inputs=ExecutionInputsDTO.model_construct(
             raw_inputs={
-                "pb_1234567890123456": StepOutputDTO(
+                "pb_1234567890123456": StepOutputDTO.model_construct(
                     step_id="st_1234567890123456",
                     block_id="pb_1234567890123456",
                     data_type="matrix",
-                    payload={"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"},
+                    payload=cast(Any, {"raw_score": "not_a_number", "normalized_score": 10.0, "justification": "J"}),
                 )
             }
         ),
@@ -4230,8 +4236,8 @@ async def test_enforce_passivity_penalty_hook_with_eval_map_and_bounds() -> None
 
     res = await enforce_passivity_penalty_hook(state, deps)
     assert res.success is True
-    assert res.state_delta is not None
-    assert res.state_delta.delta == {"passivity_detected": True}
+    assert isinstance(res.state_delta.delta, PassivityDetectionResultDTO)
+    assert res.state_delta.delta.passivity_detected is True
 
 
 @pytest.mark.asyncio
@@ -4405,7 +4411,7 @@ async def test_falsifier_hook_coverage_branches() -> None:
     # 1. StateInputWrapper directly
     state_input = StateInputWrapper(
         steps=[
-            StepOutputDTO(
+            StepOutputDTO.model_construct(
                 step_id="s1",
                 block_id="b1",
                 data_type="text",
@@ -4423,7 +4429,7 @@ async def test_falsifier_hook_coverage_branches() -> None:
     # 2. Invalid StepOutputDTO _evaluative_matrices payload raises
     invalid_step_state = StateInputWrapper(
         steps=[
-            StepOutputDTO(
+            StepOutputDTO.model_construct(
                 step_id="s1",
                 block_id="_evaluative_matrices",
                 data_type="matrix",
@@ -4505,5 +4511,5 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
     result = await apply_scoring_logic_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is not None
-    assert delta["scoring_result"]["final_score"] == 90.0
+    assert isinstance(delta, TraceScoringPayloadDTO)
+    assert delta.final_score == 90.0

@@ -22,6 +22,7 @@ from backend_v2.models.domain.validation import (
     ValidationResultDTO,
     ValidationWarningDTO,
 )
+from backend_v2.models.dtos.hook_delta import AnomalyRetryResultDTO
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +185,7 @@ def verify_structure(state: HookState | None, deps: HookDependencies) -> HookRes
 
     return HookResult(
         success=True,
-        state_delta=HookDeltaDTO(delta={"validation_result": result_dto.model_dump(mode="json")}),
+        state_delta=HookDeltaDTO(delta=result_dto),
     )
 
 
@@ -287,7 +288,6 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
                     value[:100],
                 )
 
-    delta = {}
     if leakage_detected:
         existing_warnings: list[ValidationWarningDTO] = []
         if "_system_warnings" in payload.root:
@@ -313,9 +313,11 @@ def verify_output_language(state: HookState | None, deps: HookDependencies) -> H
             meta={},
         )
         existing_warnings.append(new_warning)
-        delta["_system_warnings"] = [w.model_dump(mode="json") for w in existing_warnings]
+        return HookResult(
+            success=True, state_delta=HookDeltaDTO(delta=ValidationResultDTO(is_valid=True, errors=existing_warnings))
+        )
 
-    return HookResult(success=True, state_delta=HookDeltaDTO(delta=delta))
+    return HookResult(success=True, state_delta=HookDeltaDTO())
 
 
 @hook_registry.register(name="verify_anomaly")
@@ -402,6 +404,8 @@ def verify_anomaly(state: HookState | None, deps: HookDependencies) -> HookResul
             break
 
     if anomaly_detected:
-        return HookResult(success=True, state_delta=HookDeltaDTO(delta={"llm_anomaly_retry_requested": True}))
+        return HookResult(
+            success=True, state_delta=HookDeltaDTO(delta=AnomalyRetryResultDTO(llm_anomaly_retry_requested=True))
+        )
 
     return HookResult(success=True, state_delta=HookDeltaDTO())

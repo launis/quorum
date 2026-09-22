@@ -9,7 +9,6 @@ Covers:
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -25,7 +24,7 @@ from backend_v2.exceptions import (
 from backend_v2.llm.handler import LLMHandler
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigModelRegistry
 from backend_v2.models.dtos.studio import GCPLocationDTO
-from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider, LLMProviderName
+from backend_v2.models.enums import CognitiveTier, LLMPlatformType, LLMProvider
 from backend_v2.settings import Settings
 
 

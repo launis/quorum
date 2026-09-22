@@ -366,4 +366,3 @@ def test_sliding_window_linker_dtos_extra_fields_forbidden() -> None:
 
     with pytest.raises(ValidationError):
         WindowCausalEdgesDTO(extra_field="bad")  # type: ignore[call-arg]
-

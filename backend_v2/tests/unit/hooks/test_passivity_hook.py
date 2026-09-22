@@ -10,19 +10,17 @@ from typing import Any, cast
 from unittest.mock import AsyncMock
 
 import pytest
-from pydantic import BaseModel
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
-    GlobalContextVarsDTO,
     HookDeltaDTO,
     HookDependencies,
     HookState,
 )
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.scoring.passivity_hook import enforce_passivity_penalty_hook
+from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.dtos.step_output import StepOutputDTO
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
 
@@ -263,15 +261,8 @@ async def test_passivity_hook_corrupted_matrix_payload_raises() -> None:
         workflow_id="wf_1111222233334444",
         step_id=step_id,
         metadata=ExecutionMetadata(),
-        inputs=ExecutionInputsDTO(
-            raw_inputs={
-                pb_id: StepOutputDTO(
-                    step_id=step_id,
-                    block_id=pb_id,
-                    data_type="matrix",
-                    payload={"raw_score": "not_a_valid_float", "normalized_score": 10.0, "justification": "text"},
-                )
-            }
+        inputs=ExecutionInputsDTO.model_construct(
+            raw_inputs={pb_id: {"raw_score": "not_a_valid_float", "normalized_score": 10.0, "justification": "text"}}
         ),
     )
     with pytest.raises(AppException) as exc_info:
@@ -309,7 +300,7 @@ async def test_passivity_hook_penalty_triggered_when_score_at_min() -> None:
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {"passivity_detected": True}
+    assert result.state_delta.delta == PassivityDetectionResultDTO(passivity_detected=True)
 
 
 @pytest.mark.asyncio
@@ -342,7 +333,7 @@ async def test_passivity_hook_no_penalty_when_score_above_min() -> None:
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is None or delta == {}
+    assert delta is None
 
 
 @pytest.mark.asyncio
@@ -375,7 +366,7 @@ async def test_passivity_hook_raw_score_none_does_not_trigger_penalty() -> None:
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is None or delta == {}
+    assert delta is None
 
 
 @pytest.mark.asyncio
@@ -409,7 +400,7 @@ async def test_passivity_hook_dynamic_inputs_preference() -> None:
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {"passivity_detected": True}
+    assert result.state_delta.delta == PassivityDetectionResultDTO(passivity_detected=True)
 
 
 @pytest.mark.asyncio
@@ -426,9 +417,7 @@ async def test_passivity_hook_with_base_model_input() -> None:
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
 
-    matrix_model = LightweightMatrixOutput(
-        raw_score=1.0, normalized_score=0.0, justification="Low score via BaseModel"
-    )
+    matrix_model = LightweightMatrixOutput(raw_score=1.0, normalized_score=0.0, justification="Low score via BaseModel")
 
     state = HookState(
         execution_id="exe_1111222233334444",
@@ -440,7 +429,7 @@ async def test_passivity_hook_with_base_model_input() -> None:
     result = await enforce_passivity_penalty_hook(state, deps)
     assert result.success is True
     assert result.state_delta is not None
-    assert result.state_delta.delta == {"passivity_detected": True}
+    assert result.state_delta.delta == PassivityDetectionResultDTO(passivity_detected=True)
 
 
 @pytest.mark.asyncio

@@ -113,4 +113,3 @@ def test_step_output_content_dto_negative_extra_forbid() -> None:
     """Test StepOutputContentDTO rejects unexpected extra fields."""
     with pytest.raises(ValidationError):
         StepOutputContentDTO(data={"score": 100}, unexpected_extra="bad")  # type: ignore[call-arg]
-

@@ -95,9 +95,13 @@ async def test_independent_steps_continue_on_sibling_failure(mock_repo: AsyncMoc
     # Bypass the hook registry safely
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         from backend_v2.core.hook_registry import HookDeltaDTO
+        from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+            )
         )
 
         # Patch the actual task execution
@@ -170,9 +174,13 @@ async def test_dependent_steps_fail_fast_on_parent_failure(mock_repo: AsyncMock,
     # Bypass the hook registry safely
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         from backend_v2.core.hook_registry import HookDeltaDTO
+        from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+            )
         )
 
         # Patch the actual task execution
@@ -254,9 +262,13 @@ async def test_step_transient_failure_exhausts_retries(mock_repo: AsyncMock, moc
 
         with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
             from backend_v2.core.hook_registry import HookDeltaDTO
+            from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 
             mock_hooks.execute = AsyncMock(
-                return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+                return_value=HookResult(
+                    success=True,
+                    state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+                )
             )
 
             with patch.object(executor.node_executor, "execute", mock_execute):
@@ -351,8 +363,12 @@ async def test_dynamic_synthesis_model_strategy_routing(
     )
 
     from backend_v2.core.hook_registry import HookDeltaDTO, HookResult
+    from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
 
-    mock_hook_execute.return_value = HookResult(success=True, state_delta=HookDeltaDTO(delta={"distilled_inputs": {}}))
+    mock_hook_execute.return_value = HookResult(
+        success=True,
+        state_delta=HookDeltaDTO(delta=SynthesisDistillationDTO(distilled_inputs="mock distilled")),
+    )
 
     mock_reduce.return_value = MagicMock(model_dump=lambda: {"mock": "matrix"})
 
@@ -430,10 +446,14 @@ async def test_intermediate_progress_callback_lock_failure_does_not_crash_step(
         return [TraceEvent(step_name=step.id, event_type="output", content={"status": "ok"})]
 
     from backend_v2.core.hook_registry import HookDeltaDTO
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 
     with patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks:
         mock_hooks.execute = AsyncMock(
-            return_value=HookResult(success=True, state_delta=HookDeltaDTO(delta={"log": "test"}))
+            return_value=HookResult(
+                success=True,
+                state_delta=HookDeltaDTO(delta=ExecutionInputsDTO(dynamic_inputs={"log": "test"})),
+            )
         )
         with patch.object(executor.node_executor, "execute", side_effect=mock_execute):
             result = await executor.execute_workflow(

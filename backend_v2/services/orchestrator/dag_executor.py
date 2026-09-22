@@ -202,7 +202,7 @@ class NodeExecutor:
         context_variables: ContextVariablesDTO | Mapping[str, Any] | None = None,
         progress_callback: Callable[[int, int], Awaitable[None]] | None = None,
         step_def: Step | None = None,
-        global_context_vars: GlobalContextVarsDTO | Mapping[str, Any] | None = None,
+        global_context_vars: GlobalContextVarsDTO | None = None,
         target_locale: str = "en",
         output_profile_id: str | None = None,
         organization_id: str | None = None,
@@ -261,7 +261,7 @@ class NodeExecutor:
 
             normalized_mappings = {}
             for logical_name, path in step.input_mappings.items():
-                normalized_path = ContextRouter.normalize_and_validate_variable(path, {"steps": projector.snapshot})
+                normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
                 normalized_mappings[logical_name] = normalized_path
 
             step = step.model_copy(update={"input_mappings": normalized_mappings})
@@ -303,7 +303,10 @@ class NodeExecutor:
                 and metadata.global_context_vars is not None
                 and not resolved_global_vars.model_dump(exclude_defaults=True)
             ):
-                resolved_global_vars = GlobalContextVarsDTO(**metadata.global_context_vars)
+                if isinstance(metadata.global_context_vars, GlobalContextVarsDTO):
+                    resolved_global_vars = metadata.global_context_vars
+                elif isinstance(metadata.global_context_vars, Mapping):
+                    resolved_global_vars = GlobalContextVarsDTO(**dict(metadata.global_context_vars))
 
             resolved_model_registry_id: str | None = None
             if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:

@@ -7,14 +7,17 @@ from __future__ import annotations
 
 import json
 import logging
+from enum import Enum
 
 from pydantic import ValidationError
 
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.engine import EngineExecutionRequest, EngineExecutionResult
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis import SPARSE_DATA_SYNTHESIS_MANDATE
 from backend_v2.models.state import TraceEvent
@@ -55,8 +58,8 @@ class SynthesisEngine:
             AppException: If blackboard is missing or execution errors occur (ErrorCodes.SYNTHESIS_ENGINE_ERROR),
                 or if payload validation fails (ErrorCodes.VALIDATION_FAILED).
         """
-        raw_blackboard = None
-        if "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
+        raw_blackboard: object = request.context.context_variables.global_atom_blackboard
+        if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
             raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
         if raw_blackboard is None:
             logger.error(
@@ -70,37 +73,38 @@ class SynthesisEngine:
             )
 
         try:
-            blackboard = GlobalAtomBlackboard.model_validate(raw_blackboard)
+            blackboard = (
+                raw_blackboard
+                if isinstance(raw_blackboard, GlobalAtomBlackboard)
+                else GlobalAtomBlackboard.model_validate(raw_blackboard)
+            )
             all_atom_ids = blackboard.get_all_atom_ids()
             doc_aliases = list(blackboard.atoms_by_input.keys())
             total_atoms = len(all_atom_ids)
             settings = get_settings()
 
-            matrix_reducer_output = None
-            if "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables:
-                matrix_reducer_output = request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
+            matrix_reducer_output = request.context.context_variables.matrix_reducer_output
+            if matrix_reducer_output is None and "__MATRIX_REDUCER_OUTPUT__" in request.context.context_variables:
+                m_val = request.context.context_variables["__MATRIX_REDUCER_OUTPUT__"]
+                if isinstance(m_val, (LightweightMatrixDTO, LightweightMatrixOutput)):
+                    matrix_reducer_output = m_val
+
             has_matrix_evidence = False
-            if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
-                try:
-                    reduced_atoms = []
-                    if "reduced_atoms" in matrix_reducer_output:
-                        reduced_atoms = matrix_reducer_output["reduced_atoms"]
-                    evaluated_matrices = []
-                    if "evaluated_matrices" in matrix_reducer_output:
-                        evaluated_matrices = matrix_reducer_output["evaluated_matrices"]
-                    raw_extensions = {}
-                    if "raw_extensions" in matrix_reducer_output:
-                        raw_extensions = matrix_reducer_output["raw_extensions"]
-                    if reduced_atoms or evaluated_matrices or raw_extensions:
+            if matrix_reducer_output is not None:
+                if isinstance(matrix_reducer_output, LightweightMatrixDTO):
+                    if (
+                        matrix_reducer_output.reduced_atoms
+                        or matrix_reducer_output.evaluated_matrices
+                        or matrix_reducer_output.raw_extensions
+                    ):
                         has_matrix_evidence = True
-                except (TypeError, KeyError) as err:
-                    msg = f"Corrupted __MATRIX_REDUCER_OUTPUT__: {err}"
-                    logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise AppException(
-                        message=msg,
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    ) from err
+                elif isinstance(matrix_reducer_output, LightweightMatrixOutput):
+                    if (
+                        matrix_reducer_output.evaluated_atoms
+                        or matrix_reducer_output.level_breakdown
+                        or matrix_reducer_output.extensions
+                    ):
+                        has_matrix_evidence = True
 
             is_starved = False
             starvation_reason = ""
@@ -135,7 +139,7 @@ class SynthesisEngine:
                 return EngineExecutionResult(
                     results=[],
                     hydrated_references={},
-                    synthesis_output=starvation_content,
+                    synthesis_output=starvation_dto,
                     trace_events=[starvation_event],
                 )
 
@@ -146,11 +150,20 @@ class SynthesisEngine:
             local_messages = list(request.hydrated_messages)
 
             raw_xai_extensions_str = ""
-            if matrix_reducer_output and not isinstance(matrix_reducer_output, (str, int, float, bool, list)):
+            if matrix_reducer_output is not None:
                 try:
-                    if "raw_extensions" in matrix_reducer_output and matrix_reducer_output["raw_extensions"]:
-                        extensions_json = json.dumps(matrix_reducer_output["raw_extensions"], indent=2)
-                        raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
+                    if isinstance(matrix_reducer_output, LightweightMatrixDTO):
+                        if matrix_reducer_output.raw_extensions:
+                            extensions_json = json.dumps(matrix_reducer_output.raw_extensions, indent=2)
+                            raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
+                    elif isinstance(matrix_reducer_output, LightweightMatrixOutput):
+                        if matrix_reducer_output.extensions:
+                            ext_dict = {
+                                (k.value if isinstance(k, Enum) else str(k)): v
+                                for k, v in matrix_reducer_output.extensions.items()
+                            }
+                            extensions_json = json.dumps(ext_dict, indent=2)
+                            raw_xai_extensions_str = f"\n<raw_xai_extensions>\n{extensions_json}\n</raw_xai_extensions>"
                 except (TypeError, KeyError) as err:
                     msg = f"Corrupted raw_extensions in __MATRIX_REDUCER_OUTPUT__: {err}"
                     logger.error("[SynthesisEngine] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
@@ -209,6 +222,11 @@ class SynthesisEngine:
             # Hydrate and strictly DROP hallucinated opaque UUIDs
             alias_engine.hydrate_and_filter_aliases(output_dict, {"atom_id", "source_id"})
 
+            # Re-validate model after alias hydration
+            validated_output = (
+                request.compiled_schema.model_validate(output_dict) if request.compiled_schema else validated_model
+            )
+
             trace_events: list[TraceEvent] = []
             if usage.total_tokens > 0 or usage.cost_usd > 0.0:
                 output_dict.setdefault("_step_metadata", {})
@@ -226,7 +244,7 @@ class SynthesisEngine:
             return EngineExecutionResult(
                 results=[],
                 hydrated_references={},
-                synthesis_output=output_dict,
+                synthesis_output=validated_output,
                 trace_events=trace_events,
                 usage=usage,
             )

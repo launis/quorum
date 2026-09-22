@@ -8,12 +8,12 @@ import pytest
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
     GlobalContextVarsDTO,
-    HookDeltaDTO,
     HookDependencies,
     HookState,
 )
 from backend_v2.exceptions import AppException
 from backend_v2.hooks.security import sanitize_text_hook
+from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 
 
@@ -62,11 +62,10 @@ def test_sanitize_text_hook_success_no_pii() -> None:
 
     result = sanitize_text_hook(state, deps)
     assert result.success is True
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is not None
-    assert "sanitization_result" in delta
-    assert delta["sanitization_result"]["threat_detected"] is False
-    assert delta["sanitization_result"]["sanitized_inputs"]["reflection_text"] == "Tämä on puhdas analyysi."
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
+    assert result.state_delta.delta.threat_detected is False
+    assert result.state_delta.delta.sanitized_inputs["reflection_text"] == "Tämä on puhdas analyysi."
 
 
 def test_sanitize_text_hook_redacts_pii(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -96,10 +95,10 @@ def test_sanitize_text_hook_redacts_pii(monkeypatch: pytest.MonkeyPatch) -> None
 
     result = sanitize_text_hook(state, deps)
     assert result.success is True
-    delta = result.state_delta.delta if isinstance(result.state_delta, HookDeltaDTO) else result.state_delta
-    assert delta is not None
-    assert delta["sanitization_result"]["threat_detected"] is True
-    assert delta["sanitization_result"]["sanitized_inputs"]["reflection_text"] == "Matti [REDACTED]"
+    assert result.state_delta is not None
+    assert isinstance(result.state_delta.delta, SanitizationResultDTO)
+    assert result.state_delta.delta.threat_detected is True
+    assert result.state_delta.delta.sanitized_inputs["reflection_text"] == "Matti [REDACTED]"
 
 
 def test_sanitize_text_hook_invalid_language_payload_raises() -> None:
