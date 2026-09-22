@@ -1746,6 +1746,21 @@
     }
   },
   "studioViewsNewBtn": "New",
+  "studioMasterSearchHint": "Search items...",
+  "studioMasterClearSearch": "Clear search",
+  "studioMasterItemCount": "Showing {filtered} of {total} items",
+  "@studioMasterItemCount": {
+    "placeholders": {
+      "filtered": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "studioMasterDuplicateTooltip": "Duplicate (Deep Copy)",
+  "studioMasterNoMatchingItems": "No matching items found.",
   "studioViewsWorkflowBuilderTitle": "Workflow Builder",
   "studioViewsNewWorkflowBtn": "New Workflow",
   "studioViewsWorkflowBuilderDesc": "Manage master execution blueprints (DAGs) defining agentic workflows, inputs, and strategies.",

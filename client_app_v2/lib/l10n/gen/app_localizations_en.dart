@@ -3379,6 +3379,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get studioViewsNewBtn => 'New';
 
   @override
+  String get studioMasterSearchHint => 'Search items...';
+
+  @override
+  String get studioMasterClearSearch => 'Clear search';
+
+  @override
+  String studioMasterItemCount(int filtered, int total) {
+    return 'Showing $filtered of $total items';
+  }
+
+  @override
+  String get studioMasterDuplicateTooltip => 'Duplicate (Deep Copy)';
+
+  @override
+  String get studioMasterNoMatchingItems => 'No matching items found.';
+
+  @override
   String get studioViewsWorkflowBuilderTitle => 'Workflow Builder';
 
   @override

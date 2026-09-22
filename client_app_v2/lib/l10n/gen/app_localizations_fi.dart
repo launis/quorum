@@ -3405,6 +3405,24 @@ class AppLocalizationsFi extends AppLocalizations {
   String get studioViewsNewBtn => 'Uusi';
 
   @override
+  String get studioMasterSearchHint => 'Hae kohteita...';
+
+  @override
+  String get studioMasterClearSearch => 'Tyhjennä haku';
+
+  @override
+  String studioMasterItemCount(int filtered, int total) {
+    return '$filtered / $total kohteesta';
+  }
+
+  @override
+  String get studioMasterDuplicateTooltip => 'Monista (Syväkopio)';
+
+  @override
+  String get studioMasterNoMatchingItems =>
+      'Hakuehtoja vastaavia kohteita ei löytynyt.';
+
+  @override
   String get studioViewsWorkflowBuilderTitle =>
       'Työnkulkurakentaja (Workflow Builder)';
 

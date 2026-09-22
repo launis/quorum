@@ -6186,6 +6186,36 @@ abstract class AppLocalizations {
   /// **'New'**
   String get studioViewsNewBtn;
 
+  /// No description provided for @studioMasterSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search items...'**
+  String get studioMasterSearchHint;
+
+  /// No description provided for @studioMasterClearSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear search'**
+  String get studioMasterClearSearch;
+
+  /// No description provided for @studioMasterItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {filtered} of {total} items'**
+  String studioMasterItemCount(int filtered, int total);
+
+  /// No description provided for @studioMasterDuplicateTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate (Deep Copy)'**
+  String get studioMasterDuplicateTooltip;
+
+  /// No description provided for @studioMasterNoMatchingItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching items found.'**
+  String get studioMasterNoMatchingItems;
+
   /// No description provided for @studioViewsWorkflowBuilderTitle.
   ///
   /// In en, this message translates to:
