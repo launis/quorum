@@ -323,9 +323,15 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
               DropdownButton<String>(
                 value: _targetLocale,
                 isDense: true,
-                items: const [
-                  DropdownMenuItem(value: 'en', child: Text('English (en)')),
-                  DropdownMenuItem(value: 'fi', child: Text('Suomi (fi)')),
+                items: [
+                  DropdownMenuItem(
+                    value: 'en',
+                    child: Text(l10n.profileLanguageEn),
+                  ),
+                  DropdownMenuItem(
+                    value: 'fi',
+                    child: Text(l10n.profileLanguageFi),
+                  ),
                 ],
                 onChanged: (val) {
                   if (val != null) {
