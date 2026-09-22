@@ -51,9 +51,9 @@ void main() {
       ];
 
       final mockClient = MockStudioClient();
-      when(() => mockClient.getPromptBlocks()).thenAnswer(
-        (_) async => mockPromptBlocks,
-      );
+      when(
+        () => mockClient.getPromptBlocks(),
+      ).thenAnswer((_) async => mockPromptBlocks);
       when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
       when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
 
@@ -144,9 +144,9 @@ void main() {
         ];
 
         final mockClient = MockStudioClient();
-        when(() => mockClient.getPromptBlocks()).thenAnswer(
-          (_) async => mockPromptBlocks,
-        );
+        when(
+          () => mockClient.getPromptBlocks(),
+        ).thenAnswer((_) async => mockPromptBlocks);
         when(() => mockClient.getMcpGateways()).thenAnswer((_) async => []);
         when(() => mockClient.getSystemConfigs()).thenAnswer((_) async => []);
 

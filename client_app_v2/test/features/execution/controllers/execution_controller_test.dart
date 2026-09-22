@@ -7,6 +7,7 @@ import 'package:client_app/features/execution/controllers/execution_controller.d
 import 'package:client_app/core/models/generic_status_response_dto.dart';
 import 'package:client_app/features/execution/models/execution_create_request_dto.dart';
 import 'package:client_app/features/execution/models/execution_record.dart';
+import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/features/execution/models/report_data_v2_dto.dart';
 import 'package:client_app/core/logging/logger_service.dart';
 
@@ -73,7 +74,7 @@ class MockExecutionClient implements ExecutionClient {
   Future<GenericStatusResponseDto> overrideAtom({
     required String executionId,
     required String atomId,
-    required Map<String, dynamic> payload,
+    required HumanOverrideRequestDto payload,
   }) async {
     return const GenericStatusResponseDto(message: 'ok');
   }

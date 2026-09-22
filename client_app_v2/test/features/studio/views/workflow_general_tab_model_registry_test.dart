@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client_app/features/studio/models/workflow.dart';
 import 'package:client_app/features/studio/models/model_config.dart';
 import 'package:client_app/features/studio/models/output_profile.dart';
+import 'package:client_app/features/studio/models/mcp_gateway.dart';
 import 'package:client_app/features/studio/views/widgets/workflow/workflow_general_tab.dart';
 import 'package:client_app/features/studio/controllers/model_registry_controller.dart';
 import 'package:client_app/features/studio/controllers/output_profile_controller.dart';
@@ -336,26 +337,27 @@ class MockOutputProfilesController extends AsyncNotifier<List<OutputProfile>>
   );
 }
 
-class MockMcpGatewaysController
-    extends AsyncNotifier<List<Map<String, dynamic>>>
+class MockMcpGatewaysController extends AsyncNotifier<List<McpGateway>>
     implements McpGatewaysController {
   @override
-  Future<List<Map<String, dynamic>>> build() async => const [];
+  Future<List<McpGateway>> build() async => const [];
   @override
   Future<void> refresh() async {}
   @override
-  Future<Map<String, dynamic>> saveGateway(
+  Future<McpGateway> saveGateway(
     String id,
-    Map<String, dynamic> data,
+    McpGateway data,
   ) async => data;
   @override
   Future<void> deleteGateway(String id) async {}
   @override
-  Future<Map<String, dynamic>> cloneGateway(String id) async => const {
-    'id': 'cloned',
-  };
+  Future<McpGateway> cloneGateway(String id) async => const McpGateway(
+    id: 'gw_cloned',
+    slug: 'cloned',
+  );
   @override
-  Future<Map<String, dynamic>> createMcpGatewayDraft() async => const {
-    'id': 'draft',
-  };
+  Future<McpGateway> createMcpGatewayDraft() async => const McpGateway(
+    id: 'gw_draft',
+    slug: 'draft',
+  );
 }

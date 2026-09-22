@@ -49,9 +49,7 @@ void main() {
   setUp(() {
     mockClient = MockReportsClient();
     container = ProviderContainer(
-      overrides: [
-        reportsClientProvider.overrideWithValue(mockClient),
-      ],
+      overrides: [reportsClientProvider.overrideWithValue(mockClient)],
     );
   });
 
@@ -61,186 +59,251 @@ void main() {
 
   group('ReportArtifactController Providers', () {
     test('executionReportsProvider fetches report summaries', () async {
-      when(() => mockClient.listReports(testExecutionId))
-          .thenAnswer((_) async => [testSummary]);
+      when(
+        () => mockClient.listReports(testExecutionId),
+      ).thenAnswer((_) async => [testSummary]);
 
-      final result = await container.read(executionReportsProvider(testExecutionId).future);
+      final result = await container.read(
+        executionReportsProvider(testExecutionId).future,
+      );
       expect(result.length, equals(1));
       expect(result.first.id, equals(testReportId));
       verify(() => mockClient.listReports(testExecutionId)).called(1);
     });
 
     test('reportDetailProvider fetches detailed report artifact', () async {
-      when(() => mockClient.getReport(testReportId))
-          .thenAnswer((_) async => testReport);
+      when(
+        () => mockClient.getReport(testReportId),
+      ).thenAnswer((_) async => testReport);
 
-      final result = await container.read(reportDetailProvider(testReportId).future);
+      final result = await container.read(
+        reportDetailProvider(testReportId).future,
+      );
       expect(result.id, equals(testReportId));
       expect(result.title, equals('Test Report Detail'));
       verify(() => mockClient.getReport(testReportId)).called(1);
     });
 
     test('reportSduiProvider fetches ReportDataDto blueprint', () async {
-      when(() => mockClient.getReportSdui(testReportId))
-          .thenAnswer((_) async => testReportData);
+      when(
+        () => mockClient.getReportSdui(testReportId),
+      ).thenAnswer((_) async => testReportData);
 
-      final result = await container.read(reportSduiProvider(testReportId).future);
+      final result = await container.read(
+        reportSduiProvider(testReportId).future,
+      );
       expect(result.executionId, equals(testExecutionId));
       verify(() => mockClient.getReportSdui(testReportId)).called(1);
     });
 
     test('reportRowsProvider fetches scorecard rows', () async {
-      when(() => mockClient.getReportRows(testReportId))
-          .thenAnswer((_) async => <ReportRowItem>[]);
+      when(
+        () => mockClient.getReportRows(testReportId),
+      ).thenAnswer((_) async => <ReportRowItem>[]);
 
-      final result = await container.read(reportRowsProvider(testReportId).future);
+      final result = await container.read(
+        reportRowsProvider(testReportId).future,
+      );
       expect(result, isEmpty);
       verify(() => mockClient.getReportRows(testReportId)).called(1);
     });
 
-    test('executionReportsProvider self-invalidates when report status is generating', () async {
-      final generatingSummary = testSummary.copyWith(status: ReportStatus.generating);
-      final readySummary = testSummary.copyWith(status: ReportStatus.ready);
+    test(
+      'executionReportsProvider self-invalidates when report status is generating',
+      () async {
+        final generatingSummary = testSummary.copyWith(
+          status: ReportStatus.generating,
+        );
+        final readySummary = testSummary.copyWith(status: ReportStatus.ready);
 
-      var callCount = 0;
-      when(() => mockClient.listReports(testExecutionId)).thenAnswer((_) async {
-        callCount++;
-        if (callCount == 1) {
-          return [generatingSummary];
-        } else {
-          return [readySummary];
-        }
-      });
+        var callCount = 0;
+        when(() => mockClient.listReports(testExecutionId)).thenAnswer((
+          _,
+        ) async {
+          callCount++;
+          if (callCount == 1) {
+            return [generatingSummary];
+          } else {
+            return [readySummary];
+          }
+        });
 
-      final sub = container.listen(
-        executionReportsProvider(testExecutionId),
-        (previous, next) {},
-      );
+        final sub = container.listen(
+          executionReportsProvider(testExecutionId),
+          (previous, next) {},
+        );
 
-      final firstResult = await container.read(executionReportsProvider(testExecutionId).future);
-      expect(firstResult.first.status, equals(ReportStatus.generating));
-      expect(callCount, equals(1));
+        final firstResult = await container.read(
+          executionReportsProvider(testExecutionId).future,
+        );
+        expect(firstResult.first.status, equals(ReportStatus.generating));
+        expect(callCount, equals(1));
 
-      // Wait for 2s self-invalidation timer
-      await Future.delayed(const Duration(milliseconds: 2100));
+        // Wait for 2s self-invalidation timer
+        await Future.delayed(const Duration(milliseconds: 2100));
 
-      final secondResult = await container.read(executionReportsProvider(testExecutionId).future);
-      expect(secondResult.first.status, equals(ReportStatus.ready));
-      expect(callCount, greaterThanOrEqualTo(2));
+        final secondResult = await container.read(
+          executionReportsProvider(testExecutionId).future,
+        );
+        expect(secondResult.first.status, equals(ReportStatus.ready));
+        expect(callCount, greaterThanOrEqualTo(2));
 
-      sub.close();
-    });
+        sub.close();
+      },
+    );
 
-    test('reportDetailProvider self-invalidates when report status is generating', () async {
-      final generatingReport = testReport.copyWith(status: ReportStatus.generating);
-      final readyReport = testReport.copyWith(status: ReportStatus.ready);
+    test(
+      'reportDetailProvider self-invalidates when report status is generating',
+      () async {
+        final generatingReport = testReport.copyWith(
+          status: ReportStatus.generating,
+        );
+        final readyReport = testReport.copyWith(status: ReportStatus.ready);
 
-      var callCount = 0;
-      when(() => mockClient.getReport(testReportId)).thenAnswer((_) async {
-        callCount++;
-        if (callCount == 1) {
-          return generatingReport;
-        } else {
-          return readyReport;
-        }
-      });
+        var callCount = 0;
+        when(() => mockClient.getReport(testReportId)).thenAnswer((_) async {
+          callCount++;
+          if (callCount == 1) {
+            return generatingReport;
+          } else {
+            return readyReport;
+          }
+        });
 
-      final sub = container.listen(
-        reportDetailProvider(testReportId),
-        (previous, next) {},
-      );
+        final sub = container.listen(
+          reportDetailProvider(testReportId),
+          (previous, next) {},
+        );
 
-      final firstResult = await container.read(reportDetailProvider(testReportId).future);
-      expect(firstResult.status, equals(ReportStatus.generating));
-      expect(callCount, equals(1));
+        final firstResult = await container.read(
+          reportDetailProvider(testReportId).future,
+        );
+        expect(firstResult.status, equals(ReportStatus.generating));
+        expect(callCount, equals(1));
 
-      // Wait for 2s self-invalidation timer
-      await Future.delayed(const Duration(milliseconds: 2100));
+        // Wait for 2s self-invalidation timer
+        await Future.delayed(const Duration(milliseconds: 2100));
 
-      final secondResult = await container.read(reportDetailProvider(testReportId).future);
-      expect(secondResult.status, equals(ReportStatus.ready));
-      expect(callCount, greaterThanOrEqualTo(2));
+        final secondResult = await container.read(
+          reportDetailProvider(testReportId).future,
+        );
+        expect(secondResult.status, equals(ReportStatus.ready));
+        expect(callCount, greaterThanOrEqualTo(2));
 
-      sub.close();
-    });
+        sub.close();
+      },
+    );
   });
 
   group('ReportArtifactActions Mutations', () {
-    test('createReport succeeds and invalidates executionReportsProvider', () async {
+    test(
+      'createReport succeeds and invalidates executionReportsProvider',
+      () async {
+        when(
+          () => mockClient.createReport(
+            executionId: testExecutionId,
+            profileId: 'prf_test',
+            locale: 'fi',
+          ),
+        ).thenAnswer((_) async => testSummary);
+
+        final summary = await container
+            .read(reportArtifactActionsProvider.notifier)
+            .createReport(executionId: testExecutionId, profileId: 'prf_test');
+
+        expect(summary, isNotNull);
+        expect(summary!.id, equals(testReportId));
+        expect(
+          container.read(reportArtifactActionsProvider),
+          equals(const AsyncValue<void>.data(null)),
+        );
+      },
+    );
+
+    test('regenerateReport succeeds and invalidates cache providers', () async {
       when(
-        () => mockClient.createReport(
-          executionId: testExecutionId,
-          profileId: 'prf_test',
-          locale: 'fi',
-        ),
+        () => mockClient.regenerateReport(testReportId),
       ).thenAnswer((_) async => testSummary);
 
       final summary = await container
           .read(reportArtifactActionsProvider.notifier)
-          .createReport(executionId: testExecutionId, profileId: 'prf_test');
+          .regenerateReport(
+            reportId: testReportId,
+            executionId: testExecutionId,
+          );
 
       expect(summary, isNotNull);
       expect(summary!.id, equals(testReportId));
-      expect(container.read(reportArtifactActionsProvider), equals(const AsyncValue<void>.data(null)));
-    });
-
-    test('regenerateReport succeeds and invalidates cache providers', () async {
-      when(() => mockClient.regenerateReport(testReportId))
-          .thenAnswer((_) async => testSummary);
-
-      final summary = await container
-          .read(reportArtifactActionsProvider.notifier)
-          .regenerateReport(reportId: testReportId, executionId: testExecutionId);
-
-      expect(summary, isNotNull);
-      expect(summary!.id, equals(testReportId));
-      expect(container.read(reportArtifactActionsProvider), equals(const AsyncValue<void>.data(null)));
-    });
-
-    test('deleteReport calls deleteReport on client and resets state', () async {
-      when(() => mockClient.deleteReport(testReportId))
-          .thenAnswer((_) async {});
-
-      await container
-          .read(reportArtifactActionsProvider.notifier)
-          .deleteReport(reportId: testReportId, executionId: testExecutionId);
-
-      expect(container.read(reportArtifactActionsProvider), equals(const AsyncValue<void>.data(null)));
-      verify(() => mockClient.deleteReport(testReportId)).called(1);
-    });
-
-    test('Negative Test 1: createReport failure sets state to error and rethrows', () async {
-      when(
-        () => mockClient.createReport(
-          executionId: testExecutionId,
-          profileId: 'prf_test',
-          locale: 'fi',
-        ),
-      ).thenThrow(Exception('Backend 500 error'));
-
       expect(
-        () => container
-            .read(reportArtifactActionsProvider.notifier)
-            .createReport(executionId: testExecutionId, profileId: 'prf_test'),
-        throwsA(isA<Exception>()),
+        container.read(reportArtifactActionsProvider),
+        equals(const AsyncValue<void>.data(null)),
       );
-
-      // Verify that state transitions to AsyncError
-      expect(container.read(reportArtifactActionsProvider).hasError, isTrue);
     });
 
-    test('Negative Test 2: regenerateReport failure sets state to error and rethrows', () async {
-      when(() => mockClient.regenerateReport(testReportId))
-          .thenThrow(Exception('Regeneration error'));
+    test(
+      'deleteReport calls deleteReport on client and resets state',
+      () async {
+        when(
+          () => mockClient.deleteReport(testReportId),
+        ).thenAnswer((_) async {});
 
-      expect(
-        () => container
+        await container
             .read(reportArtifactActionsProvider.notifier)
-            .regenerateReport(reportId: testReportId, executionId: testExecutionId),
-        throwsA(isA<Exception>()),
-      );
+            .deleteReport(reportId: testReportId, executionId: testExecutionId);
 
-      expect(container.read(reportArtifactActionsProvider).hasError, isTrue);
-    });
+        expect(
+          container.read(reportArtifactActionsProvider),
+          equals(const AsyncValue<void>.data(null)),
+        );
+        verify(() => mockClient.deleteReport(testReportId)).called(1);
+      },
+    );
+
+    test(
+      'Negative Test 1: createReport failure sets state to error and rethrows',
+      () async {
+        when(
+          () => mockClient.createReport(
+            executionId: testExecutionId,
+            profileId: 'prf_test',
+            locale: 'fi',
+          ),
+        ).thenThrow(Exception('Backend 500 error'));
+
+        expect(
+          () => container
+              .read(reportArtifactActionsProvider.notifier)
+              .createReport(
+                executionId: testExecutionId,
+                profileId: 'prf_test',
+              ),
+          throwsA(isA<Exception>()),
+        );
+
+        // Verify that state transitions to AsyncError
+        expect(container.read(reportArtifactActionsProvider).hasError, isTrue);
+      },
+    );
+
+    test(
+      'Negative Test 2: regenerateReport failure sets state to error and rethrows',
+      () async {
+        when(
+          () => mockClient.regenerateReport(testReportId),
+        ).thenThrow(Exception('Regeneration error'));
+
+        expect(
+          () => container
+              .read(reportArtifactActionsProvider.notifier)
+              .regenerateReport(
+                reportId: testReportId,
+                executionId: testExecutionId,
+              ),
+          throwsA(isA<Exception>()),
+        );
+
+        expect(container.read(reportArtifactActionsProvider).hasError, isTrue);
+      },
+    );
   });
 }

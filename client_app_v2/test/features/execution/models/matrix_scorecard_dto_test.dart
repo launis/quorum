@@ -249,10 +249,7 @@ void main() {
         'quote': 'Verbatim test quote',
         'extra_field': 'forbidden',
       };
-      expect(
-        () => QuoteEvidenceDto.fromJson(invalidJson),
-        throwsA(anything),
-      );
+      expect(() => QuoteEvidenceDto.fromJson(invalidJson), throwsA(anything));
     });
 
     test('McpAuditTraceDto parses valid trace and rejects extra keys', () {
@@ -273,11 +270,7 @@ void main() {
         'query': 'test',
         'illegal_trace_key': 999,
       };
-      expect(
-        () => McpAuditTraceDto.fromJson(invalidJson),
-        throwsA(anything),
-      );
+      expect(() => McpAuditTraceDto.fromJson(invalidJson), throwsA(anything));
     });
   });
 }
-

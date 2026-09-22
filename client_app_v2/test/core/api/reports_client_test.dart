@@ -13,7 +13,9 @@ void main() {
 
   setUp(() {
     mockDio = MockDio();
-    when(() => mockDio.options).thenReturn(BaseOptions(baseUrl: 'https://api.test/api/v2'));
+    when(
+      () => mockDio.options,
+    ).thenReturn(BaseOptions(baseUrl: 'https://api.test/api/v2'));
     client = ReportsClient(mockDio);
   });
 
@@ -32,102 +34,123 @@ void main() {
       'updated_at': '2026-09-21T12:00:00.000Z',
     };
 
-    test('createReport sends expected payload and returns ReportArtifactSummary', () async {
-      when(
-        () => mockDio.post(
-          '/executions/$testExecutionId/reports',
-          data: {
-            'profile_id': 'prf_default',
-            'locale': 'fi',
-            'custom_preface_md': 'Custom preface',
-            'model_registry_id': 'reg_123',
-          },
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/executions/$testExecutionId/reports'),
-          data: testSummaryJson,
-          statusCode: 200,
-        ),
-      );
-
-      final result = await client.createReport(
-        executionId: testExecutionId,
-        profileId: 'prf_default',
-        locale: 'fi',
-        customPrefaceMd: 'Custom preface',
-        modelRegistryId: 'reg_123',
-      );
-
-      expect(result.id, equals(testReportId));
-      expect(result.executionId, equals(testExecutionId));
-      expect(result.status, equals(ReportStatus.ready));
-      verify(
-        () => mockDio.post(
-          '/executions/$testExecutionId/reports',
-          data: {
-            'profile_id': 'prf_default',
-            'locale': 'fi',
-            'custom_preface_md': 'Custom preface',
-            'model_registry_id': 'reg_123',
-          },
-        ),
-      ).called(1);
-    });
-
-    test('Negative Test 1: createReport propagates DioException on network/HTTP error', () async {
-      when(
-        () => mockDio.post(
-          '/executions/$testExecutionId/reports',
-          data: any(named: 'data'),
-        ),
-      ).thenThrow(
-        DioException(
-          requestOptions: RequestOptions(path: '/executions/$testExecutionId/reports'),
-          response: Response(
-            requestOptions: RequestOptions(path: '/executions/$testExecutionId/reports'),
-            statusCode: 400,
+    test(
+      'createReport sends expected payload and returns ReportArtifactSummary',
+      () async {
+        when(
+          () => mockDio.post(
+            '/executions/$testExecutionId/reports',
+            data: {
+              'profile_id': 'prf_default',
+              'locale': 'fi',
+              'custom_preface_md': 'Custom preface',
+              'model_registry_id': 'reg_123',
+            },
           ),
-          type: DioExceptionType.badResponse,
-        ),
-      );
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(
+              path: '/executions/$testExecutionId/reports',
+            ),
+            data: testSummaryJson,
+            statusCode: 200,
+          ),
+        );
 
-      expect(
-        () => client.createReport(
+        final result = await client.createReport(
           executionId: testExecutionId,
           profileId: 'prf_default',
-        ),
-        throwsA(isA<DioException>()),
-      );
-    });
+          locale: 'fi',
+          customPrefaceMd: 'Custom preface',
+          modelRegistryId: 'reg_123',
+        );
 
-    test('Negative Test 2: createReport throws when server returns malformed JSON missing required keys', () async {
-      when(
-        () => mockDio.post(
-          '/executions/$testExecutionId/reports',
-          data: any(named: 'data'),
-        ),
-      ).thenAnswer(
-        (_) async => Response(
-          requestOptions: RequestOptions(path: '/executions/$testExecutionId/reports'),
-          data: {'invalid': 'payload'},
-          statusCode: 200,
-        ),
-      );
+        expect(result.id, equals(testReportId));
+        expect(result.executionId, equals(testExecutionId));
+        expect(result.status, equals(ReportStatus.ready));
+        verify(
+          () => mockDio.post(
+            '/executions/$testExecutionId/reports',
+            data: {
+              'profile_id': 'prf_default',
+              'locale': 'fi',
+              'custom_preface_md': 'Custom preface',
+              'model_registry_id': 'reg_123',
+            },
+          ),
+        ).called(1);
+      },
+    );
 
-      expect(
-        () => client.createReport(
-          executionId: testExecutionId,
-          profileId: 'prf_default',
-        ),
-        throwsA(anything),
-      );
-    });
+    test(
+      'Negative Test 1: createReport propagates DioException on network/HTTP error',
+      () async {
+        when(
+          () => mockDio.post(
+            '/executions/$testExecutionId/reports',
+            data: any(named: 'data'),
+          ),
+        ).thenThrow(
+          DioException(
+            requestOptions: RequestOptions(
+              path: '/executions/$testExecutionId/reports',
+            ),
+            response: Response(
+              requestOptions: RequestOptions(
+                path: '/executions/$testExecutionId/reports',
+              ),
+              statusCode: 400,
+            ),
+            type: DioExceptionType.badResponse,
+          ),
+        );
+
+        expect(
+          () => client.createReport(
+            executionId: testExecutionId,
+            profileId: 'prf_default',
+          ),
+          throwsA(isA<DioException>()),
+        );
+      },
+    );
+
+    test(
+      'Negative Test 2: createReport throws when server returns malformed JSON missing required keys',
+      () async {
+        when(
+          () => mockDio.post(
+            '/executions/$testExecutionId/reports',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(
+              path: '/executions/$testExecutionId/reports',
+            ),
+            data: {'invalid': 'payload'},
+            statusCode: 200,
+          ),
+        );
+
+        expect(
+          () => client.createReport(
+            executionId: testExecutionId,
+            profileId: 'prf_default',
+          ),
+          throwsA(anything),
+        );
+      },
+    );
 
     test('listReports fetches reports and maps list of summaries', () async {
-      when(() => mockDio.get('/executions/$testExecutionId/reports')).thenAnswer(
+      when(
+        () => mockDio.get('/executions/$testExecutionId/reports'),
+      ).thenAnswer(
         (_) async => Response(
-          requestOptions: RequestOptions(path: '/executions/$testExecutionId/reports'),
+          requestOptions: RequestOptions(
+            path: '/executions/$testExecutionId/reports',
+          ),
           data: [testSummaryJson],
           statusCode: 200,
         ),
@@ -136,7 +159,9 @@ void main() {
       final result = await client.listReports(testExecutionId);
       expect(result.length, equals(1));
       expect(result.first.id, equals(testReportId));
-      verify(() => mockDio.get('/executions/$testExecutionId/reports')).called(1);
+      verify(
+        () => mockDio.get('/executions/$testExecutionId/reports'),
+      ).called(1);
     });
 
     test('getReport fetches report artifact detail', () async {
@@ -154,9 +179,7 @@ void main() {
           'csv_path': '/files/test.csv',
           'sdui_json_path': '/files/test.json',
         },
-        'metadata': {
-          'duration_ms': 1234,
-        },
+        'metadata': {'duration_ms': 1234},
         'created_at': '2026-09-21T12:00:00.000Z',
         'updated_at': '2026-09-21T12:00:00.000Z',
       };
@@ -200,10 +223,7 @@ void main() {
     test('download binary methods return Uint8List bytes', () async {
       final bytes = [1, 2, 3, 4, 5];
       when(
-        () => mockDio.get<List<int>>(
-          any(),
-          options: any(named: 'options'),
-        ),
+        () => mockDio.get<List<int>>(any(), options: any(named: 'options')),
       ).thenAnswer(
         (_) async => Response<List<int>>(
           requestOptions: RequestOptions(path: '/reports/$testReportId/pdf'),
@@ -223,9 +243,18 @@ void main() {
     });
 
     test('URL builders construct normalized download links', () {
-      expect(client.getPdfDownloadUrl(testReportId), equals('https://api.test/api/v2/reports/$testReportId/pdf'));
-      expect(client.getExcelDownloadUrl(testReportId), equals('https://api.test/api/v2/reports/$testReportId/excel'));
-      expect(client.getCsvDownloadUrl(testReportId), equals('https://api.test/api/v2/reports/$testReportId/csv'));
+      expect(
+        client.getPdfDownloadUrl(testReportId),
+        equals('https://api.test/api/v2/reports/$testReportId/pdf'),
+      );
+      expect(
+        client.getExcelDownloadUrl(testReportId),
+        equals('https://api.test/api/v2/reports/$testReportId/excel'),
+      );
+      expect(
+        client.getCsvDownloadUrl(testReportId),
+        equals('https://api.test/api/v2/reports/$testReportId/csv'),
+      );
     });
   });
 }

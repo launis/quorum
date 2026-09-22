@@ -15,7 +15,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockReportsClient extends Mock implements ReportsClient {}
+
 class MockStudioClient extends Mock implements StudioClient {}
+
 class MockExecutionClient extends Mock implements ExecutionClient {}
 
 void main() {
@@ -115,7 +117,9 @@ void main() {
           ),
         ),
       ];
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -162,10 +166,7 @@ void main() {
           id: 'prf_01b1d71000000002',
           workflowId: 'wor_01b1d71000000002',
           name: I18nText(
-            translations: {
-              'fi': 'Väärä Profiili',
-              'en': 'Wrong Profile',
-            },
+            translations: {'fi': 'Väärä Profiili', 'en': 'Wrong Profile'},
           ),
         ),
       ];
@@ -176,8 +177,12 @@ void main() {
         'status': 'PASSED',
       });
 
-      when(() => mockExecClient.getExecutionStatus('exe_01b1d71000000001')).thenAnswer((_) async => execRecord);
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
+      when(
+        () => mockExecClient.getExecutionStatus('exe_01b1d71000000001'),
+      ).thenAnswer((_) async => execRecord);
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -190,9 +195,7 @@ void main() {
             supportedLocales: AppLocalizations.supportedLocales,
             locale: Locale('fi'),
             home: Scaffold(
-              body: CreateReportDialog(
-                executionId: 'exe_01b1d71000000001',
-              ),
+              body: CreateReportDialog(executionId: 'exe_01b1d71000000001'),
             ),
           ),
         ),
@@ -201,7 +204,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      verify(() => mockExecClient.getExecutionStatus('exe_01b1d71000000001')).called(1);
+      verify(
+        () => mockExecClient.getExecutionStatus('exe_01b1d71000000001'),
+      ).called(1);
       expect(find.text('Dynaaminen Profiili'), findsOneWidget);
       expect(find.text('Väärä Profiili'), findsNothing);
     },
@@ -220,7 +225,9 @@ void main() {
           ),
         ),
       ];
-      when(() => mockStudioClient.getOutputProfiles()).thenAnswer((_) async => profiles);
+      when(
+        () => mockStudioClient.getOutputProfiles(),
+      ).thenAnswer((_) async => profiles);
 
       await tester.pumpWidget(
         ProviderScope(
@@ -242,7 +249,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.'), findsOneWidget);
+      expect(
+        find.text('Tälle työnkululle ei löytynyt sopivia tulosteprofiileja.'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -327,11 +337,12 @@ void main() {
       final horizontalScroll = find.ancestor(
         of: find.byType(DataTable),
         matching: find.byWidgetPredicate(
-          (w) => w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+          (w) =>
+              w is SingleChildScrollView &&
+              w.scrollDirection == Axis.horizontal,
         ),
       );
       expect(horizontalScroll, findsOneWidget);
     },
   );
 }
-

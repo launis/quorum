@@ -57,7 +57,10 @@ void main() {
       );
       expect(find.byIcon(Icons.check_circle), findsOneWidget);
       expect(find.byIcon(Icons.format_quote), findsOneWidget);
-      expect(find.byIcon(Icons.gavel), findsNWidgets(2)); // framework + falsification
+      expect(
+        find.byIcon(Icons.gavel),
+        findsNWidgets(2),
+      ); // framework + falsification
       expect(find.byIcon(Icons.verified), findsOneWidget);
       expect(find.textContaining('92%'), findsOneWidget);
       expect(
@@ -85,10 +88,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        buildTestableWidget(
-          axis: axis,
-          deliveryMode: TextDeliveryMode.none,
-        ),
+        buildTestableWidget(axis: axis, deliveryMode: TextDeliveryMode.none),
       );
       await tester.pumpAndSettle();
 
