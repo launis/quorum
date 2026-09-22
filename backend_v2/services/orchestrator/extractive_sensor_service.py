@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from collections.abc import Sequence
 from typing import Annotated, Self
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
@@ -23,7 +24,7 @@ from backend_v2.models.dtos.dag_models import (
 )
 from backend_v2.models.dtos.engine import MatrixEvaluationContext
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
-from backend_v2.models.dtos.sensor import SensorValidationContextDTO
+from backend_v2.models.dtos.sensor import EnsembleCallResultDTO, SensorValidationContextDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompts.common import (
     DESC_ALIAS,
@@ -359,14 +360,14 @@ class ExtractiveSensorService:
     @staticmethod
     def resolve_majority_vote(
         expected_tda_ids: list[str],
-        results: list[dict[str, AtomEvaluationResultDTO] | None],
+        results: Sequence[EnsembleCallResultDTO],
         is_inverse_map: dict[str, bool] | None = None,
     ) -> dict[str, AtomEvaluationResultDTO]:
         """Resolves Best-of-Three ensemble voting.
 
         Args:
             expected_tda_ids: The full list of expected atom IDs for this batch.
-            results: The list of response dictionaries from the ensemble calls. None if a call failed transiently.
+            results: Sequence of EnsembleCallResultDTO instances from the ensemble calls.
             is_inverse_map: Optional mapping of atom ID to boolean inverse polarity.
 
         Returns:
@@ -378,7 +379,7 @@ class ExtractiveSensorService:
         settings = get_settings()
         min_consensus = settings.ensemble_min_consensus
 
-        valid_results = [r for r in results if r is not None]
+        valid_results = [r.evaluations for r in results if r.evaluations is not None]
 
         if len(valid_results) < min_consensus:
             logger = logging.getLogger(__name__)
@@ -542,7 +543,7 @@ class ExtractiveSensorService:
 
         semaphore = asyncio.Semaphore(parallelism)
 
-        async def _single_ensemble_call(call_idx: int) -> tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]:
+        async def _single_ensemble_call(call_idx: int) -> EnsembleCallResultDTO:
             async with semaphore:
                 try:
                     validation_context = SensorValidationContextDTO(
@@ -680,14 +681,16 @@ class ExtractiveSensorService:
                             ) as rec_err:
                                 _record_dlq_recovery_failure(rec_err, call_idx)
 
-                    return call_results, usage
+                    return EnsembleCallResultDTO(evaluations=call_results, usage=usage)
                 except Exception as e:
                     if isinstance(e, (AgentExecutionError, ValidationError)) or _is_transient_llm_error(e):
                         logger.warning("Transient error in Bo3 ensemble call: %s", e)
-                        return None, TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                        return EnsembleCallResultDTO(
+                            evaluations=None, usage=TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
+                        )
                     raise
 
-        task_outputs: list[tuple[dict[str, AtomEvaluationResultDTO] | None, TokenUsage]] = []
+        task_outputs: list[EnsembleCallResultDTO] = []
         try:
             async with asyncio.TaskGroup() as tg:
                 tasks = [tg.create_task(_single_ensemble_call(call_idx)) for call_idx in range(parallelism)]
@@ -703,11 +706,10 @@ class ExtractiveSensorService:
             )
             raise first_exc from eg
 
-        results: list[dict[str, AtomEvaluationResultDTO] | None] = []
+        results: list[EnsembleCallResultDTO] = list(task_outputs)
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-        for res, usage in task_outputs:
-            results.append(res)
-            total_usage = total_usage + usage
+        for out in task_outputs:
+            total_usage = total_usage + out.usage
 
         expected_tda_ids = [node.atom.tda_id for node in nodes]
         majority_results = ExtractiveSensorService.resolve_majority_vote(

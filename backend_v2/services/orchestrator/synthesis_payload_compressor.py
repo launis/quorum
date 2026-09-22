@@ -11,7 +11,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation
@@ -122,8 +122,8 @@ class SynthesisPayloadCompressor:
         settings = get_settings()
 
         def _prune_and_stratify_evaluations(
-            evals: Sequence[EvaluatedAtomDTO] | Sequence[object], limit: int
-        ) -> list[EvaluatedAtomDTO] | list[object]:
+            evals: Sequence[EvaluatedAtomDTO | Mapping[str, JsonValue]], limit: int
+        ) -> list[EvaluatedAtomDTO | Mapping[str, JsonValue]]:
             """Prune and stratify evaluations with deterministic prioritized stratification.
 
             When limit == 0: Unbounded mode (forward all without truncation).
@@ -136,14 +136,14 @@ class SynthesisPayloadCompressor:
             if limit == 0 or len(evals) <= limit:
                 return list(evals)
 
-            deficits: list[Any] = []
-            strengths: list[Any] = []
+            deficits: list[EvaluatedAtomDTO | Mapping[str, JsonValue]] = []
+            strengths: list[EvaluatedAtomDTO | Mapping[str, JsonValue]] = []
 
             for item in evals:
                 if isinstance(item, EvaluatedAtomDTO):
                     status = item.status
-                elif type(item) is dict:
-                    if "status" in item:
+                elif isinstance(item, Mapping):
+                    if "status" in item and isinstance(item["status"], str):
                         status = item["status"]
                     else:
                         status = None
@@ -164,20 +164,20 @@ class SynthesisPayloadCompressor:
                 else:
                     strengths.append(item)
 
-            def sort_key(item: EvaluatedAtomDTO | dict[str, Any]) -> tuple[int, str]:
+            def sort_key(item: EvaluatedAtomDTO | Mapping[str, JsonValue]) -> tuple[int, str]:
                 if isinstance(item, EvaluatedAtomDTO):
-                    quotes = item.exact_quotes
+                    quotes_count = len(item.exact_quotes)
                     atom_id = item.atom_id or item.tda_id
                 else:
-                    if "exact_quotes" in item:
-                        quotes = item["exact_quotes"]
+                    if "exact_quotes" in item and isinstance(item["exact_quotes"], list):
+                        quotes_count = len(item["exact_quotes"])
                     else:
-                        quotes = []
-                    if "atom_id" in item:
+                        quotes_count = 0
+                    if "atom_id" in item and item["atom_id"] is not None:
                         atom_id = str(item["atom_id"])
                     else:
                         atom_id = ""
-                return (-len(quotes), atom_id)
+                return (-quotes_count, atom_id)
 
             deficits.sort(key=sort_key)
             strengths.sort(key=sort_key)
@@ -199,10 +199,10 @@ class SynthesisPayloadCompressor:
 
             selected = selected_deficits + selected_strengths
 
-            def get_atom_id(x: EvaluatedAtomDTO | dict[str, Any]) -> str:
+            def get_atom_id(x: EvaluatedAtomDTO | Mapping[str, JsonValue]) -> str:
                 if isinstance(x, EvaluatedAtomDTO):
                     return str(x.atom_id or x.tda_id)
-                if "atom_id" in x:
+                if "atom_id" in x and x["atom_id"] is not None:
                     return str(x["atom_id"])
                 return ""
 
@@ -280,11 +280,11 @@ class SynthesisPayloadCompressor:
                                         exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
                                         semantic_reasoning=reasoning,
                                     )
-                                    dumped = sanitized_ev.model_dump(mode="json")
+                                    dumped: dict[str, JsonValue] = sanitized_ev.model_dump(mode="json")
                                     if ev.status:
                                         dumped["status"] = ev.status
                                     lite_evals.append(dumped)
-                            elif type(ev) is dict and "exact_quotes" in ev:
+                            elif isinstance(ev, Mapping) and "exact_quotes" in ev:
                                 if "atom_id" not in ev or not ev["atom_id"]:
                                     logger.error(
                                         "[SynthesisPayloadCompressor] %s: "
@@ -298,7 +298,7 @@ class SynthesisPayloadCompressor:
                                     )
 
                                 try:
-                                    lite_ev_dict = {
+                                    lite_ev_dict: dict[str, JsonValue] = {
                                         "atom_id": ev["atom_id"],
                                         "exact_quotes": ev["exact_quotes"],
                                     }
@@ -360,8 +360,10 @@ class SynthesisPayloadCompressor:
                                     if "status" in ev and "status" not in dumped:
                                         dumped["status"] = ev["status"]
                                     lite_evals.append(dumped)
-                            elif type(ev) is dict:
-                                normalized = {k: v for k, v in ev.items() if k in {"output_text", "status", "atom_id"}}
+                            elif isinstance(ev, Mapping):
+                                normalized: dict[str, JsonValue] = {
+                                    k: v for k, v in ev.items() if k in {"output_text", "status", "atom_id"}
+                                }
                                 if normalized:
                                     lite_evals.append(normalized)
 

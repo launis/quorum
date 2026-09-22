@@ -13,6 +13,7 @@ from backend_v2.models.dtos.dag_models import (
     LinkedAtomGraph,
 )
 from backend_v2.models.dtos.engine import FlattenedAtom, MatrixEvaluationContext
+from backend_v2.models.dtos.sensor import EnsembleCallResultDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.prompts.execution.field_prompts import (
     DESC_ALIAS,
@@ -225,22 +226,28 @@ def test_extractive_sensor_service_resolve_majority_vote(monkeypatch: pytest.Mon
     monkeypatch.setattr(get_settings(), "ensemble_min_consensus", 2)
 
     # Success case (2 PASS)
-    results: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {
-            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED, reasoning="r1"
-            )
-        },
-        {
-            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                status=ExecutionStatus.FAILED, reasoning="r2"
-            )
-        },
-        {
-            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED, reasoning="r3"
-            )
-        },
+    results: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r1"
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED, reasoning="r2"
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r3"
+                )
+            }
+        ),
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote(["tda_11111111111111111111111111111111"], results)
     assert resolved["tda_11111111111111111111111111111111"].status == ExecutionStatus.PASSED
@@ -250,32 +257,40 @@ def test_extractive_sensor_service_resolve_majority_vote(monkeypatch: pytest.Mon
         ExtractiveSensorService.resolve_majority_vote(
             ["tda_11111111111111111111111111111111"],
             [
-                {
-                    "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                        status=ExecutionStatus.PASSED, reasoning="r1"
-                    )
-                }
+                EnsembleCallResultDTO(
+                    evaluations={
+                        "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                            status=ExecutionStatus.PASSED, reasoning="r1"
+                        )
+                    }
+                )
             ],
         )
 
     # Split vote without consensus (if min_consensus was 2, but we only have 3 different? Actually booleans only have 2 states)
     # But if an atom was missing from responses
-    results_split: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {
-            "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED, reasoning="r1"
-            )
-        },
-        {
-            "tda_22222222222222222222222222222222": AtomEvaluationResultDTO(
-                status=ExecutionStatus.FAILED, reasoning="r2"
-            )
-        },
-        {
-            "tda_33333333333333333333333333333333": AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED, reasoning="r3"
-            )
-        },
+    results_split: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_11111111111111111111111111111111": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r1"
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_22222222222222222222222222222222": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED, reasoning="r2"
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                "tda_33333333333333333333333333333333": AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r3"
+                )
+            }
+        ),
     ]
     resolved_split = ExtractiveSensorService.resolve_majority_vote(
         ["tda_11111111111111111111111111111111"], results_split
@@ -289,10 +304,18 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     tda_id = "tda_11111111111111111111111111111111"
 
     # 1. Partition A (Positive Claim Split: 1 PASSED, 1 FAILED, is_inverse=False -> FAILED)
-    results_split: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="quote 1")},
-        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)},
-        None,  # 3rd call failed transiently
+    results_split: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="quote 1")
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)
+            }
+        ),
+        EnsembleCallResultDTO(evaluations=None),  # 3rd call failed transiently
     ]
     res_pos = ExtractiveSensorService.resolve_majority_vote([tda_id], results_split, is_inverse_map={tda_id: False})
     assert res_pos[tda_id].status == ExecutionStatus.FAILED
@@ -318,10 +341,26 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     assert res_unreg[tda_id].reasoning == "INSUFFICIENT_CONSENSUS"
 
     # 5. Partition E (Unanimous Consensus: 2 PASSED, 1 FAILED -> PASSED regardless of is_inverse)
-    results_consensus: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1", source_quote="valid quote")},
-        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)},
-        {tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r3", source_quote="valid quote")},
+    results_consensus: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r1", source_quote="valid quote"
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(status=ExecutionStatus.FAILED, reasoning="r2", source_quote=None)
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED, reasoning="r3", source_quote="valid quote"
+                )
+            }
+        ),
     ]
     res_consensus = ExtractiveSensorService.resolve_majority_vote(
         [tda_id], results_consensus, is_inverse_map={tda_id: False}
@@ -330,9 +369,13 @@ def test_extractive_sensor_service_resolve_majority_vote_tie_breaker(monkeypatch
     assert res_consensus[tda_id].source_quote == "valid quote"
 
     # 6. Partition F (Zero Votes Cast: atom missing from all responses -> SYSTEM_ERROR)
-    results_empty: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")},
-        {"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2")},
+    results_empty: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r1")}
+        ),
+        EnsembleCallResultDTO(
+            evaluations={"tda_other": AtomEvaluationResultDTO(status=ExecutionStatus.PASSED, reasoning="r2")}
+        ),
     ]
     res_zero = ExtractiveSensorService.resolve_majority_vote([tda_id], results_empty, is_inverse_map={tda_id: True})
     assert res_zero[tda_id].status == ExecutionStatus.SYSTEM_ERROR
@@ -731,28 +774,34 @@ def test_boolean_evaluation_result_istqb_boundary_partitions() -> None:
 def test_extractive_sensor_service_majority_vote_preserves_quote() -> None:
     """Verifies that resolve_majority_vote preserves winning vote's source_quote."""
     tda_id = "tda_11111111111111111111111111111111"
-    results: list[dict[str, AtomEvaluationResultDTO] | None] = [
-        {
-            tda_id: AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED,
-                reasoning="Vahvistettu",
-                source_quote="Tämä on suora lainaus lähteestä.",
-            )
-        },
-        {
-            tda_id: AtomEvaluationResultDTO(
-                status=ExecutionStatus.PASSED,
-                reasoning="Sama havainto",
-                source_quote="Tämä on toinen suora lainaus.",
-            )
-        },
-        {
-            tda_id: AtomEvaluationResultDTO(
-                status=ExecutionStatus.FAILED,
-                reasoning="Eri mieltä",
-                source_quote=None,
-            )
-        },
+    results: list[EnsembleCallResultDTO] = [
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="Vahvistettu",
+                    source_quote="Tämä on suora lainaus lähteestä.",
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.PASSED,
+                    reasoning="Sama havainto",
+                    source_quote="Tämä on toinen suora lainaus.",
+                )
+            }
+        ),
+        EnsembleCallResultDTO(
+            evaluations={
+                tda_id: AtomEvaluationResultDTO(
+                    status=ExecutionStatus.FAILED,
+                    reasoning="Eri mieltä",
+                    source_quote=None,
+                )
+            }
+        ),
     ]
     resolved = ExtractiveSensorService.resolve_majority_vote([tda_id], results)
     assert resolved[tda_id].status == ExecutionStatus.PASSED
@@ -1077,7 +1126,11 @@ def test_resolve_majority_vote_insufficient_consensus_raises_agent_execution_err
     with pytest.raises(AgentExecutionError) as exc_info:
         ExtractiveSensorService.resolve_majority_vote(
             expected_tda_ids=["tda_11111111111111111111111111111111"],
-            results=[None, None, None],
+            results=[
+                EnsembleCallResultDTO(evaluations=None),
+                EnsembleCallResultDTO(evaluations=None),
+                EnsembleCallResultDTO(evaluations=None),
+            ],
         )
     assert exc_info.value.status_code == 503
     assert "Insufficient valid Bo3 results" in exc_info.value.message
