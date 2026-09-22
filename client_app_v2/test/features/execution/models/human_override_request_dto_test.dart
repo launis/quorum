@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:json_annotation/json_annotation.dart';
 import 'package:client_app/core/models/enums.dart';
 import 'package:client_app/features/execution/models/human_override_request_dto.dart';
 import 'package:client_app/features/execution/models/matrix_scorecard_dto.dart';
@@ -53,6 +54,33 @@ void main() {
       // Expected: Domain validator detects empty reason string
       final isReasonValid = dto.reason.trim().isNotEmpty;
       expect(isReasonValid, isFalse);
+    });
+
+    test('test_human_override_request_dto_deserialization_success', () {
+      final json = {
+        'new_status': 'PASSED',
+        'reason': 'Verified by auditor',
+        'evidence_quotes': [],
+      };
+
+      final dto = HumanOverrideRequestDto.fromJson(json);
+      expect(dto.newStatus, ExecutionStatus.passed);
+      expect(dto.reason, 'Verified by auditor');
+      expect(dto.evidenceQuotes, isEmpty);
+    });
+
+    test('test_human_override_request_dto_hallucinated_fields_fail_fast', () {
+      final hallucinatedJson = {
+        'new_status': 'PASSED',
+        'reason': 'Verified',
+        'evidence_quotes': [],
+        'illegal_field': 'malformed_extra_data',
+      };
+
+      expect(
+        () => HumanOverrideRequestDto.fromJson(hallucinatedJson),
+        throwsA(anyOf(isA<FormatException>(), isA<TypeError>(), isA<CheckedFromJsonException>())),
+      );
     });
   });
 }
