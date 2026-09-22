@@ -1,5 +1,6 @@
 /// Enums for Client App V2.
 /// Strict definition of allowed types to enforce the No-String Mandate.
+library;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
