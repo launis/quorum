@@ -73,7 +73,11 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
                     profile_id=prof_id,
                     locale="en",
                 )
-                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
+                mock_redis.enqueue_job.assert_called_once_with(
+                    "generate_report_artifact_job",
+                    "rep_0123456789abcdef01",
+                    _job_id="compile_report_rep_0123456789abcdef01",
+                )
 
 
 @pytest.mark.asyncio

@@ -85,6 +85,7 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "firestore_driver.py",
     "provider.py",
     "logging_config.py",
+    "wrapper.py",
 }
 
 

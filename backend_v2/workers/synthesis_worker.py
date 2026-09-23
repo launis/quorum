@@ -147,7 +147,9 @@ async def generate_profile_synthesis_and_pdf_task(
                 locale=accept_language,
             )
             if redis:
-                await redis.enqueue_job("generate_report_artifact_job", artifact.id)
+                await redis.enqueue_job(
+                    "generate_report_artifact_job", artifact.id, _job_id=f"compile_report_{artifact.id}"
+                )
             return
 
         async def _update_render_status(msg: str) -> None:
@@ -520,7 +522,9 @@ async def generate_profile_synthesis_and_pdf_task(
             locale=accept_language,
         )
         if redis:
-            await redis.enqueue_job("generate_report_artifact_job", artifact.id)
+            await redis.enqueue_job(
+                "generate_report_artifact_job", artifact.id, _job_id=f"compile_report_{artifact.id}"
+            )
 
     except Exception as e:
         is_validation_err = isinstance(e, ValidationError)

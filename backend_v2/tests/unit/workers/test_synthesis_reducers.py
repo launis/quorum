@@ -266,7 +266,11 @@ async def test_handle_starvation_if_detected_true() -> None:
             profile_id="pro_0123456789abcdef01",
             locale="en",
         )
-        mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
+        mock_redis.enqueue_job.assert_called_once_with(
+            "generate_report_artifact_job",
+            "rep_0123456789abcdef01",
+            _job_id="compile_report_rep_0123456789abcdef01",
+        )
 
 
 @pytest.mark.asyncio
@@ -303,7 +307,11 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
             profile_id="pro_0123456789abcdef01",
             locale="en",
         )
-        mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_0123456789abcdef01")
+        mock_redis.enqueue_job.assert_called_once_with(
+            "generate_report_artifact_job",
+            "rep_0123456789abcdef01",
+            _job_id="compile_report_rep_0123456789abcdef01",
+        )
 
 
 @pytest.mark.asyncio

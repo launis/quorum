@@ -195,7 +195,9 @@ async def test_compile_and_persist_artifact() -> None:
     await service.compile_and_persist_artifact(report.id, arq_pool)
 
     repo.update_report_artifact.assert_called_once()
-    arq_pool.enqueue_job.assert_called_once_with("generate_report_artifact_job", report_id=report.id)
+    arq_pool.enqueue_job.assert_called_once_with(
+        "generate_report_artifact_job", report_id=report.id, _job_id=f"compile_report_{report.id}"
+    )
 
 
 @pytest.mark.asyncio
@@ -573,3 +575,24 @@ async def test_get_public_report_execution_missing_raises() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     with pytest.raises(ResourceNotFoundError):
         await service.get_public_report(report.id)
+
+
+@pytest.mark.asyncio
+async def test_process_artifact_compilation_idempotent_when_ready() -> None:
+    """Verify process_artifact_compilation short-circuits when status is READY and PDF exists."""
+    repo = AsyncMock()
+    storage = AsyncMock()
+    storage.exists.return_value = True
+
+    paths = ReportStoragePathsDTO(pdf_path="artifacts/reports/rep_123/report.pdf")
+    report = _create_dummy_report(status=ReportStatus.READY)
+    report = report.model_copy(update={"storage_paths": paths})
+    repo.get_report_artifact.return_value = report
+
+    service = ReportService(repo=repo, storage_driver=storage)
+    await service.process_artifact_compilation(report.id)
+
+    # Idempotency: repo.update_report_artifact is NEVER called when already ready and file exists
+    repo.update_report_artifact.assert_not_called()
+    storage.exists.assert_awaited_once_with("artifacts/reports/rep_123/report.pdf")
+

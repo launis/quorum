@@ -282,7 +282,9 @@ class ReportService:
         """
         report = await self.get_report(report_id)
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
-        await arq_pool.enqueue_job("generate_report_artifact_job", report_id=report.id)
+        await arq_pool.enqueue_job(
+            "generate_report_artifact_job", report_id=report.id, _job_id=f"compile_report_{report.id}"
+        )
 
     async def process_artifact_compilation(self, report_id: str) -> None:
         """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage.
@@ -302,6 +304,16 @@ class ReportService:
                 extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "report_id": report_id},
             )
             raise ResourceNotFoundError(resource_type="report_artifact", resource_id=report_id)
+
+        # Idempotency check: If already ready and files exist, skip redundant compilation
+        if report.status == ReportStatus.READY and report.storage_paths is not None:
+            pdf_path = report.storage_paths.pdf_path
+            if pdf_path and await self.storage.exists(pdf_path):
+                logger.info(
+                    "[ReportService] Report artifact '%s' is already compiled and present in storage. Skipping.",
+                    report_id,
+                )
+                return
 
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
         try:

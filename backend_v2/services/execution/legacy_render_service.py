@@ -396,16 +396,12 @@ class ExecutionLegacyRenderService:
             resolved_pid = default_pid
 
         if resolved_pid not in record.profile_syntheses:
-            updated_ts = "0"
-            if record.updated_at:
-                updated_ts = str(record.updated_at).replace(":", "").replace("-", "").replace(".", "").replace(" ", "_")
-
             if accept_language and accept_language.strip():
                 resolved_lang = accept_language
             else:
                 resolved_lang = record.target_locale
 
-            job_id = f"render_{execution_id}_{resolved_pid}_{resolved_lang}_{updated_ts}"
+            job_id = f"render_{execution_id}_{resolved_pid}_{resolved_lang}"
             await arq_pool.enqueue_job(
                 "render_profile_job",
                 _job_id=job_id,

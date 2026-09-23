@@ -604,7 +604,11 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
             await generate_profile_synthesis_and_pdf_task(
                 "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
             )
-            mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
+            mock_redis.enqueue_job.assert_called_once_with(
+                "generate_report_artifact_job",
+                "rep_1234567890123456",
+                _job_id="compile_report_rep_1234567890123456",
+            )
 
 
 @pytest.mark.asyncio
@@ -662,7 +666,11 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 )
 
                 assert mock_repo.update_execution.call_count >= 1
-                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
+                mock_redis.enqueue_job.assert_called_once_with(
+                    "generate_report_artifact_job",
+                    "rep_1234567890123456",
+                    _job_id="compile_report_rep_1234567890123456",
+                )
 
 
 @pytest.mark.asyncio
@@ -747,8 +755,10 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 "step_states": {},
                 "profile_syntheses": {},
                 "context_variables": {
-                    "step_linguistics": {
-                        "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
+                    "variables": {
+                        "step_linguistics": {
+                            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
+                        }
                     }
                 },
                 "execution_trace": [
@@ -862,7 +872,11 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 )
 
                 mock_repo.update_execution.assert_called()
-                mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
+                mock_redis.enqueue_job.assert_called_once_with(
+                    "generate_report_artifact_job",
+                    "rep_1234567890123456",
+                    _job_id="compile_report_rep_1234567890123456",
+                )
 
 
 @pytest.mark.asyncio
@@ -1215,7 +1229,11 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             )
             assert ev_type == "starvation"
             assert total_atoms == 0
-            mock_redis.enqueue_job.assert_called_once_with("generate_report_artifact_job", "rep_1234567890123456")
+            mock_redis.enqueue_job.assert_called_once_with(
+                "generate_report_artifact_job",
+                "rep_1234567890123456",
+                _job_id="compile_report_rep_1234567890123456",
+            )
 
 
 @pytest.mark.asyncio

@@ -1,15 +1,17 @@
 """Database wrapper implementations."""
 
+import json
 import logging
 import os
 import threading
 import time
+import uuid
 from abc import ABC, abstractmethod
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
 
-from tinydb import TinyDB
+from tinydb import Storage, TinyDB
 from tinydb.table import Table
 
 from backend_v2.exceptions import AppException, ErrorCodes
@@ -208,6 +210,96 @@ class AbstractDatabase(ABC):
 
 # --- TinyDB Implementation ---
 
+MAX_REPLACE_RETRIES: int = 20
+REPLACE_RETRY_DELAY_SEC: float = 0.05
+
+
+class AtomicJSONStorage(Storage):
+    """Atomic JSON storage for TinyDB that writes to a temporary file and renames it atomically.
+
+    Prevents partial write corruption on Windows NTFS by eliminating in-place truncation
+    and retrying atomic replace operations when encountering transient file locks.
+    """
+
+    def __init__(self, path: str, encoding: str = "utf-8", create_dirs: bool = True, **kwargs: Any) -> None:
+        """Initialize AtomicJSONStorage.
+
+        Args:
+            path: Target file path for the database.
+            encoding: Text encoding for JSON file.
+            create_dirs: Whether to create parent directories if missing.
+            **kwargs: Extra serialization arguments forwarded to json.dump.
+        """
+        self._path = path
+        self._encoding = encoding
+        self.kwargs = kwargs
+        if create_dirs:
+            dir_name = os.path.dirname(path)
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
+
+    def read(self) -> dict[str, dict[str, Any]] | None:
+        """Read the current state of the database.
+
+        Returns:
+            Parsed database dictionary, or None if the file is missing or empty.
+        """
+        if not os.path.exists(self._path) or os.path.getsize(self._path) == 0:
+            return None
+        with open(self._path, encoding=self._encoding) as f:
+            data: dict[str, dict[str, Any]] = json.load(f)
+            return data
+
+    def write(self, data: dict[str, dict[str, Any]]) -> None:
+        """Write current database state atomically via temporary file replacement.
+
+        Args:
+            data: Current state of the database.
+
+        Raises:
+            PermissionError: If atomic file replacement fails after exhausting retries.
+        """
+        temp_path = f"{self._path}.{uuid.uuid4().hex[:8]}.tmp"
+        try:
+            with open(temp_path, "w", encoding=self._encoding) as f:
+                json.dump(data, f, ensure_ascii=False, **self.kwargs)
+                f.flush()
+                os.fsync(f.fileno())
+
+            for attempt in range(MAX_REPLACE_RETRIES):
+                try:
+                    os.replace(temp_path, self._path)
+                    break
+                except PermissionError as e:
+                    if attempt == MAX_REPLACE_RETRIES - 1:
+                        logger.error(
+                            "[AtomicJSONStorage] %s: Failed to atomically replace %s after %d attempts: %s",
+                            ErrorCodes.STORAGE_ACCESS_FAILED.name,
+                            self._path,
+                            MAX_REPLACE_RETRIES,
+                            e,
+                            exc_info=True,
+                        )
+                        raise
+                    logger.warning(
+                        "[AtomicJSONStorage] Windows NTFS lock on %s (attempt %d/%d). Retrying in %.2fs...",
+                        self._path,
+                        attempt + 1,
+                        MAX_REPLACE_RETRIES,
+                        REPLACE_RETRY_DELAY_SEC,
+                    )
+                    time.sleep(REPLACE_RETRY_DELAY_SEC)
+        finally:
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except OSError:
+                    pass
+
+    def close(self) -> None:
+        """Close storage handles (no-op for atomic file storage)."""
+        pass
+
 
 class TinyDBTable(AbstractTable):
     """TinyDB implementation of AbstractTable."""
@@ -216,17 +308,18 @@ class TinyDBTable(AbstractTable):
         """Initialize TinyDB table.
 
         Args:
-            *args: Arguments.
-            **kwargs: Keyword arguments.
-
-        Returns:
-            The expected return value.
-
-        Raises:
-            Exception: If operation fails.
+            db_path: Path to TinyDB JSON file.
+            table_name: Name of table inside database.
         """
         self._path = db_path
         self._name = table_name
+
+    @contextmanager
+    def _open_db(self) -> Generator[TinyDB]:
+        """Open TinyDB safely under cross-process lock with AtomicJSONStorage."""
+        with db_lock(self._path):
+            with TinyDB(self._path, encoding="utf-8", storage=AtomicJSONStorage) as db:
+                yield db
 
     def _get_table(self, db: TinyDB) -> Table:
         return db.table(self._name)
@@ -234,9 +327,8 @@ class TinyDBTable(AbstractTable):
     def insert(self, document: dict[str, Any]) -> int:
         """Insert document."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).insert(document)
+        with self._open_db() as db:
+            res = self._get_table(db).insert(document)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Insert completed in %.1f ms", self._name, db_time)
         return res
@@ -244,9 +336,8 @@ class TinyDBTable(AbstractTable):
     def all(self) -> list[dict[str, Any]]:
         """Retrieve all documents."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).all()
+        with self._open_db() as db:
+            res = self._get_table(db).all()
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Retrieve all completed in %.1f ms", self._name, db_time)
         return list(res)
@@ -254,9 +345,8 @@ class TinyDBTable(AbstractTable):
     def search(self, query: Any) -> list[dict[str, Any]]:
         """Search documents."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).search(query)
+        with self._open_db() as db:
+            res = self._get_table(db).search(query)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Search completed in %.1f ms", self._name, db_time)
         return list(res)
@@ -264,9 +354,8 @@ class TinyDBTable(AbstractTable):
     def get(self, query: Any) -> dict[str, Any] | None:
         """Get document."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).get(query)
+        with self._open_db() as db:
+            res = self._get_table(db).get(query)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Get completed in %.1f ms", self._name, db_time)
         if isinstance(res, list):
@@ -276,9 +365,8 @@ class TinyDBTable(AbstractTable):
     def update(self, fields: dict[str, Any], query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Update documents."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
+        with self._open_db() as db:
+            res = self._get_table(db).update(fields, cond=query, doc_ids=doc_ids)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Update completed in %.1f ms", self._name, db_time)
         return res
@@ -286,9 +374,8 @@ class TinyDBTable(AbstractTable):
     def upsert(self, document: dict[str, Any], query: Any) -> list[int]:
         """Upsert document."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).upsert(document, query)
+        with self._open_db() as db:
+            res = self._get_table(db).upsert(document, query)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Upsert completed in %.1f ms", self._name, db_time)
         return res
@@ -296,9 +383,8 @@ class TinyDBTable(AbstractTable):
     def remove(self, query: Any = None, doc_ids: list[int] | None = None) -> list[int]:
         """Remove documents."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).remove(query, doc_ids=doc_ids)
+        with self._open_db() as db:
+            res = self._get_table(db).remove(query, doc_ids=doc_ids)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Remove completed in %.1f ms", self._name, db_time)
         return res
@@ -306,21 +392,19 @@ class TinyDBTable(AbstractTable):
     def truncate(self) -> None:
         """Truncate table."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                self._get_table(db).truncate()
+        with self._open_db() as db:
+            self._get_table(db).truncate()
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Truncate completed in %.1f ms", self._name, db_time)
 
     def count(self, query: Any = None) -> int:
         """Count documents."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                if query:
-                    res = self._get_table(db).count(query)
-                else:
-                    res = len(self._get_table(db))
+        with self._open_db() as db:
+            if query:
+                res = self._get_table(db).count(query)
+            else:
+                res = len(self._get_table(db))
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Count completed in %.1f ms", self._name, db_time)
         return res
@@ -328,9 +412,8 @@ class TinyDBTable(AbstractTable):
     def contains(self, query: Any) -> bool:
         """Check if document exists."""
         db_start = time.time()
-        with db_lock(self._path):
-            with TinyDB(self._path, encoding="utf-8") as db:
-                res = self._get_table(db).contains(query)
+        with self._open_db() as db:
+            res = self._get_table(db).contains(query)
         db_time = (time.time() - db_start) * 1000
         logger.debug("[TinyDBTable:%s] Contains completed in %.1f ms", self._name, db_time)
         return res
@@ -352,15 +435,14 @@ class TinyDBClient(AbstractDatabase):
         Raises:
             Exception: If operation fails.
         """
-        import os
-
         dir_name = os.path.dirname(path)
         if dir_name:
             os.makedirs(dir_name, exist_ok=True)
         self.path = path
-        # Verify creation/access but don't hold connection
-        with TinyDB(path, encoding="utf-8") as _:
-            pass
+        # Verify creation/access under lock but don't hold connection
+        with db_lock(self.path):
+            with TinyDB(path, encoding="utf-8", storage=AtomicJSONStorage) as _:
+                pass
 
     def table(self, name: str) -> AbstractTable:
         """Get table."""
