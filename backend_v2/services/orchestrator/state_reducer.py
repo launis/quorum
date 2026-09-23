@@ -362,6 +362,16 @@ def reduce_hook_delta(
             )
             if current_state.global_context_vars is not None:
                 new_global_vars = current_state.global_context_vars.model_copy(update={"step_linguistics": delta})
+            else:
+                new_global_vars = GlobalContextVarsDTO(step_linguistics=delta)
+            emitted_events.append(
+                TraceEvent(
+                    step_name=effective_step,
+                    event_type="decision",
+                    content={"step_linguistics": delta.model_dump(mode="json")},
+                    metadata={"is_context_update": True},
+                )
+            )
         elif isinstance(delta, LLMProviderConfig):
             updated_dynamic = dict(current_state.inputs.dynamic_inputs)
             updated_dynamic["llm_config"] = delta

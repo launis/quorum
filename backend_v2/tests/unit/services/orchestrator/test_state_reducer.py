@@ -349,10 +349,15 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
     assert s3.inputs.dynamic_inputs["interaction_analysis"].imperative_command_count == 3
 
     ling_delta = HookDeltaDTO(delta=LinguisticsResultDTO(total_word_count=45))
-    s4, _ = reduce_hook_delta(state, ling_delta)
+    s4, events_4 = reduce_hook_delta(state, ling_delta)
     assert s4.inputs.dynamic_inputs["linguistics"].total_word_count == 45
     assert s4.global_context_vars is not None
+    assert s4.global_context_vars.step_linguistics is not None
     assert s4.global_context_vars.step_linguistics.total_word_count == 45
+    assert len(events_4) == 1
+    assert events_4[0].event_type == "decision"
+    assert events_4[0].metadata == {"is_context_update": True}
+    assert "step_linguistics" in events_4[0].content
 
     state_no_gvars = HookState(
         execution_id="exe_2",
@@ -361,9 +366,13 @@ def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
         metadata=ExecutionMetadata(),
         inputs=ExecutionInputsDTO(),
     )
-    s4_no_gvars, _ = reduce_hook_delta(state_no_gvars, ling_delta)
+    s4_no_gvars, events_no_gvars = reduce_hook_delta(state_no_gvars, ling_delta)
     assert s4_no_gvars.global_context_vars.step_linguistics is not None
     assert s4_no_gvars.global_context_vars.step_linguistics.total_word_count == 45
+    assert len(events_no_gvars) == 1
+    assert events_no_gvars[0].event_type == "decision"
+    assert events_no_gvars[0].metadata == {"is_context_update": True}
+    assert "step_linguistics" in events_no_gvars[0].content
 
     llm_delta = HookDeltaDTO(
         delta=LLMProviderConfig(
