@@ -173,5 +173,73 @@ void main() {
         expect(find.byType(FilledButton), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'renders localized expected input label and description instead of raw slug',
+      (tester) async {
+        final chatInput = ExpectedInput(
+          inputKey: 'chat_log',
+          label: const I18nText(
+            translations: {
+              'en': 'Conversation History (Chat)',
+              'fi': 'Keskusteluhistoria (Chat)',
+            },
+          ),
+          description: const I18nText(
+            translations: {
+              'en': 'Attach complete conversation',
+              'fi': 'Tuo täysi keskustelu',
+            },
+          ),
+          required: true,
+          inputModes: const ['file', 'paste'],
+        );
+        final productInput = ExpectedInput(
+          inputKey: 'product_text',
+          label: const I18nText(
+            translations: {
+              'en': 'Product Deliverable',
+              'fi': 'Lopputuote',
+            },
+          ),
+          description: const I18nText(
+            translations: {
+              'en': 'Attach resulting deliverable',
+              'fi': 'Liitä syntynyt lopputuotos',
+            },
+          ),
+          required: true,
+          inputModes: const ['file', 'paste'],
+        );
+
+        final wf = createWorkflow(
+          id: 'wor_ai_driver',
+          name: 'AI Driving License',
+          expectedInputs: [chatInput, productInput],
+        );
+
+        when(
+          () => mockStudioClient.getWorkflows(),
+        ).thenAnswer((_) async => [wf]);
+
+        await tester.pumpWidget(
+          createTestWidget(studioClient: mockStudioClient),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('AI Driving License'));
+        await tester.pumpAndSettle();
+
+        // Must display human-readable localized labels
+        expect(find.text('Conversation History (Chat) *'), findsOneWidget);
+        expect(find.text('Product Deliverable *'), findsOneWidget);
+        expect(find.text('Attach complete conversation'), findsOneWidget);
+        expect(find.text('Attach resulting deliverable'), findsOneWidget);
+
+        // Must NOT display raw unlocalized slugs as field titles
+        expect(find.text('Input: chat_log'), findsNothing);
+        expect(find.text('Input: product_text'), findsNothing);
+      },
+    );
   });
 }

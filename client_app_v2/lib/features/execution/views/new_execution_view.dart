@@ -366,7 +366,6 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
               const SizedBox(height: 24),
 
               ...expectedInputsList.map((item) {
-                final inputKey = item.inputKey;
                 final modes = item.inputModes;
 
                 // Handle questionnaire first
@@ -389,10 +388,10 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (showFile) ...[
-                        _buildInputWidget(inputKey, 'file'),
+                        _buildInputWidget(item, 'file'),
                         if (showText) const SizedBox(height: 16),
                       ],
-                      if (showText) _buildInputWidget(inputKey, 'text'),
+                      if (showText) _buildInputWidget(item, 'text'),
                     ],
                   ),
                 );
@@ -423,8 +422,12 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
     );
   }
 
-  Widget _buildInputWidget(String inputKey, String typeHint) {
+  Widget _buildInputWidget(ExpectedInput item, String typeHint) {
+    final inputKey = item.inputKey;
     final safeHint = typeHint.toLowerCase();
+    final locale = Localizations.localeOf(context).languageCode;
+    final label = '${item.label.get(locale)}${item.required ? ' *' : ''}';
+    final description = item.description.get(locale);
 
     if (safeHint == 'file' || safeHint == 'pdf') {
       final fileName = _selectedFileNames[inputKey];
@@ -452,9 +455,20 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppLocalizations.of(context)!.inputLabel(inputKey),
+                    label,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
+                  if (description.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, bottom: 4),
+                      child: Text(
+                        description,
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
                   Text(
                     hasFile
                         ? AppLocalizations.of(context)!.selectedFile(fileName)
@@ -479,14 +493,22 @@ class _NewExecutionViewState extends ConsumerState<NewExecutionView> {
       _textControllers[inputKey] = TextEditingController();
     }
 
+    final hasFileMode = item.inputModes.contains('file');
+    final textLabel = hasFileMode
+        ? AppLocalizations.of(context)!.pasteTextLabel
+        : label;
+    final textHelper = (hasFileMode || description.isEmpty)
+        ? AppLocalizations.of(context)!.inputTypeHint(typeHint)
+        : description;
+
     return TextField(
       controller: _textControllers[inputKey],
       maxLines: 5,
       decoration: InputDecoration(
-        labelText: AppLocalizations.of(context)!.inputLabel(inputKey),
+        labelText: textLabel,
         alignLabelWithHint: true,
         border: const OutlineInputBorder(),
-        helperText: AppLocalizations.of(context)!.inputTypeHint(typeHint),
+        helperText: textHelper,
       ),
     );
   }

@@ -269,3 +269,26 @@ class TestSmartIngressResolver:
         assert excinfo.value.status_code == 400
         assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
         assert "chat_log" in excinfo.value.details["missing_fields"]
+
+    def test_inverted_file_mismatch_identifies_source_filename(self) -> None:
+        """Negative: Inverted attachment filename identifies source file in ambiguous match error."""
+        attachment = Base64Attachment(
+            filename="lopputuote sitra.pdf",
+            content_base64="ZXhhbXBsZQ==",
+        )
+        raw_inputs = WorkflowInputsIngress(
+            dynamic_inputs={
+                "chat_log": attachment,
+            }
+        )
+
+        with pytest.raises(AppException) as excinfo:
+            self.resolver.resolve(raw_inputs, self.expected_inputs, target_locale="fi")
+
+        app_exc = excinfo.value
+        assert app_exc.status_code == 400
+        assert app_exc.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+        assert "ambiguous_match" in app_exc.details
+        assert app_exc.details["ambiguous_match"]["key"] == "chat_log"
+        assert app_exc.details["ambiguous_match"]["filename"] == "lopputuote sitra.pdf"
+        assert "lopputuote sitra.pdf" in app_exc.message

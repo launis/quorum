@@ -101,5 +101,53 @@ void main() {
         expect(actionTriggered, isTrue);
       },
     );
+
+    testWidgets(
+      'correctly resolves VALIDATION_FAILED with ambiguous_match to localized explanation and file mismatch hint',
+      (tester) async {
+        late BuildContext capturedContext;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            locale: const Locale('fi'),
+            home: Builder(
+              builder: (context) {
+                capturedContext = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
+
+        final l10n = AppLocalizations.of(capturedContext)!;
+
+        const exception = AppException(
+          type: 'https://api.quorum.fi/errors/validation-failed',
+          title: 'Validation Error',
+          status: 400,
+          detail:
+              "Input mismatch for slot 'chat_log': Attached file 'lopputuote sitra.pdf' matches expected input slot(s) ['chat_log', 'product_text'], contradicting target slot 'chat_log'.",
+          extensions: {
+            'error_code': 'VALIDATION_FAILED',
+            'ambiguous_match': {
+              'key': 'chat_log',
+              'slots': ['chat_log', 'product_text'],
+              'filename': 'lopputuote sitra.pdf',
+            },
+          },
+        );
+
+        final hint = exception.toLocalizedHint(l10n);
+
+        expect(
+          hint,
+          contains('Validointivirhe'),
+        );
+        expect(hint, contains('lopputuote sitra.pdf'));
+        expect(hint, contains("contradicting target slot 'chat_log'"));
+      },
+    );
   });
 }

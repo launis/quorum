@@ -107,12 +107,31 @@ class SmartIngressResolver:
                     key,
                     sorted_slots,
                 )
+                if source_filename is not None:
+                    error_message = (
+                        f"Input mismatch for slot '{key}': Attached file '{source_name}' "
+                        f"matches expected input slot(s) {sorted_slots}, contradicting target slot '{key}'."
+                    )
+                    ambiguous_match_details = {
+                        "key": key,
+                        "slots": sorted_slots,
+                        "filename": source_name,
+                    }
+                else:
+                    error_message = (
+                        f"Ambiguous match for input '{key}': Matches multiple expected input slots: {sorted_slots}"
+                    )
+                    ambiguous_match_details = {
+                        "key": key,
+                        "slots": sorted_slots,
+                    }
+
                 raise AppException(
-                    message=f"Ambiguous match for input '{key}': Matches multiple expected input slots: {sorted_slots}",
+                    message=error_message,
                     status_code=400,
                     details={
                         "error_code": ErrorCodes.VALIDATION_FAILED.value,
-                        "ambiguous_match": {"key": key, "slots": sorted_slots},
+                        "ambiguous_match": ambiguous_match_details,
                     },
                 )
 

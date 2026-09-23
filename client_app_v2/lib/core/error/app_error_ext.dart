@@ -21,10 +21,18 @@ extension AppExceptionX on AppException {
     final locCode = _localizeErrorCode(this.errorCode, l10n);
     if (locCode != l10n.errorUnknown) {
       // For validation errors, the backend provides highly specific 'detail' strings (e.g. which fields failed)
-      if (this.errorCode == 'VALIDATION_FAILED' &&
-          this.detail.isNotEmpty &&
-          this.detail != 'Unknown error') {
-        return '$locCode\n\n${this.detail}';
+      if (this.errorCode == 'VALIDATION_FAILED') {
+        final ambiguousMatch = this.extensions['ambiguous_match'];
+        if (ambiguousMatch is Map && ambiguousMatch['filename'] != null) {
+          final detailText =
+              (this.detail.isNotEmpty && this.detail != 'Unknown error')
+              ? this.detail
+              : '${l10n.actionHintCheckInput} (${ambiguousMatch['filename']})';
+          return '${l10n.errValidationFailed}\n\n$detailText';
+        }
+        if (this.detail.isNotEmpty && this.detail != 'Unknown error') {
+          return '$locCode\n\n${this.detail}';
+        }
       }
       return locCode;
     }
