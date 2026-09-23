@@ -22,6 +22,7 @@ from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2Core
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
 from backend_v2.models.enums import LaxPresetView, PresetView
@@ -32,6 +33,7 @@ __all__ = [
     "BaseMatrixXAI",
     "BaseTDAExtraction",
     "DistilledEvaluation",
+    "DistilledMatrixPayloadDTO",
     "MatrixSynthesisGroup",
     "RenderedSynthesisCache",
     "SynthesisMetadataDTO",
@@ -96,10 +98,33 @@ class DistilledEvaluation(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    atom_id: Annotated[str | None, Field()] = None
-    exact_quotes: Annotated[list[str], Field()] = Field(default_factory=list)
-    semantic_reasoning: Annotated[str | None, Field()] = None
-    extensions: Annotated[dict[str, str | int | float | bool | list[str]] | None, Field(default=None)] = None
+    atom_id: Annotated[str | None, Field(default=None, description="Opaque atom identifier")] = None
+    status: Annotated[
+        str | None, Field(default=None, description="Evaluation status, specifically: PASSED, FAILED")
+    ] = None
+    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Extracted verbatim quotes")] = Field(
+        default_factory=list
+    )
+    semantic_reasoning: Annotated[str | None, Field(default=None, description="Semantic reasoning for evaluation")] = (
+        None
+    )
+    extensions: Annotated[
+        dict[str, str | int | float | bool | list[str]] | None,
+        Field(default=None, description="Qualitative evaluation extensions"),
+    ] = None
+
+
+class DistilledMatrixPayloadDTO(V2CoreBase):
+    """Typed synthesis payload for distilled matrix evaluations."""
+
+    model_config = ConfigDict(strict=True, extra="forbid")
+
+    results: Annotated[list[DistilledEvaluation], Field(min_length=1, description="Stratified evaluations")]
+    normalized_score: Annotated[float | None, Field(default=None, description="Normalized score (0-100)")] = None
+    level_breakdown: Annotated[
+        dict[str, LevelStatsDTO] | None,
+        Field(default=None, description="Level statistics breakdown"),
+    ] = None
 
 
 class MatrixSynthesisGroup(V2CoreBase):

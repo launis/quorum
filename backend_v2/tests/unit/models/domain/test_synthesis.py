@@ -202,3 +202,52 @@ def test_matrix_synthesis_group_cardinality() -> None:
         view_type=PresetView.TEXT_ONLY,
     )
     assert len(gt.target_blocks) == 1
+
+
+def test_distilled_evaluation_with_status_and_defaults() -> None:
+    from backend_v2.models.domain.synthesis import DistilledEvaluation
+
+    de = DistilledEvaluation(
+        atom_id="atm_123",
+        status="PASSED",
+        exact_quotes=["quote verbatim"],
+        semantic_reasoning="Strong evidence",
+    )
+    assert de.atom_id == "atm_123"
+    assert de.status == "PASSED"
+    assert de.exact_quotes == ["quote verbatim"]
+    assert de.semantic_reasoning == "Strong evidence"
+    assert de.extensions is None
+
+    # Forbid extra fields
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        DistilledEvaluation.model_validate({"atom_id": "atm_1", "rogue_field": "disallowed"})
+
+
+def test_distilled_matrix_payload_dto_valid_and_boundaries() -> None:
+    from backend_v2.models.domain import DistilledMatrixPayloadDTO
+    from backend_v2.models.domain.synthesis import DistilledEvaluation
+    from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
+
+    de = DistilledEvaluation(atom_id="atm_1", status="PASSED", exact_quotes=["q1"])
+    dto = DistilledMatrixPayloadDTO(
+        results=[de],
+        normalized_score=85.5,
+        level_breakdown={"L1": LevelStatsDTO(hits=1, total=1, dlqs=0)},
+    )
+    assert len(dto.results) == 1
+    assert dto.results[0].atom_id == "atm_1"
+    assert dto.normalized_score == 85.5
+    assert dto.level_breakdown is not None
+    assert dto.level_breakdown["L1"].hits == 1
+
+    # Negative boundary: empty results list triggers ValidationError (min_length=1)
+    with pytest.raises(ValidationError, match="too_short"):
+        DistilledMatrixPayloadDTO(results=[])
+
+    # Negative boundary: extra fields forbidden
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        DistilledMatrixPayloadDTO.model_validate(
+            {"results": [{"atom_id": "atm_1"}], "unauthorized_extra": "forbidden"}
+        )
+
