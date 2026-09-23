@@ -213,7 +213,7 @@ final class PromptBlocksControllerProvider
 }
 
 String _$promptBlocksControllerHash() =>
-    r'2e255bf0f83f193a5a1feaedcf729632ad54680a';
+    r'a24fa05a14301ec4ffedbd831d1a7dd99674c90b';
 
 /// Controller managing Prompt Blocks strictly using strongly typed [PromptBlock] models.
 /// Implements Optimistic UI principles where possible.

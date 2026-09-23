@@ -16,6 +16,8 @@ ANTI_JARGON_MANDATE_BLOCK: str = (
     "<anti_jargon_mandate>\n"
     "- ANTI-JARGON MANDATE: You MUST NOT use performative consulting clichés, empty buzzwords, or unsubstantiated meta-commentary.\n"
     "- State all findings using direct, plain, evidence-backed statements.\n"
+    "- EVIDENCE GROUNDING: Never make generic claims. Every stated strength or positive observation MUST be directly substantiated using verbatim quotes provided in the context.\n"
+    "- DEFICIT GROUNDING: When referencing a deficit or weakness, quote the author's own words if the concept was attempted poorly; if the concept was omitted entirely, cite the specific unfulfilled criterion from the evaluated data without fabricating quotes.\n"
     "</anti_jargon_mandate>"
 )
 

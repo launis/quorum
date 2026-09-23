@@ -47,3 +47,15 @@ def test_style_directives_xml_tag_closure() -> None:
         assert isinstance(directive, str)
         assert len(directive.strip()) > 0
         assert "<" in directive and ">" in directive
+
+
+def test_anti_jargon_evidence_grounding_structure() -> None:
+    """Positive: verify anti-jargon directive mandates verbatim quotes for strengths and contrastive deficit grounding."""
+    assert "<anti_jargon_mandate>" in ANTI_JARGON_MANDATE_BLOCK
+    assert "</anti_jargon_mandate>" in ANTI_JARGON_MANDATE_BLOCK
+    assert "ANTI-JARGON MANDATE" in ANTI_JARGON_MANDATE_BLOCK
+    assert "EVIDENCE GROUNDING" in ANTI_JARGON_MANDATE_BLOCK
+    assert "verbatim quotes" in ANTI_JARGON_MANDATE_BLOCK
+    assert "DEFICIT GROUNDING" in ANTI_JARGON_MANDATE_BLOCK
+    assert "without fabricating quotes" in ANTI_JARGON_MANDATE_BLOCK
+
