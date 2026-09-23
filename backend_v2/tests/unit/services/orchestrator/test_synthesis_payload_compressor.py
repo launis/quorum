@@ -13,7 +13,7 @@ from polyfactory.factories.pydantic_factory import ModelFactory
 
 from backend_v2.exceptions import AppException
 from backend_v2.models.domain.synthesis import DistilledEvaluation
-from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO, HydratedAtomDTO
 from backend_v2.services.orchestrator.synthesis_payload_compressor import SynthesisPayloadCompressor
 from backend_v2.settings import Settings
 
@@ -318,7 +318,9 @@ def test_compress_payload_results_without_exact_quotes_uses_normalizer() -> None
     res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     res_dict = json.loads(res_str)
     assert len(res_dict["results"]) == 3
-    assert res_dict["results"][0]["output_text"] == "Processed text"
+    assert res_dict["results"][0]["atom_id"] == "tda_atom_1"
+    assert res_dict["results"][0]["status"] == "PASSED"
+    assert res_dict["results"][0]["semantic_reasoning"] == "Processed text"
     assert "extra_key" not in res_dict["results"][0]
 
 
@@ -409,3 +411,41 @@ def test_compress_payload_invalid_evaluation_item_type() -> None:
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_compress_synthesis_payload_with_hydrated_atom_dto_dict() -> None:
+    """PROMISE: Prove that a dictionary mapping atom IDs to HydratedAtomDTO objects compresses without error."""
+    atom_dto = HydratedAtomDTO(
+        sdui_component="boolean_card",
+        resolved_claim="Claim text for atom 1",
+        source_quote="Verbatim quote",
+    )
+    payload: dict[str, HydratedAtomDTO] = {
+        "tda_01b1d71000000001": atom_dto,
+    }
+    res_str = SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    res_dict = json.loads(res_str)
+    assert "tda_01b1d71000000001" in res_dict
+    assert res_dict["tda_01b1d71000000001"]["resolved_claim"] == "Claim text for atom 1"
+
+
+def test_compress_payload_matrix_payload_dto_with_empty_results_fails_fast() -> None:
+    """PROMISE: Prove that passing an empty results list triggers AppException with VALIDATION_FAILED."""
+    payload = {"results": []}
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
+def test_compress_payload_results_item_missing_atom_id_fails_fast() -> None:
+    """PROMISE: Prove that an evaluation item missing an atom_id triggers AppException with VALIDATION_FAILED."""
+    payload = {
+        "results": [
+            {"exact_quotes": ["valid quote"], "status": "PASSED"}
+        ]
+    }
+    with pytest.raises(AppException) as exc_info:
+        SynthesisPayloadCompressor.compress_synthesis_payload(payload)
+    assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
+
+
