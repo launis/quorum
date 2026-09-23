@@ -6,7 +6,7 @@ Verified Phase 1 Decoupled TDA schema propagation.
 
 from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, field_validator
 
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.matrix import MatrixRow, MatrixScale, TheoryGrounding
@@ -414,6 +414,22 @@ class PromptBlockSimulationRequest(BaseDTO):
         ),
     ] = "[SIMULATED CONTEXT DOCUMENT]"
 
+    @field_validator("target_locale", mode="before")
+    @classmethod
+    def normalize_target_locale(cls, v: Any) -> str:
+        """Normalize None or blank target locale to canonical default."""
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return "en"
+        return str(v)
+
+    @field_validator("context_text", mode="before")
+    @classmethod
+    def normalize_context_text(cls, v: Any) -> str:
+        """Normalize None or blank context text to canonical simulation placeholder."""
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return "[SIMULATED CONTEXT DOCUMENT]"
+        return str(v)
+
 
 class StepSimulationTraceDTO(BaseDTO):
     """Execution and telemetry metadata for a simulated step.
@@ -495,6 +511,22 @@ class StepSimulationRequest(BaseDTO):
             description="Source document text context for sensor simulation.",
         ),
     ] = "[SIMULATED CONTEXT DOCUMENT]"
+
+    @field_validator("target_locale", mode="before")
+    @classmethod
+    def normalize_target_locale(cls, v: Any) -> str:
+        """Normalize None or blank target locale to canonical default."""
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return "en"
+        return str(v)
+
+    @field_validator("context_text", mode="before")
+    @classmethod
+    def normalize_context_text(cls, v: Any) -> str:
+        """Normalize None or blank context text to canonical simulation placeholder."""
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return "[SIMULATED CONTEXT DOCUMENT]"
+        return str(v)
 
 
 class WorkflowSimulationResponse(BaseResponseDTO):

@@ -139,11 +139,15 @@ class _StepSimulationDialogState extends ConsumerState<StepSimulationDialog> {
       mockInputs[entry.key] = entry.value.text;
     }
 
+    final resolvedContext = _contextTextController.text.trim().isEmpty
+        ? '[SIMULATED CONTEXT DOCUMENT]'
+        : _contextTextController.text.trim();
+
     final request = StepSimulationRequest(
       step: widget.step,
       mockInputs: mockInputs,
       targetLocale: _targetLocale,
-      contextText: _contextTextController.text,
+      contextText: resolvedContext,
     );
 
     try {

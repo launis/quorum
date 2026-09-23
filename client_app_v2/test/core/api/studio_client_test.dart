@@ -124,6 +124,64 @@ void main() {
     );
 
     test(
+      'test_studio_client_simulate_prompt_block_serializes_non_null_defaults',
+      () async {
+        // Arrange: PromptBlockSimulationRequest omitting optional contextText and targetLocale
+        const block = PromptBlock.systemRule(
+          id: 'blk_1234567812345678',
+          slug: 'test_rule',
+          label: I18nText(translations: {'en': 'Test Rule'}),
+          description: I18nText(translations: {'en': 'Test Description'}),
+        );
+        const request = PromptBlockSimulationRequest(block: block);
+
+        final returnedData = {
+          'valid': true,
+          'rendered_prompt': 'Rendered test prompt',
+          'errors': <String>[],
+          'prompt_context': null,
+        };
+
+        when(
+          () => mockDio.post(
+            'studio/prompt-blocks/simulate',
+            data: any(named: 'data'),
+          ),
+        ).thenAnswer(
+          (_) async => Response(
+            requestOptions: RequestOptions(
+              path: 'studio/prompt-blocks/simulate',
+            ),
+            data: returnedData,
+            statusCode: 200,
+          ),
+        );
+
+        // Act
+        final result = await client.simulatePromptBlock(request);
+
+        // Assert
+        expect(result.valid, isTrue);
+        final captured =
+            verify(
+                  () => mockDio.post(
+                    'studio/prompt-blocks/simulate',
+                    data: captureAny(named: 'data'),
+                  ),
+                ).captured.single
+                as Map<String, dynamic>;
+
+        expect(captured['target_locale'], equals('en'));
+        expect(
+          captured['context_text'],
+          equals('[SIMULATED CONTEXT DOCUMENT]'),
+        );
+        expect(captured['context_text'], isNotNull);
+        expect(captured['target_locale'], isNotNull);
+      },
+    );
+
+    test(
       'savePromptBlock calls correct endpoint and returns updated data',
       () async {
         // Arrange

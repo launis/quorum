@@ -141,3 +141,31 @@ async def test_simulate_prompt_block(mock_studio_services, sample_block: PromptB
     response = client.post("/prompt-blocks/simulate", json=payload)
     assert response.status_code == 200
     assert response.json()["valid"] is True
+
+
+@pytest.mark.asyncio
+async def test_simulate_prompt_block_with_null_context_text_and_locale(
+    mock_studio_services: tuple[Any, Any], sample_block: PromptBlock
+) -> None:
+    """Regression test: simulate_prompt_block should gracefully accept null context_text and target_locale from clients."""
+    _, mock_simulation = mock_studio_services
+    sim_response = PromptBlockSimulationResponse(
+        valid=True,
+        errors=[],
+        rendered_prompt="Rendered",
+        trace={},
+        prompt_context=None,
+    )
+    mock_simulation.simulate_prompt_block.return_value = sim_response
+
+    payload = {
+        "block": sample_block.model_dump(mode="json"),
+        "mock_inputs": {},
+        "target_scale_score": None,
+        "target_locale": None,
+        "context_text": None,
+    }
+    response = client.post("/prompt-blocks/simulate", json=payload)
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    assert response.json()["valid"] is True
+

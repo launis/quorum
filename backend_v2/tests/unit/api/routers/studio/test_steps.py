@@ -162,3 +162,30 @@ async def test_simulate_step(mock_studio_services: tuple[AsyncMock, AsyncMock], 
         target_locale="fi",
         context_text="Test context document",
     )
+
+
+@pytest.mark.asyncio
+async def test_simulate_step_with_null_context_text_and_locale(
+    mock_studio_services: tuple[AsyncMock, AsyncMock], sample_step: Step
+) -> None:
+    """Regression test: simulate_step should gracefully accept null target_locale and context_text from clients."""
+    _, mock_simulation = mock_studio_services
+    sim_response = StepSimulationResponse(
+        valid=True,
+        errors=[],
+        rendered_prompt="Simulated prompt text",
+        trace=StepSimulationTraceDTO(execution_time_ms=10.0, estimated_tokens=150),
+        prompt_context=None,
+    )
+    mock_simulation.simulate_step.return_value = sim_response
+
+    payload = {
+        "step": sample_step.model_dump(mode="json"),
+        "mock_inputs": {},
+        "target_locale": None,
+        "context_text": None,
+    }
+    response = client.post("/steps/simulate", json=payload)
+    assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
+    assert response.json()["valid"] is True
+

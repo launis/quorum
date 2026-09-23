@@ -16,10 +16,10 @@ abstract class PromptBlockSimulationRequest
     required PromptBlock block,
     @JsonKey(name: 'mock_inputs') @Default({}) Map<String, dynamic> mockInputs,
     @JsonKey(name: 'target_scale_score') int? targetScaleScore,
-    @JsonKey(name: 'target_locale') @Default('en') String? targetLocale,
+    @JsonKey(name: 'target_locale') @Default('en') String targetLocale,
     @JsonKey(name: 'context_text')
     @Default('[SIMULATED CONTEXT DOCUMENT]')
-    String? contextText,
+    String contextText,
   }) = _PromptBlockSimulationRequest;
 
   factory PromptBlockSimulationRequest.fromJson(Map<String, dynamic> json) =>

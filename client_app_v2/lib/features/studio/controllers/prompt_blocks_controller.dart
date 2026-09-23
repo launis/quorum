@@ -211,12 +211,20 @@ class PromptBlocksController extends _$PromptBlocksController {
     String? contextText,
   }) async {
     try {
+      final resolvedLocale =
+          (targetLocale == null || targetLocale.trim().isEmpty)
+          ? 'en'
+          : targetLocale.trim();
+      final resolvedContext =
+          (contextText == null || contextText.trim().isEmpty)
+          ? '[SIMULATED CONTEXT DOCUMENT]'
+          : contextText.trim();
       final request = PromptBlockSimulationRequest(
         block: block,
         mockInputs: mockInputs,
         targetScaleScore: targetScaleScore,
-        targetLocale: targetLocale,
-        contextText: contextText,
+        targetLocale: resolvedLocale,
+        contextText: resolvedContext,
       );
       final client = ref.read(studioClientProvider);
       return await client.simulatePromptBlock(request);

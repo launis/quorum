@@ -336,6 +336,73 @@ async def test_simulate_prompt_block_matrix_scales(
 
 
 @pytest.mark.asyncio
+async def test_simulate_prompt_block_matrix_scales_with_default_context_text(
+    simulation_service: StudioSimulationService, test_token: TokenData
+) -> None:
+    """Test matrix prompt block simulation with omitted/default context_text."""
+    block = MatrixPromptBlock(
+        id="blk_22222222222222222222222222222222",
+        slug="test_matrix",
+        label=I18nText(translations={"en": "Matrix Block"}),
+        description=I18nText(translations={"en": "Desc"}),
+        category_id=PromptBlockCategory.MATRIX,
+        type=BlockDataType.FLOAT,
+        ai_description="Perform matrix evaluation.",
+        scales=[
+            MatrixScale(
+                score=1,
+                ai_label="POOR",
+                claims=[
+                    MatrixClaim(
+                        label=I18nText(translations={"en": "Default Claim", "fi": "Oletusväite"}),
+                        tda_assertions=[
+                            TDAAssertion(
+                                concept_description="Verify that evidence exists",
+                                inverse_evidence=False,
+                                aggregation_mode="EXISTS",
+                                depends_on=(),
+                            )
+                        ],
+                    )
+                ],
+            )
+        ],
+    )
+
+    # 1. Test omitted fields defaulting to SSOT values
+    req = PromptBlockSimulationRequest(
+        block=block,
+        mock_inputs={},
+    )
+    assert req.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+    assert req.target_locale == "en"
+
+    res = await simulation_service.simulate_prompt_block(test_token, req)
+    assert res.valid is True
+    assert res.prompt_context is not None
+    assert len(res.prompt_context.static_messages) >= 2
+    assert "[SIMULATED CONTEXT DOCUMENT]" in res.prompt_context.static_messages[1].content
+    assert "<matrix_objective>" in res.rendered_prompt
+
+    # 2. Test explicit None inputs coerced by mode="before" field validators
+    req_coerced = PromptBlockSimulationRequest.model_validate(
+        {
+            "block": block.model_dump(mode="json"),
+            "mock_inputs": {},
+            "context_text": None,
+            "target_locale": None,
+        }
+    )
+    assert req_coerced.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+    assert req_coerced.target_locale == "en"
+
+    res_coerced = await simulation_service.simulate_prompt_block(test_token, req_coerced)
+    assert res_coerced.valid is True
+    assert res_coerced.prompt_context is not None
+    assert "[SIMULATED CONTEXT DOCUMENT]" in res_coerced.prompt_context.static_messages[1].content
+
+
+@pytest.mark.asyncio
 async def test_simulate_prompt_block_matrix_scales_filter_target_score(
     simulation_service: StudioSimulationService, test_token: TokenData
 ) -> None:

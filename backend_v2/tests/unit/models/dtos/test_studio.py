@@ -239,6 +239,27 @@ def test_prompt_block_simulation_request_strictness() -> None:
     assert req2.target_locale == "fi"
     assert req2.context_text == "Custom context"
 
+    # Positive test: None and empty strings normalized to defaults via mode="before" validators
+    req_null = PromptBlockSimulationRequest.model_validate(
+        {
+            "block": block.model_dump(mode="json"),
+            "target_locale": None,
+            "context_text": None,
+        }
+    )
+    assert req_null.target_locale == "en"
+    assert req_null.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+
+    req_blank = PromptBlockSimulationRequest.model_validate(
+        {
+            "block": block.model_dump(mode="json"),
+            "target_locale": "   ",
+            "context_text": "   ",
+        }
+    )
+    assert req_blank.target_locale == "en"
+    assert req_blank.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+
     # Negative partition: Extra forbidden fields
     with pytest.raises(ValidationError):
         PromptBlockSimulationRequest.model_validate(
@@ -280,6 +301,27 @@ def test_step_simulation_request_strictness() -> None:
     assert req2.mock_inputs == {"user_query": "hello"}
     assert req2.target_locale == "fi"
     assert req2.context_text == "Custom source text"
+
+    # Positive test: None and empty strings normalized to defaults via mode="before" validators
+    step_req_null = StepSimulationRequest.model_validate(
+        {
+            "step": step.model_dump(mode="json"),
+            "target_locale": None,
+            "context_text": None,
+        }
+    )
+    assert step_req_null.target_locale == "en"
+    assert step_req_null.context_text == "[SIMULATED CONTEXT DOCUMENT]"
+
+    step_req_blank = StepSimulationRequest.model_validate(
+        {
+            "step": step.model_dump(mode="json"),
+            "target_locale": "   ",
+            "context_text": "   ",
+        }
+    )
+    assert step_req_blank.target_locale == "en"
+    assert step_req_blank.context_text == "[SIMULATED CONTEXT DOCUMENT]"
 
     # Negative partition: Extra forbidden fields
     with pytest.raises(ValidationError):
