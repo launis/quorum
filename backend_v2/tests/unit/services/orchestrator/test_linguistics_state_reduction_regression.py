@@ -17,12 +17,13 @@ from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO, PerformativePatternDTO
 from backend_v2.models.domain.output_profile import OutputProfile
+from backend_v2.models.domain.synthesis import RenderedSynthesisCache
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_delta import HookDeltaDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import RenderedSynthesisCache
 from backend_v2.services.orchestrator.state_reducer import reduce_hook_delta
 from backend_v2.services.sdui.adapters.base_adapter import AdapterContext
 from backend_v2.services.sdui.adapters.variance_adapter import VarianceAdapter
@@ -98,7 +99,7 @@ def test_variance_adapter_crashes_when_extension_metrics_missing() -> None:
         target_locale="fi",
         metadata=ExecutionMetadata(),
         execution_trace=[],
-        context_variables={},
+        context_variables=ContextVariablesDTO(),
     )
     # Cache with extension_metrics=None (as produced by synthesis_worker when metrics missing)
     cache = RenderedSynthesisCache(extension_metrics=None)
@@ -166,7 +167,7 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
         workflow_id="wf_9d68c573802341db",
         step_id="sr_test_boundary_2",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
-        global_context_vars=None,
+        global_context_vars=None,  # type: ignore[arg-type] # Testing defensive null branch in reduce_hook_delta
         inputs=ExecutionInputsDTO(raw_inputs={"text": "none"}),
     )
     new_state_none, events_none = reduce_hook_delta(state_none_gvars, delta_dto, step_id="sr_test_boundary_2")

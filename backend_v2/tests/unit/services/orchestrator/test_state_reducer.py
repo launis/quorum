@@ -319,7 +319,7 @@ def test_reduce_hook_delta_metadata_variants() -> None:
 
 
 def test_reduce_hook_delta_scoring_interaction_linguistics_provider() -> None:
-    """Verify reduction of ScoringResultDTO, TraceScoringPayloadDTO, InteractionAnalysisDTO, LinguisticsResultDTO, LLMProviderConfig."""
+    """Verify reduction of hook deltas including LinguisticsResultDTO and scoring payloads."""
     from backend_v2.models.dtos.lightweight_matrix import XAILogDto
 
     state = _build_test_hook_state()
