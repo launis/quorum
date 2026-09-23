@@ -10,10 +10,11 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.synthesis import MatrixExplanationContextDTO
@@ -27,6 +28,8 @@ from backend_v2.utils.ranked_round_robin import ranked_round_robin_select
 logger = logging.getLogger(__name__)
 
 __all__ = ["MatrixExplanationService", "QuoteCandidateDTO"]
+
+_ATOM_RESULT_ADAPTER: TypeAdapter[AtomResultDTO | ReducedAtomDTO] = TypeAdapter(AtomResultDTO | ReducedAtomDTO)
 
 
 class QuoteCandidateDTO(BaseModel):
@@ -91,17 +94,22 @@ class MatrixExplanationService:
             effective_max_unmet = settings_obj.max_synthesis_unmet_criteria_per_matrix
 
         # Build map of tda_id -> list of quotes
-        # Build map of tda_id -> list of quotes
         global_quotes_map: dict[str, list[str]] = {}
         for dto in available_dtos:
             if isinstance(dto.payload, (str, int, float, bool)) or dto.payload is None:
                 continue
 
+            # Skip non-atom collections from system steps
+            if dto.step_id == "matrix_reducer" and dto.block_id != "reduced_atoms":
+                continue
+            if dto.block_id in ("evaluated_matrices", "raw_extensions"):
+                continue
+
             results_list: Sequence[Any] | None = None
-            if isinstance(dto.payload, list):
-                results_list = dto.payload
-            elif isinstance(dto.payload, AtomResultDTO):
+            if isinstance(dto.payload, (AtomResultDTO, ReducedAtomDTO)):
                 results_list = [dto.payload]
+            elif isinstance(dto.payload, list):
+                results_list = dto.payload
             elif isinstance(dto.payload, Mapping) and "results" in dto.payload:
                 res = dto.payload["results"]
                 if isinstance(res, list):
@@ -116,9 +124,10 @@ class MatrixExplanationService:
                 try:
                     atom_res = (
                         atom_item
-                        if isinstance(atom_item, AtomResultDTO)
-                        else AtomResultDTO.model_validate(atom_item, strict=False)
+                        if isinstance(atom_item, (AtomResultDTO, ReducedAtomDTO))
+                        else _ATOM_RESULT_ADAPTER.validate_python(atom_item)
                     )
+
                     if atom_res.source_quote:
                         cleaned = atom_res.source_quote.strip()
                         if len(cleaned) >= 15:
@@ -154,16 +163,19 @@ class MatrixExplanationService:
             if isinstance(payload, LightweightMatrixOutput):
                 lw_matrix = payload
             elif isinstance(payload, TraceMatrixPayloadDTO):
+                # Step 1: Pure explicit null check complying with QGR016
+                justification_val = payload.justification if payload.justification is not None else ""
+                evaluated_atoms_val = payload.evaluated_atoms if payload.evaluated_atoms is not None else {}
                 lw_matrix = LightweightMatrixOutput(
                     raw_score=payload.raw_score,
                     normalized_score=payload.normalized_score,
                     level_breakdown=payload.level_breakdown,
-                    justification=payload.justification or "",
-                    evaluated_atoms=payload.evaluated_atoms or {},
+                    justification=justification_val,
+                    evaluated_atoms=evaluated_atoms_val,
                 )
             elif isinstance(payload, Mapping):
-                payload_to_validate = dict(payload)
-                payload_to_validate.pop("results", None)
+                # Step 1: Pure immutable dictionary comprehension complying with QGR019
+                payload_to_validate = {k: v for k, v in payload.items() if k != "results"}
 
                 # Strict Pydantic parsing probe boundary
                 try:

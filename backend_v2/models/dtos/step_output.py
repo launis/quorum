@@ -9,6 +9,7 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.metadata import StepMetadataDTO
+from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.lightweight_matrix import (
     LightweightMatrixOutput,
@@ -32,6 +33,8 @@ type StepPayloadValue = (
     | ScoringResultDTO
     | AtomResultDTO
     | list[AtomResultDTO]
+    | ReducedAtomDTO
+    | list[ReducedAtomDTO]
     | FlattenedAtom
     | list[FlattenedAtom]
     | HydratedAtomDTO

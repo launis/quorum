@@ -1024,3 +1024,63 @@ def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> N
         dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="en"
     )
     assert len(result) == 0
+
+
+def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash() -> None:
+    """Regression test proving failure when matrix_reducer outputs (reduced_atoms with reasoning and evaluated_matrices) are in available_dtos."""
+    matrix_block_id = "blk_53f32679aa514fcb"
+    tda_id = "tda_71e60846894545b2bc43a3361b7a5a9c"
+    matrix_block = _create_matrix_block(block_id=matrix_block_id, tda_ids=[tda_id])
+    blocks_by_id = {matrix_block_id: matrix_block}
+
+    dtos = [
+        StepOutputDTO.model_construct(
+            step_id="matrix_reducer",
+            block_id="reduced_atoms",
+            data_type="unknown",
+            payload=[
+                {
+                    "tda_id": tda_id,
+                    "status": "FAILED",
+                    "reasoning": "Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
+                    "source_quote": None,
+                    "extracted_data": None,
+                }
+            ],
+        ),
+        StepOutputDTO.model_construct(
+            step_id="matrix_reducer",
+            block_id="evaluated_matrices",
+            data_type="unknown",
+            payload=[{"matrix_id": matrix_block_id}],
+        ),
+        StepOutputDTO(
+            step_id="step_eval",
+            block_id="results",
+            data_type="unknown",
+            payload=[
+                AtomResultDTO(
+                    tda_id=tda_id,
+                    status=ExecutionStatus.FAILED,
+                    evaluation_reasoning="Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
+                    source_quote=None,
+                )
+            ],
+        ),
+        StepOutputDTO(
+            step_id="step_eval",
+            block_id=matrix_block_id,
+            data_type="matrix",
+            payload=LightweightMatrixOutput(
+                normalized_score=50.0,
+                evaluated_atoms={tda_id: ExecutionStatus.FAILED},
+            ),
+        ),
+    ]
+
+    result = MatrixExplanationService.assemble_matrices_to_explain(
+        dtos, title_map={}, blocks_by_id=blocks_by_id, target_locale="fi"
+    )
+    assert len(result) == 1
+    assert result[0].real_matrix_id == matrix_block_id
+
