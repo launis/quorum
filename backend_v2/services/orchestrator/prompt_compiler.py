@@ -15,6 +15,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
+import pydantic_core
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_v2.core.registry import EvidenceType, StrippedBaseMatrixXAI
@@ -478,7 +479,7 @@ class PromptCompiler:
                 formatted.append(f"</{clean_k}>")
             return "\n".join(formatted)
 
-        return json.dumps(current, indent=2, ensure_ascii=False)
+        return json.dumps(pydantic_core.to_jsonable_python(current), indent=2, ensure_ascii=False)
 
     def calibrate_strictness(self, level: int | float | None) -> str:
         """Convert a numeric strictness level (0-100) into a semantic directive.

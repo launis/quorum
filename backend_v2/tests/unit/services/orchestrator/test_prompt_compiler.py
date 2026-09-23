@@ -3,7 +3,7 @@ import typing
 import pytest
 from pydantic import BaseModel
 
-from backend_v2.exceptions import AppException
+from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.prompt import LLMContextDataDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -210,7 +210,7 @@ def test_prompt_compiler_architectural_integrity() -> None:
     from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 
     msg1 = "CRITICAL: build_dynamic_schema on SALAA POISTETTU! Tämä rikkoo XAI-laajennukset ja 3D-matriisit."
-    assert hasattr(PromptCompiler, "build_dynamic_schema"), msg1
+    assert callable(PromptCompiler.build_dynamic_schema), msg1
 
 
 def test_dynamic_schema_descriptions_are_present() -> None:
@@ -846,7 +846,7 @@ def test_extract_value_from_state_complex_types() -> None:
         count: int
 
     compiler = PromptCompiler()
-    state = LLMContextDataDTO(
+    state = LLMContextDataDTO.model_construct(
         inputs={
             "model": DummyModel(field_a="hello", count=10),
             "nested": {"nested_model": DummyModel(field_a="world", count=20)},
@@ -957,3 +957,59 @@ def test_format_value_for_xml_branches() -> None:
     res_list = compiler._extract_value_from_state("items", state2)
     assert "item1" in res_list
     assert "item2" in res_list
+
+
+def test_extract_value_from_state_reduced_atom_dto_list() -> None:
+    """Test regression: _extract_value_from_state must serialize list of ReducedAtomDTO without TypeError."""
+    from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
+    from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+    from backend_v2.models.enums import LaxExecutionStatus
+
+    compiler = PromptCompiler()
+    atoms = [
+        ReducedAtomDTO(
+            tda_id="tda_01",
+            status=LaxExecutionStatus.PASSED,
+            reasoning="Valid argument",
+        ),
+        ReducedAtomDTO(
+            tda_id="tda_02",
+            status=LaxExecutionStatus.FAILED,
+            reasoning="Missing premise",
+        ),
+    ]
+    exec_inputs = ExecutionInputsDTO(
+        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": atoms}
+    )
+
+    result = compiler._extract_value_from_state("steps.matrix_reducer.reduced_atoms", exec_inputs)
+    assert "tda_01" in result
+    assert "PASSED" in result
+    assert "Valid argument" in result
+
+
+def test_extract_value_from_state_reduced_atom_dto_list_empty_boundary() -> None:
+    """Boundary partition: empty list of models should serialize to '[]' without error."""
+    compiler = PromptCompiler()
+    exec_inputs = ExecutionInputsDTO(
+        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []}
+    )
+
+    result = compiler._extract_value_from_state("steps.matrix_reducer.reduced_atoms", exec_inputs)
+    assert result == "[]"
+
+
+def test_extract_value_from_state_missing_step_negative() -> None:
+    """Negative partition: querying missing step in state raises AppException with VALIDATION_FAILED."""
+    compiler = PromptCompiler()
+    exec_inputs = ExecutionInputsDTO(
+        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []}
+    )
+
+    with pytest.raises(AppException) as exc_info:
+        compiler._extract_value_from_state("steps.nonexistent.reduced_atoms", exec_inputs)
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
