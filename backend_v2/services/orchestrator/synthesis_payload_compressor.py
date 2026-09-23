@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -85,16 +84,19 @@ class SynthesisPayloadCompressor:
             )
             return json.dumps(dumped, ensure_ascii=False, indent=2)
 
-        if not isinstance(v, (list, Mapping)):
-            logger.error(
-                "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
-                ErrorCodes.VALIDATION_FAILED.name,
-            )
-            raise AppException(
-                message="Payload must be a dict, list, string, or scalar for compression.",
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+        if not isinstance(v, list):
+            try:
+                _ = v.items()
+            except (AttributeError, TypeError) as e:
+                logger.error(
+                    "[SynthesisPayloadCompressor] %s: Payload must be a dict, list, string, or scalar for compression.",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                )
+                raise AppException(
+                    message="Payload must be a dict, list, string, or scalar for compression.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
 
         cleaned = cls._clean_and_distill_payload(v)
         return json.dumps(cleaned, ensure_ascii=False, indent=2)
@@ -199,168 +201,184 @@ class SynthesisPayloadCompressor:
         if isinstance(val, list):
             return [cls._clean_and_distill_payload(item) for item in val]
 
-        if isinstance(val, Mapping):
-            filtered: dict[str, Any] = {k: v for k, v in val.items() if k not in _HEAVY_KEYS_TO_EXCLUDE}
+        if isinstance(val, (int, float, bool, str)) or val is None:
+            return val
 
-            if "results" in filtered:
-                results_data = filtered["results"]
-                if not isinstance(results_data, list):
+        try:
+            val_items = val.items()
+        except (AttributeError, TypeError) as e:
+            logger.error(
+                "[SynthesisPayloadCompressor] %s: Unsupported nested payload type: %s",
+                ErrorCodes.VALIDATION_FAILED.name,
+                type(val).__name__,
+            )
+            raise AppException(
+                message=f"Unsupported nested payload type: {type(val).__name__}",
+                status_code=400,
+                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+            ) from e
+
+        filtered: dict[str, Any] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
+
+        if "results" in filtered:
+            results_data = filtered["results"]
+            if not isinstance(results_data, list):
+                logger.error(
+                    "[SynthesisPayloadCompressor] %s: 'results' must be a list.",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                )
+                raise AppException(
+                    message="'results' must be a list.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            settings = get_settings()
+            distilled_evals: list[DistilledEvaluation] = []
+
+            for ev in results_data:
+                if isinstance(ev, (str, int, float, bool)) or ev is None:
                     logger.error(
-                        "[SynthesisPayloadCompressor] %s: 'results' must be a list.",
+                        "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                         ErrorCodes.VALIDATION_FAILED.name,
                     )
                     raise AppException(
-                        message="'results' must be a list.",
+                        message="Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                         status_code=400,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
-                settings = get_settings()
-                distilled_evals: list[DistilledEvaluation] = []
+                if isinstance(ev, DistilledEvaluation):
+                    distilled_evals.append(ev)
+                elif isinstance(ev, EvaluatedAtomDTO):
+                    atom_id = ev.atom_id or ev.tda_id
+                    valid_quotes = [
+                        q.strip()
+                        for q in ev.exact_quotes
+                        if q.strip()
+                        and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
+                        and not (q.strip().startswith("[") and q.strip().endswith("]"))
+                    ]
+                    if ev.exact_quotes and not valid_quotes and not ev.evaluation_reasoning:
+                        continue
 
-                for ev in results_data:
-                    if isinstance(ev, (str, int, float, bool)) or ev is None:
+                    reasoning: str | None = None
+                    if ev.evaluation_reasoning:
+                        reasoning = str(ev.evaluation_reasoning)[: settings.max_synthesis_reasoning_length]
+                    distilled_evals.append(
+                        DistilledEvaluation(
+                            atom_id=atom_id,
+                            status=ev.status,
+                            exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
+                            semantic_reasoning=reasoning,
+                        )
+                    )
+                else:
+                    atom_id_val: Any = None
+                    if "atom_id" in ev and ev["atom_id"]:
+                        atom_id_val = ev["atom_id"]
+                    elif "tda_id" in ev and ev["tda_id"]:
+                        atom_id_val = ev["tda_id"]
+                    if not atom_id_val:
                         logger.error(
-                            "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary or EvaluatedAtomDTO.",
+                            "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: 'atom_id'",
                             ErrorCodes.VALIDATION_FAILED.name,
                         )
                         raise AppException(
-                            message="Evaluation item must be a dictionary or EvaluatedAtomDTO.",
+                            message="Missing mandatory field in evaluation: 'atom_id'",
                             status_code=400,
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
 
-                    if isinstance(ev, DistilledEvaluation):
-                        distilled_evals.append(ev)
-                    elif isinstance(ev, EvaluatedAtomDTO):
-                        atom_id = ev.atom_id or ev.tda_id
-                        valid_quotes = [
-                            q.strip()
-                            for q in ev.exact_quotes
-                            if q.strip()
-                            and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
-                            and not (q.strip().startswith("[") and q.strip().endswith("]"))
-                        ]
-                        if ev.exact_quotes and not valid_quotes and not ev.evaluation_reasoning:
-                            continue
+                    eval_dict: dict[str, Any] = {"atom_id": str(atom_id_val)}
+                    if "exact_quotes" in ev:
+                        eval_dict["exact_quotes"] = ev["exact_quotes"]
+                    if "semantic_reasoning" in ev:
+                        eval_dict["semantic_reasoning"] = ev["semantic_reasoning"]
+                    elif "output_text" in ev:
+                        eval_dict["semantic_reasoning"] = ev["output_text"]
+                    if "status" in ev:
+                        eval_dict["status"] = ev["status"]
+                    if "extensions" in ev:
+                        eval_dict["extensions"] = ev["extensions"]
 
-                        reasoning: str | None = None
-                        if ev.evaluation_reasoning:
-                            reasoning = str(ev.evaluation_reasoning)[: settings.max_synthesis_reasoning_length]
-                        distilled_evals.append(
-                            DistilledEvaluation(
-                                atom_id=atom_id,
-                                status=ev.status,
-                                exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
-                                semantic_reasoning=reasoning,
-                            )
+                    try:
+                        parsed_ev = DistilledEvaluation.model_validate(eval_dict)
+                    except (ValidationError, ValueError, TypeError) as e:
+                        logger.error(
+                            "[SynthesisPayloadCompressor] %s: Failed to hydrate evaluation: %s",
+                            ErrorCodes.VALIDATION_FAILED.name,
+                            str(e),
                         )
-                    elif isinstance(ev, Mapping):
-                        atom_id_val: Any = None
-                        if "atom_id" in ev and ev["atom_id"]:
-                            atom_id_val = ev["atom_id"]
-                        elif "tda_id" in ev and ev["tda_id"]:
-                            atom_id_val = ev["tda_id"]
-                        if not atom_id_val:
-                            logger.error(
-                                "[SynthesisPayloadCompressor] %s: Missing mandatory field in evaluation: 'atom_id'",
-                                ErrorCodes.VALIDATION_FAILED.name,
-                            )
-                            raise AppException(
-                                message="Missing mandatory field in evaluation: 'atom_id'",
-                                status_code=400,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            )
+                        raise AppException(
+                            message=f"Failed to hydrate evaluation: {str(e)}",
+                            status_code=400,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from e
 
-                        eval_dict: dict[str, Any] = {"atom_id": str(atom_id_val)}
-                        if "exact_quotes" in ev:
-                            eval_dict["exact_quotes"] = ev["exact_quotes"]
-                        if "semantic_reasoning" in ev:
-                            eval_dict["semantic_reasoning"] = ev["semantic_reasoning"]
-                        elif "output_text" in ev:
-                            eval_dict["semantic_reasoning"] = ev["output_text"]
-                        if "status" in ev:
-                            eval_dict["status"] = ev["status"]
-                        if "extensions" in ev:
-                            eval_dict["extensions"] = ev["extensions"]
+                    valid_quotes = [
+                        q.strip()
+                        for q in parsed_ev.exact_quotes
+                        if q.strip()
+                        and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
+                        and not (q.strip().startswith("[") and q.strip().endswith("]"))
+                    ]
 
-                        try:
-                            parsed_ev = DistilledEvaluation.model_validate(eval_dict)
-                        except (ValidationError, ValueError, TypeError) as e:
-                            logger.error(
-                                "[SynthesisPayloadCompressor] %s: Failed to hydrate evaluation: %s",
-                                ErrorCodes.VALIDATION_FAILED.name,
-                                str(e),
-                            )
-                            raise AppException(
-                                message=f"Failed to hydrate evaluation: {str(e)}",
-                                status_code=400,
-                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                            ) from e
-
-                        valid_quotes = [
-                            q.strip()
-                            for q in parsed_ev.exact_quotes
-                            if q.strip()
-                            and q.strip() not in ("None", "null", "N/A", "N/A - insufficient data")
-                            and not (q.strip().startswith("[") and q.strip().endswith("]"))
-                        ]
-
-                        has_quotes_in_source = "exact_quotes" in ev
-                        if has_quotes_in_source and not valid_quotes and not parsed_ev.semantic_reasoning:
-                            continue
-
-                        sem_reasoning: str | None = None
-                        if parsed_ev.semantic_reasoning:
-                            sem_reasoning = str(parsed_ev.semantic_reasoning)[: settings.max_synthesis_reasoning_length]
-                        distilled_evals.append(
-                            DistilledEvaluation(
-                                atom_id=parsed_ev.atom_id,
-                                status=parsed_ev.status,
-                                exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
-                                semantic_reasoning=sem_reasoning,
-                                extensions=parsed_ev.extensions,
-                            )
-                        )
-
-                if not distilled_evals:
-                    logger.error(
-                        "[SynthesisPayloadCompressor] %s: Results list cannot be empty after compression.",
-                        ErrorCodes.VALIDATION_FAILED.name,
-                    )
-                    raise AppException(
-                        message="Results list cannot be empty after compression.",
-                        status_code=400,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-
-                stratified = cls._prune_and_stratify_evaluations(distilled_evals, settings.max_synthesis_evaluations)
-
-                normalized_score_val: float | None = None
-                if "normalized_score" in filtered and filtered["normalized_score"] is not None:
-                    normalized_score_val = float(filtered["normalized_score"])
-
-                level_breakdown_val: Any = None
-                if "level_breakdown" in filtered and filtered["level_breakdown"] is not None:
-                    level_breakdown_val = filtered["level_breakdown"]
-
-                # Encapsulate in DistilledMatrixPayloadDTO
-                matrix_dto = DistilledMatrixPayloadDTO(
-                    results=stratified,
-                    normalized_score=normalized_score_val,
-                    level_breakdown=level_breakdown_val,
-                )
-                dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
-
-                # Preserve any remaining non-heavy keys on filtered dict
-                result_dict: dict[str, Any] = {}
-                for k, v in filtered.items():
-                    if k in ("results", "normalized_score", "level_breakdown"):
+                    has_quotes_in_source = "exact_quotes" in ev
+                    if has_quotes_in_source and not valid_quotes and not parsed_ev.semantic_reasoning:
                         continue
-                    result_dict[k] = cls._clean_and_distill_payload(v)
-                result_dict.update(dumped_matrix)
-                return result_dict
 
-            return {k: cls._clean_and_distill_payload(v) for k, v in filtered.items()}
+                    sem_reasoning: str | None = None
+                    if parsed_ev.semantic_reasoning:
+                        sem_reasoning = str(parsed_ev.semantic_reasoning)[: settings.max_synthesis_reasoning_length]
+                    distilled_evals.append(
+                        DistilledEvaluation(
+                            atom_id=parsed_ev.atom_id,
+                            status=parsed_ev.status,
+                            exact_quotes=[q[: settings.max_synthesis_quote_length] for q in valid_quotes],
+                            semantic_reasoning=sem_reasoning,
+                            extensions=parsed_ev.extensions,
+                        )
+                    )
+
+            if not distilled_evals:
+                logger.error(
+                    "[SynthesisPayloadCompressor] %s: Results list cannot be empty after compression.",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                )
+                raise AppException(
+                    message="Results list cannot be empty after compression.",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+
+            stratified = cls._prune_and_stratify_evaluations(distilled_evals, settings.max_synthesis_evaluations)
+
+            normalized_score_val: float | None = None
+            if "normalized_score" in filtered and filtered["normalized_score"] is not None:
+                normalized_score_val = float(filtered["normalized_score"])
+
+            level_breakdown_val: Any = None
+            if "level_breakdown" in filtered and filtered["level_breakdown"] is not None:
+                level_breakdown_val = filtered["level_breakdown"]
+
+            # Encapsulate in DistilledMatrixPayloadDTO
+            matrix_dto = DistilledMatrixPayloadDTO(
+                results=stratified,
+                normalized_score=normalized_score_val,
+                level_breakdown=level_breakdown_val,
+            )
+            dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
+
+            # Preserve any remaining non-heavy keys on filtered dict
+            result_dict: dict[str, Any] = {}
+            for k, v in filtered.items():
+                if k in ("results", "normalized_score", "level_breakdown"):
+                    continue
+                result_dict[k] = cls._clean_and_distill_payload(v)
+            result_dict.update(dumped_matrix)
+            return result_dict
+
+        return {k: cls._clean_and_distill_payload(v) for k, v in filtered.items()}
 
         return val

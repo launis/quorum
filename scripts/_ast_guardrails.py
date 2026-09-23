@@ -535,19 +535,26 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
             case _:
                 pass
 
-        # QGR012: isinstance(..., dict) or composite isinstance(..., (..., dict, ...)) duck-typing check
+        # QGR012: isinstance(..., dict | Mapping) or composite duck-typing check
         if isinstance(node.func, ast.Name) and node.func.id == "isinstance" and len(node.args) >= 2:
             types_arg = node.args[1]
             is_dict_check = False
+            is_mapping_check = False
             match types_arg:
                 case ast.Name(id="dict"):
                     is_dict_check = True
+                case ast.Name(id="Mapping" | "MutableMapping") | ast.Attribute(attr="Mapping" | "MutableMapping"):
+                    is_mapping_check = True
                 case ast.Tuple(elts=elts):
                     for elt in elts:
                         match elt:
                             case ast.Name(id="dict"):
                                 is_dict_check = True
-                                break
+                            case (
+                                ast.Name(id="Mapping" | "MutableMapping")
+                                | ast.Attribute(attr="Mapping" | "MutableMapping")
+                            ):
+                                is_mapping_check = True
                             case _:
                                 pass
                 case _:
@@ -564,6 +571,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "QGR012",
                     "Banned `isinstance(..., dict)` duck-typing check in domain code.",
                     "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc dict inspection.",
+                    severity=qgr012_sev,
+                )
+            elif is_mapping_check:
+                qgr012_sev = (
+                    GuardrailSeverity.WARNING
+                    if (self._is_domain_code and not self._is_boundary_exempt)
+                    else GuardrailSeverity.WARNING
+                )
+                self._add_violation(
+                    node,
+                    "QGR012",
+                    "Banned `isinstance(..., Mapping)` duck-typing check in domain code.",
+                    "Use native Pydantic V2 model validation (e.g. DTO fields, Enums, or @model_validator(mode='after')) instead of ad-hoc Mapping inspection.",
                     severity=qgr012_sev,
                 )
 
@@ -669,6 +689,38 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Banned type laundering: `TypeAdapter` instantiated with dictionary type.",
                     "Instantiate `TypeAdapter` with strongly typed Pydantic V2 DTOs or domain models instead of naked dictionaries.",
                     severity=qgr018_sev,
+                )
+
+        # QGR019: Dictionary .pop(key, ...) in-place mutation ban in domain code
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "pop":
+            # Exempt 0-arg pop() and integer-arg pop(0) used on lists/queues
+            is_dict_pop = False
+            if len(node.args) >= 2:
+                # list.pop only takes at most 1 argument; 2 arguments is always dict.pop(key, default)
+                is_dict_pop = True
+            elif len(node.args) == 1:
+                match node.args[0]:
+                    case ast.Constant(value=val):
+                        if isinstance(val, str):
+                            is_dict_pop = True
+                    case ast.Name(id=var_name):
+                        if var_name not in ("index", "i", "idx", "pos"):
+                            is_dict_pop = True
+                    case _:
+                        pass
+
+            if is_dict_pop:
+                qgr019_sev = (
+                    GuardrailSeverity.WARNING
+                    if (self._is_domain_code and not self._is_boundary_exempt)
+                    else GuardrailSeverity.WARNING
+                )
+                self._add_violation(
+                    node,
+                    "QGR019",
+                    "Banned `.pop(key, ...)` dictionary mutation in domain code.",
+                    "Use typed Pydantic V2 DTOs with model_dump(exclude=...) or immutable transformations instead of mutating dictionaries via .pop().",
+                    severity=qgr019_sev,
                 )
 
         self.generic_visit(node)

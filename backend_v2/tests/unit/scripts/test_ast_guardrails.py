@@ -1196,3 +1196,68 @@ def test_ast_guardrails_python3_tuple_exceptions() -> None:
     code = "try:\n    pass\nexcept (AttributeError, io.UnsupportedOperation):\n    raise\n"
     violations = _scan_snippet(code)
     assert len(violations) == 0
+
+
+# ==============================================================================
+# Partition: QGR012 Mapping Duck-Typing & QGR019 Dict Pop Mutation Ban
+# ==============================================================================
+
+
+def test_qgr012_mapping_duck_typing_detected() -> None:
+    """QGR012: isinstance(..., Mapping) in domain code triggers QGR012 violation."""
+    code = "if isinstance(payload, Mapping):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample_service.py")
+    qgr012 = [v for v in violations if v.rule_code == "QGR012"]
+    assert len(qgr012) == 1
+    assert "Mapping" in qgr012[0].message
+
+
+def test_qgr019_dict_pop_detected() -> None:
+    """QGR019: d.pop('key', None) in domain code triggers QGR019 violation."""
+    code = "payload.pop('shuffled_atoms', None)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample_service.py")
+    qgr019 = [v for v in violations if v.rule_code == "QGR019"]
+    assert len(qgr019) == 1
+    assert qgr019[0].rule_code == "QGR019"
+    assert ".pop(key, ...)" in qgr019[0].message
+
+
+def test_qgr019_list_pop_exempt() -> None:
+    """QGR019: list.pop() and queue.pop(0) are exempt from QGR019."""
+    code = "last_item = items.pop()\nfirst_item = queue.pop(0)\npos_item = items.pop(index)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample_service.py")
+    qgr019 = [v for v in violations if v.rule_code == "QGR019"]
+    assert len(qgr019) == 0
+
+
+def test_qgr012_tuple_mapping_duck_typing_detected() -> None:
+    """QGR012: isinstance(..., (list, Mapping)) in domain code triggers QGR012 violation."""
+    code = "if isinstance(payload, (list, Mapping)):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample_service.py")
+    qgr012 = [v for v in violations if v.rule_code == "QGR012"]
+    assert len(qgr012) == 1
+    assert "Mapping" in qgr012[0].message
+
+
+def test_qgr019_dict_pop_variable_and_two_args() -> None:
+    """QGR019: d.pop(key_var) and d.pop('k', 'default') are detected."""
+    code = "payload.pop(key_var)\npayload.pop('k', 'default')\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/sample_service.py")
+    qgr019 = [v for v in violations if v.rule_code == "QGR019"]
+    assert len(qgr019) == 2
+
+
+def test_qgr014_attribute_repository_spec_detected() -> None:
+    """QGR014: spec=interfaces.IUserRepository triggers QGR014."""
+    code = "mock = MagicMock(spec=interfaces.IUserRepository)\n"
+    violations = _scan_snippet(code, filepath="backend_v2/tests/unit/test_sample.py")
+    qgr014 = [v for v in violations if v.rule_code == "QGR014"]
+    assert len(qgr014) == 1
+
+
+def test_qgr011_plain_assign_id_detected() -> None:
+    """QGR011: plain assignment of id in create request model triggers QGR011."""
+    code = "class WorkflowCreateRequest(BaseModel):\n    id = 'custom_id'\n"
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/workflow.py")
+    qgr011 = [v for v in violations if v.rule_code == "QGR011"]
+    assert len(qgr011) == 1
