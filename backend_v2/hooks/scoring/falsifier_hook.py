@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Mapping
-from typing import Annotated, Any
+from typing import Annotated
 
 from pydantic import ConfigDict, Field, ValidationError
 
@@ -17,6 +17,7 @@ from backend_v2.core.hook_registry import (
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.falsifier import FalsifierData
+from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.domain.scoring import StepFalsifierDTO, StepPanelDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.workflow import Workflow
@@ -114,14 +115,14 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
         AppException: With ErrorCodes.VALIDATION_FAILED if data validation fails.
     """
     payloads: list[ScoringPayloadWrapper] = []
-    raw_source: Mapping[str, Any] | None = None
+    raw_source: Mapping[str, DomainInputValue] | None = None
 
     try:
         if isinstance(data, StateInputWrapper):
             hydrated_state = data
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
-            filtered_source: dict[str, Any] = {}
+            filtered_source: dict[str, DomainInputValue] = {}
             if isinstance(raw_source, Mapping):
                 filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
             hydrated_state = StateInputWrapper.model_validate(filtered_source)
@@ -296,7 +297,7 @@ def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> boo
             hydrated_state = data
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
-            filtered_source: dict[str, Any] = {}
+            filtered_source: dict[str, DomainInputValue] = {}
             if isinstance(raw_source, Mapping):
                 filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
             hydrated_state = StateInputWrapper.model_validate(filtered_source)

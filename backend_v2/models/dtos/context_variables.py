@@ -30,8 +30,9 @@ class EvaluatedMatrixContextDTO(V2CoreBase):
 
 
 type ContextVariableValue = DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO | EvaluatedMatrixContextDTO
+type ContextVariablesUpdateValue = ContextVariableValue | dict[str, ContextVariableValue]
 
-__all__ = ["ContextVariableValue", "ContextVariablesDTO", "EvaluatedMatrixContextDTO"]
+__all__ = ["ContextVariableValue", "ContextVariablesDTO", "ContextVariablesUpdateValue", "EvaluatedMatrixContextDTO"]
 
 
 class ContextVariablesDTO(V2CoreBase):
@@ -85,7 +86,7 @@ class ContextVariablesDTO(V2CoreBase):
             "evaluated_matrices",
             "variables",
         }
-        field_updates: dict[str, object] = {}
+        field_updates: dict[str, ContextVariablesUpdateValue] = {}
         var_updates: dict[str, ContextVariableValue] = dict(self.variables)
         for k, v in updates.items():
             if k == "__GLOBAL_ATOM_BLACKBOARD__":

@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
 from backend_v2.models.dtos.node_execution import (
     LogicEvaluationContextDTO,
@@ -26,12 +27,13 @@ def test_node_execution_update_dto() -> None:
         label="Step 1",
         status=ExecutionStatus.PASSED,
     )
+    cv = ContextVariablesDTO(variables={"key": "val"})
     dto = NodeExecutionUpdateDTO(
         status=ExecutionStatus.RUNNING,
         execution_trace=[],
         step_states={"stp_1234567890abcdef": step_state},
         frozen_context=None,
-        context_variables={"key": "val"},
+        context_variables=cv,
         error=None,
         steps=[ExecutionStep(id="stp_1234567890abcdef", label="Step 1", status=ExecutionStatus.PASSED)],
     )
@@ -40,7 +42,9 @@ def test_node_execution_update_dto() -> None:
     assert isinstance(update_dto, ExecutionUpdateDTO)
     assert update_dto.status == ExecutionStatus.RUNNING
     assert update_dto.step_states == {"stp_1234567890abcdef": step_state}
-    assert update_dto.context_variables == {"key": "val"}
+    assert update_dto.context_variables == cv
+    assert update_dto.context_variables is not None
+    assert update_dto.context_variables["key"] == "val"
     assert update_dto.steps is not None
     assert len(update_dto.steps) == 1
 

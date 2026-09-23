@@ -39,7 +39,7 @@ from backend_v2.llm.provider import _is_transient_llm_error
 from backend_v2.models.auth import User
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionStepState, FrozenContext
-from backend_v2.models.domain.inputs import WorkflowInputs
+from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
 from backend_v2.models.domain.prompt_blocks import PromptBlock
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.system_config import MCPAuditTrace
@@ -64,6 +64,10 @@ from backend_v2.settings import get_settings
 logger = logging.getLogger(__name__)
 
 __all__ = ["DAGExecutor", "ExecutionCommitter", "NodeExecutor"]
+
+type FrozenContextUpdate = list[MCPAuditTrace] | GeneratedSchemaManifestDTO
+type ExecutionRecordUpdate = ContextVariablesDTO | FrozenContext | dict[str, ExecutionStepState] | list[ExecutionStep]
+type StepOutputContentValue = DomainInputValue | JsonValue
 
 
 class ExecutionCommitter:
@@ -615,7 +619,7 @@ class DAGExecutor:
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
                 if processed_result.success and processed_result.state_delta is not None:
-                    delta_content_dict: dict[str, Any] = {}
+                    delta_content_dict: dict[str, StepOutputContentValue] = {}
                     if isinstance(processed_result.state_delta, HookDeltaDTO):
                         delta_payload = processed_result.state_delta.delta
                         if delta_payload is None:
@@ -941,11 +945,11 @@ class DAGExecutor:
                                 step_generated_schemas[evt.step_name] = evt.metadata["generated_schema"]
 
                     schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
-                    updates: dict[str, Any] = {}
+                    updates: dict[str, ExecutionRecordUpdate] = {}
                     if has_cv_updates:
                         updates["context_variables"] = new_cv
 
-                    fc_updates: dict[str, Any] = {}
+                    fc_updates: dict[str, FrozenContextUpdate] = {}
                     base_fc = exec_record.frozen_context or FrozenContext()
                     if step_mcp_traces:
                         current_traces: list[MCPAuditTrace] = list(base_fc.mcp_tool_audit)

@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState
+from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState, FrozenContext
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
@@ -46,7 +46,7 @@ class NodeExecutionUpdateDTO(V2CoreBase):
         Field(description="Current trace event list"),
     ]
     step_states: Annotated[dict[str, ExecutionStepState], Field(description="Step states mapping")]
-    frozen_context: Annotated[Any | None, Field(default=None, description="Frozen context snapshot")] = None
+    frozen_context: Annotated[FrozenContext | None, Field(default=None, description="Frozen context snapshot")] = None
     context_variables: Annotated[
         ContextVariablesDTO | None, Field(default=None, description="Context variables mapping")
     ] = None
@@ -124,6 +124,9 @@ class LogicEvaluationContextDTO(V2CoreBase):
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
 
+type StepOutputContentValue = DomainInputValue | JsonValue
+
+
 class StepOutputContentDTO(V2CoreBase):
     """Encapsulates content payload for step output or input trace events.
 
@@ -134,6 +137,6 @@ class StepOutputContentDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     data: Annotated[
-        dict[str, Any],
+        dict[str, StepOutputContentValue],
         Field(default_factory=dict, description="Structured event payload content"),
     ] = Field(default_factory=dict)

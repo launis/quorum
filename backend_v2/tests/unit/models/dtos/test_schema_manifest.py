@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import ValidationError
+from pydantic import JsonValue, ValidationError
 
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
 
@@ -20,8 +20,8 @@ def test_generated_schema_manifest_default_initialization() -> None:
 
 def test_generated_schema_manifest_mapping_interface() -> None:
     """Verifies dictionary-like access (__contains__, __getitem__, __len__, keys, items, values)."""
-    schema_a = {"type": "object", "properties": {"score": {"type": "number"}}}
-    schema_b = {"type": "object", "properties": {"summary": {"type": "string"}}}
+    schema_a: dict[str, JsonValue] = {"type": "object", "properties": {"score": {"type": "number"}}}
+    schema_b: dict[str, JsonValue] = {"type": "object", "properties": {"summary": {"type": "string"}}}
     manifest = GeneratedSchemaManifestDTO(
         schemas={
             "stp_extract_01": schema_a,
@@ -56,6 +56,28 @@ def test_generated_schema_manifest_extra_fields_forbidden() -> None:
     """Negative boundary: Extra fields are strictly rejected under extra='forbid'."""
     with pytest.raises(ValidationError):
         GeneratedSchemaManifestDTO.model_validate({"schemas": {}, "unauthorized_param": "forbidden"})
+
+
+def test_generated_schema_manifest_item_assignment_rejected() -> None:
+    """Negative boundary: Item assignment is rejected on immutable manifest."""
+    manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
+    with pytest.raises(TypeError):
+        manifest["stp_1"] = {"type": "new"}  # type: ignore[index]
+    with pytest.raises(TypeError):
+        manifest["stp_2"] = {"type": "new"}  # type: ignore[index]
+
+
+def test_generated_schema_manifest_item_deletion_rejected() -> None:
+    """Negative boundary: Item deletion is rejected on immutable manifest."""
+    manifest = GeneratedSchemaManifestDTO(schemas={"stp_1": {"type": "object"}})
+    with pytest.raises(TypeError):
+        del manifest["stp_1"]  # type: ignore[attr-defined]
+
+
+def test_generated_schema_manifest_invalid_payload_type() -> None:
+    """Negative boundary: Invalid schema payload types raise ValidationError."""
+    with pytest.raises(ValidationError):
+        GeneratedSchemaManifestDTO.model_validate({"schemas": "not_a_mapping"})
 
 
 def test_generated_schema_manifest_serialization_roundtrip() -> None:

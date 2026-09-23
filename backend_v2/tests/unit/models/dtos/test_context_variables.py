@@ -77,9 +77,11 @@ def test_context_variables_dto_serialization_and_deserialization() -> None:
 def test_context_variables_dto_forbids_extra_keys_fail_fast() -> None:
     """Negative test: unmapped or flat keys passed to ContextVariablesDTO raise ValidationError under extra='forbid'."""
     with pytest.raises(ValidationError):
-        ContextVariablesDTO.model_validate({
-            "unmapped_flat_key": "some_value",
-        })
+        ContextVariablesDTO.model_validate(
+            {
+                "unmapped_flat_key": "some_value",
+            }
+        )
 
 
 def test_context_variables_dto_subscript_and_contains() -> None:
@@ -178,3 +180,43 @@ def test_context_variables_dto_subscript_fallback_to_variables_for_known_names()
     assert dto["report_context"] == "rep_in_var"
     assert dto["step_detector"] == "step_in_var"
     assert dto["evaluated_matrices"] == "ev_in_var"
+
+
+def test_context_variables_dto_item_assignment_rejected() -> None:
+    """Negative test: Item assignment is rejected as ContextVariablesDTO is an immutable Mapping."""
+    dto = ContextVariablesDTO(variables={"existing": "val"})
+    with pytest.raises(TypeError):
+        dto["existing"] = "new_val"  # type: ignore[index]
+    with pytest.raises(TypeError):
+        dto["new_key"] = "new_val"  # type: ignore[index]
+
+
+def test_context_variables_dto_item_deletion_rejected() -> None:
+    """Negative test: Item deletion is rejected as ContextVariablesDTO is an immutable Mapping."""
+    dto = ContextVariablesDTO(variables={"existing": "val"})
+    with pytest.raises(TypeError):
+        del dto["existing"]  # type: ignore[attr-defined]
+
+
+def test_context_variables_dto_attribute_mutation_rejected() -> None:
+    """Negative test: In-place attribute assignment fails under frozen=True."""
+    dto = ContextVariablesDTO(report_context="original")
+    with pytest.raises(ValidationError):
+        dto.report_context = "modified"  # type: ignore[misc]
+
+
+def test_context_variables_dto_invalid_type_validation_error() -> None:
+    """Negative test: Non-mapping or invalid types passed to variables raise ValidationError."""
+    with pytest.raises(ValidationError):
+        ContextVariablesDTO.model_validate({"variables": "invalid_string_not_mapping"})
+    with pytest.raises(ValidationError):
+        ContextVariablesDTO.model_validate({"global_atom_blackboard": 12345})
+
+
+def test_context_variables_dto_no_get_fallback_enforces_fail_fast() -> None:
+    """Verifies ContextVariablesDTO does not expose a lazy .get() fallback, enforcing fail-fast subscript access."""
+    dto = ContextVariablesDTO(variables={"present": "value"})
+    assert "get" not in dir(dto)
+    assert dto["present"] == "value"
+    with pytest.raises(KeyError):
+        _ = dto["missing"]
