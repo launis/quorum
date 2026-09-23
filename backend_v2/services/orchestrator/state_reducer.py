@@ -6,8 +6,6 @@ import copy
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
-from pydantic import BaseModel
-
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
@@ -167,15 +165,14 @@ def reduce_hook_delta(
         )
 
         if meta_delta.mcp_audit_traces:
-            raw_traces = [
-                t.model_dump(mode="json") if isinstance(t, BaseModel) else t for t in meta_delta.mcp_audit_traces
-            ]
+            raw_traces = [t.model_dump(mode="json") for t in meta_delta.mcp_audit_traces]
             emitted_events.append(
                 TraceEvent(
                     step_name=effective_step,
                     event_type="decision",
                     content={"mcp_audit_traces": raw_traces},
                     metadata={"mcp_audit_traces": raw_traces},
+                    mcp_audit_traces=meta_delta.mcp_audit_traces,
                 )
             )
 

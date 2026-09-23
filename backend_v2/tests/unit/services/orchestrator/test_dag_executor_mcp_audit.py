@@ -116,7 +116,7 @@ async def test_dag_executor_mcp_audit_trace_event_direct_accumulation(
 async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
     mock_repo: Any, mock_compiler: Any, workflow_fixture: Workflow
 ) -> None:
-    """Tests that raw dicts in decision event metadata are validated and deduplicated against existing traces."""
+    """Tests that typed MCPAuditTrace models in decision events are merged and deduplicated in frozen_context."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -131,34 +131,35 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
     )
 
     now = datetime.datetime.now(datetime.timezone.utc)
-    raw_trace1 = {
-        "id": "tavily_dup_1",
-        "tool_id": "mcp_tavily_search",
-        "step_name": "stp_1111222233334444",
-        "query": "Query 1",
-        "reasoning": "Reasoning 1",
-        "response_summary": "Summary 1",
-        "source_urls": ["https://example.com/1"],
-        "timestamp": now,
-        "duration_ms": 100,
-    }
-    raw_trace2 = {
-        "id": "tavily_dup_1",  # Same ID should be deduplicated
-        "tool_id": "mcp_tavily_search",
-        "step_name": "stp_1111222233334444",
-        "query": "Query 1 duplicate",
-        "reasoning": "Reasoning 1",
-        "response_summary": "Summary 1",
-        "source_urls": ["https://example.com/1"],
-        "timestamp": now,
-        "duration_ms": 100,
-    }
+    trace1 = MCPAuditTrace(
+        id="tavily_dup_1",
+        tool_id="mcp_tavily_search",
+        step_name="stp_1111222233334444",
+        query="Query 1",
+        reasoning="Reasoning 1",
+        response_summary="Summary 1",
+        source_urls=["https://example.com/1"],
+        timestamp=now,
+        duration_ms=100,
+    )
+    trace2 = MCPAuditTrace(
+        id="tavily_dup_1",  # Same ID should be deduplicated
+        tool_id="mcp_tavily_search",
+        step_name="stp_1111222233334444",
+        query="Query 1 duplicate",
+        reasoning="Reasoning 1",
+        response_summary="Summary 1",
+        source_urls=["https://example.com/1"],
+        timestamp=now,
+        duration_ms=100,
+    )
 
     decision_event = TraceEvent(
         step_name="stp_1111222233334444",
         event_type="decision",
-        content={"mcp_audit_traces": [raw_trace1, raw_trace2]},
-        metadata={"mcp_audit_traces": [raw_trace1, raw_trace2]},
+        content={"mcp_audit_traces": [trace1.model_dump(mode="json"), trace2.model_dump(mode="json")]},
+        metadata={"mcp_audit_traces": [trace1.model_dump(mode="json"), trace2.model_dump(mode="json")]},
+        mcp_audit_traces=[trace1, trace2],
     )
 
     with (
@@ -178,11 +179,32 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
         assert record.frozen_context.mcp_tool_audit[0].id == "tavily_dup_1"
 
 
+def test_dag_executor_mcp_audit_invalid_trace_fails_fast() -> None:
+    """Tests that a malformed raw dict passed to TraceEvent mcp_audit_traces triggers Fail-Fast ValidationError."""
+    import pydantic
+
+    malformed_trace = {
+        "id": "tavily_bad",
+        # missing required tool_id, step_name, query
+    }
+
+    with pytest.raises(pydantic.ValidationError) as exc_info:
+        TraceEvent(
+            step_name="stp_1111222233334444",
+            event_type="decision",
+            content={"mcp_audit_traces": [malformed_trace]},
+            metadata={"mcp_audit_traces": [malformed_trace]},
+            mcp_audit_traces=[malformed_trace],  # type: ignore[list-item]
+        )
+
+    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
+
+
 @pytest.mark.asyncio
-async def test_dag_executor_mcp_audit_invalid_trace_fails_fast(
+async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
     mock_repo: Any, mock_compiler: Any, workflow_fixture: Workflow
 ) -> None:
-    """Tests that a malformed raw dict in decision event metadata triggers Fail-Fast AppException."""
+    """Regression test: verify MCPAuditTrace hydrated from serialized data flows through TraceEvent into frozen_context."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -196,16 +218,27 @@ async def test_dag_executor_mcp_audit_invalid_trace_fails_fast(
         prompt_compiler=mock_compiler,
     )
 
-    malformed_trace = {
-        "id": "tavily_bad",
-        # missing required tool_id, step_name, query, etc.
+    raw_trace_iso = {
+        "id": "tavily_iso_001",
+        "tool_id": "mcp_tavily_search",
+        "step_name": "stp_1111222233334444",
+        "query": "Verify fact check",
+        "reasoning": "Reasoning text",
+        "response_summary": "Extracted summary",
+        "source_urls": ["https://example.com/source"],
+        "timestamp": "2026-09-23T14:43:20.852846Z",
+        "duration_ms": 125,
     }
+
+    # Hydrated with strict=False at the reconstitution boundary
+    trace = MCPAuditTrace.model_validate(raw_trace_iso, strict=False)
 
     decision_event = TraceEvent(
         step_name="stp_1111222233334444",
         event_type="decision",
-        content={"mcp_audit_traces": [malformed_trace]},
-        metadata={"mcp_audit_traces": [malformed_trace]},
+        content={"mcp_audit_traces": [raw_trace_iso]},
+        metadata={"mcp_audit_traces": [raw_trace_iso]},
+        mcp_audit_traces=[trace],
     )
 
     with (
@@ -215,11 +248,48 @@ async def test_dag_executor_mcp_audit_invalid_trace_fails_fast(
         mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta={}))
         mock_node_execute.return_value = [decision_event]
 
-        with pytest.raises(AppException) as exc_info:
-            await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
-                workflow=workflow_fixture,
-                raw_inputs=WorkflowInputs(dynamic_inputs={}),
-            )
+        record = await executor.execute_workflow(
+            execution_id="exe_1111222233334444",
+            workflow=workflow_fixture,
+            raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        )
 
-        assert exc_info.value.status_code == 500
+        assert record.status == ExecutionStatus.RUNNING
+        assert len(record.frozen_context.mcp_tool_audit) == 1
+        audit_entry = record.frozen_context.mcp_tool_audit[0]
+        assert audit_entry.id == "tavily_iso_001"
+        assert isinstance(audit_entry.timestamp, datetime.datetime)
+
+
+def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
+    """ISTQB Negative Boundary Test Partitions for MCPAuditTrace and TraceEvent ingress contracts."""
+    import pydantic
+
+    # Partition Neg-1: Malformed dictionary in TraceEvent(mcp_audit_traces=[...]) fails fast with ValidationError
+    with pytest.raises(pydantic.ValidationError) as exc_neg1:
+        TraceEvent(
+            step_name="stp_1111222233334444",
+            event_type="decision",
+            mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
+        )
+    assert "tool_id" in str(exc_neg1.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_neg1.value)
+
+    # Partition Neg-2: Attempting to instantiate MCPAuditTrace without mandatory fields fails fast
+    with pytest.raises(pydantic.ValidationError) as exc_neg2:
+        MCPAuditTrace.model_validate({"id": "tavily_bad"})
+    assert "tool_id" in str(exc_neg2.value)
+    assert "step_name" in str(exc_neg2.value)
+    assert "query" in str(exc_neg2.value)
+
+    # Partition Neg-3: Passing string timestamp into MCPAuditTrace.model_validate(raw, strict=True)
+    # raises ValidationError, mathematically proving why the producer MUST pass native datetime or typed instances
+    raw_with_str_timestamp = {
+        "tool_id": "mcp_search",
+        "step_name": "stp_step_1",
+        "query": "claim check",
+        "timestamp": "2026-09-23T14:43:20.852846Z",
+    }
+    with pytest.raises(pydantic.ValidationError) as exc_neg3:
+        MCPAuditTrace.model_validate(raw_with_str_timestamp, strict=True)
+    assert "Input should be a valid datetime" in str(exc_neg3.value)
+

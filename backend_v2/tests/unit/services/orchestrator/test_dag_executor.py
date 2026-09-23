@@ -1069,23 +1069,26 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
     }
     mock_repo.get_execution.return_value = None
 
-    raw_trace = {
-        "id": "tavily_12345678",
-        "tool_id": "mcp_tavily_search",
-        "step_name": "stp_1111222233334444",
-        "query": "Fact check query",
-        "reasoning": "Verification",
-        "response_summary": "Verified truth",
-        "source_urls": ["https://example.com"],
-        "timestamp": datetime.datetime.now(datetime.timezone.utc),
-        "duration_ms": 150,
-    }
+    from backend_v2.models.domain.system_config import MCPAuditTrace
+
+    trace = MCPAuditTrace(
+        id="tavily_12345678",
+        tool_id="mcp_tavily_search",
+        step_name="stp_1111222233334444",
+        query="Fact check query",
+        reasoning="Verification",
+        response_summary="Verified truth",
+        source_urls=["https://example.com"],
+        timestamp=datetime.datetime.now(datetime.timezone.utc),
+        duration_ms=150,
+    )
 
     decision_event = TraceEvent(
         step_name="stp_1111222233334444",
         event_type="decision",
-        content={"mcp_audit_traces": [raw_trace]},
-        metadata={"mcp_audit_traces": [raw_trace]},
+        content={"mcp_audit_traces": [trace.model_dump(mode="json")]},
+        metadata={"mcp_audit_traces": [trace.model_dump(mode="json")]},
+        mcp_audit_traces=[trace],
     )
 
     with (
@@ -1106,72 +1109,22 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         assert record.frozen_context.mcp_tool_audit[0].response_summary == "Verified truth"
 
 
-@pytest.mark.asyncio
-async def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
-    """Tests that invalid MCPAuditTrace payload in decision event triggers Fail-Fast AppException."""
+def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> None:
+    """Tests that invalid MCPAuditTrace payload in decision event triggers Fail-Fast ValidationError at schema boundary."""
+    import pydantic
+
     from backend_v2.models.state import TraceEvent
 
-    executor = DAGExecutor(
-        rag_preflight=AsyncMock(),
-        exec_repo=mock_repo,
-        workflow_repo=mock_repo,
-        comp_repo=mock_repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=mock_repo,
-        audit_repo=mock_repo,
-        system_repo=mock_repo,
-        prompt_compiler=mock_compiler,
-    )
+    with pytest.raises(pydantic.ValidationError) as exc_info:
+        TraceEvent(
+            step_name="stp_1111222233334444",
+            event_type="decision",
+            content={"mcp_audit_traces": [{"invalid_field": 123}]},
+            metadata={"mcp_audit_traces": [{"invalid_field": 123}]},
+            mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
+        )
 
-    step1 = StepRule(id="stp_1111222233334444", task_blueprint="stp_1111222233334444", depends_on=[])
-    workflow = Workflow(
-        historical_context_mode="DISABLED",
-        id="wor_1111222233334444",
-        slug="wf_mcp_audit_fail",
-        status="draft",
-        version=1,
-        default_profile_id="prof_dddd1111dddd1111",
-        model_registry_id="cfg_model_registry_01",
-        name=I18nText(translations={"en": "MCP Audit WF"}),
-        description=I18nText(translations={"en": "Desc"}),
-        steps=[step1],
-    )
-
-    mock_repo.get_step_by_id.return_value = {
-        "id": "stp_1111222233334444",
-        "slug": "logic",
-        "type": "logic",
-        "hook": "mock_hook",
-        "name": {"translations": {"en": "en"}},
-        "description": {"translations": {"en": "en"}},
-    }
-    mock_repo.get_execution.return_value = None
-
-    invalid_decision_event = TraceEvent(
-        step_name="stp_1111222233334444",
-        event_type="decision",
-        content={"mcp_audit_traces": [{"invalid_field": 123}]},
-        metadata={"mcp_audit_traces": [{"invalid_field": 123}]},
-    )
-
-    with (
-        patch("backend_v2.services.orchestrator.dag_executor.hook_registry") as mock_hooks,
-        patch.object(executor.node_executor, "execute", new_callable=AsyncMock) as mock_node_execute,
-    ):
-        mock_hooks.execute = AsyncMock(return_value=HookResult(success=True, state_delta=HookDeltaDTO()))
-        mock_node_execute.return_value = [invalid_decision_event]
-
-        with pytest.raises(AppException) as exc_info:
-            await executor.execute_workflow(
-                execution_id="exe_1111222233334444",
-                workflow=workflow,
-                raw_inputs=WorkflowInputs(dynamic_inputs={}),
-            )
-
-        assert exc_info.value.status_code == 500
+    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
 
 
 @pytest.mark.asyncio

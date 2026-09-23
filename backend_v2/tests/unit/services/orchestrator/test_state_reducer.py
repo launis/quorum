@@ -182,6 +182,7 @@ def test_reduce_hook_delta_metadata_updates_and_traces() -> None:
     assert len(events) == 2
     assert events[0].event_type == "decision"
     assert "mcp_audit_traces" in events[0].content
+    assert events[0].mcp_audit_traces == [trace]
     assert events[1].event_type == "decision"
     assert "estimated_token_count" in events[1].content
 
