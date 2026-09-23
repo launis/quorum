@@ -3,6 +3,7 @@
 Enforces Tripartite Phase Isolation, Four-Tier Pydantic V2 Invariants, and failure containment.
 """
 
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -194,10 +195,30 @@ async def test_compile_and_persist_artifact() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     await service.compile_and_persist_artifact(report.id, arq_pool)
 
+    job_key = f"compile_report_{report.id}"
+    arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
     repo.update_report_artifact.assert_called_once()
     arq_pool.enqueue_job.assert_called_once_with(
-        "generate_report_artifact_job", report_id=report.id, _job_id=f"compile_report_{report.id}"
+        "generate_report_artifact_job", report_id=report.id, _job_id=job_key
     )
+
+
+@pytest.mark.asyncio
+async def test_compile_and_persist_artifact_deduplicated_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Verify that when Arq deduplicates an in-flight job, a structured warning is logged."""
+    repo = AsyncMock()
+    report = _create_dummy_report()
+    repo.get_report_artifact.return_value = report
+    arq_pool = AsyncMock()
+    arq_pool.enqueue_job.return_value = None
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    with caplog.at_level(logging.WARNING):
+        await service.compile_and_persist_artifact(report.id, arq_pool)
+
+    job_key = f"compile_report_{report.id}"
+    arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
+    assert f"Compilation job '{job_key}' deduplicated by Arq" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -369,6 +390,32 @@ async def test_regenerate_report_artifact() -> None:
     service = ReportService(repo=repo, storage_driver=AsyncMock())
     await service.regenerate_report_artifact(report.id, arq)
     arq.enqueue_job.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_regenerate_report_artifact_clears_stale_arq_result() -> None:
+    """Regression test reproducing Arq deduplication deadlock on report regeneration.
+
+    When a report artifact was previously compiled, Arq stores the result under
+    'arq:result:compile_report_{report_id}'. When regenerate_report_artifact is called,
+    compile_and_persist_artifact enqueues with _job_id=compile_report_{report_id}.
+    Arq's enqueue_job checks if arq:result:compile_report_{id} exists and silently returns None.
+    Without deleting this stale result key, the compilation job is never enqueued,
+    leaving the report permanently trapped in GENERATING status.
+    """
+    repo = AsyncMock()
+    report = _create_dummy_report()
+    repo.get_report_artifact.return_value = report
+    arq = AsyncMock()
+
+    service = ReportService(repo=repo, storage_driver=AsyncMock())
+    await service.regenerate_report_artifact(report.id, arq)
+
+    job_key = f"compile_report_{report.id}"
+    arq.delete.assert_awaited_once_with(f"arq:result:{job_key}")
+    arq.enqueue_job.assert_awaited_once_with(
+        "generate_report_artifact_job", report_id=report.id, _job_id=job_key
+    )
 
 
 @pytest.mark.asyncio

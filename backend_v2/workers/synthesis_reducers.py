@@ -359,7 +359,7 @@ async def handle_starvation_if_detected(
         locale=accept_language,
     )
     if redis:
-        await redis.enqueue_job("generate_report_artifact_job", artifact.id, _job_id=f"compile_report_{artifact.id}")
+        await report_svc.compile_and_persist_artifact(artifact.id, redis)
     return True
 
 

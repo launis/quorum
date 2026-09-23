@@ -250,6 +250,7 @@ async def test_handle_starvation_if_detected_true() -> None:
     with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
         mock_svc = mock_report_service_cls.return_value
         mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+        mock_svc.compile_and_persist_artifact = AsyncMock()
         detected = await handle_starvation_if_detected(
             exec_rec,
             "pro_0123456789abcdef01",
@@ -266,10 +267,9 @@ async def test_handle_starvation_if_detected_true() -> None:
             profile_id="pro_0123456789abcdef01",
             locale="en",
         )
-        mock_redis.enqueue_job.assert_called_once_with(
-            "generate_report_artifact_job",
+        mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
             "rep_0123456789abcdef01",
-            _job_id="compile_report_rep_0123456789abcdef01",
+            mock_redis,
         )
 
 
@@ -293,6 +293,7 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
     with patch("backend_v2.workers.synthesis_reducers.ReportService") as mock_report_service_cls:
         mock_svc = mock_report_service_cls.return_value
         mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+        mock_svc.compile_and_persist_artifact = AsyncMock()
         detected = await handle_starvation_if_detected(
             exec_rec,
             "pro_0123456789abcdef01",
@@ -307,10 +308,9 @@ async def test_handle_starvation_if_detected_dict_event() -> None:
             profile_id="pro_0123456789abcdef01",
             locale="en",
         )
-        mock_redis.enqueue_job.assert_called_once_with(
-            "generate_report_artifact_job",
+        mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
             "rep_0123456789abcdef01",
-            _job_id="compile_report_rep_0123456789abcdef01",
+            mock_redis,
         )
 
 

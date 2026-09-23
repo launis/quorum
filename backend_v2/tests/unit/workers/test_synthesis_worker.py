@@ -62,6 +62,7 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
             with patch("backend_v2.workers.synthesis_worker.ReportService") as mock_report_service_cls:
                 mock_svc = mock_report_service_cls.return_value
                 mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+                mock_svc.compile_and_persist_artifact = AsyncMock()
                 await generate_profile_synthesis_and_pdf_task(
                     execution_id="exe_0123456789abcdef01",
                     accept_language="en",
@@ -73,10 +74,9 @@ async def test_synthesis_worker_already_synthesized_enqueues_pdf() -> None:
                     profile_id=prof_id,
                     locale="en",
                 )
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_report_artifact_job",
+                mock_svc.compile_and_persist_artifact.assert_awaited_once_with(
                     "rep_0123456789abcdef01",
-                    _job_id="compile_report_rep_0123456789abcdef01",
+                    mock_redis,
                 )
 
 

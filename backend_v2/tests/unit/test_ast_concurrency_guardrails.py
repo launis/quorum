@@ -96,7 +96,7 @@ def test_ast_taskgroup_guardrail() -> None:
 def test_ast_enqueue_job_guardrail() -> None:
     base = Path("backend_v2")
     files = [
-        base / "workers" / "synthesis_worker.py",
+        base / "services" / "report_service.py",
         base / "services" / "execution" / "ingress_service.py",
     ]
     for path in files:

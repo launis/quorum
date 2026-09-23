@@ -284,10 +284,17 @@ class ReportService:
             arq_pool: Redis worker connection pool for job enqueuing.
         """
         report = await self.get_report(report_id)
+        job_key = f"compile_report_{report.id}"
+        await arq_pool.delete(f"arq:result:{job_key}")
         await self.repo.update_report_artifact(report.id, ReportArtifactUpdateDTO(status=ReportStatus.GENERATING))
-        await arq_pool.enqueue_job(
-            "generate_report_artifact_job", report_id=report.id, _job_id=f"compile_report_{report.id}"
-        )
+        job = await arq_pool.enqueue_job("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
+        if job is None:
+            logger.warning(
+                "[ReportService] Compilation job '%s' deduplicated by Arq for report '%s'",
+                job_key,
+                report.id,
+                extra={"report_id": report.id, "job_key": job_key},
+            )
 
     async def process_artifact_compilation(self, report_id: str) -> None:
         """Executes Phase 2 synthesis and compiles Phase 3 presentation artifacts into storage.
