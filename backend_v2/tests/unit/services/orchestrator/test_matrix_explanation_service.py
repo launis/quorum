@@ -1027,7 +1027,7 @@ def test_assemble_matrices_to_explain_non_mapping_container_payload_skips() -> N
 
 
 def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash() -> None:
-    """Regression test proving failure when matrix_reducer outputs (reduced_atoms with reasoning and evaluated_matrices) are in available_dtos."""
+    """Regression test proving matrix_reducer outputs in available_dtos do not crash explanation assembly."""
     matrix_block_id = "blk_53f32679aa514fcb"
     tda_id = "tda_71e60846894545b2bc43a3361b7a5a9c"
     matrix_block = _create_matrix_block(block_id=matrix_block_id, tda_ids=[tda_id])

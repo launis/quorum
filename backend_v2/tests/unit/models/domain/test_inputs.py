@@ -177,3 +177,28 @@ def test_validate_no_base64_validator_direct() -> None:
     attachment = Base64Attachment(filename="doc.pdf", content_base64="JVBERi...")
     with pytest.raises(ValueError, match="Base64Attachment is strictly forbidden in WorkflowInputs"):
         WorkflowInputs.validate_no_base64({"attachment": attachment})  # type: ignore[dict-item]
+
+
+def test_domain_input_value_accepts_reduced_atoms() -> None:
+    """Test contract: DomainInputValue union accepts ReducedAtomDTO and list[ReducedAtomDTO]."""
+    from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
+    from backend_v2.models.enums import LaxExecutionStatus
+
+    atom = ReducedAtomDTO(
+        tda_id="tda_1234567890abcdef",
+        status=LaxExecutionStatus.PASSED,
+        reasoning="Compact reasoning.",
+        source_quote="Quote text.",
+    )
+    atoms_list = [atom]
+
+    inputs = WorkflowInputs(
+        organization_id="org_123",
+        dynamic_inputs={
+            "single_reduced": atom,
+            "list_reduced": atoms_list,
+        },
+    )
+    assert inputs.dynamic_inputs["single_reduced"] == atom
+    assert inputs.dynamic_inputs["list_reduced"] == atoms_list
+

@@ -19,6 +19,7 @@ from backend_v2.models.domain.metrics import ProfilerMetricsDTO, TextMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.domain.security import SanitizationResultDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
+from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, ScoringResultDTO
@@ -86,6 +87,8 @@ type DomainInputValue = Annotated[
     | list[StepOutputDTO]
     | AtomResultDTO
     | list[AtomResultDTO]
+    | ReducedAtomDTO
+    | list[ReducedAtomDTO]
     | FlattenedAtom
     | list[FlattenedAtom]
     | DLQAtomSchema

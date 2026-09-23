@@ -218,7 +218,8 @@ class MatrixExplanationService:
                     if hit_status == ExecutionStatus.PASSED:
                         if tda_id not in tda_to_claim:
                             logger.error(
-                                "[MatrixExplanationService] %s: TDA atom '%s' missing from claim mapping in matrix '%s'",
+                                "[MatrixExplanationService] %s: TDA atom '%s' missing from claim mapping in "
+                                "matrix '%s'",
                                 ErrorCodes.VALIDATION_FAILED.name,
                                 tda_id,
                                 block_id,
