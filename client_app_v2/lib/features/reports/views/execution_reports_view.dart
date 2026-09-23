@@ -701,6 +701,8 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
     }
 
     final sduiAsync = ref.watch(reportSduiProvider(reportSummary.id));
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
 
     return AppErrorBoundary(
       child: sduiAsync.when(
@@ -708,9 +710,30 @@ class _ExecutionReportsViewState extends ConsumerState<ExecutionReportsView>
         error: (err, _) => Center(
           child: Padding(
             padding: AppSpacing.p24,
-            child: Text(
-              'SDUI-lataus epäonnistui: $err',
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: theme.colorScheme.error,
+                ),
+                AppSpacing.h16,
+                Text(
+                  l10n.reportGenerationFailedNotice,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                AppSpacing.h16,
+                FilledButton.icon(
+                  onPressed: () =>
+                      ref.invalidate(reportSduiProvider(reportSummary.id)),
+                  icon: const Icon(Icons.refresh),
+                  label: Text(l10n.retry),
+                ),
+              ],
             ),
           ),
         ),

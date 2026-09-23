@@ -5,7 +5,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
-from typing import Any
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from arq.connections import ArqRedis
 
 from backend_v2.database.interfaces import IUnifiedWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes, ExecutionNotReadyError, ResourceNotFoundError
@@ -273,7 +276,7 @@ class ReportService:
         )
         return await self.create_report_artifact(create_dto)
 
-    async def compile_and_persist_artifact(self, report_id: str, arq_pool: Any) -> None:
+    async def compile_and_persist_artifact(self, report_id: str, arq_pool: ArqRedis) -> None:
         """Sets status to GENERATING and enqueues background artifact compilation.
 
         Args:
@@ -662,7 +665,7 @@ class ReportService:
                         ) from err
         await self.repo.delete_report_artifact(report_id)
 
-    async def regenerate_report_artifact(self, report_id: str, arq_pool: Any) -> None:
+    async def regenerate_report_artifact(self, report_id: str, arq_pool: ArqRedis) -> None:
         """Resets status to GENERATING and triggers background compilation re-run.
 
         Args:
