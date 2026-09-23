@@ -68,7 +68,18 @@ class FrozenContext(V2CoreBase):
     )
 
 
-DEFAULT_MATRIX_SAMPLING_LIMIT: int = 1
+def _resolve_default_matrix_sampling_limit() -> int:
+    """Resolve default matrix sampling limit dynamically from system settings.
+
+    In production environment (matrix_sampling_limit=0), defaults to full evaluation (0 = all atoms).
+    In development environment (matrix_sampling_limit=1), defaults to fast sampled execution.
+    """
+    from backend_v2.settings import get_settings
+
+    return int(get_settings().matrix_sampling_limit)
+
+
+DEFAULT_MATRIX_SAMPLING_LIMIT: int = 0
 
 
 class ExecutionCreate(V2CoreBase):
@@ -85,13 +96,13 @@ class ExecutionCreate(V2CoreBase):
     matrix_sampling_strategy: Annotated[
         int,
         Field(
-            default=DEFAULT_MATRIX_SAMPLING_LIMIT,
+            default_factory=_resolve_default_matrix_sampling_limit,
             description=(
-                "Explicit dynamic strategy for Matrix Flattening. Defaulted from ALL to "
-                "10 locally to mitigate LLM JSON schema context limits."
+                "Explicit dynamic strategy for Matrix Flattening. Defaulted from settings "
+                "(0 in production = all atoms, 1 in development)."
             ),
         ),
-    ] = DEFAULT_MATRIX_SAMPLING_LIMIT
+    ]
     raw_inputs: WorkflowInputsIngress | WorkflowInputs = Field(
         default_factory=lambda: WorkflowInputsIngress(), description="User provided raw inputs"
     )
@@ -114,7 +125,7 @@ class ExecutionCreate(V2CoreBase):
             The resolved integer matrix sampling limit.
         """
         if value is None:
-            return DEFAULT_MATRIX_SAMPLING_LIMIT
+            return _resolve_default_matrix_sampling_limit()
         return int(value)
 
 
