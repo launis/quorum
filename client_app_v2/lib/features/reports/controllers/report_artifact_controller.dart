@@ -37,13 +37,17 @@ Future<ReportArtifact> reportDetail(Ref ref, String reportId) async {
   final client = ref.watch(reportsClientProvider);
   final report = await client.getReport(reportId);
 
-  // If report is still compiling, self-invalidate after 2s interval
+  // If report is still compiling, self-invalidate after 2s interval.
+  // When compilation transitions to ready, invalidate downstream artifact providers.
   if (report.status == ReportStatus.generating ||
       report.status == ReportStatus.pending) {
     final timer = Timer(const Duration(seconds: 2), () {
       ref.invalidateSelf();
     });
     ref.onDispose(timer.cancel);
+  } else if (report.status == ReportStatus.ready) {
+    ref.invalidate(reportSduiProvider(reportId));
+    ref.invalidate(reportRowsProvider(reportId));
   }
 
   return report;
@@ -111,8 +115,6 @@ class ReportArtifactActions extends _$ReportArtifactActions {
       if (ref.mounted) {
         ref.invalidate(executionReportsProvider(executionId));
         ref.invalidate(reportDetailProvider(reportId));
-        ref.invalidate(reportSduiProvider(reportId));
-        ref.invalidate(reportRowsProvider(reportId));
         state = const AsyncValue.data(null);
       }
       return summary;

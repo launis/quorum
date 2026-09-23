@@ -220,7 +220,7 @@ void main() {
       },
     );
 
-    test('regenerateReport succeeds and invalidates cache providers', () async {
+    test('regenerateReport succeeds and invalidates cache providers without premature artifact fetch', () async {
       when(
         () => mockClient.regenerateReport(testReportId),
       ).thenAnswer((_) async => testSummary);
@@ -238,7 +238,49 @@ void main() {
         container.read(reportArtifactActionsProvider),
         equals(const AsyncValue<void>.data(null)),
       );
+      // Invariant: regenerateReport does not trigger premature artifact fetches
+      verifyNever(() => mockClient.getReportSdui(testReportId));
+      verifyNever(() => mockClient.getReportRows(testReportId));
     });
+
+    test(
+      'reportDetailProvider transitioning to ready triggers reactive invalidation of sdui and rows',
+      () async {
+        final generatingReport = testReport.copyWith(status: ReportStatus.generating);
+        final readyReport = testReport.copyWith(status: ReportStatus.ready);
+
+        var getReportCalls = 0;
+        when(() => mockClient.getReport(testReportId)).thenAnswer((_) async {
+          getReportCalls++;
+          return getReportCalls == 1 ? generatingReport : readyReport;
+        });
+        when(() => mockClient.getReportSdui(testReportId)).thenAnswer((_) async => testReportData);
+        when(() => mockClient.getReportRows(testReportId)).thenAnswer((_) async => <ReportRowItem>[]);
+
+        // 1. Initial read while generating
+        final initial = await container.read(reportDetailProvider(testReportId).future);
+        expect(initial.status, equals(ReportStatus.generating));
+
+        // Listen to reportSduiProvider and reportRowsProvider
+        final sduiSub = container.listen(reportSduiProvider(testReportId), (_, _) {});
+        final rowsSub = container.listen(reportRowsProvider(testReportId), (_, _) {});
+
+        // 2. Trigger invalidation of reportDetailProvider to simulate transition to ready
+        container.invalidate(reportDetailProvider(testReportId));
+        final updated = await container.read(reportDetailProvider(testReportId).future);
+        expect(updated.status, equals(ReportStatus.ready));
+
+        // Pump event loop to allow listenSelf callback to fire
+        await Future<void>.delayed(Duration.zero);
+
+        // 3. Verify sdui and rows were invalidated and re-fetched
+        verify(() => mockClient.getReportSdui(testReportId)).called(greaterThanOrEqualTo(1));
+        verify(() => mockClient.getReportRows(testReportId)).called(greaterThanOrEqualTo(1));
+
+        sduiSub.close();
+        rowsSub.close();
+      },
+    );
 
     test(
       'deleteReport calls deleteReport on client and resets state',
