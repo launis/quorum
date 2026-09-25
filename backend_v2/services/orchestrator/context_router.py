@@ -1,16 +1,16 @@
-from __future__ import annotations
-
 """Context Router for dynamic UI-driven state pruning.
 
 This module isolates UI-driven routing, step-to-step variable normalization,
 and data culling/pruning logic matching the Phase 9 architecture standards.
 """
 
+from __future__ import annotations
+
 import logging
 from collections.abc import Mapping, Sequence
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.exceptions import (
     AppException,
@@ -19,6 +19,7 @@ from backend_v2.exceptions import (
     MissingRoutingModeError,
 )
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput, OutputProfileConfig
+from backend_v2.models.enums import LaxXaiExtensionType
 from backend_v2.models.state import StepOutputDTO
 
 __all__ = [
@@ -69,10 +70,11 @@ class ContextRouter:
                 extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
             raise ConfigurationError(
-                f"Missing required base field or invalid trace event type: expected LightweightMatrixOutput, got {type(trace_event).__name__}"
+                "Missing required base field or invalid trace event type: "
+                f"expected LightweightMatrixOutput, got {type(trace_event).__name__}"
             )
 
-        extensions_extracted: dict[Any, Any] = {}
+        extensions_extracted: dict[LaxXaiExtensionType, JsonValue] = {}
         if output_profile:
             for ext in output_profile.visible_block_extensions:
                 # If block explicitly defines supported extensions, check suitability
