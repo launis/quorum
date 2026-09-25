@@ -405,3 +405,47 @@ def test_coverage_runner_flat_unit_test_fallback(mock_sub: MagicMock) -> None:
     with patch("scripts.backend_audit_loop.Path.exists", side_effect=[False, False, False, True, True, True]):
         run_tests_with_strict_coverage("backend_v2/services/subservice/sample.py")
         assert mock_sub.call_count == 2
+
+
+def test_cli_help_flag_exits_cleanly() -> None:
+    with patch.object(sys, "argv", ["backend_audit_loop.py", "--help"]):
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_scripts_clean_name_fallback(mock_sub: MagicMock) -> None:
+    run_tests_with_strict_coverage("tests/unit/scripts/test_other_tool.py")
+    assert mock_sub.call_count == 2
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_other_path_test_file(mock_sub: MagicMock) -> None:
+    run_tests_with_strict_coverage("custom/tests/test_something.py")
+    assert mock_sub.call_count == 2
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_unit_test_fallback_to_scripts(mock_sub: MagicMock) -> None:
+    with patch("scripts.backend_audit_loop.Path.exists", return_value=False):
+        with patch("scripts.backend_audit_loop.Path.glob") as mock_glob:
+            mock_glob.side_effect = [[], [Path("scripts/my_script.py")]]
+            run_tests_with_strict_coverage("backend_v2/tests/unit/test_my_script.py")
+            assert mock_sub.call_count == 2
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_no_matching_unit_src(mock_sub: MagicMock) -> None:
+    with patch("scripts.backend_audit_loop.Path.exists", return_value=False):
+        with patch("scripts.backend_audit_loop.Path.glob", return_value=[]):
+            run_tests_with_strict_coverage("backend_v2/tests/unit/test_missing_src.py")
+            assert mock_sub.call_count == 2
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_file_no_existing_candidates(mock_sub: MagicMock) -> None:
+    with patch("scripts.backend_audit_loop.Path.exists", return_value=False):
+        with patch("scripts.backend_audit_loop.Path.rglob", return_value=[]):
+            run_tests_with_strict_coverage("backend_v2/models/custom.py")
+            assert mock_sub.call_count == 2

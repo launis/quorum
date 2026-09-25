@@ -35,6 +35,7 @@ uv run python scripts/backend_audit_loop.py backend_v2/ --test
 ```
 """
 
+import argparse
 import io
 import os
 import re
@@ -264,31 +265,70 @@ def run_tests_with_strict_coverage(target: str) -> None:
         print("\n✅ Strict 90% Coverage Target Met.")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Main CLI entrypoint executing the sequential backend quality gate pipeline.
 
     Parses command line arguments and runs the six-stage validation sequence:
     Ruff lint, Ruff format, MyPy strict type checking, AST guardrail validation,
     Jinja template validation, and Seed dry-run verification.
     """
-    targets: list[str] = []
-    run_openapi = False
-    run_test = False
-    ast_strict = False
+    parser = argparse.ArgumentParser(
+        description="""Sequential backend quality gate pipeline.
 
-    for arg in sys.argv[1:]:
-        if arg == "--openapi":
-            run_openapi = True
-        elif arg == "--test":
-            run_test = True
-        elif arg in ("--ast-strict", "--strict"):
-            ast_strict = True
-        else:
-            targets.append(arg)
+Executes a six-stage validation sequence to guarantee architectural invariants:
+  1/6: Code hygiene and auto-formatting (ruff check --fix --extend-ignore=E501)
+  2/6: Code style formatting (ruff format)
+  3/6: Strict type checking (mypy --strict)
+  4/6: AST codebase guardrails (scripts/_ast_guardrails.py)
+  5/6: Jinja Dumb Painter template validation (backend_v2/templates/)
+  6/6: Seed data dry-run and database atom integrity audit
 
-    if not targets:
+Optional steps:
+  --openapi: Generates updated OpenAPI documentation (backend_v2/scripts/generate_openapi.py)
+  --test: Runs Pytest unit tests with strict line coverage (>90%)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/backend_audit_loop.py backend_v2/services/execution.py
+  uv run python scripts/backend_audit_loop.py backend_v2/services/execution.py --test
+  uv run python scripts/backend_audit_loop.py backend_v2/models/dtos/ --strict
+  uv run python scripts/backend_audit_loop.py backend_v2/ --openapi
+""",
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        default=[],
+        help="Target files or directories to validate sequentially through the pipeline.",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Execute Pytest unit tests with strict line coverage enforcement on target files.",
+    )
+    parser.add_argument(
+        "--openapi",
+        action="store_true",
+        help="Trigger OpenAPI documentation generation and schema validation.",
+    )
+    parser.add_argument(
+        "--ast-strict",
+        "--strict",
+        dest="ast_strict",
+        action="store_true",
+        help="Enforce strict AST Guardrail validation (fail on warnings as well as fatal errors).",
+    )
+
+    args = parser.parse_args(argv)
+
+    if not args.targets:
         print("Usage: python backend_audit_loop.py <target_folder_or_files...> [--ast-strict] [--openapi] [--test]")
         sys.exit(1)
+
+    targets: list[str] = args.targets
+    run_openapi = args.openapi
+    run_test = args.test
+    ast_strict = args.ast_strict
 
     # Ensure we are in the project root directory
     current_dir = Path(os.getcwd())

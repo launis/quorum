@@ -7,6 +7,7 @@ ContrastivePairDTO structures: {"acceptable": "...", "rejected": "..."}.
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import os
@@ -70,11 +71,17 @@ def parse_contrastive_text(raw_text: str) -> dict[str, str] | None:
     return {"acceptable": acceptable_raw, "rejected": rejected_raw}
 
 
-def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
+def migrate_seed_data(
+    seed_path: Path = SEED_FILE_PATH,
+    dry_run: bool = False,
+    backup_dir: Path = BACKUP_DIR,
+) -> tuple[int, int, int]:
     """Migrates contrastive_example entries in seed_data.json to ContrastivePairDTO dicts.
 
     Args:
         seed_path: Path to seed_data.json.
+        dry_run: If True, validates migration in-memory without creating backups or writing to disk.
+        backup_dir: Directory where timestamped backups will be created.
 
     Returns:
         Tuple of (migrated_count, null_skipped_count, parse_failed_count).
@@ -86,18 +93,19 @@ def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
     with open(seed_path, encoding="utf-8") as f:
         data: dict[str, Any] = json.load(f)
 
-    # 1. Create timestamped and canonical backup copies
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    timestamped_backup = BACKUP_DIR / f"seed_data_backup_{timestamp}.json"
-    canonical_backup = BACKUP_DIR / "seed_data_backup_contrastive_pre.json"
+    if not dry_run:
+        # 1. Create timestamped and canonical backup copies
+        backup_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        timestamped_backup = backup_dir / f"seed_data_backup_{timestamp}.json"
+        canonical_backup = backup_dir / "seed_data_backup_contrastive_pre.json"
 
-    with open(timestamped_backup, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    with open(canonical_backup, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        with open(timestamped_backup, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        with open(canonical_backup, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
-    logger.info("Created pre-migration backups: %s and %s", timestamped_backup, canonical_backup)
+        logger.info("Created pre-migration backups: %s and %s", timestamped_backup, canonical_backup)
 
     migrated_count = 0
     null_skipped_count = 0
@@ -154,6 +162,10 @@ def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
         logger.error("Migration failed on %d atoms: %s", parse_failed_count, failed_atoms[:10])
         sys.exit(1)
 
+    if dry_run:
+        logger.info("Dry-run complete. Zero files were created in %s and %s remains unchanged.", backup_dir, seed_path)
+        return migrated_count, null_skipped_count, parse_failed_count
+
     # 2. Atomic persistence using NamedTemporaryFile, fsync, and os.replace
     target_dir = seed_path.parent
     with tempfile.NamedTemporaryFile("w", dir=str(target_dir), delete=False, encoding="utf-8") as tf:
@@ -172,5 +184,52 @@ def migrate_seed_data(seed_path: Path = SEED_FILE_PATH) -> tuple[int, int, int]:
     return migrated_count, null_skipped_count, parse_failed_count
 
 
+def main(argv: list[str] | None = None) -> int:
+    """Main CLI entrypoint for ContrastivePairDTO seed migration.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+
+    Returns:
+        0 on success, 1 on failure.
+    """
+    parser = argparse.ArgumentParser(
+        description="""Deterministic Seed Vault Migration Script for ContrastivePairDTO.
+
+Migrates all 305 legacy string `contrastive_example` fields in `seed_data.json`
+from multiline strings ('ACCEPTABLE: ...\\nUNACCEPTABLE: ...') into 100% valid Pydantic V2
+ContrastivePairDTO structures: {'acceptable': '...', 'rejected': '...'}.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/migrate_seed_contrastive_pairs.py --dry-run
+  uv run python scripts/migrate_seed_contrastive_pairs.py --seed-path backend_v2/seed/seed_data.json
+  uv run python scripts/migrate_seed_contrastive_pairs.py --backup-dir backend_v2/seed/backups/
+""",
+    )
+    parser.add_argument(
+        "--seed-path",
+        type=Path,
+        default=SEED_FILE_PATH,
+        help="Filesystem path to seed_data.json (default: backend_v2/seed/seed_data.json).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help="Validate all contrastive examples in memory without creating backups or writing to disk.",
+    )
+    parser.add_argument(
+        "--backup-dir",
+        type=Path,
+        default=BACKUP_DIR,
+        help="Directory to store timestamped pre-migration backups (default: backend_v2/seed/backups).",
+    )
+
+    args = parser.parse_args(argv)
+    migrate_seed_data(seed_path=args.seed_path, dry_run=args.dry_run, backup_dir=args.backup_dir)
+    return 0
+
+
 if __name__ == "__main__":
-    migrate_seed_data()
+    sys.exit(main())

@@ -12,6 +12,7 @@ Usage:
     uv run python scripts/flutter_audit_loop.py <target_directory> [--build] [--test] [--strict]
 """
 
+import argparse
 import io
 import os
 import subprocess
@@ -21,7 +22,7 @@ from pathlib import Path
 __all__ = ["main"]
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Main CLI entrypoint executing the sequential Flutter quality gate pipeline.
 
     Parses CLI flags and executes optional code generation, Dart static guardrail
@@ -38,14 +39,55 @@ def main() -> None:
         except AttributeError, io.UnsupportedOperation:
             pass
 
-    if len(sys.argv) < 2:
+    parser = argparse.ArgumentParser(
+        description="""Sequential Flutter client quality gate pipeline (client_app_v2).
+
+Executes a five-stage code hygiene and validation sequence:
+  1/5 (Optional): Code generation (flutter gen-l10n & dart run build_runner build -d)
+  2/5: Dart codebase guardrails (scripts/_dart_guardrails.py, DGR001-DGR004)
+  3/5: Code style formatting (dart format)
+  4/5: Static architectural analysis (dart analyze)
+  5/5 (Optional): Flutter unit tests and coverage (flutter test --coverage)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/execution/
+  uv run python scripts/flutter_audit_loop.py client_app_v2/lib/features/studio/ --build
+  uv run python scripts/flutter_audit_loop.py client_app_v2/lib/ --strict --test
+""",
+    )
+    parser.add_argument(
+        "target_directory",
+        nargs="?",
+        default=None,
+        help="Target directory or file path within client_app_v2 to format, analyze, and test.",
+    )
+    parser.add_argument(
+        "--build",
+        action="store_true",
+        help="Execute code generation (flutter gen-l10n and build_runner build -d).",
+    )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Run Flutter unit tests with coverage reporting (flutter test --coverage).",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Enforce strict Dart Guardrail validation (DGR001-DGR004).",
+    )
+
+    args = parser.parse_args(argv)
+
+    if not args.target_directory:
         print("Usage: python flutter_audit_loop.py <target_directory> [--build] [--test] [--strict]")
         sys.exit(1)
 
-    target_dir = sys.argv[1]
-    run_build = "--build" in sys.argv
-    run_test = "--test" in sys.argv
-    run_strict = "--strict" in sys.argv
+    target_dir = args.target_directory
+    run_build = args.build
+    run_test = args.test
+    run_strict = args.strict
 
     # Ensure correct working directory (client_app_v2) and track repository root
     current_dir = Path(os.getcwd()).resolve()

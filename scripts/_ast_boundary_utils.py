@@ -6,8 +6,10 @@ neuro-symbolic audit gates in Quorum.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import re
+import sys
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
@@ -204,3 +206,98 @@ def extract_deprecated_symbols(content: str) -> set[str]:
     # Exclude common markdown/language keywords
     reserved_words = {"True", "False", "None", "file", "symbol", "code", "method", "class"}
     return {s for s in symbols if s not in reserved_words and len(s) > 1}
+
+
+def main(argv: list[str] | None = None) -> int:
+    """CLI entrypoint for AST boundary and symbol verification utilities.
+
+    Args:
+        argv: Optional list of CLI argument strings.
+
+    Returns:
+        0 on success, 1 on failure.
+    """
+    parser = argparse.ArgumentParser(
+        description="""AST Boundary and Symbol Verification Utilities.
+
+Shared helper functions and Pydantic V2 DTOs for deterministic
+neuro-symbolic audit gates in Quorum.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/_ast_boundary_utils.py --file docs/epic/EPIC_XXX.md --extract-targets
+  uv run python scripts/_ast_boundary_utils.py --file backend_v2/services/execution.py --extract-symbols
+  uv run python scripts/_ast_boundary_utils.py --file backend_v2/services/execution.py --validate-bound 10 50
+""",
+    )
+    parser.add_argument(
+        "--file",
+        type=Path,
+        metavar="FILE_PATH",
+        help="Path to source file or Markdown document to analyze.",
+    )
+    parser.add_argument(
+        "--extract-targets",
+        action="store_true",
+        help="Extract TargetFileReferenceDTO records from target Markdown document.",
+    )
+    parser.add_argument(
+        "--extract-symbols",
+        action="store_true",
+        help="Extract defined symbols and line numbers from target Python file.",
+    )
+    parser.add_argument(
+        "--validate-bound",
+        nargs=2,
+        type=int,
+        metavar=("START_LINE", "END_LINE"),
+        help="Validate that target Python file contains an AST definition within [START_LINE, END_LINE].",
+    )
+
+    args = parser.parse_args(argv)
+
+    if not args.file or not any([args.extract_targets, args.extract_symbols, args.validate_bound]):
+        parser.print_usage()
+        return 1
+
+    if not args.file.exists():
+        print(f"Error: Target file not found: {args.file}")
+        return 1
+
+    content = args.file.read_text(encoding="utf-8")
+
+    if args.extract_targets:
+        targets = extract_target_files(content)
+        print(f"Extracted {len(targets)} target file reference(s) from {args.file}:")
+        for t in targets:
+            bound_str = f" ({t.line_bound})" if t.line_bound else ""
+            print(f"  [{t.action}] {t.file_path}{bound_str}")
+
+    if args.extract_symbols:
+        tree = ast.parse(content, filename=str(args.file))
+        defined_symbols: set[str] = set()
+        for node in ast.walk(tree):
+            match node:
+                case ast.ClassDef(name=n) | ast.FunctionDef(name=n) | ast.AsyncFunctionDef(name=n):
+                    defined_symbols.add(n)
+                case _:
+                    pass
+        symbols = find_symbol_definitions(content, defined_symbols)
+        print(f"Extracted {len(symbols)} symbol definition(s) from {args.file}:")
+        for s in symbols:
+            print(f"  {s.symbol_name}: lines {s.line_numbers}")
+
+    if args.validate_bound:
+        start_line, end_line = args.validate_bound
+        is_valid = validate_ast_line_bound(args.file, start_line, end_line)
+        if is_valid:
+            print(f"Valid: {args.file} contains an AST definition spanning lines [{start_line}, {end_line}].")
+        else:
+            print(f"Invalid: {args.file} does NOT contain an AST definition spanning lines [{start_line}, {end_line}].")
+            return 1
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -15,6 +15,7 @@ Statically analyzes backend Python files to mathematically verify:
 
 from __future__ import annotations
 
+import argparse
 import ast
 import io
 import re
@@ -851,15 +852,50 @@ def main(argv: list[str] | None = None) -> int:
         except AttributeError, io.UnsupportedOperation:
             pass
 
+    parser = argparse.ArgumentParser(
+        description="""Deterministic AST Multi-Layer Dict Eradication Auditor.
+
+Statically analyzes backend Python files to mathematically verify:
+  1. Exactly 0 naked dict[str, Any] / dict[str, object] type annotations
+  2. Exactly 0 Primitive Obsession nested dict annotations (dict[..., dict[...]])
+  3. Exactly 0 isinstance(..., dict) checks in domain and service layers
+  4. Exactly 0 unauthorized/unjustified # noqa: QGR suppressions
+  5. Exactly 0 imports or references to legacy dict_utils
+  6. Exactly 0 syntax/AST parse errors across the scanned scope
+  7. Exactly 0 unexempt .get() calls in domain, service, hook, and worker layers
+  8. Exactly 0 dynamic reflection calls (getattr, hasattr, setattr) in domain layers
+  9. Exactly 0 duplicate Field() assignments on Annotated fields
+  10. Exactly 0 class-level mutable defaults (list, dict, set) in domain and DTO models
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_dict_eradication.py backend_v2
+  uv run python scripts/audit_dict_eradication.py backend_v2/services/execution.py
+  uv run python scripts/audit_dict_eradication.py backend_v2 --strict
+""",
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        default=["backend_v2"],
+        help="Target files or directories to scan (default: backend_v2).",
+    )
+    parser.add_argument(
+        "--strict",
+        "--ast-strict",
+        dest="is_strict",
+        action="store_true",
+        help="Enforce strict mode (fail on any advisory violations).",
+    )
+
+    args = parser.parse_args(argv)
+
     print("=" * 80)
     print("  QUORUM DETERMINISTIC AST DICT ERADICATION AUDITOR")
     print("=" * 80)
 
-    flags = {"--strict", "--ast-strict"}
-    raw_args = argv if argv is not None else sys.argv[1:]
-    is_strict = any(a in flags for a in raw_args)
-    filtered_args = [a for a in raw_args if a not in flags]
-    target = filtered_args if filtered_args else ["backend_v2"]
+    target = args.targets if args.targets else ["backend_v2"]
+    is_strict = args.is_strict
 
     try:
         report = audit_dict_eradication(target, strict=is_strict)

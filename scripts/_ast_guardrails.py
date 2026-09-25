@@ -7,6 +7,7 @@ Enforces zero permissive typing (QGR018) and Primitive Obsession eradication in 
 
 from __future__ import annotations
 
+import argparse
 import ast
 import io
 import os
@@ -1517,20 +1518,67 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
-    """CLI entry point for running AST codebase guardrails."""
-    targets: list[str] = []
-    strict_mode = False
+def main(argv: list[str] | None = None) -> None:
+    """CLI entry point for running AST codebase guardrails.
 
-    for arg in sys.argv[1:]:
-        if arg in ("--strict", "--ast-strict"):
-            strict_mode = True
-        else:
-            targets.append(arg)
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR020),
+    and exits with code 0 on success or 1 on failure.
+    """
+    parser = argparse.ArgumentParser(
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR020).
 
-    if not targets:
+Single Source of Truth for static AST architectural rules enforcement across Quorum:
+  QGR000: Syntax Error Detection (FATAL)
+  QGR001: getattr/hasattr Reflection Ban (WARNING)
+  QGR002: Naked Dict Type Annotation Ban (WARNING)
+  QGR003: isinstance(..., dict) Duck-Typing Ban (WARNING)
+  QGR004: Direct Provider SDK Usage Ban (WARNING)
+  QGR005: Raw String Concatenation in Prompts Ban (WARNING)
+  QGR006: Hardcoded Model Name Strings Ban (WARNING)
+  QGR007: Bare except / except Exception Catch-All Ban (WARNING)
+  QGR008: RapidFuzz / Fuzzy Matching for Evidence Ban (FATAL)
+  QGR009: asyncio.gather() Ban - TaskGroup Mandate (WARNING)
+  QGR010: ConfigDict without strict=True and extra='forbid' (WARNING)
+  QGR011: Mutable Default Arguments Ban (FATAL)
+  QGR012: In-Place Dictionary Modification Ban (WARNING)
+  QGR013: Anonymous Multi-Value State Tuples Ban (WARNING)
+  QGR014: Hardcoded Finnish Vocabulary in System Directives Ban (FATAL)
+  QGR015: Direct Persistence Access from Routers Ban (FATAL)
+  QGR016: Negative String Exclusion Filtering Ban (FATAL)
+  QGR017: v2_core Legacy Facade Import Ban (FATAL)
+  QGR018: Primitive Obsession Nested Dict Ban (WARNING)
+  QGR019: In-Place dict.pop Mutation Ban (WARNING)
+  QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/_ast_guardrails.py backend_v2/services/execution.py
+  uv run python scripts/_ast_guardrails.py backend_v2/models/dtos/ --strict
+  uv run python scripts/_ast_guardrails.py scripts/ --ast-strict
+""",
+    )
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        default=[],
+        help="Target files or directories to scan for AST guardrail violations.",
+    )
+    parser.add_argument(
+        "--strict",
+        "--ast-strict",
+        dest="strict_mode",
+        action="store_true",
+        help="Enforce strict mode (fail on warning violations as well as fatal errors).",
+    )
+
+    args = parser.parse_args(argv)
+
+    if not args.targets:
         print("Usage: python scripts/_ast_guardrails.py <target_files_or_directories...> [--strict]")
         sys.exit(1)
+
+    targets: list[str] = args.targets
+    strict_mode: bool = args.strict_mode
 
     violations, is_success = scan_files_for_guardrails(targets, strict=strict_mode)
     unsuppressed = [v for v in violations if not v.is_suppressed]

@@ -6,12 +6,18 @@ adversarial Theory Opponent Card generation, atomic seed patching, and theory co
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import re
 import shutil
+import sys
 from pathlib import Path
 from typing import Annotated, Any
+
+_workspace_root = Path(__file__).resolve().parent.parent
+if str(_workspace_root) not in sys.path:
+    sys.path.insert(0, str(_workspace_root))
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -32,6 +38,7 @@ __all__ = [
     "export_matrix_slice",
     "generate_theory_opponent_card",
     "load_matrix_by_id",
+    "main",
 ]
 
 FINNISH_PATTERN = re.compile(r"\b(etätyö|kokeilu|organisaatio|muutos|tiimi|johtam|työntekij|viestint)\b|[äöåÄÖÅ]", re.I)
@@ -365,3 +372,142 @@ def append_matrix_theory_explanation(
         compendium_path.write_text(pattern.sub(section_text, content), encoding="utf-8")
         return
     compendium_path.write_text(content.rstrip() + "\n\n" + section_text, encoding="utf-8")
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Main CLI entrypoint for Theory-Grounding Calibration & Micro-Slice Isolation Engine.
+
+    Args:
+        argv: Optional command-line arguments list.
+
+    Returns:
+        0 on success, 1 on failure.
+    """
+    parser = argparse.ArgumentParser(
+        description="""Theory-Grounding Calibration & Micro-Slice Isolation Engine.
+
+Provides isolated slice export, empirical contamination detection, coherence auditing,
+adversarial Theory Opponent Card generation, atomic seed patching, and theory compendiums.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/matrix_slice_engine.py --export blk_matrix_leadership
+  uv run python scripts/matrix_slice_engine.py --audit-contamination blk_matrix_leadership
+  uv run python scripts/matrix_slice_engine.py --theory-card blk_matrix_leadership
+  uv run python scripts/matrix_slice_engine.py --patch data/slices/blk_matrix_leadership.json
+  uv run python scripts/matrix_slice_engine.py --explain blk_matrix_leadership
+""",
+    )
+    parser.add_argument(
+        "--export",
+        metavar="MATRIX_ID",
+        help="Export an isolated slice JSON for the specified Matrix block ID.",
+    )
+    parser.add_argument(
+        "--audit-contamination",
+        metavar="MATRIX_ID",
+        help="Audit target matrix block for empirical contamination (Finnish, numbers, institutions).",
+    )
+    parser.add_argument(
+        "--audit-coherence",
+        metavar="MATRIX_ID",
+        help="Audit target matrix block for steering control and scale coherence.",
+    )
+    parser.add_argument(
+        "--theory-card",
+        metavar="MATRIX_ID",
+        help="Generate an adversarial Theory Opponent Card for the specified Matrix block ID.",
+    )
+    parser.add_argument(
+        "--patch",
+        type=Path,
+        metavar="SLICE_PATH",
+        help="Atomically patch a hardened slice JSON back into seed_data.json.",
+    )
+    parser.add_argument(
+        "--explain",
+        metavar="MATRIX_ID",
+        help="Append or update 2-paragraph theory explanation in docs/architecture/08_matrix_explanations.md.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        metavar="OUTPUT_PATH",
+        help="Optional output destination path for export or theory card generation.",
+    )
+    parser.add_argument(
+        "--seed-path",
+        type=Path,
+        default=Path("backend_v2/seed/seed_data.json"),
+        help="Path to seed data JSON (default: backend_v2/seed/seed_data.json).",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Execute in simulation mode without writing modifications to disk.",
+    )
+
+    args = parser.parse_args(argv)
+
+    if not any(
+        [
+            args.export,
+            args.audit_contamination,
+            args.audit_coherence,
+            args.theory_card,
+            args.patch,
+            args.explain,
+        ]
+    ):
+        parser.print_usage()
+        return 1
+
+    if args.export:
+        slice_data = export_matrix_slice(args.export, seed_path=args.seed_path)
+        out_path = args.output or Path(f"data/slices/{args.export}.json")
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_text(json.dumps(slice_data, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"Exported matrix slice '{args.export}' to {out_path}")
+
+    if args.audit_contamination:
+        mat = load_matrix_by_id(args.audit_contamination, seed_path=args.seed_path)
+        findings = detect_empirical_contamination(mat)
+        if findings:
+            print(f"Detected {len(findings)} contamination finding(s) in '{args.audit_contamination}':")
+            for f in findings:
+                print(f"  - [{f.tda_id}] {f.field}: {f.reason} (snippet: '{f.snippet}')")
+        else:
+            print(f"Zero empirical contamination detected in '{args.audit_contamination}'.")
+
+    if args.audit_coherence:
+        mat = load_matrix_by_id(args.audit_coherence, seed_path=args.seed_path)
+        issues = audit_atom_coherence(mat)
+        if issues:
+            print(f"Detected {len(issues)} coherence issue(s) in '{args.audit_coherence}':")
+            for iss in issues:
+                print(f"  - [{iss.tda_id}] {iss.issue}: {iss.description}")
+        else:
+            print(f"Zero coherence issues detected in '{args.audit_coherence}'.")
+
+    if args.theory_card:
+        card = generate_theory_opponent_card(args.theory_card, seed_path=args.seed_path)
+        if args.output:
+            args.output.parent.mkdir(parents=True, exist_ok=True)
+            args.output.write_text(card, encoding="utf-8")
+            print(f"Wrote Theory Opponent Card to {args.output}")
+        else:
+            print(card)
+
+    if args.patch:
+        apply_matrix_slice(args.patch, seed_path=args.seed_path, dry_run=args.dry_run)
+        print(f"Successfully applied slice '{args.patch}' (dry_run={args.dry_run}).")
+
+    if args.explain:
+        append_matrix_theory_explanation(args.explain, seed_path=args.seed_path)
+        print(f"Appended theory explanation for '{args.explain}' to compendium.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
