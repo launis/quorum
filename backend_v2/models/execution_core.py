@@ -8,7 +8,7 @@ Pydantic resolves deferred annotations via model_rebuild() in state.py.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
 from pydantic import ConfigDict, Field
 

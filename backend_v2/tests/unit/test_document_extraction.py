@@ -172,3 +172,25 @@ def test_pdf_extraction_routes_to_conversation_extractor() -> None:
 
     assert '"role":"user"' in extracted_text or '"role": "user"' in extracted_text
     assert "User prompt inside bubble" in extracted_text
+
+
+def test_extract_pdf_sync_sitra_conversation_no_segfault() -> None:
+    """Regression test: verify real conversation PDF does not segfault in C++ mupdfcpp64.dll.
+
+    Ensures that layout engine activation from pymupdf4llm does not poison PyMuPDF's
+    native table and drawing extractors during conversation chat parsing.
+    """
+    from pathlib import Path
+
+    pdf_path = Path("data/test_inputs_sitra/keskusteluhistoria SITRA.pdf")
+    if not pdf_path.exists():
+        pytest.skip("Test input file data/test_inputs_sitra/keskusteluhistoria SITRA.pdf not present")
+
+    file_bytes = pdf_path.read_bytes()
+    extracted_text, parsed_date = DocumentExtractionService._extract_pdf_sync(file_bytes)
+
+    assert len(extracted_text) > 1000
+    assert '"role": "user"' in extracted_text or '"role":"user"' in extracted_text
+    assert "Sitra" in extracted_text or "sitra" in extracted_text
+    assert parsed_date is not None
+

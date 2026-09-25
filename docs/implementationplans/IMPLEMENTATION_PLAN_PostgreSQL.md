@@ -1,14 +1,21 @@
 > **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Tuleva PostgreSQL 17+ & SQLAlchemy 2.0 -migraatiosuunnitelma)**
 > **ARKITEHTUURIPERIAATE: "All-in-PostgreSQL" (Single-Engine Sovereign Storage Architecture)**
-> **LINKITYS JA RAJAUS SUHTEESSA EPIC 152:EEN (Scrap vs. Refactor):**
-> 1. **Täydellinen poisto (Scrap)**: Tämän suunnitelman toteutus poistaa ja korvaa kokonaan `TinyDBDriver`-ajurin (`backend_v2/database/tinydb_driver.py`), tiedostotietokantakääreen (`backend_v2/database/wrapper.py`), `db_v2.json`-tiedoston ja tiedostolukituksen (`db_v2.json.lock`). Tämän vuoksi EPIC 152:ssa tiedostolukituskoodiin ei tehdä lainkaan rakenteellisia rinnakkaisuus- tai asynkronointikorjauksia (estetään kuolevan koodin ylikorjaus).
-> 2. **DTO-mallien suora hyödyntäminen (Invest & Re-Use)**: EPIC 152:ssa puhdistetut, tiukasti tyypitetyt Pydantic V2 DTO -mallit (`ExecutionRecord`, `WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `EvaluatedAtomDTO`, `HookDeltaDTO`, `ReportDataDTO`) siirtyvät **sellaisenaan 1:1** PostgreSQL-migraatioon muodostaen `JSONB`- ja `BYTEA`-tallennuskenttien pysyvän sovellustason validointipohjan.
+> **KOLMIVAIHEINEN TIEKARTTA & ARKKITEHTUURISET RIIPPUVUUDET (The Tripartite Roadmap):**
+> 1. **Täydellinen poisto (Scrap)**: Tämän suunnitelman toteutus poistaa ja korvaa kokonaan `TinyDBDriver`-ajurin (`backend_v2/database/tinydb_driver.py`), tiedostotietokantakääreen (`backend_v2/database/wrapper.py`), `db_v2.json`-tiedoston ja tiedostolukituksen (`db_v2.json.lock`). Tämän vuoksi in-memory tilasiirtymässä (@[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md]) tai vanhoissa korjauksissa tiedostolukituskoodiin ei tehdä lainkaan rakenteellisia rinnakkaisuus- tai asynkronointikorjauksia (estetään kuolevan koodin ylikorjaus).
+> 2. **DTO-mallien ja in-memory tilasiirtymän suora hyödyntäminen (Invest & Re-Use)**: Suunnitelmassa @[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md] (Vaihe 1) puhdistetut ja tiukasti tyypitetyt Pydantic V2 DTO -mallit (`ExecutionRecord`, `WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `EvaluatedAtomDTO`, `HookDeltaDTO`, `ReportDataDTO`, `TraceEventMetadataDTO`, `StepOutputContentDTO`, `ProgressTracePayloadDTO`, `LightweightMatrixOutput`, `GlobalContextVarsDTO`) siirtyvät **sellaisenaan 1:1** PostgreSQL-migraatioon muodostaen `JSONB`- ja `BYTEA`-tallennuskenttien pysyvän sovellustason validointipohjan.
 > 3. **Nollatoleranssi alastomille sanakirjoille (Zero Naked Dicts Ironclad Mandate)**:
 >    - **3.1 Ei alastomia sanakirjoja ORM-malleissa**: SQLAlchemy 2.0 -malleissa kielletään ehdottomasti `Mapped[dict[str, Any]]` ja `Mapped[list[dict[str, Any]]]`. Kaikki `JSONB`-sarakkeet tyypitetään ja sidotaan suoraan Pydantic V2 DTO -malleihin käyttämällä `PydanticJSONB`-tyyppikäärettä (`TypeDecorator[T]`) ja Pydantic V2 `TypeAdapter[T]` -moottoria.
->    - **3.2 Ei välisanakirjoja orkestroijassa tai service-kerroksessa**: DAG-orkestroijassa ja service-kerroksessa kielletään ehdottomasti tilapäisten tilapäivityssanakirjojen (`updates: dict[str, Any]`, `fc_updates: dict[str, Any]`, `cv_dict: dict[str, Any] | None`, `delta_content_dict: dict[str, Any]`, `step_generated_schemas: dict[str, Any]`) luominen tai `**kwargs`-purku. Tilasiirtymät ja tallennukset suoritetaan suoraan vahvasti tyypitettyjen DTO-olioiden tai ORM-attribuuttien kautta.
+>    - **3.2 Ei välisanakirjoja orkestroijassa tai service-kerroksessa**: Suunnitelman @[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md] ansiosta DAG-orkestroija operoi 100 % puhtailla DTO-olioilla (`TraceEventMetadataDTO`, `StepOutputContentDTO`, `ExecutionInputsDTO`). Tilapäisten päivityssanakirjojen (`updates: dict[str, Any]`, `fc_updates: dict[str, Any]`, `cv_dict: dict[str, Any] | None`, `delta_content_dict: dict[str, Any]`, `step_generated_schemas: dict[str, Any]`) luominen tai `**kwargs`-purku on kielletty. Tilasiirtymät ja tallennukset suoritetaan suoraan vahvasti tyypitettyjen DTO-olioiden ja ORM-attribuuttien kautta.
 >    - **3.3 Ei sanakirjamuunnoksia kyselyissä tai repository-rajapinnassa**: Repository-metodit eivät saa koskaan palauttaa sanakirjoja (`dict(row)`, `row._mapping`, `.mappings().all()`) eivätkä vastaanottaa sanakirjoja parametreina (`filter_by(**dict)`). Kaikki haku- ja tallennusoperaatiot toimivat puhtaasti Pydantic-domain-mallien ja DTO-olioiden varassa.
 >    - **3.4 Täydellinen 10 taulun suljettu topologia**: Järjestelmän kaikki 10 entiteettityyppiä (`users`, `organizations`, `workflows`, `steps`, `prompt_blocks`, `output_profiles`, `system_configs`, `executions`, `report_artifacts`, `report_binaries`) mallinnetaan erillisinä, vahvasti tyypitettyinä tauluina. Geneeristen "säiliötaulujen" (kuten `components(data: JSONB)`) luominen on kielletty.
 >    - **3.5 Litteät FinOps-sarakkeet**: Token- ja kustannustelemetria tallennetaan suoriksi `BigInteger`- ja `Numeric`-sarakkeiksi, ei koskaan JSON-sanakirjoiksi (SSOT).
+> 4. **Repositorioiden QGR003-poikkeusten ja ajurirajapinnan sanakirjavuotojen keskittäminen tähän suunnitelmaan (Scope Quarantine & Throwaway Work Ban)**:
+>    - Koodikannan AST-auditoinnissa tunnistetut 13 kpl repositorioiden `QGR003` -poikkeusrikkomuksia (laajat `except Exception:` -käsittelijät tiedostoissa `knowledge.py`, `audit.py`, `workflow.py`, `identity.py`, `base.py`), tietokanta-ajurin kantaluokan (`backend_v2/database/driver.py`) 5 alastonta sanakirjaa (`load`, `save`, `query`) sekä seederin (`backend_v2/seed/run_seed.py`) tiedostokäsittelyt **on nimenomaisesti rajattu korjattavaksi VASTA tässä PostgreSQL-migraatiossa**.
+>    - **Perustelu**: Quorum käyttää tällä hetkellä poistuvaa `TinyDBDriver`- ja `FirestoreDriver`-kantaa. Jos TinyDB:n tiedostolukitus- ja JSON-poikkeuksia korjattaisiin ennen migraatiota, se olisi hukkatyötä (*throwaway work*), koska vanhat koodirivit heitetään kokonaan roskiin uuden ajurin myötä. Tässä suunnitelmassa repositorioiden virheenkäsittely toteutetaan suoraan puhtailla SQLAlchemy 2.0 / asyncpg -poikkeusluokilla (`IntegrityError`, `NoResultFound`, `OperationalError`) ilman yhtäkään laajaa `except Exception:` -käsittelijää.
+> 5. **Pysyvyysentiteettien Pydantic V2 -esivalmistelu (Pre-Flight Schema Sanitization - Scope Absorption)**:
+>    - Tietokannan `JSONB`-sarakkeisiin suoraan tallennettavat domain- ja DTO-mallit (`SystemConfigModelRegistry`, `SystemConfigMCPGateways`, `EvaluatedAtomDTO`, `XAIReportEnvelope`), joissa esiintyy 17 kpl alastomia sanakirjoja ja primitive obsession -rakenteita (`system_config.py`, `mcp.py`, `xai.py`, `atom_evaluation.py`, `validation.py`, `studio.py`), siivotaan ja tyypitetään puhtaiksi tämän suunnitelman **Vaiheessa 1.5** ennen ORM-taulujen ja Alembic-migraatioiden ajamista. Tämä takaa, että PostgreSQL 17+:n `JSONB`-sarakkeisiin ei päädy yhtäkään `dict[str, Any]` -avainta.
+> 6. **Jatkosuhde Vaiheeseen 3 (LLM-Adapterit & Oheisrajapinnat - @[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_Adapter_Strict_Typing.md])**:
+>    - Tämän PostgreSQL-migraation jälkeen jäljelle jäävät ainoastaan ulkoisten tekoäly-SDK:iden adapterisanakirjat (`backend_v2/llm/adapters/`, n. 50 kpl) ja oheiskoukut (`hooks/`, `registry.py`), jotka taklataan omassa itsenäisessä suunnitelmassaan Vaiheessa 3 vaarantamatta tietokantaa tai suoritusputkea. Tämän ansiosta koko backend saavuttaa tasan 0 rikkomuksen tilan.
 
 ---
 
@@ -36,6 +43,26 @@ uv add fastapi "sqlalchemy[asyncio]>=2.0" "psycopg[binary]>=3.0" asyncpg alembic
 ```
 
 *(Ulkopuoliset tallennuskirjastot `firebase-admin` ja `google-cloud-storage` on poistettu riippuvuuksista tarpeettomina).*
+
+---
+
+#### **Vaihe 1.5: Pysyvyysentiteettien Pydantic V2 -esivalmistelu (Pre-Flight Schema Sanitization)**
+
+Ennen SQLAlchemy 2.0 ORM -mallien luontia ja ensimmäistä Alembic-migraatiota siivotaan ja tyypitetään ne pysyvät domain- ja DTO-mallit, jotka tallennetaan suoraan PostgreSQL:n `JSONB`-sarakkeisiin (17 kpl `audit_dict_eradication.py` -rikkomusta). Tämä estää skeemavuodot ja takaa, että `PydanticJSONB`-tyyppikääre validoi 100 % puhtaita malleja:
+
+1. **`backend_v2/models/domain/system_config.py` & `backend_v2/models/domain/mcp.py`** (`system_configs` -taulun payload):
+   - Korvataan `tools: list[dict[str, Any]] | None` vahvasti tyypitetyllä `list[MCPToolDefinition] | list[dict[str, JsonValue]] | None`.
+   - Korvataan `parameters: dict[str, Any] | None` tyypitetyllä `dict[str, JsonValue] | None`.
+   - Korvataan `mcp.py`:n `MCPToolCall`, `MCPToolDefinition` ja `MCPServerConfig` -sanakirjat `dict[str, JsonValue]` -rakenteilla.
+2. **`backend_v2/models/domain/xai.py`** (`report_artifacts`- ja `output_profiles`-taulut):
+   - Korvataan `XAIReportEnvelope.flat_report` ja `structured_data` (`dict[str, Any] | None`) tyypitetyllä `Annotated[dict[str, JsonValue] | None, Field(...)]`.
+3. **`backend_v2/models/dtos/atom_evaluation.py`** (`executions.atom_evaluations` -sarake):
+   - Ratkaistaan Primitive Obsession (`list[dict[str, JsonValue]]`) kapseloimalla `evaluated_matrix_references` ja `raw_xai_extensions` omiin keveisiin Pydantic V2 DTO -luokkiinsa (`EvaluatedMatrixReferenceDTO`, `RawXAIExtensionDTO`).
+4. **`backend_v2/models/domain/validation.py` & `backend_v2/models/dtos/studio.py`**:
+   - Korvataan `validation.py`:n `root: dict[str, Any]` ja `metadata: dict[str, Any]` muotoon `dict[str, JsonValue]`.
+   - Korvataan `studio.py`:n `trace_metadata` ja apusanomat muotoon `dict[str, JsonValue]`.
+
+Ajon jälkeen `uv run python scripts/audit_dict_eradication.py backend_v2/models/domain/system_config.py backend_v2/models/domain/mcp.py backend_v2/models/domain/xai.py backend_v2/models/dtos/atom_evaluation.py backend_v2/models/domain/validation.py backend_v2/models/dtos/studio.py` antaa tasan 0 rikkomusta.
 
 ---
 
@@ -75,7 +102,7 @@ from backend_v2.models.domain.system_config import SystemConfigMCPGateways, Syst
 from backend_v2.models.dtos.atom_evaluation import EvaluatedAtomDTO
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.render import ReportDataDTO
-from backend_v2.models.dtos.trace import TraceEventDTO
+from backend_v2.models.state import TraceEvent
 
 class Base(DeclarativeBase):
     pass
@@ -86,7 +113,7 @@ class PydanticJSONB[T](TypeDecorator[T]):
     Guarantees absolute eradication of naked dictionaries:
     - Supports single Pydantic models (WorkflowInputs, ContextVariablesDTO, FrozenContext, ReportDataDTO, OutputProfile).
     - Supports polymorphic discriminated unions (AnyPromptBlock, SystemConfigModelRegistry | SystemConfigMCPGateways).
-    - Supports collections of models (list[EvaluatedAtomDTO], list[ExecutionStep], list[ExpectedInput], list[StepRule], list[TraceEventDTO]).
+    - Supports collections of models (list[EvaluatedAtomDTO], list[ExecutionStep], list[ExpectedInput], list[StepRule], list[TraceEvent]).
     - Supports typed mapping models (dict[str, ExecutionStepState], dict[str, int]).
     - Directly executes Rust-accelerated dump_python and validate_python without intermediate dict bridges.
     """
@@ -248,7 +275,7 @@ class Execution(Base):
     atom_evaluations: Mapped[list[EvaluatedAtomDTO]] = mapped_column(PydanticJSONB(list[EvaluatedAtomDTO]), nullable=False, default=list)
     steps: Mapped[list[ExecutionStep]] = mapped_column(PydanticJSONB(list[ExecutionStep]), nullable=False, default=list)
     step_states: Mapped[dict[str, ExecutionStepState]] = mapped_column(PydanticJSONB(dict[str, ExecutionStepState]), nullable=False, default=dict)
-    execution_trace: Mapped[list[TraceEventDTO]] = mapped_column(PydanticJSONB(list[TraceEventDTO]), nullable=False, default=list)
+    execution_trace: Mapped[list[TraceEvent]] = mapped_column(PydanticJSONB(list[TraceEvent]), nullable=False, default=list)
     models_used: Mapped[dict[str, int]] = mapped_column(PydanticJSONB(dict[str, int]), nullable=False, default=dict)
     source_identity_manifest: Mapped[dict[str, str]] = mapped_column(PydanticJSONB(dict[str, str]), nullable=False, default=dict)
     
@@ -304,38 +331,25 @@ class ReportBinary(Base):
     artifact: Mapped["ReportArtifact"] = relationship("ReportArtifact", back_populates="binary")
 ```
 
-#### **Vaihe 2.0.1: Telemetrian tyyppiturvallisuus & TraceEvent-sanakirjojen hävittäminen (TraceEventDTO SSOT)**
+#### **Vaihe 2.0.1: Telemetrian tyyppiturvallisuus & TraceEvent-sanakirjojen hävittäminen (TraceEvent & TraceEventMetadataDTO SSOT)**
 
-Tällä hetkellä `backend_v2/models/state.py`:n vanhassa `TraceEvent`-mallissa elää kaksi alastonta sanakirjaa:
-- `content: Annotated[dict[str, Any], Field(default_factory=dict)]`
-- `metadata: Annotated[dict[str, Any], Field(default_factory=dict)]`
+Toteutussuunnitelma @[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md] (Pre-Migration) hävittää vanhat alastomat sanakirjat (`dict[str, Any]`) `backend_v2/models/state.py`:n `TraceEvent`-mallista:
+- `content: StepPayloadValue | TraceEventMetadataEnvelope | dict[str, JsonValue]`, missä `StepPayloadValue` on suljettu polymorfinen unioni (`StepOutputContentDTO | ExecutionInputsDTO | WorkflowInputs | LightweightMatrixOutput | SynthesisStarvationDTO | ProgressTracePayloadDTO`).
+- `metadata: TraceEventMetadataDTO` (`ConfigDict(strict=True, extra="forbid", frozen=True)`), joka kapseloi vahvasti tyypitetyt telemetriakentät (`latency_ms`, `chunk_size`, `context_char_length`, `prompt_contexts`, `generated_schema`, `mcp_audit_traces`, `estimated_token_count`, `is_context_update`, `error_code`, `error_message`).
 
-Koska `TraceEvent`-tietueet tallennetaan suoraan `execution_trace.json`-tiedostoon ja lähetetään Flutter-työpöytäsovellukselle SSE-virrassa (Server-Sent Events) 22 eri tiedostossa, niiden muuttaminen ennen PostgreSQL-migraatiota rikkoisi käynnissä olevat ajot.
-
-PostgreSQL-migraatiossa vanha `TraceEvent` korvataan lopullisesti uudella, 100 % tyypitetyllä `TraceEventDTO`-mallilla (`backend_v2/models/dtos/trace.py`), jolloin alastomat sanakirjat hävitetään myös tietokannan ja telemetriavirran sisältä:
+PostgreSQL-migraatiossa vanhaa `TraceEvent`-mallia ei tarvitse korvata rinnakkaisella DTO-luokalla, vaan suoritusputken valmiiksi tyypitetty ja kovetettu `TraceEvent` sidotaan suoraan `PydanticJSONB`-sarakkeeseen:
 
 ```python
-class TraceEventDTO(V2CoreBase):
-    """PostgreSQL 17+ & SSE Stream 100% typed trace event (ZERO NAKED DICTS)."""
-    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
-
-    event_id: Annotated[UUID, Field(default_factory=uuid.uuid4, description="Unique event identifier.")]
-    v: Annotated[int, Field(default=1, description="Schema version for forward compatibility.")]
-    timestamp: Annotated[datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="UTC timestamp.")]
-    step_name: Annotated[str, Field(min_length=1, description="Name of the step that generated this event.")]
-    event_type: Annotated[str, Field(min_length=1, description="Type of the event.")]
-    
-    # ZERO NAKED DICTS: Content ja metadata tyypitettyinä JsonValue-rakenteina
-    content: Annotated[dict[str, JsonValue], Field(default_factory=dict, description="Structured event payload")]
-    reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Chain-of-thought reasoning")]
-    metadata: Annotated[dict[str, JsonValue], Field(default_factory=dict, description="Operational event metadata")]
-    mcp_audit_traces: Annotated[list[MCPAuditTrace], Field(default_factory=list, description="Associated MCP audit traces")]
+# Execution.execution_trace hyödyntää suoraan valmiiksi kovetettua TraceEvent-mallia:
+execution_trace: Mapped[list[TraceEvent]] = mapped_column(
+    PydanticJSONB(list[TraceEvent]), nullable=False, default=list
+)
 ```
 
 Tällöin:
-1. `Execution.execution_trace: Mapped[list[TraceEventDTO]] = mapped_column(PydanticJSONB(list[TraceEventDTO]), nullable=False, default=list)` takaa, että PostgreSQL:n JSONB-sarakkeeseen ei päädy yhtäkään `dict[str, Any]` -kenttää.
-2. Myös Flutter-asiakkaalle suoratoistettava SSE-telemetria noudattaa samaa tiukkaa `TraceEventDTO`-skeemaa.
-3. PostgreSQL-suunnitelman sääntö 3.1 ("Ei alastomia sanakirjoja ORM-malleissa") toteutuu 100 %:sesti myös syvimmässä lokituskerroksessa.
+1. `Execution.execution_trace: Mapped[list[TraceEvent]] = mapped_column(PydanticJSONB(list[TraceEvent]), nullable=False, default=list)` takaa, että PostgreSQL:n JSONB-sarakkeeseen ei päädy yhtäkään `dict[str, Any]` -kenttää.
+2. Myös Flutter-asiakkaalle suoratoistettava SSE-telemetria noudattaa samaa tiukkaa `TraceEvent`- ja `TraceEventMetadataDTO`-sopimusta.
+3. PostgreSQL-suunnitelman sääntö 3.1 ("Ei alastomia sanakirjoja ORM-malleissa") ja sääntö 3.2 ("Ei välisanakirjoja orkestroijassa") toteutuvat 100 %:sesti ilman rinnakkaisia luokkia tai siirtymäkauden purkkapaikkauksia.
 
 ---
 
@@ -397,6 +411,15 @@ Kaikki aiemmat tilapäiset apusanakirjat (`cv_dict`, `delta_content_dict`, `step
 
 5. **Invariantti 5: Ei raakakyselyitä (`text(...)`)**:
    Kyselyt rakennetaan tyyppiturvallisilla SQLAlchemy 2.0 -rakenteilla ilman sanakirjoja palauttavia SQL-tekstikomentoja.
+
+---
+
+#### **Vaihe 2.1.1: Repositorioiden virheenkäsittelyn modernisointi ja QGR003-siivous (Fail-Fast Persistence)**
+
+Kaikki nykyiset `backend_v2/database/repositories/*.py` -tiedostoissa elävät laajat ja tyypittämättömät `except Exception:` -käsittelijät (13 kpl `QGR003`) sekä `driver.py`:n 5 abstraktia sanakirjametodia poistuvat pysyvästi:
+1. **SQLAlchemy 2.0 -spesifit poikkeusluokat**: Repositoriot (`knowledge.py`, `audit.py`, `workflow.py`, `identity.py`, `base.py`) nappaavat ainoastaan spesifejä SQLAlchemy-poikkeuksia (`IntegrityError`, `DBAPIError`, `NoResultFound`) ja kääntävät ne deterministisiksi `AppException`-virheiksi RFC 7807 -muodossa (`ErrorCodes.RESOURCE_ALREADY_EXISTS`, `ErrorCodes.RESOURCE_NOT_FOUND`, `ErrorCodes.DATABASE_UNAVAILABLE`).
+2. **Nolla `except Exception:` -blokkia ilman re-raisea**: Yksikään tietokantaoperaatio ei enää niele virheitä hiljaa lokittamalla ja palauttamalla `None` tai `[]`. Jos tietokantakirjoitus epäonnistuu, transaktio rullataan takaisin (`await session.rollback()`) ja `AppException` nousee Fail-Fast -periaatteella ylös asti.
+3. **`backend_v2/database/driver.py` poisto tai uudelleenkirjoitus**: Vanha `DatabaseDriver`-rajapinta, joka palautti `dict[str, Any]`, poistetaan kokonaan ja korvataan tyypitetyllä asynkronisella sessiotehtaalla (`AsyncSessionLocal`) tai tyypitetyllä `PostgresDriver`-luokalla, joka ei käsittele alastomia sanakirjoja missään elinkaaren vaiheessa.
 
 ---
 
@@ -506,9 +529,12 @@ if __name__ == "__main__":
 | **4. UUIDv7 -tietovuoto & ID-sopimukset** | Säilytetään Quorumin viralliset Opaque Stripe ID:t (`exe_...`, `rep_...`). UUIDv7 upotetaan heksasuffiksiksi, jolloin B-Tree-indeksihyöty säilyy täysin ilman, että API-sopimuksia rikotaan. | **100 % TAKLATTU** |
 | **5. Tapahtumasilmukan lukkiutuminen & Tiedostolukituskilpa (Lock Starvation & Race Condition)** | TinyDB:n synkroniset levynkirjoitukset, `time.sleep(0.02)` -odotussilmukat ja `msvcrt`-tiedostolukitukset poistuvat. PostgreSQL käyttää täysin asynkronista yhteysallasta (`asyncpg` / `asyncio`), MVCC:tä ja rivitason lukitusta (`SELECT ... FOR UPDATE`). Samanaikaiset DAG-ajot eivät enää kilpaile tiedostolukosta eivätkä aiheuta `TimeoutError`/`PermissionError`-kaatumisia, I/O ei estä `asyncio.TaskGroup`-ajoja eikä SSE-telemetriaa, eivätkä ajot jää orpoina `RUNNING`-tilaan ilman DLQ-reititystä. | **100 % TAKLATTU** |
 | **6. Kuolevan tiedostokoodin ylikorjaus & Hukkatyö (Sunk Cost Engineering)** | EPIC 152:ssa ei yritetä refaktoroida `TinyDBDriverin` tai `wrapper.py`:n tiedostolukituksia, vaan ne on karsittu (Scrap). EPIC 152 korjaa ajurista ainoastaan puhtaan `isinstance(data, BaseModel)` -tyyppiturvallisuuden, ja keskittää paukut DTO-malleihin (`models/dtos/`), jotka siirtyvät sellaisenaan PostgreSQL-malliin. | **100 % TAKLATTU** |
-| **7. Alastomat sanakirjat ja skeemavuodot (`dict[str, Any]` in JSONB)** | JSONB-sarakkeiden typistäminen `dict[str, Any]` -muotoon on ehdottomasti kielletty. Kaikki JSONB-kentät sidotaan `PydanticJSONB`-kääreellä ja Pydantic V2 `TypeAdapter`-moottorilla suoraan vahvoihin DTO-malleihin (`WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `ReportDataDTO`, `EvaluatedAtomDTO`, `TraceEventDTO`, `AnyPromptBlock`, `OutputProfile`, `SystemConfigModelRegistry`, `list[ExecutionStep]`, `dict[str, ExecutionStepState]`, `list[TraceEventDTO]`). SQLAlchemy ja TypeAdapter sarjallistavat ja validoivat datan automaattisesti ilman käsin koodattuja sanakirjamuunnoksia. | **100 % TAKLATTU** |
-| **8. Orkestroijan ja Repositoryn apusanakirjat (`updates: dict`, `cv_dict`)** | Orkestroijan ja tietokantakerroksen väliset tilapäiset päivityssanakirjat on kielletty. SQLAlchemy 2.0 async session päivittää tilan suoraan tyypitettyjen DTO-instanssien kautta (`execution.context_variables = new_dto`), ja repository rekonstituoi suoraan Pydantic domain-mallit. Väliaikaisten sanakirjojen tarve lakkaa olemasta. | **100 % TAKLATTU** |
+| **7. Alastomat sanakirjat ja skeemavuodot (`dict[str, Any]` in JSONB)** | JSONB-sarakkeiden typistäminen `dict[str, Any]` -muotoon on ehdottomasti kielletty. Kaikki JSONB-kentät sidotaan `PydanticJSONB`-kääreellä ja Pydantic V2 `TypeAdapter`-moottorilla suoraan vahvoihin DTO-malleihin (`WorkflowInputs`, `ContextVariablesDTO`, `FrozenContext`, `ReportDataDTO`, `EvaluatedAtomDTO`, `TraceEvent`, `TraceEventMetadataDTO`, `StepOutputContentDTO`, `ProgressTracePayloadDTO`, `LightweightMatrixOutput`, `GlobalContextVarsDTO`, `AnyPromptBlock`, `OutputProfile`, `SystemConfigModelRegistry`, `list[ExecutionStep]`, `dict[str, ExecutionStepState]`, `list[TraceEvent]`), joiden in-memory tyyppiturvallisuus on taklattu suunnitelmassa @[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md]. SQLAlchemy ja TypeAdapter sarjallistavat ja validoivat datan automaattisesti ilman käsin koodattuja sanakirjamuunnoksia. | **100 % TAKLATTU** |
+| **8. Orkestroijan ja Repositoryn apusanakirjat (`updates: dict`, `cv_dict`)** | Orkestroijan ja tietokantakerroksen väliset tilapäiset päivityssanakirjat on kielletty. Suunnitelman @[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md] mukaisesti orkestroija operoi 100 % tyypitetyillä DTO-instansseilla (`StepOutputContentDTO`, `TraceEventMetadataDTO`, `ExecutionInputsDTO`). SQLAlchemy 2.0 async session päivittää tilan suoraan tyypitettyjen DTO-instanssien kautta (`execution.context_variables = new_dto`), ja repository rekonstituoi suoraan Pydantic domain-mallit ilman väliaikaisia sanakirjoja. | **100 % TAKLATTU** |
 | **9. Staattinen laadunvarmistus & AST-valvonta** | Uusi `audit_orm_strictness.py` estää CI/CD-tasolla minkäänlaisten `dict[str, Any]`- tai `mapped_column(JSONB)`-rakenteiden pääsyn SQLAlchemy-malleihin ilman `PydanticJSONB`-sidosta. | **100 % TAKLATTU** |
+| **10. Repositorioiden QGR003-poikkeukset & driver.py:n sanakirjavuodot** | Vanhoja TinyDB-poikkeuskäsittelijöitä ei ylikorjata vanhassa kannassa (throwaway work ban). Uudet SQLAlchemy 2.0 -repositoriot (`knowledge.py`, `audit.py`, `workflow.py`, `identity.py`, `base.py`) kääntävät spesifit virheet (`IntegrityError`, `NoResultFound`, `DBAPIError`) suoraan tyypitetyiksi `AppException`-virheiksi ilman laajoja `except Exception:` -lohkoja. `driver.py`:n alastomat `dict[str, Any]` -metodit poistuvat kokonaan. | **100 % TAKLATTU** |
+| **11. Tekoälyparin (Antigravity) kehityssuvereniteetti & Agentic Drift -esto** | Löysä `dict[str, Any]` -pohjainen tietokantatallennus altistaa tekoälyn hallusinoimaan sarakenimiä ja avaimia. Vahva `PydanticJSONB`-sidonta yhdessä `audit_orm_strictness.py`- ja `audit_dict_eradication.py`-porttien kanssa poistaa *Agentic Driftin* ja pakottaa matemaattisen 100 % tyyppiturvallisuuden koko ketjulle suoritusputkesta PostgreSQL-talletukseen saakka. | **100 % TAKLATTU** |
+| **12. Kolmivaiheinen tiekartta ja vastuiden jako (The Tripartite Roadmap)** | Työnjako on aukoton: Vaihe 1 (@[docs/implementationplans/IMPLEMENTATION_PLAN_Pipeline_State_Transit_Type_Safety.md]) taklaa suoritusputken in-memory -tilan. Tämä suunnitelma (Vaihe 2) esisiivoaa pysyvät domain-mallit (Vaihe 1.5) ja taklaa pysyvyyskerroksen (SQLAlchemy 2.0 ORM, `PydanticJSONB`, `SELECT ... FOR UPDATE`, `driver.py`:n poisto ja repositorioiden QGR003-poikkeukset). Vaihe 3 (@[docs/implementationplans/IMPLEMENTATION_PLAN_LLM_Adapter_Strict_Typing.md]) siivoaa ulkoiset LLM SDK -adapterit ja oheiskoukut saavuttaen koko koodikannan tasan 0 virheen tilan. Työvaiheet eivät risteä eivätkä aiheuta hukkatyötä. | **100 % TAKLATTU** |
 
 #### **Uusi Tunnistettu Riski: Database Bloat (Kannan paisuminen) & Sen Esto**
 - **Riski**: Jos 100 000 PDF-tiedostoa (n. 100 GB) tallennetaan suoraan tauluriville, tavalliset taulukyselyt hidastuvat ja tietokannan RAM-muisti (`shared_buffers`) täyttyy tarpeettomasta binaaridatasta.

@@ -1,7 +1,6 @@
 """Unit tests for backend_v2.database.wrapper."""
 
 import os
-import time
 from typing import Any
 from unittest.mock import MagicMock, patch
 

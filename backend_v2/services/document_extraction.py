@@ -78,8 +78,15 @@ class DocumentExtractionService:
         Returns:
             A tuple of (extracted_markdown_text, parsed_pdf_date_iso_str)
         """
+        import sys
+
         import fitz
-        import pymupdf4llm
+
+        # Ensure layout engine is not active if pymupdf4llm was previously loaded
+        if "pymupdf4llm" in sys.modules:
+            import pymupdf4llm
+
+            pymupdf4llm.use_layout(False)
 
         doc = fitz.open(stream=file_bytes, filetype="pdf")
         try:
@@ -89,7 +96,12 @@ class DocumentExtractionService:
                 chat_dto = PdfChatExtractorService.extract_conversation(doc)
                 md_text = chat_dto.model_dump_json()
             else:
-                md_text = str(pymupdf4llm.to_markdown(doc))
+                import pymupdf4llm
+
+                try:
+                    md_text = str(pymupdf4llm.to_markdown(doc))
+                finally:
+                    pymupdf4llm.use_layout(False)
 
                 # Robustness Fallback: If PyMuPDF4LLM converted text into HTML picture comments or truncated dialogue
                 if "<!-- Start of picture text -->" in md_text or len(md_text.strip()) < 100:
@@ -115,7 +127,10 @@ class DocumentExtractionService:
 
             return md_text.strip(), parsed_date
         finally:
-            pymupdf4llm.use_layout(False)
+            if "pymupdf4llm" in sys.modules:
+                import pymupdf4llm
+
+                pymupdf4llm.use_layout(False)
             doc.close()
 
     async def process_ingress_payload(self, ingress: WorkflowInputsIngress) -> WorkflowInputsIngress:
