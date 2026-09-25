@@ -234,3 +234,110 @@ def test_negative_strict_dto_validation() -> None:
             is_fragile=False,
             unexpected_field="disallowed",  # type: ignore[call-arg]
         )
+
+
+def test_audit_all_matrices_best_practice_branches(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verify audit_all_matrices_best_practice with clean, warning, and fatal defect reports."""
+    from scripts.audit_database_atoms import AuditIssue, FullDatabaseAuditReport
+    from scripts.matrix_slice_engine import CoherenceIssueDTO, ContaminationFindingDTO
+
+    # 1. Clean report
+    clean_report = FullDatabaseAuditReport(
+        total_matrices=1,
+        total_atoms=5,
+        total_steps=1,
+        total_workflows=1,
+        total_profiles=1,
+        issues=[],
+        all_passed=True,
+    )
+    monkeypatch.setattr("scripts.audit_database_atoms.run_full_database_audit", lambda path: clean_report)
+    monkeypatch.setattr("scripts.matrix_hardening_loop.detect_empirical_contamination", lambda mat: [])
+    monkeypatch.setattr("scripts.matrix_hardening_loop.audit_atom_coherence", lambda mat: [])
+
+    result_clean = loop_mod.audit_all_matrices_best_practice()
+    assert result_clean is True
+
+    # 2. Clean report with advisory warning
+    warning_issue = AuditIssue(
+        collection="prompt_blocks",
+        entity_id="blk_test",
+        field_path="instruction_text",
+        issue_type="AMBIGUOUS_TOKEN",
+        message="Ambiguity warning",
+        severity="WARNING",
+    )
+    warn_report = FullDatabaseAuditReport(
+        total_matrices=1,
+        total_atoms=5,
+        total_steps=1,
+        total_workflows=1,
+        total_profiles=1,
+        issues=[warning_issue],
+        all_passed=True,
+    )
+    monkeypatch.setattr("scripts.audit_database_atoms.run_full_database_audit", lambda path: warn_report)
+    result_warn = loop_mod.audit_all_matrices_best_practice()
+    assert result_warn is True
+
+    # 3. Defect report with errors, contamination, and coherence defect
+    error_issue = AuditIssue(
+        collection="prompt_blocks",
+        entity_id="blk_err",
+        field_path="scales",
+        issue_type="INVALID_SCALE",
+        message="Fatal error",
+        severity="ERROR",
+    )
+    defect_report = FullDatabaseAuditReport(
+        total_matrices=1,
+        total_atoms=5,
+        total_steps=1,
+        total_workflows=1,
+        total_profiles=1,
+        issues=[error_issue],
+        all_passed=False,
+    )
+    finding = ContaminationFindingDTO(tda_id="tda_1", field="concept", reason="overfit", snippet="snippet")
+    defect = CoherenceIssueDTO(tda_id="tda_1", issue="RULE_MISMATCH", description="incoherent")
+    monkeypatch.setattr("scripts.audit_database_atoms.run_full_database_audit", lambda path: defect_report)
+    monkeypatch.setattr("scripts.matrix_hardening_loop.detect_empirical_contamination", lambda mat: [finding])
+    monkeypatch.setattr("scripts.matrix_hardening_loop.audit_atom_coherence", lambda mat: [defect])
+
+    result_defect = loop_mod.audit_all_matrices_best_practice()
+    assert result_defect is False
+
+
+def test_matrix_hardening_loop_cli_additional_branches(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verify CLI --audit-best-practice, --done, --reset, --help, and default status."""
+    matrices = load_seed_matrices()
+    first_id = matrices[0].id
+
+    # --help
+    with pytest.raises(SystemExit) as exc:
+        loop_main(["--help"])
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "Matrix & Atom Hardening Lifecycle" in captured.out
+
+    # --audit-best-practice (clean exits 0)
+    monkeypatch.setattr("scripts.matrix_hardening_loop.audit_all_matrices_best_practice", lambda: True)
+    loop_main(["--audit-best-practice"])
+
+    # --audit-best-practice (defects exits 1)
+    monkeypatch.setattr("scripts.matrix_hardening_loop.audit_all_matrices_best_practice", lambda: False)
+    with pytest.raises(SystemExit) as exc:
+        loop_main(["--audit-best-practice"])
+    assert exc.value.code == 1
+
+    # --done
+    monkeypatch.setattr("scripts.matrix_hardening_loop.mark_done", lambda mid: None)
+    loop_main(["--done", first_id])
+
+    # --reset
+    loop_main(["--reset"])
+
+    # default (no args)
+    loop_main([])

@@ -424,7 +424,7 @@ class TestWorkflowProvenance:
 
     def test_extract_workflow_provenance_competency_workflows(self) -> None:
         """Positive: Test dynamic atom population and metadata resolution from seed data."""
-        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
+        seed_path = Path(__file__).resolve().parents[3] / "seed" / "seed_data.json"
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
@@ -478,7 +478,7 @@ class TestPhysicalModelBindings:
 
     def test_resolve_physical_model_bindings_from_seed(self) -> None:
         """Positive: Verify bindings extracted from seed system_config match registered models."""
-        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
+        seed_path = Path(__file__).resolve().parents[3] / "seed" / "seed_data.json"
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
@@ -506,7 +506,7 @@ class TestPhysicalModelBindings:
         with pytest.raises(ResourceNotFoundError):
             resolve_physical_model_bindings({}, registry_id="sys_unknown")
 
-        seed_path = Path(__file__).resolve().parents[2] / "seed" / "seed_data.json"
+        seed_path = Path(__file__).resolve().parents[3] / "seed" / "seed_data.json"
         with seed_path.open("r", encoding="utf-8") as f:
             seed = json.load(f)
 
@@ -1542,3 +1542,30 @@ class TestVerifyQuoteInCorpusUnicodeAndResilience:
 
             # At the same time, quote verification succeeds deterministically
             assert verify_quote_in_corpus(quote, corpus_with_watermark) is True
+
+
+def test_diff_executions_main_cli_help(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifies that diff_executions.py main() displays help and exits with code 0."""
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "Execution Trace Differential Analysis" in captured.out
+    assert "execution_ids" in captured.out
+    assert "-o, --output" in captured.out
+
+
+def test_diff_executions_main_cli_delegation(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies that diff_executions.py main() parses arguments and delegates to run_diff."""
+    called: dict[str, Any] = {}
+
+    def mock_run_diff(execution_ids: list[str] | None = None, output_file: str | None = None) -> str:
+        called["execution_ids"] = execution_ids
+        called["output_file"] = output_file
+        return "mock_report.md"
+
+    monkeypatch.setattr("scripts.diff_executions.run_diff", mock_run_diff)
+    main(["exe_1", "exe_2", "-o", "custom_report.md"])
+
+    assert called["execution_ids"] == ["exe_1", "exe_2"]
+    assert called["output_file"] == "custom_report.md"

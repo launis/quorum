@@ -30,6 +30,7 @@ from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from tinydb import Query, TinyDB
 
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.enums import ExecutionStatus
 
 logger = logging.getLogger("scripts.reconcile_storage")
@@ -179,7 +180,7 @@ def _reconstitute_execution_record(
             pdf_report_path=pdf_storage_path,
             is_resumable=False,
             execution_trace=[],
-            context_variables={},
+            context_variables=ContextVariablesDTO(),
             progress=None,
             status_message=None,
         )
@@ -272,10 +273,29 @@ def reconcile_storage(
     )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Command-line interface entry point for execution storage reconciliation."""
     parser = argparse.ArgumentParser(
-        description="Reconciles executions table in TinyDB with physical artifact folders in storage directory."
+        description=(
+            "TinyDB Executions Table and Physical Storage Reconciliation Suite.\n\n"
+            "Maintains CQRS consistency between operational database records and physical file artifacts:\n"
+            "  • Scans the TinyDB database 'executions' table for orphaned records whose directories are missing\n"
+            "  • Scans the physical execution storage directory for unindexed disk artifacts\n"
+            "  • Operates in read-only inspection mode (--check) by default without mutating state\n"
+            "  • Reconciles database records in --fix mode by pruning dead pointers and recovering disk runs"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples (Windows PowerShell):\n"
+            "  # Perform dry-run synchronization check against default paths:\n"
+            "  uv run python scripts/reconcile_storage.py\n\n"
+            "  # Explicitly run dry-run check:\n"
+            "  uv run python scripts/reconcile_storage.py --check\n\n"
+            "  # Reconcile database state by pruning orphans and recovering unindexed runs:\n"
+            "  uv run python scripts/reconcile_storage.py --fix\n\n"
+            "  # Check against custom database and storage directories:\n"
+            "  uv run python scripts/reconcile_storage.py --check --db-path data/db_v2.json --storage-dir data/files/executions"
+        ),
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -302,7 +322,7 @@ def main() -> None:
         help="Path to execution artifacts directory (defaults to data/files/executions).",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
     is_fix = bool(args.fix)

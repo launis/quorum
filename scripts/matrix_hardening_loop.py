@@ -312,7 +312,9 @@ def audit_all_matrices_best_practice() -> bool:
     print("-" * 105)
 
     if total_fatal_defects == 0:
-        print(f"STATUS: 100% CLEAN - ALL 7 GOLDEN RULES SATISFIED (0 FATAL DEFECTS, {len(database_warnings)} ADVISORY WARNINGS)")
+        print(
+            f"STATUS: 100% CLEAN - ALL 7 GOLDEN RULES SATISFIED (0 FATAL DEFECTS, {len(database_warnings)} ADVISORY WARNINGS)"
+        )
         print("=" * 105)
         if database_warnings:
             print("\n--- DATABASE ADVISORY WARNINGS (NON-MATRIX DESCRIPTIVE TEXTS) ---")
@@ -342,18 +344,71 @@ def audit_all_matrices_best_practice() -> bool:
     return False
 
 
-def main() -> None:
-    """CLI entrypoint."""
-    parser = argparse.ArgumentParser(description="Matrix & Atom Hardening Audit Engine")
-    parser.add_argument("--status", action="store_true", help="Print overall matrix audit status")
-    parser.add_argument("--inspect", type=str, help="Inspect a specific matrix ID (e.g. blk_440a5fef9331451b)")
-    parser.add_argument("--done", type=str, help="Mark a specific matrix ID as DONE")
-    parser.add_argument("--reset", action="store_true", help="Reset state tracking JSON")
-    parser.add_argument("--slice", type=str, metavar="MATRIX_ID", help="Export single matrix slice JSON")
-    parser.add_argument("--theory-card", type=str, metavar="MATRIX_ID", help="Generate Theory Opponent Card prompt")
-    parser.add_argument("--patch", type=str, metavar="SLICE_FILE", help="Atomically patch matrix slice into seed vault")
+def main(argv: list[str] | None = None) -> None:
+    """CLI entrypoint for matrix hardening loop."""
+    parser = argparse.ArgumentParser(
+        description="""Matrix & Atom Hardening Lifecycle & Audit Engine.
+
+Provides headless diagnostic, slicing, and patching tools for evaluation matrices:
+  - Lifecycle State Management: Tracks progress, inspection, and completion across all 13 matrices.
+  - Isolated Slice Operations: Exports and patches single-matrix slices without manual vault editing.
+  - Theory Card Generation: Constructs structured prompt contexts for domain theory opponent cards.
+  - Contamination & Quality Audits: Detects empirical contamination and enforces 7 Golden Rules.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/matrix_hardening_loop.py --status
+  uv run python scripts/matrix_hardening_loop.py --inspect blk_matrix_coaching_presence
+  uv run python scripts/matrix_hardening_loop.py --slice blk_matrix_coaching_presence
+  uv run python scripts/matrix_hardening_loop.py --audit-contamination
+  uv run python scripts/matrix_hardening_loop.py --audit-best-practice
+""",
+    )
     parser.add_argument(
-        "--explain", type=str, metavar="MATRIX_ID", help="Append English theory explanation to compendium"
+        "--status",
+        action="store_true",
+        help="Print overall matrix audit status table (default action if no flags given).",
+    )
+    parser.add_argument(
+        "--inspect",
+        type=str,
+        metavar="MATRIX_ID",
+        help="Inspect scale levels, claims, and atom density for a specific matrix ID.",
+    )
+    parser.add_argument(
+        "--done",
+        type=str,
+        metavar="MATRIX_ID",
+        help="Mark a specific matrix ID as complete in the hardening state tracker.",
+    )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Reset the matrix hardening state tracking JSON file.",
+    )
+    parser.add_argument(
+        "--slice",
+        type=str,
+        metavar="MATRIX_ID",
+        help="Export a single matrix block into an isolated JSON slice file.",
+    )
+    parser.add_argument(
+        "--theory-card",
+        type=str,
+        metavar="MATRIX_ID",
+        help="Generate an AI prompt context for creating Theory Opponent Cards.",
+    )
+    parser.add_argument(
+        "--patch",
+        type=str,
+        metavar="SLICE_FILE",
+        help="Atomically patch an edited matrix slice JSON file back into the seed vault.",
+    )
+    parser.add_argument(
+        "--explain",
+        type=str,
+        metavar="MATRIX_ID",
+        help="Append English theory explanation for a matrix to docs/architecture/08_matrix_explanations.md.",
     )
     parser.add_argument(
         "--audit-contamination",
@@ -361,15 +416,15 @@ def main() -> None:
         nargs="?",
         const="ALL",
         metavar="MATRIX_ID",
-        help="Audit empirical contamination",
+        help="Audit matrix prompt blocks for empirical contamination (default: ALL matrices).",
     )
     parser.add_argument(
         "--audit-best-practice",
         action="store_true",
-        help="Run comprehensive Best-Practice Prompt & Matrix audit against the 7 Golden Rules",
+        help="Run comprehensive Best-Practice Prompt & Matrix audit against the 7 Golden Rules.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.slice:
         out = export_matrix_slice(args.slice)

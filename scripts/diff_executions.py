@@ -3216,22 +3216,41 @@ def run_diff(execution_ids: list[str] | None = None, output_file: str | Path | N
     return str(report_path)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entry point for execution diff tool."""
-    parser = argparse.ArgumentParser(description="Execution Trace Differential Analysis and Kappa Suite")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Execution Trace Differential Analysis and Statistical Agreement Suite.\n\n"
+            "Performs deep cross-run comparative analysis between two or more workflow executions:\n"
+            "  • Calculates inter-rater reliability metrics (Cohen's Kappa, Fleiss' Kappa, Global Entropy)\n"
+            "  • Classifies disagreement root causes (boundary shifts, contextual overrides, hallucinations)\n"
+            "  • Computes score delta distributions and token consumption divergences\n"
+            "  • Compiles a structured differential Markdown report and a JSON snapshot"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples (Windows PowerShell):\n"
+            "  # Compare the 3 most recent executions in data/files/executions:\n"
+            "  uv run python scripts/diff_executions.py\n\n"
+            "  # Compare specific executions by ID:\n"
+            "  uv run python scripts/diff_executions.py exe_01955b2d87e07662 exe_01955b2e88a07123\n\n"
+            "  # Compare specific trace directories and output to custom report:\n"
+            "  uv run python scripts/diff_executions.py data/files/executions/exe_01955b2d87e07662 data/files/executions/exe_01955b2e88a07123 -o diff_report.md"
+        ),
+    )
     parser.add_argument(
         "execution_ids",
         nargs="*",
         default=None,
-        help="Execution IDs or directory paths to compare (defaults to latest 3 executions)",
+        help="Execution IDs or directory paths to compare (defaults to latest 3 executions if omitted).",
     )
     parser.add_argument(
         "-o",
         "--output",
         default=None,
-        help="Explicit file path to write the differential Markdown report",
+        help="Explicit file path to write the differential Markdown report.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     cli_args = args.execution_ids if args.execution_ids else None
     run_diff(cli_args, output_file=args.output)
 

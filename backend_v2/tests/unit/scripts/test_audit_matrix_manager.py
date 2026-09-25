@@ -415,3 +415,56 @@ def test_audit_matrix_manager_zero_reflection_compliance() -> None:
                 pass
 
     assert reflection_calls == [], f"Found banned reflection calls at lines: {reflection_calls}"
+
+
+def test_audit_matrix_manager_cli_help(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verify CLI --help exits with code 0 and displays documentation."""
+    with pytest.raises(SystemExit) as exc:
+        main(["--help"])
+    assert exc.value.code == 0
+    captured = capsys.readouterr()
+    assert "Neuro-Symbolic Audit Matrix Manager" in captured.out
+
+
+def test_audit_matrix_manager_cli_verification_error_branches(tmp_path: Path) -> None:
+    """Verify CLI verify mode exits with 1 on invalid file, parse error, mismatch, and empty rules."""
+    # 1. Non-existent file
+    with pytest.raises(SystemExit) as exc:
+        main(["verify", "--file", str(tmp_path / "missing.json"), "--target", "foo.py"])
+    assert exc.value.code == 1
+
+    # 2. Corrupted JSON file
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text("{invalid json", encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        main(["verify", "--file", str(bad_json), "--target", "foo.py"])
+    assert exc.value.code == 1
+
+    # 3. Empty target_file
+    empty_target_matrix = AuditMatrixDTO(
+        target_file="   ",
+        generated_at=datetime.now(UTC).isoformat(),
+        rules=[],
+    )
+    empty_target_file = tmp_path / "empty_target.json"
+    empty_target_file.write_text(empty_target_matrix.model_dump_json(), encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        main(["verify", "--file", str(empty_target_file), "--target", "foo.py"])
+    assert exc.value.code == 1
+
+    # 4. Target mismatch
+    valid_matrix = AuditMatrixDTO(
+        target_file="correct_target.py",
+        generated_at=datetime.now(UTC).isoformat(),
+        rules=[],
+    )
+    valid_file = tmp_path / "valid.json"
+    valid_file.write_text(valid_matrix.model_dump_json(), encoding="utf-8")
+    with pytest.raises(SystemExit) as exc:
+        main(["verify", "--file", str(valid_file), "--target", "wrong_target.py"])
+    assert exc.value.code == 1
+
+    # 5. Empty rules list
+    with pytest.raises(SystemExit) as exc:
+        main(["verify", "--file", str(valid_file), "--target", "correct_target.py"])
+    assert exc.value.code == 1

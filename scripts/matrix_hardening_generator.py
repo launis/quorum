@@ -44,7 +44,7 @@ __all__ = [
 if isinstance(sys.stdout, io.TextIOWrapper):
     try:
         sys.stdout.reconfigure(encoding="utf-8")
-    except (AttributeError, io.UnsupportedOperation):
+    except AttributeError, io.UnsupportedOperation:
         pass
 
 SEED_PATH = Path("backend_v2/seed/seed_data.json")
@@ -192,21 +192,44 @@ def print_matrix_plan(matrix_id: str, target_count: int = 5) -> None:
     print("=" * 80)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for matrix hardening generator."""
-    parser = argparse.ArgumentParser(description="Automated Matrix & Atom Hardening Tool")
-    parser.add_argument("--plan", type=str, help="Show expansion gaps for a specific matrix ID")
+    parser = argparse.ArgumentParser(
+        description="""Automated Matrix & Atom Hardening Density Planner.
+
+Analyzes evaluation matrix prompt blocks in seed_data.json to plan atom expansion:
+  - Atom Density Auditing: Calculates assertion counts per scale level across all matrix blocks.
+  - Deficit Gap Calculation: Determines exact missing atoms needed to reach target density per level.
+  - Matrix-Specific Planning: Emits granular level-by-level gap breakdowns for a designated matrix (--plan).
+  - Whole-Vault Gap Matrix: Summarizes total expansion needs across all 13 matrices (--all-gaps).
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/matrix_hardening_generator.py --all-gaps
+  uv run python scripts/matrix_hardening_generator.py --plan blk_matrix_coaching_presence
+  uv run python scripts/matrix_hardening_generator.py --plan blk_matrix_coaching_presence --target-density 7
+""",
+    )
+    parser.add_argument(
+        "--plan",
+        type=str,
+        help="Target matrix block ID (e.g. blk_matrix_coaching_presence) to calculate expansion gaps for.",
+    )
     parser.add_argument(
         "--target-density",
         type=int,
         default=TARGET_ATOM_DENSITY.value,
         help=(
-            f"Desired atoms per scale level (default from Enum: {TARGET_ATOM_DENSITY.name}={TARGET_ATOM_DENSITY.value})"
+            f"Desired atom density per scale level (default: {TARGET_ATOM_DENSITY.name}={TARGET_ATOM_DENSITY.value})."
         ),
     )
-    parser.add_argument("--all-gaps", action="store_true", help="Scan entire seed vault and list all matrix gaps")
+    parser.add_argument(
+        "--all-gaps",
+        action="store_true",
+        help="Scan all matrix blocks in the seed vault and display a cross-matrix gap summary.",
+    )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.plan:
         print_matrix_plan(args.plan, target_count=args.target_density)

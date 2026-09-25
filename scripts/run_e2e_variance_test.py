@@ -1944,8 +1944,30 @@ def run_variance_test(
 
 def main(argv: list[str] | None = None) -> list[str]:
     """CLI entrypoint for end-to-end variance test runner."""
-    parser = argparse.ArgumentParser(description="End-to-End Variance and Reliability Test Runner")
-    parser.add_argument("inputs_target", nargs="?", default=None, help="File or directory path containing test inputs")
+    parser = argparse.ArgumentParser(
+        description=(
+            "End-to-End Variance and Reliability Test Runner.\n\n"
+            "Orchestrates end-to-end execution of Quorum workflows across foundational models:\n"
+            "  • Evaluates inter-run consistency and determinism across consecutive runs\n"
+            "  • Injects controlled Unicode space noise to test semantic stability under byte mutations\n"
+            "  • Supports cross-model strategy and cross-provider differential evaluation\n"
+            "  • Executes side-by-side model registry stack comparisons with automated telemetry\n"
+            "  • Generates differential analysis reports and inter-rater agreement statistics"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples (Windows PowerShell):\n"
+            "  # Inspect verified workflow and model matrices without executing runs:\n"
+            "  uv run python scripts/run_e2e_variance_test.py --show-matrices\n\n"
+            "  # Run 2 consecutive variance iterations on a specific input file:\n"
+            "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --num-runs 2\n\n"
+            "  # Run fast development mode with custom profile and locale:\n"
+            "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --dev --profile prof_board_brief --locale fi\n\n"
+            "  # Compare two model registry stacks side-by-side:\n"
+            "  uv run python scripts/run_e2e_variance_test.py inputs/sample.txt --compare-registries google openai"
+        ),
+    )
+    parser.add_argument("inputs_target", nargs="?", default=None, help="File or directory path containing test inputs.")
     parser.add_argument("--inputs", dest="inputs_opt", default=None, help="Alternative flag for test inputs path")
     parser.add_argument("--workflow", default=None, help="Workflow ID or slug to execute")
     parser.add_argument("--profile", default=None, help="Output Profile ID to apply (defaults to workflow default)")

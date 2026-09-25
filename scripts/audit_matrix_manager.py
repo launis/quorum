@@ -403,19 +403,67 @@ def cmd_verify(args: argparse.Namespace, exit_on_completion: bool = True) -> lis
 
 
 def main(args_list: list[str] | None = None) -> None:
-    """Main CLI entrypoint."""
-    parser = argparse.ArgumentParser(description="Neuro-Symbolic Audit Matrix Manager")
+    """Main CLI entrypoint for audit matrix manager."""
+    parser = argparse.ArgumentParser(
+        description="""Neuro-Symbolic Audit Matrix Manager.
+
+Automates generation and verification of architectural audit matrices:
+  - Matrix Generation: Creates structured rule checklists for Backend (QGR) or Frontend (DGR) domains.
+  - Static AST Scanning: Optionally performs static code inspection to pre-populate rule evaluations.
+  - Rigorous Matrix Verification: Validates justification uniqueness, character length, and pass/fail states.
+  - Anti-Laziness Guardrail: Rejects repetitive or generic justifications to ensure thorough audits.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_matrix_manager.py generate --type backend --target backend_v2/services/execution.py --ast-scan
+  uv run python scripts/audit_matrix_manager.py generate --type frontend --target client_app_v2/lib/features/studio/
+  uv run python scripts/audit_matrix_manager.py verify --file tmp/audit_matrix.json --target backend_v2/services/execution.py
+""",
+    )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    gen_parser = subparsers.add_parser("generate", help="Generate a blank JSON matrix")
-    gen_parser.add_argument("--type", required=True, choices=["backend", "frontend"], help="Target domain rules")
-    gen_parser.add_argument("--target", required=True, help="Target file path being audited")
-    gen_parser.add_argument("--ast-scan", action="store_true", help="Perform automated static AST scan on target")
-    gen_parser.add_argument("--output", default="tmp/audit_matrix.json", help="Destination file path")
+    gen_parser = subparsers.add_parser(
+        "generate",
+        help="Generate a blank or pre-scanned JSON audit matrix for a target file or module.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    gen_parser.add_argument(
+        "--type",
+        required=True,
+        choices=["backend", "frontend"],
+        help="Target architectural domain rules: 'backend' (QGR rules) or 'frontend' (DGR rules).",
+    )
+    gen_parser.add_argument(
+        "--target",
+        required=True,
+        help="Target source file or directory path being audited.",
+    )
+    gen_parser.add_argument(
+        "--ast-scan",
+        action="store_true",
+        help="Perform automated static AST scan on target to pre-populate obvious rule violations.",
+    )
+    gen_parser.add_argument(
+        "--output",
+        default="tmp/audit_matrix.json",
+        help="Destination JSON file path for generated matrix (default: tmp/audit_matrix.json).",
+    )
 
-    ver_parser = subparsers.add_parser("verify", help="Verify a filled JSON matrix")
-    ver_parser.add_argument("--file", default="tmp/audit_matrix.json", help="Path to the filled JSON matrix")
-    ver_parser.add_argument("--target", required=True, help="Expected target file path")
+    ver_parser = subparsers.add_parser(
+        "verify",
+        help="Verify a filled JSON audit matrix for architectural compliance and justification depth.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ver_parser.add_argument(
+        "--file",
+        default="tmp/audit_matrix.json",
+        help="Path to the populated JSON audit matrix to verify (default: tmp/audit_matrix.json).",
+    )
+    ver_parser.add_argument(
+        "--target",
+        required=True,
+        help="Expected target file path that must match the matrix metadata.",
+    )
 
     args = parser.parse_args(args_list)
 
