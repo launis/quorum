@@ -1261,3 +1261,35 @@ def test_qgr011_plain_assign_id_detected() -> None:
     violations = _scan_snippet(code, filepath="backend_v2/models/dtos/workflow.py")
     qgr011 = [v for v in violations if v.rule_code == "QGR011"]
     assert len(qgr011) == 1
+
+
+def test_qgr020_duplicate_field_on_annotated_detected() -> None:
+    """QGR020: Duplicate Field() assignment on Annotated field triggers QGR020."""
+    code = (
+        "from typing import Annotated\n"
+        "from pydantic import BaseModel, Field\n\n"
+        "class StepDTO(BaseModel):\n"
+        "    steps: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)\n"
+        "    valid: Annotated[list[str], Field(default_factory=list)]\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/step.py")
+    qgr020 = [v for v in violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 1
+    assert "Duplicate `Field()` assignment on Annotated field `steps`" in qgr020[0].message
+
+
+def test_qgr020_mutable_class_default_detected() -> None:
+    """QGR020: Class-level mutable defaults (list, dict, set) trigger QGR020."""
+    code = (
+        "class ConfigData:\n"
+        "    fields_to_translate: list[str] = []\n"
+        "    dynamic_mappings: dict[str, str] = {}\n"
+        "    _private_cache = {}\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/models/dtos/config.py")
+    qgr020 = [v for v in violations if v.rule_code == "QGR020"]
+    assert len(qgr020) == 2
+    assert any("fields_to_translate" in v.message for v in qgr020)
+    assert any("dynamic_mappings" in v.message for v in qgr020)
+    assert not any("_private_cache" in v.message for v in qgr020)
+

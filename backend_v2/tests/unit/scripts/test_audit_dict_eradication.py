@@ -261,3 +261,48 @@ def test_audit_dict_eradication_main_clean_execution(tmp_path: Path, monkeypatch
 
     exit_code = main([str(clean_file)])
     assert exit_code == 0
+
+
+def test_audit_dict_eradication_detects_duplicate_field_assignment(tmp_path: Path) -> None:
+    """Verifies detection of duplicate Field() assignment on Annotated fields."""
+    models_dir = tmp_path / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target_file = models_dir / "dup_field_model.py"
+    target_file.write_text(
+        "from typing import Annotated\n"
+        "from pydantic import BaseModel, Field\n\n"
+        "class MyModel(BaseModel):\n"
+        "    steps: Annotated[list[str], Field(default_factory=list)] = Field(default_factory=list)\n"
+        "    valid: Annotated[list[str], Field(default_factory=list)]\n",
+        encoding="utf-8",
+    )
+
+    report = audit_dict_eradication(target_file)
+    assert report.pydantic_annotated_violations == 1
+    assert any(v.metric == "pydantic_annotated_violations" for v in report.violations)
+
+    exit_code = main([str(target_file)])
+    assert exit_code == 1
+
+
+def test_audit_dict_eradication_detects_mutable_class_default(tmp_path: Path) -> None:
+    """Verifies detection of class-level mutable defaults (list, dict, set)."""
+    models_dir = tmp_path / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    target_file = models_dir / "mutable_default_model.py"
+    target_file.write_text(
+        "from pydantic import BaseModel\n\n"
+        "class ConfigModel(BaseModel):\n"
+        "    fields_to_translate: list[str] = []\n"
+        "    dynamic_mappings: dict[str, str] = {}\n"
+        "    _cache = {}\n",  # private cache attribute is exempt
+        encoding="utf-8",
+    )
+
+    report = audit_dict_eradication(target_file)
+    assert report.mutable_class_defaults == 2
+    assert any(v.metric == "mutable_class_defaults" for v in report.violations)
+
+    exit_code = main([str(target_file)])
+    assert exit_code == 1
+

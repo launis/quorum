@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR018).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR020).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -85,7 +85,6 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "firestore_driver.py",
     "provider.py",
     "logging_config.py",
-    "wrapper.py",
 }
 
 
@@ -117,6 +116,31 @@ def _is_dict_type_node(node: ast.AST) -> bool:
             return _is_dict_type_node(slice_node)
         case _:
             return False
+
+
+def _is_field_call(node: ast.AST | None) -> bool:
+    """Checks whether an AST node is a Call to Field()."""
+    if isinstance(node, ast.Call):
+        match node.func:
+            case ast.Name(id="Field") | ast.Attribute(attr="Field"):
+                return True
+    return False
+
+
+def _has_annotated_field(node: ast.AST | None) -> bool:
+    """Checks whether an annotation is an Annotated subscript containing Field()."""
+    if isinstance(node, ast.Subscript):
+        is_annotated = False
+        match node.value:
+            case ast.Name(id="Annotated") | ast.Attribute(attr="Annotated"):
+                is_annotated = True
+            case _:
+                pass
+        if is_annotated:
+            for child in ast.walk(node.slice):
+                if _is_field_call(child):
+                    return True
+    return False
 
 
 class CommentSuppressor:
@@ -260,6 +284,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._is_boundary_exempt = Path(filepath).name in BOUNDARY_EXEMPTION_FILES
         self._pydantic_base_classes_in_file: set[str] = set()
         self._bool_condition_nodes: set[ast.AST] = set()
+        self._current_class_name: str | None = None
+        self._function_depth: int = 0
 
     def _add_violation(
         self,
@@ -812,14 +838,19 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
+        prev_class = self._current_class_name
+        self._current_class_name = node.name
+
         # Check if class is a BaseModel / DTO / Model
         is_pydantic = False
         for base in node.bases:
             match base:
-                case ast.Name(id="BaseModel" | "BaseResponseDTO" | "BaseDTO" | "BaseDomainModel" | "BaseSettings"):
+                case ast.Name(
+                    id="BaseModel" | "BaseResponseDTO" | "BaseDTO" | "BaseDomainModel" | "BaseSettings" | "V2CoreBase"
+                ):
                     is_pydantic = True
                 case ast.Attribute(
-                    attr="BaseModel" | "BaseResponseDTO" | "BaseDTO" | "BaseDomainModel" | "BaseSettings"
+                    attr="BaseModel" | "BaseResponseDTO" | "BaseDTO" | "BaseDomainModel" | "BaseSettings" | "V2CoreBase"
                 ):
                     is_pydantic = True
                 case ast.Name(id=name) if name in self._pydantic_base_classes_in_file:
@@ -925,6 +956,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                         )
 
         self.generic_visit(node)
+        self._current_class_name = prev_class
 
     def visit_Compare(self, node: ast.Compare) -> None:
         # QGR005: Raw string literals in category discriminator routing
@@ -1104,6 +1136,43 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        self._function_depth += 1
+        self.generic_visit(node)
+        self._function_depth -= 1
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        self._function_depth += 1
+        self.generic_visit(node)
+        self._function_depth -= 1
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        if not self._is_test_file and not self._is_boundary_exempt:
+            # QGR020: Duplicate Field() assignment on Annotated field
+            if _has_annotated_field(node.annotation) and _is_field_call(node.value):
+                self._add_violation(
+                    node,
+                    "QGR020",
+                    f"Duplicate `Field()` assignment on Annotated field `{ast.unparse(node.target)}`.",
+                    "Remove redundant `= Field(...)` assignment or replace with literal/factory default per `pydantic_annotated_fields_mandate`.",
+                    severity=GuardrailSeverity.WARNING,
+                )
+            # QGR020: Class-level mutable default in class definitions (only directly in class body)
+            if (
+                self._current_class_name is not None
+                and self._function_depth == 0
+                and not ast.unparse(node.target).startswith("_")
+            ):
+                if isinstance(node.value, (ast.List, ast.Dict, ast.Set)):
+                    self._add_violation(
+                        node,
+                        "QGR020",
+                        f"Banned mutable class-level default in `{self._current_class_name}` on field `{ast.unparse(node.target)}`: `{ast.unparse(node.value)}`.",
+                        "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
+                        severity=GuardrailSeverity.WARNING,
+                    )
+        self.generic_visit(node)
+
     def visit_Assign(self, node: ast.Assign) -> None:
         # QGR014: mock repository variable assignment in test files
         if self._is_test_file:
@@ -1125,6 +1194,24 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             )
                         case _:
                             pass
+
+        # QGR020: Class-level mutable default for unannotated class attributes (only directly in class body)
+        if (
+            self._current_class_name is not None
+            and self._function_depth == 0
+            and not self._is_test_file
+            and not self._is_boundary_exempt
+        ):
+            for t in node.targets:
+                target_name = ast.unparse(t)
+                if not target_name.startswith("_") and isinstance(node.value, (ast.List, ast.Dict, ast.Set)):
+                    self._add_violation(
+                        node,
+                        "QGR020",
+                        f"Banned mutable class-level default in `{self._current_class_name}` on field `{target_name}`: `{ast.unparse(node.value)}`.",
+                        "Use PEP 593 Annotated with `Field(default_factory=list/dict)` or initialize as `= None`.",
+                        severity=GuardrailSeverity.WARNING,
+                    )
         self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:
