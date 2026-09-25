@@ -74,33 +74,36 @@ class ExecutionCoreFields(V2CoreBase):
 
     status: Annotated[
         LaxExecutionStatus,
-        Field(default=ExecutionStatus.PENDING, description="Current status of the workflow execution."),
-    ]
+        Field(description="Current status of the workflow execution."),
+    ] = ExecutionStatus.PENDING
     target_locale: Annotated[
         str,
         Field(description="Target locale code for execution outputs, e.g. 'fi'."),
     ]
     execution_trace: Annotated[
         list[ErrorTraceEvent | TombstoneEvent | TraceEvent],
-        Field(default_factory=list, description="Immutable log of all events."),
-    ]
+        "Immutable log of all events.",
+    ] = Field(default_factory=list, description="Immutable log of all events.")
     execution_trace_storage_path: Annotated[
         str | None,
-        Field(default=None, description="Path to offloaded trace JSON in Cloud Storage."),
-    ]
+        Field(description="Path to offloaded trace JSON in Cloud Storage."),
+    ] = None
     context_variables: Annotated[
         ContextVariablesDTO,
-        Field(default_factory=ContextVariablesDTO, description="Current snapshots of context variables (the dynamic blackboard)."),
-    ] = Field(default_factory=ContextVariablesDTO)
+        "Current snapshots of context variables (the dynamic blackboard).",
+    ] = Field(
+        default_factory=ContextVariablesDTO,
+        description="Current snapshots of context variables (the dynamic blackboard).",
+    )
     context_variables_storage_path: Annotated[
         str | None,
-        Field(default=None, description="Path to offloaded context variables JSON in Cloud Storage."),
-    ]
+        Field(description="Path to offloaded context variables JSON in Cloud Storage."),
+    ] = None
     progress: Annotated[
         int | None,
-        Field(default=None, ge=0, le=100, description="Overall execution progress percentage."),
-    ]
+        Field(ge=0, le=100, description="Overall execution progress percentage."),
+    ] = None
     status_message: Annotated[
         str | None,
-        Field(default=None, description="Human-readable progress or status description."),
-    ]
+        Field(description="Human-readable progress or status description."),
+    ] = None

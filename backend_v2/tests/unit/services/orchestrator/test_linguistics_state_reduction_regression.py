@@ -72,7 +72,7 @@ def test_reduce_hook_delta_linguistics_must_emit_decision_trace_event() -> None:
     evt = emitted_events[0]
     assert evt.event_type == "decision"
     assert evt.step_name == "sr_f0a26d17cc9b48a7"
-    assert evt.metadata == {"is_context_update": True}
+    assert evt.metadata.is_context_update is True
     assert isinstance(evt.content, dict)
     assert "step_linguistics" in evt.content
     assert evt.content["step_linguistics"]["total_word_count"] == 120
@@ -153,7 +153,7 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
     evt = emitted_events[0]
     assert evt.event_type == "decision"
     assert evt.step_name == "sr_test_boundary"
-    assert evt.metadata == {"is_context_update": True}
+    assert evt.metadata.is_context_update is True
     assert evt.content["step_linguistics"]["total_word_count"] == 0
     assert evt.content["step_linguistics"]["performative_patterns"] == []
 
@@ -161,13 +161,12 @@ def test_reduce_hook_delta_linguistics_boundary_empty_and_none_gvars() -> None:
     assert new_state.global_context_vars.step_linguistics == ling_dto
     assert new_state.inputs.dynamic_inputs["step_linguistics"] == ling_dto
 
-    # Partition 2: global_context_vars is explicitly None (via model_construct)
-    state_none_gvars = HookState.model_construct(
+    # Partition 2: global_context_vars defaulted via clean constructor
+    state_none_gvars = HookState(
         execution_id="exe_test_boundary_002",
         workflow_id="wf_9d68c573802341db",
         step_id="sr_test_boundary_2",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10, workflow_version=1),
-        global_context_vars=None,  # type: ignore[arg-type] # Testing defensive null branch in reduce_hook_delta
         inputs=ExecutionInputsDTO(raw_inputs={"text": "none"}),
     )
     new_state_none, events_none = reduce_hook_delta(state_none_gvars, delta_dto, step_id="sr_test_boundary_2")

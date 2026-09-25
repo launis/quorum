@@ -113,7 +113,7 @@ class MatrixReducer:
         total_atoms = 0
         evaluated_matrix_ids: set[str] = set()
         seen_tda_ids: set[str] = set()
-        raw_extensions = []
+        raw_extensions: list[dict[str, JsonValue]] = []
 
         # 1. Primary: Extract evaluated atoms and extensions from execution_trace (real DAG runtime)
         for evt in record.execution_trace:
@@ -169,7 +169,7 @@ class MatrixReducer:
                         evaluated_matrix_ids.add(evt.step_name.strip())
 
                     if atom.extensions:
-                        raw_extensions.append(atom.extensions)
+                        raw_extensions.append(cast(dict[str, JsonValue], atom.extensions))
 
                     # Token-compression cascade: Drop unstarted/pending atoms and boolean PASSED atoms
                     # to save context window, unless they have extracted quantitative data

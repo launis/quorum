@@ -225,7 +225,7 @@ async def test_synthesis_engine_data_starvation_circuit_breaker(
     assert result.synthesis_output.total_atoms == 0
     assert "zero atoms extracted" in result.synthesis_output.reason
     assert len(result.trace_events) == 1
-    assert result.trace_events[0].content["event_type"] == "starvation"
+    assert result.trace_events[0].content.event_type == "starvation"
     assert result.trace_events[0].step_name == "sr_1234567890abcdef1234"
 
     # Case B: 4 atoms (< 8) without matrix evidence

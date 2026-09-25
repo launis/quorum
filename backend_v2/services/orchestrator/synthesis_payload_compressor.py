@@ -9,7 +9,7 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, JsonValue, ValidationError
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.synthesis import DistilledEvaluation, DistilledMatrixPayloadDTO
@@ -218,7 +218,7 @@ class SynthesisPayloadCompressor:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
 
-        filtered: dict[str, Any] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
+        filtered: dict[str, JsonValue] = {k: v for k, v in val_items if k not in _HEAVY_KEYS_TO_EXCLUDE}
 
         if "results" in filtered:
             results_data = filtered["results"]
@@ -237,7 +237,7 @@ class SynthesisPayloadCompressor:
             distilled_evals: list[DistilledEvaluation] = []
 
             for ev in results_data:
-                if isinstance(ev, (str, int, float, bool)) or ev is None:
+                if isinstance(ev, (str, int, float, bool, list)) or ev is None:
                     logger.error(
                         "[SynthesisPayloadCompressor] %s: Evaluation item must be a dictionary or EvaluatedAtomDTO.",
                         ErrorCodes.VALIDATION_FAILED.name,
@@ -290,7 +290,7 @@ class SynthesisPayloadCompressor:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
 
-                    eval_dict: dict[str, Any] = {"atom_id": str(atom_id_val)}
+                    eval_dict: dict[str, JsonValue] = {"atom_id": str(atom_id_val)}
                     if "exact_quotes" in ev:
                         eval_dict["exact_quotes"] = ev["exact_quotes"]
                     if "semantic_reasoning" in ev:
@@ -356,7 +356,9 @@ class SynthesisPayloadCompressor:
 
             normalized_score_val: float | None = None
             if "normalized_score" in filtered and filtered["normalized_score"] is not None:
-                normalized_score_val = float(filtered["normalized_score"])
+                score_raw = filtered["normalized_score"]
+                if isinstance(score_raw, (int, float, str)):
+                    normalized_score_val = float(score_raw)
 
             level_breakdown_val: Any = None
             if "level_breakdown" in filtered and filtered["level_breakdown"] is not None:
@@ -371,7 +373,7 @@ class SynthesisPayloadCompressor:
             dumped_matrix = matrix_dto.model_dump(mode="json", exclude_none=True)
 
             # Preserve any remaining non-heavy keys on filtered dict
-            result_dict: dict[str, Any] = {}
+            result_dict: dict[str, JsonValue] = {}
             for k, v in filtered.items():
                 if k in ("results", "normalized_score", "level_breakdown"):
                     continue
@@ -380,5 +382,3 @@ class SynthesisPayloadCompressor:
             return result_dict
 
         return {k: cls._clean_and_distill_payload(v) for k, v in filtered.items()}
-
-        return val

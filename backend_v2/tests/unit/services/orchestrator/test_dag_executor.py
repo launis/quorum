@@ -14,9 +14,10 @@ from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor, ExecutionCommitter
@@ -1087,7 +1088,7 @@ async def test_dag_executor_mcp_audit_decision_event_accumulation(mock_repo: Any
         step_name="stp_1111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [trace.model_dump(mode="json")]},
-        metadata={"mcp_audit_traces": [trace.model_dump(mode="json")]},
+        metadata=TraceEventMetadataDTO(mcp_audit_traces=[trace]),
         mcp_audit_traces=[trace],
     )
 
@@ -1860,7 +1861,7 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
         meta = ExecutionMetadata(
             workflow_version=2,
             model_registry_id="cfg_special_reg",
-            global_context_vars={"language": "fi"},
+            global_context_vars=GlobalContextVarsDTO(language="fi"),
         )
 
         await node_executor.execute(
@@ -1877,7 +1878,5 @@ async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
         # Verify strategy was created with arq_pool in effective_deps
         assert mock_factory.call_args[1]["deps"].arq_pool == mock_pool
         assert len(captured_context) == 1
-        from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-
         assert captured_context[0].global_context_vars == GlobalContextVarsDTO(language="fi")
         assert captured_context[0].model_registry_id == "cfg_special_reg"

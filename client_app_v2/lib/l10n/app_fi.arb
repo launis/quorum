@@ -917,6 +917,7 @@
   "profileLanguageDefault": "Automaattinen ajosta (Oletus)",
   "profileLanguageFi": "Suomi (fi)",
   "profileLanguageEn": "Englanti (en)",
+  "profileLanguageSv": "Ruotsi (sv)",
   "workflowSelectWarning": "⚠️ Valitse työnkulku yläpuolelta ennen raporttipohjien muokkausta.",
   "layoutBlocksTitle": "Raporttipohjat",
   "addLayoutBlockBtn": "Lisää raportin osio",

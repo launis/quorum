@@ -131,7 +131,7 @@ class LogicNodeStrategy(NodeStrategy):
         )
 
         inputs_payload: dict[str, DomainInputValue] = {
-            d.block_id: d.payload
+            d.block_id: d.payload  # type: ignore[misc]
             for d in current_steps
             if isinstance(d, StepOutputDTO) and d.step_id == "inputs" and d.block_id
         }
@@ -140,9 +140,9 @@ class LogicNodeStrategy(NodeStrategy):
                 if isinstance(d, StepOutputDTO) and d.step_id == "raw_inputs" and d.block_id:
                     if d.block_id == "dynamic_inputs" and isinstance(d.payload, Mapping):
                         for k, v in d.payload.items():
-                            inputs_payload[k] = v
+                            inputs_payload[str(k)] = v
                     elif d.block_id not in ("simulation_mode", "language", "organization_id", "user_id"):
-                        inputs_payload[d.block_id] = d.payload
+                        inputs_payload[d.block_id] = d.payload  # type: ignore[assignment]
 
         safe_context = LogicEvaluationContextDTO(
             execution_id=context.execution_id,

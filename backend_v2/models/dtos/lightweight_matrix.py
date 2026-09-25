@@ -5,9 +5,9 @@ Defines schemas for matrix scoring outputs, level statistics, and XAI logs.
 
 from __future__ import annotations
 
-from typing import Annotated, Any
+from typing import Annotated
 
-from pydantic import ConfigDict, Field, field_validator
+from pydantic import ConfigDict, Field, JsonValue, field_validator
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.enums import LaxExecutionStatus, LaxXaiExtensionType
@@ -52,9 +52,9 @@ class XAILogDto(V2CoreBase):
 
     pedagogical_key: Annotated[str, Field(description="The designated mapping key for UI-facing explanations")]
     engine_debug_trace: Annotated[
-        dict[str, Any],
+        dict[str, JsonValue],
         Field(default_factory=dict, description="System dictionary containing mathematical/diagnostic reasoning"),
-    ] = Field(default_factory=dict)
+    ]
 
 
 class LevelStatsDTO(V2CoreBase):
@@ -109,16 +109,18 @@ class LightweightMatrixOutput(V2CoreBase):
     evaluated_atoms: Annotated[
         dict[str, LaxExecutionStatus],
         Field(default_factory=dict, description="Mapping tracking which structural logic atoms were hit"),
-    ] = Field(default_factory=dict)
+    ]
     extensions: Annotated[
-        dict[LaxXaiExtensionType, Any],
+        dict[LaxXaiExtensionType, JsonValue],
         Field(default_factory=dict, description="Arbitrarily mapped XAI extensions dict for UI components"),
-    ] = Field(default_factory=dict)
+    ]
     allowed_extensions: Annotated[
         list[LaxXaiExtensionType] | None,
         Field(default=None, description="Explicit list restricting dynamic schema mappings"),
     ] = None
-    atom_quotes: Annotated[list[Any] | None, Field(default=None, description="Atom quotes list if provided")] = None
+    atom_quotes: Annotated[
+        list[str] | None, Field(default=None, description="Atom quotes list if provided")
+    ] = None
 
     @field_validator("normalized_score")
     @classmethod

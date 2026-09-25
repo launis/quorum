@@ -27,7 +27,7 @@ from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDT
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_delta import ExecutionInputsDTO, ExecutionMetadataDeltaDTO
 from backend_v2.models.dtos.inputs import GuidedReflectionInputDTO, ProcessedChatDTO
-from backend_v2.models.enums import LLMProvider
+from backend_v2.models.enums import LLMProvider, SystemLocale
 from backend_v2.services.chat_normalizer import ChatNormalizerService
 from backend_v2.services.ingress import MultiChannelIngressService
 from backend_v2.services.pii_analyzer import get_pii_service
@@ -85,19 +85,25 @@ def _extract_raw_value(key_lower: str, state: HookState) -> object | None:
     return None
 
 
-def _process_questionnaire(raw_val: object, key: str, expected_input: ExpectedInput) -> str:
+def _process_questionnaire(
+    raw_val: object,
+    key: str,
+    expected_input: ExpectedInput,
+    target_locale: str = SystemLocale.EN.value,
+) -> str:
     """Validates and processes a questionnaire dictionary into Markdown text.
 
     Args:
         raw_val: The raw dictionary value representing the questionnaire.
         key: The input key being processed.
         expected_input: The expected input schema definition.
+        target_locale: The target localization code to resolve against.
 
     Returns:
         The resolved Markdown text for the questionnaire.
 
     Raises:
-        AppException: If the dictionary is invalid or missing a mandatory English label.
+        AppException: If the dictionary is invalid.
     """
     logger.info(
         "Found questionnaire dict. Validating against GuidedReflectionInputDTO...",
@@ -105,17 +111,11 @@ def _process_questionnaire(raw_val: object, key: str, expected_input: ExpectedIn
     )
     try:
         dto = GuidedReflectionInputDTO.model_validate(raw_val)
-        title_text = expected_input.label.resolve("en")
+        title_text = expected_input.label.resolve(target_locale)
         if not title_text:
-            logger.error(
-                "Missing English label for expected input.",
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-            )
-            raise AppException(
-                message=(f"System Configuration Error: Missing mandatory English label for '{key}' questionnaire."),
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.name, "input_key": key},
-            )
+            title_text = expected_input.label.resolve(SystemLocale.EN.value)
+        if not title_text:
+            title_text = key
         return dto.to_markdown(title_text)
     except ValidationError as e:
         logger.error(
@@ -136,7 +136,7 @@ async def _process_chat_history(
     system_repo: ISystemRepository,
     enable_semantic_smoothing: bool = False,
     enable_eager_anonymization: bool = False,
-    language: str = "en",
+    language: str = SystemLocale.EN.value,
     registry_id: str | None = None,
     provider: LLMProvider | None = None,
 ) -> ProcessedChatDTO:
@@ -305,16 +305,9 @@ async def process_inputs(state: HookState, deps: HookDependencies) -> HookResult
 
         # 1. Handle Questionnaire mode specifically if it exists
         resolved_text: str = ""
-        is_questionnaire = False
-        if raw_val is not None and not isinstance(raw_val, (str, int, float, list)):
-            try:
-                resolved_text = _process_questionnaire(raw_val, key, expected_input)
-                is_questionnaire = True
-            # Phase 1, Step 1.2: Correct parenthesized exception tuple syntax
-            except ValidationError, TypeError:
-                is_questionnaire = False
-
-        if not is_questionnaire:
+        if raw_val is not None and not isinstance(raw_val, (str, int, float, list, bool, bytes)):
+            resolved_text = _process_questionnaire(raw_val, key, expected_input, target_locale=language)
+        else:
             # 2. Standard resolution (File, Paste)
             resolved_text = await resolve_input(raw_val)
 

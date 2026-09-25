@@ -47,6 +47,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
 from backend_v2.models.dtos.schema_manifest import GeneratedSchemaManifestDTO
+from backend_v2.models.dtos.trace import ProgressTracePayloadDTO
 from backend_v2.models.enums import ExecutionStatus, StepType, StrictnessAnchor
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import ErrorTraceEvent, StateProjector, TraceEvent
@@ -290,8 +291,6 @@ class NodeExecutor:
             resolved_global_vars: GlobalContextVarsDTO
             if isinstance(global_context_vars, GlobalContextVarsDTO):
                 resolved_global_vars = global_context_vars
-            elif isinstance(global_context_vars, Mapping):
-                resolved_global_vars = GlobalContextVarsDTO(**dict(global_context_vars))
             else:
                 resolved_global_vars = GlobalContextVarsDTO()
 
@@ -299,11 +298,9 @@ class NodeExecutor:
                 isinstance(metadata, ExecutionMetadata)
                 and metadata.global_context_vars is not None
                 and not resolved_global_vars.model_dump(exclude_defaults=True)
+                and isinstance(metadata.global_context_vars, GlobalContextVarsDTO)
             ):
-                if isinstance(metadata.global_context_vars, GlobalContextVarsDTO):
-                    resolved_global_vars = metadata.global_context_vars
-                elif isinstance(metadata.global_context_vars, Mapping):
-                    resolved_global_vars = GlobalContextVarsDTO(**dict(metadata.global_context_vars))
+                resolved_global_vars = metadata.global_context_vars
 
             resolved_model_registry_id: str | None = None
             if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
@@ -592,8 +589,7 @@ class DAGExecutor:
             projector.apply_delta(evt)
 
         if not exec_record.execution_trace:
-            inputs_dict = exec_record.raw_inputs.model_dump(mode="json", exclude_none=True)
-            input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=inputs_dict)
+            input_event = TraceEvent(step_name="raw_inputs", event_type="input", content=exec_record.raw_inputs)
             exec_record.execution_trace.append(input_event)
             projector.apply_delta(input_event)
 
@@ -614,7 +610,8 @@ class DAGExecutor:
                     metadata=exec_record.metadata or ExecutionMetadata(),
                     global_context_vars=global_context_vars,
                     inputs=ExecutionInputsDTO(
-                        raw_inputs=inputs_dict, dynamic_inputs=exec_record.raw_inputs.dynamic_inputs
+                        raw_inputs=exec_record.raw_inputs.dynamic_inputs,
+                        dynamic_inputs=exec_record.raw_inputs.dynamic_inputs,
                     ),
                 )
                 processed_result = await hook_registry.execute("input_processing", global_hook_state, global_hook_deps)
@@ -646,8 +643,8 @@ class DAGExecutor:
                         delta_content_dict = {"value": processed_result.state_delta}
                     elif isinstance(processed_result.state_delta, Mapping):
                         delta_content_dict = dict(processed_result.state_delta)
-                    delta_content = StepOutputContentDTO(data=delta_content_dict)
-                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content.data)
+                    delta_content = StepOutputContentDTO(data=delta_content_dict)  # type: ignore[arg-type]
+                    proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
                     exec_record.execution_trace.append(proc_event)
                     projector.apply_delta(proc_event)
             except Exception as e:
@@ -764,7 +761,7 @@ class DAGExecutor:
                         lightweight_matrix = MatrixReducer.reduce_matrix(exec_record)
 
                         reduce_event = TraceEvent(
-                            step_name="matrix_reducer", event_type="output", content=lightweight_matrix.model_dump()
+                            step_name="matrix_reducer", event_type="output", content=lightweight_matrix
                         )
 
                         async with _update_lock:
@@ -910,17 +907,16 @@ class DAGExecutor:
                         if (
                             evt.event_type == "decision"
                             and evt.metadata
-                            and "is_context_update" in evt.metadata
-                            and evt.metadata["is_context_update"]
+                            and evt.metadata.is_context_update
                             and isinstance(evt.content, Mapping)
                         ):
-                            new_cv = new_cv.with_update(**dict(evt.content))
+                            new_cv = new_cv.with_update(**dict(evt.content))  # type: ignore[arg-type]
                             has_cv_updates = True
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:
                                 step_mcp_traces.extend(evt.mcp_audit_traces)
-                            case TraceEvent() if evt.metadata and "generated_schema" in evt.metadata:
-                                step_generated_schemas[evt.step_name] = evt.metadata["generated_schema"]
+                            case TraceEvent() if evt.metadata and evt.metadata.generated_schema is not None:
+                                step_generated_schemas[evt.step_name] = evt.metadata.generated_schema
 
                     schema_manifest = GeneratedSchemaManifestDTO(schemas=step_generated_schemas)
                     updates: dict[str, ExecutionRecordUpdate] = {}
@@ -1061,7 +1057,7 @@ class DAGExecutor:
                     evt = TraceEvent(
                         step_name=virtual_step_id,
                         event_type="progress",
-                        content={"message": message, "progress_pct": pct},
+                        content=ProgressTracePayloadDTO(message=message, progress_pct=pct),
                     )
                     async with _update_lock:
                         exec_record.execution_trace.append(evt)

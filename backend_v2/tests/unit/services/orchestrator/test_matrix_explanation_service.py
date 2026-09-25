@@ -12,6 +12,7 @@ from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
 from backend_v2.models.enums import BlockDataType, ExecutionStatus, LaxExecutionStatus, PromptBlockCategory
@@ -1034,25 +1035,25 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
     blocks_by_id = {matrix_block_id: matrix_block}
 
     dtos = [
-        StepOutputDTO.model_construct(
+        StepOutputDTO(
             step_id="matrix_reducer",
             block_id="reduced_atoms",
             data_type="unknown",
             payload=[
-                {
-                    "tda_id": tda_id,
-                    "status": "FAILED",
-                    "reasoning": "Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
-                    "source_quote": None,
-                    "extracted_data": None,
-                }
+                ReducedAtomDTO(
+                    tda_id=tda_id,
+                    status=LaxExecutionStatus.FAILED,
+                    reasoning="Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
+                    source_quote=None,
+                    extracted_data=None,
+                )
             ],
         ),
-        StepOutputDTO.model_construct(
+        StepOutputDTO(
             step_id="matrix_reducer",
             block_id="evaluated_matrices",
             data_type="unknown",
-            payload=[{"matrix_id": matrix_block_id}],
+            payload=[matrix_block_id],
         ),
         StepOutputDTO(
             step_id="step_eval",

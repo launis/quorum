@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput
@@ -273,7 +273,7 @@ class StepContextMetadataDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
     gvars: Annotated[
-        dict[str, object],
+        dict[str, JsonValue],
         Field(default_factory=dict, description="Global context variables dictionary."),
     ]
     doc_aliases: Annotated[

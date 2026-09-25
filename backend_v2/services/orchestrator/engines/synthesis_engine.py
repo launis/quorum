@@ -130,11 +130,10 @@ class SynthesisEngine:
                     total_atoms=total_atoms,
                     reason=starvation_reason,
                 )
-                starvation_content = starvation_dto.model_dump(mode="json")
                 starvation_event = TraceEvent(
                     step_name=request.step.id,
                     event_type="output",
-                    content=starvation_content,
+                    content=starvation_dto,
                 )
                 return EngineExecutionResult(
                     results=[],

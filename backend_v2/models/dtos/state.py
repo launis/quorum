@@ -6,9 +6,9 @@ localization payload parameters within the state pipeline.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated
 
-from pydantic import ConfigDict
+from pydantic import ConfigDict, Field, JsonValue
 
 from backend_v2.models.core_base import V2CoreBase
 
@@ -23,8 +23,11 @@ class HookStateMetadata(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    target_locale: str
-    fields_to_translate: list[str] = []
+    target_locale: Annotated[str, Field(description="Target locale code")]
+    fields_to_translate: Annotated[
+        list[str],
+        Field(default_factory=list, description="Targeted translation fields"),
+    ]
 
 
 class I18nStatePayload(V2CoreBase):
@@ -48,4 +51,7 @@ class TranslationResponseDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    translated_data: dict[str, Any]
+    translated_data: Annotated[
+        dict[str, JsonValue],
+        Field(description="Fully translated dictionary representing localized dynamic key-value pairs."),
+    ]

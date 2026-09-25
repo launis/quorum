@@ -5108,6 +5108,12 @@ abstract class AppLocalizations {
   /// **'English (en)'**
   String get profileLanguageEn;
 
+  /// No description provided for @profileLanguageSv.
+  ///
+  /// In en, this message translates to:
+  /// **'Swedish (sv)'**
+  String get profileLanguageSv;
+
   /// No description provided for @workflowSelectWarning.
   ///
   /// In en, this message translates to:

@@ -119,9 +119,7 @@ class PrintableSourcesAdapter:
         if context.is_data_starved:
             return blocks
 
-        locale = "en"
-        if context.locale in ("fi", "en"):
-            locale = context.locale
+        locale = context.locale
         display_mode = context.profile.sources_display_mode
         show_summary_box = context.profile.show_sources_summary_box
 

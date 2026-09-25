@@ -22,6 +22,7 @@ from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.source_verification import SourceVerificationResultDTO
 from backend_v2.models.dtos.hook_delta import ExecutionMetadataDeltaDTO, ExternalEvidenceResultDTO
 from backend_v2.models.dtos.source_extraction_schema import SourceVerificationInputsDTO
+from backend_v2.models.enums import SystemLocale
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.localization import set_language
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -175,7 +176,7 @@ async def source_verification_hook(state: HookState, deps: HookDependencies) -> 
         else (
             state.global_context_vars.language
             if state.global_context_vars and state.global_context_vars.language
-            else "en"
+            else SystemLocale.EN.value
         )
     )
     if target_locale:

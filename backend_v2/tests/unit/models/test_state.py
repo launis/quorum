@@ -10,6 +10,7 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.coach import BibliographyItem, CoachingPlan
 from backend_v2.models.domain.judge import DimensionResultItem, JudgeOutput, JudgeScoreCard
 from backend_v2.models.domain.security import InputProcessingOutputDTO
+from backend_v2.models.dtos.node_execution import StepOutputContentDTO
 from backend_v2.models.execution_core import ExecutionCoreFields
 from backend_v2.models.state import (
     ErrorTraceEvent,
@@ -224,7 +225,7 @@ def test_state_projector_tombstone_event() -> None:
 def test_state_projector_fail_fast_on_legacy_data() -> None:
     """Test that the Zero-Compromise Pledge enforces strict dictionary structures."""
     projector = StateProjector()
-    projector._snapshot["stp_legacy"] = "I am a raw string output from V1"
+    projector._snapshot["stp_legacy"] = "I am a raw string output from V1"  # type: ignore[assignment]
 
     with pytest.raises(AppException) as excinfo:
         _ = projector.snapshot
@@ -325,14 +326,16 @@ def test_workflow_state_accessors_and_properties() -> None:
         workflow_id="wf_testtest1234",
         target_locale="fi",
         context_variables={
-            "organization_id": "org_12345",
-            "user_id": "usr_67890",
-            "audit_results": "passed",
-            "raw_key": "raw_value",
-            "count_key": 42,
-            "step_input_processing": input_proc_dto.model_dump(),
-            "step_judge": judge_out.model_dump(),
-            "step_coach": coach_out.model_dump(),
+            "variables": {
+                "organization_id": "org_12345",
+                "user_id": "usr_67890",
+                "audit_results": "passed",
+                "raw_key": "raw_value",
+                "count_key": 42,
+                "step_input_processing": input_proc_dto.model_dump(),
+                "step_judge": judge_out.model_dump(),
+                "step_coach": coach_out.model_dump(),
+            }
         },
     )
 
@@ -375,7 +378,7 @@ def test_workflow_state_none_branches() -> None:
     ws = WorkflowState(
         workflow_id="wf_none00000000",
         target_locale="fi",
-        context_variables={"organization_id": None, "user_id": None},
+        context_variables={"variables": {"organization_id": None, "user_id": None}},
     )
     assert ws.organization_id is None
     assert ws.user_id is None
@@ -393,3 +396,31 @@ def test_state_projector_fold_trace_string_content() -> None:
     projector = StateProjector()
     with pytest.raises(AppException, match="Legacy flat trace detected"):
         projector.fold_trace([event], max_tokens=100)
+
+
+def test_state_projector_invalid_payload_raises_validation_failed() -> None:
+    """ISTQB Negative Boundary Partition 1: Feeding malformed step output raises AppException(VALIDATION_FAILED)."""
+    projector = StateProjector()
+    invalid_content = StepOutputContentDTO.model_construct(data={"blk_invalid": object()})  # type: ignore[dict-item]
+    projector._snapshot["stp_broken"] = invalid_content
+
+    with pytest.raises(AppException) as excinfo:
+        _ = projector.snapshot
+
+    assert excinfo.value.status_code == 500
+    assert excinfo.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+    assert "Invalid step output payload" in excinfo.value.message
+
+
+def test_trace_event_untyped_arbitrary_object_raises_validation_error() -> None:
+    """ISTQB Negative Boundary Partition 2: Passing untyped arbitrary object to TraceEvent.content raises ValidationError."""
+
+    class ArbitraryUnregisteredObject:
+        pass
+
+    with pytest.raises(ValidationError):
+        TraceEvent(
+            step_name="stp_invalid",
+            event_type="output",
+            content=ArbitraryUnregisteredObject(),  # type: ignore[arg-type]
+        )

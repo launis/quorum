@@ -17,6 +17,7 @@ _DistilledEvaluation _$DistilledEvaluationFromJson(Map<String, dynamic> json) =>
             'atom_id',
             'exact_quotes',
             'semantic_reasoning',
+            'status',
             'extensions',
           ],
         );
@@ -30,6 +31,7 @@ _DistilledEvaluation _$DistilledEvaluationFromJson(Map<String, dynamic> json) =>
             'semantic_reasoning',
             (v) => v as String?,
           ),
+          status: $checkedConvert('status', (v) => v as String?),
           extensions: $checkedConvert(
             'extensions',
             (v) => v as Map<String, dynamic>?,
@@ -50,5 +52,6 @@ Map<String, dynamic> _$DistilledEvaluationToJson(
   'atom_id': instance.atomId,
   'exact_quotes': instance.exactQuotes,
   'semantic_reasoning': instance.semanticReasoning,
+  'status': instance.status,
   'extensions': instance.extensions,
 };

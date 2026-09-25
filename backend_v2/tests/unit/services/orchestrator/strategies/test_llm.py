@@ -100,6 +100,9 @@ def mock_repo() -> MagicMock:
 def mock_compiler() -> MagicMock:
     compiler = MagicMock()
     compiler.compile_static_instructions.return_value = "Static instructions"
+    mock_schema = MagicMock()
+    mock_schema.model_json_schema.return_value = {"type": "object"}
+    compiler.build_dynamic_schema.return_value = mock_schema
     return compiler
 
 

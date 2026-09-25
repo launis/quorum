@@ -83,10 +83,10 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> ExecutionInputs
                 return content
             if isinstance(content, Mapping):
                 if "dynamic_inputs" in content and isinstance(content["dynamic_inputs"], Mapping):
-                    return ExecutionInputsDTO(dynamic_inputs=content["dynamic_inputs"])
+                    return ExecutionInputsDTO.model_validate({"dynamic_inputs": content["dynamic_inputs"]})
                 if "inputs" in content and isinstance(content["inputs"], Mapping):
-                    return ExecutionInputsDTO(dynamic_inputs=content["inputs"])
-                return ExecutionInputsDTO(dynamic_inputs=content)
+                    return ExecutionInputsDTO.model_validate({"dynamic_inputs": content["inputs"]})
+                return ExecutionInputsDTO.model_validate({"dynamic_inputs": content})
     if isinstance(exec_record.raw_inputs, ExecutionInputsDTO):
         return exec_record.raw_inputs
     if isinstance(exec_record.raw_inputs, WorkflowInputs):

@@ -9,16 +9,22 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from backend_v2.core.hook_registry import HookState
-from backend_v2.exceptions import AppException, ErrorCodes, TokenLimitExceededError
+from backend_v2.exceptions import (
+    AppException,
+    ConfigurationError,
+    ErrorCodes,
+    TokenLimitExceededError,
+)
 from backend_v2.models.domain.prompt_blocks import (
     MatrixPromptBlock,
     PersonaPromptBlock,
     ProtocolPromptBlock,
     SystemRulePromptBlock,
 )
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.dtos.prompt import ContextInputValue, LLMContextDataDTO, PromptMappingDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.context_router import ContextRouter
@@ -89,17 +95,17 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     try:
-                        pruned = ContextRouter.route_and_prune(value, output_profile)
+                        matrix_output = (
+                            value
+                            if isinstance(value, LightweightMatrixOutput)
+                            else LightweightMatrixOutput.model_validate(value)
+                        )
+                        pruned = ContextRouter.route_and_prune(matrix_output, output_profile)
                         if not pruned:
                             continue
 
-                        pruned_dict = pruned.model_dump()
-
-                        if "evaluated_atoms" in pruned_dict:
-                            del pruned_dict["evaluated_atoms"]
-
-                        pruned_step_output[key] = pruned_dict
-                    except Exception as e:
+                        pruned_step_output[key] = pruned.model_dump(exclude={"evaluated_atoms"})
+                    except (ValidationError, ConfigurationError) as e:
                         msg = f"ContextRouter trace pruning failed for block {key}: {e}"
                         logger.error(msg, exc_info=True)
                         raise AppException(

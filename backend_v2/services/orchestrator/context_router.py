@@ -50,79 +50,46 @@ class ContextRouter:
     """Isolates UI-driven routing and data culling logic conforming to Phase 9 directives."""
 
     @staticmethod
-    def route_and_prune(trace_event: Any, output_profile: OutputProfileConfig | None) -> LightweightMatrixOutput:
+    def route_and_prune(
+        trace_event: LightweightMatrixOutput, output_profile: OutputProfileConfig | None
+    ) -> LightweightMatrixOutput:
         """Extracts strictly what the UI demands from the execution trace.
 
         Args:
-            trace_event: The full execution state dictionary or validated matrix output.
+            trace_event: Validated matrix output model.
             output_profile: The UI-defined output profile specifying required extensions.
 
         Returns:
             A LightweightMatrixOutput containing only the requested pruned data.
-
-        Raises:
-            ConfigurationError: If trace event validation fails structurally or has missing base fields.
         """
-        try:
-            if isinstance(trace_event, LightweightMatrixOutput):
-                validated_trace = trace_event
-            elif isinstance(trace_event, Mapping):
-                if "evaluated_atoms" not in trace_event:
-                    msg = "Missing required base field in trace_event: evaluated_atoms"
-                    logger.error("[ContextRouter] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                    raise ConfigurationError(
-                        message=msg,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
-                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
-            else:
-                validated_trace = LightweightMatrixOutput.model_validate(trace_event)
-        except ConfigurationError:
-            raise
-        except ValidationError as e:
+        if not isinstance(trace_event, LightweightMatrixOutput):
             logger.error(
-                "[ContextRouter] %s: Trace event validation failed during prune: %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                e,
-                exc_info=True,
+                "Invalid trace_event provided to route_and_prune. Expected LightweightMatrixOutput, got %s.",
+                type(trace_event).__name__,
+                extra={"error_code": ErrorCodes.CONFIGURATION_ERROR.value},
             )
             raise ConfigurationError(
-                message=f"Fail-Fast: Invalid trace_event format: {e}",
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            ) from e
-        except (TypeError, ValueError, KeyError) as e:
-            logger.error(
-                "[ContextRouter] %s: Unexpected parsing error during trace event validation: %s",
-                ErrorCodes.RESOURCE_NOT_FOUND.name,
-                e,
-                exc_info=True,
+                f"Missing required base field or invalid trace event type: expected LightweightMatrixOutput, got {type(trace_event).__name__}"
             )
-            raise ConfigurationError(
-                message=f"Missing required base field in trace_event: {e}",
-                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
-            ) from e
 
-        extensions_extracted = {}
+        extensions_extracted: dict[Any, Any] = {}
         if output_profile:
             for ext in output_profile.visible_block_extensions:
                 # If block explicitly defines supported extensions, check suitability
-                if validated_trace.allowed_extensions is not None and ext not in validated_trace.allowed_extensions:
+                if trace_event.allowed_extensions is not None and ext not in trace_event.allowed_extensions:
                     continue
-                if ext in validated_trace.extensions:
-                    extensions_extracted[ext] = str(validated_trace.extensions[ext])
+                if ext in trace_event.extensions:
+                    extensions_extracted[ext] = trace_event.extensions[ext]
                 else:
                     logger.debug("Missing XAI extension: %s. Skipping and omitting from trace.", ext)
                     continue
-        else:
-            # Fallback to include all extensions if no profile is explicitly provided during execution
-            extensions_extracted = validated_trace.extensions
 
         return LightweightMatrixOutput(
-            raw_score=validated_trace.raw_score,
-            normalized_score=validated_trace.normalized_score,
-            level_breakdown=validated_trace.level_breakdown,
-            justification=validated_trace.justification,
-            evaluated_atoms=validated_trace.evaluated_atoms,
+            raw_score=trace_event.raw_score,
+            normalized_score=trace_event.normalized_score,
+            level_breakdown=trace_event.level_breakdown,
+            justification=trace_event.justification,
+            evaluated_atoms=trace_event.evaluated_atoms,
             extensions=extensions_extracted,
         )
 

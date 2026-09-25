@@ -1419,6 +1419,7 @@
   "profileLanguageDefault": "Automatic from execution (Default)",
   "profileLanguageFi": "Finnish (fi)",
   "profileLanguageEn": "English (en)",
+  "profileLanguageSv": "Swedish (sv)",
   "workflowSelectWarning": "⚠️ Please select a Workflow ID Binding above to configure report layouts.",
   "layoutBlocksTitle": "Layout Blocks",
   "addLayoutBlockBtn": "Add Layout Block",

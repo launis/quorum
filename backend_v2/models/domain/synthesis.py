@@ -15,13 +15,14 @@ if TYPE_CHECKING:
     from backend_v2.models.dtos.base import DataStarvationEvent
     from backend_v2.models.view.sdui import AnySduiBlock
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, I18nText, V2CoreBase
 from backend_v2.models.domain.base import ReasoningTrace
 from backend_v2.models.domain.usage import TokenUsage
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.synthesis import XaiHighlightItem
@@ -102,9 +103,7 @@ class DistilledEvaluation(V2CoreBase):
     status: Annotated[
         str | None, Field(default=None, description="Evaluation status, specifically: PASSED, FAILED")
     ] = None
-    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Extracted verbatim quotes")] = Field(
-        default_factory=list
-    )
+    exact_quotes: Annotated[list[str], Field(default_factory=list, description="Extracted verbatim quotes")]
     semantic_reasoning: Annotated[str | None, Field(default=None, description="Semantic reasoning for evaluation")] = (
         None
     )
@@ -219,7 +218,8 @@ class RenderedSynthesisCache(V2CoreBase):
 
 
 # Import StepExecutionEnvelope and StepOutputDTO after RenderedSynthesisCache to break circular dependency with state.py
-from backend_v2.models.state import StepExecutionEnvelope, StepOutputDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.state import StepExecutionEnvelope
 
 
 class SynthesisMetadataDTO(V2CoreBase):
@@ -228,10 +228,17 @@ class SynthesisMetadataDTO(V2CoreBase):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     target_locale: Annotated[str, Field(min_length=1)]
-    token_usage: Annotated[TokenUsage, Field()] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-    )
-    step_results: Annotated[list[StepOutputDTO], Field()] = Field(default_factory=list)
+    token_usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Aggregated token usage across synthesis steps",
+        ),
+    ]
+    step_results: Annotated[
+        list[StepOutputDTO],
+        Field(default_factory=list, description="List of step results evaluated during synthesis"),
+    ]
     profile_id: Annotated[str | None, Field()] = None
     target_profile_id: Annotated[str | None, Field()] = None
     matrix_sampling_strategy: Annotated[int | None, Field()] = None
@@ -246,9 +253,13 @@ class SynthesisMetadataDTO(V2CoreBase):
     dag_cost_usd: Annotated[float | None, Field()] = None
 
     # Injected by System 2 Reliability Tracker in worker.py
-    global_context_vars: Annotated[dict[str, Any] | None, Field(default=None)] = None
-    execution_summary: Annotated[dict[str, Any] | None, Field(default=None)] = None
-    step_metrics: Annotated[dict[str, Any] | None, Field(default=None)] = None
+    global_context_vars: Annotated[
+        GlobalContextVarsDTO | None, Field(default=None, description="Global context variables")
+    ] = None
+    execution_summary: Annotated[dict[str, JsonValue] | None, Field(default=None, description="Execution summary")] = (
+        None
+    )
+    step_metrics: Annotated[dict[str, JsonValue] | None, Field(default=None, description="Step metrics")] = None
 
 
 class SynthesisStepDataDTO(StepExecutionEnvelope):
@@ -257,9 +268,13 @@ class SynthesisStepDataDTO(StepExecutionEnvelope):
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 
     reasoning_trace: Annotated[ReasoningTrace | None, Field()] = None
-    token_usage: Annotated[TokenUsage, Field()] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-    )
+    token_usage: Annotated[
+        TokenUsage,
+        Field(
+            default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            description="Step token usage",
+        ),
+    ]
 
 
 from backend_v2.models.domain.system_config import MCPAuditTrace

@@ -2792,6 +2792,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get profileLanguageEn => 'Englanti (en)';
 
   @override
+  String get profileLanguageSv => 'Ruotsi (sv)';
+
+  @override
   String get workflowSelectWarning =>
       '⚠️ Valitse työnkulku yläpuolelta ennen raporttipohjien muokkausta.';
 

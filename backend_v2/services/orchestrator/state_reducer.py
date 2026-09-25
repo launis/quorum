@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Mapping
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
+
+from pydantic import JsonValue
 
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.evaluation import EvaluationResult
@@ -33,7 +35,7 @@ from backend_v2.models.dtos.hook_delta import (
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.lightweight_matrix import ScoringResultDTO
 from backend_v2.models.dtos.synthesis import SynthesisDistillationDTO
-from backend_v2.models.dtos.trace import TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO, TraceScoringPayloadDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.models.state import StepOutputDTO, TraceEvent
@@ -170,8 +172,8 @@ def reduce_hook_delta(
                 TraceEvent(
                     step_name=effective_step,
                     event_type="decision",
-                    content={"mcp_audit_traces": raw_traces},
-                    metadata={"mcp_audit_traces": raw_traces},
+                    content={"mcp_audit_traces": cast(JsonValue, raw_traces)},
+                    metadata=TraceEventMetadataDTO(mcp_audit_traces=meta_delta.mcp_audit_traces),
                     mcp_audit_traces=meta_delta.mcp_audit_traces,
                 )
             )
@@ -182,7 +184,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"estimated_token_count": meta_delta.estimated_token_count},
-                    metadata={"estimated_token_count": meta_delta.estimated_token_count},
+                    metadata=TraceEventMetadataDTO(estimated_token_count=meta_delta.estimated_token_count),
                 )
             )
 
@@ -369,7 +371,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content={"step_linguistics": delta.model_dump(mode="json")},
-                    metadata={"is_context_update": True},
+                    metadata=TraceEventMetadataDTO(is_context_update=True),
                 )
             )
         elif isinstance(delta, LLMProviderConfig):
@@ -408,7 +410,7 @@ def reduce_hook_delta(
                     step_name=effective_step,
                     event_type="decision",
                     content=delta.model_dump(mode="json"),
-                    metadata={"is_context_update": True},
+                    metadata=TraceEventMetadataDTO(is_context_update=True),
                 )
             )
 

@@ -1,7 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from backend_v2.models.dtos.trace import TraceMatrixPayloadDTO, TraceScoringPayloadDTO
+from backend_v2.models.dtos.trace import (
+    ProgressTracePayloadDTO,
+    TraceEventMetadataDTO,
+    TraceMatrixPayloadDTO,
+    TraceScoringPayloadDTO,
+)
 from backend_v2.models.enums import ExecutionStatus
 
 
@@ -53,10 +58,10 @@ def test_trace_matrix_payload_accepts_atom_quotes() -> None:
         "raw_score": 4.5,
         "normalized_score": 90.0,
         "justification": "Test justification",
-        "atom_quotes": [{"level": 1.0, "quote": "Evidence quote"}],
+        "atom_quotes": ["Evidence quote"],
     }
     dto_list = TraceMatrixPayloadDTO.model_validate(payload_list)
-    assert dto_list.atom_quotes == [{"level": 1.0, "quote": "Evidence quote"}]
+    assert dto_list.atom_quotes == ["Evidence quote"]
 
 
 def test_trace_matrix_payload_coerces_failed_string() -> None:
@@ -131,3 +136,56 @@ def test_execution_create_and_update_dto_negative_partitions() -> None:
     with pytest.raises(ValidationError) as exc_up:
         ExecutionUpdateDTO.model_validate({"progress": 20, "unauthorized_extra": True})
     assert "extra_forbidden" in str(exc_up.value) or "Extra inputs are not permitted" in str(exc_up.value)
+
+
+def test_progress_trace_payload_dto_validation_and_strictness() -> None:
+    """Test ProgressTracePayloadDTO happy path, bounds, and extra='forbid'."""
+    dto = ProgressTracePayloadDTO(message="Processing atoms", progress_pct=50)
+    assert dto.message == "Processing atoms"
+    assert dto.progress_pct == 50
+
+    # Bounds: 0 and 100 valid
+    assert ProgressTracePayloadDTO(message="Start", progress_pct=0).progress_pct == 0
+    assert ProgressTracePayloadDTO(message="Done", progress_pct=100).progress_pct == 100
+
+    # Out of bounds: > 100
+    with pytest.raises(ValidationError):
+        ProgressTracePayloadDTO(message="Overflow", progress_pct=101)
+
+    # Out of bounds: < 0
+    with pytest.raises(ValidationError):
+        ProgressTracePayloadDTO(message="Underflow", progress_pct=-1)
+
+    # Extra field forbidden
+    with pytest.raises(ValidationError):
+        ProgressTracePayloadDTO.model_validate({"message": "Test", "progress_pct": 10, "extra": "bad"})
+
+
+def test_trace_event_metadata_dto_validation_and_strictness() -> None:
+    """Test TraceEventMetadataDTO defaults, typed fields, and extra='forbid'."""
+    dto_default = TraceEventMetadataDTO()
+    assert dto_default.latency_ms is None
+    assert dto_default.is_context_update is False
+    assert dto_default.mcp_audit_traces == []
+    assert dto_default.step_metadata is None
+
+    dto_full = TraceEventMetadataDTO(
+        latency_ms=123.45,
+        chunk_size=10,
+        context_char_length=5000,
+        prompt_contexts=["ctx_1"],
+        generated_schema={"type": "object"},
+        is_context_update=True,
+        estimated_token_count=150,
+    )
+    assert dto_full.latency_ms == 123.45
+    assert dto_full.chunk_size == 10
+    assert dto_full.context_char_length == 5000
+    assert dto_full.prompt_contexts == ["ctx_1"]
+    assert dto_full.generated_schema == {"type": "object"}
+    assert dto_full.is_context_update is True
+    assert dto_full.estimated_token_count == 150
+
+    # Extra forbidden
+    with pytest.raises(ValidationError):
+        TraceEventMetadataDTO.model_validate({"latency_ms": 10.0, "unauthorized_extra": True})

@@ -158,7 +158,7 @@ final class ReportDetailProvider
   }
 }
 
-String _$reportDetailHash() => r'78bb2ffb8b908c9b12d1b02d4d709c531860011b';
+String _$reportDetailHash() => r'82d15eecae4c791a35bbf72f183d2a0568935102';
 
 /// Fetches the full detailed domain model for a report artifact.
 
@@ -392,7 +392,7 @@ final class ReportArtifactActionsProvider
 }
 
 String _$reportArtifactActionsHash() =>
-    r'3ace1d79d4e2a5f8fdf6578f54a26c38b48127f6';
+    r'86c1ddd833005573e6a02c9df426029dda7c5c71';
 
 /// Controller managing report lifecycle mutations (create, regenerate, delete).
 // Plan Step 1: Harden lifecycle with keepAlive: true to satisfy riverpod_autodispose_read_ban

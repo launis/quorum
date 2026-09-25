@@ -18,6 +18,7 @@ from backend_v2.models.domain.knowledge import (
     Reference,
     ReferenceCreateDTO,
 )
+from backend_v2.models.enums import SystemLocale
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ class KnowledgeRepositoryImpl(BaseRepository):
                 )
         return phrases
 
-    async def add_banned_phrase(self, phrase: str, language: str = "en") -> None:
+    async def add_banned_phrase(self, phrase: str, language: str = SystemLocale.EN.value) -> None:
         """Adds a new banned phrase if not already existing.
 
         Args:

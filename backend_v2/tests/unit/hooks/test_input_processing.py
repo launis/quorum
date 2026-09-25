@@ -640,11 +640,65 @@ async def test_process_chat_history_malformed_json_fallback_with_nlp(monkeypatch
         assert result.user_only == "Masked chat text"
 
 
-def test_process_questionnaire_missing_english_label() -> None:
+def test_process_questionnaire_localized_and_fallback_label() -> None:
     from backend_v2.hooks.input_processing import _process_questionnaire
+    from backend_v2.models.domain.step import ExpectedInput
 
+    # 1. Resolves Finnish label when target_locale is fi
+    fi_input = ExpectedInput(
+        input_key="kyselylomake",
+        label=I18nText(translations={"en": "Self-Assessment", "fi": "Itsearviointi"}),
+        description=I18nText(translations={"en": "Description", "fi": "Kuvaus"}),
+        input_modes=["text"],
+        required=True,
+    )
+    res_fi = _process_questionnaire(
+        {"pairs": [{"question": "Miten menee?", "answer": "Hyvin."}]},
+        "kyselylomake",
+        fi_input,
+        target_locale="fi",
+    )
+    assert '<questionnaire title="Itsearviointi">' in res_fi
+
+    # 2. Resolves Swedish label when target_locale is sv
+    sv_input = ExpectedInput(
+        input_key="enkat",
+        label=I18nText(translations={"en": "Self-Assessment", "sv": "Självutvärdering"}),
+        description=I18nText(translations={"en": "Description", "sv": "Beskrivning"}),
+        input_modes=["text"],
+        required=True,
+    )
+    res_sv = _process_questionnaire(
+        {"pairs": [{"question": "Hur mår du?", "answer": "Bra."}]},
+        "enkat",
+        sv_input,
+        target_locale="sv",
+    )
+    assert '<questionnaire title="Självutvärdering">' in res_sv
+
+    # 3. Falls back to English label when target_locale translation is missing
+    fallback_input = ExpectedInput(
+        input_key="missing_loc",
+        label=I18nText(translations={"en": "English Fallback"}),
+        description=I18nText(translations={"en": "Description"}),
+        input_modes=["text"],
+        required=True,
+    )
+    res_en = _process_questionnaire(
+        {"pairs": [{"question": "Q?", "answer": "A."}]},
+        "missing_loc",
+        fallback_input,
+        target_locale="fi",
+    )
+    assert '<questionnaire title="English Fallback">' in res_en
+
+    # 4. Falls back gracefully to key when resolve returns empty string
     mock_input = MagicMock()
     mock_input.label.resolve.return_value = ""
-    with pytest.raises(AppException) as exc:
-        _process_questionnaire({"pairs": [{"question": "Q", "answer": "A"}]}, "Q", mock_input)
-    assert exc.value.status_code == 500
+    res_key = _process_questionnaire(
+        {"pairs": [{"question": "Q?", "answer": "A."}]},
+        "fallback_key",
+        mock_input,
+        target_locale="fi",
+    )
+    assert '<questionnaire title="fallback_key">' in res_key

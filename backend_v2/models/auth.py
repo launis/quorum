@@ -15,6 +15,7 @@ from pydantic import ConfigDict, EmailStr, Field, field_validator
 from backend_v2.exceptions import ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.base import BaseDTO, BaseResponseDTO
+from backend_v2.models.enums import LaxSystemLocale
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +192,7 @@ class UserBase(V2CoreBase):
     role: Annotated[LaxUserRole, Field(description="Assigned permission role")]
     organization_id: Annotated[str | None, Field(description="ID of the organization this user belongs to")] = None
     is_active: Annotated[bool, Field(description="Is the account active?")]
-    language: Annotated[Literal["fi", "en", "sv"], Field(description="Preferred UI language")]
+    language: Annotated[LaxSystemLocale, Field(description="Preferred UI language")]
     theme_mode: Annotated[Literal["system", "light", "dark"], Field(description="Preferred Theme Mode")]
 
     @field_validator("name", "organization_id")
@@ -391,13 +392,15 @@ class UserUpdate(BaseDTO):
         password (Optional[str]): New password (only for admin resets).
     """
 
-    name: str | None = None
-    role: UserRole | None = None
-    is_active: bool | None = None
-    password: str | None = None  # Only for admin resets
-    language: str | None = None
-    theme_mode: str | None = None
-    organization_id: str | None = None
+    name: Annotated[str | None, Field(default=None, description="New display name")] = None
+    role: Annotated[UserRole | None, Field(default=None, description="New role assignment")] = None
+    is_active: Annotated[bool | None, Field(default=None, description="New active status")] = None
+    password: Annotated[str | None, Field(default=None, description="New password (only for admin resets)")] = None
+    language: Annotated[LaxSystemLocale | None, Field(default=None, description="Preferred UI language")] = None
+    theme_mode: Annotated[
+        Literal["system", "light", "dark"] | None, Field(default=None, description="Preferred Theme Mode")
+    ] = None
+    organization_id: Annotated[str | None, Field(default=None, description="New organization ID")] = None
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

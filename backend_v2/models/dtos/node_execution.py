@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import ConfigDict, Field, JsonValue
 
@@ -11,11 +11,13 @@ from backend_v2.models.domain.execution import ExecutionStep, ExecutionStepState
 from backend_v2.models.domain.inputs import DomainInputValue
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO, GlobalContextVarsDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
-from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
+
+if TYPE_CHECKING:
+    from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 __all__ = [
     "LogicEvaluationContextDTO",
@@ -82,12 +84,12 @@ class LogicNodeStateDTO(V2CoreBase):
 
     steps: Annotated[
         list[StepOutputDTO],
-        Field(default_factory=list, description="Projector snapshot steps list"),
-    ] = Field(default_factory=list)
+        "Projector snapshot steps list",
+    ] = Field(default_factory=list, description="Projector snapshot steps list")
     dynamic_inputs: Annotated[
         dict[str, DomainInputValue],
-        Field(default_factory=dict, description="Dynamic inputs dictionary"),
-    ] = Field(default_factory=dict)
+        "Dynamic inputs dictionary",
+    ] = Field(default_factory=dict, description="Dynamic inputs dictionary")
 
 
 class LogicEvaluationContextDTO(V2CoreBase):
@@ -114,17 +116,17 @@ class LogicEvaluationContextDTO(V2CoreBase):
     metadata: Annotated[ExecutionMetadata, Field(description="Execution metadata")]
     global_context_vars: Annotated[
         GlobalContextVarsDTO,
-        Field(default_factory=GlobalContextVarsDTO, description="Global context variables"),
-    ] = Field(default_factory=GlobalContextVarsDTO)
+        "Global context variables",
+    ] = Field(default_factory=GlobalContextVarsDTO, description="Global context variables")
     inputs: Annotated[
         ExecutionInputsDTO,
-        Field(default_factory=ExecutionInputsDTO, description="Execution inputs container"),
-    ] = Field(default_factory=ExecutionInputsDTO)
+        "Execution inputs container",
+    ] = Field(default_factory=ExecutionInputsDTO, description="Execution inputs container")
     target_locale: Annotated[str | None, Field(default=None, description="Target locale code")] = None
     user_role: Annotated[str | None, Field(default=None, description="User role")] = None
 
 
-type StepOutputContentValue = DomainInputValue | JsonValue
+type StepOutputContentValue = StepPayloadValue | DomainInputValue | JsonValue
 
 
 class StepOutputContentDTO(V2CoreBase):
@@ -138,5 +140,17 @@ class StepOutputContentDTO(V2CoreBase):
 
     data: Annotated[
         dict[str, StepOutputContentValue],
-        Field(default_factory=dict, description="Structured event payload content"),
-    ] = Field(default_factory=dict)
+        "Structured event payload content",
+    ] = Field(default_factory=dict, description="Structured event payload content")
+
+    def items(self) -> Any:
+        """Mapping protocol: return data dictionary items."""
+        return self.data.items()
+
+    def __getitem__(self, key: str) -> StepOutputContentValue:
+        """Mapping protocol: access data dictionary by key."""
+        return self.data[key]
+
+    def __contains__(self, key: object) -> bool:
+        """Mapping protocol: check membership in data dictionary."""
+        return key in self.data

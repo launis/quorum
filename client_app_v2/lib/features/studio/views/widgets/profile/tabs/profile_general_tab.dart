@@ -202,6 +202,7 @@ class ProfileGeneralTab extends ConsumerWidget {
                             child: Text(switch (locale) {
                               SystemLocale.fi => l10n.profileLanguageFi,
                               SystemLocale.en => l10n.profileLanguageEn,
+                              SystemLocale.sv => l10n.profileLanguageSv,
                             }, overflow: TextOverflow.ellipsis),
                           );
                         }),

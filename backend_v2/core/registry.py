@@ -22,7 +22,7 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.evaluation_steps import StepDTOSemantic, StepDTOStrict
 from backend_v2.models.dtos.quote_evidence import LLMExtractedQuote
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, SystemLocale
 from backend_v2.models.prompts.common import (
     DESC_CONTEXTUAL_OVERRIDE,
     DESC_EVALUATION_NOTES,
@@ -198,7 +198,7 @@ class SchemaBuilderStrategy(ABC):
         schema_name: str,
         criteria: list[PromptBlock],
         has_shuffled_atoms: bool = False,
-        target_locale: str = "en",
+        target_locale: str = SystemLocale.EN.value,
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,
@@ -337,7 +337,7 @@ class MarkdownSchemaStrategy(SchemaBuilderStrategy):
         schema_name: str,
         criteria: list[PromptBlock],
         has_shuffled_atoms: bool = False,
-        target_locale: str = "en",
+        target_locale: str = SystemLocale.EN.value,
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,
@@ -359,7 +359,7 @@ class HeroInsightSchemaStrategy(SchemaBuilderStrategy):
         schema_name: str,
         criteria: list[PromptBlock],
         has_shuffled_atoms: bool = False,
-        target_locale: str = "en",
+        target_locale: str = SystemLocale.EN.value,
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,
@@ -381,7 +381,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
         schema_name: str,
         criteria: list[PromptBlock],
         has_shuffled_atoms: bool = False,
-        target_locale: str = "en",
+        target_locale: str = SystemLocale.EN.value,
         *,
         strictness_level: int,
         source_document_ids: list[str] | None = None,

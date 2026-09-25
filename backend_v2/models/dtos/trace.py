@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated
 
-from pydantic import ConfigDict, Field
+from pydantic import ConfigDict, Field, JsonValue
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX
+from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
+from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
 from backend_v2.models.enums import LaxExecutionStatus
@@ -28,13 +29,15 @@ if TYPE_CHECKING:
 
 __all__ = [
     "DataStarvationEvent",
+    "ExecutionCreateDTO",
+    "ExecutionUpdateDTO",
+    "ProgressTracePayloadDTO",
     "StepTraceMetadataDTO",
+    "TraceEventMetadataDTO",
     "TraceEventMetadataEnvelope",
     "TraceMatrixExtensionsDTO",
     "TraceMatrixPayloadDTO",
     "TraceScoringPayloadDTO",
-    "ExecutionCreateDTO",
-    "ExecutionUpdateDTO",
 ]
 
 
@@ -195,7 +198,7 @@ class TraceMatrixPayloadDTO(BaseDTO):
     ] = None
     allowed_extensions: Annotated[list[str] | None, Field(description="List of allowed extensions")] = None
     atom_quotes: Annotated[
-        list[Any] | None,
+        list[str] | None,
         Field(default=None, description="Optional accumulated atom quotes from matrix evaluation"),
     ] = None
 
@@ -214,7 +217,42 @@ class TraceScoringPayloadDTO(BaseDTO):
     aggregation_status: Annotated[str | None, Field(description="Status of aggregation")] = None
 
 
+class ProgressTracePayloadDTO(BaseDTO):
+    """Payload for progress trace events emitted during pre-flight or workflow execution."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
+
+    message: Annotated[str, Field(description="Progress status message")]
+    progress_pct: Annotated[int, Field(ge=0, le=100, description="Progress percentage")]
+
+
+class TraceEventMetadataDTO(V2CoreBase):
+    """Strictly typed metadata for execution trace events."""
+
+    model_config = ConfigDict(strict=True, extra="forbid", frozen=True, populate_by_name=True)
+
+    latency_ms: Annotated[float | None, Field(default=None, description="Step latency in milliseconds")] = None
+    chunk_size: Annotated[int | None, Field(default=None, description="Number of chunks processed")] = None
+    context_char_length: Annotated[int | None, Field(default=None, description="Length of context characters")] = None
+    prompt_contexts: Annotated[list[str] | None, Field(default=None, description="Prompt context identifiers")] = None
+    generated_schema: Annotated[
+        dict[str, JsonValue] | None, Field(default=None, description="Dynamic generated schema")
+    ] = None
+    is_context_update: Annotated[bool, Field(default=False, description="Indicates context update decision")] = False
+    mcp_audit_traces: Annotated[list[MCPAuditTrace], "MCP tool audit traces"] = Field(
+        default_factory=list, description="MCP tool audit traces"
+    )
+    estimated_token_count: Annotated[int | None, Field(default=None, description="Estimated token count")] = None
+    step_metadata: Annotated[
+        StepTraceMetadataDTO | None,
+        Field(default=None, alias="_step_metadata", description="Step metadata envelope"),
+    ] = None
+
+
 from backend_v2.models.domain.usage import TokenUsage as _TokenUsage
 
 StepTraceMetadataDTO.model_rebuild(_types_namespace={"TokenUsage": _TokenUsage})
 TraceEventMetadataEnvelope.model_rebuild(_types_namespace={"StepTraceMetadataDTO": StepTraceMetadataDTO})
+TraceEventMetadataDTO.model_rebuild(
+    _types_namespace={"StepTraceMetadataDTO": StepTraceMetadataDTO, "MCPAuditTrace": MCPAuditTrace}
+)

@@ -7,7 +7,7 @@ import logging
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
 
 from backend_v2.core.hook_registry import (
     HookDeltaDTO,
@@ -520,7 +520,7 @@ async def matrix_scoring_hook(state: HookState, deps: HookDependencies) -> HookR
                             message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                         ) from e
 
-            final_exts = {
+            final_exts: dict[XaiExtensionType, JsonValue] = {
                 XaiExtensionType(k): "\n\n".join(v)
                 for k, v in matrix_extensions_by_block[pb_id].items()
                 if k in {e.value for e in XaiExtensionType}

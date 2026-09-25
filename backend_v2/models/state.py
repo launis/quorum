@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import uuid
+from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
@@ -16,30 +17,10 @@ if TYPE_CHECKING:
     from backend_v2.models.domain.system_config import MCPAuditTrace
 
 from fastapi import status
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError, field_validator
 
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.core_base import V2CoreBase
-from backend_v2.models.domain.usage import TokenUsage
-from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
-from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
-from backend_v2.utils.pydantic_utils import inflate
-
-logger = logging.getLogger(__name__)
-
-__all__ = [
-    "ErrorTraceEvent",
-    "EvidenceOverrideDTO",
-    "ExecutionState",
-    "ReasoningTrace",
-    "StateProjector",
-    "StepExecutionEnvelope",
-    "StepOutputDTO",
-    "TombstoneEvent",
-    "TraceEvent",
-    "WorkflowState",
-]
 
 
 class StepExecutionEnvelope(V2CoreBase):
@@ -64,6 +45,34 @@ class StepExecutionEnvelope(V2CoreBase):
     timestamp_isot: Annotated[str | None, Field(default=None)] = None
     unix_time: Annotated[int | None, Field(default=None)] = None
     v2_engine: Annotated[bool | None, Field(default=None)] = None
+
+
+from backend_v2.models.domain.inputs import DomainInputValue, WorkflowInputs
+from backend_v2.models.domain.usage import TokenUsage
+from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO
+from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.dtos.node_execution import NodeExecutionUpdateDTO, StepOutputContentDTO
+from backend_v2.models.dtos.quote_evidence import QuoteEvidenceDTO
+from backend_v2.models.dtos.step_output import StepOutputDTO, StepPayloadValue
+from backend_v2.models.dtos.trace import TraceEventMetadataDTO
+from backend_v2.models.execution_core import ExecutionCoreFields, ExecutionMetadata
+from backend_v2.utils.pydantic_utils import inflate
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "ErrorTraceEvent",
+    "EvidenceOverrideDTO",
+    "ExecutionState",
+    "ReasoningTrace",
+    "StateProjector",
+    "StepExecutionEnvelope",
+    "StepOutputDTO",
+    "TombstoneEvent",
+    "TraceEvent",
+    "WorkflowState",
+]
 
 
 class ReasoningTrace(V2CoreBase):
@@ -104,10 +113,7 @@ class ReasoningTrace(V2CoreBase):
             default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
             description="Token usage statistics.",
         ),
-    ] = Field(
-        default_factory=lambda: TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
-        description="Token usage statistics.",
-    )
+    ]
 
     @field_validator("confidence_score", mode="after")
     @classmethod
@@ -171,13 +177,13 @@ class TraceEvent(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    event_id: Annotated[uuid.UUID, Field(default_factory=uuid.uuid4, description="Unique event identifier.")] = Field(
+    event_id: Annotated[uuid.UUID, "Unique event identifier."] = Field(
         default_factory=uuid.uuid4, description="Unique event identifier."
     )
     v: Annotated[int, Field(default=1, description="Schema version for forward compatibility and lazy upcasting.")] = 1
-    timestamp: Annotated[
-        datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
-    ] = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp.")
+    timestamp: Annotated[datetime, "Event timestamp."] = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp."
+    )
 
     step_name: Annotated[
         str,
@@ -195,16 +201,22 @@ class TraceEvent(V2CoreBase):
         Field(..., description="Type of the event.", json_schema_extra={"x-ui-label": "Event Type"}),
     ]
 
-    content: Annotated[dict[str, Any], Field(default_factory=dict, description="Structured content of the event.")] = (
-        Field(default_factory=dict, description="Structured content of the event.")
-    )
+    content: Annotated[
+        StepPayloadValue
+        | DomainInputValue
+        | StepOutputContentDTO
+        | Mapping[str, StepPayloadValue | DomainInputValue | JsonValue]
+        | BaseModel
+        | None,
+        Field(default=None, description="Typed event payload"),
+    ] = None
     reasoning: Annotated[ReasoningTrace | None, Field(default=None, description="Associated reasoning trace.")] = None
-    metadata: Annotated[dict[str, Any], Field(default_factory=dict, description="Additional metadata.")] = Field(
-        default_factory=dict, description="Additional metadata."
+    metadata: Annotated[TraceEventMetadataDTO, "Additional metadata."] = Field(
+        default_factory=TraceEventMetadataDTO, description="Additional metadata."
     )
-    mcp_audit_traces: Annotated[
-        list[MCPAuditTrace], Field(default_factory=list, description="Associated MCP tool audit traces.")
-    ] = Field(default_factory=list, description="Associated MCP tool audit traces.")
+    mcp_audit_traces: Annotated[list[MCPAuditTrace], "Associated MCP tool audit traces."] = Field(
+        default_factory=list, description="Associated MCP tool audit traces."
+    )
 
 
 class ErrorTraceEvent(TraceEvent):
@@ -237,8 +249,6 @@ class TombstoneEvent(TraceEvent):
     redacted_hash: Annotated[str, Field(description="Cryptographic hash or identifier of the original redacted data.")]
 
 
-import backend_v2.models.domain.inputs as _inputs_mod
-import backend_v2.models.dtos.step_output as _step_output_mod
 from backend_v2.models.domain.analyst import AnalystOutput
 from backend_v2.models.domain.archivist import ArchivistOutput
 from backend_v2.models.domain.causal import CausalOutput
@@ -272,8 +282,12 @@ from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
 from backend_v2.models.view.sdui import AnySduiBlock
 
 _state_localns = {
-    **{k: v for k, v in _inputs_mod.__dict__.items() if not k.startswith("__")},
-    **{k: v for k, v in _step_output_mod.__dict__.items() if not k.startswith("__")},
+    "WorkflowInputs": WorkflowInputs,
+    "WorkflowInputsIngress": WorkflowInputsIngress,
+    "DomainInputValue": DomainInputValue,
+    "StepOutputDTO": StepOutputDTO,
+    "StepPayloadValue": StepPayloadValue,
+    "TraceEventMetadataDTO": TraceEventMetadataDTO,
     "Any": Any,
     "ContextVariablesDTO": ContextVariablesDTO,
     "ExecutionMetadata": ExecutionMetadata,
@@ -288,14 +302,17 @@ _state_localns = {
     "ExecutionSummarySnapshot": ExecutionSummarySnapshot,
     "FrozenContext": FrozenContext,
     "RenderedSynthesisCache": RenderedSynthesisCache,
-    "WorkflowInputsIngress": WorkflowInputsIngress,
     "ScorecardAtomDTO": ScorecardAtomDTO,
     "MatrixScorecardRowDTO": MatrixScorecardRowDTO,
 }
+TraceEvent.model_rebuild(_types_namespace=_state_localns)
+ErrorTraceEvent.model_rebuild(_types_namespace=_state_localns)
+TombstoneEvent.model_rebuild(_types_namespace=_state_localns)
 ExecutionCoreFields.model_rebuild(_types_namespace=_state_localns)
 ExecutionRecord.model_rebuild(_types_namespace=_state_localns)
 ExecutionCreateDTO.model_rebuild(_types_namespace=_state_localns)
 ExecutionUpdateDTO.model_rebuild(_types_namespace=_state_localns)
+NodeExecutionUpdateDTO.model_rebuild(_types_namespace=_state_localns)
 
 
 class WorkflowState(ExecutionCoreFields):
@@ -311,9 +328,9 @@ class WorkflowState(ExecutionCoreFields):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    execution_id: Annotated[
-        uuid.UUID, Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
-    ] = Field(default_factory=uuid.uuid4, description="Unique execution identifier.")
+    execution_id: Annotated[uuid.UUID, "Unique execution identifier."] = Field(
+        default_factory=uuid.uuid4, description="Unique execution identifier."
+    )
     workflow_id: Annotated[
         str,
         Field(
@@ -329,9 +346,9 @@ class WorkflowState(ExecutionCoreFields):
     # from ExecutionCoreFields (SSOT).
 
     workflow_name: Annotated[str | None, Field(default=None, description="Human-readable name of the workflow.")] = None
-    created_at: Annotated[
-        datetime, Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
-    ] = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp.")
+    created_at: Annotated[datetime, "Creation timestamp."] = Field(
+        default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp."
+    )
 
     @property
     def start_time(self) -> datetime:
@@ -489,7 +506,7 @@ class StateProjector:
         Args:
             trace: Optional list of TraceEvents to initialize snapshot.
         """
-        self._snapshot: dict[str, Any] = {}
+        self._snapshot: dict[str, StepOutputContentDTO] = {}
         self._schema_version: int = 0
         self._trace_length: int = 0
         if trace:
@@ -560,7 +577,7 @@ class StateProjector:
         output: list[StepOutputDTO] = []
         for step_id, step_output in self._snapshot.items():
             try:
-                items_iter = step_output.items()
+                items_iter = step_output.data.items()
             except (AttributeError, TypeError) as err:
                 # Epic 43 Phase 2 Fail-Fast: Legacy unstructured traces are strictly forbidden.
                 msg = (
@@ -578,21 +595,28 @@ class StateProjector:
             for block_id, payload in items_iter:
                 try:
                     output.append(
-                        StepOutputDTO(step_id=step_id, block_id=block_id, data_type="unknown", payload=payload)
-                    )
-                except ValidationError:
-                    output.append(
-                        StepOutputDTO.model_construct(
-                            step_id=step_id, block_id=block_id, data_type="unknown", payload=payload
+                        StepOutputDTO(
+                            step_id=step_id,
+                            block_id=block_id,
+                            data_type="unknown",
+                            payload=payload,  # type: ignore[arg-type]
                         )
                     )
+                except ValidationError as err:
+                    msg = f"Invalid step output payload for step '{step_id}', block '{block_id}'."
+                    logger.error("[StateProjector] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg, exc_info=True)
+                    raise AppException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        message=msg,
+                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                    ) from err
         return output
 
     def apply_delta(self, event: TraceEvent) -> None:
         """Applies a single Delta / Event to the in-memory cache.
 
-        Supports nested step payloads and automatically unpacks ExecutionInputsDTO
-        dictionaries without crashing when state contains step metadata.
+        Supports nested step payloads and automatically unpacks ExecutionInputsDTO,
+        WorkflowInputs, StepOutputContentDTO, and LightweightMatrixDTO into typed StepOutputContentDTO.
 
         Args:
             event: The TraceEvent to apply.
@@ -603,13 +627,33 @@ class StateProjector:
         self._trace_length += 1
 
         if event.event_type in ["output", "input"]:
-            self._snapshot[event.step_name] = event.content
+            content = event.content
+            if isinstance(content, StepOutputContentDTO):
+                self._snapshot[event.step_name] = content
+            elif isinstance(content, ExecutionInputsDTO):
+                merged: dict[str, DomainInputValue] = {
+                    **dict(content.raw_inputs),
+                    **dict(content.dynamic_inputs),
+                }
+                self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in merged.items()})
+            elif isinstance(content, WorkflowInputs):
+                self._snapshot[event.step_name] = StepOutputContentDTO(
+                    data={str(k): v for k, v in content.dynamic_inputs.items()}
+                )
+            elif isinstance(content, LightweightMatrixDTO):
+                self._snapshot[event.step_name] = StepOutputContentDTO(data={"reduced_atoms": content.reduced_atoms})
+            elif isinstance(content, LightweightMatrixOutput):
+                self._snapshot[event.step_name] = StepOutputContentDTO(data={event.step_name: content})
+            elif type(content) is dict:
+                self._snapshot[event.step_name] = StepOutputContentDTO(data={str(k): v for k, v in content.items()})
+            else:
+                self._snapshot[event.step_name] = content  # type: ignore[assignment]
         elif event.event_type == "tombstone":
             # For GDPR redactions, replace content with a tombstone marker
             redacted_hash = "unknown"
             if isinstance(event, TombstoneEvent):
                 redacted_hash = event.redacted_hash
-            self._snapshot[event.step_name] = {"_redacted": True, "hash": redacted_hash}
+            self._snapshot[event.step_name] = StepOutputContentDTO(data={"_redacted": True, "hash": redacted_hash})
 
 
 class ExecutionState(V2CoreBase):
@@ -627,5 +671,5 @@ class ExecutionState(V2CoreBase):
     evidence_quotes: Annotated[
         list[QuoteEvidenceDTO],
         Field(default_factory=list, description="Selected quotes to support the findings."),
-    ] = Field(default_factory=list, description="Selected quotes to support the findings.")
+    ]
     urgency_level: Annotated[int, Field(description="Urgency or severity level.")]

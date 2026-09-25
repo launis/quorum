@@ -49,8 +49,13 @@ from backend_v2.models.dtos.hook_delta import StepContextMetadataDTO
 from backend_v2.models.dtos.prompt import PromptMappingDTO
 from backend_v2.models.dtos.quote_evidence import SourceDocumentContext
 from backend_v2.models.dtos.step_output import StepOutputDTO
-from backend_v2.models.dtos.trace import ExecutionUpdateDTO
-from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory, VirtualSystemStepID
+from backend_v2.models.dtos.trace import ExecutionUpdateDTO, TraceEventMetadataDTO
+from backend_v2.models.enums import (
+    CognitiveTier,
+    ExecutionStatus,
+    PromptBlockCategory,
+    VirtualSystemStepID,
+)
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import StateProjector, TraceEvent
@@ -903,7 +908,7 @@ class LLMNodeStrategy(NodeStrategy):
                 usage_agg = engine_result.usage
             else:
                 usage_agg = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
-            all_prompt_contexts: list[JsonValue] = []
+            all_prompt_contexts: list[str] = []
             post_target_locale: str | None = None
             post_user_role: Any | None = None
             if isinstance(hook_state.inputs, ExecutionInputsDTO):
@@ -986,26 +991,27 @@ class LLMNodeStrategy(NodeStrategy):
         else:
             meta_dict["model_strategy"] = "prompt"
 
-        if isinstance(step_obj.cognitive_tier, str):
-            meta_dict["cognitive_tier"] = step_obj.cognitive_tier
-        else:
+        if isinstance(step_obj.cognitive_tier, CognitiveTier):
             meta_dict["cognitive_tier"] = step_obj.cognitive_tier.value
+        else:
+            meta_dict["cognitive_tier"] = str(step_obj.cognitive_tier)
         if bound_client and bound_client.model_name:
-            meta_dict["physical_model"] = bound_client.model_name
+            if isinstance(bound_client.model_name, str):
+                meta_dict["physical_model"] = bound_client.model_name
+            else:
+                meta_dict["physical_model"] = str(bound_client.model_name)
         if usage_agg.total_tokens > 0 or usage_agg.cost_usd > 0.0:
             if "token_usage" not in meta_dict:
                 meta_dict["token_usage"] = usage_agg.model_dump(exclude_none=True)
         final_dict["_step_metadata"] = meta_dict
 
-        metadata = {
-            "latency_ms": latency_ms,
-            "chunk_size": len(chunks_list),
-            "context_char_length": context_char_length,
-            "prompt_contexts": all_prompt_contexts,
-        }
-        if dynamic_schema is not None:
-            metadata["generated_schema"] = dynamic_schema.model_json_schema()
-
+        trace_metadata = TraceEventMetadataDTO(
+            latency_ms=latency_ms,
+            chunk_size=len(chunks_list),
+            context_char_length=context_char_length,
+            prompt_contexts=all_prompt_contexts,
+            generated_schema=dynamic_schema.model_json_schema() if dynamic_schema is not None else None,
+        )
         return (
             pre_events
             + post_events
@@ -1014,7 +1020,7 @@ class LLMNodeStrategy(NodeStrategy):
                     step_name=step.id,
                     event_type="output",
                     content=final_dict,
-                    metadata=metadata,
+                    metadata=trace_metadata,
                 )
             ]
         )

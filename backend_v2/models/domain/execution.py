@@ -196,7 +196,7 @@ class ExecutionRecord(ExecutionCoreFields):
         target_locale: str = Field(...)
         execution_trace: list[ErrorTraceEvent | TombstoneEvent | TraceEvent] = Field(default_factory=list)
         execution_trace_storage_path: str | None = Field(default=None)
-        context_variables: ContextVariablesDTO = Field(default_factory=ContextVariablesDTO)
+        context_variables: ContextVariablesDTO = Field(default_factory=lambda: ContextVariablesDTO(variables={}))
         context_variables_storage_path: str | None = Field(default=None)
         progress: int | None = Field(default=None)
         status_message: str | None = Field(default=None)

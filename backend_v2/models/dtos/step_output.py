@@ -16,6 +16,7 @@ from backend_v2.models.dtos.lightweight_matrix import (
     ScoringResultDTO,
 )
 from backend_v2.models.dtos.trace import (
+    ProgressTracePayloadDTO,
     StepTraceMetadataDTO,
     TraceMatrixPayloadDTO,
     TraceScoringPayloadDTO,
@@ -41,6 +42,7 @@ type StepPayloadValue = (
     | dict[str, HydratedAtomDTO]
     | StepMetadataDTO
     | StepTraceMetadataDTO
+    | ProgressTracePayloadDTO
     | dict[str, float]
     | dict[str, str]
     | str

@@ -10,14 +10,16 @@ from pydantic import ConfigDict, Field, field_validator
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.analyst import AnalystOutput, Hypothesis
 from backend_v2.models.domain.archival import ArchivalPrecedentDTO
+from backend_v2.models.domain.coach import CoachingPlan
 from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
+from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO, TextMetricsDTO
 from backend_v2.models.domain.references import BibliographyResultDTO
-from backend_v2.models.domain.security import SanitizationResultDTO
+from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO, HydratedAtomDTO
@@ -108,6 +110,8 @@ type DomainInputValue = Annotated[
     | Hypothesis
     | list[Hypothesis]
     | AnalystOutput
+    | JudgeOutput
+    | CoachingPlan
     | EvaluationResult
     | MetadataHookPayloadDTO
     | MetadataHookResultDTO
@@ -118,6 +122,7 @@ type DomainInputValue = Annotated[
     | StepMetadataDTO
     | LinguisticsResultDTO
     | SanitizationResultDTO
+    | InputProcessingOutputDTO
     | ProfilerMetricsDTO
     | TextMetricsDTO
     | BibliographyResultDTO

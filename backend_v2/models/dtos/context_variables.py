@@ -26,7 +26,7 @@ class EvaluatedMatrixContextDTO(V2CoreBase):
     raw_atoms: Annotated[
         list[EvaluatedAtomDTO],
         Field(default_factory=list, description="Raw evaluated atom payloads"),
-    ] = Field(default_factory=list)
+    ]
 
 
 type ContextVariableValue = DomainInputValue | GlobalAtomBlackboard | LightweightMatrixDTO | EvaluatedMatrixContextDTO
@@ -69,9 +69,8 @@ class ContextVariablesDTO(V2CoreBase):
         Field(default=None, description="Evaluated matrices summary"),
     ] = None
     variables: Annotated[
-        dict[str, ContextVariableValue],
-        Field(default_factory=dict, description="Typed arbitrary context variables"),
-    ] = Field(default_factory=dict)
+        dict[str, ContextVariableValue], "Typed arbitrary context variables"
+    ] = Field(default_factory=dict, description="Typed arbitrary context variables")
 
     def with_update(
         self,

@@ -385,6 +385,8 @@ enum SystemLocale {
   en,
   @JsonValue('fi')
   fi,
+  @JsonValue('sv')
+  sv,
 }
 
 /// Verdict characterizing mathematical alignment between mechanical and cognitive evaluations.

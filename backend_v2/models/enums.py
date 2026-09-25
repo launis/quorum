@@ -490,6 +490,7 @@ class SystemLocale(StrEnum):
 
     EN = "en"
     FI = "fi"
+    SV = "sv"
 
 
 class LLMCachingStrategy(StrEnum):

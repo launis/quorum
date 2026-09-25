@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'distilled_evaluation.freezed.dart';
@@ -15,6 +14,7 @@ abstract class DistilledEvaluation with _$DistilledEvaluation {
     String? atomId,
     required List<String> exactQuotes,
     String? semanticReasoning,
+    String? status,
     Map<String, dynamic>? extensions,
   }) = _DistilledEvaluation;
 
