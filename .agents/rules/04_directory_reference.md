@@ -62,7 +62,7 @@
     <module path="backend_v2/models/">
         <responsibility>SSOT PYDANTIC SCHEMAS, DTOS & PROMPT ASSETS</responsibility>
         <key_domains>
-          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, render.py, flat_record.py, step_telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py, workflow_schema.py), view/ (SDUI Blocks), state.py, enums.py
+          - Schemas & DTOs: core_base.py (I18nText SSOT), domain/ (Pure Business Models, NO ORM shapes), dtos/ (API boundaries, ingress.py, theory_manifest.py, schema_manifest.py, global_context.py, hook_delta.py, node_execution.py, context_variables.py, prompt.py, sensor.py, finops.py, mcp.py, sdui_rules.py, render.py, flat_record.py, step_telemetry.py, matrix_parser.py, lightweight_matrix.py, engine.py, workflow_schema.py, trace.py, step_output.py), view/ (SDUI Blocks), state.py, enums.py
           - Prompts SSOT (Tripartite Separation):
             * prompts/common/: Cross-phase linguistic and schema purity directives (linguistic_directives.py, re-export shim for execution/ symbols)
             * prompts/execution/: Phase 1 DAG, sensor evaluation, micro-evaluator, and quote extraction mandates (global_mandates.py, field_prompts.py, matrix_evaluation.py, hook_prompts.py, mcp_prompts.py)
