@@ -75,14 +75,52 @@ def scan_for_lingering_symbols(workspace_root: Path, symbols: set[str]) -> list[
     return findings
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Execute post-flight reverse audit against Epic requirements."""
-    parser = argparse.ArgumentParser(description="Audit Epic coverage and symbol eradication.")
-    parser.add_argument("--epic", required=True, type=str, help="Path to the source Epic .md file")
-    parser.add_argument("--phase", required=False, type=int, default=None, help="Phase number to audit")
-    parser.add_argument("--workspace-root", required=False, type=str, default=".", help="Workspace root")
-    parser.add_argument("--output-report", required=False, type=str, default=None, help="Output report path")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="""Post-Flight Epic Specification & Symbol Eradication Auditor.
+
+Performs reverse verification of physical codebase state against Epic Markdown specifications:
+  - File Operation Verification: Verifies [NEW] files exist, [DELETE] files are deleted, and [MODIFY] files exist.
+  - Scoped Phase Auditing: Optionally restricts audit scope to a specific phase or scans the entire Epic.
+  - Deprecated Symbol Eradication: Physically scans the codebase to guarantee deprecated symbols are eradicated.
+  - Markdown Report Generation: Emits a structured requirement-by-requirement audit table to stdout or file.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_001.md
+  uv run python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_001.md --phase 1
+  uv run python scripts/audit_epic_coverage.py --epic docs/epic/EPIC_001.md --output-report reports/epic_audit.md
+""",
+    )
+    parser.add_argument(
+        "--epic",
+        required=True,
+        type=str,
+        help="Path to the source Epic Markdown specification file.",
+    )
+    parser.add_argument(
+        "--phase",
+        required=False,
+        type=int,
+        default=None,
+        help="Optional phase number to audit (default: audit all phases).",
+    )
+    parser.add_argument(
+        "--workspace-root",
+        required=False,
+        type=str,
+        default=".",
+        help="Workspace root directory for physical file resolution (default: .).",
+    )
+    parser.add_argument(
+        "--output-report",
+        required=False,
+        type=str,
+        default=None,
+        help="Optional destination path to write the formatted Markdown audit report.",
+    )
+    args = parser.parse_args(argv)
 
     epic_path = Path(args.epic)
     workspace_root = Path(args.workspace_root).resolve()

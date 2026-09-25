@@ -150,14 +150,36 @@ def audit_rules_staleness(rules_dir: Path, search_dirs: list[Path]) -> tuple[dic
     return file_orphans, len(all_symbols)
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI Entrypoint for Rules Staleness Auditor."""
-    parser = argparse.ArgumentParser(description="Audit .agents/rules for stale or non-existent code symbols.")
-    parser.add_argument("--rules-dir", default=".agents/rules", help="Rules directory")
-    parser.add_argument(
-        "--search-dirs", nargs="+", default=["backend_v2", "scripts", "client_app_v2"], help="Search directories"
+    parser = argparse.ArgumentParser(
+        description="""Architectural Rule Staleness & Dead Symbol Auditor.
+
+Audits .agents/rules Markdown files for references to dead, renamed, or obsolete codebase symbols:
+  - Symbol Extraction: Parses code references, classes, functions, and enums mentioned in rule markdown.
+  - Codebase Cross-Referencing: Checks extracted symbols against active source trees (backend, frontend, scripts).
+  - Dead Reference Detection: Highlights lingering symbols from deleted or refactored architecture.
+  - Informational Reporting: Emits an inventory of orphaned symbols per rule file.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_rules_staleness.py
+  uv run python scripts/audit_rules_staleness.py --rules-dir .agents/rules --search-dirs backend_v2 scripts
+  uv run python scripts/audit_rules_staleness.py --search-dirs client_app_v2
+""",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--rules-dir",
+        default=".agents/rules",
+        help="Directory containing system rule Markdown files to scan (default: .agents/rules).",
+    )
+    parser.add_argument(
+        "--search-dirs",
+        nargs="+",
+        default=["backend_v2", "scripts", "client_app_v2"],
+        help="One or more source code directories to scan for symbol definitions (default: backend_v2 scripts client_app_v2).",
+    )
+    args = parser.parse_args(argv)
 
     r_dir = Path(args.rules_dir).resolve()
     s_dirs = [Path(d).resolve() for d in args.search_dirs]

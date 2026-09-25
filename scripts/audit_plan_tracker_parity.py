@@ -642,9 +642,7 @@ def audit_plan_tracker_parity(plan_ast: PlanDocumentAST, tracker_ast: TrackerDoc
                 category="Quality Gates",
                 severity=GuardrailSeverity.FATAL,
                 message="Tracker is missing `As-Built Architectural Sync` gate.",
-                remediation=(
-                    "Add `- [ ] **[NOK]** As-Built Architectural Sync: ...` under Documentation & KI Update."
-                ),
+                remediation=("Add `- [ ] **[NOK]** As-Built Architectural Sync: ...` under Documentation & KI Update."),
             )
         )
     if not tracker_ast.has_final_audit_gate:
@@ -752,44 +750,64 @@ def print_audit_report(report: ParityAuditReportDTO) -> None:
         print(f"{RED}{BOLD}[FAILED] PARITY AUDIT FAILED: Tracker violates mandatory parity contracts.{RESET}\n")
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for plan vs tracker parity audit."""
     parser = argparse.ArgumentParser(
-        description="Audit bidirectional parity between Implementation Plans and Execution Trackers."
+        description="""Bidirectional Plan-Tracker Parity AST Auditor (TPR001-TPR010).
+
+Statically enforces mathematical 1:1 bidirectional alignment between implementation plans and execution trackers:
+  TPR001: Plan Link Reference Parity (valid @[...] link to source plan)
+  TPR002: Step Cardinality & Numbering Parity (exact 1:1 step count match)
+  TPR003: Step Title & Objective Parity (exact verbatim match of titles)
+  TPR004: Context Rules Parity (<required_context_rules> exact match)
+  TPR005: Target Files Scope Parity (every plan target covered in tracker)
+  TPR006: State Machine Syntax Parity (- [ ] / - [x] checkbox conformance)
+  TPR007: Session Handover Block Parity (Achieved, Learned, Remaining)
+  TPR008: Resume Command Parity (/tier2-execute syntax conformance)
+  TPR009: Traceability Matrix Parity (RTM rows match plan steps)
+  TPR010: Post-Implementation Gates Parity (Universal Quality Gates verified)
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_plan_tracker_parity.py --tracker docs/implementationplans/TRACKER_001.md
+  uv run python scripts/audit_plan_tracker_parity.py --tracker task.md --plan implementation_plan.md --strict
+  uv run python scripts/audit_plan_tracker_parity.py --all --strict
+  uv run python scripts/audit_plan_tracker_parity.py --tracker task.md --json
+""",
     )
     parser.add_argument(
         "--tracker",
         required=False,
         type=str,
         default=None,
-        help="Path to tracker markdown file (e.g. docs/implementationplans/TRACKER_xxx.md)",
+        help="Path to tracker Markdown file (e.g. docs/implementationplans/TRACKER_xxx.md or task.md).",
     )
     parser.add_argument(
         "--plan",
         required=False,
         type=str,
         default=None,
-        help="Path to plan markdown file (optional, auto-inferred from tracker if omitted)",
+        help="Path to plan Markdown file (optional, auto-inferred from tracker if omitted).",
     )
     parser.add_argument(
         "--all",
         action="store_true",
         default=False,
-        help="Audit all trackers in docs/implementationplans/",
+        help="Audit all trackers in docs/implementationplans/.",
     )
     parser.add_argument(
         "--json",
         action="store_true",
         default=False,
-        help="Output JSON result",
+        help="Output structured JSON results instead of human-readable text.",
     )
     parser.add_argument(
         "--strict",
         action="store_true",
         default=False,
-        help="Fail-fast on warnings in addition to fatal errors",
+        help="Fail-fast strict mode: exit with code 1 on warnings as well as fatal errors.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.all:
         trackers = sorted(Path("docs/implementationplans").glob("TRACKER_*.md"))

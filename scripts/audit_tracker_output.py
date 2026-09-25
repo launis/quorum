@@ -460,22 +460,52 @@ def check_traceability_mapping_plan(
     return errors, warnings
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Execute structural audit for tracker file."""
-    parser = argparse.ArgumentParser(description="Audit Tracker output for structural compliance.")
-    parser.add_argument("--tracker", required=True, type=str, help="Path to the tracker .md file")
+    parser = argparse.ArgumentParser(
+        description="""Tracker Output Structural & Invariant Compliance Auditor.
+
+Statically validates Epic Trackers and Standalone Plan Trackers against system formatting standards:
+  - Mandatory XML Sections: Enforces <required_context_rules> with valid @[...] rule and KI references.
+  - Lifecycle State Machine: Validates checkbox statuses (- [ ], - [x]), execution gates, and audit steps.
+  - Mode-Specific Syntax: Enforces Phase format for Epic trackers and Step format for Plan trackers.
+  - Session Handover Protocol: Asserts presence of Achieved, Learned, Remaining, and Resume Command sections.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_tracker_output.py --tracker docs/epic/EPIC_001_tracker.md --mode epic --plan-dir docs/epic/tasks_EPIC_001
+  uv run python scripts/audit_tracker_output.py --tracker task.md --mode plan --plan-file docs/implementationplans/MY_PLAN.md
+  uv run python scripts/audit_tracker_output.py --tracker task.md
+""",
+    )
+    parser.add_argument(
+        "--tracker",
+        required=True,
+        type=str,
+        help="Path to the tracker Markdown file (e.g., docs/epic/EPIC_XXX_tracker.md or task.md).",
+    )
     parser.add_argument(
         "--mode",
         required=False,
         type=str,
         choices=["epic", "plan"],
         default=None,
-        help="Explicit tracker mode ('epic' or 'plan')",
+        help="Explicit tracker mode: 'epic' for multi-phase Epics, 'plan' for standalone plans (default: auto-detected).",
     )
     group = parser.add_mutually_exclusive_group(required=False)
-    group.add_argument("--plan-dir", type=str, default=None, help="Path to task plan directory (Epic mode)")
-    group.add_argument("--plan-file", type=str, default=None, help="Path to single plan file (Plan mode)")
-    args = parser.parse_args()
+    group.add_argument(
+        "--plan-dir",
+        type=str,
+        default=None,
+        help="Path to task plan directory (applicable in Epic mode).",
+    )
+    group.add_argument(
+        "--plan-file",
+        type=str,
+        default=None,
+        help="Path to single implementation plan file (applicable in Plan mode).",
+    )
+    args = parser.parse_args(argv)
 
     tracker_path = Path(args.tracker)
     if not tracker_path.exists():

@@ -47,6 +47,7 @@ FLAGS
 from __future__ import annotations
 
 import argparse
+import io
 import re
 import sys
 import textwrap
@@ -470,29 +471,42 @@ def convert_epic(epic_path: Path) -> ConversionResult:
 # ---------------------------------------------------------------------------
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Execute the Epic to Hybrid MD+XML converter CLI tool.
 
     Raises:
         SystemExit: If the file is not found or is not a Markdown file.
     """
     # Force UTF-8 stdout on Windows (cp1252 can't handle arrows/emojis in Epic content)
-    sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[union-attr]
+    if isinstance(sys.stdout, io.TextIOWrapper):
+        sys.stdout.reconfigure(encoding="utf-8")
 
     parser = argparse.ArgumentParser(
-        description="Convert a single Epic .md file to Hybrid MD+XML format.",
+        description="""Epic Markdown to Hybrid MD+XML Specification Converter.
+
+Automates migration of legacy Markdown Epics to structured Hybrid Markdown+XML:
+  - Structural XML Wrapping: Converts phases into <phase>, <step>, <action>, and <constraint> blocks.
+  - Table-Protocol Alignment: Generates machine-readable execution protocols aligned with MBD008.
+  - Non-Destructive Dry Run: Preview converted output without mutating disk files (--dry-run).
+  - Preserves Context: Retains all human architectural descriptions, headers, and rationale intact.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/convert_epic_to_hybrid.py docs/epic/EPIC_001.md --dry-run
+  uv run python scripts/convert_epic_to_hybrid.py docs/epic/EPIC_001.md
+""",
     )
     parser.add_argument(
         "epic_path",
         type=Path,
-        help="Path to the Epic .md file to convert.",
+        help="Filesystem path to the Epic Markdown file (.md) to convert.",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Print converted output to stdout instead of overwriting the file.",
+        help="Execute in memory and print converted output to stdout without modifying the file.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     epic_path: Path = args.epic_path.resolve()
     if not epic_path.exists():

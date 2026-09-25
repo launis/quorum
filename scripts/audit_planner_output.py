@@ -24,16 +24,40 @@ from _ast_boundary_utils import (  # noqa: E402
 )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Execute the Tier 1 Planner output audit.
 
     Validates that generated plan files preserve line boundaries, target files,
     AST nodes, KI references, and rule blocks present in the original Epic.
     """
-    parser = argparse.ArgumentParser(description="Audit Tier 1 Planner Output for lossy compression.")
-    parser.add_argument("--epic", required=True, type=str, help="Path to the source Epic .md file")
-    parser.add_argument("--plan-dir", required=True, type=str, help="Directory containing the generated plans")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="""Tier 1 Planner Output Fidelity & Lossless Compression Auditor.
+
+Audits generated implementation plans against parent Epic specifications to prevent lossy compression:
+  - Line Boundary Preservation: Verifies all #Lnn-Lmm source line ranges in the Epic survive into plans.
+  - Target File Integrity: Ensures all [NEW], [MODIFY], and [DELETE] file targets are accounted for.
+  - Architectural Directive Parity: Checks preservation of AST nodes, KI references, and rule blocks.
+  - Fail-Fast Exit Semantics: Exits with 0 on complete fidelity, 1 on missing bounds or targets, 2 on syntax error.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_planner_output.py --epic docs/epic/EPIC_001.md --plan-dir docs/implementationplans/
+  uv run python scripts/audit_planner_output.py --epic docs/epic/EPIC_002.md --plan-dir docs/epic/tasks_EPIC_002/
+""",
+    )
+    parser.add_argument(
+        "--epic",
+        required=True,
+        type=str,
+        help="Path to the source Epic Markdown specification file.",
+    )
+    parser.add_argument(
+        "--plan-dir",
+        required=True,
+        type=str,
+        help="Directory containing the generated implementation plan files to audit.",
+    )
+    args = parser.parse_args(argv)
 
     epic_path = Path(args.epic)
     plan_dir = Path(args.plan_dir)
