@@ -496,32 +496,47 @@ def run_seed_vault_sanitization(seed_path: Path, dry_run: bool = False) -> Sanit
     )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for sanitize_seed_vault.py."""
-    parser = argparse.ArgumentParser(description="Sanitize and format Quorum seed_data.json vault.")
+    parser = argparse.ArgumentParser(
+        description="""Seed Vault Sanitization & Schema Normalization Engine.
+
+Automates deterministic cleanup, formatting, and verification of seed_data.json:
+  - Key Ordering: Sorts prompt blocks, scales, claims, and TDA assertions into canonical SSOT order.
+  - Whitespace Normalization: Trims leading/trailing whitespace and normalizes multiline text blocks.
+  - Automatic Backup: Creates timestamped snapshots in backend_v2/seed/backups/ prior to mutations.
+  - Post-Sanitization Verification: Optionally executes atom audits (--test) and database reseeding (--reseed).
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/sanitize_seed_vault.py --dry-run
+  uv run python scripts/sanitize_seed_vault.py --test
+  uv run python scripts/sanitize_seed_vault.py --seed-path backend_v2/seed/seed_data.json --test --reseed
+""",
+    )
     parser.add_argument(
         "--seed-path",
         type=Path,
         default=Path("backend_v2/seed/seed_data.json"),
-        help="Path to seed_data.json file.",
+        help="Filesystem path to seed_data.json (default: backend_v2/seed/seed_data.json).",
     )
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Perform all validations without persisting changes to disk.",
+        help="Execute sanitization in memory without persisting changes or writing backups to disk.",
     )
     parser.add_argument(
         "--reseed",
         action="store_true",
-        help="Trigger local database wipe and re-seed after sanitization.",
+        help="Trigger local database wipe and re-seed after successful sanitization.",
     )
     parser.add_argument(
         "--test",
         action="store_true",
-        help="Run audit_database_atoms.py and flutter parity test after sanitization.",
+        help="Execute audit_database_atoms.py --strict and Flutter parity tests after sanitization.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     print(f"[Sanitizer] Starting Seed Vault Sanitization on '{args.seed_path}' (dry_run={args.dry_run})...")
     result = run_seed_vault_sanitization(args.seed_path, dry_run=args.dry_run)

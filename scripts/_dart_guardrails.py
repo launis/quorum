@@ -299,17 +299,34 @@ def format_dart_violations_table(violations: Sequence[DartViolation]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point for Dart guardrail engine."""
-    parser = argparse.ArgumentParser(description="Quorum Dart Codebase Guardrails Engine")
+    parser = argparse.ArgumentParser(
+        description="""Client-Side Static Dart Guardrail Analyzer (DGR001-DGR004).
+
+Enforces Flutter client architecture and static type safety invariants:
+  DGR001: Banned dynamic / Object? Loose Typing in Model Signatures (FATAL)
+  DGR002: Hardcoded Finnish Strings Ban - Strict ARB Localization Mandate (WARNING)
+  DGR003: Raw Map Indexing & Untyped Deserialization Ban (WARNING)
+  DGR004: Production print() / debugPrint() Logging Ban (WARNING)
+
+Immunity: Generated files (*.g.dart, *.freezed.dart) are automatically exempted.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/_dart_guardrails.py client_app_v2/lib
+  uv run python scripts/_dart_guardrails.py client_app_v2/lib/features/studio/ --strict
+  uv run python scripts/_dart_guardrails.py client_app_v2/lib/features/execution/models/
+""",
+    )
     parser.add_argument(
         "targets",
         nargs="*",
         default=["client_app_v2/lib"],
-        help="Target Dart files or directories to scan (default: client_app_v2/lib)",
+        help="Target Dart files or directories to scan (default: client_app_v2/lib).",
     )
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Treat all violations as FATAL and return exit code 1",
+        help="Treat all violations (including warnings) as FATAL and return exit code 1.",
     )
     args = parser.parse_args(argv)
 

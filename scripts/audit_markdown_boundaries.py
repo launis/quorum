@@ -556,11 +556,35 @@ class MarkdownAuditor:
                             )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for markdown boundaries auditor."""
-    parser = argparse.ArgumentParser(description="Audit Markdown files for architectural boundaries.")
-    parser.add_argument("--file", type=str, required=True, help="Path to the markdown file to audit.")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="""Architectural Markdown Boundary & Implementation Plan Gate (MBD001-MBD009).
+
+Statically audits Markdown implementation plans and Epics against physical codebase invariants:
+  MBD001: Anti-Ambiguity Detection (bans open-ended lists: e.g., etc., such as)
+  MBD002: XML Codeblock Completeness & Truncation Check
+  MBD003: AST Line Bound Verification for [MODIFY] Targets
+  MBD004: Python Class & Symbol Existence Check
+  MBD005: Pydantic Settings Attribute Verification
+  MBD006: Enum Member Existence Verification
+  MBD007: Unmatched Code Fence & Language Tag Parity
+  MBD008: Table-Protocol Bidirectional Parity Verification
+  MBD009: Non-Existent Target Path Detection
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_markdown_boundaries.py --file docs/implementationplans/MY_PLAN.md
+  uv run python scripts/audit_markdown_boundaries.py --file docs/epic/EPIC_XXX.md
+""",
+    )
+    parser.add_argument(
+        "--file",
+        type=str,
+        required=True,
+        help="Path to the Markdown file (plan, tracker, or Epic) to audit.",
+    )
+    args = parser.parse_args(argv)
 
     file_path = Path(args.file)
     if not file_path.exists():

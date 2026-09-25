@@ -409,9 +409,8 @@ def test_audit_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert report.all_passed is True
 
     # Test main() with clean file
-    monkeypatch.setattr("sys.argv", ["audit_database_atoms.py", "--seed-path", str(clean_file), "--strict"])
     with pytest.raises(SystemExit) as exc_info:
-        main()
+        main(["--seed-path", str(clean_file), "--strict"])
     assert exc_info.value.code == 0
 
     # 2. Corrupted file
@@ -426,10 +425,21 @@ def test_audit_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     corrupt_file = tmp_path / "corrupt_seed.json"
     corrupt_file.write_text(json.dumps(corrupt_data), encoding="utf-8")
 
-    monkeypatch.setattr("sys.argv", ["audit_database_atoms.py", "--seed-path", str(corrupt_file), "--strict"])
+    # Corrupted with --strict exits with code 1
     with pytest.raises(SystemExit) as exc_info:
-        main()
+        main(["--seed-path", str(corrupt_file), "--strict"])
     assert exc_info.value.code == 1
+
+    # Corrupted without --strict exits with code 0
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--seed-path", str(corrupt_file)])
+    assert exc_info.value.code == 0
+
+    # Non-existent seed file exits with code 1
+    with pytest.raises(SystemExit) as exc_info:
+        main(["--seed-path", str(tmp_path / "does_not_exist.json")])
+    assert exc_info.value.code == 1
+
 
 
 def test_audit_zero_reflection() -> None:
@@ -446,3 +456,24 @@ def test_audit_zero_reflection() -> None:
                 banned_calls.append(node.func.id)
 
     assert len(banned_calls) == 0, f"Found reflection calls {banned_calls} in audit_database_atoms.py."
+
+
+def test_helper_empty_string_handling() -> None:
+    """Ensure empty strings return None/False safely across string checking helpers."""
+    from scripts.audit_database_atoms import (
+        _check_ambiguity_patterns,
+        _check_backend_leak_patterns,
+        _check_institution_overfit,
+        _check_screaming_imperatives,
+        _check_toy_domain_leak,
+        _contains_raw_xml,
+    )
+
+    assert _contains_raw_xml("") is False
+    assert _check_screaming_imperatives("") is None
+    assert _check_ambiguity_patterns("") is None
+    assert _check_backend_leak_patterns("") is None
+    assert _check_institution_overfit("") is None
+    assert _check_toy_domain_leak("") is None
+
+

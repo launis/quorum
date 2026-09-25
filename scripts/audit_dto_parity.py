@@ -351,13 +351,41 @@ def audit_parity(backend_dir: Path, frontend_dir: Path) -> tuple[bool, list[str]
     return report.is_success, report.summary_messages
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI Entrypoint for DTO parity auditing."""
-    parser = argparse.ArgumentParser(description="Audit field-level parity between Backend and Frontend DTOs.")
-    parser.add_argument("--backend-dir", default="backend_v2/models", help="Backend models directory")
-    parser.add_argument("--frontend-dir", default="client_app_v2/lib", help="Frontend lib directory")
-    parser.add_argument("--fail-on-mismatch", action="store_true", default=True, help="Exit with 1 on mismatch")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(
+        description="""Cross-Domain DTO Model & Field Parity Gate.
+
+Verifies 1:1 structural and naming parity between Backend Pydantic V2 DTOs and Flutter Dart Freezed models:
+  - Model Name Alignment: Matches Python DTO classes to corresponding Dart Freezed models.
+  - Field Naming Parity: Verifies snake_case Python fields map to camelCase Dart fields or explicit @JsonKey annotations.
+  - Type Parity: Flags missing, extraneous, or mismatched property definitions across boundaries.
+  - Exit Code Semantics: Exits with 0 when models are aligned, 1 on mismatch (if fail-on-mismatch), or 2 on syntax error.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_dto_parity.py
+  uv run python scripts/audit_dto_parity.py --backend-dir backend_v2/models/dtos --frontend-dir client_app_v2/lib/features
+  uv run python scripts/audit_dto_parity.py --no-fail-on-mismatch
+""",
+    )
+    parser.add_argument(
+        "--backend-dir",
+        default="backend_v2/models",
+        help="Backend models root directory to scan (default: backend_v2/models).",
+    )
+    parser.add_argument(
+        "--frontend-dir",
+        default="client_app_v2/lib",
+        help="Frontend lib root directory to scan (default: client_app_v2/lib).",
+    )
+    parser.add_argument(
+        "--fail-on-mismatch",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Exit with code 1 if any field parity mismatches are detected (default: True).",
+    )
+    args = parser.parse_args(argv)
 
     b_dir = Path(args.backend_dir).resolve()
     f_dir = Path(args.frontend_dir).resolve()

@@ -162,18 +162,10 @@ MECHANICAL_COUNTING_PATTERNS: list[str] = [
     "scan the paragraph",
 ]
 
-AMBIGUITY_REGEX: re.Pattern[str] = re.compile(
-    r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.IGNORECASE
-)
-BACKEND_LEAK_REGEX: re.Pattern[str] = re.compile(
-    r"\b(pydantic|backend architecture|pydantic hooks)\b", re.IGNORECASE
-)
-INSTITUTION_OVERFIT_REGEX: re.Pattern[str] = re.compile(
-    r"\b(stanford|työterveyslaitos)\b", re.IGNORECASE
-)
-TOY_DOMAIN_REGEX: re.Pattern[str] = re.compile(
-    r"\b(postgresql|sqlite|mongodb)\b", re.IGNORECASE
-)
+AMBIGUITY_REGEX: re.Pattern[str] = re.compile(r"\b(?:e\.g\.|i\.e\.|etc\.|etc|such as)(?!\w)", re.IGNORECASE)
+BACKEND_LEAK_REGEX: re.Pattern[str] = re.compile(r"\b(pydantic|backend architecture|pydantic hooks)\b", re.IGNORECASE)
+INSTITUTION_OVERFIT_REGEX: re.Pattern[str] = re.compile(r"\b(stanford|työterveyslaitos)\b", re.IGNORECASE)
+TOY_DOMAIN_REGEX: re.Pattern[str] = re.compile(r"\b(postgresql|sqlite|mongodb)\b", re.IGNORECASE)
 
 
 def _contains_raw_xml(text: str) -> bool:
@@ -1133,22 +1125,38 @@ def print_audit_report(report: FullDatabaseAuditReport) -> None:
             print()
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """CLI entrypoint for full database prompt verification."""
-    parser = argparse.ArgumentParser(description="Audit Quorum database prompt collections.")
+    parser = argparse.ArgumentParser(
+        description="""Comprehensive Database Atom & Prompt Audit Gate.
+
+Statically verifies database invariants across all prompt collections in seed_data.json:
+  - Atom Uniqueness: Ensures zero duplicate TDA/Claim/Scale/Block IDs.
+  - Scale Bound Conformance: Derives min/max levels strictly from scale arrays without hardcoding.
+  - Schema Conformance: Validates prompt blocks against Pydantic V2 domain models with extra='forbid'.
+  - Linguistic Neutrality: Enforces English system language and detects ambiguous tokens.
+  - Referential Integrity: Checks cross-references between workflows, steps, and prompt blocks.
+""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""Examples (PowerShell):
+  uv run python scripts/audit_database_atoms.py
+  uv run python scripts/audit_database_atoms.py --strict
+  uv run python scripts/audit_database_atoms.py --seed-path backend_v2/seed/seed_data.json --strict
+""",
+    )
     parser.add_argument(
         "--seed-path",
         type=str,
         default="backend_v2/seed/seed_data.json",
-        help="Path to seed_data.json file (default: backend_v2/seed/seed_data.json)",
+        help="Filesystem path to seed_data.json (default: backend_v2/seed/seed_data.json).",
     )
     parser.add_argument(
         "--strict",
         action="store_true",
-        help="Exit with non-zero exit code if any violations are detected.",
+        help="Enforce strict mode: exit with code 1 if any advisory warnings or violations are detected.",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     seed_path = Path(args.seed_path)
 
     if not seed_path.exists():
