@@ -96,6 +96,12 @@ description: Tier 0 (Research & Analysis) - Deep System 2 analysis and red-teami
 
     <step id="6" name="PLAN MUTATION &amp; ARTIFACT PERSISTENCE (WRITE SAFETY)">
       <action>Update target `[implementation_plan]` using `multi_replace_file_content` (full `write_to_file` strictly forbidden). Inject 5-Column Directives Table, AST-exact line bounds (#Lnn-mm spanning complete Class/Function definitions), and `Phase 1: Pre-Implementation Cleanups` containing all discovered technical debt. If major architectural shift occurred, update parent `docs/epic/EPIC_XXX.md`.</action>
+      <constraint name="TABLE_PROTOCOL_RECONCILIATION_GATE">
+        BIDIRECTIONAL PARITY ENFORCEMENT: Every target file, component, or anti-pattern codified in Column 1 and Column 2 of the 5-Column Directives Table MUST have an explicit, actionable &lt;action&gt; tag in the corresponding &lt;step id="..."&gt; of &lt;execution_protocol&gt;. It is STRICTLY FORBIDDEN to record an architectural cleanup in the table without a corresponding execution instruction.
+        DETERMINISTIC VERIFICATION: Immediately after updating the plan, you MUST run:
+        `uv run python scripts/audit_markdown_boundaries.py --file [plan_path]`
+        If rule MBD008 fails, you MUST resolve the gap before completing Tier 0.
+      </constraint>
       <action name="MANDATORY_TRACKER_HANDOVER_SYNC">
         DUAL-MODE HANDOVER SYNCHRONIZATION:
         1) If an Epic Tracker document exists (e.g. `docs/epic/EPIC_XXX_tracker.md`), you MUST unconditionally update its `# Session Handover Context` (Achieved, Learned, Remaining) and set `Resume Command` to `/tier2-execute @[plan_file.md] @[docs/epic/EPIC_XXX_tracker.md]` (ALWAYS passing BOTH the target plan and the tracker file).

@@ -14,6 +14,12 @@ import re
 import sys
 from enum import StrEnum
 from pathlib import Path
+
+# Add scripts directory to sys.path if not present
+scripts_dir = Path(__file__).resolve().parent
+if str(scripts_dir) not in sys.path:
+    sys.path.insert(0, str(scripts_dir))
+
 from typing import Annotated
 
 from _ast_guardrails import scan_source_code_for_guardrails
@@ -128,6 +134,7 @@ class MarkdownAuditor:
         self.check_settings_validation()
         self.check_enum_validation()
         self.check_embedded_python_code_blocks()
+        self.check_table_protocol_parity()
 
         if exit_on_completion:
             if self.findings:
@@ -478,6 +485,75 @@ class MarkdownAuditor:
                     severity=severity,
                     remediation=v.remediation,
                 )
+
+    def check_table_protocol_parity(self) -> None:
+        """Verify that all target files in 5-Column Directives Table have corresponding <action> tags in <execution_protocol>."""
+        exec_match = re.search(r"<execution_protocol>([\s\S]*?)</execution_protocol>", self.content)
+        if not exec_match:
+            return
+
+        protocol_content = exec_match.group(1)
+        target_pattern = re.compile(r"@\[([^#\]]+)(?:#[^\]]+)?\]")
+        action_backtick_pattern = re.compile(r"`([a-zA-Z0-9_./\\-]+\.(?:py|dart|arb|json|yaml|yml))`")
+
+        # Extract all files targeted in <action> tags
+        protocol_files: set[str] = set()
+        action_matches = re.findall(r"<action>([\s\S]*?)</action>", protocol_content)
+        for action_text in action_matches:
+            for match in target_pattern.finditer(action_text):
+                raw = match.group(1).strip().strip("`").strip("@").strip("[").strip("]").split("#")[0].strip()
+                if raw:
+                    protocol_files.add(Path(raw).as_posix())
+            for match in action_backtick_pattern.finditer(action_text):
+                raw = match.group(1).strip()
+                if raw:
+                    protocol_files.add(Path(raw).as_posix())
+
+        table_header_pattern = re.compile(r"\|\s*(?:\d+\.\s*)?Target Scope", re.IGNORECASE)
+        in_table = False
+
+        for i, line in enumerate(self.lines):
+            stripped = line.strip()
+            if table_header_pattern.search(line) and stripped.startswith("|"):
+                in_table = True
+                continue
+
+            if in_table:
+                if not stripped.startswith("|"):
+                    in_table = False
+                    continue
+
+                # Skip markdown table divider line (e.g. | :--- | :--- |)
+                if re.match(r"^\|(?:\s*:?-+:?\s*\|)+$", stripped):
+                    continue
+
+                parts = line.split("|")
+                if len(parts) > 1:
+                    col1 = parts[1]
+                    for match in target_pattern.finditer(col1):
+                        raw_target = (
+                            match.group(1).strip().strip("`").strip("@").strip("[").strip("]").split("#")[0].strip()
+                        )
+                        if not raw_target:
+                            continue
+                        if raw_target.startswith("ki_") and raw_target.endswith(".md"):
+                            continue
+                        norm_target = Path(raw_target).as_posix()
+                        if norm_target not in protocol_files:
+                            self._add_finding(
+                                line_number=i + 1,
+                                rule_code="MBD008",
+                                category="Table-Protocol Parity",
+                                message=(
+                                    f"Table-Protocol Parity Mismatch: Target file '{norm_target}' declared in "
+                                    f"Directives Table has no corresponding <action> in <execution_protocol>."
+                                ),
+                                severity=GuardrailSeverity.FATAL,
+                                remediation=(
+                                    f"Add an explicit <action> tag in <execution_protocol> targeting '{norm_target}' "
+                                    f"to execute the directive."
+                                ),
+                            )
 
 
 def main() -> None:

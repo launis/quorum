@@ -191,6 +191,9 @@ description: Tier 0 (Epic Analysis) - Deep System 2 analysis, validation, and re
         | :--- | :--- | :--- | :--- | :--- |
         | **[Target File / Interface / Layer]** | *[Banned duct-tape, lazy fallbacks (`.get()`, `or`), or silent error suppression (`except: pass`)]* | *[Mandatory approved invariant, Pydantic V2 / Freezed schema, or sovereign Fail-Fast implementation]* | *[Pruned unnecessary abstractions, excessive DTO wrappers, or speculative generic factories]* | *[How Fail-Fast is mathematically proven: exact unit test, exception type, or quality gate command]* |
       </action>
+      <constraint name="SUNSET_PHASE_PARITY_GATE">
+        Every target file, symbol, or deletion specified in Chapter 2 ("Destructive Operation Inventory &amp; Sunset List") and Column 1 of the 5-Column Directives Table MUST be explicitly allocated to a concrete Phase deliverable in the Chapter 3 Phased Execution Breakdown. No architectural deletion or refactoring target may exist in the table without a scheduled execution phase.
+      </constraint>
     </step>
 
     <step id="5" name="EPIC MUTATION &amp; AUDIT ARTIFACT PERSISTENCE (WRITE SAFETY)">

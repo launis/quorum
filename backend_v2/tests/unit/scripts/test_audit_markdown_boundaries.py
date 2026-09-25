@@ -449,6 +449,96 @@ def test_markdown_auditor_main_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert exc_info2.value.code == 1
 
 
+def test_markdown_auditor_table_protocol_parity_clean(tmp_path: Path) -> None:
+    """Test that full parity between 5-Column Directives Table and execution_protocol passes cleanly."""
+    plan_md = tmp_path / "clean_plan.md"
+    plan_md.write_text(
+        "| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape | 3. Best Practice | 4. Pruned Over-Engineering | 5. Verification |\n"
+        "| :--- | :--- | :--- | :--- | :--- |\n"
+        "| **State**<br>@[backend_v2/models/state.py#L10-L20] | No duct-tape | Pydantic V2 | Pruned | Tests |\n"
+        "| **Context**<br>@[backend_v2/services/context.py] | No duct-tape | Strict DTO | Pruned | Tests |\n"
+        "\n"
+        "<execution_protocol>\n"
+        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        "    <action>In @[backend_v2/models/state.py#L10-L20], update model.</action>\n"
+        "    <action>In @[backend_v2/services/context.py], harden context.</action>\n"
+        "  </step>\n"
+        "</execution_protocol>\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(plan_md), str(tmp_path))
+    auditor.check_table_protocol_parity()
+    findings = [f for f in auditor.findings if f.rule_code == "MBD008"]
+    assert findings == []
+
+
+def test_markdown_auditor_table_protocol_parity_mismatch(tmp_path: Path) -> None:
+    """Test that a file declared in Directives Table but missing in execution_protocol triggers MBD008 FATAL."""
+    plan_md = tmp_path / "mismatch_plan.md"
+    plan_md.write_text(
+        "| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape | 3. Best Practice | 4. Pruned Over-Engineering | 5. Verification |\n"
+        "| :--- | :--- | :--- | :--- | :--- |\n"
+        "| **State**<br>@[backend_v2/models/state.py#L10-L20] | No duct-tape | Pydantic V2 | Pruned | Tests |\n"
+        "| **Context Builder**<br>@[backend_v2/services/orchestrator/context_builder.py#L98-L101] | Banned del | Immutable dump | Pruned | Tests |\n"
+        "\n"
+        "<execution_protocol>\n"
+        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        "    <action>In @[backend_v2/models/state.py#L10-L20], update model.</action>\n"
+        "  </step>\n"
+        "</execution_protocol>\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(plan_md), str(tmp_path))
+    auditor.check_table_protocol_parity()
+    findings = [f for f in auditor.findings if f.rule_code == "MBD008"]
+    assert len(findings) == 1
+    assert findings[0].rule_code == "MBD008"
+    assert findings[0].severity == GuardrailSeverity.FATAL
+    assert findings[0].category == "Table-Protocol Parity"
+    assert "backend_v2/services/orchestrator/context_builder.py" in findings[0].message
+    assert findings[0].line_number == 4
+
+
+def test_markdown_auditor_table_protocol_parity_skips_without_execution_protocol(tmp_path: Path) -> None:
+    """Test that documents without <execution_protocol> cleanly skip table-protocol parity check."""
+    doc_md = tmp_path / "epic.md"
+    doc_md.write_text(
+        "| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape | 3. Best Practice | 4. Pruned Over-Engineering | 5. Verification |\n"
+        "| :--- | :--- | :--- | :--- | :--- |\n"
+        "| **State**<br>@[backend_v2/models/state.py] | Banned duct-tape | Pydantic V2 | Pruned | Tests |\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(doc_md), str(tmp_path))
+    auditor.check_table_protocol_parity()
+    findings = [f for f in auditor.findings if f.rule_code == "MBD008"]
+    assert findings == []
+
+
+def test_markdown_auditor_table_protocol_parity_ignores_ki_files(tmp_path: Path) -> None:
+    """Test that Knowledge Item references in Directives Table are ignored and not flagged as missing code actions."""
+    plan_md = tmp_path / "ki_plan.md"
+    plan_md.write_text(
+        "| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape | 3. Best Practice | 4. Pruned Over-Engineering | 5. Verification |\n"
+        "| :--- | :--- | :--- | :--- | :--- |\n"
+        "| **State**<br>@[backend_v2/models/state.py]<br>@[ki_sdui_matrix_synthesis.md] | Banned duct-tape | Pydantic V2 | Pruned | Tests |\n"
+        "\n"
+        "<execution_protocol>\n"
+        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        "    <action>In @[backend_v2/models/state.py], update state.</action>\n"
+        "  </step>\n"
+        "</execution_protocol>\n",
+        encoding="utf-8",
+    )
+
+    auditor = MarkdownAuditor(str(plan_md), str(tmp_path))
+    auditor.check_table_protocol_parity()
+    findings = [f for f in auditor.findings if f.rule_code == "MBD008"]
+    assert findings == []
+
+
 def test_markdown_auditor_zero_reflection_compliance() -> None:
     """Verify scripts/audit_markdown_boundaries.py contains zero getattr/hasattr calls."""
     script_path = Path("scripts/audit_markdown_boundaries.py").resolve()
