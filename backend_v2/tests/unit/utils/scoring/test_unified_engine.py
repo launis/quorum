@@ -221,3 +221,29 @@ def test_unified_scoring_engine_negative_scale_range() -> None:
     stats_zero = {1.0: LevelStatsDTO(hits=0, total=10, dlqs=0)}
     res_min = engine.calculate(stats=stats_zero, math_min=-5.0, math_max=5.0, strictness_level=50)
     assert abs(res_min.score - (-5.0)) < 1e-6
+
+
+def test_unified_scoring_engine_xai_log_stats_key_stringification() -> None:
+    """Regression test: verify XAILogDto.engine_debug_trace stats keys are strictly valid strings.
+
+    When stats mapping contains float keys (e.g. 1.0, 2.0), engine_debug_trace['stats']
+    must stringify keys (e.g. '1.0', '2.0') to satisfy Pydantic JsonValue string-key validation.
+    """
+    engine = UnifiedScoringEngine()
+    stats = {
+        1.0: LevelStatsDTO(hits=5, total=10, dlqs=0),
+        2.0: LevelStatsDTO(hits=8, total=10, dlqs=0),
+        3.0: LevelStatsDTO(hits=2, total=5, dlqs=1),
+    }
+
+    result = engine.calculate(stats=stats, math_min=1.0, math_max=5.0, strictness_level=50)
+
+    trace = result.xai_log.engine_debug_trace
+    assert "stats" in trace
+    assert isinstance(trace["stats"], dict)
+    for key, val in trace["stats"].items():
+        assert isinstance(key, str)
+        assert isinstance(val, dict)
+        assert "hits" in val
+        assert "total" in val
+

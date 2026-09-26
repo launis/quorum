@@ -112,7 +112,7 @@ class UnifiedScoringEngine(ScoringEngineProtocol):
             "exponent": exponent,
             "linear_ratio": ratio,
             "curved_ratio": curved_ratio,
-            "stats": {k: v.model_dump() for k, v in stats.items()},
+            "stats": {str(k): v.model_dump() for k, v in stats.items()},
             "log_trace": log_lines,
         }
 
