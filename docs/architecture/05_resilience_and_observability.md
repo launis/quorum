@@ -53,10 +53,14 @@ External tool interactions (such as web search queries, information retrieval op
 
 State progression adheres to an append-only ledger model: historical execution traces, step states, and tool audit logs are never modified in-place. State transitions produce new immutable snapshots, establishing a continuous, tamper-evident audit trail that supports explainable AI principles and satisfies international record-keeping standards. Audit traces are transformed into interactive Server-Driven UI components through dedicated presentation adapters, providing users and auditors with transparent fact-checking logs and evidentiary receipts.
 
-### 2.9. Centralized Telemetry, Token Tracking & Multi-Tier Usage Accounting
-Every model invocation, background process, and computational task records operational telemetry into centralized monitoring pipelines. Telemetry captures prompt tokens, completion tokens, cached tokens, cache creation tokens, reasoning tokens, execution duration, and provider costs.
-
-Token pricing calculations resolve rates strictly from an authoritative, centralized model pricing registry, eliminating decentralized pricing dictionaries and ad-hoc calculations. Usage records undergo automatic multi-tier cumulative aggregation, maintaining real-time and all-time consumption totals at the root system level, tenant organization level, and individual user level. Telemetry context filters inject unique execution and request identifiers into all log records, enabling continuous end-to-end tracing across asynchronous queues and API boundaries.
+### 2.9. Centralized Telemetry, Distributed Tracing & Multi-Tier FinOps Accounting
+Every model invocation, background process, and computational task records operational telemetry into centralized monitoring and tracing pipelines through standard OpenTelemetry (OTel) and Pydantic Logfire instrumentation:
+- **W3C Trace Context Propagation**: Distributed trace context conforms to W3C Trace Context specifications (`traceparent`, `tracestate`). Telemetry context is injected at API ingress, encapsulated within strict serialization carriers with cross-platform parity between backend and client models, and propagated across asynchronous message queues into background worker processes.
+- **Resilient Worker Context Attachment**: Worker execution attaches trace context to running coroutines using deterministic detachment tokens that release context upon task completion, preventing context leakage across recycled event loop tasks. If an execution record lacks trace context, the worker initializes an orphan root span with explicit orphan flags, preserving observability without failing execution.
+- **Hierarchical Span Architecture**: Workflow execution forms an acyclic span hierarchy: a root orchestration span encapsulates the workflow, child spans track individual node executions with RFC 7807 problem details and exception recording on failure, and nested child spans trace domain sub-engines, semantic atomization, consensus evaluation, and qualitative synthesis.
+- **GenAI Semantic Conventions & Cache Telemetry**: Outbound foundational model interactions adhere to OpenTelemetry GenAI Semantic Conventions, capturing prompt tokens, completion tokens, cached tokens, reasoning tokens, and physical model identifiers. Context cache hits record explicit cache hit attributes on active spans. External tool calls (such as search and information retrieval) record tool identifiers, execution steps, and timeout boundaries.
+- **Structured Log Correlation**: Log formatting engines automatically extract active trace and span identifiers from the execution context, injecting them into structured JSON logs for end-to-end correlation between distributed trace trees and operational logging.
+- **Multi-Tier FinOps Accounting**: Token pricing calculations resolve rates strictly from an authoritative, centralized model pricing registry, eliminating decentralized pricing dictionaries and ad-hoc calculations. Usage records undergo automatic multi-tier cumulative aggregation, maintaining real-time and all-time consumption totals at the root system level, tenant organization level, and individual user level.
 
 ### 2.10. Typed High-Throughput Caching & Auto-Eviction
 High-frequency intermediate states and model structures utilize typed caching with native JSON deserialization directly into immutable domain models. The cache layer operates under an auto-eviction firewall: if cached data fails schema validation or becomes incompatible following schema updates, the corrupted cache key is immediately purged from the cache store and a cache miss is returned. This prevents poisoned or stale data from propagating through downstream processing pipelines.
@@ -78,14 +82,15 @@ Architectural invariants and coding standards are statically enforced at build a
 - Ban on UI component concealment via empty box placeholders (DGR002).
 - Enforcement of compile-time localization for client UI text (DGR003).
 - Prohibition of unauthorized linter suppressions in handwritten client code (DGR004).
+- Elimination of ad-hoc prompt file loggers, enforcing centralized OpenTelemetry instrumentation (QGR021).
 
 In cognitive processing, evidentiary quotes are strictly validated against source texts using exact lexical matching and XML entity escaping, guaranteeing evidentiary integrity and eliminating quote hallucination.
 
-### 2.13. Local Debug Prompt Logging, Context Preservation & Event-Loop File Locking
-During local development and diagnostic inspection, LLM task executions record deterministic markdown prompt traces into local execution artifact directories:
-- **Structured Sub-Engine Auditing**: Primary tasks and sub-engine operations (including parallel Best-of-Three ensemble calls and Phase 0 atomizers) log the static system instructions, theory context prefix, CDATA user payloads, attempt numbers, and expected schema definitions.
-- **Parent Context Preservation**: When sub-engine tasks pass sub-task tags (`validation_context={"sub_task": "..."}`), the execution pipeline merges caller parameters with default validation context (`{**(default or {}), **(caller or {})}`), ensuring parent `execution_id` and `step_id` persist unbroken across child task dispatches.
-- **Event-Loop Asynchronous File-Locking (`_get_debug_file_lock`)**: All debug logger operations are asynchronous and serialized under an event-loop-bound lazy `asyncio.Lock()`. When parallel sub-engine tasks run concurrently inside `asyncio.TaskGroup`, the lock serializes file appends to eliminate Windows file collision crashes (`WinError 32: PermissionError`), guaranteeing loss-free trace persistence across multi-task evaluations.
+### 2.13. Bounded Diagnostic Trace Snapshots & Forensic Error Fingerprinting
+For local diagnostic inspection and automated failure analysis, the telemetry pipeline exports bounded execution trace snapshots:
+- **Context Window Protection**: Diagnostic snapshots are exported to dedicated local trace files, strictly capped at a maximum span count and file size budget (<20 KB). This budget cap protects automated analysis agents from context window exhaustion during troubleshooting.
+- **Deterministic Error Fingerprints**: Trace exporters synthesize a deterministic error fingerprint extracting root causes, exception types, and failed node identifiers directly from the span tree, enabling instant root cause identification without scraping unstructured text logs.
+- **Ad-Hoc Logging Eradication**: Ad-hoc filesystem debug loggers and manual event-loop file locking are completely eliminated from the architecture and statically banned by codebase AST guardrails, ensuring all operational diagnostics flow through standard, structured telemetry channels.
 
 ### 2.14. Lightweight Polling Resilience & Regulatory Record-Keeping
 Operational monitoring and status streaming incorporate resilient polling and regulatory compliance controls:
@@ -96,25 +101,29 @@ Operational monitoring and status streaming incorporate resilient polling and re
 ## 3. Logical Data Flow
 ```mermaid
 flowchart TD
-    A[Task Execution Ingress] --> B[DLP & Privacy Inspection]
-    B --> C{Structured Concurrency & Concurrency Limiters}
-    C --> D[External Model / Tool Invocation]
+    A[Task Execution Ingress] --> B[W3C Trace Context Injection]
+    B --> C[DLP & Privacy Inspection]
+    C --> D{Structured Concurrency & Concurrency Limiters}
+    D --> E[Worker Root Span & use_trace_context Attachment]
+    E --> F[DAG Orchestration & Node-Level Child Spans]
+    F --> G[External Model / Tool Invocation & GenAI Conventions]
     
-    D -- Network / 503 / 429 Error --> E[Recursive Transient Error Detector]
-    E -- Transient Error & Retries Remaining --> F[Exponential Backoff Queue with Jitter]
-    F --> D
-    E -- Permanent Error or Retries Exhausted --> G[Dead Letter Queue & Fail-Fast]
+    G -- Network / 503 / 429 Error --> H[Recursive Transient Error Detector]
+    H -- Transient Error & Retries Remaining --> I[Exponential Backoff Queue with Jitter]
+    I --> G
+    H -- Permanent Error or Retries Exhausted --> J[Dead Letter Queue & Span Error Recording]
     
-    D -- Success Response --> H{Schema Validation}
-    H -- Schema Validation Error & Retries Remaining --> I[Targeted Error Reflection Loop]
-    I --> D
-    H -- Validation Failed & Retries Exhausted --> G
+    G -- Success Response --> K{Schema Validation}
+    K -- Schema Validation Error & Retries Remaining --> L[Targeted Error Reflection Loop]
+    L --> G
+    K -- Validation Failed & Retries Exhausted --> J
     
-    H -- Valid Payload --> J[Sentence-Boundary Budgeting]
-    J --> K[Immutable State Snapshot & Append-Only Ledger]
-    K --> L[Telemetry & Usage Accounting]
-    K --> M[Typed Cache Persistence]
+    K -- Valid Payload --> M[Sentence-Boundary Budgeting]
+    M --> N[Immutable State Snapshot & Append-Only Ledger]
+    N --> O[Telemetry, Logfire & FinOps Usage Accounting]
+    N --> P[Bounded Diagnostic Trace Snapshot Exporter]
+    N --> Q[Typed Cache Persistence]
     
-    G --> N[Dual-Reporting & RFC 7807 Logging]
-    N --> O[Client-Side Diagnostic Error Boundary]
+    J --> R[Dual-Reporting & RFC 7807 Correlated Logging]
+    R --> S[Client-Side Diagnostic Error Boundary]
 ```
