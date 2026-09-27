@@ -102,7 +102,7 @@ async def test_lifespan_production_redis_failure(monkeypatch: pytest.MonkeyPatch
     monkeypatch.delenv("PYTEST_CURRENT_TEST", raising=False)
     monkeypatch.setattr(b_main, "create_pool", AsyncMock(side_effect=ConnectionError("Redis down")))
     monkeypatch.setattr(b_main, "setup_logging", MagicMock())
-    monkeypatch.setattr(b_main, "configure_logfire", MagicMock())
+    monkeypatch.setattr(b_main, "configure_telemetry", MagicMock())
     monkeypatch.setattr(b_main, "_validate_database_preflight", MagicMock())
     test_app = FastAPI()
     with pytest.raises(ConnectionError):

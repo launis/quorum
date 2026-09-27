@@ -12,7 +12,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import opentelemetry.context as otel_context
 import opentelemetry.trace as trace
@@ -255,20 +255,33 @@ class LocalTraceSnapshotExporter(SpanExporter):
         return True
 
 
-def configure_telemetry(settings: Settings, service_name_override: str | None = None) -> None:
+def configure_telemetry(
+    settings: Settings,
+    service_name_override: str | None = None,
+    app: Any | None = None,
+) -> None:
     """Configures centralized OpenTelemetry and Logfire distributed tracing.
 
     Enforces strict idempotency via global _TELEMETRY_CONFIGURED guard.
     Provisions a zero-overhead NoOpTracerProvider when otel_enabled is False.
     Consolidates built-in Logfire instrumentations (Pydantic, HTTPX, Requests,
-    System Metrics, LiteLLM, MCP) with zero duplicate initialization.
+    System Metrics, LiteLLM, MCP, FastAPI) with zero duplicate initialization.
 
     Args:
         settings: Application Settings containing OpenTelemetry configuration.
         service_name_override: Optional logical service name override.
+        app: Optional FastAPI application instance for framework instrumentation.
     """
     global _TELEMETRY_CONFIGURED
     if _TELEMETRY_CONFIGURED:
+        if app is not None and settings.logfire_token:
+            try:
+                import logfire
+
+                logfire.instrument_fastapi(app)
+            except Exception as e:
+                logger.error("Failed to instrument FastAPI with Logfire: %s", e)
+                raise
         return
     _TELEMETRY_CONFIGURED = True
 
@@ -297,6 +310,8 @@ def configure_telemetry(settings: Settings, service_name_override: str | None = 
             logfire.instrument_system_metrics()
             logfire.instrument_litellm()
             logfire.instrument_mcp()
+            if app is not None:
+                logfire.instrument_fastapi(app)
             logger.info("Configured Pydantic Logfire cloud distributed tracing for %s", service_name)
         except (RuntimeError, ValueError, TypeError, AttributeError, ImportError, OSError) as e:
             logger.warning("Failed to configure Logfire cloud telemetry: %s", e)

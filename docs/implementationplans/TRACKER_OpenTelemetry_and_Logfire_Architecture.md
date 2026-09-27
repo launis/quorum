@@ -20,7 +20,7 @@
   - [x] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
   - [x] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
   - [x] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
-  - [ ] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
+  - [x] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
   - [ ] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
   - [ ] Step 8: AUTOMATED_TESTING_AND_AST_GUARDRAILS
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
@@ -29,8 +29,8 @@
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend files:
   - [x] @[backend_v2/settings.py]
-  - [ ] @[backend_v2/logging_config.py]
-  - [ ] @[backend_v2/main.py]
+  - [x] @[backend_v2/logging_config.py]
+  - [x] @[backend_v2/main.py]
   - [x] @[backend_v2/core/telemetry.py]
   - [x] @[backend_v2/models/dtos/telemetry.py]
   - [x] @[backend_v2/models/execution_core.py]
@@ -46,7 +46,7 @@
   - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/llm_task_executor.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
-  - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
+  - [x] @[backend_v2/utils/finops_trace_analyzer.py]
   - [ ] @[scripts/_ast_guardrails.py]
   - [ ] @[scripts/backend_audit_loop.py]
   - [ ] @[scripts/run_e2e_variance_test.py]
@@ -107,9 +107,9 @@
 | REQ-22 | Instrument `LLMCachingService` with `gen_ai.cache.hit` boolean attribute on active span | Step 5 | [x] |
 | REQ-23 | Instrument MCP tool dispatch with `logfire.instrument_mcp()`, `mcp.tool_call` span, `mcp.tool_id` attribute, and timeout guard in `dispatcher.py` | Step 5 | [x] |
 | REQ-24 | Enforce strict PII and prompt scrubbing guardrail banning raw prompt text in span attributes | Step 5 | [x] |
-| REQ-25 | Correlate structured logs with active OpenTelemetry context by injecting `trace_id` and `span_id` into `ContextFilter`, `StructuredLogContextDTO`, and `JSONFormatter` in `logging_config.py` | Step 6 | [ ] |
-| REQ-26 | Initialize telemetry in FastAPI `lifespan` in `main.py` and remove redundant top-level `instrument_fastapi` block | Step 6 | [ ] |
-| REQ-27 | Refactor `finops_trace_analyzer.py` to extract metrics from structured `ExecutionRecord` telemetry, removing hardcoded pricing formulas and duplicate `Field()` assignments | Step 6 | [ ] |
+| REQ-25 | Correlate structured logs with active OpenTelemetry context by injecting `trace_id` and `span_id` into `ContextFilter`, `StructuredLogContextDTO`, and `JSONFormatter` in `logging_config.py` | Step 6 | [x] |
+| REQ-26 | Initialize telemetry in FastAPI `lifespan` in `main.py` and remove redundant top-level `instrument_fastapi` block | Step 6 | [x] |
+| REQ-27 | Refactor `finops_trace_analyzer.py` to extract metrics from structured `ExecutionRecord` telemetry, removing hardcoded pricing formulas and duplicate `Field()` assignments | Step 6 | [x] |
 | REQ-28 | Modernize `<rule_block id="logfire_delegation_mandate">` in `00-antigravity-core.md` and `<rule_block id="local_prompt_debugging_mandate">` in `05_llm_architecture.md` | Step 7 | [ ] |
 | REQ-29 | Update `.agents/workflows/` (`tier4-bug-hunting.md`, `tier6-execution-monitor.md`, `tier5-session-handover.md`, `tier8-audit-feature.md`) to utilize trace IDs, span trees, and `latest_execution_trace.json` | Step 7 | [ ] |
 | REQ-30 | Update `.agents/workflows/` (`tier2-execute.md`, `tier2-hardening-backend.md`, `tier8-test-coverage-expansion.md`, `tier5-resume.md`, `tier3-feature-refactor.md`, `tier8-red-teaming-audit.md`) with structured trace snapshot diagnostic workflows | Step 7 | [ ] |

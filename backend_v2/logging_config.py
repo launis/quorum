@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import opentelemetry.trace as otel_trace
 from fastapi import status
 from pydantic import BaseModel, ConfigDict
 
@@ -79,6 +80,15 @@ class ContextFilter(logging.Filter):
         else:
             record.context_id = "SYSTEM"
             record.execution_id = "SYSTEM"
+
+        span = otel_trace.get_current_span()
+        if span.is_recording():
+            span_ctx = span.get_span_context()
+            record.trace_id = otel_trace.format_trace_id(span_ctx.trace_id)
+            record.span_id = otel_trace.format_span_id(span_ctx.span_id)
+        else:
+            record.trace_id = None
+            record.span_id = None
 
         return True
 
@@ -260,6 +270,8 @@ class StructuredLogContextDTO(BaseModel):
 
     execution_id: str = "SYSTEM"
     context_id: str = "SYSTEM"
+    trace_id: str | None = None
+    span_id: str | None = None
     error_code: str | None = None
     details: dict[str, Any] | None = None
 
@@ -302,6 +314,22 @@ class JSONFormatter(logging.Formatter):
             except AttributeError:
                 pass
 
+            trace_id_val = None
+            try:
+                raw_trace_id = object.__getattribute__(record, "trace_id")
+                if isinstance(raw_trace_id, str):
+                    trace_id_val = raw_trace_id
+            except AttributeError:
+                pass
+
+            span_id_val = None
+            try:
+                raw_span_id = object.__getattribute__(record, "span_id")
+                if isinstance(raw_span_id, str):
+                    span_id_val = raw_span_id
+            except AttributeError:
+                pass
+
             err_code = None
             try:
                 raw_err = object.__getattribute__(record, "error_code")
@@ -321,6 +349,8 @@ class JSONFormatter(logging.Formatter):
             context = StructuredLogContextDTO(
                 execution_id=exec_id,
                 context_id=ctx_id,
+                trace_id=trace_id_val,
+                span_id=span_id_val,
                 error_code=err_code,
                 details=details_dict,
             )
@@ -333,6 +363,11 @@ class JSONFormatter(logging.Formatter):
             "execution_id": context.execution_id,
             "context_id": context.context_id,
         }
+
+        if context.trace_id is not None:
+            log_record["trace_id"] = context.trace_id
+        if context.span_id is not None:
+            log_record["span_id"] = context.span_id
 
         if record.exc_info:
             log_record["exc_info"] = self.formatException(record.exc_info)
@@ -368,9 +403,19 @@ def log_error(logger: logging.Logger, exc: Exception, message: str = "An error o
     if details:
         details_val = details
 
+    t_id = None
+    s_id = None
+    curr_span = otel_trace.get_current_span()
+    if curr_span.is_recording():
+        s_ctx = curr_span.get_span_context()
+        t_id = otel_trace.format_trace_id(s_ctx.trace_id)
+        s_id = otel_trace.format_span_id(s_ctx.span_id)
+
     context = StructuredLogContextDTO(
         execution_id="SYSTEM",
         context_id="SYSTEM",
+        trace_id=t_id,
+        span_id=s_id,
         error_code=error_code,
         details=details_val,
     )

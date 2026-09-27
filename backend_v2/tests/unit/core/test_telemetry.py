@@ -286,3 +286,84 @@ def test_create_execution_record_injects_telemetry() -> None:
     )
     assert record2.metadata is not None
     assert record2.metadata.telemetry == custom_carrier
+
+
+def test_local_trace_snapshot_exporter_default_dir() -> None:
+    """Verifies default trace directory when none is specified."""
+    exporter = LocalTraceSnapshotExporter()
+    assert exporter._trace_dir == Path("data/files/traces")
+
+
+def test_local_trace_snapshot_exporter_corrupt_existing(tmp_path: Path) -> None:
+    """Verifies exporter recovers gracefully when existing snapshot is corrupt."""
+    exporter = LocalTraceSnapshotExporter(trace_dir=tmp_path)
+    corrupt_file = tmp_path / "latest_execution_trace.json"
+    corrupt_file.write_text("{corrupt-json", encoding="utf-8")
+
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = provider.get_tracer("corrupt_test")
+
+    with tracer.start_as_current_span("span_1") as s:
+        s.set_attribute("complex_attr", ["non", "primitive"])
+
+    assert corrupt_file.exists()
+
+
+def test_local_trace_snapshot_exporter_exception_without_description(tmp_path: Path) -> None:
+    """Verifies exporter extracts message from exception event when status description is None."""
+    exporter = LocalTraceSnapshotExporter(trace_dir=tmp_path)
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    tracer = provider.get_tracer("err_test")
+
+    with tracer.start_as_current_span("failing_span") as s:
+        s.set_status(Status(StatusCode.ERROR))  # No description
+        s.record_exception(RuntimeError("Explicit runtime failure"))
+
+    target_file = tmp_path / "latest_execution_trace.json"
+    assert target_file.exists()
+    content = json.loads(target_file.read_text(encoding="utf-8"))
+    assert content["error_summary"] == "Explicit runtime failure"
+
+
+def test_configure_telemetry_with_fastapi_app(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies configure_telemetry instruments FastAPI app both on initial and subsequent calls."""
+    import sys
+
+    mock_logfire = MagicMock()
+    monkeypatch.setitem(sys.modules, "logfire", mock_logfire)
+
+    settings = Settings(
+        otel_enabled=True,
+        logfire_token="token_xyz",
+        otel_service_name="api-service",
+    )
+    mock_app = MagicMock()
+
+    # Initial call
+    configure_telemetry(settings, app=mock_app)
+    mock_logfire.instrument_fastapi.assert_called_once_with(mock_app)
+
+    # Idempotent call with app provided
+    mock_app_2 = MagicMock()
+    configure_telemetry(settings, app=mock_app_2)
+    mock_logfire.instrument_fastapi.assert_any_call(mock_app_2)
+
+
+def test_extract_trace_context_exception_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifies extract_trace_context handles extraction exceptions by returning current context."""
+    from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
+    monkeypatch.setattr(
+        TraceContextTextMapPropagator,
+        "extract",
+        MagicMock(side_effect=TypeError("Propagator failure")),
+    )
+    carrier = TraceContextCarrierDTO(
+        traceparent="00-11112222333344445555666677778888-9999000011112222-01",
+        tracestate="ro=test",
+    )
+    ctx = extract_trace_context(carrier)
+    assert ctx is not None
+

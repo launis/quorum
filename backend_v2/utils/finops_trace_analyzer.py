@@ -34,7 +34,7 @@ class MonitorState(BaseModel):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    telemetry_cursor: Annotated[int, Field(default=0, ge=0)] = 0
+    telemetry_cursor: Annotated[int, Field(ge=0)] = 0
     cursors: Annotated[dict[str, int], Field(default_factory=dict)] = Field(default_factory=dict)
     execution_id: Annotated[str | None, Field(default=None)] = None
 
@@ -61,6 +61,7 @@ class TelemetryRecord(BaseModel):
     execution_id: Annotated[str | None, Field(default=None)] = None
     step_id: Annotated[str | None, Field(default=None)] = None
     trigger_reason: Annotated[str | None, Field(default=None)] = None
+    cost_usd: Annotated[float | None, Field(default=None)] = None
 
 
 class TraceMcp(BaseModel):
@@ -221,7 +222,9 @@ def finalize_execution(trace_file_path: str, telemetry_file_path: str) -> FinOps
                 continue
             record = TelemetryRecord.model_validate_json(line)
             tokens = record.total_tokens
-            if record.model_strategy == "reasoning":
+            if record.cost_usd is not None:
+                total_usd += record.cost_usd
+            elif record.model_strategy == "reasoning":
                 total_usd += tokens * 0.000015
             else:
                 total_usd += tokens * 0.000001

@@ -377,3 +377,40 @@ def test_log_startup_system_parameters_descriptions(
         log_startup_system_parameters(test_logger, "DEV SERVER")
     dev_output = "\n".join(r.message for r in caplog.records)
     assert "Dev sampling" in dev_output
+
+
+def test_context_filter_and_json_formatter_trace_correlation() -> None:
+    """Test that ContextFilter and JSONFormatter properly propagate trace_id and span_id."""
+    import opentelemetry.trace as otel_trace
+    from unittest.mock import MagicMock
+
+    span = MagicMock()
+    span.is_recording.return_value = True
+    span_ctx = MagicMock()
+    span_ctx.trace_id = 0x12345678123456781234567812345678
+    span_ctx.span_id = 0xABCDEF1234567890
+    span.get_span_context.return_value = span_ctx
+
+    c_filter = ContextFilter()
+    formatter = JSONFormatter()
+    logger = logging.getLogger("test.trace.correlation")
+
+    record = logger.makeRecord(
+        "test.trace.correlation",
+        logging.INFO,
+        "fn",
+        1,
+        "Test message with trace context",
+        (),
+        None,
+    )
+
+    with patch.object(otel_trace, "get_current_span", return_value=span):
+        c_filter.filter(record)
+        formatted_json = formatter.format(record)
+
+    parsed = json.loads(formatted_json)
+    assert parsed["trace_id"] == "12345678123456781234567812345678"
+    assert parsed["span_id"] == "abcdef1234567890"
+    assert parsed["message"] == "Test message with trace context"
+

@@ -37,6 +37,7 @@ from backend_v2.models.auth import (
     UserRole,
     UserUpdate,
 )
+from backend_v2.models.enums import SystemLocale
 from backend_v2.settings import get_settings
 
 # Secure Secret for Local Tokens (Impersonation)
@@ -357,7 +358,7 @@ class AuthService:
                     organization_id=None,  # Orphan user
                     created_at=datetime.now(timezone.utc),
                     is_active=True,
-                    language="en",
+                    language=SystemLocale.EN,
                     theme_mode="system",
                     # Created by System/Self
                 )
@@ -417,7 +418,7 @@ class AuthService:
             role=UserRole.ADMIN,
             organization_id=org_id,
             is_active=True,
-            language="en",
+            language=SystemLocale.EN,
             theme_mode="system",
         )
 

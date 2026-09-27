@@ -15,13 +15,6 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-try:
-    import logfire
-
-    _logfire: Any = logfire
-except ImportError:
-    _logfire = None
-
 from arq.connections import ArqRedis, RedisSettings, create_pool
 from fakeredis.aioredis import FakeRedis
 from fastapi import FastAPI, Request
@@ -48,8 +41,9 @@ from backend_v2.api.routers.studio import router as studio_router
 from backend_v2.api.routers.system import router as system_router
 from backend_v2.context import set_request_context
 from backend_v2.core.rate_limit import rate_limit_exceeded_handler
+from backend_v2.core.telemetry import configure_telemetry
 from backend_v2.exceptions import AppException, ErrorCodes, format_validation_error
-from backend_v2.logging_config import configure_logfire, log_startup_system_parameters, setup_logging
+from backend_v2.logging_config import log_startup_system_parameters, setup_logging
 from backend_v2.seed.seed_registry import STANDARD_REGISTRY
 from backend_v2.services.localization import set_language
 from backend_v2.settings import get_settings
@@ -176,9 +170,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         Exception: Propagates initialization failures to the application host.
     """
     setup_logging()
-    configure_logfire()
+    settings = get_settings()
+    configure_telemetry(settings, app=app)
     logger = logging.getLogger("backend.main")
     log_startup_system_parameters(logger, "FASTAPI API SERVER")
+
+    app.state.arq_pool = None
 
     try:
         workflow_dir = "data/workflows"
@@ -212,21 +209,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     finally:
         logger.info("Shutting down...")
-        try:
-            pool = app.state.arq_pool
-        except AttributeError:
-            pool = None
-
-        if pool is not None:
-            try:
-                if isinstance(pool, (ArqRedis, FakeRedis)):
-                    await pool.aclose()
-            except (OSError, RuntimeError) as close_err:
-                logger.error(
-                    "Error closing Arq pool: %s",
-                    str(close_err),
-                    extra={"error_code": ErrorCodes.INTERNAL_SERVER_ERROR.value},
-                )
+        pool = app.state.arq_pool
+        if pool is not None and isinstance(pool, (ArqRedis, FakeRedis)):
+            await pool.aclose()
 
 
 # --- 2. Application Setup ---
@@ -238,15 +223,6 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
-
-if _logfire:
-    try:
-        _logfire.instrument_fastapi(app)
-    except Exception as logfire_err:
-        logging.getLogger("backend.main").error("Failed to instrument FastAPI with Logfire.", exc_info=True)
-        raise logfire_err
-else:
-    logging.getLogger("backend.main").info("Logfire not installed. Skipping FastAPI telemetry instrumentation.")
 
 # --- 3. Middleware ---
 

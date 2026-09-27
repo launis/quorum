@@ -1,28 +1,25 @@
+"""Unit test for FastAPI application startup and telemetry fail-fast."""
+
 import sys
 from typing import Any
 
 import pytest
 
+from backend_v2.main import app, lifespan
+from backend_v2.settings import get_settings
 
-def test_main_startup_logfire_error_fail_fast(monkeypatch: Any) -> None:
-    """Test that if Logfire is installed but crashes during instrumentation, main.py fails fast."""
-    orig_main = sys.modules.get("backend_v2.main")
-    try:
-        if "backend_v2.main" in sys.modules:
-            del sys.modules["backend_v2.main"]
 
-        class FakeLogfire:
-            def instrument_fastapi(self, app: Any) -> None:
-                raise ValueError("Simulated logfire crash in FastAPI instrument")
+@pytest.mark.asyncio
+async def test_main_startup_logfire_error_fail_fast(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that if Logfire is installed but crashes during instrumentation, lifespan fails fast."""
 
-        # Mock logfire package
-        monkeypatch.setitem(sys.modules, "logfire", FakeLogfire())
+    class FakeLogfire:
+        def instrument_fastapi(self, target_app: Any) -> None:
+            raise ValueError("Simulated logfire crash in FastAPI instrument")
 
-        # Importing main.py executes the module-level instrumentation block
-        with pytest.raises(ValueError, match="Simulated logfire crash in FastAPI instrument"):
-            import backend_v2.main  # noqa: F401
-    finally:
-        if orig_main is not None:
-            sys.modules["backend_v2.main"] = orig_main
-        elif "backend_v2.main" in sys.modules:
-            del sys.modules["backend_v2.main"]
+    monkeypatch.setitem(sys.modules, "logfire", FakeLogfire())
+    monkeypatch.setattr(get_settings(), "logfire_token", "fake_logfire_token")
+
+    with pytest.raises(ValueError, match="Simulated logfire crash in FastAPI instrument"):
+        async with lifespan(app):
+            pass
