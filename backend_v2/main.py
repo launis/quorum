@@ -279,9 +279,15 @@ class PathNormalizationMiddleware:
     """Normalizes redundant slashes in ASGI URL scope to prevent Starlette 404 routing mismatches."""
 
     def __init__(self, app_instance: Any) -> None:
+        """Initialize path normalization middleware.
+
+        Args:
+            app_instance: ASGI application instance.
+        """
         self.app_instance = app_instance
 
     async def __call__(self, scope: Any, receive: Any, send: Any) -> Any:
+        """Intercepts and normalizes ASGI HTTP paths by collapsing double slashes."""
         if "type" in scope and scope["type"] == "http":
             if "path" in scope and "//" in scope["path"]:
                 path: str = scope["path"]

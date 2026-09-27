@@ -35,7 +35,7 @@ class MonitorState(BaseModel):
     model_config = ConfigDict(strict=True, extra="forbid")
 
     telemetry_cursor: Annotated[int, Field(ge=0)] = 0
-    cursors: Annotated[dict[str, int], Field(default_factory=dict)] = Field(default_factory=dict)
+    cursors: Annotated[dict[str, int], Field(default_factory=dict)]
     execution_id: Annotated[str | None, Field(default=None)] = None
 
 
@@ -95,7 +95,7 @@ class TraceStepRecord(BaseModel):
     strategy: Annotated[str | None, Field(default=None)] = None
     schema_target: Annotated[str | None, Field(default=None)] = None
     output: Annotated[object | None, Field(default=None)] = None
-    mcp_traces: Annotated[list[TraceMcp], Field(default_factory=list)] = Field(default_factory=list)
+    mcp_traces: Annotated[list[TraceMcp], Field(default_factory=list)]
 
 
 def analyze_monitor_state(state_file_path: str, telemetry_file_path: str) -> FinOpsMonitorSummaryDTO:

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 import re
-import time
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import Any
 
@@ -154,7 +153,9 @@ class LLMTaskExecutor:
             A tuple containing the successfully validated model and accumulated token usage.
 
         Raises:
-            AgentExecutionError: If maximum retries are exhausted or catastrophic failure occurs (ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED, ErrorCodes.AGENT_EXECUTION_CRITICAL).
+            AgentExecutionError: If maximum retries are exhausted or catastrophic failure occurs
+                (ErrorCodes.AGENT_SCHEMA_VALIDATION_FAILED, ErrorCodes.AGENT_LOGICAL_VALIDATION_FAILED,
+                ErrorCodes.AGENT_EXECUTION_CRITICAL).
             AppException: If the initial prompt payload validation fails (ErrorCodes.VALIDATION_FAILED).
         """
         cumulative_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)

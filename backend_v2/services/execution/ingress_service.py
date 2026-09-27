@@ -180,6 +180,16 @@ class ExecutionIngressService:
         system_repo: ISystemRepository | None = None,
         usage_service: UsageService | None = None,
     ) -> None:
+        """Initializes the execution ingress service with repository dependencies.
+
+        Args:
+            exec_repo: Execution record repository.
+            workflow_repo: Workflow definitions repository.
+            prompt_block_repo: Optional prompt block repository.
+            output_profile_repo: Optional output profile repository.
+            system_repo: Optional system repository.
+            usage_service: Optional usage tracking service.
+        """
         self.exec_repo = exec_repo
         self.workflow_repo = workflow_repo
         self.prompt_block_repo = prompt_block_repo

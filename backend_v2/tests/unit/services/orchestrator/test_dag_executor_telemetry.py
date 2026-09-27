@@ -10,21 +10,15 @@ Verifies:
 from __future__ import annotations
 
 import asyncio
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from opentelemetry.trace import StatusCode
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.trace import StatusCode
 
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.step import Step
-from backend_v2.models.domain.workflow import Workflow
-from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
-from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
-from backend_v2.models.domain.execution import ExecutionRecord
-from backend_v2.services.orchestrator.dag_executor import DAGExecutor, NodeExecutor
+from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 
 
 @pytest.fixture
@@ -67,7 +61,9 @@ async def test_dag_executor_hierarchy_telemetry(in_memory_spans: InMemorySpanExp
     assert child.parent is not None
     assert child.parent.span_id == parent.context.span_id
     assert child.context.trace_id == parent.context.trace_id
+    assert child.attributes is not None
     assert child.attributes["node.id"] == "stp_step001"
+    assert parent.attributes is not None
     assert parent.attributes["execution.id"] == "exe_1234567890abcdef"
 
 
@@ -92,11 +88,11 @@ async def test_dag_executor_error_recording_telemetry(in_memory_spans: InMemoryS
 
     spans = in_memory_spans.get_finished_spans()
     assert len(spans) == 1
-    span = spans[0]
+    span_data = spans[0]
 
-    assert span.name == "dag.node.stp_failing"
+    assert span_data.name == "dag.node.stp_failing"
     # Verify exception recorded or status set
-    assert span.status.status_code == StatusCode.ERROR or len(span.events) > 0
+    assert span_data.status.status_code == StatusCode.ERROR or len(span_data.events) > 0
 
 
 @pytest.mark.asyncio
@@ -143,6 +139,7 @@ async def test_dag_executor_telemetry_missing_step_id_boundary(in_memory_spans: 
 
     spans = in_memory_spans.get_finished_spans()
     assert len(spans) == 1
+    assert spans[0].attributes is not None
     assert spans[0].attributes["node.id"] == ""
 
 
@@ -162,6 +159,6 @@ async def test_dag_executor_telemetry_timeout_boundary(in_memory_spans: InMemory
 
     spans = in_memory_spans.get_finished_spans()
     assert len(spans) == 1
-    span = spans[0]
-    assert span.status.status_code == StatusCode.ERROR
-    assert any(event.name == "exception" for event in span.events)
+    span_data = spans[0]
+    assert span_data.status.status_code == StatusCode.ERROR
+    assert any(event.name == "exception" for event in span_data.events)

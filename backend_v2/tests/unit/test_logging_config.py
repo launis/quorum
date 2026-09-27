@@ -23,7 +23,10 @@ from backend_v2.settings import Settings
 
 
 def test_logging_config_structured_context_dto() -> None:
-    """Test contract 5: Structured log event formatted with StructuredLogContextDTO emits valid JSON without hasattr/getattr reflection."""
+    """Test contract 5: Structured log event formatted with StructuredLogContextDTO emits valid JSON.
+
+    Emits valid JSON without hasattr/getattr reflection.
+    """
     formatter = JSONFormatter()
     logger = logging.getLogger("test.structured_dto")
 
@@ -381,8 +384,9 @@ def test_log_startup_system_parameters_descriptions(
 
 def test_context_filter_and_json_formatter_trace_correlation() -> None:
     """Test that ContextFilter and JSONFormatter properly propagate trace_id and span_id."""
-    import opentelemetry.trace as otel_trace
     from unittest.mock import MagicMock
+
+    import opentelemetry.trace as otel_trace
 
     span = MagicMock()
     span.is_recording.return_value = True

@@ -284,7 +284,7 @@ def test_logic_exports() -> None:
 
 @pytest.mark.asyncio
 async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: LogicNodeStrategy) -> None:
-    """Regression test: LogicNodeStrategy must not crash with ExecutionInputsDTO ValidationError
+    """Regression test: LogicNodeStrategy must not crash with ExecutionInputsDTO ValidationError.
 
     when StateProjector contains raw_inputs and inputs TraceEvents from DAGExecutor.
     """

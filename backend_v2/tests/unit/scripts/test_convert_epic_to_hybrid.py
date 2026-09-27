@@ -14,7 +14,6 @@ from scripts.convert_epic_to_hybrid import (
     main,
 )
 
-
 SAMPLE_EPIC = """# EPIC: Test Migration
 
 ## 1. Overview

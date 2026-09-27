@@ -1,5 +1,6 @@
 """Unit tests for backend_v2/api/routers/studio/prompt_blocks.py router."""
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -147,7 +148,9 @@ async def test_simulate_prompt_block(mock_studio_services, sample_block: PromptB
 async def test_simulate_prompt_block_with_null_context_text_and_locale(
     mock_studio_services: tuple[Any, Any], sample_block: PromptBlock
 ) -> None:
-    """Regression test: simulate_prompt_block should gracefully accept null context_text and target_locale from clients."""
+    """Regression test: simulate_prompt_block should gracefully accept null context_text
+    and target_locale from clients.
+    """
     _, mock_simulation = mock_studio_services
     sim_response = PromptBlockSimulationResponse(
         valid=True,

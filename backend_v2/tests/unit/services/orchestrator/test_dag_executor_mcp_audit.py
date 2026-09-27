@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend_v2.core.hook_registry import HookResult
-from backend_v2.exceptions import AppException
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import StepRule
@@ -197,14 +196,17 @@ def test_dag_executor_mcp_audit_invalid_trace_fails_fast() -> None:
             mcp_audit_traces=[malformed_trace],  # type: ignore[list-item]
         )
 
-    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
+    assert (
+        "tool_id" in str(exc_info.value)
+        or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
+    )
 
 
 @pytest.mark.asyncio
 async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
     mock_repo: Any, mock_compiler: Any, workflow_fixture: Workflow
 ) -> None:
-    """Regression test: verify MCPAuditTrace hydrated from serialized data flows through TraceEvent into frozen_context."""
+    """Regression test: verify MCPAuditTrace hydrated from serialized data flows through TraceEvent."""
     executor = DAGExecutor(
         rag_preflight=AsyncMock(),
         exec_repo=mock_repo,
@@ -272,7 +274,10 @@ def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
             event_type="decision",
             mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
         )
-    assert "tool_id" in str(exc_neg1.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_neg1.value)
+    assert (
+        "tool_id" in str(exc_neg1.value)
+        or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_neg1.value)
+    )
 
     # Partition Neg-2: Attempting to instantiate MCPAuditTrace without mandatory fields fails fast
     with pytest.raises(pydantic.ValidationError) as exc_neg2:

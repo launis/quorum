@@ -126,7 +126,10 @@ def seed_data() -> dict[str, Any]:
 
 @pytest.fixture(autouse=True)
 def clear_litellm_provider_caches() -> Generator[None]:
-    """Ensures LiteLLMProvider caches and semaphores are wiped before and after each test to prevent cross-test asyncio loop deadlocks."""
+    """Ensures LiteLLMProvider caches and semaphores are wiped before and after each test.
+
+    This prevents cross-test asyncio loop deadlocks.
+    """
     from backend_v2.llm.provider import LiteLLMProvider
 
     LiteLLMProvider._router_cache.clear()
@@ -210,7 +213,7 @@ def studio_prompt_block_service(
 
 
 @pytest.fixture
-def in_memory_spans() -> Generator[Any, None, None]:
+def in_memory_spans() -> Generator[Any]:
     """Provides an isolated InMemorySpanExporter attached to a test TracerProvider."""
     from opentelemetry import trace
     from opentelemetry.sdk.trace import TracerProvider
@@ -233,7 +236,9 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: Any)
     """Emits diagnostic banner pointing to local trace snapshot and Logfire MCP upon test failure."""
     if exitstatus != 0:
         terminalreporter.write_sep("=", "TELEMETRY DIAGNOSTIC GUIDANCE", bold=True, red=True)
-        terminalreporter.write_line("🔴 Tests failed. Inspect latest execution trace snapshot via view_file on:", bold=True)
+        terminalreporter.write_line(
+            "🔴 Tests failed. Inspect latest execution trace snapshot via view_file on:", bold=True
+        )
         terminalreporter.write_line("   data/files/traces/latest_execution_trace.json", bold=True)
         terminalreporter.write_line("   Or query trace spans via Logfire MCP: query_spans or get_trace.", bold=True)
 

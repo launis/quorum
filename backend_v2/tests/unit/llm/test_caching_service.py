@@ -126,6 +126,7 @@ async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixtur
 
 def test_record_cache_hit_with_recording_span() -> None:
     from unittest.mock import MagicMock
+
     import opentelemetry.trace as otel_trace
 
     mock_span = MagicMock()

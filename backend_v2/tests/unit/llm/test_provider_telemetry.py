@@ -9,9 +9,8 @@ Verifies:
 
 from __future__ import annotations
 
-import pytest
-from opentelemetry.trace import StatusCode
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+from opentelemetry.trace import StatusCode
 
 from backend_v2.core.telemetry import get_tracer
 from backend_v2.llm.caching_service import LLMCachingService
@@ -83,7 +82,8 @@ def test_llm_provider_timeout_telemetry(in_memory_spans: InMemorySpanExporter) -
     span_data = spans[0]
 
     assert span_data.status.status_code == StatusCode.ERROR
-    assert "Client timeout" in (span_data.status.description or "") or "timed out" in (span_data.status.description or "")
+    desc = span_data.status.description or ""
+    assert "Client timeout" in desc or "timed out" in desc
     assert span_data.attributes["gen_ai.usage.input_tokens"] == 800
     assert any(event.name == "exception" for event in span_data.events)
 

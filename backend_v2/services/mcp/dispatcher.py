@@ -1,3 +1,8 @@
+"""MCP Tool Dispatcher Module.
+
+Provides registry and execution dispatching for MCP tools with OpenTelemetry instrumentation and timeouts.
+"""
+
 import asyncio
 from typing import Any
 
