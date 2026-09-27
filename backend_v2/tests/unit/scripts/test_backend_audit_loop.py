@@ -449,3 +449,54 @@ def test_coverage_runner_file_no_existing_candidates(mock_sub: MagicMock) -> Non
         with patch("scripts.backend_audit_loop.Path.rglob", return_value=[]):
             run_tests_with_strict_coverage("backend_v2/models/custom.py")
             assert mock_sub.call_count == 2
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_cli_logfire_default_enabled(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Verifies that Logfire distributed tracing is enabled by default in CLI test runs."""
+    with patch.object(
+        sys,
+        "argv",
+        ["backend_audit_loop.py", "backend_v2/services/execution.py", "--test"],
+    ):
+        with patch("scripts.backend_audit_loop.run_tests_with_strict_coverage") as mock_cov_run:
+            main()
+            mock_cov_run.assert_called_once_with("backend_v2/services/execution.py", logfire=True)
+
+
+@patch("scripts.backend_audit_loop.scan_files_for_guardrails", return_value=([], True))
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_cli_no_logfire_flag(mock_sub: MagicMock, mock_scan: MagicMock) -> None:
+    """Verifies that --no-logfire explicitly disables Logfire distributed tracing."""
+    with patch.object(
+        sys,
+        "argv",
+        ["backend_audit_loop.py", "backend_v2/services/execution.py", "--test", "--no-logfire"],
+    ):
+        with patch("scripts.backend_audit_loop.run_tests_with_strict_coverage") as mock_cov_run:
+            main()
+            mock_cov_run.assert_called_once_with("backend_v2/services/execution.py", logfire=False)
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_default_logfire_args(mock_sub: MagicMock) -> None:
+    """Verifies run_tests_with_strict_coverage passes --logfire by default."""
+    run_tests_with_strict_coverage("backend_v2/tests/unit/services/test_execution.py")
+    assert mock_sub.call_count == 2
+    # Verify the first call (pytest invocation) includes --logfire and service-name
+    first_call_cmd = mock_sub.call_args_list[0][0][0]
+    cmd_str = " ".join(str(c) for c in first_call_cmd)
+    assert "--logfire" in cmd_str
+    assert "--logfire-service-name=quorum-audit-loop" in cmd_str
+
+
+@patch("subprocess.run", return_value=_mock_completed_process(0))
+def test_coverage_runner_explicit_no_logfire_args(mock_sub: MagicMock) -> None:
+    """Verifies run_tests_with_strict_coverage excludes --logfire when logfire=False."""
+    run_tests_with_strict_coverage("backend_v2/tests/unit/services/test_execution.py", logfire=False)
+    assert mock_sub.call_count == 2
+    first_call_cmd = mock_sub.call_args_list[0][0][0]
+    cmd_str = " ".join(str(c) for c in first_call_cmd)
+    assert "--logfire-service-name=quorum-audit-loop" not in cmd_str
+

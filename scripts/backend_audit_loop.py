@@ -70,7 +70,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         pass
 
 
-def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
+def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
     """Execute pytest unit tests and enforce strict 90% TDD line coverage.
 
     Resolves matching unit test files corresponding to target source files or directories,
@@ -80,6 +80,7 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
     Args:
         target: File path or directory path to test with coverage.
         logfire: When True, enables Logfire distributed tracing plugin in Pytest.
+            Defaults to True.
     """
     print("🚀 Verifying Strict 90% TDD Coverage...")
 
@@ -329,8 +330,9 @@ Optional steps:
     )
     parser.add_argument(
         "--logfire",
-        action="store_true",
-        help="Enable Logfire distributed tracing in Pytest runs (--logfire --logfire-service-name=quorum-audit-loop).",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Enable/disable Logfire distributed tracing in Pytest runs (default: enabled; use --no-logfire to disable).",
     )
 
     args = parser.parse_args(argv)
