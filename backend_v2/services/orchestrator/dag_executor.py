@@ -7,12 +7,14 @@ God object refactored into: DAGOrchestrator, NodeExecutor, ExecutionCommitter.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import dataclasses
 import logging
 import uuid
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any
 
+import opentelemetry.trace as otel_trace
 from pydantic import BaseModel, JsonValue, ValidationError
 from tenacity import AsyncRetrying, before_sleep_log, retry_if_exception, stop_after_attempt, wait_exponential
 
@@ -24,6 +26,7 @@ from backend_v2.core.hook_registry import (
     HookState,
     hook_registry,
 )
+from backend_v2.core.telemetry import get_tracer
 from backend_v2.database.interfaces import (
     IAuditRepository,
     IComponentRepository,
@@ -234,117 +237,139 @@ class NodeExecutor:
         Raises:
             AppException: Fail-fast error if node configuration or blueprint is missing.
         """
-        try:
-            blueprint_id = step.task_blueprint
-            if not blueprint_id:
-                msg = f"Step {step.id} has no task_blueprint configured."
-                logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
-                raise AppException(
-                    message=msg,
-                    status_code=500,
-                    details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
-                )
-
-            if not step_def:
-                step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
-                if not step_def_data:
-                    msg = f"Step definition not found: {blueprint_id}"
+        tracer = get_tracer(__name__)
+        current_span = otel_trace.get_current_span()
+        span_cm = (
+            contextlib.nullcontext(current_span)
+            if current_span.is_recording()
+            else tracer.start_as_current_span(f"dag.node.{step.id}")
+        )
+        with span_cm as node_span:
+            node_span.set_attribute("node.id", step.id)
+            if step.task_blueprint is not None:
+                node_span.set_attribute("node.blueprint", step.task_blueprint)
+            node_span.set_attribute("node.depends_on", list(step.depends_on))
+            try:
+                blueprint_id = step.task_blueprint
+                if not blueprint_id:
+                    msg = f"Step {step.id} has no task_blueprint configured."
                     logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
                     raise AppException(
                         message=msg,
                         status_code=500,
                         details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
                     )
-                step_def = Step.model_validate(step_def_data)
 
-            normalized_mappings = {}
-            for logical_name, path in step.input_mappings.items():
-                normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
-                normalized_mappings[logical_name] = normalized_path
+                if not step_def:
+                    step_def_data = await self.deps.workflow_repo.get_step_by_id(blueprint_id)
+                    if not step_def_data:
+                        msg = f"Step definition not found: {blueprint_id}"
+                        logger.error("[NodeExecutor] %s: %s", ErrorCodes.CONFIGURATION_ERROR.name, msg)
+                        raise AppException(
+                            message=msg,
+                            status_code=500,
+                            details={"error_code": ErrorCodes.CONFIGURATION_ERROR},
+                        )
+                    step_def = Step.model_validate(step_def_data)
 
-            step = step.model_copy(update={"input_mappings": normalized_mappings})
+                normalized_mappings = {}
+                for logical_name, path in step.input_mappings.items():
+                    normalized_path = ContextRouter.normalize_and_validate_variable(path, projector.snapshot)
+                    normalized_mappings[logical_name] = normalized_path
 
-            criteria_ids: list[str] = list(step_def.criteria_block_ids)
-            if step_def.role_block_id:
-                criteria_ids.append(step_def.role_block_id)
-            if step_def.extraction_protocol_block_id:
-                criteria_ids.append(step_def.extraction_protocol_block_id)
-            if step_def.execution_persona_block_id:
-                criteria_ids.append(step_def.execution_persona_block_id)
+                step = step.model_copy(update={"input_mappings": normalized_mappings})
 
-            loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(criteria_ids, strict=True)
+                criteria_ids: list[str] = list(step_def.criteria_block_ids)
+                if step_def.role_block_id:
+                    criteria_ids.append(step_def.role_block_id)
+                if step_def.extraction_protocol_block_id:
+                    criteria_ids.append(step_def.extraction_protocol_block_id)
+                if step_def.execution_persona_block_id:
+                    criteria_ids.append(step_def.execution_persona_block_id)
 
-            engine: ExecutionEngine | None = None
-            if step_def.type == StepType.LLM:
-                engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks)
+                loaded_prompt_blocks = await self.deps.prompt_block_repo.get_prompt_blocks_by_ids(
+                    criteria_ids, strict=True
+                )
 
-            effective_deps = self.deps
-            if arq_pool is not None:
-                effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool)
+                engine: ExecutionEngine | None = None
+                if step_def.type == StepType.LLM:
+                    engine = self._resolve_execution_engine(step_def, loaded_prompt_blocks)
 
-            strategy_impl = NodeStrategyFactory.create_strategy(
-                step_type=step_def.type,
-                deps=effective_deps,
-                engine=engine,
-            )
+                effective_deps = self.deps
+                if arq_pool is not None:
+                    effective_deps = dataclasses.replace(self.deps, arq_pool=arq_pool)
 
-            resolved_global_vars: GlobalContextVarsDTO
-            if isinstance(global_context_vars, GlobalContextVarsDTO):
-                resolved_global_vars = global_context_vars
-            else:
-                resolved_global_vars = GlobalContextVarsDTO()
+                strategy_impl = NodeStrategyFactory.create_strategy(
+                    step_type=step_def.type,
+                    deps=effective_deps,
+                    engine=engine,
+                )
 
-            if (
-                isinstance(metadata, ExecutionMetadata)
-                and metadata.global_context_vars is not None
-                and not resolved_global_vars.model_dump(exclude_defaults=True)
-                and isinstance(metadata.global_context_vars, GlobalContextVarsDTO)
-            ):
-                resolved_global_vars = metadata.global_context_vars
+                resolved_global_vars: GlobalContextVarsDTO
+                if isinstance(global_context_vars, GlobalContextVarsDTO):
+                    resolved_global_vars = global_context_vars
+                else:
+                    resolved_global_vars = GlobalContextVarsDTO()
 
-            resolved_model_registry_id: str | None = None
-            if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
-                resolved_model_registry_id = metadata.model_registry_id
+                if (
+                    isinstance(metadata, ExecutionMetadata)
+                    and metadata.global_context_vars is not None
+                    and not resolved_global_vars.model_dump(exclude_defaults=True)
+                    and isinstance(metadata.global_context_vars, GlobalContextVarsDTO)
+                ):
+                    resolved_global_vars = metadata.global_context_vars
 
-            resolved_context_vars: ContextVariablesDTO
-            if isinstance(context_variables, ContextVariablesDTO):
-                resolved_context_vars = context_variables
-            else:
-                resolved_context_vars = ContextVariablesDTO()
+                resolved_model_registry_id: str | None = None
+                if isinstance(metadata, ExecutionMetadata) and metadata.model_registry_id is not None:
+                    resolved_model_registry_id = metadata.model_registry_id
 
-            context = StrategyContext(
-                execution_id=execution_id,
-                workflow_id=workflow_id,
-                target_locale=target_locale,
-                output_profile_id=output_profile_id,
-                metadata=metadata,
-                expected_inputs=expected_inputs,
-                cognitive_tier=step_def.cognitive_tier,
-                strictness_level=strictness_level,
-                global_context_vars=resolved_global_vars,
-                context_variables=resolved_context_vars,
-                prompt_blocks=loaded_prompt_blocks,
-                model_registry_id=resolved_model_registry_id,
-            )
+                resolved_context_vars: ContextVariablesDTO
+                if isinstance(context_variables, ContextVariablesDTO):
+                    resolved_context_vars = context_variables
+                else:
+                    resolved_context_vars = ContextVariablesDTO()
 
-            await strategy_impl.assert_quota(org_id=organization_id)
+                context = StrategyContext(
+                    execution_id=execution_id,
+                    workflow_id=workflow_id,
+                    target_locale=target_locale,
+                    output_profile_id=output_profile_id,
+                    metadata=metadata,
+                    expected_inputs=expected_inputs,
+                    cognitive_tier=step_def.cognitive_tier,
+                    strictness_level=strictness_level,
+                    global_context_vars=resolved_global_vars,
+                    context_variables=resolved_context_vars,
+                    prompt_blocks=loaded_prompt_blocks,
+                    model_registry_id=resolved_model_registry_id,
+                )
 
-            return await strategy_impl.execute(
-                step=step,
-                projector=projector,
-                context=context,
-                frozen_ctx=frozen_ctx,
-                trace=trace,
-                semaphore=semaphore,
-                running_event=running_event,
-                progress_callback=progress_callback,
-            )
+                await strategy_impl.assert_quota(org_id=organization_id)
 
-        except AppException as ae:
-            logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
-            raise
-        except (ValidationError, RuntimeError, ValueError, TypeError, KeyError, OSError, TimeoutError) as e:
-            return self._dlq_record_node_error(step.id, e)
+                return await strategy_impl.execute(
+                    step=step,
+                    projector=projector,
+                    context=context,
+                    frozen_ctx=frozen_ctx,
+                    trace=trace,
+                    semaphore=semaphore,
+                    running_event=running_event,
+                    progress_callback=progress_callback,
+                )
+
+            except AppException as ae:
+                node_span.record_exception(ae)
+                node_span.set_status(otel_trace.StatusCode.ERROR, str(ae))
+                logger.error("[NodeExecutor] Fail-Fast Exception for step %s: %s", step.id, str(ae), exc_info=True)
+                raise
+            except (ValidationError, RuntimeError, ValueError, TypeError, KeyError, OSError, TimeoutError) as e:
+                node_span.record_exception(e)
+                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
+                return self._dlq_record_node_error(step.id, e)
+            except Exception as e:
+                node_span.record_exception(e)
+                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
+                raise
 
 
 class DAGExecutor:
@@ -728,6 +753,13 @@ class DAGExecutor:
             if exec_record.step_states[step_id].status == ExecutionStatus.PASSED:
                 return
 
+            node_stack = contextlib.ExitStack()
+            node_span = node_stack.enter_context(tracer.start_as_current_span(f"dag.node.{step_id}"))
+            node_span.set_attribute("node.id", step_id)
+            if step_obj.task_blueprint is not None:
+                node_span.set_attribute("node.blueprint", step_obj.task_blueprint)
+            node_span.set_attribute("node.depends_on", list(step_obj.depends_on))
+
             try:
                 for dep in step_obj.depends_on:
                     await step_events[dep].wait()
@@ -971,6 +1003,8 @@ class DAGExecutor:
                 await _safe_commit()
 
             except step_exceptions as e:
+                node_span.record_exception(e)
+                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
                 err_code = "UNKNOWN_ERROR"
                 if isinstance(e, AppException):
                     if isinstance(e.error_code, ErrorCodes):
@@ -1020,9 +1054,22 @@ class DAGExecutor:
                     exec_record = exec_record.model_copy(update={"step_states": new_states, "steps": new_steps})
                 await _safe_commit(status_override=ExecutionStatus.FAILED, error_override=str(e))
                 self._dlq_record_step_failure(step_id, err_code, e)
+            except Exception as e:
+                node_span.record_exception(e)
+                node_span.set_status(otel_trace.StatusCode.ERROR, str(e))
+                raise
             finally:
-                step_events[step_id].set()
+                try:
+                    step_events[step_id].set()
+                finally:
+                    node_stack.close()
 
+        tracer = get_tracer(__name__)
+        orch_stack = contextlib.ExitStack()
+        orch_span = orch_stack.enter_context(tracer.start_as_current_span("dag.orchestration"))
+        orch_span.set_attribute("execution.id", execution_id)
+        orch_span.set_attribute("workflow.id", workflow.id)
+        orch_span.set_attribute("workflow.node_count", len(workflow.steps))
         try:
             # RAG Pre-Flight Pipeline Injection
             has_prehydrated = False
@@ -1224,10 +1271,14 @@ class DAGExecutor:
             )
 
             if isinstance(primary_err, AppException):
+                orch_span.record_exception(primary_err)
+                orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
                 raise primary_err from eg
 
             msg = f"Workflow failed: {primary_err}"
             logger.error("[DAGExecutor] %s: %s", ErrorCodes.WORKFLOW_EXECUTION_FAILED.name, msg)
+            orch_span.record_exception(primary_err)
+            orch_span.set_status(otel_trace.StatusCode.ERROR, str(primary_err))
             raise AppException(
                 message=msg,
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
@@ -1279,6 +1330,9 @@ class DAGExecutor:
                 steps=exec_record.steps,
             )
 
+            orch_span.record_exception(unexpected_err)
+            orch_span.set_status(otel_trace.StatusCode.ERROR, str(unexpected_err))
+
             if isinstance(unexpected_err, AppException):
                 raise
 
@@ -1289,3 +1343,5 @@ class DAGExecutor:
                 details={"error_code": ErrorCodes.WORKFLOW_EXECUTION_FAILED},
                 status_code=500,
             ) from unexpected_err
+        finally:
+            orch_stack.close()

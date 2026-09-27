@@ -15,7 +15,8 @@ from backend_v2.models.dtos.atom_evaluation import LightweightMatrixDTO, Reduced
 from backend_v2.models.dtos.base import DataStarvationEvent
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.engine import EngineExecutionRequest
-from backend_v2.models.enums import LaxExecutionStatus
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.enums import LaxExecutionStatus, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.synthesis.style_directives import SPARSE_DATA_SYNTHESIS_MANDATE
@@ -450,3 +451,41 @@ async def test_synthesis_engine_validation_error(engine: SynthesisEngine, base_r
 
     assert "validation failed" in str(exc_info.value).lower()
     assert exc_info.value.status_code == 500
+
+
+@pytest.mark.asyncio
+async def test_synthesis_engine_with_lightweight_matrix_output(
+    engine: SynthesisEngine, mock_executor: AsyncMock, base_request: EngineExecutionRequest
+) -> None:
+    """Tests synthesis execution with LightweightMatrixOutput under __MATRIX_REDUCER_OUTPUT__."""
+    matrix_output = LightweightMatrixOutput(
+        evaluated_atoms={"atm_1": LaxExecutionStatus.PASSED},
+        extensions={XaiExtensionType.RISK_FLAG: {"risk": "high"}},
+    )
+    req = base_request.model_copy(
+        update={
+            "context": base_request.context.model_copy(
+                update={
+                    "context_variables": ContextVariablesDTO(
+                        global_atom_blackboard=GlobalAtomBlackboard(
+                            atoms_by_input={"doc_0": {"atoms": [make_atom("atm_1")]}}
+                        ),
+                        variables={"__MATRIX_REDUCER_OUTPUT__": matrix_output},
+                    )
+                }
+            )
+        }
+    )
+
+    mock_output = MockSynthesisOutput(title="OutputTest", content="Text")
+    mock_usage = TokenUsage(prompt_tokens=10, completion_tokens=10, total_tokens=20)
+    mock_executor.execute_structured_task.return_value = (mock_output, mock_usage)
+
+    result = await engine.execute(req)
+    assert isinstance(result.synthesis_output, MockSynthesisOutput)
+    call_kwargs = mock_executor.execute_structured_task.call_args.kwargs
+    messages = call_kwargs["messages"]
+    user_msg = messages[-1]
+    assert "<raw_xai_extensions>" in user_msg.content
+
+

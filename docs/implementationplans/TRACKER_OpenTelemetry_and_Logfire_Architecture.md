@@ -18,7 +18,7 @@
   - [x] Step 1: TECHNICAL_DEBT_PURGE_AND_DEPENDENCIES
   - [x] Step 2: SETTINGS_AND_TELEMETRY_CORE_INITIALIZATION
   - [x] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
-  - [ ] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
+  - [x] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
   - [ ] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
   - [ ] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
   - [ ] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
@@ -98,10 +98,10 @@
 | REQ-13 | Inject W3C Trace Context into `ExecutionMetadata.telemetry` at API ingress in `ingress_service.py` and `facade.py` | Step 3 | [x] |
 | REQ-14 | Sequence execution record retrieval before opening root span in `execution_worker.py`, binding worker execution to caller via `use_trace_context(carrier)` and root span `execution.worker_process` | Step 3 | [x] |
 | REQ-15 | Implement resilient orphan root span creation with `telemetry.orphan_execution=True` when carrier is missing or unparseable | Step 3 | [x] |
-| REQ-16 | Instrument `DAGExecutor.execute_workflow` with parent span `dag.orchestration` and execution/workflow metadata attributes | Step 4 | [ ] |
-| REQ-17 | Instrument `NodeExecutor.execute` and `run_step_wrapper` with child span `dag.node.{step_id}`, exception recording, and error status before re-raising `AppException` | Step 4 | [ ] |
-| REQ-18 | Instrument `TDAEngine` with `tda.atomization` and `tda.topological_evaluation` spans, and `SynthesisEngine` with `synthesis.distill` span | Step 4 | [ ] |
-| REQ-19 | Enforce OpenTelemetry context preservation across concurrent `asyncio.TaskGroup` node evaluations | Step 4 | [ ] |
+| REQ-16 | Instrument `DAGExecutor.execute_workflow` with parent span `dag.orchestration` and execution/workflow metadata attributes | Step 4 | [x] |
+| REQ-17 | Instrument `NodeExecutor.execute` and `run_step_wrapper` with child span `dag.node.{step_id}`, exception recording, and error status before re-raising `AppException` | Step 4 | [x] |
+| REQ-18 | Instrument `TDAEngine` with `tda.atomization` and `tda.topological_evaluation` spans, and `SynthesisEngine` with `synthesis.distill` span | Step 4 | [x] |
+| REQ-19 | Enforce OpenTelemetry context preservation across concurrent `asyncio.TaskGroup` node evaluations | Step 4 | [x] |
 | REQ-20 | Activate standard OpenTelemetry GenAI Semantic Conventions via `logfire.instrument_litellm()` in `configure_telemetry` and `LiteLLMProvider` | Step 5 | [ ] |
 | REQ-21 | Propagate active OpenTelemetry context and model-specific metadata in `BaseLLMAdapter` and provider subclasses | Step 5 | [ ] |
 | REQ-22 | Instrument `LLMCachingService` with `gen_ai.cache.hit` boolean attribute on active span | Step 5 | [ ] |

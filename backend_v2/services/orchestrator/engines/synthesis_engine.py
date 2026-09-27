@@ -5,12 +5,15 @@ Implements the ExecutionEngine protocol for LLM-driven synthesis processing.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 from enum import Enum
 
+import opentelemetry.trace as trace
 from pydantic import ValidationError
 
+from backend_v2.core.telemetry import get_tracer
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
@@ -58,21 +61,30 @@ class SynthesisEngine:
             AppException: If blackboard is missing or execution errors occur (ErrorCodes.SYNTHESIS_ENGINE_ERROR),
                 or if payload validation fails (ErrorCodes.VALIDATION_FAILED).
         """
-        raw_blackboard: object = request.context.context_variables.global_atom_blackboard
-        if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
-            raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
-        if raw_blackboard is None:
-            logger.error(
-                "preflight_blackboard_missing",
-                extra={"execution_id": request.context.execution_id, "step_id": request.step.id},
-            )
-            raise AppException(
-                message="__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables",
-                status_code=500,
-                details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
-            )
+        tracer = get_tracer(__name__)
+        distill_stack = contextlib.ExitStack()
+        distill_span = distill_stack.enter_context(tracer.start_as_current_span("synthesis.distill"))
+        distill_span.set_attribute("execution.id", request.context.execution_id)
+        distill_span.set_attribute("step.id", request.step.id)
 
         try:
+            raw_blackboard: object = request.context.context_variables.global_atom_blackboard
+            if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in request.context.context_variables:
+                raw_blackboard = request.context.context_variables["__GLOBAL_ATOM_BLACKBOARD__"]
+            if raw_blackboard is None:
+                distill_span.set_status(
+                    trace.StatusCode.ERROR, "__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables"
+                )
+                logger.error(
+                    "preflight_blackboard_missing",
+                    extra={"execution_id": request.context.execution_id, "step_id": request.step.id},
+                )
+                raise AppException(
+                    message="__GLOBAL_ATOM_BLACKBOARD__ missing from context_variables",
+                    status_code=500,
+                    details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
+                )
+
             blackboard = (
                 raw_blackboard
                 if isinstance(raw_blackboard, GlobalAtomBlackboard)
@@ -249,6 +261,8 @@ class SynthesisEngine:
             )
 
         except ValidationError as e:
+            distill_span.record_exception(e)
+            distill_span.set_status(trace.StatusCode.ERROR, str(e))
             logger.error("SynthesisEngine validation failed", exc_info=True)
             raise AppException(
                 message=f"Synthesis engine validation failed: {e}",
@@ -256,6 +270,8 @@ class SynthesisEngine:
                 details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
             ) from e
         except Exception as e:
+            distill_span.record_exception(e)
+            distill_span.set_status(trace.StatusCode.ERROR, str(e))
             logger.error("SynthesisEngine unexpected error", exc_info=True)
             if isinstance(e, AppException):
                 raise
@@ -264,3 +280,5 @@ class SynthesisEngine:
                 status_code=500,
                 details={"error_code": ErrorCodes.SYNTHESIS_ENGINE_ERROR.value},
             ) from e
+        finally:
+            distill_stack.close()

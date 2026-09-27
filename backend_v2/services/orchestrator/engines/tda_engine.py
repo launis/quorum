@@ -9,6 +9,7 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
@@ -181,12 +182,16 @@ class TDAEngine(ExecutionEngine):
                     prog = 30 + int((completed / total) * 70)
                     await request.progress_callback(prog, 100)
 
-            ontology, usage_p0 = await atomizer.execute_phase_0(
-                request.bound_client,
-                hydrated_text,
-                progress_callback=phase_0_progress_matrix,
-                semaphore=request.semaphore,
-            )
+            tracer = get_tracer(__name__)
+            with tracer.start_as_current_span("tda.atomization") as atom_span:
+                atom_span.set_attribute("execution.id", request.context.execution_id)
+                atom_span.set_attribute("step.id", request.step.id)
+                ontology, usage_p0 = await atomizer.execute_phase_0(
+                    request.bound_client,
+                    hydrated_text,
+                    progress_callback=phase_0_progress_matrix,
+                    semaphore=request.semaphore,
+                )
 
             evaluation_context = f"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
 
@@ -207,16 +212,20 @@ class TDAEngine(ExecutionEngine):
             if request.matrix_context is not None:
                 matrix_context = request.matrix_context.model_copy(update={"matrix_assertions": request.shuffled_atoms})
 
-            states, usage_dag = await dag_executor.execute_graph(
-                nodes,
-                evaluation_context,
-                request.target_locale,
-                progress_callback=dag_progress_matrix,
-                execution_id=request.context.execution_id,
-                step_id=request.step.id,
-                semaphore=request.semaphore,
-                matrix_context=matrix_context,
-            )
+            with tracer.start_as_current_span("tda.topological_evaluation") as topo_span:
+                topo_span.set_attribute("execution.id", request.context.execution_id)
+                topo_span.set_attribute("step.id", request.step.id)
+                topo_span.set_attribute("tda.node_count", len(nodes))
+                states, usage_dag = await dag_executor.execute_graph(
+                    nodes,
+                    evaluation_context,
+                    request.target_locale,
+                    progress_callback=dag_progress_matrix,
+                    execution_id=request.context.execution_id,
+                    step_id=request.step.id,
+                    semaphore=request.semaphore,
+                    matrix_context=matrix_context,
+                )
             total_usage = usage_p0 + usage_dag
 
             projected = ResultProjector.project(nodes, states, request.matrix_block_id)
