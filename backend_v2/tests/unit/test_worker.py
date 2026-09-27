@@ -97,6 +97,7 @@ def mock_worker_report_service() -> Generator[MagicMock]:
     mock_artifact.id = "rep_1234567890123456"
     mock_svc = MagicMock()
     mock_svc.get_or_create_default_artifact = AsyncMock(return_value=mock_artifact)
+    mock_svc.compile_and_persist_artifact = AsyncMock()
     with (
         patch("backend_v2.workers.synthesis_worker.ReportService", return_value=mock_svc),
         patch("backend_v2.workers.synthesis_reducers.ReportService", return_value=mock_svc),
@@ -575,8 +576,10 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_language() -> Non
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
-    """Verify generate_profile_synthesis_and_pdf_task enqueues PDF job when synthesis is cached."""
+async def test_generate_profile_synthesis_and_pdf_task_already_cached(
+    mock_worker_report_service: MagicMock,
+) -> None:
+    """Verify generate_profile_synthesis_and_pdf_task calls compile_and_persist_artifact when cached."""
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
@@ -604,15 +607,16 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached() -> None:
             await generate_profile_synthesis_and_pdf_task(
                 "exe_1234567890123456", accept_language="fi", profile_id="prof_1111222233334444", redis=mock_redis
             )
-            mock_redis.enqueue_job.assert_called_once_with(
-                "generate_report_artifact_job",
+            mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                 "rep_1234567890123456",
-                _job_id="compile_report_rep_1234567890123456",
+                mock_redis,
             )
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesis_block() -> None:
+async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesis_block(
+    mock_worker_report_service: MagicMock,
+) -> None:
     """Verify synthesis succeeds cleanly with default system prompt even when synthesis_block_id is omitted."""
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
@@ -666,10 +670,9 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
                 )
 
                 assert mock_repo.update_execution.call_count >= 1
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_report_artifact_job",
+                mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                     "rep_1234567890123456",
-                    _job_id="compile_report_rep_1234567890123456",
+                    mock_redis,
                 )
 
 
@@ -735,7 +738,9 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> None:
+async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
+    mock_worker_report_service: MagicMock,
+) -> None:
     """Verify complete end-to-end execution of generate_profile_synthesis_and_pdf_task with synthesis, row explanations, and variance."""
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
@@ -872,10 +877,9 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow() -> 
                 )
 
                 mock_repo.update_execution.assert_called()
-                mock_redis.enqueue_job.assert_called_once_with(
-                    "generate_report_artifact_job",
+                mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                     "rep_1234567890123456",
-                    _job_id="compile_report_rep_1234567890123456",
+                    mock_redis,
                 )
 
 
@@ -1172,7 +1176,9 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
 
 
 @pytest.mark.asyncio
-async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit() -> None:
+async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
+    mock_worker_report_service: MagicMock,
+) -> None:
     """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
@@ -1229,10 +1235,9 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
             )
             assert ev_type == "starvation"
             assert total_atoms == 0
-            mock_redis.enqueue_job.assert_called_once_with(
-                "generate_report_artifact_job",
+            mock_worker_report_service.compile_and_persist_artifact.assert_called_once_with(
                 "rep_1234567890123456",
-                _job_id="compile_report_rep_1234567890123456",
+                mock_redis,
             )
 
 

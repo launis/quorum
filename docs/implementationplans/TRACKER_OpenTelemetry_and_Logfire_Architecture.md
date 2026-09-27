@@ -17,7 +17,7 @@
 - [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
   - [x] Step 1: TECHNICAL_DEBT_PURGE_AND_DEPENDENCIES
   - [x] Step 2: SETTINGS_AND_TELEMETRY_CORE_INITIALIZATION
-  - [ ] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
+  - [x] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
   - [ ] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
   - [ ] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
   - [ ] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
@@ -95,9 +95,9 @@
 | REQ-10 | Implement `backend_v2/core/telemetry.py` with `configure_telemetry`, idempotency guard, NoOp fallback, context extraction/injection, and `use_trace_context` context manager with deterministic detach token cleanup | Step 2 | [x] |
 | REQ-11 | Implement `LocalTraceSnapshotExporter` with Context Window Protection Guard (<20 KB, max 60 spans) and deterministic `error_fingerprint` exporting to `latest_execution_trace.json` | Step 2 | [x] |
 | REQ-12 | Configure Logfire MCP Server integration and refactor `configure_logfire()` in `logging_config.py` into a thin delegation wrapper | Step 2 | [x] |
-| REQ-13 | Inject W3C Trace Context into `ExecutionMetadata.telemetry` at API ingress in `ingress_service.py` and `facade.py` | Step 3 | [ ] |
-| REQ-14 | Sequence execution record retrieval before opening root span in `execution_worker.py`, binding worker execution to caller via `use_trace_context(carrier)` and root span `execution.worker_process` | Step 3 | [ ] |
-| REQ-15 | Implement resilient orphan root span creation with `telemetry.orphan_execution=True` when carrier is missing or unparseable | Step 3 | [ ] |
+| REQ-13 | Inject W3C Trace Context into `ExecutionMetadata.telemetry` at API ingress in `ingress_service.py` and `facade.py` | Step 3 | [x] |
+| REQ-14 | Sequence execution record retrieval before opening root span in `execution_worker.py`, binding worker execution to caller via `use_trace_context(carrier)` and root span `execution.worker_process` | Step 3 | [x] |
+| REQ-15 | Implement resilient orphan root span creation with `telemetry.orphan_execution=True` when carrier is missing or unparseable | Step 3 | [x] |
 | REQ-16 | Instrument `DAGExecutor.execute_workflow` with parent span `dag.orchestration` and execution/workflow metadata attributes | Step 4 | [ ] |
 | REQ-17 | Instrument `NodeExecutor.execute` and `run_step_wrapper` with child span `dag.node.{step_id}`, exception recording, and error status before re-raising `AppException` | Step 4 | [ ] |
 | REQ-18 | Instrument `TDAEngine` with `tda.atomization` and `tda.topological_evaluation` spans, and `SynthesisEngine` with `synthesis.distill` span | Step 4 | [ ] |

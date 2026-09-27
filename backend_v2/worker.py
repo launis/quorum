@@ -14,11 +14,11 @@ from arq.typing import StartupShutdown, WorkerCoroutine
 from arq.worker import Function
 
 from backend_v2.core.registry import TaskRegistry
+from backend_v2.core.telemetry import configure_telemetry
 from backend_v2.database.factory import get_driver
 from backend_v2.database.repository import UnifiedWorkflowRepository
 from backend_v2.llm.client import LLMClient
 from backend_v2.logging_config import (
-    configure_logfire,
     log_startup_system_parameters,
     setup_logging,
 )
@@ -52,7 +52,7 @@ async def startup(ctx: Any) -> None:
         ctx: Arq worker context to store initialized services.
     """
     setup_logging()
-    configure_logfire()
+    configure_telemetry(get_settings(), service_name_override="quorum-worker")
     log_startup_system_parameters(logger, "ARQ WORKER")
 
     logger.info("TaskRegistry initialized. Registered tasks: %s", list(TaskRegistry._tasks.keys()))

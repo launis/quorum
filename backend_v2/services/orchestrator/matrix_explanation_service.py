@@ -172,6 +172,7 @@ class MatrixExplanationService:
                     level_breakdown=payload.level_breakdown,
                     justification=justification_val,
                     evaluated_atoms=evaluated_atoms_val,
+                    extensions={},
                 )
             elif isinstance(payload, Mapping):
                 # Step 1: Pure immutable dictionary comprehension complying with QGR019

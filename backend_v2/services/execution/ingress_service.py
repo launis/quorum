@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.core.telemetry import inject_trace_context
 from backend_v2.database.interfaces import (
     IExecutionRepository,
     IOutputProfileRepository,
@@ -61,9 +62,16 @@ def create_execution_record(
 ) -> ExecutionRecord:
     """Type-safe factory for ExecutionRecord creation."""
     try:
-        resolved_metadata = (
-            TypeAdapter(ExecutionMetadata).validate_python(metadata) if metadata is not None else ExecutionMetadata()
-        )
+        injected_carrier = inject_trace_context()
+        if isinstance(metadata, ExecutionMetadata):
+            resolved_telemetry = metadata.telemetry if metadata.telemetry is not None else injected_carrier
+            resolved_metadata = metadata.model_copy(update={"telemetry": resolved_telemetry})
+        elif metadata is not None:
+            resolved_metadata = TypeAdapter(ExecutionMetadata).validate_python(metadata)
+            if resolved_metadata.telemetry is None:
+                resolved_metadata = resolved_metadata.model_copy(update={"telemetry": injected_carrier})
+        else:
+            resolved_metadata = ExecutionMetadata(telemetry=injected_carrier)
         return ExecutionRecord(
             id=execution_id,
             workflow_id=workflow_id,

@@ -13,9 +13,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-import logfire
+import opentelemetry.trace as trace
 from pydantic import TypeAdapter, ValidationError
 
+from backend_v2.core.telemetry import get_tracer, use_trace_context
 from backend_v2.exceptions import AppException, ErrorCodes, WorkflowNotFoundError
 from backend_v2.models.domain.execution import ExecutionRecord, ExecutionStep, ExecutionSummarySnapshot
 from backend_v2.models.domain.inputs import WorkflowInputs
@@ -23,6 +24,7 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.dtos.hook_delta import WorkerJobResultDTO
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.dtos.step_telemetry import StepTelemetryEntryDTO
+from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
 from backend_v2.models.dtos.trace import ExecutionUpdateDTO, StepTraceMetadataDTO, TraceEventMetadataEnvelope
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
@@ -73,7 +75,7 @@ def _record_dlq_error(err_msg: str) -> None:
 async def execute_workflow_job(
     ctx: Any,
     workflow_id: str,
-    inputs: ExecutionInputsDTO,
+    inputs: ExecutionInputsDTO | WorkflowInputs,
     execution_id: str | None = None,
     organization_id: str | None = None,
     user_id: str | None = None,
@@ -106,14 +108,34 @@ async def execute_workflow_job(
     )
     logger.info(msg)
 
-    # LOGFIRE INTEGRATION: Bind execution_id to this trace context
+    engine = ctx["engine"]
+    repository = ctx["repository"]
+
     if execution_id:
         exec_id = execution_id
     else:
         exec_id = f"exe_{uuid.uuid4().hex}"
-    span_execution_id = exec_id
 
-    with logfire.span("execute_workflow_job", tags={"execution_id": span_execution_id}):
+    carrier: TraceContextCarrierDTO | None = None
+    exec_record: ExecutionRecord | None = None
+    if execution_id:
+        raw_exec = await repository.get_execution(exec_id)
+        if isinstance(raw_exec, ExecutionRecord):
+            exec_record = raw_exec
+            if exec_record.metadata is not None:
+                carrier = exec_record.metadata.telemetry
+
+    tracer = get_tracer(__name__)
+    with use_trace_context(carrier), tracer.start_as_current_span("execution.worker_process") as worker_span:
+        worker_span.set_attribute("execution.id", exec_id)
+        worker_span.set_attribute("workflow.id", workflow_id)
+        if organization_id:
+            worker_span.set_attribute("organization.id", organization_id)
+        if user_id:
+            worker_span.set_attribute("user.id", user_id)
+        if carrier is None:
+            worker_span.set_attribute("telemetry.orphan_execution", True)
+
         resolved_inputs = (
             inputs
             if isinstance(inputs, (WorkflowInputs, ExecutionInputsDTO))
@@ -140,9 +162,6 @@ async def execute_workflow_job(
                 dynamic_inputs=merged_dynamic,
             )
 
-        engine = ctx["engine"]
-        repository = ctx["repository"]
-
         try:
             workflow_dict = await repository.get_workflow(workflow_id)
             if not workflow_dict:
@@ -158,20 +177,25 @@ async def execute_workflow_job(
             workflow_def = Workflow.model_validate(workflow_dict)
             start_time = datetime.now(UTC)
 
-            execution_data = await repository.get_execution(exec_id)
-            if not execution_data:
-                msg = f"Execution {exec_id} not found in DB before execution! Cannot resolve dynamic strictness."
-                logger.error(
-                    "[Job] %s: %s",
-                    ErrorCodes.RESOURCE_NOT_FOUND.name,
-                    msg,
-                    extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": exec_id},
-                )
-                raise AppException(
-                    message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+            if exec_record is None:
+                execution_data = await repository.get_execution(exec_id)
+                if not execution_data:
+                    msg = f"Execution {exec_id} not found in DB before execution! Cannot resolve dynamic strictness."
+                    logger.error(
+                        "[Job] %s: %s",
+                        ErrorCodes.RESOURCE_NOT_FOUND.name,
+                        msg,
+                        extra={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value, "execution_id": exec_id},
+                    )
+                    raise AppException(
+                        message=msg, status_code=500, details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value}
+                    )
+                exec_record = (
+                    execution_data
+                    if isinstance(execution_data, ExecutionRecord)
+                    else ExecutionRecord.model_validate(execution_data, strict=False)
                 )
 
-            exec_record = ExecutionRecord.model_validate(execution_data, strict=False)
             strictness_level: int = workflow_def.default_strictness_level
 
             if not exec_record.target_locale:
@@ -477,6 +501,8 @@ async def execute_workflow_job(
             )
 
         except (AppException, ValidationError, OSError, RuntimeError, ValueError, KeyError) as e:
+            worker_span.record_exception(e)
+            worker_span.set_status(trace.StatusCode.ERROR, str(e))
             if not isinstance(e, AppException):
                 msg = f"Workflow {workflow_id} failed: {e}"
                 logger.error(
@@ -501,6 +527,7 @@ async def execute_workflow_job(
                     _record_dlq_error(update_msg)
             return _format_dlq_failure(execution_id=exec_id, workflow_id=workflow_id)
         except asyncio.CancelledError:
+            worker_span.set_status(trace.StatusCode.ERROR, "Cancelled")
             logger.warning("[Job] Workflow %s CANCELLED (Timeout/Shutdown). Execution ID: %s", workflow_id, exec_id)
             if exec_id:
                 try:

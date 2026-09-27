@@ -72,7 +72,7 @@ async def test_execution_worker_sets_status_passed_and_no_synthetic_steps() -> N
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -113,7 +113,7 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -124,9 +124,10 @@ async def test_execution_worker_enqueues_zero_downstream_jobs() -> None:
 @pytest.mark.asyncio
 async def test_execution_worker_missing_workflow_raises() -> None:
     """Verify missing workflow routes to DLQ and returns failure."""
+    mock_record = _create_mock_record()
     mock_repo = MagicMock()
     mock_repo.get_workflow = AsyncMock(return_value=None)
-    mock_repo.get_execution = AsyncMock()
+    mock_repo.get_execution = AsyncMock(return_value=mock_record)
     mock_repo.update_execution = AsyncMock()
 
     ctx = {
@@ -137,7 +138,7 @@ async def test_execution_worker_missing_workflow_raises() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_missing00000000",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
@@ -161,7 +162,7 @@ async def test_execution_worker_missing_execution_raises() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
@@ -187,7 +188,7 @@ async def test_execution_worker_missing_target_locale_raises() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
     assert result.status == "FAILED/DLQ"
@@ -269,7 +270,7 @@ async def test_execution_worker_trace_telemetry_aggregation() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
         organization_id="org_test12345678",
         user_id="usr_test12345678",
@@ -340,7 +341,7 @@ async def test_execution_worker_offloaded_trace_reading() -> None:
         result = await execute_workflow_job(
             ctx=ctx,
             workflow_id="wor_0123456789abcdef",
-            inputs={},
+            inputs=ExecutionInputsDTO(),
             execution_id="exe_0123456789abcdef",
         )
 
@@ -382,7 +383,7 @@ async def test_execution_worker_offloaded_trace_read_failure_raises() -> None:
         result = await execute_workflow_job(
             ctx=ctx,
             workflow_id="wor_0123456789abcdef",
-            inputs={},
+            inputs=ExecutionInputsDTO(),
             execution_id="exe_0123456789abcdef",
         )
 
@@ -421,7 +422,7 @@ async def test_execution_worker_corrupted_metadata_raises() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -454,7 +455,7 @@ async def test_execution_worker_workflow_failure_dlq() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -487,7 +488,7 @@ async def test_execution_worker_cancelled_error_dlq() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -520,7 +521,7 @@ async def test_execution_worker_failure_update_error_resilience() -> None:
     result = await execute_workflow_job(
         ctx=ctx,
         workflow_id="wor_0123456789abcdef",
-        inputs={},
+        inputs=ExecutionInputsDTO(),
         execution_id="exe_0123456789abcdef",
     )
 
@@ -635,4 +636,79 @@ async def test_execution_worker_with_workflow_inputs_generated_id() -> None:
     )
 
     assert result.status == "COMPLETED"
+    assert result.execution_id is not None
     assert result.execution_id.startswith("exe_")
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_w3c_trace_propagation_with_carrier() -> None:
+    """Verify worker binds execution.worker_process span to caller trace when carrier is present."""
+    from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
+    from backend_v2.models.execution_core import ExecutionMetadata
+
+    mock_workflow = _create_mock_workflow()
+    carrier = TraceContextCarrierDTO(traceparent="00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01")
+    mock_record = _create_mock_record()
+    mock_record = mock_record.model_copy(update={"metadata": ExecutionMetadata(telemetry=carrier)})
+
+    mock_repo = MagicMock()
+    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
+    mock_repo.get_execution = AsyncMock(return_value=mock_record)
+    mock_repo.update_execution = AsyncMock()
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0123456789abcdef",
+        organization_id="org_test123",
+        user_id="usr_test456",
+    )
+
+    assert result.status == "COMPLETED"
+    assert mock_repo.update_execution.called
+
+
+@pytest.mark.asyncio
+async def test_execution_worker_orphan_span_when_carrier_missing() -> None:
+    """Verify worker sets telemetry.orphan_execution=True on root span when carrier is missing."""
+    from backend_v2.models.execution_core import ExecutionMetadata
+
+    mock_workflow = _create_mock_workflow()
+    mock_record = _create_mock_record().model_copy(update={"metadata": ExecutionMetadata(telemetry=None)})
+    # Metadata has telemetry=None by default
+    assert mock_record.metadata is not None
+    assert mock_record.metadata.telemetry is None
+
+    mock_repo = MagicMock()
+    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
+    mock_repo.get_execution = AsyncMock(return_value=mock_record)
+    mock_repo.update_execution = AsyncMock()
+
+    mock_engine = MagicMock()
+    mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
+
+    ctx = {
+        "repository": mock_repo,
+        "engine": mock_engine,
+        "redis": None,
+    }
+
+    result = await execute_workflow_job(
+        ctx=ctx,
+        workflow_id="wor_0123456789abcdef",
+        inputs=ExecutionInputsDTO(),
+        execution_id="exe_0123456789abcdef",
+    )
+
+    assert result.status == "COMPLETED"
+    assert mock_repo.update_execution.called

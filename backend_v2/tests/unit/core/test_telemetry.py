@@ -254,3 +254,35 @@ def test_configure_telemetry_otlp_branch(monkeypatch: pytest.MonkeyPatch) -> Non
 
     configure_telemetry(settings)
     assert telemetry_module._TELEMETRY_CONFIGURED is True
+
+
+def test_create_execution_record_injects_telemetry() -> None:
+    """Verifies create_execution_record automatically injects W3C trace context into metadata."""
+    from backend_v2.models.domain.execution import FrozenContext
+    from backend_v2.models.domain.inputs import WorkflowInputs
+    from backend_v2.models.execution_core import ExecutionMetadata
+    from backend_v2.services.execution.ingress_service import create_execution_record
+
+    record = create_execution_record(
+        execution_id="exe_0123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+    )
+
+    assert record.metadata is not None
+    assert record.metadata.telemetry is not None
+    assert record.metadata.telemetry.traceparent.startswith("00-")
+
+    custom_carrier = TraceContextCarrierDTO(traceparent="00-11112222333344445555666677778888-9999000011112222-01")
+    record2 = create_execution_record(
+        execution_id="exe_1123456789abcdef",
+        workflow_id="wor_0123456789abcdef",
+        raw_inputs=WorkflowInputs(dynamic_inputs={}),
+        frozen_context=FrozenContext(),
+        source_identity_manifest={},
+        metadata=ExecutionMetadata(telemetry=custom_carrier),
+    )
+    assert record2.metadata is not None
+    assert record2.metadata.telemetry == custom_carrier
