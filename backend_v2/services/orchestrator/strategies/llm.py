@@ -66,7 +66,6 @@ from backend_v2.services.orchestrator.strategies.llm_execution.context_builder i
 from backend_v2.services.orchestrator.strategies.llm_execution.prompt_factory import PromptFactory
 from backend_v2.services.orchestrator.strategies.llm_execution.source_document_packer import SourceDocumentPacker
 from backend_v2.utils.alias_engine import AliasEngine
-from backend_v2.utils.llm_debug_logger import write_debug_prompt_log
 
 __all__ = ["LLMNodeStrategy"]
 
@@ -572,21 +571,6 @@ class LLMNodeStrategy(NodeStrategy):
 
         user_payload = prompt_payload.user_payload
         base_system_prompt = prompt_payload.base_system_prompt
-
-        if get_settings().environment == "development":
-            try:
-                await write_debug_prompt_log(
-                    execution_id=context.execution_id,
-                    step_id=step.id,
-                    role_block=role_block,
-                    protocol_block=protocol_block,
-                    criteria_blocks=criteria_blocks,
-                    base_system_prompt=base_system_prompt,
-                    user_payload=user_payload,
-                    expected_schema_name=f"Step_{step.id}_Response",
-                )
-            except (OSError, ValueError, TypeError) as e:
-                self._dlq_handle_debug_log_error(e)
 
         if output_profile:
             exec_params = ["\n<execution_parameters>"]

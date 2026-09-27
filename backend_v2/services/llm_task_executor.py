@@ -26,21 +26,12 @@ from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
 from backend_v2.services.orchestrator.prompt_compiler_adapter import PromptCompilerAdapter
 from backend_v2.settings import get_settings
-from backend_v2.utils.llm_debug_logger import log_structured_task_prompt, write_llm_telemetry_log
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["LLMTaskExecutor"]
 
 
-def _dispatch_dlq_telemetry_error(error: Exception, context: str) -> None:
-    """Dispatches a telemetry or debug logging failure to the DLQ logger.
-
-    Args:
-        error: The exception that occurred during telemetry logging.
-        context: The context description where the failure occurred.
-    """
-    logger.warning("Telemetry DLQ dispatch: %s failed: %s", context, error)
 
 
 def _validate_non_empty_payload(
@@ -211,71 +202,13 @@ class LLMTaskExecutor:
         validated_model: T | None = None
 
         for attempt in range(max_total_attempts):
-            if settings.environment == "development":
-                if "execution_id" in effective_validation_context and "step_id" in effective_validation_context:
-                    exec_id_raw = effective_validation_context["execution_id"]
-                    step_id_raw = effective_validation_context["step_id"]
-                    sub_task_str: str | None = None
-                    if "sub_task" in effective_validation_context:
-                        sub_task_raw = effective_validation_context["sub_task"]
-                        if sub_task_raw is not None:
-                            sub_task_str = str(sub_task_raw)
-                    try:
-                        await log_structured_task_prompt(
-                            execution_id=str(exec_id_raw),
-                            step_id=str(step_id_raw),
-                            sub_task=sub_task_str,
-                            compiled_prompt=compiled_prompt,
-                            expected_schema_name=response_model.__name__,
-                            attempt=attempt + 1,
-                        )
-                    except (OSError, ValueError, TypeError) as log_err:
-                        _dispatch_dlq_telemetry_error(log_err, "Structured task prompt debug logging")
-
             try:
-                telemetry_start_time = time.time()
                 validated_model, usage = await client.run_structured_task(
                     messages=compiled_prompt,
                     response_model=response_model,
                     mock_identity=mock_identity,
                     validation_context=effective_validation_context,
                 )
-                duration_ms = int((time.time() - telemetry_start_time) * 1000)
-
-                try:
-                    exec_id = "global"
-                    if "execution_id" in effective_validation_context:
-                        exec_id = str(effective_validation_context["execution_id"])
-
-                    step_id = "unknown_step"
-                    if "step_id" in effective_validation_context:
-                        step_id = str(effective_validation_context["step_id"])
-
-                    if isinstance(usage, TokenUsage):
-                        usage_obj = usage
-                    else:
-                        usage_obj = TokenUsage.model_validate(usage)
-
-                    cached_tokens_count = 0
-                    if usage_obj.cached_tokens is not None:
-                        cached_tokens_count = usage_obj.cached_tokens
-                    cache_hit = cached_tokens_count > 0
-
-                    tokens = usage_obj.total_tokens
-                    trigger_reason = "initial"
-                    if attempt > 0:
-                        trigger_reason = "self_healing_retry"
-
-                    await write_llm_telemetry_log(
-                        execution_id=exec_id,
-                        step_id=step_id,
-                        duration_ms=duration_ms,
-                        cache_hit=cache_hit,
-                        tokens=tokens,
-                        trigger_reason=trigger_reason,
-                    )
-                except (OSError, ValueError, TypeError) as t_err:
-                    _dispatch_dlq_telemetry_error(t_err, "Telemetry logging")
 
                 # FinOps Accumulation
                 cumulative_usage = cumulative_usage + TokenUsage.model_validate(usage)

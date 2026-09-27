@@ -70,6 +70,7 @@ class Settings(BaseSettings):
         discovery_location: Target region for Model Discovery.
         default_model_strategy: Preferred routing blueprint.
         llm_default_timeout: Connection and execution timeouts.
+        mcp_default_timeout_seconds: Default timeout in seconds for MCP tool executions.
         llm_retry_delay: Backoff pause between transient faults.
         llm_default_tpm: Maximum tokens allowed per minute.
         llm_default_rpm: Maximum requests allowed per minute.
@@ -147,6 +148,9 @@ class Settings(BaseSettings):
         ),
     ] = 100
     llm_default_timeout_seconds: Annotated[int, Field(description="Network timeout in seconds for LLM calls")] = 300
+    mcp_default_timeout_seconds: Annotated[
+        int, Field(default=30, ge=1, description="Default timeout in seconds for MCP tool executions")
+    ] = 30
     rate_limit_cooldown_seconds: Annotated[int, Field(description="Cooldown time after rate limits hit")] = 10
     semaphore_low_rpm_threshold: Annotated[int, Field(description="Threshold for applying strict concurrency")] = 20
     semaphore_low_rpm_limit: Annotated[int, Field(description="Concurrency limit for low RPM environments")] = 2

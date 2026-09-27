@@ -2,70 +2,74 @@
 #    uv export --format requirements.txt --no-hashes -o backend_v2/requirements.txt
 aiofiles==25.1.0
     # via quorum
-aiohappyeyeballs==2.6.1
+aiohappyeyeballs==2.7.1
     # via aiohttp
-aiohttp==3.13.3
+aiohttp==3.14.1
     # via
     #   instructor
     #   litellm
 aiosignal==1.4.0
     # via aiohttp
-altair==6.0.0
+altair==6.2.2
     # via streamlit
 annotated-doc==0.0.4
-    # via fastapi
+    # via
+    #   fastapi
+    #   typer
 annotated-types==0.7.0
     # via pydantic
-anyio==4.12.0
+anyio==4.14.1
     # via
     #   google-genai
     #   httpx
     #   openai
     #   sse-starlette
     #   starlette
+    #   streamlit
     #   watchfiles
-arq==0.26.3
+arq==0.28.0
     # via quorum
-asgiref==3.11.0
+asgiref==3.11.1
     # via opentelemetry-instrumentation-asgi
-attrs==25.4.0
+ast-serialize==0.6.0
+    # via mypy
+attrs==26.1.0
     # via
     #   aiohttp
     #   jsonschema
     #   referencing
-babel==2.17.0
+babel==2.18.0
     # via mkdocs-material
-backrefs==6.1
+backrefs==7.0
     # via mkdocs-material
-beautifulsoup4==4.14.3
+beautifulsoup4==4.15.0
     # via
     #   mkdocs-swagger-ui-tag
     #   quorum
-bleach==6.3.0
+bleach==6.4.0
     # via quorum
 blinker==1.9.0
     # via streamlit
 blis==1.3.3
     # via thinc
-bracex==2.6
+bracex==3.0
     # via wcmatch
 brotli==1.2.0 ; platform_python_implementation == 'CPython'
     # via fonttools
-brotlicffi==1.2.0.0 ; platform_python_implementation != 'CPython'
+brotlicffi==1.2.0.1 ; platform_python_implementation != 'CPython'
     # via fonttools
 cachecontrol==0.14.4
     # via firebase-admin
-cachetools==6.2.4
-    # via
-    #   google-auth
-    #   streamlit
+cachetools==7.1.4
+    # via streamlit
 catalogue==2.0.10
     # via
     #   spacy
     #   srsly
     #   thinc
-certifi==2026.1.4
+certifi==2026.6.17
     # via
+    #   google-cloud-aiplatform
     #   httpcore
     #   httpx
     #   requests
@@ -74,29 +78,27 @@ cffi==2.0.0
     #   brotlicffi
     #   cryptography
     #   weasyprint
-cfgv==3.5.0
-    # via pre-commit
-charset-normalizer==3.4.4
+charset-normalizer==3.4.7
     # via requests
-click==8.3.1
+click==8.4.2
     # via
     #   arq
+    #   huggingface-hub
     #   litellm
     #   mkdocs
+    #   presidio-analyzer
     #   streamlit
-    #   typer
-    #   typer-slim
     #   uvicorn
-cloudpathlib==0.23.0
+cloudpathlib==0.24.0
     # via weasel
 colorama==0.4.6
     # via
     #   click
-    #   griffe
     #   mkdocs
     #   mkdocs-material
     #   pytest
     #   tqdm
+    #   typer
     #   wasabi
 confection==1.3.3
     # via
@@ -105,13 +107,15 @@ confection==1.3.3
     #   weasel
 contourpy==1.3.3
     # via matplotlib
-coverage==7.13.5
+coverage==7.15.0
     # via pytest-cov
-cryptography==46.0.6
+cryptography==46.0.7
     # via
+    #   google-auth
     #   presidio-anonymizer
     #   pyjwt
-cssselect2==0.8.0
+    #   pyopenssl
+cssselect2==0.9.0
     # via weasyprint
 cycler==0.12.1
     # via matplotlib
@@ -122,17 +126,13 @@ cymem==2.0.13
     #   thinc
 deprecated==1.3.1
     # via limits
-diskcache==5.6.3
-    # via instructor
-distlib==0.4.0
-    # via virtualenv
 distro==1.9.0
     # via
     #   google-genai
     #   openai
 dnspython==2.8.0
     # via email-validator
-docstring-parser==0.17.0
+docstring-parser==0.18.0
     # via
     #   google-cloud-aiplatform
     #   instructor
@@ -140,26 +140,27 @@ email-validator==2.3.0
     # via
     #   pydantic
     #   quorum
+et-xmlfile==2.0.0
+    # via openpyxl
 executing==2.2.1
     # via logfire
-faker==40.12.0
+faker==40.28.1
     # via polyfactory
-fakeredis==2.33.0
+fakeredis==2.36.2
     # via quorum
-fastapi==0.128.0
+fastapi==0.139.0
     # via quorum
 fastuuid==0.14.0
     # via litellm
-filelock==3.20.2
+filelock==3.29.5
     # via
     #   huggingface-hub
     #   tldextract
-    #   virtualenv
-firebase-admin==7.1.0
+firebase-admin==7.5.0
     # via quorum
 flatbuffers==25.12.19
     # via onnxruntime
-fonttools==4.61.1
+fonttools==4.63.0
     # via
     #   matplotlib
     #   weasyprint
@@ -167,7 +168,7 @@ frozenlist==1.8.0
     # via
     #   aiohttp
     #   aiosignal
-fsspec==2025.12.0
+fsspec==2026.6.0
     # via huggingface-hub
 ftfy==6.3.1
     # via quorum
@@ -175,9 +176,9 @@ ghp-import==2.1.0
     # via mkdocs
 gitdb==4.0.12
     # via gitpython
-gitpython==3.1.46
+gitpython==3.1.50
     # via streamlit
-google-api-core==2.28.1
+google-api-core==2.31.0
     # via
     #   firebase-admin
     #   google-api-python-client
@@ -187,9 +188,9 @@ google-api-core==2.28.1
     #   google-cloud-firestore
     #   google-cloud-resource-manager
     #   google-cloud-storage
-google-api-python-client==2.187.0
+google-api-python-client==2.198.0
     # via quorum
-google-auth==2.45.0
+google-auth==2.55.1
     # via
     #   google-api-core
     #   google-api-python-client
@@ -201,22 +202,22 @@ google-auth==2.45.0
     #   google-cloud-resource-manager
     #   google-cloud-storage
     #   google-genai
-google-auth-httplib2==0.3.0
+google-auth-httplib2==0.4.0
     # via google-api-python-client
-google-cloud-aiplatform==1.132.0
+google-cloud-aiplatform==1.159.0
     # via quorum
-google-cloud-bigquery==3.39.0
+google-cloud-bigquery==3.42.1
     # via google-cloud-aiplatform
-google-cloud-core==2.5.0
+google-cloud-core==2.6.0
     # via
     #   google-cloud-bigquery
     #   google-cloud-firestore
     #   google-cloud-storage
-google-cloud-firestore==2.22.0 ; platform_python_implementation != 'PyPy'
+google-cloud-firestore==2.28.0 ; platform_python_implementation != 'PyPy'
     # via firebase-admin
-google-cloud-resource-manager==1.15.0
+google-cloud-resource-manager==1.18.0
     # via google-cloud-aiplatform
-google-cloud-storage==3.7.0
+google-cloud-storage==3.12.0
     # via
     #   firebase-admin
     #   google-cloud-aiplatform
@@ -224,31 +225,33 @@ google-crc32c==1.8.0
     # via
     #   google-cloud-storage
     #   google-resumable-media
-google-genai==1.56.0
+google-genai==2.10.0
     # via google-cloud-aiplatform
-google-resumable-media==2.8.0
+google-resumable-media==2.10.0
     # via
     #   google-cloud-bigquery
     #   google-cloud-storage
-googleapis-common-protos==1.72.0
+googleapis-common-protos==1.75.0
     # via
     #   google-api-core
     #   grpc-google-iam-v1
     #   grpcio-status
+    #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-griffe==1.15.0
+griffelib==2.1.0
     # via mkdocstrings-python
-grpc-google-iam-v1==0.14.3
+grpc-google-iam-v1==0.14.4
     # via google-cloud-resource-manager
-grpcio==1.76.0
+grpcio==1.82.0
     # via
     #   google-api-core
+    #   google-cloud-firestore
     #   google-cloud-resource-manager
     #   googleapis-common-protos
     #   grpc-google-iam-v1
     #   grpcio-status
-    #   litellm
-grpcio-status==1.76.0
+    #   opentelemetry-exporter-otlp-proto-grpc
+grpcio-status==1.82.0
     # via google-api-core
 h11==0.16.0
     # via
@@ -256,18 +259,20 @@ h11==0.16.0
     #   uvicorn
 h2==4.3.0
     # via httpx
-hf-xet==1.2.0 ; platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
+hf-xet==1.5.1 ; platform_machine == 'AMD64' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'arm64' or platform_machine == 'x86_64'
     # via huggingface-hub
-hiredis==3.3.0
+hiredis==3.4.0
     # via redis
-hpack==4.1.0
+hpack==4.2.0
     # via h2
 httpcore==1.0.9
     # via httpx
-httplib2==0.31.0
+httplib2==0.32.0
     # via
     #   google-api-python-client
     #   google-auth-httplib2
+httptools==0.8.0
+    # via streamlit
 httpx==0.28.1
     # via
     #   firebase-admin
@@ -276,13 +281,11 @@ httpx==0.28.1
     #   litellm
     #   openai
     #   weasel
-huggingface-hub==1.2.3
+huggingface-hub==1.22.0
     # via tokenizers
 hyperframe==6.1.0
     # via h2
-identify==2.6.16
-    # via pre-commit
-idna==3.11
+idna==3.18
     # via
     #   anyio
     #   email-validator
@@ -290,14 +293,14 @@ idna==3.11
     #   requests
     #   tldextract
     #   yarl
-importlib-metadata==8.7.1
-    # via
-    #   litellm
-    #   opentelemetry-api
+importlib-metadata==8.9.0
+    # via litellm
 iniconfig==2.3.0
     # via pytest
-instructor==1.14.3
+instructor==1.15.4
     # via quorum
+itsdangerous==2.2.0
+    # via streamlit
 jinja2==3.1.6
     # via
     #   altair
@@ -309,38 +312,38 @@ jinja2==3.1.6
     #   pydeck
     #   quorum
     #   spacy
-jiter==0.11.1
+jiter==0.14.0
     # via
     #   instructor
     #   openai
-json-repair==0.61.1
+json-repair==0.61.2
     # via quorum
-jsonschema==4.25.1
+jsonschema==4.26.0
     # via
     #   altair
     #   litellm
 jsonschema-specifications==2025.9.1
     # via jsonschema
-kiwisolver==1.4.9
+kiwisolver==1.5.0
     # via matplotlib
-librt==0.7.7 ; platform_python_implementation != 'PyPy'
+librt==0.12.0 ; platform_python_implementation != 'PyPy'
     # via mypy
-limits==5.6.0
+limits==5.8.0
     # via slowapi
-litellm==1.80.11
+litellm==1.91.0
     # via quorum
-logfire==4.16.0
+logfire==4.37.0
     # via quorum
-lxml==6.0.2
+lxml==6.1.1
     # via python-docx
-markdown==3.10
+markdown==3.10.2
     # via
     #   mkdocs
     #   mkdocs-autorefs
     #   mkdocs-material
     #   mkdocstrings
     #   pymdown-extensions
-markdown-it-py==4.0.0
+markdown-it-py==4.2.0
     # via rich
 markupsafe==3.0.3
     # via
@@ -348,7 +351,7 @@ markupsafe==3.0.3
     #   mkdocs
     #   mkdocs-autorefs
     #   mkdocstrings
-matplotlib==3.10.8
+matplotlib==3.11.0
     # via quorum
 mdurl==0.1.2
     # via markdown-it-py
@@ -362,26 +365,24 @@ mkdocs==1.6.1
     #   mkdocs-awesome-pages-plugin
     #   mkdocs-material
     #   mkdocstrings
-mkdocs-autorefs==1.4.3
+mkdocs-autorefs==1.4.4
     # via
     #   mkdocstrings
     #   mkdocstrings-python
 mkdocs-awesome-pages-plugin==2.10.1
-mkdocs-get-deps==0.2.0
+mkdocs-get-deps==0.2.2
     # via mkdocs
-mkdocs-material==9.7.1
+mkdocs-material==9.7.6
 mkdocs-material-extensions==1.3.1
     # via mkdocs-material
-mkdocs-swagger-ui-tag==0.7.2
-mkdocstrings==1.0.0
+mkdocs-swagger-ui-tag==0.8.0
+mkdocstrings==1.0.4
     # via mkdocstrings-python
-mkdocstrings-python==2.0.1
+mkdocstrings-python==2.0.5
     # via mkdocstrings
-mpmath==1.3.0
-    # via sympy
-msgpack==1.1.2
+msgpack==1.2.1
     # via cachecontrol
-multidict==6.7.0
+multidict==6.7.1
     # via
     #   aiohttp
     #   yarl
@@ -390,83 +391,122 @@ murmurhash==1.0.15
     #   preshed
     #   spacy
     #   thinc
-mypy==1.19.1
+mypy==2.1.0
 mypy-extensions==1.1.0
     # via mypy
-narwhals==2.14.0
+narwhals==2.23.0
     # via altair
 natsort==8.4.0
     # via mkdocs-awesome-pages-plugin
 networkx==3.6.1
     # via pymupdf-layout
-nodeenv==1.10.0
-    # via pre-commit
-numpy==2.4.4
+numpy==2.4.6
     # via
     #   blis
     #   contourpy
     #   matplotlib
     #   onnxruntime
     #   pandas
+    #   presidio-analyzer
     #   pydeck
     #   pymupdf-layout
-    #   shapely
     #   spacy
     #   streamlit
     #   thinc
-onnxruntime==1.24.4
+onnxruntime==1.27.0
     # via pymupdf-layout
-openai==2.14.0
+openai==2.44.0
     # via
     #   instructor
     #   litellm
     #   quorum
-opentelemetry-api==1.39.1
+openinference-instrumentation==0.1.54
+    # via openinference-instrumentation-litellm
+openinference-instrumentation-litellm==0.1.34
+    # via logfire
+openinference-semantic-conventions==0.1.30
     # via
+    #   openinference-instrumentation
+    #   openinference-instrumentation-litellm
+openpyxl==3.1.5
+    # via quorum
+opentelemetry-api==1.42.1
+    # via
+    #   openinference-instrumentation
+    #   openinference-instrumentation-litellm
+    #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
+    #   opentelemetry-instrumentation-requests
+    #   opentelemetry-instrumentation-system-metrics
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
-opentelemetry-exporter-otlp-proto-common==1.39.1
-    # via opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-otlp-proto-http==1.39.1
-    # via logfire
-opentelemetry-instrumentation==0.60b1
+    #   quorum
+opentelemetry-exporter-otlp==1.42.1
+    # via quorum
+opentelemetry-exporter-otlp-proto-common==1.42.1
+    # via
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+opentelemetry-exporter-otlp-proto-grpc==1.42.1
+    # via opentelemetry-exporter-otlp
+opentelemetry-exporter-otlp-proto-http==1.42.1
     # via
     #   logfire
+    #   opentelemetry-exporter-otlp
+opentelemetry-instrumentation==0.63b1
+    # via
+    #   logfire
+    #   openinference-instrumentation-litellm
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
-opentelemetry-instrumentation-asgi==0.60b1
+    #   opentelemetry-instrumentation-requests
+    #   opentelemetry-instrumentation-system-metrics
+opentelemetry-instrumentation-asgi==0.63b1
     # via opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-fastapi==0.60b1
-    # via logfire
-opentelemetry-instrumentation-httpx==0.60b1
-    # via logfire
-opentelemetry-proto==1.39.1
-    # via
-    #   opentelemetry-exporter-otlp-proto-common
-    #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-sdk==1.39.1
+opentelemetry-instrumentation-fastapi==0.63b1
     # via
     #   logfire
+    #   quorum
+opentelemetry-instrumentation-httpx==0.63b1
+    # via logfire
+opentelemetry-instrumentation-requests==0.63b1
+    # via logfire
+opentelemetry-instrumentation-system-metrics==0.63b1
+    # via logfire
+opentelemetry-proto==1.42.1
+    # via
+    #   opentelemetry-exporter-otlp-proto-common
+    #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
-opentelemetry-semantic-conventions==0.60b1
+opentelemetry-sdk==1.42.1
+    # via
+    #   logfire
+    #   openinference-instrumentation
+    #   openinference-instrumentation-litellm
+    #   opentelemetry-exporter-otlp-proto-grpc
+    #   opentelemetry-exporter-otlp-proto-http
+    #   quorum
+opentelemetry-semantic-conventions==0.63b1
     # via
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
+    #   opentelemetry-instrumentation-requests
+    #   opentelemetry-instrumentation-system-metrics
     #   opentelemetry-sdk
-opentelemetry-util-http==0.60b1
+opentelemetry-util-http==0.63b1
     # via
     #   opentelemetry-instrumentation-asgi
     #   opentelemetry-instrumentation-fastapi
     #   opentelemetry-instrumentation-httpx
-packaging==25.0
+    #   opentelemetry-instrumentation-requests
+packaging==26.2
     # via
     #   altair
     #   google-cloud-aiplatform
@@ -484,49 +524,45 @@ packaging==25.0
     #   weasel
 paginate==0.5.7
     # via mkdocs-material
-pandas==2.3.3
+pandas==3.0.3
     # via streamlit
-pathspec==0.12.1
+pathspec==1.1.1
     # via
     #   mkdocs
     #   mypy
-phonenumbers==9.0.27
+phonenumbers==9.0.34
     # via presidio-analyzer
-pillow==12.1.0
+pillow==12.3.0
     # via
     #   matplotlib
     #   streamlit
     #   weasyprint
-platformdirs==4.5.1
-    # via
-    #   mkdocs-get-deps
-    #   virtualenv
+platformdirs==4.10.0
+    # via mkdocs-get-deps
 pluggy==1.6.0
     # via
     #   pytest
     #   pytest-cov
 polyfactory==3.3.0
-pre-commit==4.5.1
-    # via instructor
 preshed==3.0.13
     # via
     #   spacy
     #   thinc
-presidio-analyzer==2.2.362
+presidio-analyzer==2.2.363
     # via quorum
-presidio-anonymizer==2.2.362
+presidio-anonymizer==2.2.363
     # via quorum
-propcache==0.4.1
+propcache==0.5.2
     # via
     #   aiohttp
     #   yarl
-proto-plus==1.27.0
+proto-plus==1.28.0
     # via
     #   google-api-core
     #   google-cloud-aiplatform
     #   google-cloud-firestore
     #   google-cloud-resource-manager
-protobuf==6.33.2
+protobuf==6.33.6
     # via
     #   google-api-core
     #   google-cloud-aiplatform
@@ -540,17 +576,17 @@ protobuf==6.33.2
     #   opentelemetry-proto
     #   proto-plus
     #   streamlit
-pyarrow==22.0.0
+psutil==7.2.2
+    # via opentelemetry-instrumentation-system-metrics
+pyarrow==24.0.0
     # via streamlit
-pyasn1==0.6.1
-    # via
-    #   pyasn1-modules
-    #   rsa
+pyasn1==0.6.3
+    # via pyasn1-modules
 pyasn1-modules==0.4.2
     # via google-auth
-pycparser==2.23 ; implementation_name != 'PyPy'
+pycparser==3.0 ; implementation_name != 'PyPy'
     # via cffi
-pydantic==2.12.5
+pydantic==2.13.4
     # via
     #   fastapi
     #   google-cloud-aiplatform
@@ -564,52 +600,56 @@ pydantic==2.12.5
     #   spacy
     #   thinc
     #   weasel
-pydantic-core==2.41.5
+pydantic-core==2.46.4
     # via
     #   instructor
     #   pydantic
-pydantic-settings==2.12.0
+pydantic-settings==2.14.2
     # via quorum
-pydeck==0.9.1
+pydeck==0.9.3
     # via streamlit
 pydyf==0.12.1
     # via weasyprint
-pygments==2.19.2
+pygments==2.20.0
     # via
     #   mkdocs-material
     #   pytest
     #   rich
-pyjwt==2.10.1
+pyjwt==2.13.0
     # via
     #   firebase-admin
     #   quorum
     #   redis
-pymdown-extensions==10.20
+pymdown-extensions==11.0.1
     # via
     #   mkdocs-material
     #   mkdocstrings
-pymupdf==1.27.2.2
+pymupdf==1.28.0
     # via
     #   pymupdf-layout
     #   pymupdf4llm
     #   quorum
-pymupdf-layout==1.27.2.2
+pymupdf-layout==1.28.0
+    # via
+    #   pymupdf4llm
+    #   quorum
+pymupdf4llm==1.28.0
     # via quorum
-pymupdf4llm==0.2.9
-    # via quorum
-pyparsing==3.3.1
+pyopenssl==26.2.0
+    # via google-auth
+pyparsing==3.3.2
     # via
     #   httplib2
     #   matplotlib
 pyphen==0.17.2
     # via weasyprint
-pytest==9.0.2
+pytest==9.1.1
     # via
     #   pytest-archon
     #   pytest-asyncio
     #   pytest-cov
 pytest-archon==0.0.7
-pytest-asyncio==1.3.0
+pytest-asyncio==1.4.0
 pytest-cov==7.1.0
 python-dateutil==2.9.0.post0
     # via
@@ -619,21 +659,20 @@ python-dateutil==2.9.0.post0
     #   pandas
 python-docx==1.2.0
     # via quorum
-python-dotenv==1.2.1
+python-dotenv==1.2.2
     # via
     #   litellm
     #   pydantic-settings
     #   quorum
-python-multipart==0.0.21
-    # via quorum
-pytz==2025.2
-    # via pandas
+python-multipart==0.0.32
+    # via
+    #   quorum
+    #   streamlit
 pyyaml==6.0.3
     # via
     #   huggingface-hub
     #   mkdocs
     #   mkdocs-get-deps
-    #   pre-commit
     #   presidio-analyzer
     #   pymdown-extensions
     #   pymupdf-layout
@@ -651,11 +690,11 @@ referencing==0.37.0
     # via
     #   jsonschema
     #   jsonschema-specifications
-regex==2025.11.3
+regex==2026.6.28
     # via
     #   presidio-analyzer
     #   tiktoken
-requests==2.32.5
+requests==2.34.2
     # via
     #   cachecontrol
     #   google-api-core
@@ -674,35 +713,30 @@ requests==2.32.5
     #   tldextract
 requests-file==3.0.1
     # via tldextract
-rich==14.2.0
+rich==14.3.4
     # via
     #   instructor
     #   logfire
     #   typer
-rpds-py==0.30.0
+rpds-py==2026.6.3
     # via
     #   jsonschema
     #   referencing
-rsa==4.9.1
-    # via google-auth
-ruff==0.14.10
-setuptools==82.0.1
+ruff==0.15.20
+setuptools==83.0.0
     # via
+    #   openinference-instrumentation-litellm
     #   spacy
     #   thinc
-shapely==2.1.2
-    # via google-cloud-aiplatform
 shellingham==1.5.4
-    # via
-    #   huggingface-hub
-    #   typer
+    # via typer
 six==1.17.0
     # via python-dateutil
-slowapi==0.1.9
+slowapi==0.1.10
     # via quorum
-smart-open==7.5.1
+smart-open==8.0.0
     # via weasel
-smmap==5.0.2
+smmap==5.0.3
     # via gitdb
 sniffio==1.3.1
     # via
@@ -710,7 +744,7 @@ sniffio==1.3.1
     #   openai
 sortedcontainers==2.4.0
     # via fakeredis
-soupsieve==2.8.1
+soupsieve==2.8.4
     # via beautifulsoup4
 spacy==3.8.13
     # via presidio-analyzer
@@ -723,19 +757,18 @@ srsly==2.5.3
     #   spacy
     #   thinc
     #   weasel
-sse-starlette==3.2.0
+sse-starlette==3.4.5
     # via quorum
-starlette==0.50.0
+starlette==1.3.1
     # via
     #   fastapi
     #   sse-starlette
-streamlit==1.52.2
+    #   streamlit
+streamlit==1.58.0
     # via quorum
-sympy==1.14.0
-    # via onnxruntime
 tabulate==0.10.0
     # via pymupdf4llm
-tenacity==9.1.2
+tenacity==9.1.4
     # via
     #   google-genai
     #   instructor
@@ -743,7 +776,7 @@ tenacity==9.1.2
     #   streamlit
 thinc==8.3.13
     # via spacy
-tiktoken==0.12.0
+tiktoken==0.13.0
     # via litellm
 tinycss2==1.5.1
     # via
@@ -751,38 +784,32 @@ tinycss2==1.5.1
     #   weasyprint
 tinydb==4.8.2
     # via quorum
-tinyhtml5==2.0.0
+tinyhtml5==2.1.0
     # via weasyprint
 tldextract==5.3.1
     # via presidio-analyzer
-tokenizers==0.22.1
+tokenizers==0.23.1
     # via litellm
 toml==0.10.2
     # via streamlit
-tornado==6.5.4
-    # via streamlit
-tqdm==4.67.1
+tqdm==4.68.3
     # via
     #   huggingface-hub
     #   openai
     #   spacy
-ty==0.0.11
-    # via instructor
-typer==0.21.1
+typer==0.26.8
     # via
     #   instructor
     #   spacy
     #   weasel
-typer-slim==0.21.0
-    # via huggingface-hub
-types-aiofiles==25.1.0.20260409
-types-bleach==6.3.0.20260402
-types-html5lib==1.1.11.20260402
+types-aiofiles==25.1.0.20260518
+types-bleach==6.4.0.20260607
+types-html5lib==1.1.11.20260518
     # via types-bleach
-types-requests==2.32.4.20260107
-types-webencodings==0.5.0.20251108
+types-requests==2.33.0.20260518
+types-webencodings==0.5.0.20260408
     # via types-html5lib
-typing-extensions==4.15.0
+typing-extensions==4.16.0
     # via
     #   altair
     #   beautifulsoup4
@@ -796,6 +823,7 @@ typing-extensions==4.15.0
     #   mypy
     #   openai
     #   opentelemetry-api
+    #   opentelemetry-exporter-otlp-proto-grpc
     #   opentelemetry-exporter-otlp-proto-http
     #   opentelemetry-sdk
     #   opentelemetry-semantic-conventions
@@ -804,27 +832,26 @@ typing-extensions==4.15.0
     #   pydantic-core
     #   python-docx
     #   streamlit
-    #   typer
-    #   typer-slim
     #   typing-inspection
 typing-inspection==0.4.2
     # via
+    #   fastapi
     #   pydantic
     #   pydantic-settings
-tzdata==2025.3
+tzdata==2026.2 ; sys_platform == 'emscripten' or sys_platform == 'win32'
     # via
     #   faker
     #   pandas
 uritemplate==4.2.0
     # via google-api-python-client
-urllib3==2.6.2
+urllib3==2.7.0
     # via
     #   requests
     #   types-requests
-uvicorn==0.40.0
-    # via quorum
-virtualenv==20.36.1
-    # via pre-commit
+uvicorn==0.50.1
+    # via
+    #   quorum
+    #   streamlit
 wasabi==1.1.3
     # via
     #   spacy
@@ -834,15 +861,15 @@ watchdog==6.0.0
     # via
     #   mkdocs
     #   streamlit
-watchfiles==1.1.1
+watchfiles==1.2.0
     # via quorum
-wcmatch==10.1
+wcmatch==10.2.1
     # via mkdocs-awesome-pages-plugin
-wcwidth==0.8.1
+wcwidth==0.8.2
     # via ftfy
 weasel==1.0.0
     # via spacy
-weasyprint==68.0
+weasyprint==69.0
     # via quorum
 webencodings==0.5.1
     # via
@@ -850,17 +877,21 @@ webencodings==0.5.1
     #   cssselect2
     #   tinycss2
     #   tinyhtml5
-websockets==15.0.1
-    # via google-genai
-wrapt==1.17.3
+websockets==16.0
+    # via
+    #   google-genai
+    #   streamlit
+wrapt==2.2.2
     # via
     #   deprecated
+    #   openinference-instrumentation
+    #   openinference-instrumentation-litellm
     #   opentelemetry-instrumentation
     #   opentelemetry-instrumentation-httpx
     #   smart-open
-yarl==1.22.0
+yarl==1.24.2
     # via aiohttp
-zipp==3.23.0
+zipp==4.1.0
     # via importlib-metadata
-zopfli==0.4.0
+zopfli==0.4.3
     # via fonttools
