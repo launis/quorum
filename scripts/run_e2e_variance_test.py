@@ -2020,6 +2020,11 @@ def main(argv: list[str] | None = None) -> list[str]:
         action="store_true",
         help="Print verified workflow and matrix parameters and exit without executing runs",
     )
+    parser.add_argument(
+        "--logfire",
+        action="store_true",
+        help="Enable Logfire distributed tracing and wrap execution in root span",
+    )
 
     args = parser.parse_args(argv)
     if args.show_matrices:
@@ -2053,6 +2058,32 @@ def main(argv: list[str] | None = None) -> list[str]:
         return []
 
     inputs_path = args.inputs_opt or args.inputs_target
+    if args.logfire:
+        from backend_v2.core.telemetry import configure_telemetry, get_tracer
+        from backend_v2.settings import get_settings
+
+        settings = get_settings().model_copy(update={"otel_enabled": True})
+        configure_telemetry(settings)
+        tracer = get_tracer("e2e.variance_test")
+        with tracer.start_as_current_span("e2e.variance_test"):
+            return run_variance_test(
+                inputs_target=inputs_path,
+                num_runs=args.num_runs,
+                timeout_seconds=args.timeout_seconds,
+                db_path=args.db_path,
+                no_cache=args.no_cache,
+                cooldown_seconds=args.cooldown_seconds,
+                dev=args.dev,
+                workflow=args.workflow,
+                profile=args.profile,
+                locale=args.locale,
+                strategies=args.strategies,
+                providers=args.providers,
+                no_noise=args.no_noise,
+                model_registry=args.model_registry,
+                compare_registries=args.compare_registries,
+            )
+
     return run_variance_test(
         inputs_target=inputs_path,
         num_runs=args.num_runs,

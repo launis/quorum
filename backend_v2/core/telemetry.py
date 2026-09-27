@@ -106,8 +106,6 @@ class LocalTraceSnapshotExporter(SpanExporter):
                             existing_error_fingerprint = prev_snapshot.error_fingerprint
                         if prev_snapshot.error_summary is not None:
                             error_summary = prev_snapshot.error_summary
-                        if prev_snapshot.root_span != "unknown":
-                            root_span_name = prev_snapshot.root_span
                         if prev_snapshot.service_name:
                             service_name = prev_snapshot.service_name
                 except OSError, ValueError, TypeError, KeyError:
@@ -212,7 +210,16 @@ class LocalTraceSnapshotExporter(SpanExporter):
                     f_node = failing_step_id
                 error_fingerprint = f"{f_node}::UNKNOWN_ERROR::AppException"
 
-            total_duration_ms = sum(s.duration_ms for s in span_snapshots if s.parent_id is None)
+            known_span_ids = set(existing_spans.keys())
+            root_candidates = [s for s in span_snapshots if s.parent_id is None or s.parent_id not in known_span_ids]
+            if root_candidates:
+                root_span_name = root_candidates[0].name
+            elif span_snapshots:
+                root_span_name = span_snapshots[0].name
+            else:
+                root_span_name = "unknown"
+
+            total_duration_ms = sum(s.duration_ms for s in root_candidates)
             if total_duration_ms == 0.0 and span_snapshots:
                 total_duration_ms = max(s.duration_ms for s in span_snapshots)
 

@@ -5,6 +5,7 @@ import 'package:client_app/features/execution/models/execution_record.dart';
 import 'package:client_app/features/execution/models/execution_step.dart';
 import 'package:client_app/features/execution/models/execution_summary_snapshot.dart';
 import 'package:client_app/features/execution/models/frozen_context_snapshot.dart';
+import 'package:client_app/features/execution/models/trace_context_carrier.dart';
 import 'package:client_app/features/execution/models/workflow_inputs.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -71,6 +72,70 @@ void main() {
       expect(nullMeta.providerOverride, isNull);
       expect(nullMeta.modelRegistryId, isNull);
     });
+
+    test(
+      'instantiates from backend execution metadata containing telemetry carrier',
+      () {
+        final json = {
+          'matrix_sampling_strategy': 1,
+          'workflow_version': 1,
+          'telemetry': {
+            'traceparent':
+                '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+            'tracestate': 'congo=t61rcWkgMzE',
+          },
+        };
+        final meta = ExecutionMetadata.fromJson(json);
+        expect(meta.telemetry, isNotNull);
+        expect(
+          meta.telemetry!.traceparent,
+          '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+        );
+        expect(meta.telemetry!.tracestate, 'congo=t61rcWkgMzE');
+
+        final serialized = meta.toJson();
+        expect(serialized['telemetry'], isA<Map<String, dynamic>>());
+        expect(
+          (serialized['telemetry'] as Map)['traceparent'],
+          '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+        );
+      },
+    );
+
+    test('TraceContextCarrier deserializes and serializes with W3C parity', () {
+      final json = {
+        'traceparent':
+            '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
+        'tracestate': null,
+      };
+      final carrier = TraceContextCarrier.fromJson(json);
+      expect(
+        carrier.traceparent,
+        '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
+      );
+      expect(carrier.tracestate, isNull);
+
+      final outJson = carrier.toJson();
+      expect(
+        outJson['traceparent'],
+        '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01',
+      );
+    });
+
+    test(
+      'TraceContextCarrier throws CheckedFromJsonException on unrecognized keys',
+      () {
+        final json = {
+          'traceparent':
+              '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01',
+          'extra_key': 'illegal',
+        };
+        expect(
+          () => TraceContextCarrier.fromJson(json),
+          throwsA(isA<CheckedFromJsonException>()),
+        );
+      },
+    );
   });
 
   group('ExecutionStep Freezed Parity', () {

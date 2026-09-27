@@ -207,3 +207,34 @@ def studio_prompt_block_service(
         prompt_block_repo=fake_prompt_block_repo,
         system_repo=fake_system_repo,
     )
+
+
+@pytest.fixture
+def in_memory_spans() -> Generator[Any, None, None]:
+    """Provides an isolated InMemorySpanExporter attached to a test TracerProvider."""
+    from opentelemetry import trace
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+    from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
+
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    orig_provider = trace._TRACER_PROVIDER
+    trace._TRACER_PROVIDER = provider
+    try:
+        yield exporter
+    finally:
+        exporter.clear()
+        trace._TRACER_PROVIDER = orig_provider
+
+
+def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: Any) -> None:
+    """Emits diagnostic banner pointing to local trace snapshot and Logfire MCP upon test failure."""
+    if exitstatus != 0:
+        terminalreporter.write_sep("=", "TELEMETRY DIAGNOSTIC GUIDANCE", bold=True, red=True)
+        terminalreporter.write_line("🔴 Tests failed. Inspect latest execution trace snapshot via view_file on:", bold=True)
+        terminalreporter.write_line("   data/files/traces/latest_execution_trace.json", bold=True)
+        terminalreporter.write_line("   Or query trace spans via Logfire MCP: query_spans or get_trace.", bold=True)
+
+

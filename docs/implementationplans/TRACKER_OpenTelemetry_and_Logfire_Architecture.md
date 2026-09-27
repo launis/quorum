@@ -14,7 +14,7 @@
 
 ## Step Execution Status
 **Plan:** @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md]
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
   - [x] Step 1: TECHNICAL_DEBT_PURGE_AND_DEPENDENCIES
   - [x] Step 2: SETTINGS_AND_TELEMETRY_CORE_INITIALIZATION
   - [x] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
@@ -22,7 +22,7 @@
   - [x] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
   - [x] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
   - [x] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
-  - [ ] Step 8: AUTOMATED_TESTING_AND_AST_GUARDRAILS
+  - [x] Step 8: AUTOMATED_TESTING_AND_AST_GUARDRAILS
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
 
 ### Post-Implementation Gates
@@ -44,15 +44,15 @@
   - [x] @[backend_v2/llm/adapters/base_adapter.py]
   - [x] @[backend_v2/llm/caching_service.py]
   - [x] @[backend_v2/services/mcp/dispatcher.py]
-  - [ ] @[backend_v2/services/llm_task_executor.py]
-  - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
+  - [x] @[backend_v2/services/llm_task_executor.py]
+  - [x] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [x] @[backend_v2/utils/finops_trace_analyzer.py]
-  - [ ] @[scripts/_ast_guardrails.py]
-  - [ ] @[scripts/backend_audit_loop.py]
-  - [ ] @[scripts/run_e2e_variance_test.py]
+  - [x] @[scripts/_ast_guardrails.py]
+  - [x] @[scripts/backend_audit_loop.py]
+  - [x] @[scripts/run_e2e_variance_test.py]
 - [ ] **[NOK] Tier 2 Hardening (Frontend)**: Run `/tier2-hardening-frontend` specifying the explicit list of created/modified @-referenced production Flutter files:
-  - [ ] @[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]
-  - [ ] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/trace_context_carrier.dart]
+  - [x] @[client_app_v2/lib/features/execution/models/execution_metadata.dart]
 - [ ] **[NOK] Pre-Delete Audit**: Verify no orphaned symbols or dependencies remain.
 - [ ] **[NOK] Semantic Coverage & Zero-Loss Audit**: Mathematically verify line coverage >90% for modified business logic.
 
@@ -113,13 +113,13 @@
 | REQ-28 | Modernize `<rule_block id="logfire_delegation_mandate">` in `00-antigravity-core.md` and `<rule_block id="local_prompt_debugging_mandate">` in `05_llm_architecture.md` | Step 7 | [x] |
 | REQ-29 | Update `.agents/workflows/` (`tier4-bug-hunting.md`, `tier6-execution-monitor.md`, `tier5-session-handover.md`, `tier8-audit-feature.md`) to utilize trace IDs, span trees, and `latest_execution_trace.json` | Step 7 | [x] |
 | REQ-30 | Update `.agents/workflows/` (`tier2-execute.md`, `tier2-hardening-backend.md`, `tier8-test-coverage-expansion.md`, `tier5-resume.md`, `tier3-feature-refactor.md`, `tier8-red-teaming-audit.md`) with structured trace snapshot diagnostic workflows | Step 7 | [x] |
-| REQ-31 | Implement unit test suite `test_telemetry.py` covering NoOp fallback, W3C injection/extraction, malformed headers, Logfire config, and local trace snapshot exporter | Step 8 | [ ] |
-| REQ-32 | Implement unit test suite `test_dag_executor_telemetry.py` asserting DAG span hierarchy, error status recording, and TaskGroup concurrency context | Step 8 | [ ] |
-| REQ-33 | Implement unit test suite `test_provider_telemetry.py` asserting GenAI semantic attributes, cache hits, and timeout handling | Step 8 | [ ] |
-| REQ-34 | Implement `in_memory_spans` pytest fixture and terminal summary failure hook emitting diagnostic banner in `backend_v2/tests/conftest.py` | Step 8 | [ ] |
-| REQ-35 | Implement AST guardrail `QGR021` in `_ast_guardrails.py` banning direct imports of `llm_debug_logger`, with corresponding unit tests | Step 8 | [ ] |
-| REQ-36 | Synchronize unit tests in `test_logging_config.py`, `test_main.py`, `test_finops_trace_analyzer.py`, and Dart `execution_models_test.dart` | Step 8 | [ ] |
-| REQ-37 | Unblock pytest Logfire plugin in `pyproject.toml`, add `--logfire` flag and diagnostic failure banner to `scripts/backend_audit_loop.py`, and add `--logfire` to `scripts/run_e2e_variance_test.py` | Step 8 | [ ] |
+| REQ-31 | Implement unit test suite `test_telemetry.py` covering NoOp fallback, W3C injection/extraction, malformed headers, Logfire config, and local trace snapshot exporter | Step 8 | [x] |
+| REQ-32 | Implement unit test suite `test_dag_executor_telemetry.py` asserting DAG span hierarchy, error status recording, and TaskGroup concurrency context | Step 8 | [x] |
+| REQ-33 | Implement unit test suite `test_provider_telemetry.py` asserting GenAI semantic attributes, cache hits, and timeout handling | Step 8 | [x] |
+| REQ-34 | Implement `in_memory_spans` pytest fixture and terminal summary failure hook emitting diagnostic banner in `backend_v2/tests/conftest.py` | Step 8 | [x] |
+| REQ-35 | Implement AST guardrail `QGR021` in `_ast_guardrails.py` banning direct imports of `llm_debug_logger`, with corresponding unit tests | Step 8 | [x] |
+| REQ-36 | Synchronize unit tests in `test_logging_config.py`, `test_main.py`, `test_finops_trace_analyzer.py`, and Dart `execution_models_test.dart` | Step 8 | [x] |
+| REQ-37 | Unblock pytest Logfire plugin in `pyproject.toml`, add `--logfire` flag and diagnostic failure banner to `scripts/backend_audit_loop.py`, and add `--logfire` to `scripts/run_e2e_variance_test.py` | Step 8 | [x] |
 
 # Session Handover Context
 ## Achieved

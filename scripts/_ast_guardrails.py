@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR020).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR021).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -1228,6 +1228,15 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
                     severity=GuardrailSeverity.FATAL,
                 )
+            # QGR021: Banned import of eradicated llm_debug_logger
+            if "llm_debug_logger" in alias.name:
+                self._add_violation(
+                    node,
+                    "QGR021",
+                    f"Banned import of eradicated legacy debug logger `{alias.name}`.",
+                    "Use OpenTelemetry tracing (get_tracer()) and Logfire observability instead of llm_debug_logger.",
+                    severity=GuardrailSeverity.FATAL,
+                )
         self.generic_visit(node)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
@@ -1267,6 +1276,25 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                             "Import domain models and DTOs from their canonical modules (e.g. backend_v2.models.domain.*, backend_v2.models.dtos.*).",
                             severity=GuardrailSeverity.FATAL,
                         )
+
+        # QGR021: Banned import of eradicated legacy debug logger
+        if node.module and "llm_debug_logger" in node.module:
+            self._add_violation(
+                node,
+                "QGR021",
+                f"Banned import from eradicated legacy debug logger `{node.module}`.",
+                "Use OpenTelemetry tracing (get_tracer()) and Logfire observability instead of llm_debug_logger.",
+                severity=GuardrailSeverity.FATAL,
+            )
+        for alias in node.names:
+            if "llm_debug_logger" in alias.name:
+                self._add_violation(
+                    node,
+                    "QGR021",
+                    f"Banned import of eradicated legacy debug logger symbol `{alias.name}`.",
+                    "Use OpenTelemetry tracing (get_tracer()) and Logfire observability instead of llm_debug_logger.",
+                    severity=GuardrailSeverity.FATAL,
+                )
         self.generic_visit(node)
 
     def visit_Name(self, node: ast.Name) -> None:
@@ -1523,11 +1551,11 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point for running AST codebase guardrails.
 
-    Parses positional targets and flags, scans files for AST violations (QGR000-QGR020),
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR021),
     and exits with code 0 on success or 1 on failure.
     """
     parser = argparse.ArgumentParser(
-        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR020).
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR021).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum:
   QGR000: Syntax Error Detection (FATAL)
@@ -1551,6 +1579,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR018: Primitive Obsession Nested Dict Ban (WARNING)
   QGR019: In-Place dict.pop Mutation Ban (WARNING)
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
+  QGR021: llm_debug_logger Eradication Import Ban (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):

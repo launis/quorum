@@ -1016,7 +1016,10 @@ def test_purged_boundary_exemption_files() -> None:
         "firestore_driver.py",
         "provider.py",
         "logging_config.py",
+        "base_adapter.py",
+        "telemetry.py",
     }
+
 
 
 # ==============================================================================
@@ -1292,4 +1295,23 @@ def test_qgr020_mutable_class_default_detected() -> None:
     assert any("fields_to_translate" in v.message for v in qgr020)
     assert any("dynamic_mappings" in v.message for v in qgr020)
     assert not any("_private_cache" in v.message for v in qgr020)
+
+
+def test_qgr021_llm_debug_logger_import_detected() -> None:
+    """QGR021: Banned direct imports of eradicated llm_debug_logger trigger FATAL violation."""
+    from scripts._ast_guardrails import GuardrailSeverity
+
+    code = (
+        "import llm_debug_logger\n"
+        "from backend_v2.utils import llm_debug_logger as legacy_logger\n"
+        "from backend_v2.utils.llm_debug_logger import log_prompt\n"
+        "from backend_v2.core.telemetry import get_tracer\n"
+    )
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution/facade.py")
+    qgr021 = [v for v in violations if v.rule_code == "QGR021"]
+    assert len(qgr021) == 3
+    for v in qgr021:
+        assert v.severity == GuardrailSeverity.FATAL
+        assert "llm_debug_logger" in v.message
+
 

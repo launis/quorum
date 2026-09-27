@@ -366,4 +366,3 @@ def test_extract_trace_context_exception_fallback(monkeypatch: pytest.MonkeyPatc
     )
     ctx = extract_trace_context(carrier)
     assert ctx is not None
-

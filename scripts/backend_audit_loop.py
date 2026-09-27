@@ -70,7 +70,7 @@ if isinstance(sys.stdout, io.TextIOWrapper):
         pass
 
 
-def run_tests_with_strict_coverage(target: str) -> None:
+def run_tests_with_strict_coverage(target: str, logfire: bool = False) -> None:
     """Execute pytest unit tests and enforce strict 90% TDD line coverage.
 
     Resolves matching unit test files corresponding to target source files or directories,
@@ -79,6 +79,7 @@ def run_tests_with_strict_coverage(target: str) -> None:
 
     Args:
         target: File path or directory path to test with coverage.
+        logfire: When True, enables Logfire distributed tracing plugin in Pytest.
     """
     print("🚀 Verifying Strict 90% TDD Coverage...")
 
@@ -195,12 +196,15 @@ def run_tests_with_strict_coverage(target: str) -> None:
                     test_path = "backend_v2/tests/unit/" + "/".join(parts[1:-1]) + "/" + candidates[0]
 
         # 1. Run Pytest and collect coverage data (no fail-under crash yet)
+        pytest_args = [test_path, "-v", "--tb=short", f"--cov={cov_target}", "--cov-fail-under=0"]
+        if logfire:
+            pytest_args.extend(["--logfire", "--logfire-service-name=quorum-audit-loop"])
         cmd = [
             "uv",
             "run",
             "python",
             "-c",
-            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy, pandas\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main(['{test_path}', '-v', '--tb=short', '--cov={cov_target}', '--cov-fail-under=0']))",
+            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy, pandas, pydantic.root_model\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({pytest_args}))",
         ]
         print("Executing:", " ".join(cmd))
         result = subprocess.run(cmd)
@@ -242,18 +246,23 @@ def run_tests_with_strict_coverage(target: str) -> None:
             "--cov-fail-under=90",
             "--cov-report=term-missing",
         ]
+        if logfire:
+            args.extend(["--logfire", "--logfire-service-name=quorum-audit-loop"])
 
         cmd = [
             "uv",
             "run",
             "python",
             "-c",
-            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({args}))",
+            f"import os, sys\nos.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'\ntry: import numpy, pydantic.root_model\nexcept ImportError: pass\nimport pytest\nsys.exit(pytest.main({args}))",
         ]
         result = subprocess.run(cmd)
 
     if result.returncode != 0:
         print("\n❌ AUDIT FAILED: Tests had errors OR test coverage is under 90%.")
+        print(
+            "🔍 DIAGNOSTIC TRACE: Inspect data/files/traces/latest_execution_trace.json using `view_file` or use Logfire MCP tools (`query_spans`, `get_trace`) to identify root error spans and failing assertions."
+        )
         print(
             "🤖 AI INSTRUCTION: Read the report above and fix either failing tests (-v or --tb=short explains the cause) OR add tests for missing lines (Miss column)."
         )
@@ -317,6 +326,11 @@ Optional steps:
         dest="ast_strict",
         action="store_true",
         help="Enforce strict AST Guardrail validation (fail on warnings as well as fatal errors).",
+    )
+    parser.add_argument(
+        "--logfire",
+        action="store_true",
+        help="Enable Logfire distributed tracing in Pytest runs (--logfire --logfire-service-name=quorum-audit-loop).",
     )
 
     args = parser.parse_args(argv)
@@ -423,7 +437,7 @@ Optional steps:
         print("\n⏳ Option: Running Pytest unit tests and coverage (--test)...")
         for target in targets:
             print(f"\n🏃 Running tests for target: {target}")
-            run_tests_with_strict_coverage(target)
+            run_tests_with_strict_coverage(target, logfire=args.logfire)
         print("✅ Unit tests passed.")
 
     print("\n🏆 All clean! Targets comply with Universal Quality Gate standards.\n")
