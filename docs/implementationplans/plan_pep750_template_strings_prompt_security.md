@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (PEP 750 Template Strings & Language-Level Prompt Injection Defense)**
+
 # Implementation Plan: PEP 750 (t"...") Template Strings & Language-Level Prompt Injection Defense
 
 <required_context_rules>

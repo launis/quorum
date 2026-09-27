@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Vaihe 3/3 — Odottaa PostgreSQL-migraatiota)**
+
 <required_context_rules>
   <rule>@[.agents/rules/00-antigravity-core.md]</rule>
   <rule>@[.agents/rules/01-python-backend.md]</rule>
@@ -9,7 +11,6 @@
 
 # Implementation Plan: LLM Adapter Strict Typing & Periphery Dict Eradication
 
-> **STATUS: DRAFT / ODOTTAA VAIHEITA 1 JA 2**  
 > **ARKKITEHTUURINEN ASEMONTINTI: VAIHE 3/3 (Koodikannan 100 % Tyyppiturvallisuuden Viimeistely)**
 
 ---

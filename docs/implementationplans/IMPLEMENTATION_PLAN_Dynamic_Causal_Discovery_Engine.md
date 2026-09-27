@@ -1,3 +1,5 @@
+> **STATUS: PENDING / ODOTTAA TOTEUTUSTA (Distant Future Roadmap / Tulevaisuuden laajennus)**
+
 ```xml
 <required_context_rules>
     <rule>@[.agents/rules/00-antigravity-core.md]</rule>
