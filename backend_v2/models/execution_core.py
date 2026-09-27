@@ -15,6 +15,7 @@ from pydantic import ConfigDict, Field
 from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.global_context import GlobalContextVarsDTO
+from backend_v2.models.dtos.telemetry import TraceContextCarrierDTO
 from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus, LLMProvider
 
 if TYPE_CHECKING:
@@ -50,6 +51,10 @@ class ExecutionMetadata(V2CoreBase):
     model_registry_id: Annotated[
         str | None,
         Field(default=None, description="System config ID of the attached model registry."),
+    ] = None
+    telemetry: Annotated[
+        TraceContextCarrierDTO | None,
+        Field(default=None, description="W3C distributed trace context carrier for OpenTelemetry."),
     ] = None
 
 

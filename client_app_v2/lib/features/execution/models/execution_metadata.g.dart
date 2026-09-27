@@ -19,6 +19,7 @@ _ExecutionMetadata _$ExecutionMetadataFromJson(Map<String, dynamic> json) =>
             'global_context_vars',
             'provider_override',
             'model_registry_id',
+            'telemetry',
           ],
         );
         final val = _ExecutionMetadata(
@@ -42,6 +43,12 @@ _ExecutionMetadata _$ExecutionMetadataFromJson(Map<String, dynamic> json) =>
             'model_registry_id',
             (v) => v as String?,
           ),
+          telemetry: $checkedConvert(
+            'telemetry',
+            (v) => v == null
+                ? null
+                : TraceContextCarrier.fromJson(v as Map<String, dynamic>),
+          ),
         );
         return val;
       },
@@ -61,6 +68,7 @@ Map<String, dynamic> _$ExecutionMetadataToJson(_ExecutionMetadata instance) =>
       'global_context_vars': instance.globalContextVars,
       'provider_override': _$LLMProviderEnumMap[instance.providerOverride],
       'model_registry_id': instance.modelRegistryId,
+      'telemetry': instance.telemetry?.toJson(),
     };
 
 const _$LLMProviderEnumMap = {

@@ -4,7 +4,6 @@ import collections.abc
 import io
 import json
 import logging
-import os
 import re
 import sys
 from pathlib import Path
@@ -105,46 +104,18 @@ class UvicornPollingFilter(logging.Filter):
 def configure_logfire() -> None:
     """Configure Logfire cloud observability.
 
-    Initializes SDK instrumentation and environment variables early in the lifecycle.
+    Delegates to centralized backend_v2.core.telemetry.configure_telemetry.
     """
-    if logfire is None:
-        return
     global _LOGFIRE_CONFIGURED
-    # Idempotency check to prevent double initialization/logging
     if _LOGFIRE_CONFIGURED:
         return
     _LOGFIRE_CONFIGURED = True
 
-    if os.getenv("DISABLE_LOGFIRE", "").lower() == "true":
-        logging.getLogger(__name__).info("Logfire disabled via DISABLE_LOGFIRE environment variable.")
-        return
-
     try:
-        # Force Logfire to use the EU endpoint since the token is an EU token
-        # but automatic detection occasionally fails.
-        os.environ.setdefault("LOGFIRE_BASE_URL", "https://api-eu.pydantic.dev/")
-        os.environ.setdefault("LOGFIRE_SEND_TO_LOGFIRE", "true")
+        from backend_v2.core.telemetry import configure_telemetry
+        from backend_v2.settings import get_settings
 
-        # Completely disable the Rich Console exporter to prevent cp1252 Unicode crashes on Windows.
-        # We already have a standard Python logging StreamHandler anyway.
-        os.environ["LOGFIRE_CONSOLE"] = "false"
-
-        # send_to_logfire=True explicitly enables the cloud exporter.
-        logfire.configure(send_to_logfire=True)
-        logfire.instrument_pydantic()
-        logfire.instrument_httpx()
-        logfire.instrument_requests()
-        logfire.instrument_system_metrics()
-        # logfire.instrument_redis() # Spams the console with Arq queue polling (ZRANGEBYSCORE/ZCARD) every 0.5s
-
-        # Instrument LiteLLM if available
-        import importlib.util
-
-        if importlib.util.find_spec("litellm"):
-            try:
-                logfire.instrument_litellm()
-            except (RuntimeError, TypeError, ValueError, AttributeError, ImportError) as inst_err:
-                logging.getLogger(__name__).warning("Failed to instrument LiteLLM with Logfire: %s", inst_err)
+        configure_telemetry(get_settings())
     except (RuntimeError, TypeError, ValueError, AttributeError, OSError, KeyError) as e:
         msg = f"[LoggingConfig] Logfire validation failed: {e}. Observability disabled."
         logging.getLogger(__name__).warning(

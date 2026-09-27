@@ -194,8 +194,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record1 = logger.makeRecord("test.filter", logging.INFO, "fn", 1, "msg", (), None)
     c_filter.filter(record1)
-    assert record1.context_id == "EXEC:exec_123"
-    assert record1.execution_id == "exec_1234567890"
+    assert record1.__dict__["context_id"] == "EXEC:exec_123"
+    assert record1.__dict__["execution_id"] == "exec_1234567890"
 
     # 2. Request ID when no execution ID
     monkeypatch.setattr("backend_v2.logging_config.get_execution_context", lambda: None)
@@ -203,8 +203,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record2 = logger.makeRecord("test.filter", logging.INFO, "fn", 2, "msg", (), None)
     c_filter.filter(record2)
-    assert record2.context_id == "REQ:req_9876"
-    assert record2.execution_id == "req_9876543210"
+    assert record2.__dict__["context_id"] == "REQ:req_9876"
+    assert record2.__dict__["execution_id"] == "req_9876543210"
 
     # 3. Fallback to SYSTEM
     monkeypatch.setattr("backend_v2.logging_config.get_execution_context", lambda: None)
@@ -212,8 +212,8 @@ def test_context_filter_execution_and_request_ids(monkeypatch: pytest.MonkeyPatc
 
     record3 = logger.makeRecord("test.filter", logging.INFO, "fn", 3, "msg", (), None)
     c_filter.filter(record3)
-    assert record3.context_id == "SYSTEM"
-    assert record3.execution_id == "SYSTEM"
+    assert record3.__dict__["context_id"] == "SYSTEM"
+    assert record3.__dict__["execution_id"] == "SYSTEM"
 
 
 def test_uvicorn_polling_filter() -> None:
@@ -245,27 +245,23 @@ def test_uvicorn_polling_filter() -> None:
 
 
 def test_configure_logfire_behavior(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Test configure_logfire idempotency, environment disable, and error paths."""
-    # 0. When logfire is None
-    monkeypatch.setattr("backend_v2.logging_config.logfire", None)
-    configure_logfire()
+    """Test configure_logfire idempotency, delegation to configure_telemetry, and error paths."""
+    mock_configure_telemetry = MagicMock()
+    monkeypatch.setattr("backend_v2.core.telemetry.configure_telemetry", mock_configure_telemetry)
 
     # 1. Idempotency when already configured
     monkeypatch.setattr("backend_v2.logging_config._LOGFIRE_CONFIGURED", True)
     configure_logfire()
+    mock_configure_telemetry.assert_not_called()
 
-    # 2. Disabled via env var
+    # 2. Delegation to configure_telemetry when not configured
     monkeypatch.setattr("backend_v2.logging_config._LOGFIRE_CONFIGURED", False)
-    monkeypatch.setenv("DISABLE_LOGFIRE", "true")
     configure_logfire()
+    mock_configure_telemetry.assert_called_once()
 
     # 3. Exception path during configuration
     monkeypatch.setattr("backend_v2.logging_config._LOGFIRE_CONFIGURED", False)
-    monkeypatch.delenv("DISABLE_LOGFIRE", raising=False)
-    mock_logfire = MagicMock()
-    mock_logfire.configure.side_effect = RuntimeError("Logfire mock failed")
-    monkeypatch.setattr("backend_v2.logging_config.logfire", mock_logfire)
-
+    mock_configure_telemetry.side_effect = RuntimeError("Telemetry mock failed")
     configure_logfire()  # Should handle RuntimeError gracefully without crashing
 
 

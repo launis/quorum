@@ -433,7 +433,11 @@ const _$DisplayScaleEnumMap = {
   DisplayScale.normalized100: 'normalized_100',
 };
 
-const _$SystemLocaleEnumMap = {SystemLocale.en: 'en', SystemLocale.fi: 'fi'};
+const _$SystemLocaleEnumMap = {
+  SystemLocale.en: 'en',
+  SystemLocale.fi: 'fi',
+  SystemLocale.sv: 'sv',
+};
 
 const _$TargetBlockTypeEnumMap = {
   TargetBlockType.globalScoreBlock: 'global_score_block',

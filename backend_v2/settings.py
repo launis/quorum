@@ -93,6 +93,11 @@ class Settings(BaseSettings):
         storage_bucket_name: Google Storage Cloud bucket handle.
         api_url: Fully qualified presenting address.
         log_file_name: Base file handle for disk storage of logs.
+        otel_enabled: Flag to enable OpenTelemetry and Logfire distributed tracing.
+        logfire_token: Authentication token for Pydantic Logfire cloud service.
+        otel_service_name: Logical service name emitted in OpenTelemetry resource attributes.
+        otel_exporter_otlp_endpoint: OTLP collector endpoint for exporting trace spans.
+        otel_tracing_sample_rate: Sampling ratio for OpenTelemetry traces (0.0 to 1.0).
     """
 
     # --- Feature Flags ---
@@ -107,6 +112,54 @@ class Settings(BaseSettings):
         bool, BeforeValidator(strip_whitespace), Field(description="Use Firebase Auth (vs Mock)")
     ] = True
     cors_origins: Annotated[list[str], Field(description="Allowed CORS Origins")] = ["*"]
+
+    # --- OpenTelemetry & Observability ---
+    otel_enabled: Annotated[
+        bool,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default=False,
+            validation_alias=AliasChoices("otel_enabled", "OTEL_ENABLED"),
+            description="Flag to enable OpenTelemetry and Logfire distributed tracing",
+        ),
+    ] = False
+    logfire_token: Annotated[
+        str | None,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default=None,
+            validation_alias=AliasChoices("logfire_token", "LOGFIRE_TOKEN"),
+            description="Authentication token for Pydantic Logfire cloud service",
+        ),
+    ] = None
+    otel_service_name: Annotated[
+        str,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default="quorum-backend",
+            validation_alias=AliasChoices("otel_service_name", "OTEL_SERVICE_NAME"),
+            description="Logical service name emitted in OpenTelemetry resource attributes",
+        ),
+    ] = "quorum-backend"
+    otel_exporter_otlp_endpoint: Annotated[
+        str | None,
+        BeforeValidator(strip_whitespace),
+        Field(
+            default=None,
+            validation_alias=AliasChoices("otel_exporter_otlp_endpoint", "OTEL_EXPORTER_OTLP_ENDPOINT"),
+            description="OTLP collector endpoint for exporting trace spans",
+        ),
+    ] = None
+    otel_tracing_sample_rate: Annotated[
+        float,
+        Field(
+            default=1.0,
+            ge=0.0,
+            le=1.0,
+            validation_alias=AliasChoices("otel_tracing_sample_rate", "OTEL_TRACING_SAMPLE_RATE"),
+            description="Sampling ratio for OpenTelemetry traces (0.0 to 1.0)",
+        ),
+    ] = 1.0
 
     # --- System Concurrency (Migrated from Enums) ---
     linker_max_atoms_per_window: Annotated[
