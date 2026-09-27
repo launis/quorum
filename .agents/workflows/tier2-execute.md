@@ -95,6 +95,7 @@ description: Tier 2 (Execution Planner) - Sets the AI into a strict execution mo
     <step id="4" name="CONSTRAINTS &amp; TDD MANDATE">
       <action>For every single step, perform automated verification BEFORE and AFTER your changes.</action>
       <action name="NEW FUNCTIONALITY MANDATE">You MUST write a failing test first (Red-Green-Refactor) for new logic.</action>
+      <action name="FAILURE DIAGNOSIS MANDATE">If a test or quality gate fails, you MUST inspect `data/files/traces/latest_execution_trace.json` using `view_file` to immediately locate failing node attributes, error fingerprints, and exception stack traces before modifying code.</action>
       <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains a `<test_contracts>` XML block, you MUST implement ALL specified test contracts BEFORE or ALONGSIDE the implementation code. The test contracts define exact test names, inputs, expected outputs, and categories. You MUST NOT mark the phase as complete until every specified test contract has been implemented as an actual test function and passes. Treat the test contracts as a hard checklist — missing any contract is a blocking failure.</gate>
       <action>You MUST run the Universal Quality Gate YOURSELF using `run_command` as defined in `AGENTS.md`. Enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
       <constraint name="LINTER_GATE_BEFORE_STEP_COMPLETION">

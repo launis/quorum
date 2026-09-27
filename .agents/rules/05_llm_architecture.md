@@ -121,7 +121,7 @@ trigger: always_on
     </rule_block>
 
     <rule_block id="local_prompt_debugging_mandate">
-        <mandate>NEVER debug token explosions or hallucinations solely by guessing cloud traces. In `development`, inspect `llm_debug_prompts.md` in `data/files/executions/<execution_id>/`. Use `grep_search` first, then bounded `view_file` (`StartLine`/`EndLine`) to examine Prompt Source Blocks and User Payloads.</mandate>
+        <mandate>NEVER debug token explosions or hallucinations solely by guessing cloud traces. In `development`, inspect `data/files/traces/latest_execution_trace.json` using `view_file` to evaluate GenAI semantic attributes (`gen_ai.usage.*`, `gen_ai.response.model`, `gen_ai.cache.hit`), or use Logfire MCP tools (`query_spans`) to inspect span execution trees. When inspecting prompt snapshots, use `grep_search` on `frozen_context.json` with STRICT `StartLine`/`EndLine` bounds.</mandate>
     </rule_block>
 
     <rule_block id="compiler_xml_sovereignty_mandate">

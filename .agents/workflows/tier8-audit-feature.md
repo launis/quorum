@@ -84,7 +84,7 @@ description: Tier 8 (Audit Feature) - System 2 deep-dive analysis, first princip
       
       SECTION 3: FALSIFICATION &amp; RED-TEAMING (ANTI-HAPPY-PATH)
       - Identify at least TWO concrete, plausible failure modes where this feature can break in production (boundary values, null/empty collections, race conditions, timeout/exceptions, malformed input).
-      - What are the second-order side effects (blast radius) on downstream services, DB state, or client rendering?
+      - What are the second-order side effects (blast radius) on downstream services, DB state, or client rendering? Utilize OpenTelemetry span trees (from `data/files/traces/latest_execution_trace.json` or Logfire) for Blast Radius analysis and failure inspection without ad-hoc print debugging.
       
       SECTION 4: QUORUM MODERNITY GATE CHECK
       - Ruthlessly evaluate whether the proposal relies on any Quorum anti-patterns:

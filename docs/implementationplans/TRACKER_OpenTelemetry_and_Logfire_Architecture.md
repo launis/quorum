@@ -21,7 +21,7 @@
   - [x] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
   - [x] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
   - [x] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
-  - [ ] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
+  - [x] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
   - [ ] Step 8: AUTOMATED_TESTING_AND_AST_GUARDRAILS
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/implementationplans/IMPLEMENTATION_PLAN_OpenTelemetry_and_Logfire_Architecture.md] @[docs/implementationplans/TRACKER_OpenTelemetry_and_Logfire_Architecture.md]`
 
@@ -110,9 +110,9 @@
 | REQ-25 | Correlate structured logs with active OpenTelemetry context by injecting `trace_id` and `span_id` into `ContextFilter`, `StructuredLogContextDTO`, and `JSONFormatter` in `logging_config.py` | Step 6 | [x] |
 | REQ-26 | Initialize telemetry in FastAPI `lifespan` in `main.py` and remove redundant top-level `instrument_fastapi` block | Step 6 | [x] |
 | REQ-27 | Refactor `finops_trace_analyzer.py` to extract metrics from structured `ExecutionRecord` telemetry, removing hardcoded pricing formulas and duplicate `Field()` assignments | Step 6 | [x] |
-| REQ-28 | Modernize `<rule_block id="logfire_delegation_mandate">` in `00-antigravity-core.md` and `<rule_block id="local_prompt_debugging_mandate">` in `05_llm_architecture.md` | Step 7 | [ ] |
-| REQ-29 | Update `.agents/workflows/` (`tier4-bug-hunting.md`, `tier6-execution-monitor.md`, `tier5-session-handover.md`, `tier8-audit-feature.md`) to utilize trace IDs, span trees, and `latest_execution_trace.json` | Step 7 | [ ] |
-| REQ-30 | Update `.agents/workflows/` (`tier2-execute.md`, `tier2-hardening-backend.md`, `tier8-test-coverage-expansion.md`, `tier5-resume.md`, `tier3-feature-refactor.md`, `tier8-red-teaming-audit.md`) with structured trace snapshot diagnostic workflows | Step 7 | [ ] |
+| REQ-28 | Modernize `<rule_block id="logfire_delegation_mandate">` in `00-antigravity-core.md` and `<rule_block id="local_prompt_debugging_mandate">` in `05_llm_architecture.md` | Step 7 | [x] |
+| REQ-29 | Update `.agents/workflows/` (`tier4-bug-hunting.md`, `tier6-execution-monitor.md`, `tier5-session-handover.md`, `tier8-audit-feature.md`) to utilize trace IDs, span trees, and `latest_execution_trace.json` | Step 7 | [x] |
+| REQ-30 | Update `.agents/workflows/` (`tier2-execute.md`, `tier2-hardening-backend.md`, `tier8-test-coverage-expansion.md`, `tier5-resume.md`, `tier3-feature-refactor.md`, `tier8-red-teaming-audit.md`) with structured trace snapshot diagnostic workflows | Step 7 | [x] |
 | REQ-31 | Implement unit test suite `test_telemetry.py` covering NoOp fallback, W3C injection/extraction, malformed headers, Logfire config, and local trace snapshot exporter | Step 8 | [ ] |
 | REQ-32 | Implement unit test suite `test_dag_executor_telemetry.py` asserting DAG span hierarchy, error status recording, and TaskGroup concurrency context | Step 8 | [ ] |
 | REQ-33 | Implement unit test suite `test_provider_telemetry.py` asserting GenAI semantic attributes, cache hits, and timeout handling | Step 8 | [ ] |

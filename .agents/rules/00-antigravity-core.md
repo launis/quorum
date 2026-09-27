@@ -74,7 +74,7 @@ trigger: always_on
         <mandate>Write and execute all temporary files, debugging scripts, and ad-hoc migration programs EXCLUSIVELY in `<appDataDir>\brain\<conversation-id>/scratch/`. Epics and Implementation Plans MUST NOT list scratch files in TARGET boundaries. NEVER create scratch files in repository roots, `backend_v2`, `client_app_v2`, or legacy `tmp\`.</mandate>
     </rule_block>
     <rule_block id="logfire_delegation_mandate">
-        <mandate>Investigate LLM token anomalies, latency, and hallucinations via local execution traces: use `grep_search` on `backend_debug.log` with the Execution ID. When reading `llm_debug_prompts.md` or `frozen_context.json`, use `grep_search` first and `view_file` with STRICT `StartLine`/`EndLine` bounds. NEVER read massive trace files blindly without line limits.</mandate>
+        <mandate>Investigate LLM token anomalies, latency, and hallucinations via local execution traces: inspect `data/files/traces/latest_execution_trace.json` using `view_file` to evaluate root spans, error fingerprints, and latencies, or utilize Logfire MCP tools (`query_spans`, `get_trace`) to diagnose distributed trace trees. When reading `frozen_context.json`, use `grep_search` first and `view_file` with STRICT `StartLine`/`EndLine` bounds. NEVER scrape unstructured log text when structured OpenTelemetry trace snapshots are available.</mandate>
     </rule_block>
     <rule_block id="forensic_execution_artifacts">
         <mandate>When querying `seed_data.json` or debug prompts, use `grep_search` first and `view_file` with strict line bounds. NEVER read multi-megabyte `execution_trace.json` directly (parse it via Python in `scratch/`). Output files like `report.pdf` or `inputs/` represent finalized state.</mandate>

@@ -92,6 +92,7 @@ description: Tier 8 (Red-Teaming Audit) - System 2 deep-dive evaluation and red-
     - Does it enforce strict schema validation with Fail-Fast crash semantics (no silent fallbacks)?
     - Does it enforce Single Source of Truth (SSOT) without duplication?
     - Does it enforce Atomic Checkpoint commits and proper context window management?
+    - **Security &amp; DLP Audit**: Does it mandate querying Logfire MCP (`query_spans`) or inspecting OpenTelemetry span attributes to mathematically verify that raw user prompts, PII, and system secrets are never leaked into span attributes?
     - **Quorum Modernity Check**: Does the target rely on any of the specific Quorum anti-patterns? Flag each instance with its mandated modern replacement.
     - **Peer Workflow Parity Check**: Does the target contain the same safety guardrails (e.g., circuit_breaker, session_handover, context_amnesia_prevention) as its peer workflows? If a peer has a guardrail that the target lacks, flag it as a potential gap.
     - **Touched Scope Technical Debt Check**: Does the target workflow mandate active technical debt and anti-pattern sweeps on target files and 1-hop dependencies across the 7 checklist items (getattr/hasattr, .get(, except Exception:, model_copy, magic numbers, hardcoded UI strings/colors, ISTQB negative testing)?

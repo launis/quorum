@@ -35,9 +35,9 @@ description: Tier 5 (Session Handover Export) - Generates a context-transition c
 
     COMMIT-HASH TRACKING: When marking tasks as `[x]` in the tracker, you MUST also record the Git commit hash. Run `git log --oneline -n 1` to fetch the latest commit hash. The format MUST be `[x] (abc1234)` where `abc1234` is the short commit hash. This allows the receiving agent to deterministically verify completion via `git show abc1234` instead of relying on trust.</step>
     
-    <step id="3">CONTEXT ANALYSIS &amp; KNOWLEDGE EXTRACTION: Scan the entire current session. Instead of generating long CLI flags, you MUST physically append a `# Session Handover Context` block to the bottom of the target file (whether it is an Epic document, Implementation Plan, or Tracker file). Write exhaustive bullet points detailing:
+    <step id="3">CONTEXT ANALYSIS &amp; KNOWLEDGE EXTRACTION: Scan the entire current session. Eradicate copying lengthy log text into session handovers; reference exact `trace_id` and `span_id` anchors from OpenTelemetry traces. Instead of generating long CLI flags, you MUST physically append a `# Session Handover Context` block to the bottom of the target file (whether it is an Epic document, Implementation Plan, or Tracker file). Write exhaustive bullet points detailing:
       - `achieved`: Exactly what logic or planning phases were completed.
-      - `learned`: Any architectural nuances, bug resolutions, or KI discoveries.
+      - `learned`: Any architectural nuances, bug resolutions, `trace_id` anchors, or KI discoveries.
       - `remaining`: Exactly what is left to do (or what the next workflow should focus on).
       Then, determine the exact slash command the next agent must adopt to continue (e.g., `/tier2-execute`, `/tier1-planner`, `/tier4-bug-hunting`).
 

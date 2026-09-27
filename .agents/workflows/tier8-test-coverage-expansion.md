@@ -67,7 +67,7 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
     <step id="3">ISTQB ANALYSIS (Per Module): For the selected module, perform a systematic analysis using ISTQB techniques:
       - **Boundary Value Analysis (BVA):** Identify all numeric inputs, string lengths, array sizes, and enum boundaries. For each boundary, identify the valid boundary (min, max), the invalid boundary (min-1, max+1), and the nominal value.
       - **Equivalence Partitioning (EP):** Identify all input parameters and group them into equivalence classes: valid inputs, invalid inputs (wrong type), missing inputs (None/null), and edge-case inputs (empty string, empty list, zero, negative).
-      - **Error Path Analysis:** For every `AppException` or `ValidationError` that the module can raise, identify whether a test exists that triggers that specific error path. If not, flag it.
+      - **Error Path Analysis:** For every `AppException` or `ValidationError` that the module can raise, identify whether a test exists that triggers that specific error path. Verify that error paths assert exception recording on OpenTelemetry spans (`span.record_exception`, status `ERROR`) as captured in `data/files/traces/latest_execution_trace.json`. If not, flag it.
       - Output this analysis as a structured checklist before writing any code.
     </step>
 
@@ -78,7 +78,7 @@ description: Tier 8 (Test Coverage Expansion) - ISTQB-based iterative loop for e
       - ATOMIC BATCHING: Write tests for ONE module at a time. Do NOT batch tests across multiple modules.
     </step>
 
-    <step id="5">QUALITY GATE (Per Module): After writing tests for the current module, you MUST run the Universal Quality Gate YOURSELF as defined in `AGENTS.md`. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your tests (Circuit Breaker trips), you MUST STOP. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to wipe the corrupted workspace state. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN mark the module as `[BLOCKED]` in the tracker. Reversing this order causes the rollback to wipe the tracker update.</step>
+    <step id="5">QUALITY GATE (Per Module): After writing tests for the current module, you MUST run the Universal Quality Gate YOURSELF as defined in `AGENTS.md`. Verify that negative boundary tests assert exception recording on OpenTelemetry spans (`span.record_exception`, status `ERROR`) as captured in `data/files/traces/latest_execution_trace.json`. DIRTY STATE ROLLBACK: If the Quality Gate fails 3 times on your tests (Circuit Breaker trips), you MUST STOP. You MUST execute the rollback YOURSELF via `run_command` using `git restore . ; git clean -fd` to wipe the corrupted workspace state. CRITICALLY: You MUST execute the rollback FIRST, and ONLY THEN mark the module as `[BLOCKED]` in the tracker. Reversing this order causes the rollback to wipe the tracker update.</step>
     </step>
 
     <step id="6">ATOMIC COMMIT (Per Module): Once all tests pass for the current module, you MUST immediately create an atomic commit using `run_command` with the specific test files staged. Use the format: `git add <test_files>` and `git commit -m "test: expand negative/edge-case coverage for [module_name]"`. Do NOT use `git add .`. This locks in the coverage for the module.

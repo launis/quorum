@@ -127,6 +127,7 @@ description: Tier 3 (Feature & Refactor) - Workflow for single feature implement
     
     <step id="5" name="RED-GREEN-REFACTOR &amp; ESCALATION MANDATE">
       <action>After your atomic execution batch, you MUST run the tests YOURSELF using the `run_command` tool via the Universal Quality Gate as defined in `AGENTS.md`.</action>
+      <action name="FAILURE DIAGNOSIS">If tests or quality gates fail, you MUST read `data/files/traces/latest_execution_trace.json` using `view_file` to diagnose failing fixtures, error fingerprints, and stack traces before making code alterations.</action>
       <action>You MUST enforce ALL rule blocks in the `<universal_quality_gate>` section of `00-antigravity-core.md` — no rule block may be skipped.</action>
       <gate name="TEST CONTRACT ENFORCEMENT">If the plan contains `<test_contracts>` XML blocks, you MUST verify that ALL specified test contracts have been implemented as actual test functions and pass. If executing in-session without a Tier 1 plan, verify that your self-generated test contracts from the thinking process have been implemented. Missing any contract is a blocking failure.</gate>
       <constraint>Do NOT tell the user to run the tests.</constraint>
