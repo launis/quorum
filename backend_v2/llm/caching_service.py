@@ -4,6 +4,8 @@ import logging
 import re
 from typing import Any
 
+import opentelemetry.trace as trace
+
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.adapters.adapter_factory import LLMCacheAdapterFactory
 from backend_v2.models.llm import LLMMessageDTO
@@ -18,6 +20,17 @@ class LLMCachingService:
     Enforces the Zero If-Statement Principle by delegating all operations
     dynamically and blindly to the corresponding provider-specific adapter.
     """
+
+    @staticmethod
+    def record_cache_hit(is_hit: bool) -> None:
+        """Records the context cache hit status on the active OpenTelemetry span.
+
+        Args:
+            is_hit: Boolean indicating whether a prompt cache hit occurred.
+        """
+        current_span = trace.get_current_span()
+        if current_span.is_recording():
+            current_span.set_attribute("gen_ai.cache.hit", is_hit)
 
     @classmethod
     async def prepare_caching_payload(

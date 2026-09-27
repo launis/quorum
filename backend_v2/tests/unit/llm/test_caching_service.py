@@ -122,3 +122,21 @@ async def test_purity_scanner_detects_violations(caplog: pytest.LogCaptureFixtur
             model_name="gemini-1.5-pro",
         )
         assert "PROMPT_CACHING_PURITY_VIOLATION" in caplog.text
+
+
+def test_record_cache_hit_with_recording_span() -> None:
+    from unittest.mock import MagicMock
+    import opentelemetry.trace as otel_trace
+
+    mock_span = MagicMock()
+    mock_span.is_recording.return_value = True
+
+    with patch.object(otel_trace, "get_current_span", return_value=mock_span):
+        LLMCachingService.record_cache_hit(True)
+        mock_span.set_attribute.assert_called_once_with("gen_ai.cache.hit", True)
+
+        mock_span.reset_mock()
+        mock_span.is_recording.return_value = False
+        LLMCachingService.record_cache_hit(False)
+        mock_span.set_attribute.assert_not_called()
+

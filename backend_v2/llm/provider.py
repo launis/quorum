@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
+import opentelemetry.trace as otel_trace
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from tenacity import (
@@ -33,6 +34,7 @@ from backend_v2.exceptions import (
     ServiceUnavailableError,
 )
 from backend_v2.llm.adapters.base_adapter import apply_provider_pacing
+from backend_v2.llm.caching_service import LLMCachingService
 from backend_v2.llm.mock import MockLLMService
 from backend_v2.models.domain.mcp import OpenAIFunctionCallDTO, OpenAIToolCallDTO
 from backend_v2.models.domain.usage import TokenUsage
@@ -968,6 +970,20 @@ class LiteLLMProvider(LLMProvider):
 
             final_content = raw_content
             parsed_obj = None
+
+            cached_tokens_val = usage.get("cached_tokens", 0)
+            LLMCachingService.record_cache_hit(bool(cached_tokens_val and cached_tokens_val > 0))
+
+            active_span = otel_trace.get_current_span()
+            if active_span.is_recording():
+                resp_model = getattr(response, "model", None)  # noqa: QGR001 [REASON: Third-party LiteLLM response model lookup]
+                if resp_model:
+                    active_span.set_attribute("gen_ai.response.model", str(resp_model))
+                if usage.get("prompt_tokens") is not None:
+                    active_span.set_attribute("gen_ai.usage.input_tokens", int(usage["prompt_tokens"]))
+                if usage.get("completion_tokens") is not None:
+                    active_span.set_attribute("gen_ai.usage.output_tokens", int(usage["completion_tokens"]))
+
             # --- ADVANCED TELEMETRY & METADATA ---
             system_fingerprint = response.system_fingerprint if hasattr(response, "system_fingerprint") else None  # noqa: QGR001 [REASON: External LiteLLM response choice inspection]
             if finish_reason in ["stop", "eos"]:
@@ -1088,6 +1104,11 @@ class LiteLLMProvider(LLMProvider):
             )
 
         except Exception as e:
+            err_span = otel_trace.get_current_span()
+            if err_span.is_recording():
+                err_span.record_exception(e)
+                err_span.set_status(otel_trace.StatusCode.ERROR, str(e))
+
             if isinstance(e, AppException):
                 raise e
 

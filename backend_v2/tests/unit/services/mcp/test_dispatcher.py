@@ -84,3 +84,35 @@ async def test_tool_dispatcher_execute_not_found_raises() -> None:
 
     assert exc_info.value.status_code == 400
     assert "missing_tool" in str(exc_info.value.message)
+
+
+@pytest.mark.asyncio
+async def test_tool_dispatcher_execute_timeout_raises(monkeypatch: pytest.MonkeyPatch) -> None:
+    tool_a = _create_dummy_tool("timeout_tool")
+
+    async def slow_execute(**kwargs: Any) -> MCPAuditTrace:
+        raise TimeoutError("Simulated timeout")
+
+    monkeypatch.setattr(tool_a, "execute", slow_execute)
+
+    dispatcher = ToolDispatcher([tool_a])
+    with pytest.raises(AppException) as exc_info:
+        await dispatcher.execute_tool("timeout_tool")
+
+    assert exc_info.value.status_code == 504
+    assert "timed out" in str(exc_info.value.message)
+
+
+@pytest.mark.asyncio
+async def test_tool_dispatcher_execute_generic_exception_recorded(monkeypatch: pytest.MonkeyPatch) -> None:
+    tool_a = _create_dummy_tool("error_tool")
+
+    async def failing_execute(**kwargs: Any) -> MCPAuditTrace:
+        raise ValueError("Simulated tool crash")
+
+    monkeypatch.setattr(tool_a, "execute", failing_execute)
+
+    dispatcher = ToolDispatcher([tool_a])
+    with pytest.raises(ValueError, match="Simulated tool crash"):
+        await dispatcher.execute_tool("error_tool")
+

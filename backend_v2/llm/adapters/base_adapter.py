@@ -10,13 +10,15 @@ import os
 from abc import ABC, abstractmethod
 from typing import Any
 
+import opentelemetry.trace as otel_trace
 from arq.connections import RedisSettings, create_pool
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AppException, ErrorCodes
+from backend_v2.models.domain.system_config import ModelProfile
 from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.enums import LLMProviderName
-from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.models.llm import LLMMessageDTO, LLMProviderConfig
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.settings import get_settings
 
@@ -257,6 +259,12 @@ class BaseLLMAdapter(ABC):
         Returns:
             The potentially modified call_kwargs dictionary.
         """
+        current_span = otel_trace.get_current_span()
+        if current_span.is_recording():
+            if "model" in call_kwargs and call_kwargs["model"] is not None:
+                current_span.set_attribute("gen_ai.request.model", str(call_kwargs["model"]))
+            if isinstance(config, LLMProviderConfig | ModelProfile) and config.provider is not None:
+                current_span.set_attribute("gen_ai.system", str(config.provider))
         return call_kwargs
 
     def build_http_client(self, timeout: float) -> Any | None:

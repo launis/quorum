@@ -87,6 +87,7 @@ BOUNDARY_EXEMPTION_FILES: set[str] = {
     "provider.py",
     "logging_config.py",
     "telemetry.py",
+    "base_adapter.py",
 }
 
 

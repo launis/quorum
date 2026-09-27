@@ -1,9 +1,14 @@
+import asyncio
 from typing import Any
 
+import opentelemetry.trace as trace
+
+from backend_v2.core.telemetry import get_tracer
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.tools import BaseTool
 from backend_v2.models.dtos.mcp import MCPToolDeclarationDTO
+from backend_v2.settings import get_settings
 
 
 class ToolDispatcher:
@@ -43,7 +48,7 @@ class ToolDispatcher:
             MCPAuditTrace: The execution trace.
 
         Raises:
-            AppException: If the tool is not found.
+            AppException: If the tool is not found, or execution times out.
         """
         if tool_id not in self._registry:
             raise AppException(
@@ -53,4 +58,23 @@ class ToolDispatcher:
             )
 
         tool = self._registry[tool_id]
-        return await tool.execute(**kwargs)
+        timeout_sec = get_settings().mcp_default_timeout_seconds
+
+        tracer = get_tracer(__name__)
+        with tracer.start_as_current_span("mcp.tool_call") as span:
+            span.set_attribute("mcp.tool_id", tool_id)
+            try:
+                async with asyncio.timeout(timeout_sec):
+                    return await tool.execute(**kwargs)
+            except TimeoutError as te:
+                span.record_exception(te)
+                span.set_status(trace.StatusCode.ERROR, f"MCP tool execution timed out after {timeout_sec}s")
+                raise AppException(
+                    message=f"MCP tool '{tool_id}' timed out after {timeout_sec} seconds.",
+                    status_code=504,
+                    details={"error_code": ErrorCodes.SERVICE_UNAVAILABLE.value, "tool_id": tool_id},
+                ) from te
+            except Exception as e:
+                span.record_exception(e)
+                span.set_status(trace.StatusCode.ERROR, str(e))
+                raise

@@ -19,7 +19,7 @@
   - [x] Step 2: SETTINGS_AND_TELEMETRY_CORE_INITIALIZATION
   - [x] Step 3: W3C_TRACE_CONTEXT_PROPAGATION_PIPELINE
   - [x] Step 4: DAG_EXECUTOR_AND_NODE_LEVEL_INSTRUMENTATION
-  - [ ] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
+  - [x] Step 5: GENAI_SEMANTIC_CONVENTIONS_IN_LLM_ADAPTERS
   - [ ] Step 6: LOG_CORRELATION_AND_FINOPS_HARMONIZATION
   - [ ] Step 7: WORKFLOW_GOVERNANCE_UPGRADES
   - [ ] Step 8: AUTOMATED_TESTING_AND_AST_GUARDRAILS
@@ -28,22 +28,22 @@
 ### Post-Implementation Gates
 - [ ] **[NOK] Golden Master & Test Restoration Audit**: Ensure no @pytest.mark.skip or commented-out tests remain in modified domains.
 - [ ] **[NOK] Tier 2 Hardening (Backend)**: Run `/tier2-hardening-backend` specifying the explicit list of created/modified @-referenced production backend files:
-  - [ ] @[backend_v2/settings.py]
+  - [x] @[backend_v2/settings.py]
   - [ ] @[backend_v2/logging_config.py]
   - [ ] @[backend_v2/main.py]
-  - [ ] @[backend_v2/core/telemetry.py]
-  - [ ] @[backend_v2/models/dtos/telemetry.py]
-  - [ ] @[backend_v2/models/execution_core.py]
-  - [ ] @[backend_v2/services/execution/facade.py]
-  - [ ] @[backend_v2/services/execution/ingress_service.py]
-  - [ ] @[backend_v2/workers/execution_worker.py]
-  - [ ] @[backend_v2/services/orchestrator/dag_executor.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/tda_engine.py]
-  - [ ] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
-  - [ ] @[backend_v2/llm/provider.py]
-  - [ ] @[backend_v2/llm/adapters/base_adapter.py]
-  - [ ] @[backend_v2/llm/caching_service.py]
-  - [ ] @[backend_v2/services/mcp/dispatcher.py]
+  - [x] @[backend_v2/core/telemetry.py]
+  - [x] @[backend_v2/models/dtos/telemetry.py]
+  - [x] @[backend_v2/models/execution_core.py]
+  - [x] @[backend_v2/services/execution/facade.py]
+  - [x] @[backend_v2/services/execution/ingress_service.py]
+  - [x] @[backend_v2/workers/execution_worker.py]
+  - [x] @[backend_v2/services/orchestrator/dag_executor.py]
+  - [x] @[backend_v2/services/orchestrator/engines/tda_engine.py]
+  - [x] @[backend_v2/services/orchestrator/engines/synthesis_engine.py]
+  - [x] @[backend_v2/llm/provider.py]
+  - [x] @[backend_v2/llm/adapters/base_adapter.py]
+  - [x] @[backend_v2/llm/caching_service.py]
+  - [x] @[backend_v2/services/mcp/dispatcher.py]
   - [ ] @[backend_v2/services/llm_task_executor.py]
   - [ ] @[backend_v2/services/orchestrator/strategies/llm.py]
   - [ ] @[backend_v2/utils/finops_trace_analyzer.py]
@@ -102,11 +102,11 @@
 | REQ-17 | Instrument `NodeExecutor.execute` and `run_step_wrapper` with child span `dag.node.{step_id}`, exception recording, and error status before re-raising `AppException` | Step 4 | [x] |
 | REQ-18 | Instrument `TDAEngine` with `tda.atomization` and `tda.topological_evaluation` spans, and `SynthesisEngine` with `synthesis.distill` span | Step 4 | [x] |
 | REQ-19 | Enforce OpenTelemetry context preservation across concurrent `asyncio.TaskGroup` node evaluations | Step 4 | [x] |
-| REQ-20 | Activate standard OpenTelemetry GenAI Semantic Conventions via `logfire.instrument_litellm()` in `configure_telemetry` and `LiteLLMProvider` | Step 5 | [ ] |
-| REQ-21 | Propagate active OpenTelemetry context and model-specific metadata in `BaseLLMAdapter` and provider subclasses | Step 5 | [ ] |
-| REQ-22 | Instrument `LLMCachingService` with `gen_ai.cache.hit` boolean attribute on active span | Step 5 | [ ] |
-| REQ-23 | Instrument MCP tool dispatch with `logfire.instrument_mcp()`, `mcp.tool_call` span, `mcp.tool_id` attribute, and timeout guard in `dispatcher.py` | Step 5 | [ ] |
-| REQ-24 | Enforce strict PII and prompt scrubbing guardrail banning raw prompt text in span attributes | Step 5 | [ ] |
+| REQ-20 | Activate standard OpenTelemetry GenAI Semantic Conventions via `logfire.instrument_litellm()` in `configure_telemetry` and `LiteLLMProvider` | Step 5 | [x] |
+| REQ-21 | Propagate active OpenTelemetry context and model-specific metadata in `BaseLLMAdapter` and provider subclasses | Step 5 | [x] |
+| REQ-22 | Instrument `LLMCachingService` with `gen_ai.cache.hit` boolean attribute on active span | Step 5 | [x] |
+| REQ-23 | Instrument MCP tool dispatch with `logfire.instrument_mcp()`, `mcp.tool_call` span, `mcp.tool_id` attribute, and timeout guard in `dispatcher.py` | Step 5 | [x] |
+| REQ-24 | Enforce strict PII and prompt scrubbing guardrail banning raw prompt text in span attributes | Step 5 | [x] |
 | REQ-25 | Correlate structured logs with active OpenTelemetry context by injecting `trace_id` and `span_id` into `ContextFilter`, `StructuredLogContextDTO`, and `JSONFormatter` in `logging_config.py` | Step 6 | [ ] |
 | REQ-26 | Initialize telemetry in FastAPI `lifespan` in `main.py` and remove redundant top-level `instrument_fastapi` block | Step 6 | [ ] |
 | REQ-27 | Refactor `finops_trace_analyzer.py` to extract metrics from structured `ExecutionRecord` telemetry, removing hardcoded pricing formulas and duplicate `Field()` assignments | Step 6 | [ ] |
