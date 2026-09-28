@@ -1,8 +1,12 @@
 """Unit tests for dynamic performative linguistics prompt assets."""
 
+from string.templatelib import Template
+
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.models.prompts.execution.dynamic_linguistics import (
     DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT,
     DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE,
+    build_dynamic_performative_user_prompt,
 )
 
 
@@ -30,7 +34,16 @@ def test_dynamic_performative_user_prompt_template() -> None:
     assert "{text_to_scan}" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
     assert "{language}" in DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE
 
-    # Test formatting with sample text and language
-    formatted = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(language="fi", text_to_scan="sample content")
-    assert "sample content" in formatted
-    assert "<target_language>fi</target_language>" in formatted
+
+def test_build_dynamic_performative_user_prompt() -> None:
+    """Verify build_dynamic_performative_user_prompt returns Template rendered via TemplateProcessor."""
+    tmpl = build_dynamic_performative_user_prompt(language="fi", text_to_scan="sample content <test>")
+    assert isinstance(tmpl, Template)
+    rendered = TemplateProcessor.render_prompt(tmpl)
+    assert "<source_data>" in rendered
+    assert "<target_language>fi</target_language>" in rendered
+    assert "<user_payload>" in rendered
+    assert "<![CDATA[sample content <test>]]>" in rendered
+    assert "</user_payload>" in rendered
+    assert "</source_data>" in rendered
+

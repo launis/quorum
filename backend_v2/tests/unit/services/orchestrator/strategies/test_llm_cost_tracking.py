@@ -227,6 +227,8 @@ async def test_llm_strategy_propagates_engine_usage_to_trace_event(
         )
     )
 
+    mock_compiler.build_dynamic_schema.return_value.model_json_schema.return_value = {"type": "object"}
+
     with (
         patch.object(llm_strategy, "run_pre_hooks", new_callable=AsyncMock) as mock_pre,
         patch.object(llm_strategy, "run_post_hooks", new_callable=AsyncMock) as mock_post,

@@ -117,19 +117,23 @@ async def analyze_interaction_role(state: HookState, deps: HookDependencies) -> 
         ) from e
 
     # 3. Dynamic User Message (High-Fidelity Prompting, XML parameters separated)
-    encapsulated_chat = TemplateProcessor.encapsulate_payload(chat_log)
-    user_content = (
-        "<execution_parameters>\n"
-        f"  <control_ratio>{control_ratio}</control_ratio>\n"
-        f"  <imperative_command_count>{behavioral_metrics.imperative_command_count}</imperative_command_count>\n"
-        f"  <say_do_gap>{behavioral_metrics.say_do_gap}</say_do_gap>\n"
-        f"  <automation_bias>{behavioral_metrics.automation_bias}</automation_bias>\n"
-        "</execution_parameters>\n\n"
-        "<source_data>\n"
-        "  <user_payload>\n"
-        f"{encapsulated_chat}\n"
-        "  </user_payload>\n"
-        "</source_data>"
+    control_val = str(control_ratio)
+    cmd_count_val = str(behavioral_metrics.imperative_command_count)
+    say_do_val = str(behavioral_metrics.say_do_gap)
+    auto_bias_val = str(behavioral_metrics.automation_bias)
+
+    user_content = TemplateProcessor.render_prompt(
+        t"<execution_parameters>\n"
+        t"  <control_ratio>{control_val:raw}</control_ratio>\n"
+        t"  <imperative_command_count>{cmd_count_val:raw}</imperative_command_count>\n"
+        t"  <say_do_gap>{say_do_val:raw}</say_do_gap>\n"
+        t"  <automation_bias>{auto_bias_val:raw}</automation_bias>\n"
+        t"</execution_parameters>\n\n"
+        t"<source_data>\n"
+        t"  <user_payload>\n"
+        t"{chat_log}\n"
+        t"  </user_payload>\n"
+        t"</source_data>"
     )
 
     messages: list[LLMMessageDTO] = [

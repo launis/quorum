@@ -2,8 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from backend_v2.exceptions import AppException, TokenLimitExceededError
-from backend_v2.models.enums import ExecutionStatus
+from backend_v2.exceptions import AppException, ConfigurationError, TokenLimitExceededError
+from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
+from backend_v2.models.enums import ExecutionStatus, LaxExecutionStatus
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.strategies.llm_execution.context_builder import ContextBuilder
 from backend_v2.settings import get_settings
@@ -93,14 +94,14 @@ def test_context_builder_build_success(monkeypatch: pytest.MonkeyPatch) -> None:
                 step_id="step1",
                 block_id="blk_123",
                 data_type="matrix",
-                payload={
-                    "raw_score": 5.0,
-                    "normalized_score": 0.8,
-                    "level_breakdown": None,
-                    "justification": "Good",
-                    "evaluated_atoms": {"atom1": ExecutionStatus.PASSED, "atom2": ExecutionStatus.FAILED},
-                    "extensions": {},
-                },
+                payload=LightweightMatrixOutput(
+                    raw_score=5.0,
+                    normalized_score=0.8,
+                    level_breakdown=None,
+                    justification="Good",
+                    evaluated_atoms={"atom1": LaxExecutionStatus.PASSED, "atom2": LaxExecutionStatus.FAILED},
+                    extensions={},
+                ),
             )
         ],
     }
@@ -158,7 +159,7 @@ def test_context_builder_build_trace_pruning_fails_fast(monkeypatch: pytest.Monk
     )
 
     mock_context_router = MagicMock()
-    mock_context_router.route_and_prune.side_effect = Exception("Pruning crashed")
+    mock_context_router.route_and_prune.side_effect = ConfigurationError("Pruning crashed")
     monkeypatch.setattr(
         "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.ContextRouter",
         mock_context_router,
@@ -593,11 +594,10 @@ def test_build_matrix_pruning_with_evaluated_atoms(monkeypatch: pytest.MonkeyPat
     monkeypatch.setattr("litellm.token_counter", lambda model, text: 10)
 
     mock_router = MagicMock()
-    mock_pruned = MagicMock()
-    mock_pruned.model_dump.return_value = {
-        "raw_score": 4.0,
-        "evaluated_atoms": [{"atom_id": "a1"}],
-    }
+    mock_pruned = LightweightMatrixOutput(
+        raw_score=4.0,
+        evaluated_atoms={"a1": LaxExecutionStatus.PASSED},
+    )
     mock_router.route_and_prune.return_value = mock_pruned
     monkeypatch.setattr(
         "backend_v2.services.orchestrator.strategies.llm_execution.context_builder.ContextRouter",

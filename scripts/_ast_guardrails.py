@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR021).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR022).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -289,6 +289,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
         self._bool_condition_nodes: set[ast.AST] = set()
         self._current_class_name: str | None = None
         self._function_depth: int = 0
+        self._in_finally: bool = False
 
     def _add_violation(
         self,
@@ -753,7 +754,18 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     severity=qgr019_sev,
                 )
 
-        self.generic_visit(node)
+    def visit_Try(self, node: ast.Try) -> None:
+        for stmt in node.body:
+            self.visit(stmt)
+        for handler in node.handlers:
+            self.visit(handler)
+        for stmt in node.orelse:
+            self.visit(stmt)
+        prev_in_finally = self._in_finally
+        self._in_finally = True
+        for stmt in node.finalbody:
+            self.visit(stmt)
+        self._in_finally = prev_in_finally
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
         # QGR003: Exception swallowing and broad except Exception handlers lacking ast.Raise
@@ -814,7 +826,8 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                     pass
 
         # In domain code outside boundary exemption, all handlers (broad and typed) must have raise or DLQ dispatch
-        if self._is_domain_code and not self._is_boundary_exempt:
+        # Handlers inside finally blocks performing cleanup/teardown are exempted from mandatory raise
+        if self._is_domain_code and not self._is_boundary_exempt and not self._in_finally:
             if not has_raise and not has_dlq_or_typed_dispatch:
                 msg = (
                     "Broad `except Exception:` handler lacking `raise` or typed DLQ dispatch detected in domain code."
@@ -1350,6 +1363,86 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_JoinedStr(self, node: ast.JoinedStr) -> None:
+        # QGR022: Unshielded f-string Prompt Interpolation Ban
+        # Enforces that prompt XML blocks and user payload interpolations use PEP 750 t"..."
+        # or TemplateProcessor.render_prompt.
+        if not self._is_test_file and self._is_domain_code:
+            norm_path = self.filepath.replace("\\", "/")
+            is_prompt_module = "backend_v2/services/orchestrator/prompts/" in norm_path
+
+            # Check if this JoinedStr contains prompt XML tags
+            has_prompt_xml_tag = any(
+                isinstance(part, ast.Constant)
+                and isinstance(part.value, str)
+                and bool(
+                    re.search(
+                        r"<(source_data|user_payload|execution_parameters|claims_window|global_ontology_map|matrix_objective|theory_context|prompt_instructions|ai_context_mandate|document_id|document_name)[>\s]",
+                        part.value,
+                    )
+                )
+                for part in node.values
+            )
+
+            # In prompt modules, check if any XML tag is constructed via f-string
+            if is_prompt_module:
+                has_any_xml_tag = any(
+                    isinstance(part, ast.Constant)
+                    and isinstance(part.value, str)
+                    and ("<" in part.value and ">" in part.value)
+                    for part in node.values
+                )
+                if has_any_xml_tag or has_prompt_xml_tag:
+                    snippet = ast.unparse(node)[:50]
+                    self._add_violation(
+                        node,
+                        "QGR022",
+                        f"Unshielded f-string prompt XML tag construction `{snippet}...` detected in prompt module.",
+                        (
+                            'Use native PEP 750 template string literals (t"...") with '
+                            "TemplateProcessor.render_prompt to construct prompt XML."
+                        ),
+                        severity=GuardrailSeverity.FATAL,
+                    )
+            elif has_prompt_xml_tag:
+                snippet = ast.unparse(node)[:50]
+                self._add_violation(
+                    node,
+                    "QGR022",
+                    f"Unshielded f-string XML prompt structure `{snippet}...` detected in domain code.",
+                    (
+                        'Use native PEP 750 template strings (t"...") rendered via '
+                        "TemplateProcessor.render_prompt instead of f-strings for prompt construction."
+                    ),
+                    severity=GuardrailSeverity.FATAL,
+                )
+
+            # Check if raw untrusted user payload variables are interpolated directly
+            banned_raw_names = {
+                "raw_paste",
+                "hydrated_text",
+                "text_to_scan",
+                "chat_log",
+                "raw_blackboard_markdown",
+            }
+            for part in node.values:
+                if isinstance(part, ast.FormattedValue) and isinstance(part.value, ast.Name):
+                    if part.value.id in banned_raw_names:
+                        snippet = ast.unparse(node)[:50]
+                        self._add_violation(
+                            node,
+                            "QGR022",
+                            f"Banned raw payload variable `{part.value.id}` interpolated into f-string `{snippet}...`.",
+                            (
+                                'Pass raw payload variables directly into PEP 750 template string literals (t"...") '
+                                "and render via TemplateProcessor.render_prompt."
+                            ),
+                            severity=GuardrailSeverity.FATAL,
+                        )
+                        break
+
+        self.generic_visit(node)
+
 
 def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[GuardrailViolation]:
     """Scans Python source code bytes for architectural violations with complete fault isolation.
@@ -1551,11 +1644,11 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point for running AST codebase guardrails.
 
-    Parses positional targets and flags, scans files for AST violations (QGR000-QGR021),
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR022),
     and exits with code 0 on success or 1 on failure.
     """
     parser = argparse.ArgumentParser(
-        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR021).
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR022).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum:
   QGR000: Syntax Error Detection (FATAL)
@@ -1580,6 +1673,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR019: In-Place dict.pop Mutation Ban (WARNING)
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
+  QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):

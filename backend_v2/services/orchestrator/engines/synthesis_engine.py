@@ -185,12 +185,14 @@ class SynthesisEngine:
                     ) from err
 
             raw_blackboard_markdown = blackboard.to_markdown_synthesis_injection()
-            protected_user_payload = TemplateProcessor.encapsulate_payload(raw_blackboard_markdown)
+            user_payload_xml = TemplateProcessor.render_prompt(
+                t"Synthesize the following atoms according to the instructions:\n"
+                t"<user_payload>\n"
+                t"{raw_blackboard_markdown}\n"
+                t"</user_payload>"
+            )
 
-            user_content_parts = [
-                "Synthesize the following atoms according to the instructions:\n"
-                f"<user_payload>\n{protected_user_payload}\n</user_payload>"
-            ]
+            user_content_parts = [user_payload_xml]
 
             if raw_xai_extensions_str:
                 user_content_parts.append(raw_xai_extensions_str)

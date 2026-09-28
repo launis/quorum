@@ -10,6 +10,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from backend_v2.core.telemetry import get_tracer
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.usage import TokenUsage
@@ -193,7 +194,9 @@ class TDAEngine(ExecutionEngine):
                     semaphore=request.semaphore,
                 )
 
-            evaluation_context = f"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
+            evaluation_context = TemplateProcessor.render_prompt(
+                t"{hydrated_text}\n\n<ontology>\n{ontology}\n</ontology>"
+            )
 
             nodes = []
             for i, atom in enumerate(request.shuffled_atoms):

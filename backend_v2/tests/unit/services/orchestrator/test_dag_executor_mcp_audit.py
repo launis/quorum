@@ -157,7 +157,7 @@ async def test_dag_executor_mcp_audit_decision_event_merge_and_deduplication(
         step_name="stp_1111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [trace1.model_dump(mode="json"), trace2.model_dump(mode="json")]},
-        metadata={"mcp_audit_traces": [trace1.model_dump(mode="json"), trace2.model_dump(mode="json")]},
+        metadata={"mcp_audit_traces": [trace1, trace2]},
         mcp_audit_traces=[trace1, trace2],
     )
 
@@ -239,7 +239,7 @@ async def test_dag_executor_mcp_audit_decision_event_with_iso_string_timestamp(
         step_name="stp_1111222233334444",
         event_type="decision",
         content={"mcp_audit_traces": [raw_trace_iso]},
-        metadata={"mcp_audit_traces": [raw_trace_iso]},
+        metadata={"mcp_audit_traces": [trace]},
         mcp_audit_traces=[trace],
     )
 

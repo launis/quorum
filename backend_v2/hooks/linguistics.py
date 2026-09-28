@@ -27,7 +27,7 @@ from backend_v2.models.domain.linguistics import (
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompts.execution.dynamic_linguistics import (
     DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT,
-    DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE,
+    build_dynamic_performative_user_prompt,
 )
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
@@ -139,9 +139,8 @@ async def detect_performative_patterns(state: HookState, deps: HookDependencies)
                     pipeline_name="linguistics_hook",
                 )
             executor = LLMTaskExecutor(prompt_compiler=PromptCompiler())
-            encapsulated_text = TemplateProcessor.encapsulate_payload(text_to_scan)
-            user_content = DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE.format(
-                language=lang_simple, text_to_scan=encapsulated_text
+            user_content = TemplateProcessor.render_prompt(
+                build_dynamic_performative_user_prompt(language=lang_simple, text_to_scan=text_to_scan)
             )
             messages = [
                 LLMMessageDTO(role="system", content=DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT),

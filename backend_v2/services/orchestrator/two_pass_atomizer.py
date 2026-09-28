@@ -26,7 +26,7 @@ from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompts.atom_extraction import (
     PHASE_0_SYSTEM_PROMPT,
-    PHASE_1_SYSTEM_PROMPT,
+    build_phase_1_system_prompt,
 )
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -96,11 +96,13 @@ class TwoPassAtomizer:
         if not packets:
             return GlobalOntologyMap(entities=[], macro_rules=[]), total_usage
 
-        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=PHASE_0_SYSTEM_PROMPT),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
+                LLMMessageDTO(
+                    role="user",
+                    content=TemplateProcessor.render_prompt(t"<source_data>\n{hydrated_text}\n</source_data>"),
+                ),
             ],
             dynamic_messages=[],
         )
@@ -155,8 +157,8 @@ class TwoPassAtomizer:
             Tuple of GlobalOntologyMap and TokenUsage for the chunk.
         """
         async with sem:
-            dynamic_instruction = (
-                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            dynamic_instruction = TemplateProcessor.render_prompt(
+                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,
@@ -190,18 +192,20 @@ class TwoPassAtomizer:
             A tuple of ExtractedAtom objects with fully hydrated Opaque Stripe IDs and aggregated TokenUsage.
         """
         ontology_json = ontology.model_dump_json()
-        system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
+        system_prompt = TemplateProcessor.render_prompt(build_phase_1_system_prompt(ontology_json))
 
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         packets = self._calculate_packets(hydrated_text)
         if not packets:
             return [], total_usage
 
-        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=system_prompt),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
+                LLMMessageDTO(
+                    role="user",
+                    content=TemplateProcessor.render_prompt(t"<source_data>\n{hydrated_text}\n</source_data>"),
+                ),
             ],
             dynamic_messages=[],
         )
@@ -272,8 +276,8 @@ class TwoPassAtomizer:
             ValueError: If a non-deductive atom refers to a block ID outside packet bounds.
         """
         async with sem:
-            dynamic_instruction = (
-                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            dynamic_instruction = TemplateProcessor.render_prompt(
+                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,
@@ -364,18 +368,20 @@ class TwoPassAtomizer:
             A tuple of DraftAtomList containing DraftExtractedAtom instances and aggregated TokenUsage.
         """
         ontology_json = ontology.model_dump_json()
-        system_prompt = PHASE_1_SYSTEM_PROMPT.replace("{ontology_map_json}", ontology_json)
+        system_prompt = TemplateProcessor.render_prompt(build_phase_1_system_prompt(ontology_json))
 
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
         packets = self._calculate_packets(hydrated_text)
         if not packets:
             return DraftAtomList(atoms=[], dlq_status=None), total_usage
 
-        encapsulated_source = TemplateProcessor.encapsulate_payload(hydrated_text)
         compiled_prompt = CompiledPrompt(
             static_messages=[
                 LLMMessageDTO(role="system", content=system_prompt),
-                LLMMessageDTO(role="user", content=f"<source_data>\n{encapsulated_source}\n</source_data>"),
+                LLMMessageDTO(
+                    role="user",
+                    content=TemplateProcessor.render_prompt(t"<source_data>\n{hydrated_text}\n</source_data>"),
+                ),
             ],
             dynamic_messages=[],
         )
@@ -455,8 +461,8 @@ class TwoPassAtomizer:
             Tuple of DraftAtomList and chunk TokenUsage.
         """
         async with sem:
-            dynamic_instruction = (
-                f"<execution_parameters>\nExtract atoms ONLY from [{start_b}] to [{end_b}].\n</execution_parameters>"
+            dynamic_instruction = TemplateProcessor.render_prompt(
+                t"<execution_parameters>\nExtract atoms ONLY from [{start_b:raw}] to [{end_b:raw}].\n</execution_parameters>"
             )
             chunk_prompt = CompiledPrompt(
                 static_messages=compiled_prompt.static_messages,

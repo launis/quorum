@@ -264,7 +264,6 @@ class PromptCompiler:
                 base_path = ".".join(source_path.split(".")[:2]) if source_path.startswith("$") else source_path
 
                 desc_text = ""
-                encapsulated_val = TemplateProcessor.encapsulate_payload(value)
 
                 if source_path.startswith("$inputs"):
                     if base_path not in input_meta_map:
@@ -284,29 +283,45 @@ class PromptCompiler:
                         )
                     meta = input_meta_map[base_path]
 
-                    desc_text += "  <document_metadata>\n"
-                    desc_text += f"    <document_id>{source_id_to_use}</document_id>\n"
+                    meta_parts: list[str] = [
+                        TemplateProcessor.render_prompt(t"    <document_id>{source_id_to_use:raw}</document_id>")
+                    ]
                     if meta.label:
-                        desc_text += f"    <document_name>{meta.label}</document_name>\n"
+                        meta_label = meta.label
+                        meta_parts.append(
+                            TemplateProcessor.render_prompt(t"    <document_name>{meta_label:raw}</document_name>")
+                        )
                     if meta.ai_desc:
-                        desc_text += f"    <ai_context_mandate>{meta.ai_desc}</ai_context_mandate>\n"
+                        ai_desc_val = meta.ai_desc
+                        meta_parts.append(
+                            TemplateProcessor.render_prompt(
+                                t"    <ai_context_mandate>{ai_desc_val:raw}</ai_context_mandate>"
+                            )
+                        )
                     if meta.is_endorsed_deliverable:
-                        desc_text += "    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>\n"
-                    desc_text += "  </document_metadata>\n"
+                        meta_parts.append("    <document_provenance>ENDORSED_FINAL_DELIVERABLE</document_provenance>")
+
+                    meta_body = "\n".join(meta_parts)
+                    desc_text = f"  <document_metadata>\n{meta_body}\n  </document_metadata>\n"
 
                     if meta.is_assignment:
-                        wrapped_val = f"<assignment_context>\n{encapsulated_val}\n</assignment_context>"
+                        wrapped_val = TemplateProcessor.render_prompt(
+                            t"<assignment_context>\n{value}\n</assignment_context>"
+                        )
                     elif meta.is_chat_history:
-                        wrapped_val = encapsulated_val
+                        wrapped_val = TemplateProcessor.render_prompt(t"{value}")
                     else:
-                        wrapped_val = f"<user_payload>\n{encapsulated_val}\n</user_payload>"
+                        wrapped_val = TemplateProcessor.render_prompt(t"<user_payload>\n{value}\n</user_payload>")
                 elif source_path.startswith("$steps"):
-                    wrapped_val = f"<ai_draft_context>\n{encapsulated_val}\n</ai_draft_context>"
+                    wrapped_val = TemplateProcessor.render_prompt(t"<ai_draft_context>\n{value}\n</ai_draft_context>")
                 else:
-                    wrapped_val = encapsulated_val
+                    wrapped_val = TemplateProcessor.render_prompt(t"{value}")
 
+                inner_xml = f"{desc_text}{wrapped_val}"
                 xml_blocks.append(
-                    f'<matrix_input source_id="{source_id_to_use}">\n{desc_text}{wrapped_val}\n</matrix_input>'
+                    TemplateProcessor.render_prompt(
+                        t'<matrix_input source_id="{source_id_to_use}">\n{inner_xml:raw}\n</matrix_input>'
+                    )
                 )
 
         compiled = "\n\n".join(xml_blocks)
@@ -473,17 +488,20 @@ class PromptCompiler:
                                                 .replace("_", " ")
                                                 .title()
                                             )
+                                            tag = clean_key.replace(" ", "_")
                                             formatted.append(
-                                                f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
+                                                TemplateProcessor.render_prompt(t"  <{tag:raw}>{micro_v}</{tag:raw}>")
                                             )
                                         formatted.append(f"</{str(sub_k).upper()}>")
                                     case _:
                                         clean_sub_k = str(sub_k).title().replace(" ", "_")
                                         formatted.append(
-                                            f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                                            TemplateProcessor.render_prompt(
+                                                t"  <{clean_sub_k:raw}>{sub_v}</{clean_sub_k:raw}>"
+                                            )
                                         )
                         case _:
-                            formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
+                            formatted.append(TemplateProcessor.render_prompt(t"  {v}"))
                     formatted.append(f"</{clean_k}>")
                 return "\n".join(formatted)
             case _:
@@ -555,11 +573,10 @@ class PromptCompiler:
         Returns:
             A formatted chunk payload instruction string.
         """
-        safe_payload = TemplateProcessor.encapsulate_payload(payload_text)
-        return (
-            f"You are processing map-reduce chunk '{chunk_id}'.\n"
-            "Evaluate ONLY the following payload mapping to the strict chunk_id structure:\n"
-            f"<user_payload>\n{safe_payload}\n</user_payload>"
+        return TemplateProcessor.render_prompt(
+            t"You are processing map-reduce chunk '{chunk_id}'.\n"
+            t"Evaluate ONLY the following payload mapping to the strict chunk_id structure:\n"
+            t"<user_payload>\n{payload_text}\n</user_payload>"
         )
 
     @staticmethod

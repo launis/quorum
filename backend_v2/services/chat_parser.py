@@ -184,15 +184,14 @@ class ChatParserService:
         # Construct the Prompt
         # Mandates: Strip all AI UI fluff (Regenerate, Copy code, etc)
         # Role Segregation: Isolated System Instruction prevents prompt injection
-        encapsulated_paste = TemplateProcessor.encapsulate_payload(raw_paste)
+        user_content = TemplateProcessor.render_prompt(
+            t"<context>\nHere is the raw text to process:\n</context>\n<source_data>\n{raw_paste}\n</source_data>\n"
+        )
         messages = [
             ChatMessageDTO(role="system", content=_SYSTEM_INSTRUCTION),
             ChatMessageDTO(
                 role="user",
-                content=(
-                    "<context>\nHere is the raw text to process:\n</context>\n"
-                    f"<source_data>\n{encapsulated_paste}\n</source_data>\n"
-                ),
+                content=user_content,
             ),
         ]
 

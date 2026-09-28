@@ -31,7 +31,7 @@ from backend_v2.models.prompt import CompiledPrompt, PromptMetadataDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompts.graph_linking import (
     LINKER_SYSTEM_PROMPT,
-    LINKER_USER_PROMPT,
+    build_linker_user_prompt,
 )
 from backend_v2.settings import get_settings
 from backend_v2.utils.alias_engine import AliasEngine
@@ -253,10 +253,11 @@ class SlidingWindowLinker:
                 claims_text += f"[{alias}] {atom.resolved_claim}\n"
                 claims_text += f"Quote: {atom.source_quote}\n\n"
 
-            user_prompt = TemplateProcessor.safe_interpolate(
-                LINKER_USER_PROMPT,
-                global_ontology_map=ontology_text,
-                claims_window=claims_text.strip(),
+            user_prompt = TemplateProcessor.render_prompt(
+                build_linker_user_prompt(
+                    global_ontology_map=ontology_text,
+                    claims_window=claims_text.strip(),
+                )
             )
 
             static_messages = [

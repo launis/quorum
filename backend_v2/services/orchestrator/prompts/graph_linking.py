@@ -4,6 +4,14 @@ These prompts enforce strict structural dependencies and Alias usage for the
 causal reasoning phase.
 """
 
+from string.templatelib import Template
+
+__all__ = [
+    "LINKER_SYSTEM_PROMPT",
+    "LINKER_USER_PROMPT",
+    "build_linker_user_prompt",
+]
+
 LINKER_SYSTEM_PROMPT = """
 <system_directive>
 <role>
@@ -26,6 +34,22 @@ A dependency exists if Claim B is conditionally dependent on the truth or falsit
 """
 
 LINKER_USER_PROMPT = """
+<execution_parameters>
+<global_ontology_map>
+{global_ontology_map}
+</global_ontology_map>
+<claims_window>
+{claims_window}
+</claims_window>
+</execution_parameters>
+
+Analyze the claims in the window and map their dependencies. Only return the dependencies for claims that have at least one parent.
+"""
+
+
+def build_linker_user_prompt(global_ontology_map: str, claims_window: str) -> Template:
+    """Build the user prompt template for the sliding window linker."""
+    return t"""
 <execution_parameters>
 <global_ontology_map>
 {global_ontology_map}

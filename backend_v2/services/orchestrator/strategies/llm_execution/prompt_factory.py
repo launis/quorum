@@ -11,6 +11,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.models.domain.mechanical_anchors import MechanicalAnchorsPayload
 from backend_v2.models.domain.prompt_blocks import (
@@ -193,9 +194,13 @@ class PromptFactory:
             truncated_evidence = evidence_val[:evidence_budget].strip()
             source_data_content = f"{source_data_content}\n\n{truncated_evidence}".strip()
 
-        user_payload = f"{exec_params}\n<source_data>\n{source_data_content}\n</source_data>"
+        user_payload = TemplateProcessor.render_prompt(
+            t"{exec_params:raw}\n<source_data>\n{source_data_content:raw}\n</source_data>"
+        )
         if dynamic_instructions:
-            user_payload += f"\n\n<RUNTIME_AWARENESS>\n{dynamic_instructions}\n</RUNTIME_AWARENESS>"
+            user_payload += TemplateProcessor.render_prompt(
+                t"\n\n<RUNTIME_AWARENESS>\n{dynamic_instructions:raw}\n</RUNTIME_AWARENESS>"
+            )
 
         atom_to_block_ids: dict[str, set[str]] = {}
         for block_model in criteria_blocks:

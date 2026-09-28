@@ -17,7 +17,7 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
     """Test that _compress_synthesis_payload removes log-heavy keys but preserves lite evaluations."""
     payload: dict[str, Any] = {
         "normalized_score": 75.0,
-        "level_breakdown": {"1": 2, "3": 1},
+        "level_breakdown": {"1": {"hits": 2, "total": 2}, "3": {"hits": 1, "total": 1}},
         "shuffled_atoms": ["atom1", "atom2", "atom3"],
         "results": [
             {
@@ -29,7 +29,6 @@ def test_compress_synthesis_payload_strips_heavy_keys() -> None:
             {
                 "atom_id": "a2",
                 "exact_quotes": ["None"],
-                "semantic_reasoning": "Weak reasoning.",
             },
         ],
     }
@@ -92,7 +91,6 @@ def test_compress_synthesis_payload_strips_null_quotes() -> None:
                     "N/A - insufficient data",
                     "[INDETERMINATE]",
                 ],
-                "semantic_reasoning": "Test",
             },
         ],
     }

@@ -3,9 +3,12 @@
 Focuses on extracting empty filler, sycophancy, and ungrounded jargon from text payloads.
 """
 
+from string.templatelib import Template
+
 __all__ = [
     "DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT",
     "DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE",
+    "build_dynamic_performative_user_prompt",
 ]
 
 DYNAMIC_PERFORMATIVE_SYSTEM_PROMPT = (
@@ -44,3 +47,15 @@ DYNAMIC_PERFORMATIVE_USER_PROMPT_TEMPLATE = (
     "  <user_payload>\n{text_to_scan}\n  </user_payload>\n"
     "</source_data>"
 )
+
+
+def build_dynamic_performative_user_prompt(language: str, text_to_scan: str) -> Template:
+    """Build the user prompt template for dynamic performative linguistics extraction."""
+    return (
+        t"<source_data>\n"
+        t"  <target_language>{language:raw}</target_language>\n"
+        t"  <user_payload>\n"
+        t"{text_to_scan}\n"
+        t"  </user_payload>\n"
+        t"</source_data>"
+    )

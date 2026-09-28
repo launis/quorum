@@ -21,7 +21,8 @@ import pytest
 from backend_v2.core.template_processor import TemplateProcessor
 from backend_v2.models.dtos.ingress import ChatTurnAnchorDTO, ChatTurnAnchorsResponseDTO
 from backend_v2.services.chat_parser import ChatParserService
-from backend_v2.services.orchestrator.prompts.graph_linking import LINKER_USER_PROMPT
+from backend_v2.services.orchestrator.prompts.graph_linking import build_linker_user_prompt
+from scripts._ast_guardrails import scan_source_code_for_guardrails
 
 TARGET_FILES = [
     Path("backend_v2/services/chat_parser.py"),
@@ -118,11 +119,11 @@ def test_sliding_window_linker_curly_braces_interpolation() -> None:
         "Quote: ]]> test quote\n"
     )
 
-    interpolated = TemplateProcessor.safe_interpolate(
-        LINKER_USER_PROMPT,
+    tmpl = build_linker_user_prompt(
         global_ontology_map=ontology,
         claims_window=claims_with_braces.strip(),
     )
+    interpolated = TemplateProcessor.render_prompt(tmpl)
 
     assert "<global_ontology_map>" in interpolated
     assert "<![CDATA[" in interpolated
@@ -188,6 +189,19 @@ def test_template_processor_edge_cases() -> None:
     assert TemplateProcessor.encapsulate_payload("") == "<![CDATA[]]>"
     assert TemplateProcessor.encapsulate_payload("   ") == "<![CDATA[   ]]>"
 
-    # Interpolation with None value
-    template = "Param: {val}"
-    assert TemplateProcessor.safe_interpolate(template, val=None) == "Param: "
+    val = None
+    assert TemplateProcessor.render_prompt(t"Param: {val}") == "Param: "
+
+
+def test_qgr022_catches_unshielded_fstring_prompt_construction() -> None:
+    """Verify that QGR022 statically flags unshielded f-strings constructing prompt XML."""
+    bad_code = """
+def bad_prompt(payload: str) -> str:
+    return f"<user_payload>{payload}</user_payload>"
+"""
+    violations = scan_source_code_for_guardrails(
+        "backend_v2/services/orchestrator/prompts/dummy_builder.py", bad_code.encode("utf-8")
+    )
+    qgr022_violations = [v for v in violations if v.rule_code == "QGR022"]
+    assert len(qgr022_violations) == 1
+    assert qgr022_violations[0].severity.value == "FATAL"

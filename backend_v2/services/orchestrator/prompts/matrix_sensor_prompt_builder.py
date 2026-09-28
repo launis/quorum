@@ -53,24 +53,18 @@ class MatrixSensorPromptBuilder:
             if matrix_context.matrix_objective and matrix_context.matrix_objective.strip():
                 objective_clean = matrix_context.matrix_objective.strip()
                 sections.append(
-                    TemplateProcessor.safe_interpolate(
-                        "<matrix_objective>\n{o}\n</matrix_objective>",
-                        o=objective_clean,
-                    )
+                    TemplateProcessor.render_prompt(t"<matrix_objective>\n{objective_clean}\n</matrix_objective>")
                 )
 
             if matrix_context.theory_grounding and matrix_context.theory_grounding.citation_reference:
                 citation_clean = matrix_context.theory_grounding.citation_reference.strip()
                 if citation_clean:
                     sections.append(
-                        TemplateProcessor.safe_interpolate(
-                            "<theory_context>\n{c}\n</theory_context>",
-                            c=citation_clean,
-                        )
+                        TemplateProcessor.render_prompt(t"<theory_context>\n{citation_clean}\n</theory_context>")
                     )
 
         system_content = "\n\n".join(sections)
-        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
+        context_content = TemplateProcessor.render_prompt(t"<context>\n{context_text}\n</context>")
 
         return CompiledPrompt(
             static_messages=[
@@ -174,67 +168,84 @@ class MatrixSensorPromptBuilder:
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     )
 
-                q_cdata = TemplateProcessor.encapsulate_payload(assertion.question)
-                content = f"<question>\n{q_cdata}\n</question>\n"
+                assertion_parts: list[str] = [
+                    TemplateProcessor.render_prompt(t"<question>\n{assertion.question}\n</question>")
+                ]
 
                 if assertion.extraction_rule:
-                    r_cdata = TemplateProcessor.encapsulate_payload(assertion.extraction_rule)
-                    content += f"<extraction_rule>\n{r_cdata}\n</extraction_rule>\n"
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(
+                            t"<extraction_rule>\n{assertion.extraction_rule}\n</extraction_rule>"
+                        )
+                    )
 
                 if assertion.anchor_target:
-                    a_cdata = TemplateProcessor.encapsulate_payload(assertion.anchor_target)
-                    content += f"<anchor_target>\n{a_cdata}\n</anchor_target>\n"
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(t"<anchor_target>\n{assertion.anchor_target}\n</anchor_target>")
+                    )
 
                 if assertion.is_inverse:
-                    i_cdata = TemplateProcessor.encapsulate_payload(str(assertion.is_inverse))
-                    content += f"<is_inverse>\n{i_cdata}\n</is_inverse>\n"
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(t"<is_inverse>\n{assertion.is_inverse}\n</is_inverse>")
+                    )
 
-                speaker_cdata = TemplateProcessor.encapsulate_payload(assertion.target_speaker.value)
-                content += f"<target_speaker>\n{speaker_cdata}\n</target_speaker>\n"
+                speaker_val = assertion.target_speaker.value
+                assertion_parts.append(
+                    TemplateProcessor.render_prompt(t"<target_speaker>\n{speaker_val}\n</target_speaker>")
+                )
 
                 if assertion.contrastive_example:
-                    acc_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.acceptable)
-                    rej_cdata = TemplateProcessor.encapsulate_payload(assertion.contrastive_example.rejected)
-                    content += (
-                        f"<contrastive_grounding>\n"
-                        f"<acceptable>\n{acc_cdata}\n</acceptable>\n"
-                        f"<rejected>\n{rej_cdata}\n</rejected>\n"
-                        f"</contrastive_grounding>\n"
+                    acc = assertion.contrastive_example.acceptable
+                    rej = assertion.contrastive_example.rejected
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(
+                            t"<contrastive_grounding>\n"
+                            t"<acceptable>\n{acc}\n</acceptable>\n"
+                            t"<rejected>\n{rej}\n</rejected>\n"
+                            t"</contrastive_grounding>"
+                        )
                     )
 
                 if assertion.acceptance_criteria:
                     crit_blocks = [
-                        (
-                            f'<criterion index="{idx + 1}">\n'
-                            f"{TemplateProcessor.encapsulate_payload(c.instruction)}\n"
-                            f"</criterion>"
-                        )
+                        TemplateProcessor.render_prompt(t'<criterion index="{idx + 1}">\n{c.instruction}\n</criterion>')
                         for idx, c in enumerate(assertion.acceptance_criteria)
                     ]
-                    content += "<acceptance_criteria>\n" + "\n".join(crit_blocks) + "\n</acceptance_criteria>\n"
+                    crit_str = "\n".join(crit_blocks)
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(
+                            t"<acceptance_criteria>\n{crit_str:raw}\n</acceptance_criteria>"
+                        )
+                    )
 
                 if assertion.anti_patterns:
                     anti_blocks = [
-                        (
-                            f'<anti_pattern index="{idx + 1}">\n'
-                            f"{TemplateProcessor.encapsulate_payload(a.pattern)}\n"
-                            f"</anti_pattern>"
+                        TemplateProcessor.render_prompt(
+                            t'<anti_pattern index="{idx + 1}">\n{a.pattern}\n</anti_pattern>'
                         )
                         for idx, a in enumerate(assertion.anti_patterns)
                     ]
-                    content += "<anti_patterns>\n" + "\n".join(anti_blocks) + "\n</anti_patterns>\n"
+                    anti_str = "\n".join(anti_blocks)
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(t"<anti_patterns>\n{anti_str:raw}\n</anti_patterns>")
+                    )
 
                 if assertion.syntactic_anchors:
                     anchor_blocks = [
-                        f"<anchor>\n{TemplateProcessor.encapsulate_payload(a)}\n</anchor>"
+                        TemplateProcessor.render_prompt(t"<anchor>\n{a}\n</anchor>")
                         for a in assertion.syntactic_anchors
                     ]
-                    content += "<syntactic_anchors>\n" + "\n".join(anchor_blocks) + "\n</syntactic_anchors>\n"
-            else:
-                claim_cdata = TemplateProcessor.encapsulate_payload(node.atom.resolved_claim)
-                content = f"{claim_cdata}\n"
+                    anchor_str = "\n".join(anchor_blocks)
+                    assertion_parts.append(
+                        TemplateProcessor.render_prompt(t"<syntactic_anchors>\n{anchor_str:raw}\n</syntactic_anchors>")
+                    )
 
-            dependencies_xml = []
+                content = "\n".join(assertion_parts)
+            else:
+                claim_val = node.atom.resolved_claim
+                content = TemplateProcessor.render_prompt(t"{claim_val}")
+
+            dependencies_xml: list[str] = []
             if node.depends_on:
                 for dep in node.depends_on:
                     actual_status = ExecutionStatus.PENDING
@@ -242,38 +253,41 @@ class MatrixSensorPromptBuilder:
                         actual_status = atom_status_map[dep.tda_id]
 
                     dep_alias = tda_id_to_alias[dep.tda_id] if dep.tda_id in tda_id_to_alias else dep.tda_id
+                    expected_val = dep.expected_status.value
+                    actual_val = actual_status.value
+                    reasoning_val = dep.edge_reasoning
 
-                    status_cdata = TemplateProcessor.encapsulate_payload(actual_status.value)
-                    expected_cdata = TemplateProcessor.encapsulate_payload(dep.expected_status.value)
-                    reasoning_cdata = TemplateProcessor.encapsulate_payload(dep.edge_reasoning)
-
-                    dep_content = (
-                        f"<expected_status>\n{expected_cdata}\n</expected_status>\n"
-                        f"<actual_status>\n{status_cdata}\n</actual_status>\n"
-                        f"<reasoning>\n{reasoning_cdata}\n</reasoning>\n"
+                    dep_inner = TemplateProcessor.render_prompt(
+                        t"<expected_status>\n{expected_val}\n</expected_status>\n"
+                        t"<actual_status>\n{actual_val}\n</actual_status>\n"
+                        t"<reasoning>\n{reasoning_val}\n</reasoning>"
                     )
                     dependencies_xml.append(
-                        f'<dependency parent_alias="{dep_alias}">\n{dep_content.strip()}\n</dependency>'
+                        TemplateProcessor.render_prompt(
+                            t'<dependency parent_alias="{dep_alias}">\n{dep_inner:raw}\n</dependency>'
+                        )
                     )
 
             if dependencies_xml:
                 deps_str = "\n".join(dependencies_xml)
-                deps_content = TemplateProcessor.safe_interpolate(
-                    "<causal_dependencies>\n{c}\n</causal_dependencies>", c=deps_str
+                deps_content = TemplateProcessor.render_prompt(
+                    t"<causal_dependencies>\n{deps_str:raw}\n</causal_dependencies>"
                 )
                 content += f"\n{deps_content}"
 
-            claims_xml.append(f'<claim alias="{alias}">\n{content.strip()}\n</claim>')
+            clean_content = content.strip()
+            claims_xml.append(
+                TemplateProcessor.render_prompt(t'<claim alias="{alias}">\n{clean_content:raw}\n</claim>')
+            )
 
         claims_str = "\n".join(claims_xml)
-        exec_params = TemplateProcessor.safe_interpolate(
-            "<execution_parameters>\n{c}\n</execution_parameters>", c=claims_str
+        exec_params = TemplateProcessor.render_prompt(
+            t"<execution_parameters>\n{claims_str:raw}\n</execution_parameters>"
         )
         linguistic_params = build_linguistic_parameters(target_locale=target_locale.strip())
         user_content = f"{linguistic_params}\n\n{exec_params}"
 
-        # 3. Assemble CompiledPrompt properly (Context text in static user message!)
-        context_content = TemplateProcessor.safe_interpolate("<context>\n{c}\n</context>", c=context_text)
+        context_content = TemplateProcessor.render_prompt(t"<context>\n{context_text}\n</context>")
 
         return CompiledPrompt(
             static_messages=[

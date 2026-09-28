@@ -68,8 +68,8 @@ class SourceVerificationService:
         if not text or len(text.strip()) < settings.source_verification_min_text_length:
             return []
 
-        safe_text = TemplateProcessor.encapsulate_payload(text[: settings.source_extraction_max_chars].strip())
-        user_message = f"<source_data>\n{safe_text}\n</source_data>"
+        cropped_text = text[: settings.source_extraction_max_chars].strip()
+        user_message = TemplateProcessor.render_prompt(t"<source_data>\n{cropped_text}\n</source_data>")
 
         try:
             messages = [
@@ -119,16 +119,16 @@ class SourceVerificationService:
                 claim_text=claim.claim_text,
             )
 
-            encapsulated_claim = TemplateProcessor.encapsulate_payload(claim.claim_text)
-            encapsulated_answer = TemplateProcessor.encapsulate_payload(audit_trace.response_summary)
+            claim_text = claim.claim_text
+            response_summary = audit_trace.response_summary
 
-            user_msg = (
-                f"<source_data>\n"
-                f"  <claim>{encapsulated_claim}</claim>\n"
-                f"  <search_results>\n"
-                f"    <answer>{encapsulated_answer}</answer>\n"
-                f"  </search_results>\n"
-                f"</source_data>"
+            user_msg = TemplateProcessor.render_prompt(
+                t"<source_data>\n"
+                t"  <claim>{claim_text}</claim>\n"
+                t"  <search_results>\n"
+                t"    <answer>{response_summary}</answer>\n"
+                t"  </search_results>\n"
+                t"</source_data>"
             )
 
             messages = [

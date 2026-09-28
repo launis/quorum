@@ -95,11 +95,12 @@ class ContextBuilder:
                             details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                         )
                     try:
-                        matrix_output = (
-                            value
-                            if isinstance(value, LightweightMatrixOutput)
-                            else LightweightMatrixOutput.model_validate(value)
-                        )
+                        if isinstance(value, LightweightMatrixOutput):
+                            matrix_output = value
+                        elif isinstance(value, BaseModel):
+                            matrix_output = LightweightMatrixOutput.model_validate(value.model_dump(exclude_none=True))
+                        else:
+                            matrix_output = LightweightMatrixOutput.model_validate(value)
                         pruned = ContextRouter.route_and_prune(matrix_output, output_profile)
                         if not pruned:
                             continue
