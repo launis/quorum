@@ -59,9 +59,7 @@ class _InputMetaDTO(BaseModel):
     desc: Annotated[str, Field(description="Localized description string")]
     ai_desc: Annotated[str | None, Field(default=None, description="Cognitive instruction for LLM")] = None
     is_chat_history: Annotated[bool, Field(description="Whether the input represents multi-turn dialogue")]
-    input_modes: Annotated[list[str], Field(default_factory=list, description="Allowed input modes for this input")] = (
-        Field(default_factory=list)
-    )
+    input_modes: Annotated[list[str], Field(default_factory=list, description="Allowed input modes for this input")]
     is_endorsed_deliverable: Annotated[
         bool, Field(default=False, description="Whether the input represents an endorsed candidate deliverable")
     ] = False
@@ -438,46 +436,58 @@ class PromptCompiler:
         if isinstance(current, (int, float, bool)):
             return str(current)
 
-        if not isinstance(current, list) and current is not None and isinstance(current, Mapping):
-            # Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
-            formatted = []
-            for k, v in current.items():
-                clean_k = str(k).upper()
-                formatted.append(f"<{clean_k}>")
-                if isinstance(v, Mapping):
-                    # Attempt to access 'outputs' key directly if available
-                    target_dict = v["outputs"] if ("outputs" in v and isinstance(v["outputs"], Mapping)) else v
-                    for sub_k, sub_v in target_dict.items():
-                        # Prevent Context Snowballing: never inject raw Matrix arrays into subsequent LLM contexts.
-                        if sub_k == "results" and isinstance(sub_v, list):
-                            continue
+        match current:
+            case Mapping() as current_map if not isinstance(current, list):
+                # Flatten nested JSON into LLM-friendly Markdown (Attention Dilution patch)
+                formatted = []
+                for k, v in current_map.items():
+                    clean_k = str(k).upper()
+                    formatted.append(f"<{clean_k}>")
+                    match v:
+                        case Mapping() as v_map:
+                            # Attempt to access 'outputs' key directly if available
+                            target_dict: Mapping[Any, Any] = v_map
+                            if "outputs" in v_map:
+                                out_val = v_map["outputs"]
+                                match out_val:
+                                    case Mapping() as out_map:
+                                        target_dict = out_map
+                                    case _:
+                                        pass
+                            for sub_k, sub_v in target_dict.items():
+                                # Prevent Context Snowballing: never inject raw Matrix arrays into subsequent LLM contexts.
+                                if sub_k == "results" and isinstance(sub_v, list):
+                                    continue
 
-                        if isinstance(sub_v, Mapping):
-                            formatted.append(f"<{str(sub_k).upper()}>")
-                            for micro_k, micro_v in sub_v.items():
-                                # Clean cognitive prefixes for readability
-                                clean_key = (
-                                    str(micro_k)
-                                    .replace("step_1_", "")
-                                    .replace("step_2_", "")
-                                    .replace("step_3_", "")
-                                    .replace("step_4_", "")
-                                    .replace("_", " ")
-                                    .title()
-                                )
-                                formatted.append(
-                                    f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
-                                )
-                            formatted.append(f"</{str(sub_k).upper()}>")
-                        else:
-                            clean_sub_k = str(sub_k).title().replace(" ", "_")
-                            formatted.append(
-                                f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
-                            )
-                else:
-                    formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
-                formatted.append(f"</{clean_k}>")
-            return "\n".join(formatted)
+                                match sub_v:
+                                    case Mapping() as sub_map:
+                                        formatted.append(f"<{str(sub_k).upper()}>")
+                                        for micro_k, micro_v in sub_map.items():
+                                            # Clean cognitive prefixes for readability
+                                            clean_key = (
+                                                str(micro_k)
+                                                .replace("step_1_", "")
+                                                .replace("step_2_", "")
+                                                .replace("step_3_", "")
+                                                .replace("step_4_", "")
+                                                .replace("_", " ")
+                                                .title()
+                                            )
+                                            formatted.append(
+                                                f"  <{clean_key.replace(' ', '_')}>{TemplateProcessor.encapsulate_payload(micro_v)}</{clean_key.replace(' ', '_')}>"
+                                            )
+                                        formatted.append(f"</{str(sub_k).upper()}>")
+                                    case _:
+                                        clean_sub_k = str(sub_k).title().replace(" ", "_")
+                                        formatted.append(
+                                            f"  <{clean_sub_k}>{TemplateProcessor.encapsulate_payload(sub_v)}</{clean_sub_k}>"
+                                        )
+                        case _:
+                            formatted.append(f"  {TemplateProcessor.encapsulate_payload(v)}")
+                    formatted.append(f"</{clean_k}>")
+                return "\n".join(formatted)
+            case _:
+                pass
 
         return json.dumps(pydantic_core.to_jsonable_python(current), indent=2, ensure_ascii=False)
 

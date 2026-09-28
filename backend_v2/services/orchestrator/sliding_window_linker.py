@@ -80,7 +80,7 @@ class LinkerDependencyDTO(BaseModel):
             default_factory=list,
             description="List of parent dependencies for this child.",
         ),
-    ] = Field(default_factory=list)
+    ]
 
 
 class LinkerResponseDTO(BaseModel):
@@ -98,7 +98,7 @@ class LinkerResponseDTO(BaseModel):
             default_factory=list,
             description="List of dependencies mapping child aliases to parent aliases.",
         ),
-    ] = Field(default_factory=list)
+    ]
 
 
 class WindowCausalEdgesDTO(BaseModel):
@@ -116,7 +116,7 @@ class WindowCausalEdgesDTO(BaseModel):
             default_factory=dict,
             description="Map of parent TDA ID to CausalEdge.",
         ),
-    ] = Field(default_factory=dict)
+    ]
 
 
 class SlidingWindowLinker:
@@ -231,7 +231,7 @@ class SlidingWindowLinker:
         chunks = list(chunk_groups.values())
         windows = self._get_sliding_windows(chunks)
 
-        master_deps: dict[str, WindowCausalEdgesDTO] = defaultdict(WindowCausalEdgesDTO)
+        master_deps: dict[str, WindowCausalEdgesDTO] = defaultdict(lambda: WindowCausalEdgesDTO(edges={}))
         total_usage = TokenUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0)
 
         ontology_text = ontology_map.model_dump_json(indent=2)

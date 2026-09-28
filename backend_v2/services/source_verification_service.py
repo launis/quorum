@@ -120,7 +120,7 @@ class SourceVerificationService:
             )
 
             encapsulated_claim = TemplateProcessor.encapsulate_payload(claim.claim_text)
-            encapsulated_answer = TemplateProcessor.encapsulate_payload(audit_trace.response_summary or "")
+            encapsulated_answer = TemplateProcessor.encapsulate_payload(audit_trace.response_summary)
 
             user_msg = (
                 f"<source_data>\n"

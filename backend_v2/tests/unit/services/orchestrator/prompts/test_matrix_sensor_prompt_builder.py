@@ -8,6 +8,31 @@ from backend_v2.models.enums import ExecutionStatus, TargetSpeaker
 from backend_v2.services.orchestrator.prompts.matrix_sensor_prompt_builder import MatrixSensorPromptBuilder
 
 
+def _create_test_atom(
+    *,
+    atom_id: str,
+    question: str,
+    extraction_rule: str = "",
+    anchor_target: str = "",
+    is_inverse: bool = False,
+    depends_on: tuple[CausalEdge, ...] = (),
+    target_speaker: TargetSpeaker = TargetSpeaker.USER,
+) -> FlattenedAtom:
+    """Helper to construct FlattenedAtom with complete typed default tuples for tests."""
+    return FlattenedAtom(
+        atom_id=atom_id,
+        question=question,
+        extraction_rule=extraction_rule,
+        anchor_target=anchor_target,
+        is_inverse=is_inverse,
+        depends_on=depends_on,
+        acceptance_criteria=(),
+        anti_patterns=(),
+        syntactic_anchors=(),
+        target_speaker=target_speaker,
+    )
+
+
 def test_build_caching_prefix_with_context() -> None:
     """Test building a caching prefix when full matrix context is provided."""
     theory_grounding = TheoryGrounding(
@@ -128,7 +153,7 @@ def test_build_caching_prefix_without_context() -> None:
 def test_build_compiled_prompt_with_assertions() -> None:
     """Test building a compiled prompt including matrix assertions."""
     matrix_assertions = [
-        FlattenedAtom(
+        _create_test_atom(
             atom_id="tda_11111111",
             question="Is it blue?",
             extraction_rule="Check for blue.",
@@ -244,7 +269,7 @@ def test_build_compiled_prompt_missing_alias_raises_app_exception() -> None:
 def test_build_compiled_prompt_with_inverse_assertion() -> None:
     """Test building compiled prompt with is_inverse=True assertion."""
     matrix_assertions = [
-        FlattenedAtom(
+        _create_test_atom(
             atom_id="tda_33333333",
             question="Is it absent?",
             extraction_rule="Check absence.",
@@ -329,7 +354,7 @@ def test_build_compiled_prompt_empty_assertion_question_raises_app_exception() -
     """Anti-happy path: matrix assertion with empty question raises AppException(VALIDATION_FAILED)."""
     tda_id = "tda_00000000000000000000000000000000"
     matrix_assertions = [
-        FlattenedAtom(
+        _create_test_atom(
             atom_id=tda_id,
             question="   ",
             extraction_rule="Extract rule",
@@ -394,12 +419,12 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
     tda_user = "tda_11111111111111111111111111111111"
     tda_ai = "tda_22222222222222222222222222222222"
 
-    atom_user = FlattenedAtom(
+    atom_user = _create_test_atom(
         atom_id=tda_user,
         question="Did the user define requirements?",
         target_speaker=TargetSpeaker.USER,
     )
-    atom_ai = FlattenedAtom(
+    atom_ai = _create_test_atom(
         atom_id=tda_ai,
         question="Did the AI avoid hallucination?",
         target_speaker=TargetSpeaker.AI,
@@ -451,7 +476,7 @@ def test_build_compiled_prompt_injects_target_speaker() -> None:
 def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -> None:
     """Anti-happy path: Ensure missing matrix assertion for an atom raises AppException."""
     matrix_assertions = [
-        FlattenedAtom(
+        _create_test_atom(
             atom_id="tda_11111111",
             question="Is it blue?",
             extraction_rule="Check blue.",
@@ -485,3 +510,58 @@ def test_build_compiled_prompt_missing_matrix_assertion_raises_app_exception() -
     assert "Missing matrix assertion for atom 'tda_99999999'" in exc_info.value.message
     assert exc_info.value.details is not None
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
+
+
+def test_build_compiled_prompt_polyfactory_cdata_encapsulation() -> None:
+    """PROMISE: Prove CDATA encapsulation for dynamic matrix assertions with tags."""
+    from polyfactory.factories.pydantic_factory import ModelFactory
+
+    class FlattenedAtomFactory(ModelFactory[FlattenedAtom]):
+        __model__ = FlattenedAtom
+
+    class ExtractedAtomFactory(ModelFactory[ExtractedAtom]):
+        __model__ = ExtractedAtom
+
+    class LinkedAtomGraphFactory(ModelFactory[LinkedAtomGraph]):
+        __model__ = LinkedAtomGraph
+
+    class MatrixEvaluationContextFactory(ModelFactory[MatrixEvaluationContext]):
+        __model__ = MatrixEvaluationContext
+
+    atom_id = "tda_abcdef1234567890"
+    alias = "a0"
+
+    flat_atom = FlattenedAtomFactory.build(
+        atom_id=atom_id,
+        question="Is this a test? <bad>tag</bad>",
+        extraction_rule="Extract something",
+        anchor_target="Anchor",
+        is_inverse=True,
+    )
+
+    matrix_ctx = MatrixEvaluationContextFactory.build(matrix_assertions=[flat_atom])
+
+    atom = ExtractedAtomFactory.build(
+        tda_id=atom_id, resolved_claim="Resolved", is_logical_deduction=True, source_quote=None
+    )
+    node = LinkedAtomGraphFactory.build(atom=atom)
+
+    prompt = MatrixSensorPromptBuilder.build_compiled_prompt(
+        context_text="Source text",
+        nodes=[node],
+        tda_id_to_alias={atom_id: alias},
+        target_locale="fi",
+        matrix_context=matrix_ctx,
+    )
+
+    assert len(prompt.dynamic_messages) == 1
+    dyn_content = prompt.dynamic_messages[0].content
+
+    assert "<linguistic_parameters>" in dyn_content
+    assert "<required_output_language>fi</required_output_language>" in dyn_content
+    assert "<linguistic_mandate>" in prompt.static_messages[0].content
+    assert f'alias="{alias}"' in dyn_content
+    assert "Is this a test? <bad>tag</bad>" in dyn_content
+    assert "Extract something" in dyn_content
+    assert "Anchor" in dyn_content
+    assert "True" in dyn_content
