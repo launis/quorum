@@ -272,7 +272,7 @@ def configure_telemetry(
     Enforces strict idempotency via global _TELEMETRY_CONFIGURED guard.
     Provisions a zero-overhead NoOpTracerProvider when otel_enabled is False.
     Consolidates built-in Logfire instrumentations (Pydantic, HTTPX, Requests,
-    System Metrics, LiteLLM, MCP, FastAPI) with zero duplicate initialization.
+    System Metrics, LiteLLM, FastAPI) with zero duplicate initialization.
 
     Args:
         settings: Application Settings containing OpenTelemetry configuration.
@@ -316,7 +316,6 @@ def configure_telemetry(
             logfire.instrument_requests()
             logfire.instrument_system_metrics()
             logfire.instrument_litellm()
-            logfire.instrument_mcp()
             if app is not None:
                 logfire.instrument_fastapi(app)
             logger.info("Configured Pydantic Logfire cloud distributed tracing for %s", service_name)

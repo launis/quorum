@@ -233,7 +233,6 @@ def test_configure_telemetry_logfire_branch(monkeypatch: pytest.MonkeyPatch) -> 
     mock_logfire.instrument_requests.assert_called_once()
     mock_logfire.instrument_system_metrics.assert_called_once()
     mock_logfire.instrument_litellm.assert_called_once()
-    mock_logfire.instrument_mcp.assert_called_once()
 
 
 def test_configure_telemetry_otlp_branch(monkeypatch: pytest.MonkeyPatch) -> None:
