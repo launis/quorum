@@ -21,8 +21,10 @@
     <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
     <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
     <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
+    <knowledge_item>@[ki_opentelemetry_logfire_observability.md]</knowledge_item>
     <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
     <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
+    <knowledge_item>@[ki_synthesis_payload_compression.md]</knowledge_item>
 </required_context_rules>
 
 # EPIC 154: Dynamic Causal Discovery Engine (Exploratory Text DAG & Argument Mapping)
@@ -207,7 +209,7 @@ LLM prompts in `CausalDiscoveryEngine` are compiled strictly through the Four-La
 
 ### 2.2 Architectural Directives (5-Column Synthesis)
 
-| Target Scope & Boundaries | Eradicated Duct-Tape (Under-Engineering Ban) | Approved Best Practice (Target Invariant) | Pruned Over-Engineering (Complexity Slayer) | Fail-Fast Proof Anchor (Deterministic Verification) |
+| 1. Target Scope & Boundaries | 2. Eradicated Duct-Tape (Under-Engineering Ban) | 3. Approved Best Practice (Target Invariant) | 4. Pruned Over-Engineering (Complexity Slayer) | 5. Verification & Fail-Fast (Proof Anchor) |
 | :--- | :--- | :--- | :--- | :--- |
 | **Settings Configuration**<br>`@[backend_v2/settings.py#L54-L910]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`, `two_pass_atomizer_packet_size: int = 50`. Causal discovery settings are explicitly injected into `SlidingWindowLinker` without mutating existing constructor defaults (`window_size = 4, overlap = 2`). | Speculative per-domain sliding window overrides and dynamic runtime reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
 | **SSOT Enums & Parity**<br>`@[backend_v2/models/enums.py#L111-L115]`<br>`@[backend_v2/models/enums.py#L272-L285]`<br>`@[client_app_v2/lib/core/models/enums.dart#L354-L390]`<br>`@[backend_v2/tests/unit/test_enum_parity.py#L110-L112]` | Untyped string comparisons (`self.type == "llm"`), heuristic string matching, ad-hoc string literals for block types. | `StepType.CAUSAL_DISCOVERY = "causal_discovery"` (Python backend only; Dart uses `NodeStrategy` sealed class). `TargetBlockType.CAUSAL_GRAPH_BLOCK = "causal_graph_block"`, and `CausalDisplayMode(StrEnum)` with values strictly: `EXECUTIVE = "executive"`, `DETAILED = "detailed"`. Explicit ErrorCodes: `CAUSAL_DISCOVERY_EMPTY_DOCUMENT`, `CAUSAL_DISCOVERY_CYCLE_DETECTED`, `CAUSAL_DISCOVERY_DATA_STARVATION`. 1:1 Dart `@JsonEnum` parity for `TargetBlockType` and `CausalDisplayMode`. | Granular display mode permutations (isolated anti-fluff toggles, remediations toggles). | `test_enum_parity.py` verifying `TargetBlockType` and `CausalDisplayMode` parity; Dart compile-time enum switch exhaustion. |
@@ -215,7 +217,7 @@ LLM prompts in `CausalDiscoveryEngine` are compiled strictly through the Four-La
 | **SlidingWindowLinker Isolation**<br>`@[backend_v2/services/orchestrator/sliding_window_linker.py#L122-L353]` | Hardcoded `window_size=4, overlap=2` constructor defaults mutating shared caller behavior. | **DO NOT** mutate constructor defaults in `SlidingWindowLinker.__init__`. `CausalDiscoveryEngine` constructs `SlidingWindowLinker` with explicit settings: `SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap)`. Existing `TDAEngine` callers retain current behavior without parameter contamination. | Binding constructor defaults to causal-specific settings. | Regression tests for existing `SlidingWindowLinker` callers; unit tests in `test_causal_discovery_engine.py`. |
 | **Step Consistency & Strategy Registry**<br>`@[backend_v2/models/domain/step.py#L32-L119]`<br>`@[backend_v2/services/orchestrator/strategies/registry.py#L69-L99]` | Raw string literal comparisons (`self.type == "llm"`, `self.type == "logic"`) bypassing `StepType` enum, duck-typing missing criteria block IDs. | Explicit `StepType.LLM` and `StepType.LOGIC` enum comparisons. New `StepType.CAUSAL_DISCOVERY` branch allowing empty `criteria_block_ids` while enforcing `extraction_protocol_block_id` and `cognitive_tier`. `NODE_STRATEGY_REGISTRY` (L63-L66) maps `StepType.CAUSAL_DISCOVERY -> _build_llm_strategy`, verified in `NodeStrategyFactory.create_strategy` (L73). | Separate `CausalStep` domain model subclass or parallel step validation pipeline. | Unit tests asserting `AppException` when `extraction_protocol_block_id` is missing; `backend_audit_loop.py`. |
 | **`_resolve_execution_engine` Cleanup**<br>`@[backend_v2/services/orchestrator/dag_executor.py#L160-L187]` | **Pre-existing debt:** `"atom_flattening_hook" in step_def.pre_hooks` heuristic string matching (L184) violating `ban_heuristic_identifier_matching`. | `StepType.CAUSAL_DISCOVERY` guard clause placed as FIRST branch (before L179 block category check). Flag L184 hook heuristic for replacement with typed step ontology resolution. | N/A | Unit test asserting `CausalDiscoveryEngine` returned for `StepType.CAUSAL_DISCOVERY` steps. |
-| **LLM Strategy Telemetry & Dispatch**<br>`@[backend_v2/services/orchestrator/strategies/llm.py#L82-L1010]` | Permissive model strategy fallback defaulting to `"prompt"`, ignoring engine ontology for causal discovery steps. | Set `meta_dict["model_strategy"] = "causal"` when `isinstance(self._engine, CausalDiscoveryEngine)`, recording exact telemetry metadata without string guessing. | Dynamic strategy router subclasses or parallel LLM execution strategies. | Unit tests verifying `_step_metadata.model_strategy == "causal"`. |
+| **LLM Strategy Telemetry & Dispatch**<br>`@[backend_v2/services/orchestrator/strategies/llm.py#L82-L1010]`<br>`@[backend_v2/services/orchestrator/engines/base.py]` | Permissive model strategy fallback defaulting to `"prompt"`, ignoring engine ontology for causal discovery steps. `isinstance()` runtime type-check heuristic for strategy string selection. | Add `telemetry_strategy_label: str` property to `ExecutionEngine` Protocol in `@[backend_v2/services/orchestrator/engines/base.py]`. Each engine self-reports its label (`TDAEngine` returns `"tda"`, `PromptEngine` returns `"prompt"`, `SynthesisEngine` returns `"synthesis"`, `CausalDiscoveryEngine` returns `"causal"`). `LLMNodeStrategy` reads `self._engine.telemetry_strategy_label` instead of using `isinstance` branching. | Dynamic strategy router subclasses or parallel LLM execution strategies. `isinstance` cascade branches. | Unit tests verifying `engine.telemetry_strategy_label == "causal"` and `_step_metadata.model_strategy == "causal"`. |
 | **Causal Discovery DTOs**<br>[NEW] @[backend_v2/models/dtos/causal_discovery.py]<br>`@[backend_v2/models/dtos/step_output.py#L57-L71]` | Naked dictionaries (`dict[str, Any]`, `TypedDict`), anonymous state tuples ("Tuple Hell"), optional fallback keys. | Immutable Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`): `CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`. `StepPayloadValue` (L30-L54) extended with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`. | Polymorphic node inheritance hierarchies, recursive graph wrapper classes, intermediate DTO converter factories. | `QGR001` (no naked dicts) and `QGR002` (extra="forbid") automated AST guardrail passing in audit loop. |
 | **Fusion Chaining Contract**<br>`@[backend_v2/models/domain/step.py#L32-L119]`<br>`@[backend_v2/services/orchestrator/dag_executor.py#L136-L372]` | Heuristic step-order detection, runtime flag branching, unmapped document passing. | Studio-driven parameterization: explicit first-class field `Step.causal_source_step_id: str \| None = None` referencing upstream causal discovery step. DAG executor transforms upstream `CausalGraphPayloadDTO.nodes` to `ExtractedAtom` via `transform_causal_nodes_to_atoms` and feeds `request.shuffled_atoms`. | Nondeterministic engine picking, automatic graph merging without declared contracts. | Integration test in `test_causal_tda_fusion.py`. |
 | **OutputProfile & Studio UX**<br>`@[backend_v2/models/domain/output_profile.py#L35-L346]`<br>`@[backend_v2/models/dtos/output_profile.py#L36-L260]`<br>`@[backend_v2/models/dtos/output_profile.py#L263-L475]`<br>`@[backend_v2/models/dtos/output_profile.py#L478-L621]`<br>`@[client_app_v2/lib/features/studio/models/output_profile.dart#L30-L123]`<br>`@[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L693]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart#L28-L180]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart#L1-L140]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart#L1-L259]`<br>[NEW] `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/causal_block_card.dart]`<br>`@[client_app_v2/lib/l10n/app_en.arb]`<br>`@[client_app_v2/lib/l10n/app_fi.arb]` | Micro-toggles (`show_causal_anti_fluff`, `show_causal_remediations`, `show_causal_fair_scoring`, `causal_max_nodes_rendered`), missing Dart 3 switch branches in `BlockCardRegistry`, missing `.arb` localization keys, partial DTO mutation violating serialization parity. Flutter wiring placed prematurely in Phase 1 before enums exist. | Full-Duplex Serialization Parity: single SSOT field `causal_display_mode: LaxCausalDisplayMode = CausalDisplayMode.EXECUTIVE` (create/update DTOs) and `causal_display_mode: CausalDisplayMode = CausalDisplayMode.EXECUTIVE` (domain/response DTOs). Exhaustive Dart 3 switch matching in `BlockCardRegistry` (housed in Phase 2 alongside enum definitions). Compile-time `.arb` localization. | Multi-tab studio configuration wizards and custom per-node styling controls. | `flutter_audit_loop.py` build runner verification; compile-time Freezed serialization tests. |
@@ -333,20 +335,17 @@ flowchart TD
   - `[MODIFY] @[backend_v2/models/domain/step.py#L32-L119]`
 - **Action:**
   - In `Step.validate_step_consistency`, replace string literal comparisons `if self.type == "llm":` and `if self.type == "logic":` with typed enum checks `if self.type == StepType.LLM:` and `if self.type == StepType.LOGIC:`.
-  - Add explicit validation branch for `StepType.CAUSAL_DISCOVERY`: criteria blocks (`criteria_block_ids`) are not required because arguments are mined dynamically from free-form text.
-  - Enforce Fail-Fast validation ensuring `extraction_protocol_block_id` and `cognitive_tier` are non-null.
+  - Replace `ValueError(msg)` with `AppException(ErrorCodes.VALIDATION_FAILED, msg)` across step consistency validation failures, aligning implementation with docstrings and RFC 7807 Fail-Fast standards.
 
-#### 1.4 Execution Engine Resolution Cleanup in DAG Executor
+#### 1.4 Execution Engine Protocol Telemetry & Hook Heuristic Resolution
 - **Target Files:**
-  - `[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L160-L187]`
-  - `[MODIFY] @[backend_v2/services/orchestrator/strategies/registry.py#L69-L99]`
+  - `[MODIFY] @[backend_v2/services/orchestrator/engines/base.py]`
   - `[MODIFY] @[backend_v2/services/orchestrator/strategies/llm.py#L82-L1010]`
+  - `[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L160-L187]`
 - **Action:**
-  - In `_resolve_execution_engine`, insert `if step_def.type == StepType.CAUSAL_DISCOVERY:` as the very FIRST guard clause before prompt block category inspections.
-  - Flag heuristic string checks at line 184 (`"atom_flattening_hook" in step_def.pre_hooks`) for replacement with typed step ontology resolution.
-  - Register `StepType.CAUSAL_DISCOVERY -> _build_llm_strategy` in `NODE_STRATEGY_REGISTRY` (L63-L66) and verify `NodeStrategyFactory.create_strategy` (L73) dispatch.
-  - In `LLMNodeStrategy` (L973), record `meta_dict["model_strategy"] = "causal"` when `isinstance(self._engine, CausalDiscoveryEngine)`.
-  - In `NodeExecutor.execute` (L295), resolve execution engine when `step_def.type in (StepType.LLM, StepType.CAUSAL_DISCOVERY)`.
+  - Add `telemetry_strategy_label: str` property to `ExecutionEngine` Protocol in `@[backend_v2/services/orchestrator/engines/base.py]`. Implement on all existing engines (`TDAEngine` returns `"tda"`, `PromptEngine` returns `"prompt"`, `SynthesisEngine` returns `"synthesis"`).
+  - In `LLMNodeStrategy` (L973), record `meta_dict["model_strategy"] = self._engine.telemetry_strategy_label` using the Protocol property instead of `isinstance` branching.
+  - In `_resolve_execution_engine` (L184), replace heuristic string check (`"atom_flattening_hook" in step_def.pre_hooks`) with typed step ontology resolution: use `step_def.type` enum dispatch or a dedicated `StepRule.is_synthesis_step` property to route to `SynthesisEngine` without string matching.
 
 ---
 
@@ -382,11 +381,21 @@ flowchart TD
     - Add `@JsonEnum() enum CausalDisplayMode { @JsonValue('executive') executive, @JsonValue('detailed') detailed }`.
   - In `test_enum_parity.py`, add assertions verifying 1:1 cross-language parity for `TargetBlockType` and `CausalDisplayMode`.
 
-#### 2.3 Immutable Causal Discovery DTO Contracts
+#### 2.3 Step Consistency, Registry Mapping & Fusion Schema Extension
+- **Target Files:**
+  - `[MODIFY] @[backend_v2/models/domain/step.py#L32-L119]`
+  - `[MODIFY] @[backend_v2/services/orchestrator/strategies/registry.py#L69-L99]`
+  - `[MODIFY] @[backend_v2/services/orchestrator/dag_executor.py#L136-L372]`
+- **Action:**
+  - In `Step.validate_step_consistency`, add explicit validation branch for `StepType.CAUSAL_DISCOVERY`: criteria blocks (`criteria_block_ids`) are not required because arguments are mined dynamically from free-form text. Enforce Fail-Fast validation ensuring `extraction_protocol_block_id` and `cognitive_tier` are non-null.
+  - In `Step`, declare `causal_source_step_id: str | None = None` to enable Studio-driven fusion chaining.
+  - In `strategies/registry.py`, register `StepType.CAUSAL_DISCOVERY -> _build_llm_strategy` in `NODE_STRATEGY_REGISTRY` (L63-L66) and verify `NodeStrategyFactory.create_strategy` (L73) dispatch.
+  - In `NodeExecutor.execute` (L295), resolve execution engine when `step_def.type in (StepType.LLM, StepType.CAUSAL_DISCOVERY)`.
+
+#### 2.4 Immutable Causal Discovery DTO Contracts
 - **Target Files:**
   - `[NEW] @[backend_v2/models/dtos/causal_discovery.py]`
   - `[MODIFY] @[backend_v2/models/dtos/step_output.py#L57-L71]`
-  - `[MODIFY] @[backend_v2/models/domain/step.py#L32-L119]`
 - **Action:**
   - In `[NEW] @[backend_v2/models/dtos/causal_discovery.py]`, create and define 8 strictly typed Pydantic V2 models (`ConfigDict(strict=True, extra="forbid", frozen=True)`):
     - Create `CausalNodeDTO`: `node_id: str`, `claim: str`, `source_quote: str | None`, `paragraph_ref: str | None`, `status: ExecutionStatus`, `blame_parent_ids: list[str]`, `dependent_child_ids: list[str]`, `tda_score: float | None = None`, `tda_level_key: str | None = None`, `tda_color: str | None = None`.
@@ -398,9 +407,8 @@ flowchart TD
     - Create `FairScoringBreakdownDTO`: `independent_error_count: int`, `cascading_fault_count: int`, `raw_penalty_points: float`, `deduplicated_penalty_points: float`, `dampened_savings_points: float`.
     - Create `CausalTdaFusionResultDTO`: `graph: CausalGraphPayloadDTO`, `root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO]`, `anti_fluff_audit: AntiFluffAuditDTO`, `prescriptive_remediations: list[PrescriptiveRemediationDTO]`, `fair_scoring: FairScoringBreakdownDTO`.
   - In `step_output.py`, extend `StepPayloadValue` type union (lines 30-54) with `CausalGraphPayloadDTO | CausalTdaFusionResultDTO`, and extend `StepOutputDTO.data_type` literal with `"causal"`.
-  - In `backend_v2/models/domain/step.py`, declare `causal_source_step_id: str | None = None` to enable Studio-driven fusion chaining.
 
-#### 2.4 OutputProfile Full-Duplex Serialization Parity & Studio Foundation
+#### 2.5 OutputProfile Full-Duplex Serialization Parity & Studio Foundation
 - **Target Files:**
   - `[MODIFY] @[backend_v2/models/domain/output_profile.py#L35-L346]`
   - `[MODIFY] @[backend_v2/models/dtos/output_profile.py#L36-L260]`
@@ -517,27 +525,28 @@ flowchart TD
   - In `FlatExecutionRecordDTO`, add typed scalar causal metrics: `causal_node_count`, `causal_edge_count`, `causal_validated_count`, `causal_root_cause_count`, `causal_cascading_fault_count`, `causal_orphan_count`, `causal_cycle_detected`, `causal_cohesion_score`, `causal_raw_penalty`, `causal_deduplicated_penalty`, `causal_dampened_savings`, `causal_primary_root_cause_node`, `causal_primary_root_cause_ref`.
   - In `FlatFileService`, export a strictly 2-line flat CSV artifact (line 1 = header names, line 2 = scalar values) containing zero nested group headers or multi-level hierarchies.
 
-### 3.5 Formal Machine-Readable Execution Protocol XML
+### 4.4 Formal Machine-Readable Execution Protocol XML
 
 ```xml
 <execution_protocol>
-  <step id="1" name="PRE_IMPLEMENTATION_CLEANUP_AND_REGISTRATION">
+  <step id="1" name="PRE_IMPLEMENTATION_TECHNICAL_DEBT_CLEANUPS">
     <action>Create ChunkPacketDTO in @[backend_v2/models/dtos/dag_models.py] to replace anonymous 3-tuples.</action>
-    <action>Refactor @[backend_v2/services/orchestrator/two_pass_atomizer.py] _calculate_packets to return list[ChunkPacketDTO] and remove magic numbers, updating execute_phase_0, execute_phase_1, and execute_phase_1_drafts.</action>
+    <action>Refactor @[backend_v2/services/orchestrator/two_pass_atomizer.py] _calculate_packets to return list[ChunkPacketDTO] and bind packet_size to get_settings().two_pass_atomizer_packet_size, updating execute_phase_0, execute_phase_1, and execute_phase_1_drafts.</action>
     <action>Update @[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py#L180-L186] to assert on ChunkPacketDTO fields.</action>
     <action>Enforce parameter isolation in @[backend_v2/services/orchestrator/sliding_window_linker.py]: preserve constructor defaults unchanged; construct SlidingWindowLinker in CausalDiscoveryEngine with explicit causal_discovery_* settings.</action>
-    <action>Update @[backend_v2/models/domain/step.py] validate_step_consistency to evaluate StepType.LLM and StepType.LOGIC enums directly, and allow StepType.CAUSAL_DISCOVERY without criteria blocks while enforcing extraction_protocol_block_id.</action>
-    <action>Update @[backend_v2/services/orchestrator/strategies/registry.py#L69-L99] NODE_STRATEGY_REGISTRY to map StepType.CAUSAL_DISCOVERY to _build_llm_strategy, verified in NodeStrategyFactory.create_strategy.</action>
-    <action>Update @[backend_v2/services/orchestrator/strategies/llm.py#L82-L1010] to record model_strategy="causal" in _step_metadata when self._engine is CausalDiscoveryEngine.</action>
-    <action>Clean up @[backend_v2/services/orchestrator/dag_executor.py#L160-L187] _resolve_execution_engine to insert StepType.CAUSAL_DISCOVERY as FIRST guard clause before category checks.</action>
-    <action>Update @[backend_v2/services/orchestrator/dag_executor.py#L136-L372] NodeExecutor.execute (line 295) to resolve execution engine when step_def.type in (StepType.LLM, StepType.CAUSAL_DISCOVERY).</action>
-    <constraint invariant="universal_fail_fast">Enforce exhaustive switch expressions and fail-fast validation across domain models.</constraint>
+    <action>Update @[backend_v2/models/domain/step.py] validate_step_consistency to evaluate StepType.LLM and StepType.LOGIC enums directly, and replace ValueError with AppException(ErrorCodes.VALIDATION_FAILED) aligning with docstrings.</action>
+    <action>Add telemetry_strategy_label property to ExecutionEngine Protocol in @[backend_v2/services/orchestrator/engines/base.py] and implement on all existing engines (TDAEngine="tda", PromptEngine="prompt", SynthesisEngine="synthesis").</action>
+    <action>Update @[backend_v2/services/orchestrator/strategies/llm.py#L82-L1010] to record model_strategy=self._engine.telemetry_strategy_label in _step_metadata using the Protocol property.</action>
+    <action>Clean up @[backend_v2/services/orchestrator/dag_executor.py#L160-L187] _resolve_execution_engine to replace L184 "atom_flattening_hook" heuristic with typed step ontology resolution.</action>
+    <constraint invariant="universal_fail_fast">Ensure all existing tests pass 100% via backend_audit_loop.py before proceeding to new feature logic.</constraint>
   </step>
 
-  <step id="2" name="SETTINGS_AND_DTO_FOUNDATION">
-    <action>Add causal discovery configuration parameters and two_pass_atomizer_packet_size to @[backend_v2/settings.py] including causal_secondary_fault_dampening, injecting explicitly into SlidingWindowLinker without mutating constructor defaults.</action>
+  <step id="2" name="SETTINGS_ENUMS_DTOS_AND_STUDIO_FOUNDATION">
+    <action>Add causal discovery configuration parameters and two_pass_atomizer_packet_size to @[backend_v2/settings.py] including causal_secondary_fault_dampening.</action>
     <action>Add StepType.CAUSAL_DISCOVERY, TargetBlockType.CAUSAL_GRAPH_BLOCK, and CausalDisplayMode enum to @[backend_v2/models/enums.py], add TargetBlockType.causalGraphBlock and CausalDisplayMode to @[client_app_v2/lib/core/models/enums.dart], and define explicit CAUSAL_DISCOVERY_* ErrorCodes.</action>
-    <action>Declare causal_source_step_id field on Step in @[backend_v2/models/domain/step.py] to enable typed Studio-driven fusion chaining.</action>
+    <action>Update @[backend_v2/tests/unit/test_enum_parity.py#L110-L112] to assert 1:1 enum parity for TargetBlockType and CausalDisplayMode.</action>
+    <action>Update @[backend_v2/models/domain/step.py] validate_step_consistency to permit StepType.CAUSAL_DISCOVERY without criteria blocks while enforcing extraction_protocol_block_id and cognitive_tier; declare causal_source_step_id field on Step.</action>
+    <action>Register StepType.CAUSAL_DISCOVERY in NODE_STRATEGY_REGISTRY in @[backend_v2/services/orchestrator/strategies/registry.py#L69-L99] and update NodeExecutor.execute in @[backend_v2/services/orchestrator/dag_executor.py#L136-L372] (line 295) for StepType.CAUSAL_DISCOVERY.</action>
     <action>Create strictly typed immutable [NEW] @[backend_v2/models/dtos/causal_discovery.py] (CausalNodeDTO, CausalEdgeDTO, CausalGraphPayloadDTO, CausalRootCauseDiagnosisDTO, AntiFluffAuditDTO, PrescriptiveRemediationDTO, FairScoringBreakdownDTO, and CausalTdaFusionResultDTO).</action>
     <action>Extend StepPayloadValue (lines 30-54) in @[backend_v2/models/dtos/step_output.py#L57-L71] to include CausalGraphPayloadDTO and CausalTdaFusionResultDTO with data_type="causal".</action>
     <action>Add causal_display_mode field to @[backend_v2/models/domain/output_profile.py] and all serialization DTOs in @[backend_v2/models/dtos/output_profile.py].</action>
@@ -549,52 +558,58 @@ flowchart TD
     <constraint invariant="the_zero_compromise_pledge">Enforce ConfigDict(strict=True, extra='forbid', frozen=True) on all DTOs with zero naked dicts.</constraint>
   </step>
 
-  <step id="3" name="STANDALONE_ENGINE_IMPLEMENTATION">
-    <action>Implement [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] as a standalone engine without any TDAEngine dependencies.</action>
+  <step id="3" name="STANDALONE_ENGINE_IMPLEMENTATION_AND_TESTS">
+    <action>Implement [NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py] as a standalone engine without any TDAEngine dependencies, declaring telemetry_strategy_label property returning "causal".</action>
     <action>Update @[backend_v2/services/orchestrator/engines/__init__.py] to re-export CausalDiscoveryEngine in __all__.</action>
     <action>Enforce Four-Layer Clean Stack prompt compilation: static ontology instruction prefix for 100% caching efficiency, dynamic theory context supporting pluggable argumentation matrices (Toulmin, Walton, or custom matrices loaded dynamically from PromptBlocks), step extraction protocol, and dynamic user payload with atom aliasing (a0, a1) at the tail.</action>
     <action>Enforce exact physical quote validation via str.find against indexed paragraph blocks, prohibiting fuzzy matching.</action>
     <action>Enforce Fail-Fast on empty input text: raise AppException(ErrorCodes.CAUSAL_DISCOVERY_EMPTY_DOCUMENT) when 0 argument premises exist.</action>
     <action>Wire TwoPassAtomizer and SlidingWindowLinker (instantiated with explicit causal_discovery_* settings) sequentially with progress reporting callbacks.</action>
     <action>Pass generated LinkedAtomGraph to TopologicalEvaluator for wave-based topological evaluation, blame cascading, and thread-isolated cycle detection (marking cyclic nodes SYSTEM_ERROR with CYCLIC_DEPENDENCY_DETECTED).</action>
+    <action>Create comprehensive ISTQB unit tests in [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py] asserting CAUSAL_DISCOVERY_EMPTY_DOCUMENT on empty inputs, CYCLIC_DEPENDENCY_DETECTED on circular inputs, and single-atom edge cases.</action>
     <constraint invariant="single_pipeline_invariant_mandate">Keep CausalDiscoveryEngine completely separate from TDAEngine with zero shared fallback branches.</constraint>
     <constraint invariant="anti_god_file_dumping">Isolate engine logic strictly in its own file under 200 lines.</constraint>
   </step>
 
-  <step id="4" name="DAG_ROUTER_AND_OPTIONAL_FUSION">
+  <step id="4" name="DAG_ROUTER_AND_OPTIONAL_FUSION_INTEGRATION">
     <action>Mount CausalDiscoveryEngine in @[backend_v2/services/orchestrator/dag_executor.py] NodeExecutor and DAGExecutor under StepType.CAUSAL_DISCOVERY as the FIRST routing branch in _resolve_execution_engine before block category checks.</action>
     <action>Wire sequential DAG chaining: when step_def.causal_source_step_id is set, extract upstream CausalGraphPayloadDTO and transform nodes via transform_causal_nodes_to_atoms into ExtractedAtom instances feeding downstream TDAEngine shuffled_atoms.</action>
     <action>Enforce data starvation Fail-Fast: if upstream step produced 0 valid nodes or failed, raise AppException(ErrorCodes.CAUSAL_DISCOVERY_DATA_STARVATION).</action>
     <action>Implement five stakeholder benefit pipelines: Root Cause Attribution, Anti-Fluff Shield, Prescriptive Remediation, Visual XAI data projection, and Fair Scoring Deduplication.</action>
+    <action>Create integration test [NEW] @[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py] asserting CAUSAL_DISCOVERY_DATA_STARVATION on empty upstream graph, and verifying the five stakeholder benefits.</action>
     <constraint invariant="engine_override_ban">Ensure routing resolves dynamically and deterministically from step blueprint StepType without heuristic string parsing.</constraint>
   </step>
 
-  <step id="5" name="SDUI_MODEL_AND_BLUEPRINT_DISPATCH">
+  <step id="5" name="ATOMIC_SDUI_PRESENTATION_PARITY">
     <action>Add SduiCausalGraphBlock to @[backend_v2/models/view/sdui.py#L563-L569, L797-L817], append to AnySduiBlock union (lines 797-817), and add Dart Freezed DTOs in @[client_app_v2/lib/shared/models/sdui_block_dto.dart].</action>
     <action>Add causal_result to AdapterContext in @[backend_v2/services/sdui/adapters/base_adapter.py#L18-L47] as strictly an in-memory execution context envelope, and hydrate it in @[backend_v2/services/blueprint.py#L52-L608].</action>
     <action>Implement [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py] respecting OutputProfile causal display settings.</action>
     <action>Update @[backend_v2/services/blueprint.py] to assemble SduiCausalGraphBlock dynamically based on OutputProfile target_block_order.</action>
-    <constraint invariant="sdui_contract_fracture_prevention">Ensure 100% semantic parity between Python SDUI model and Flutter Freezed representation.</constraint>
-  </step>
-
-  <step id="6" name="PRESENTATION_PARITY_AND_EXPORT_SYMMETRY">
     <action>Implement Jinja2 macro in @[backend_v2/templates/report_template.jinja2] rendering the streamlined Unified Causal Action Card matching CausalDisplayMode (occupying at most half an A4 page in PDF).</action>
     <action>Implement [NEW] @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart] in Flutter rendering the identical visual layout matching Jinja2 PDF output, wrapped with AppErrorBoundary.</action>
     <action>Implement [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart] in Flutter as an explicitly decoupled supplementary pro-tool modal wrapped with AppErrorBoundary.</action>
     <action>Register SduiCausalGraphBlock handler in @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart].</action>
-    <action>Extend @[backend_v2/services/export_service.py] to generate Causal Graph and Causal Diagnostics sheets in Excel exports.</action>
-    <action>Extend @[backend_v2/services/flattener.py] to project causal metrics into @[backend_v2/models/dtos/flat_record.py].</action>
-    <constraint invariant="sdui_contract_fracture_prevention">Run test_sdui_semantic_parity.py and test_sdui_template_parity.py to mathematically verify 1:1 parity.</constraint>
-  </step>
-
-  <step id="7" name="UNIT_TESTING_AND_VERIFICATION">
-    <action>Create comprehensive ISTQB unit tests in [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py] asserting CAUSAL_DISCOVERY_EMPTY_DOCUMENT on empty inputs, and CYCLIC_DEPENDENCY_DETECTED on circular inputs.</action>
-    <action>Create integration test [NEW] @[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py] asserting CAUSAL_DISCOVERY_DATA_STARVATION on empty upstream graph, and verifying the five stakeholder benefits.</action>
     <action>Add valid populated SduiCausalGraphBlock instance to @[backend_v2/tests/fixtures/sdui_golden_master.json#L470-L482].</action>
     <action>Update @[backend_v2/tests/unit/test_sdui_template_parity.py#L111-L148] to register SduiCausalGraphBlock in PYDANTIC_BLOCK_MODELS and DART_UNION_TYPE_MAP and assert 19 SDUI block types.</action>
     <action>Update @[backend_v2/tests/integration/test_sdui_semantic_parity.py#L109-L380] to verify 1:1 cross-platform SDUI parity.</action>
-    <action>Update @[backend_v2/tests/unit/test_enum_parity.py#L110-L112] to assert 1:1 enum parity for TargetBlockType and CausalDisplayMode.</action>
-    <constraint invariant="backend_audit_execution">Run uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py --test.</constraint>
+    <constraint invariant="sdui_contract_fracture_prevention">Ensure 100% semantic parity between Python SDUI model, Jinja macro, and Flutter Freezed representation.</constraint>
+  </step>
+
+  <step id="6" name="TABULAR_EXPORT_AND_FLAT_CSV_SYMMETRY">
+    <action>Extend @[backend_v2/services/export_service.py] to generate Causal Graph and Causal Diagnostics sheets in Excel exports, and enrich Raw Data with causal columns during fusion runs.</action>
+    <action>Extend @[backend_v2/models/dtos/flat_record.py] with typed scalar causal fields.</action>
+    <action>Extend @[backend_v2/services/flattener.py] to project causal metrics into FlatExecutionRecordDTO, outputting strictly 2-line flat CSV.</action>
+    <action>Add unit tests in test_export_service.py asserting exact column headers and row counts.</action>
+    <constraint invariant="universal_fail_fast">Verify tabular and flat exports adhere to RFC 7807 and SSOT serialization.</constraint>
+  </step>
+
+  <step id="7" name="GLOBAL_AUDIT_AND_COMPLETION_GATE">
+    <action>Run global backend_audit_loop.py across all touched backend files with --test.</action>
+    <action>Run global flutter_audit_loop.py across client with --build.</action>
+    <action>Run audit_dict_eradication.py to verify zero naked dicts across all causal DTOs.</action>
+    <action>Run audit_markdown_boundaries.py on EPIC_154_Dynamic_Causal_Discovery_Engine.md.</action>
+    <action>If LIVE credentials configured, run test_integration_real_llm.py.</action>
+    <constraint invariant="backend_audit_execution">Zero tolerance for failing tests or AST violations.</constraint>
   </step>
 </execution_protocol>
 ```

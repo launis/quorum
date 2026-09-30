@@ -5,18 +5,27 @@
     <rule>@[.agents/rules/00-antigravity-core.md]</rule>
     <rule>@[.agents/rules/01-python-backend.md]</rule>
     <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+    <rule>@[.agents/rules/03_seed_vault.md]</rule>
     <rule>@[.agents/rules/04_directory_reference.md]</rule>
     <rule>@[.agents/rules/05_llm_architecture.md]</rule>
     <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
     <knowledge_item>@[ki_context_enriched_decompose_verify.md]</knowledge_item>
     <knowledge_item>@[ki_tripartite_pipeline_architecture.md]</knowledge_item>
     <knowledge_item>@[ki_topological_engine.md]</knowledge_item>
+    <knowledge_item>@[ki_execution_engine_protocol.md]</knowledge_item>
     <knowledge_item>@[ki_zero_permissive_typing.md]</knowledge_item>
     <knowledge_item>@[ki_dumb_painter_sdui.md]</knowledge_item>
     <knowledge_item>@[ki_prompt_orchestration_and_matrix_evaluation.md]</knowledge_item>
     <knowledge_item>@[ki_unified_matrix_scoring_strictness.md]</knowledge_item>
     <knowledge_item>@[ki_desktop_pro_tool_studio_ux.md]</knowledge_item>
     <knowledge_item>@[ki_shared_storage_driver_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_dag_engine_dto_projection_rules.md]</knowledge_item>
+    <knowledge_item>@[ki_python_314_concurrency_strictness.md]</knowledge_item>
+    <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
+    <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
+    <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
 </required_context_rules>
 ```
 
