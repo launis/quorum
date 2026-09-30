@@ -79,6 +79,7 @@ Kun Vaihe 1 (Suoritusputki) ja Vaihe 2 (PostgreSQL + Vaihe 1.5) on toteutettu, k
 - `backend_v2/hooks/scoring/passivity_hook.py` (1 kpl)
 - `backend_v2/models/domain/analyst.py`, `archivist.py`, `integrity.py`, `metrics.py`, `security.py` (5 kpl)
 - `backend_v2/models/dtos/mcp.py`, `prompt_context.py`, `system.py` (3 kpl)
+- `backend_v2/models/dtos/step_output.py` (3 kpl: `StepPayloadValue` Primitive Obsession -sanakirjat `dict[str, HydratedAtomDTO]`, `dict[str, float]`, `dict[str, str]`)
 - `backend_v2/scripts/generate_openapi.py` (1 kpl)
 
 ---
@@ -106,11 +107,12 @@ Kun Vaihe 1 (Suoritusputki) ja Vaihe 2 (PostgreSQL + Vaihe 1.5) on toteutettu, k
   2. Korvataan mock-adapterien ja välimuistin raakasanakirjat vahvoilla DTO-malleilla.
 
 ### Työpaketti 4: Oheismoduulien & Koukkujen Siivous (Periphery Zero Dicts)
-- Tiedostot: @[backend_v2/core/registry.py], @[backend_v2/hooks/scoring/matrix_hook.py], @[backend_v2/hooks/scoring/passivity_hook.py], @[backend_v2/hooks/linguistics.py], @[backend_v2/hooks/llm.py]
+- Tiedostot: @[backend_v2/core/registry.py], @[backend_v2/hooks/scoring/matrix_hook.py], @[backend_v2/hooks/scoring/passivity_hook.py], @[backend_v2/hooks/linguistics.py], @[backend_v2/hooks/llm.py], @[backend_v2/models/dtos/step_output.py]
 - **Toimenpiteet**:
   1. Korvataan pisteytyskoukkujen tilapäiset sanakirjamerkinnät `dict[str, JsonValue]`- tai `LevelStatsDTO`-tyypeillä.
   2. Korvataan `registry.py`:n ja `rate_limit.py`:n sanakirjatyypit `dict[str, JsonValue]` -rakenteilla.
   3. Siivotaan yksittäiset domain-tiedostot (`analyst.py`, `archivist.py`, `integrity.py`, `metrics.py`, `security.py`).
+  4. Korvataan @[backend_v2/models/dtos/step_output.py]:n `StepPayloadValue`-tyyppiliiton jäännössanakirjat (specifically and exhaustively: `dict[str, HydratedAtomDTO]`, `dict[str, float]`, `dict[str, str]`) vahvoilla Pydantic V2 DTO -malleilla (`HydratedAtomMapDTO`, `ScoreMappingDTO`, `TextMappingDTO`) tai `dict[str, JsonValue]` -tyypityksellä, eliminoiden Primitive Obsession -sanakirjat ja saavuttaen täysi tyyppiturvallisuus.
 
 ---
 
