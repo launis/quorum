@@ -2,6 +2,7 @@
     <rule>@[.agents/rules/00-antigravity-core.md]</rule>
     <rule>@[.agents/rules/01-python-backend.md]</rule>
     <rule>@[.agents/rules/02_flutter_desktop.md]</rule>
+    <rule>@[.agents/rules/03_seed_vault.md]</rule>
     <rule>@[.agents/rules/04_directory_reference.md]</rule>
     <rule>@[.agents/rules/05_llm_architecture.md]</rule>
     <knowledge_item>@[ki_god_code_prevention.md]</knowledge_item>
@@ -20,6 +21,8 @@
     <knowledge_item>@[ki_dual_axis_localization_architecture.md]</knowledge_item>
     <knowledge_item>@[ki_workflow_context_governance.md]</knowledge_item>
     <knowledge_item>@[ki_execution_record_ssot.md]</knowledge_item>
+    <knowledge_item>@[ki_llm_extraction_architecture.md]</knowledge_item>
+    <knowledge_item>@[ki_epic_lifecycle_workflow.md]</knowledge_item>
 </required_context_rules>
 
 # EPIC 154: Dynamic Causal Discovery Engine (Exploratory Text DAG & Argument Mapping)
@@ -191,7 +194,7 @@ LLM prompts in `CausalDiscoveryEngine` are compiled strictly through the Four-La
 
 | Target Scope & Boundaries | Eradicated Duct-Tape (Under-Engineering Ban) | Approved Best Practice (Target Invariant) | Pruned Over-Engineering (Complexity Slayer) | Fail-Fast Proof Anchor (Deterministic Verification) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Settings Configuration**<br>`@[backend_v2/settings.py#L54-L910]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`, `two_pass_atomizer_packet_size: int = 50`. Existing TDA linker settings (`tda_linker_window_size: int = 4`, `tda_linker_overlap: int = 2`) in `settings.py` kept strictly separated from causal settings. | Speculative per-domain sliding window overrides and dynamic runtime reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
+| **Settings Configuration**<br>`@[backend_v2/settings.py#L54-L910]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`, `two_pass_atomizer_packet_size: int = 50`. Causal discovery settings are explicitly injected into `SlidingWindowLinker` without mutating existing constructor defaults (`window_size = 4, overlap = 2`). | Speculative per-domain sliding window overrides and dynamic runtime reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
 | **SSOT Enums & Parity**<br>`@[backend_v2/models/enums.py#L111-L115]`<br>`@[backend_v2/models/enums.py#L272-L285]`<br>`@[client_app_v2/lib/core/models/enums.dart#L354-L390]`<br>`@[backend_v2/tests/unit/test_enum_parity.py#L110-L112]` | Untyped string comparisons (`self.type == "llm"`), heuristic string matching, ad-hoc string literals for block types. | `StepType.CAUSAL_DISCOVERY = "causal_discovery"` (Python backend only; Dart uses `NodeStrategy` sealed class). `TargetBlockType.CAUSAL_GRAPH_BLOCK = "causal_graph_block"`, and `CausalDisplayMode(StrEnum)` with values strictly: `EXECUTIVE = "executive"`, `DETAILED = "detailed"`. Explicit ErrorCodes: `CAUSAL_DISCOVERY_EMPTY_DOCUMENT`, `CAUSAL_DISCOVERY_CYCLE_DETECTED`, `CAUSAL_DISCOVERY_DATA_STARVATION`. 1:1 Dart `@JsonEnum` parity for `TargetBlockType` and `CausalDisplayMode`. | Granular display mode permutations (isolated anti-fluff toggles, remediations toggles). | `test_enum_parity.py` verifying `TargetBlockType` and `CausalDisplayMode` parity; Dart compile-time enum switch exhaustion. |
 | **Pre-Implementation Atomizer Cleanups**<br>`@[backend_v2/services/orchestrator/two_pass_atomizer.py#L50-L71]`<br>`@[backend_v2/models/dtos/dag_models.py#L18-L57]`<br>`@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py#L180-L186]` | Returning anonymous 3-tuples (`tuple[str, str, list[str]]`) in `_calculate_packets` ("Tuple Hell"), hardcoded magic window sizes (`packet_size = 50`). | Encapsulate chunk packet bounds into typed immutable `ChunkPacketDTO(start_block: str, end_block: str, block_keys: list[str])` in `dag_models.py`. Bind `packet_size` to `get_settings().two_pass_atomizer_packet_size`. | Intermediate packet wrapper classes or custom iterator protocols. | `uv run python scripts/audit_dict_eradication.py` passing AST guardrails; unit tests in `test_two_pass_atomizer.py`. |
 | **SlidingWindowLinker Isolation**<br>`@[backend_v2/services/orchestrator/sliding_window_linker.py#L122-L353]` | Hardcoded `window_size=4, overlap=2` constructor defaults mutating shared caller behavior. | **DO NOT** mutate constructor defaults in `SlidingWindowLinker.__init__`. `CausalDiscoveryEngine` constructs `SlidingWindowLinker` with explicit settings: `SlidingWindowLinker(window_size=get_settings().causal_discovery_window_size, overlap=get_settings().causal_discovery_overlap)`. Existing `TDAEngine` callers retain current behavior without parameter contamination. | Binding constructor defaults to causal-specific settings. | Regression tests for existing `SlidingWindowLinker` callers; unit tests in `test_causal_discovery_engine.py`. |
@@ -301,7 +304,7 @@ flowchart TD
     1. `execute_phase_0` (line 128)
     2. `execute_phase_1` (line 236)
     3. `execute_phase_1_drafts` (line 413)
-  - Update unit test `test_calculate_packets_empty` and add assertions on `ChunkPacketDTO` fields.
+  - Update unit test `test_calculate_packets_empty` and add positive ISTQB unit test `test_calculate_packets_valid_chunks` asserting on `ChunkPacketDTO` fields (`start_block`, `end_block`, `block_keys`) and packet boundary partitioning.
 
 #### 1.2 SlidingWindowLinker Constructor Parameter Isolation
 - **Target File:**
@@ -345,7 +348,7 @@ flowchart TD
     - `causal_discovery_max_total_atoms: Annotated[int, Field(description="Safety ceiling on total claims extracted for a document")] = 100`
     - `causal_secondary_fault_dampening: Annotated[float, Field(description="Penalty dampening factor for cascading secondary faults")] = 0.25`
     - `two_pass_atomizer_packet_size: Annotated[int, Field(description="Default block count per chunk packet in two-pass atomizer")] = 50`
-  - Retain existing TDA linker settings independently in `settings.py`: `tda_linker_window_size: int = 4`, `tda_linker_overlap: int = 2`.
+  - Causal discovery settings are explicitly injected into `SlidingWindowLinker` without mutating existing constructor defaults (`window_size = 4, overlap = 2`), preventing parameter contamination of existing callers.
 
 #### 2.2 Domain Enums & ErrorCodes Synchronization
 - **Target Files:**
@@ -517,7 +520,7 @@ flowchart TD
   </step>
 
   <step id="2" name="SETTINGS_AND_DTO_FOUNDATION">
-    <action>Add causal discovery configuration parameters and two_pass_atomizer_packet_size to @[backend_v2/settings.py] including causal_secondary_fault_dampening, preserving general linker settings.</action>
+    <action>Add causal discovery configuration parameters and two_pass_atomizer_packet_size to @[backend_v2/settings.py] including causal_secondary_fault_dampening, injecting explicitly into SlidingWindowLinker without mutating constructor defaults.</action>
     <action>Add StepType.CAUSAL_DISCOVERY, TargetBlockType.CAUSAL_GRAPH_BLOCK, and CausalDisplayMode enum to @[backend_v2/models/enums.py], add TargetBlockType.causalGraphBlock and CausalDisplayMode to @[client_app_v2/lib/core/models/enums.dart], and define explicit CAUSAL_DISCOVERY_* ErrorCodes.</action>
     <action>Declare causal_source_step_id field on Step in @[backend_v2/models/domain/step.py] to enable typed Studio-driven fusion chaining.</action>
     <action>Create strictly typed immutable [NEW] @[backend_v2/models/dtos/causal_discovery.py] (CausalNodeDTO, CausalEdgeDTO, CausalGraphPayloadDTO, CausalRootCauseDiagnosisDTO, AntiFluffAuditDTO, PrescriptiveRemediationDTO, FairScoringBreakdownDTO, and CausalTdaFusionResultDTO).</action>
