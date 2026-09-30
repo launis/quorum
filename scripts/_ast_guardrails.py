@@ -1,4 +1,4 @@
-"""Automated AST Codebase Guardrails Engine (QGR000-QGR022).
+"""Automated AST Codebase Guardrails Engine (QGR000-QGR023).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum.
 Operates with zero reflection (no getattr/hasattr) using strict pattern matching and isinstance type narrowing.
@@ -1443,6 +1443,71 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    def visit_Subscript(self, node: ast.Subscript) -> None:
+        # QGR023: Anonymous Multi-Value State Tuples Ban ("Tuple Hell")
+        # Enforces ban_anonymous_state_tuples: 3+ elements or 2 elements of identical primitive types
+        if not self._is_test_file and not self._is_boundary_exempt and self._is_domain_code:
+            is_tuple = False
+            match node.value:
+                case ast.Name(id="tuple"):
+                    is_tuple = True
+                case ast.Attribute(value=ast.Name(id="typing" | "typing_extensions"), attr="Tuple" | "tuple"):
+                    is_tuple = True
+                case _:
+                    pass
+
+            if is_tuple:
+                slice_node = node.slice
+                elts = slice_node.elts if isinstance(slice_node, ast.Tuple) else [slice_node]
+                # Allow arbitrary length ellipsis tuple, e.g. tuple[T, ...]
+                is_ellipsis = len(elts) == 2 and (
+                    (isinstance(elts[1], ast.Constant) and elts[1].value is Ellipsis)
+                    or (isinstance(elts[1], ast.Constant) and elts[1].value == "...")
+                )
+                if not is_ellipsis:
+                    if len(elts) > 2:
+                        raw_snippet = ast.unparse(node)
+                        self._add_violation(
+                            node,
+                            "QGR023",
+                            f"Anonymous multi-value state tuple `{raw_snippet}` detected ('Tuple Hell').",
+                            (
+                                "Encapsulate multi-value state into a strictly typed, immutable Pydantic V2 DTO "
+                                "(ConfigDict(strict=True, extra='forbid', frozen=True)) instead of anonymous 3+ tuples "
+                                "per `ban_anonymous_state_tuples`."
+                            ),
+                            severity=GuardrailSeverity.WARNING,
+                        )
+                    elif len(elts) == 2:
+                        elt_names = []
+                        for e in elts:
+                            match e:
+                                case ast.Name(id=name):
+                                    elt_names.append(name)
+                                case ast.Constant(value=str(val)):
+                                    elt_names.append(val)
+                                case _:
+                                    elt_names.append(None)
+                        primitives = {"str", "int", "float", "bool", "bytes"}
+                        if (
+                            elt_names[0] is not None
+                            and elt_names[0] == elt_names[1]
+                            and elt_names[0] in primitives
+                        ):
+                            raw_snippet = ast.unparse(node)
+                            self._add_violation(
+                                node,
+                                "QGR023",
+                                f"Anonymous tuple `{raw_snippet}` with identical primitive types detected.",
+                                (
+                                    "Replace positional primitive tuple with a dedicated Pydantic V2 DTO to avoid "
+                                    "positional indexing and primitive obsession per `ban_anonymous_state_tuples`."
+                                ),
+                                severity=GuardrailSeverity.WARNING,
+                            )
+
+        self.generic_visit(node)
+
 
 def scan_source_code_for_guardrails(filepath: str, source_bytes: bytes) -> list[GuardrailViolation]:
     """Scans Python source code bytes for architectural violations with complete fault isolation.
@@ -1644,11 +1709,11 @@ def format_violations_table(violations: list[GuardrailViolation]) -> str:
 def main(argv: list[str] | None = None) -> None:
     """CLI entry point for running AST codebase guardrails.
 
-    Parses positional targets and flags, scans files for AST violations (QGR000-QGR022),
+    Parses positional targets and flags, scans files for AST violations (QGR000-QGR023),
     and exits with code 0 on success or 1 on failure.
     """
     parser = argparse.ArgumentParser(
-        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR022).
+        description="""Automated AST Codebase Guardrails Engine (QGR000-QGR023).
 
 Single Source of Truth for static AST architectural rules enforcement across Quorum:
   QGR000: Syntax Error Detection (FATAL)
@@ -1664,7 +1729,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR010: ConfigDict without strict=True and extra='forbid' (WARNING)
   QGR011: Mutable Default Arguments Ban (FATAL)
   QGR012: In-Place Dictionary Modification Ban (WARNING)
-  QGR013: Anonymous Multi-Value State Tuples Ban (WARNING)
+  QGR013: Legacy TypeVar() Instantiation Ban (WARNING)
   QGR014: Hardcoded Finnish Vocabulary in System Directives Ban (FATAL)
   QGR015: Direct Persistence Access from Routers Ban (FATAL)
   QGR016: Negative String Exclusion Filtering Ban (FATAL)
@@ -1674,6 +1739,7 @@ Single Source of Truth for static AST architectural rules enforcement across Quo
   QGR020: Duplicate Field() on Annotated Fields & Class Mutable Defaults (WARNING)
   QGR021: llm_debug_logger Eradication Import Ban (FATAL)
   QGR022: Unshielded f-string Prompt Interpolation Ban (FATAL)
+  QGR023: Anonymous Multi-Value State Tuples Ban (WARNING)
 """,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""Examples (PowerShell):

@@ -108,9 +108,11 @@
 - `[MODIFY]` @[backend_v2/models/dtos/output_profile.py#L36-L260]
 - `[MODIFY]` @[backend_v2/models/dtos/output_profile.py#L263-L475]
 - `[MODIFY]` @[backend_v2/models/dtos/output_profile.py#L478-L621]
+- `[MODIFY]` @[backend_v2/models/dtos/step_output.py#L57-L71]
 - `[MODIFY]` @[backend_v2/models/view/sdui.py#L563-L569]
+- `[MODIFY]` @[backend_v2/services/sdui/adapters/base_adapter.py#L18-L47]
 - `[MODIFY]` @[backend_v2/services/blueprint.py#L52-L608]
-- `[MODIFY]` @[backend_v2/templates/report_template.jinja2]
+- `[MODIFY]` @[backend_v2/templates/report_template.jinja2#L87-L550]
 - `[MODIFY]` @[backend_v2/services/export_service.py#L82-L301]
 - `[MODIFY]` @[backend_v2/services/flattener.py#L24-L76]
 - `[MODIFY]` @[backend_v2/models/dtos/flat_record.py#L17-L55]
@@ -118,24 +120,25 @@
 - `[MODIFY]` @[backend_v2/services/orchestrator/dag_executor.py#L375-L1347]
 - `[MODIFY]` @[backend_v2/services/orchestrator/engines/__init__.py]
 - `[MODIFY]` @[backend_v2/tests/unit/test_enum_parity.py#L110-L112]
-- `[MODIFY]` @[backend_v2/tests/integration/test_sdui_semantic_parity.py]
-- `[MODIFY]` @[backend_v2/tests/unit/test_sdui_template_parity.py]
+- `[MODIFY]` @[backend_v2/tests/fixtures/sdui_golden_master.json#L470-L482]
+- `[MODIFY]` @[backend_v2/tests/integration/test_sdui_semantic_parity.py#L109-L380]
+- `[MODIFY]` @[backend_v2/tests/unit/test_sdui_template_parity.py#L111-L148]
 - `[MODIFY]` @[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py#L180-L186]
 - `[NEW]` @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]
 - `[NEW]` @[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py]
-- `[MODIFY]` @[client_app_v2/lib/core/models/enums.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/models/output_profile.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
+- `[MODIFY]` @[client_app_v2/lib/core/models/enums.dart#L354-L390]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/models/output_profile.dart#L30-L123]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L693]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart#L28-L180]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart#L1-L140]
+- `[MODIFY]` @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart#L1-L259]
 - `[NEW]` @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/causal_block_card.dart]
 - `[MODIFY]` @[client_app_v2/lib/l10n/app_en.arb]
 - `[MODIFY]` @[client_app_v2/lib/l10n/app_fi.arb]
-- `[MODIFY]` @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
+- `[MODIFY]` @[client_app_v2/lib/shared/models/sdui_block_dto.dart#L10-L171]
 - `[NEW]` @[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]
 - `[NEW]` @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
-- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
+- `[MODIFY]` @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart#L40-L100]
 
 ### Context / Read-Only Files:
 - `@[backend_v2/services/orchestrator/engines/base.py]`
@@ -148,17 +151,17 @@
 
 | Target Scope & Boundaries | Eradicated Duct-Tape (Under-Engineering Ban) | Approved Best Practice (Target Invariant) | Pruned Over-Engineering (Complexity Slayer) | Fail-Fast Proof Anchor (Deterministic Verification) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Settings Configuration**<br>`@[backend_v2/settings.py#L54-L910]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`. | Speculative per-domain sliding window overrides and dynamic runtime reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
-| **SSOT Enums & Parity**<br>`@[backend_v2/models/enums.py#L111-L115]`<br>`@[backend_v2/models/enums.py#L272-L285]`<br>`@[client_app_v2/lib/core/models/enums.dart]`<br>`@[backend_v2/tests/unit/test_enum_parity.py#L110-L112]` | Untyped string comparisons (`model_strategy == "causal_discovery"`), heuristic string matching, ad-hoc string literals for block types. | `StepType.CAUSAL_DISCOVERY = "causal_discovery"`, `TargetBlockType.CAUSAL_GRAPH_BLOCK = "causal_graph_block"`, and `CausalDisplayMode(StrEnum)` with values strictly: `EXECUTIVE = "executive"`, `DETAILED = "detailed"`. 1:1 Dart `@JsonEnum` parity. | Granular display mode permutations (isolated anti-fluff toggles, remediations toggles, fair-scoring toggles). | `test_sdui_template_parity.py` AST enum validation; `test_enum_parity.py` verifying TargetBlockType and CausalDisplayMode parity; Dart compile-time enum switch exhaustion. |
+| **Settings Configuration**<br>`@[backend_v2/settings.py#L54-L910]` | Magic constants in sliding window loops, hardcoded window sizes, fallback `getattr(settings, ...)` access. | Centralized Pydantic V2 `Settings` fields: `causal_discovery_window_size: int = 4`, `causal_discovery_overlap: int = 2`, `causal_discovery_max_atoms_per_window: int = 25`, `causal_discovery_max_total_atoms: int = 100`, `causal_secondary_fault_dampening: float = 0.25`, `two_pass_atomizer_packet_size: int = 50`. | Speculative per-domain sliding window overrides and dynamic runtime reload factories. | `Settings.model_validate({})` strict type validation in unit tests; `test_settings.py`. |
+| **SSOT Enums & Parity**<br>`@[backend_v2/models/enums.py#L111-L115]`<br>`@[backend_v2/models/enums.py#L272-L285]`<br>`@[client_app_v2/lib/core/models/enums.dart#L354-L390]`<br>`@[backend_v2/tests/unit/test_enum_parity.py#L110-L112]` | Untyped string comparisons (`model_strategy == "causal_discovery"`), heuristic string matching, ad-hoc string literals for block types. | `StepType.CAUSAL_DISCOVERY = "causal_discovery"`, `TargetBlockType.CAUSAL_GRAPH_BLOCK = "causal_graph_block"`, and `CausalDisplayMode(StrEnum)` with values strictly: `EXECUTIVE = "executive"`, `DETAILED = "detailed"`. 1:1 Dart `@JsonEnum` parity. | Granular display mode permutations (isolated anti-fluff toggles, remediations toggles, fair-scoring toggles). | `test_sdui_template_parity.py` AST enum validation; `test_enum_parity.py` verifying TargetBlockType and CausalDisplayMode parity; Dart compile-time enum switch exhaustion. |
 | **Pre-Implementation Atomizer Cleanups**<br>`@[backend_v2/services/orchestrator/two_pass_atomizer.py#L50-L71]`<br>`@[backend_v2/models/dtos/dag_models.py#L18-L57]`<br>`@[backend_v2/services/orchestrator/sliding_window_linker.py#L122-L353]`<br>`@[backend_v2/tests/unit/services/orchestrator/test_two_pass_atomizer.py#L180-L186]` | Returning anonymous 3-tuples (`tuple[str, str, list[str]]`) in `_calculate_packets` ("Tuple Hell"), hardcoded magic window sizes (`window_size = 4, overlap = 2`) in constructor. | Encapsulate chunk packet bounds into typed immutable `ChunkPacketDTO(start_block: str, end_block: str, block_keys: list[str])` in `dag_models.py`. In `SlidingWindowLinker`, bind default arguments directly to `get_settings().causal_discovery_window_size` and `causal_discovery_overlap`. | Intermediate packet wrapper classes or custom iterator protocols. | `uv run python scripts/audit_dict_eradication.py` passing AST guardrails; unit tests in `test_two_pass_atomizer.py` and `test_causal_discovery_engine.py`. |
 | **Step Consistency & Strategy Registry**<br>`@[backend_v2/models/domain/step.py#L32-L119]`<br>`@[backend_v2/services/orchestrator/strategies/registry.py#L69-L99]` | Bypassing `validate_step_consistency` by hacking `StepType.LLM` with empty criteria blocks, using raw string literals (`"llm"`, `"logic"`), or duck-typing missing criteria block IDs. | Explicit `Step.validate_step_consistency` branch for `StepType.CAUSAL_DISCOVERY` allowing empty criteria blocks while enforcing `extraction_protocol_block_id` and `cognitive_tier`, with all type checks bound to `StepType` enums. `NODE_STRATEGY_REGISTRY` and `NodeStrategyFactory.get_strategy` strictly map `StepType.CAUSAL_DISCOVERY` to `LLMNodeStrategy`. | Separate `CausalStep` domain model subclass or parallel step validation pipeline. | Unit tests asserting `AppException` when `extraction_protocol_block_id` is missing; `backend_audit_loop.py`. |
-| **Causal Discovery DTOs**<br>[NEW] @[backend_v2/models/dtos/causal_discovery.py] | Naked dictionaries (`dict[str, Any]`, `TypedDict`), anonymous state tuples ("Tuple Hell"), optional fallback keys. | Immutable Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`): `CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`. | Polymorphic node inheritance hierarchies, recursive graph wrapper classes, intermediate DTO converter factories. | `QGR001` (no naked dicts) and `QGR002` (extra="forbid") automated AST guardrail passing in audit loop. |
-| **OutputProfile & Studio UX**<br>`@[backend_v2/models/domain/output_profile.py#L35-L346]`<br>`@[backend_v2/models/dtos/output_profile.py#L36-L260]`<br>`@[backend_v2/models/dtos/output_profile.py#L263-L475]`<br>`@[backend_v2/models/dtos/output_profile.py#L478-L621]`<br>`@[client_app_v2/lib/features/studio/models/output_profile.dart]`<br>`@[client_app_v2/lib/features/studio/views/profile_editor_view.dart]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]`<br>[NEW] `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/causal_block_card.dart]`<br>`@[client_app_v2/lib/l10n/app_en.arb]`<br>`@[client_app_v2/lib/l10n/app_fi.arb]` | Micro-toggles (`show_causal_anti_fluff`, `show_causal_remediations`, `show_causal_fair_scoring`, `causal_max_nodes_rendered`), missing Dart 3 switch branches in `BlockCardRegistry`, missing `.arb` localization keys, partial DTO mutation violating serialization parity. | Full-Duplex Serialization Parity: single SSOT field `causal_display_mode: LaxCausalDisplayMode = CausalDisplayMode.EXECUTIVE` added across Domain Model, `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO`. Exhaustive Dart 3 switch matching across `getBlockTitle`, `getBlockSubtitle`, `getBlockIcon`, `getBlockCard` in `BlockCardRegistry`. Compile-time `.arb` localization. | Multi-tab studio configuration wizards and custom per-node styling controls. | `flutter_audit_loop.py` build runner verification; compile-time Freezed serialization tests. |
+| **Causal Discovery DTOs**<br>[NEW] @[backend_v2/models/dtos/causal_discovery.py]<br>`@[backend_v2/models/dtos/step_output.py#L57-L71]` | Naked dictionaries (`dict[str, Any]`, `TypedDict`), anonymous state tuples ("Tuple Hell"), optional fallback keys. | Immutable Pydantic V2 DTOs (`ConfigDict(strict=True, extra="forbid", frozen=True)`): `CausalNodeDTO`, `CausalEdgeDTO`, `CausalGraphPayloadDTO`, `CausalRootCauseDiagnosisDTO`, `AntiFluffAuditDTO`, `PrescriptiveRemediationDTO`, `FairScoringBreakdownDTO`, `CausalTdaFusionResultDTO`. `StepPayloadValue` extended with `CausalGraphPayloadDTO` and `CausalTdaFusionResultDTO`. | Polymorphic node inheritance hierarchies, recursive graph wrapper classes, intermediate DTO converter factories. | `QGR001` (no naked dicts) and `QGR002` (extra="forbid") automated AST guardrail passing in audit loop. |
+| **OutputProfile & Studio UX**<br>`@[backend_v2/models/domain/output_profile.py#L35-L346]`<br>`@[backend_v2/models/dtos/output_profile.py#L36-L260]`<br>`@[backend_v2/models/dtos/output_profile.py#L263-L475]`<br>`@[backend_v2/models/dtos/output_profile.py#L478-L621]`<br>`@[client_app_v2/lib/features/studio/models/output_profile.dart#L30-L123]`<br>`@[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L693]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart#L28-L180]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart#L1-L140]`<br>`@[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart#L1-L259]`<br>[NEW] `@[client_app_v2/lib/features/studio/views/widgets/profile/blocks/causal_block_card.dart]`<br>`@[client_app_v2/lib/l10n/app_en.arb]`<br>`@[client_app_v2/lib/l10n/app_fi.arb]` | Micro-toggles (`show_causal_anti_fluff`, `show_causal_remediations`, `show_causal_fair_scoring`, `causal_max_nodes_rendered`), missing Dart 3 switch branches in `BlockCardRegistry`, missing `.arb` localization keys, partial DTO mutation violating serialization parity. | Full-Duplex Serialization Parity: single SSOT field `causal_display_mode: LaxCausalDisplayMode = CausalDisplayMode.EXECUTIVE` added across Domain Model, `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO`. Exhaustive Dart 3 switch matching across `getBlockTitle`, `getBlockSubtitle`, `getBlockIcon`, `getBlockCard` in `BlockCardRegistry`. Compile-time `.arb` localization. | Multi-tab studio configuration wizards and custom per-node styling controls. | `flutter_audit_loop.py` build runner verification; compile-time Freezed serialization tests. |
 | **Causal Discovery Engine & Execution**<br>[NEW] `@[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`<br>`@[backend_v2/services/orchestrator/engines/__init__.py]`<br>`@[backend_v2/services/orchestrator/dag_executor.py#L136-L372]`<br>`@[backend_v2/services/orchestrator/dag_executor.py#L375-L1347]` | Subclassing `TDAEngine`, branching inside `TDAEngine` based on missing `shuffled_atoms`, mutating existing step execution states in-place without DTOs, routing through fallback branches in `_resolve_execution_engine`. | Autonomous `CausalDiscoveryEngine(ExecutionEngine)` cleanly implementing `execute(request: EngineExecutionRequest) -> EngineExecutionResult`, re-exported in `__all__`. `NodeExecutor._resolve_execution_engine` routes via `step_def.type == StepType.CAUSAL_DISCOVERY`. Sequential DAG chaining (Step 1A nodes hydrate Step 1B `shuffled_atoms`) strictly via immutable DTOs. | Dual execution buses, speculative actor frameworks, and persistent graph database storage engines. | Unit tests in `test_causal_discovery_engine.py` asserting Fail-Fast on cycle loops and empty documents; `test_causal_tda_fusion.py`. |
-| **SDUI Model, Adapter & Blueprint**<br>`@[backend_v2/models/view/sdui.py#L563-L569]`<br>[NEW] `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`<br>`@[backend_v2/services/blueprint.py#L52-L608]`<br>`@[client_app_v2/lib/shared/models/sdui_block_dto.dart]` | Client-side graph semantic calculation, client inferring root causes, generic raw JSON passing, missing `SduiBlockBase` polymorphism. | `SduiCausalGraphBlock(SduiBlockBase)` added to `AnySduiBlock` discriminated union. `CausalGraphAdapter` transforms `EngineExecutionResult` into `SduiCausalGraphBlock` strictly adhering to `causal_display_mode`. 1:1 Freezed `@Freezed(unionKey: 'block_type')` Dart model. | Dynamic client-side layout calculators, SVG graph vector serialization over HTTP, multi-pass SDUI transformers. | `test_sdui_template_parity.py` and `test_sdui_semantic_parity.py` passing 100%. |
-| **1:1 Presentation Parity (Flutter & PDF)**<br>`@[backend_v2/templates/report_template.jinja2]`<br>[NEW] `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`<br>[NEW] `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`<br>`@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]` | Sprawling unreadable node graphs in PDF, inconsistent layout between PDF and screen, embedding heavy canvas tools into report print templates. | Identical Unified Causal Action Card in both Flutter and PDF: executive half-page critical causal path (`[Root Cause]` -> `[Cascading Fault]` -> `[Score Loss]`), lexical quote, prescriptive remediation. Deep interactive exploration decoupled strictly into `CausalInspectorModal`. | Embedded interactive JavaScript canvas in PDF, duplicate styling engines across platforms. | `test_sdui_semantic_parity.py` validating identical token and quote rendering across HTML/PDF and Flutter widgets. |
+| **SDUI Model, Adapter & Blueprint**<br>`@[backend_v2/models/view/sdui.py#L563-L569]`<br>[NEW] `@[backend_v2/services/sdui/adapters/causal_graph_adapter.py]`<br>`@[backend_v2/services/sdui/adapters/base_adapter.py#L18-L47]`<br>`@[backend_v2/services/blueprint.py#L52-L608]`<br>`@[client_app_v2/lib/shared/models/sdui_block_dto.dart#L10-L171]` | Client-side graph semantic calculation, client inferring root causes, generic raw JSON passing, missing `SduiBlockBase` polymorphism. | `SduiCausalGraphBlock(SduiBlockBase)` added to `AnySduiBlock` discriminated union. `AdapterContext` extended with typed `causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None`. `CausalGraphAdapter` transforms `causal_result` into `SduiCausalGraphBlock` strictly adhering to `causal_display_mode`. 1:1 Freezed `@Freezed(unionKey: 'block_type')` Dart model. | Dynamic client-side layout calculators, SVG graph vector serialization over HTTP, multi-pass SDUI transformers. | `test_sdui_template_parity.py` and `test_sdui_semantic_parity.py` passing 100%. |
+| **1:1 Presentation Parity (Flutter & PDF)**<br>`@[backend_v2/templates/report_template.jinja2#L87-L550]`<br>[NEW] `@[client_app_v2/lib/features/execution/views/widgets/sdui_causal_graph_widget.dart]`<br>[NEW] `@[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]`<br>`@[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart#L40-L100]` | Sprawling unreadable node graphs in PDF, inconsistent layout between PDF and screen, embedding heavy canvas tools into report print templates. | Identical Unified Causal Action Card in both Flutter and PDF: executive half-page critical causal path (`[Root Cause]` -> `[Cascading Fault]` -> `[Score Loss]`), lexical quote, prescriptive remediation. Deep interactive exploration decoupled strictly into `CausalInspectorModal`. | Embedded interactive JavaScript canvas in PDF, duplicate styling engines across platforms. | `test_sdui_semantic_parity.py` validating identical token and quote rendering across HTML/PDF and Flutter widgets. |
 | **Tabular Export & Flat CSV Symmetry**<br>`@[backend_v2/services/export_service.py#L82-L301]`<br>`@[backend_v2/services/flattener.py#L24-L76]`<br>`@[backend_v2/models/dtos/flat_record.py#L17-L55]` | Multi-row hierarchical CSV headers, ragged nested Excel rows, missing causal columns in flat exports. | Excel sheets `Causal Graph` and `Causal Diagnostics` in `ExportService`. `FlatExecutionRecordDTO` receives typed scalar causal fields (`causal_node_count`, `causal_root_cause_count`, `causal_raw_penalty`, `causal_deduplicated_penalty`). `FlatFileService` outputs strictly 2-line flat CSV (line 1 = header names, line 2 = scalar values). | Pivot table generators, dynamic CSV dialect negotiation, secondary XLSX macro formatting. | Unit tests in `test_export_service.py` asserting exact column headers and row counts. |
-| **Regression & Integration Testing**<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]`<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py]`<br>`@[backend_v2/tests/integration/test_sdui_semantic_parity.py]`<br>`@[backend_v2/tests/unit/test_sdui_template_parity.py]` | Happy-path-only tests, mocking persistence with static dummy dicts, unasserted mock calls. | Comprehensive ISTQB tests: equivalence partitioning, boundary value analysis, negative partitions (at least 2 negative tests per feature: empty text, single atom, circular dependency, disconnected subgraph). Integration tests for Phase 1A -> Phase 1B sequential chaining. | Flaky network integration tests, long-running end-to-end browser tests for unit logic. | `uv run python scripts/backend_audit_loop.py` exiting 0 with Ruff, MyPy, and Pytest all green. |
+| **Regression & Integration Testing**<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py]`<br>[NEW] `@[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py]`<br>`@[backend_v2/tests/fixtures/sdui_golden_master.json#L470-L482]`<br>`@[backend_v2/tests/integration/test_sdui_semantic_parity.py#L109-L380]`<br>`@[backend_v2/tests/unit/test_sdui_template_parity.py#L111-L148]` | Happy-path-only tests, mocking persistence with static dummy dicts, unasserted mock calls. | Comprehensive ISTQB tests: equivalence partitioning, boundary value analysis, negative partitions (at least 2 negative tests per feature: empty text, single atom, circular dependency, disconnected subgraph). Integration tests for Phase 1A -> Phase 1B sequential chaining. | Flaky network integration tests, long-running end-to-end browser tests for unit logic. | `uv run python scripts/backend_audit_loop.py` exiting 0 with Ruff, MyPy, and Pytest all green. |
 
 ---
 
@@ -186,7 +189,7 @@
 #### [MODIFY] @[backend_v2/services/orchestrator/strategies/registry.py#L69-L99]
 - Register `StepType.CAUSAL_DISCOVERY -> LLMNodeStrategy` in `NodeStrategyFactory.get_strategy` dispatch mapping and `NODE_STRATEGY_REGISTRY` dictionary.
 
-#### [MODIFY] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart]
+#### [MODIFY] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/block_card_registry.dart#L28-L180]
 - Extend Dart 3 switch expressions to handle `TargetBlockType.causalGraphBlock` exhaustively:
   - `detailedBlockTypes` -> append `TargetBlockType.causalGraphBlock`
   - `getBlockTitle` -> `l10n.blockCausalGraphTitle`
@@ -194,7 +197,7 @@
   - `getBlockIcon` -> `Icons.account_tree_outlined`
   - `getBlockCard` -> `CausalBlockCard`
 
-#### [MODIFY] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart] & @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart]
+#### [MODIFY] @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_structure_tab.dart#L1-L140] & @[client_app_v2/lib/features/studio/views/widgets/profile/tabs/profile_section_config_tab.dart#L1-L259]
 - Wire `TargetBlockType.causalGraphBlock` into Studio tab block ordering and section configuration controls.
 
 #### [NEW] @[client_app_v2/lib/features/studio/views/widgets/profile/blocks/causal_block_card.dart]
@@ -208,14 +211,15 @@
 ### Phase 2: Configuration, DTOs & Studio OutputProfile Foundation
 
 #### [MODIFY] @[backend_v2/settings.py#L54-L910]
-- Add centralized settings for sliding window boundaries and dynamic extraction limits:
+- Add centralized settings for sliding window boundaries, dynamic extraction limits, and packet sizing:
   - `causal_discovery_window_size: int = 4`
   - `causal_discovery_overlap: int = 2`
   - `causal_discovery_max_atoms_per_window: int = 25`
   - `causal_discovery_max_total_atoms: int = 100`
   - `causal_secondary_fault_dampening: float = 0.25`
+  - `two_pass_atomizer_packet_size: int = 50`
 
-#### [MODIFY] @[backend_v2/models/enums.py#L111-L115] & @[backend_v2/models/enums.py#L272-L285] & @[client_app_v2/lib/core/models/enums.dart] & @[backend_v2/tests/unit/test_enum_parity.py#L110-L112]
+#### [MODIFY] @[backend_v2/models/enums.py#L111-L115] & @[backend_v2/models/enums.py#L272-L285] & @[client_app_v2/lib/core/models/enums.dart#L354-L390] & @[backend_v2/tests/unit/test_enum_parity.py#L110-L112]
 - Add `StepType.CAUSAL_DISCOVERY = "causal_discovery"`.
 - Add `TargetBlockType.CAUSAL_GRAPH_BLOCK = "causal_graph_block"`.
 - Add `CausalDisplayMode(StrEnum)` and `LaxCausalDisplayMode` with values defined exhaustively as:
@@ -234,10 +238,14 @@
   - `FairScoringBreakdownDTO(BaseModel)`: fields `independent_error_count: int`, `cascading_fault_count: int`, `raw_penalty_points: float`, `deduplicated_penalty_points: float`, `dampened_savings_points: float`.
   - `CausalTdaFusionResultDTO(BaseModel)`: fields `graph: CausalGraphPayloadDTO`, `root_cause_diagnoses: list[CausalRootCauseDiagnosisDTO]`, `anti_fluff_audit: AntiFluffAuditDTO`, `prescriptive_remediations: list[PrescriptiveRemediationDTO]`, `fair_scoring: FairScoringBreakdownDTO`.
 
+#### [MODIFY] @[backend_v2/models/dtos/step_output.py#L57-L71]
+- Extend `StepPayloadValue` type union to include `CausalGraphPayloadDTO | CausalTdaFusionResultDTO`.
+- Extend `StepOutputDTO.data_type` literal to include `"causal"` to guarantee 100% typed deserialization of causal discovery step execution outputs.
+
 #### [MODIFY] @[backend_v2/models/domain/output_profile.py#L35-L346] & @[backend_v2/models/dtos/output_profile.py#L36-L260] & @[backend_v2/models/dtos/output_profile.py#L263-L475] & @[backend_v2/models/dtos/output_profile.py#L478-L621]
 - Enforce Full-Duplex Serialization Parity by adding control field `causal_display_mode: LaxCausalDisplayMode = CausalDisplayMode.EXECUTIVE` across Domain Model, `OutputProfileCreateDTO`, `OutputProfileUpdateDTO`, and `OutputProfileResponseDTO`.
 
-#### [MODIFY] @[client_app_v2/lib/features/studio/models/output_profile.dart] & @[client_app_v2/lib/features/studio/views/profile_editor_view.dart]
+#### [MODIFY] @[client_app_v2/lib/features/studio/models/output_profile.dart#L30-L123] & @[client_app_v2/lib/features/studio/views/profile_editor_view.dart#L1-L693]
 - Update Freezed models in `client_app_v2` to match Python fields 1:1 (`causal_display_mode`).
 - Add a single selector in Quorum Studio `ProfileEditorView` (`CausalDisplayMode`: Executive / Detailed) and block positioning in the `target_block_order` list with zero micro-toggle clutter.
 
@@ -269,7 +277,7 @@
 
 ### Phase 4: Presentation Parity, Studio Dispatch & Export Symmetry
 
-#### [MODIFY] @[backend_v2/models/view/sdui.py#L563-L569] & @[client_app_v2/lib/shared/models/sdui_block_dto.dart]
+#### [MODIFY] @[backend_v2/models/view/sdui.py#L563-L569] & @[client_app_v2/lib/shared/models/sdui_block_dto.dart#L10-L171]
 - Define `SduiCausalGraphBlock(SduiBlockBase)` in the polymorphic SDUI block union `AnySduiBlock`:
   - `critical_path_nodes: list[CausalNodeDTO]`
   - `critical_edges: list[CausalEdgeDTO]`
@@ -287,8 +295,12 @@
 
 #### [MODIFY] @[backend_v2/services/blueprint.py#L52-L608]
 - Update blueprint assembly: when `TargetBlockType.CAUSAL_GRAPH_BLOCK` appears in profile `target_block_order`, invoke `CausalGraphAdapter` and place the block at that exact sequence position.
+- Extract causal step execution results and pass them directly into `AdapterContext.causal_result`.
 
-#### [MODIFY] @[backend_v2/templates/report_template.jinja2]
+#### [MODIFY] @[backend_v2/services/sdui/adapters/base_adapter.py#L18-L47]
+- Add typed field `causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None` to `AdapterContext` to provide direct, fail-fast DTO access for `CausalGraphAdapter` without ad-hoc dictionary searches over `execution.step_states`.
+
+#### [MODIFY] @[backend_v2/templates/report_template.jinja2#L87-L550]
 - Implement Jinja2 macro `render_causal_graph_block`:
   - In `EXECUTIVE` mode: renders a compact Unified Causal Action Card (critical root cause path from left to right, lexical fault quote, prescriptive remediation, and confirmation of intact claims) occupying at most half an A4 page.
   - In `DETAILED` mode: renders the complete argument graph and comprehensive evidentiary table.
@@ -303,7 +315,7 @@
 #### [NEW] @[client_app_v2/lib/features/execution/presentation/causal_inspector_modal.dart]
 - Dedicated pro-tool inspector modal for interactive exploration (pan, zoom, side-by-side source text citation highlighting, remediation simulation), decoupled strictly from the primary report presentation.
 
-#### [MODIFY] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart]
+#### [MODIFY] @[client_app_v2/lib/features/execution/views/widgets/sdui_blocks_renderer.dart#L40-L100]
 - Register `SduiCausalGraphBlock` handler binding directly to `SduiCausalGraphWidget`.
 
 #### [MODIFY] @[backend_v2/services/export_service.py#L82-L301]
@@ -338,9 +350,10 @@
   </step>
 
   <step id="2" name="SETTINGS_AND_DTO_FOUNDATION">
-    <action>Add causal discovery configuration parameters to @[backend_v2/settings.py] including causal_secondary_fault_dampening.</action>
+    <action>Add causal discovery configuration parameters and two_pass_atomizer_packet_size to @[backend_v2/settings.py] including causal_secondary_fault_dampening.</action>
     <action>Add StepType.CAUSAL_DISCOVERY, TargetBlockType.CAUSAL_GRAPH_BLOCK, and CausalDisplayMode enum to @[backend_v2/models/enums.py] and @[client_app_v2/lib/core/models/enums.dart].</action>
     <action>Create strictly typed immutable [NEW] @[backend_v2/models/dtos/causal_discovery.py] (CausalNodeDTO, CausalEdgeDTO, CausalGraphPayloadDTO, CausalRootCauseDiagnosisDTO, AntiFluffAuditDTO, PrescriptiveRemediationDTO, FairScoringBreakdownDTO, and CausalTdaFusionResultDTO).</action>
+    <action>Extend StepPayloadValue in @[backend_v2/models/dtos/step_output.py#L57-L71] to include CausalGraphPayloadDTO and CausalTdaFusionResultDTO with data_type="causal".</action>
     <action>Add causal_display_mode field to @[backend_v2/models/domain/output_profile.py] and all serialization DTOs in @[backend_v2/models/dtos/output_profile.py].</action>
     <action>Update Freezed models in @[client_app_v2/lib/features/studio/models/output_profile.dart] and selector in @[client_app_v2/lib/features/studio/views/profile_editor_view.dart].</action>
     <constraint invariant="the_zero_compromise_pledge">Enforce ConfigDict(strict=True, extra='forbid', frozen=True) on all DTOs with zero naked dicts.</constraint>
@@ -364,6 +377,7 @@
 
   <step id="5" name="SDUI_MODEL_AND_BLUEPRINT_DISPATCH">
     <action>Add SduiCausalGraphBlock to @[backend_v2/models/view/sdui.py#L563-L569] and Dart Freezed DTOs in @[client_app_v2/lib/shared/models/sdui_block_dto.dart].</action>
+    <action>Add causal_result to AdapterContext in @[backend_v2/services/sdui/adapters/base_adapter.py#L18-L47] and hydrate it in @[backend_v2/services/blueprint.py#L52-L608].</action>
     <action>Implement [NEW] @[backend_v2/services/sdui/adapters/causal_graph_adapter.py] respecting OutputProfile causal display settings.</action>
     <action>Update @[backend_v2/services/blueprint.py] to assemble SduiCausalGraphBlock dynamically based on OutputProfile target_block_order.</action>
     <constraint invariant="sdui_contract_fracture_prevention">Ensure 100% semantic parity between Python SDUI model and Flutter Freezed representation.</constraint>
@@ -382,8 +396,10 @@
   <step id="7" name="UNIT_TESTING_AND_VERIFICATION">
     <action>Create comprehensive ISTQB unit tests in [NEW] @[backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py] covering standalone execution, cycle detection, and empty document boundaries.</action>
     <action>Create integration test [NEW] @[backend_v2/tests/unit/services/orchestrator/test_causal_tda_fusion.py] verifying optional sequential pipeline chaining, the five stakeholder benefits, and OutputProfile toggles.</action>
-    <action>Update @[backend_v2/tests/integration/test_sdui_semantic_parity.py] and @[backend_v2/tests/unit/test_sdui_template_parity.py] to verify 1:1 cross-platform SDUI parity.</action>
-    <action>Update @[backend_v2/tests/unit/test_enum_parity.py] to assert 1:1 enum parity for TargetBlockType and CausalDisplayMode.</action>
+    <action>Add valid populated SduiCausalGraphBlock instance to @[backend_v2/tests/fixtures/sdui_golden_master.json#L470-L482].</action>
+    <action>Update @[backend_v2/tests/unit/test_sdui_template_parity.py#L111-L148] to register SduiCausalGraphBlock in PYDANTIC_BLOCK_MODELS and DART_UNION_TYPE_MAP.</action>
+    <action>Update @[backend_v2/tests/integration/test_sdui_semantic_parity.py#L109-L380] to verify 1:1 cross-platform SDUI parity.</action>
+    <action>Update @[backend_v2/tests/unit/test_enum_parity.py#L110-L112] to assert 1:1 enum parity for TargetBlockType and CausalDisplayMode.</action>
     <constraint invariant="backend_audit_execution">Run uv run python scripts/backend_audit_loop.py backend_v2/tests/unit/services/orchestrator/engines/test_causal_discovery_engine.py --test.</constraint>
   </step>
 </execution_protocol>
