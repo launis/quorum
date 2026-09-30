@@ -134,6 +134,21 @@ LLM prompts in `CausalDiscoveryEngine` are compiled strictly through the Four-La
 
 ### 2.1 Complete Target Scope & File Inventory
 
+#### Quantitative Scope Validation:
+| Archetype / Domain Category | Target File Count | Concrete File Deliverables | Blast Radius / Invariant Impact |
+| :--- | :--- | :--- | :--- |
+| **New Python Modules (Engines, DTOs, Adapters)** | 3 new files | `causal_discovery_engine.py`, `causal_discovery.py`, `causal_graph_adapter.py` | Standalone ExecutionEngine implementation, 8 Pydantic V2 DTOs, SDUI adapter |
+| **Backend Orchestration & Runtime Modification** | 10 files | `settings.py`, `enums.py`, `step.py`, `strategies/registry.py`, `strategies/llm.py`, `dag_models.py`, `two_pass_atomizer.py`, `sliding_window_linker.py`, `dag_executor.py`, `engines/__init__.py` | Central configuration, StepType registration, chunk packet DTOs, priority engine dispatch |
+| **SDUI, Presentation & Reporting Backend** | 6 files | `output_profile.py` (domain), `output_profile.py` (dtos), `step_output.py`, `sdui.py`, `base_adapter.py`, `blueprint.py` | Full-duplex serialization, SduiCausalGraphBlock union, AdapterContext envelope |
+| **Tabular & Flat Data Export Pipeline** | 3 files | `export_service.py`, `flattener.py`, `flat_record.py` | Forensic Excel sheets (Causal Graph, Causal Diagnostics) and 2-line flat CSV export |
+| **Backend Templates, Fixtures & Golden Masters** | 2 files | `report_template.jinja2`, `sdui_golden_master.json` | A4 PDF half-page Unified Causal Action Card macro, SDUI Golden Master fixture |
+| **Backend Automated Tests & AST Parity Suites** | 6 files (2 new, 4 modified) | `test_causal_discovery_engine.py` [NEW], `test_causal_tda_fusion.py` [NEW], `test_enum_parity.py`, `test_sdui_semantic_parity.py`, `test_sdui_template_parity.py`, `test_two_pass_atomizer.py` | ISTQB boundary partitions, fusion integration, 19 SDUI block parity, enum cross-examination |
+| **New Flutter UI Widgets & Modals** | 3 new files | `causal_block_card.dart`, `sdui_causal_graph_widget.dart`, `causal_inspector_modal.dart` | Studio causal selector card, Dumb Painter action card, decoupled interactive inspector modal |
+| **Frontend Enums, Models & Studio Editors** | 7 files | `enums.dart`, `output_profile.dart`, `profile_editor_view.dart`, `block_card_registry.dart`, `profile_structure_tab.dart`, `profile_section_config_tab.dart`, `sdui_block_dto.dart`, `sdui_blocks_renderer.dart` | Dart 3 switch expressions, Freezed DTOs, Studio profile tabs, SDUI block rendering |
+| **Localization Assets (Axis 1 Dynamic Chrome)** | 2 files | `app_en.arb`, `app_fi.arb` | 100% 1:1 English and Finnish localization keys for block titles, actions, and display modes |
+| **Context & Read-Only Architectural References** | 5 files | `engines/base.py`, `engines/tda_engine.py`, `topological_evaluator.py`, `result_projector.py`, `report_renderer_v2_widget.dart` | Read-only references verifying ExecutionEngine protocol, Kahn's sort, and UI architecture |
+| **TOTAL SCOPE AGGREGATION** | **42 Target Files** (8 NEW, 34 MODIFIED) + **5 Context Files** | Total 47 System Boundaries Audited | 100% Zero-Duct-Tape, Zero-Naked-Dicts, and 1:1 Cross-Platform Parity Enforced |
+
 #### Target Files:
 - `[NEW] @[backend_v2/services/orchestrator/engines/causal_discovery_engine.py]`
 - `[NEW] @[backend_v2/models/dtos/causal_discovery.py]`
@@ -473,7 +488,7 @@ flowchart TD
   - In `client_app_v2/lib/shared/models/sdui_block_dto.dart`, define Freezed class `@Freezed(unionKey: 'block_type') class SduiCausalGraphBlockDTO with _$SduiCausalGraphBlockDTO implements SduiBlockBase`.
   - In `base_adapter.py`, add typed field `causal_result: CausalTdaFusionResultDTO | CausalGraphPayloadDTO | None = None` to `AdapterContext` as strictly an in-memory execution context envelope (never serialized across boundaries).
   - Implement `CausalGraphAdapter` transforming `causal_result` into `SduiCausalGraphBlock` respecting `profile.causal_display_mode`.
-  - Update `BlueprintAssembler` to invoke `CausalGraphAdapter` when `TargetBlockType.CAUSAL_GRAPH_BLOCK` is present in `profile.target_block_order`.
+  - Update `BlueprintTransformer` to invoke `CausalGraphAdapter` when `TargetBlockType.CAUSAL_GRAPH_BLOCK` is present in `profile.target_block_order`.
 
 #### 4.2 1:1 Presentation Parity (Flutter & PDF)
 - **Target Files:**
