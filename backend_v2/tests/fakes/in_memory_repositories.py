@@ -27,6 +27,7 @@ from backend_v2.database.interfaces import (
     IMatrixRepository,
     IOutputProfileRepository,
     IPromptBlockRepository,
+    IReportArtifactRepository,
     IRoleRepository,
     ISystemRepository,
     ITaskBlueprintRepository,
@@ -64,9 +65,11 @@ from backend_v2.models.domain.knowledge import (
 )
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import ModelProfile, SystemConfigMCPGateways, SystemConfigModelRegistry
 from backend_v2.models.domain.workflow import Workflow
+from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.dtos.system import (
     AnySystemConfig,
@@ -97,7 +100,7 @@ class BaseInMemoryRepository[T: BaseModel]:
 
     def _get_isolated(self, key: str) -> T | None:
         """Retrieve an isolated deep copy from in-memory store."""
-        item = self._storage.get(key)
+        item = self._storage[key] if key in self._storage else None
         return self._clone(item) if item is not None else None
 
     def _list_isolated(self) -> list[T]:
@@ -129,7 +132,8 @@ class BaseInMemoryRepository[T: BaseModel]:
     def clear_faults(self, method_name: str | None = None) -> None:
         """Clear active fault triggers."""
         if method_name is not None:
-            self._faults.pop(method_name, None)
+            if method_name in self._faults:
+                del self._faults[method_name]
         else:
             self._faults.clear()
 
@@ -163,10 +167,10 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
 
     async def get_execution_status(self, execution_id: str) -> str | None:
         self._check_fault("get_execution_status")
-        item = self._storage.get(execution_id)
+        item = self._storage[execution_id] if execution_id in self._storage else None
         if item is None:
             return None
-        return item.status.value if hasattr(item.status, "value") else str(item.status)  # noqa: QGR001 [REASON: Status enum or string resolution in fake]
+        return item.status.value
 
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         self._check_fault("create_execution")
@@ -281,7 +285,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
             data_dict["version"] = 1
         if "description" not in data_dict or data_dict["description"] is None:
             data_dict["description"] = "Default description"
-        if not data_dict.get("model_registry_id"):
+        if not ("model_registry_id" in data_dict and data_dict["model_registry_id"]):
             data_dict["model_registry_id"] = "cfg_model_registry_01"
         model = Workflow.model_validate(data_dict)
         self._save_isolated(wf_id, model)
@@ -323,7 +327,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def get_step_by_id(self, step_id: str) -> Step | None:
         self._check_fault("get_step_by_id")
-        s = self._steps.get(step_id)
+        s = self._steps[step_id] if step_id in self._steps else None
         return Step.model_validate(s.model_dump(mode="python"), strict=False) if s else None
 
     async def get_step(self, step_id: str) -> Step | None:
@@ -341,7 +345,7 @@ class InMemoryWorkflowRepository(BaseInMemoryRepository[Workflow], IWorkflowRepo
 
     async def update_step(self, step_id: str, updates: StepUpdateDTO) -> str:
         self._check_fault("update_step")
-        existing = self._steps.get(step_id)
+        existing = self._steps[step_id] if step_id in self._steps else None
         if existing is None:
             raise AppException(
                 message=f"Step {step_id} not found",
@@ -445,7 +449,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
     async def get_user(self, user_id: str) -> User | None:
         self._check_fault("get_user")
-        u = self._users.get(user_id)
+        u = self._users[user_id] if user_id in self._users else None
         return User.model_validate(u.model_dump(mode="python"), strict=False) if u else None
 
     async def get_user_by_email(self, email: str) -> User | None:
@@ -464,7 +468,8 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
         u_id = f"usr_{uuid.uuid4().hex[:16]}"
         data_dict = user_data.model_dump(mode="python")
         data_dict["id"] = u_id
-        data_dict.pop("password", None)
+        if "password" in data_dict:
+            del data_dict["password"]
         data_dict["created_at"] = datetime.now(timezone.utc)
         user = User.model_validate(data_dict)
         self._users[u_id] = User.model_validate(user.model_dump(mode="python"), strict=False)
@@ -472,7 +477,7 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
     async def update_user(self, user_id: str, updates: UserUpdate) -> bool:
         self._check_fault("update_user")
-        existing = self._users.get(user_id)
+        existing = self._users[user_id] if user_id in self._users else None
         if existing is None:
             return False
         dumped = existing.model_dump(mode="python")
@@ -490,7 +495,8 @@ class InMemoryIdentityRepository(BaseInMemoryRepository[Organization], IIdentity
 
     async def delete_org_data(self, org_id: str) -> None:
         self._check_fault("delete_org_data")
-        self._storage.pop(org_id, None)
+        if org_id in self._storage:
+            del self._storage[org_id]
         self._users = {k: v for k, v in self._users.items() if v.organization_id != org_id}
 
     async def get_org_usage_total(self, org_id: str, since: str | None = None) -> float:
@@ -777,7 +783,7 @@ class InMemoryKnowledgeRepository(BaseInMemoryRepository[Concept], IKnowledgeRep
 
     async def get_prompt_template(self, template_id: str) -> PromptTemplateDTO | None:
         self._check_fault("get_prompt_template")
-        t = self._prompt_templates.get(template_id)
+        t = self._prompt_templates[template_id] if template_id in self._prompt_templates else None
         return PromptTemplateDTO.model_validate(t.model_dump(mode="python"), strict=False) if t else None
 
     async def get_concepts(self) -> list[Concept]:
@@ -964,12 +970,22 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
             logs = [
                 entry
                 for entry in logs
-                if entry.context is not None and entry.context.get("organization_id") == organization_id
+                if entry.context is not None
+                and "organization_id" in entry.context
+                and entry.context["organization_id"] == organization_id
             ]
         if actor_id is not None:
-            logs = [entry for entry in logs if entry.context is not None and entry.context.get("actor_id") == actor_id]
+            logs = [
+                entry
+                for entry in logs
+                if entry.context is not None and "actor_id" in entry.context and entry.context["actor_id"] == actor_id
+            ]
         if action is not None:
-            logs = [entry for entry in logs if entry.context is not None and entry.context.get("action") == action]
+            logs = [
+                entry
+                for entry in logs
+                if entry.context is not None and "action" in entry.context and entry.context["action"] == action
+            ]
         return logs[:limit]
 
     async def log_usage(self, record: UsageRecord) -> None:
@@ -985,7 +1001,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
     async def get_usage_aggregate(self, scope: str, entity_id: str | None, period: str) -> UsageAggregateDTO | None:
         self._check_fault("get_usage_aggregate")
         key = f"{scope}:{entity_id}:{period}"
-        agg = self._usage_aggregates.get(key)
+        agg = self._usage_aggregates[key] if key in self._usage_aggregates else None
         return UsageAggregateDTO.model_validate(agg.model_dump(mode="python"), strict=False) if agg else None
 
     async def upsert_usage_aggregate(
@@ -993,7 +1009,7 @@ class InMemoryAuditRepository(BaseInMemoryRepository[AuditLogEntry], IAuditRepos
     ) -> None:
         self._check_fault("upsert_usage_aggregate")
         key = f"{scope}:{entity_id}:{period}"
-        existing = self._usage_aggregates.get(key)
+        existing = self._usage_aggregates[key] if key in self._usage_aggregates else None
         org_id = entity_id or "system"
         if existing:
             self._usage_aggregates[key] = UsageAggregateDTO(
@@ -1179,7 +1195,61 @@ class InMemoryExtractionProtocolRepository(BaseInMemoryRepository[PromptBlock], 
 
 
 # ==============================================================================
-# 16. Unified Workflow Repository Composite Facade
+# 16. Report Artifact Repository Fake
+# ==============================================================================
+
+
+class InMemoryReportArtifactRepository(BaseInMemoryRepository[ReportArtifact], IReportArtifactRepository):
+    """In-memory fake implementation of IReportArtifactRepository with snapshot isolation."""
+
+    async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact:
+        self._check_fault("create_report_artifact")
+        self._save_isolated(report.id, report)
+        return self._clone(report)
+
+    async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
+        self._check_fault("get_report_artifact")
+        return self._get_isolated(report_id)
+
+    async def list_report_artifacts_by_execution(self, execution_id: str) -> list[ReportArtifact]:
+        self._check_fault("list_report_artifacts_by_execution")
+        return [r for r in self._list_isolated() if r.execution_id == execution_id]
+
+    async def update_report_artifact(self, report_id: str, update_dto: ReportArtifactUpdateDTO) -> ReportArtifact:
+        self._check_fault("update_report_artifact")
+        existing = self._get_isolated(report_id)
+        if existing is None:
+            raise AppException(
+                message=f"Report artifact {report_id} not found",
+                status_code=404,
+                details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
+            )
+        updated = existing.model_copy(
+            update={
+                "status": update_dto.status if update_dto.status is not None else existing.status,
+                "storage_paths": update_dto.storage_paths
+                if update_dto.storage_paths is not None
+                else existing.storage_paths,
+                "metadata": update_dto.metadata if update_dto.metadata is not None else existing.metadata,
+                "error_message": update_dto.error_message
+                if update_dto.error_message is not None
+                else existing.error_message,
+                "updated_at": datetime.now(timezone.utc),
+            }
+        )
+        self._save_isolated(report_id, updated)
+        return self._clone(updated)
+
+    async def delete_report_artifact(self, report_id: str) -> bool:
+        self._check_fault("delete_report_artifact")
+        if report_id in self._storage:
+            del self._storage[report_id]
+            return True
+        return False
+
+
+# ==============================================================================
+# 17. Unified Workflow Repository Composite Facade
 # ==============================================================================
 
 
@@ -1190,6 +1260,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
         self,
         workflows: InMemoryWorkflowRepository | None = None,
         executions: InMemoryExecutionRepository | None = None,
+        report_artifacts: InMemoryReportArtifactRepository | None = None,
         identities: InMemoryIdentityRepository | None = None,
         components: InMemoryComponentRepository | None = None,
         prompt_blocks: InMemoryPromptBlockRepository | None = None,
@@ -1206,6 +1277,7 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
     ) -> None:
         self._workflows = workflows or InMemoryWorkflowRepository()
         self._executions = executions or InMemoryExecutionRepository()
+        self._report_artifacts = report_artifacts or InMemoryReportArtifactRepository()
         self._identities = identities or InMemoryIdentityRepository()
         self._components = components or InMemoryComponentRepository()
         self._prompt_blocks = prompt_blocks or InMemoryPromptBlockRepository()
@@ -1301,6 +1373,22 @@ class InMemoryUnifiedWorkflowRepository(IUnifiedWorkflowRepository):
 
     async def count_executions_by_matrix(self, matrix_id: str) -> int:
         return await self._executions.count_executions_by_matrix(matrix_id)
+
+    # 2.5 Report Artifact
+    async def create_report_artifact(self, report: ReportArtifact) -> ReportArtifact:
+        return await self._report_artifacts.create_report_artifact(report)
+
+    async def get_report_artifact(self, report_id: str) -> ReportArtifact | None:
+        return await self._report_artifacts.get_report_artifact(report_id)
+
+    async def list_report_artifacts_by_execution(self, execution_id: str) -> list[ReportArtifact]:
+        return await self._report_artifacts.list_report_artifacts_by_execution(execution_id)
+
+    async def update_report_artifact(self, report_id: str, update_dto: ReportArtifactUpdateDTO) -> ReportArtifact:
+        return await self._report_artifacts.update_report_artifact(report_id, update_dto)
+
+    async def delete_report_artifact(self, report_id: str) -> bool:
+        return await self._report_artifacts.delete_report_artifact(report_id)
 
     # 3. Identity
     async def get_organization(self, org_id: str) -> Organization | None:

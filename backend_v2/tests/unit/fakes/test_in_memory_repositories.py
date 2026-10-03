@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from backend_v2.exceptions import ErrorCodes, ServiceUnavailableError
 from backend_v2.models.auth import (
     OrganizationCreate,
     OrganizationUpdateDTO,
@@ -22,8 +23,10 @@ from backend_v2.models.domain.base import AuditLogCreateDTO, UsageAggregateUpdat
 from backend_v2.models.domain.knowledge import ClaimCreateDTO, ConceptCreateDTO, ReferenceCreateDTO
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.prompt_blocks import PersonaPromptBlock
+from backend_v2.models.domain.report_artifact import ReportArtifact
 from backend_v2.models.domain.step import Role, Step
 from backend_v2.models.domain.system_config import SystemConfigMCPGateways
+from backend_v2.models.dtos.report_artifact import ReportArtifactUpdateDTO
 from backend_v2.models.dtos.studio import StepCreateDTO, StepUpdateDTO, WorkflowCreateDTO, WorkflowUpdateDTO
 from backend_v2.models.dtos.system import (
     SystemConfigCreateDTO,
@@ -31,7 +34,7 @@ from backend_v2.models.dtos.system import (
     SystemSettingsDTO,
 )
 from backend_v2.models.dtos.trace import ExecutionCreateDTO, ExecutionUpdateDTO
-from backend_v2.models.enums import ExecutionStatus, StepType
+from backend_v2.models.enums import ExecutionStatus, ReportStatus, StepType, SystemLocale
 from backend_v2.models.state import TraceEvent
 from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryAgentRepository,
@@ -45,12 +48,66 @@ from backend_v2.tests.fakes.in_memory_repositories import (
     InMemoryMatrixRepository,
     InMemoryOutputProfileRepository,
     InMemoryPromptBlockRepository,
+    InMemoryReportArtifactRepository,
     InMemoryRoleRepository,
     InMemorySystemRepository,
     InMemoryTaskBlueprintRepository,
     InMemoryUnifiedWorkflowRepository,
     InMemoryWorkflowRepository,
 )
+
+# ==============================================================================
+# 0. Test Contracts from Phase 2 Plan
+# ==============================================================================
+
+
+@pytest.mark.asyncio
+async def test_in_memory_workflow_repo_persistence_roundtrip() -> None:
+    """Verify save workflow to InMemoryWorkflowRepository, then get_workflow returns updated state."""
+    repo = InMemoryWorkflowRepository()
+    dto = WorkflowCreateDTO(slug="roundtrip-slug", name="Roundtrip Workflow", description="Initial")
+    wf_id = await repo.create_workflow(dto)
+    fetched = await repo.get_workflow(wf_id)
+    assert fetched is not None
+    assert fetched.name == "Roundtrip Workflow"
+
+    await repo.update_workflow(wf_id, WorkflowUpdateDTO(name="Updated Workflow"))
+    updated = await repo.get_workflow(wf_id)
+    assert updated is not None
+    assert updated.name == "Updated Workflow"
+
+
+@pytest.mark.asyncio
+async def test_in_memory_repo_fault_injection() -> None:
+    """Configure inject_fault('create_workflow', ServiceUnavailableError()), then call create_workflow."""
+    repo = InMemoryWorkflowRepository()
+    exc = ServiceUnavailableError("Database connection error")
+    repo.inject_fault("create_workflow", exc)
+    dto = WorkflowCreateDTO(slug="fault-slug", name="Fault Test", description="Testing Fault")
+    with pytest.raises(ServiceUnavailableError) as exc_info:
+        await repo.create_workflow(dto)
+    assert exc_info.value.error_code == ErrorCodes.SERVICE_UNAVAILABLE
+
+
+@pytest.mark.asyncio
+async def test_in_memory_repo_snapshot_isolation() -> None:
+    """Retrieve model from repo, mutate local variable, re-fetch from repo: original stored model remains unmutated; repo.get(id) is not repo.get(id)."""
+    repo = InMemoryWorkflowRepository()
+    dto = WorkflowCreateDTO(slug="iso-slug", name="Snapshot Iso", description="Isolation Desc")
+    wf_id = await repo.create_workflow(dto)
+
+    w1 = await repo.get_workflow(wf_id)
+    w2 = await repo.get_workflow(wf_id)
+    assert w1 is not None and w2 is not None
+    assert w1 is not w2
+    assert w1 == w2
+
+    # Mutate local copy
+    _ = w1.model_copy(update={"name": "Locally Mutated Name"})
+    refetched = await repo.get_workflow(wf_id)
+    assert refetched is not None
+    assert refetched.name == "Snapshot Iso"
+
 
 # ==============================================================================
 # 1. Snapshot Reference Isolation Tests
@@ -266,7 +323,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             role=UserRole.MEMBER,
             organization_id=org_id,
             is_active=True,
-            language="en",
+            language=SystemLocale.EN,
             theme_mode="system",
         )
     )
@@ -514,7 +571,7 @@ async def test_all_15_fake_repositories_and_facade() -> None:
             role=UserRole.MEMBER,
             organization_id=u_org_id,
             is_active=True,
-            language="en",
+            language=SystemLocale.EN,
             theme_mode="system",
         )
     )
@@ -669,3 +726,32 @@ async def test_all_15_fake_repositories_and_facade() -> None:
     assert len(await unified.get_all_extraction_protocols()) == 1
     await unified.update_extraction_protocol(u_b_id, u_block)
     assert await unified.delete_extraction_protocol(u_b_id)
+
+    # 18. Report Artifact (direct + unified)
+    rep_repo = InMemoryReportArtifactRepository()
+    art = ReportArtifact(
+        id="rep_1234567890abcdef1234567890abcdef",
+        execution_id="exe_test123",
+        workflow_id="wf_test123",
+        profile_id="prof_test123",
+        locale="en",
+        title="Test Report",
+        status=ReportStatus.READY,
+    )
+    await rep_repo.create_report_artifact(art)
+    assert await rep_repo.get_report_artifact("rep_1234567890abcdef1234567890abcdef") is not None
+    assert len(await rep_repo.list_report_artifacts_by_execution("exe_test123")) == 1
+    await rep_repo.update_report_artifact(
+        "rep_1234567890abcdef1234567890abcdef",
+        ReportArtifactUpdateDTO(error_message="Err"),
+    )
+    assert await rep_repo.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")
+
+    await unified.create_report_artifact(art)
+    assert await unified.get_report_artifact("rep_1234567890abcdef1234567890abcdef") is not None
+    assert len(await unified.list_report_artifacts_by_execution("exe_test123")) == 1
+    await unified.update_report_artifact(
+        "rep_1234567890abcdef1234567890abcdef",
+        ReportArtifactUpdateDTO(error_message="Err2"),
+    )
+    assert await unified.delete_report_artifact("rep_1234567890abcdef1234567890abcdef")

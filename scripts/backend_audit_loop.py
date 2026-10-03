@@ -114,6 +114,8 @@ def run_tests_with_strict_coverage(target: str, logfire: bool = True) -> None:
                     found = list(Path("backend_v2").glob(glob_pattern))
                     if not found and not sub_parts:
                         found = list(Path("scripts").glob(f"**/{clean_name}.py"))
+                    if not found:
+                        found = list(Path("backend_v2").glob(f"**/{clean_name}.py"))
                     if found:
                         if found[0].is_relative_to(Path("backend_v2")):
                             rel_found = found[0].relative_to("backend_v2")
