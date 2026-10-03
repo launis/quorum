@@ -46,12 +46,12 @@
 ### Phase 2: Test Suite Mock Eradication, Fake Repository Parity & Concurrency Stress Gate (QGR014)
 **Plan:** @[docs/epic/tasks_EPIC_156/02_phase2_plan.md]
 - [x] **[OK] Red-Teaming:** `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`
-- [ ] **[NOK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
+- [x] **[OK] Execution:** `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`
   - [x] Step 2.1: Audit and Enhance In-Memory Repository Fakes
-  - [ ] Step 2.2: Batch Refactor Unit and Integration Test Fixtures
-  - [ ] Step 2.3: Promote QGR014 to FATAL Severity
-  - [ ] Step 2.4: Implement Concurrency Stress Test Suite
-- [ ] **[NOK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
+  - [x] Step 2.2: Batch Refactor Unit and Integration Test Fixtures
+  - [x] Step 2.3: Promote QGR014 to FATAL Severity
+  - [x] Step 2.4: Implement Concurrency Stress Test Suite
+- [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
 - [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ### Phase 3: Domain & Service Layer Duct-Tape Eradication & Mutation Invariance
@@ -192,39 +192,28 @@
 
 ## Achieved
 - Fully completed Phase 1 execution under Continuous Full-Auto Mode (Steps 0 through 1.10) and achieved formal Tier 8 Plan Audit sign-off (`red_team_audit_01_phase1_plan.md`).
-- Implemented QGR024 (String-Quoted Annotation Ban) and QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with false-positive defenses for `Literal[...]`, `Annotated[...]`, and concurrency locks.
-- Implemented clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `backend_v2/tests/unit/scripts/test_clean_imports.py` (355/355 modules imported cleanly).
-- Expanded `scripts/backend_audit_loop.py` to an 8-stage pipeline with hardened Jinja Dumb Painter regex, clean imports (Stage 7), and DTO parity (Stage 8).
-- Eradicated all 79 domain fatal violations across 27 files, achieving mathematical proof of 0 fatal violations across `backend_v2`.
-- Eradicated low-count advisory warning violations across domain code (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011).
-- Eradicated all 22 active tooling script warnings across 6 scripts (`audit_database_atoms.py`, `reconcile_storage.py`, `audit_rules_staleness.py`, `audit_matrix_auto_filler.py`, `audit_matrix_manager.py`, `matrix_slice_engine.py`).
-- Promoted QGR006, QGR007, QGR008, QGR009, QGR011, QGR023, QGR024, QGR025 to FATAL severity in `scripts/_ast_guardrails.py`.
-- Implemented warning baseline ledger `scripts/audit_warning_baseline.py` and unit tests in `test_audit_warning_baseline.py` (0 fatals, 1,253 warnings under ceiling).
-- Synchronized `AGENTS.md` and 10 agentic workflows (`tier2-execute.md`, `tier1-tracker-generator.md`, `tier1-plan-tracker-generator.md`, `tier8-audit-plan.md`, `tier8-red-teaming-audit.md`, `tier2-hardening-knowledge.md`, `tier0-create-epic.md`, `tier0-research-epic.md`, `tier3-minify-customization.md`, `tier3-database-reset.md`).
-- Resolved strict MyPy call-arg requirement on `MonitorState(cursors={})` in `backend_v2/utils/finops_trace_analyzer.py`.
-- Passed all 8 stages of the global backend audit loop (`backend_audit_loop.py backend_v2/`): 0 fatal AST violations, 355/355 modules imported cleanly, 45 DTOs in 1:1 parity, clean seeder validation.
-- Passed full test suite: 120/120 AST unit tests passing at 91% coverage.
-- Formally signed off on Phase 1 via Tier 8 Plan Audit (`red_team_audit_01_phase1_plan.md`).
-- Completed Tier 0 Red-Teaming and System 2 Five-Axis Deconstruction for Phase 2 (`docs/epic/tasks_EPIC_156/02_phase2_plan.md`).
-- Exhaustively mapped all 319 active QGR014 violations across 53 test files into 5 granular refactoring batches (Batch A Services: 135, Batch B Orchestrator/Workers: 45, Batch C Integration: 24, Batch D Hooks: 46, Batch E Root/LLM: 67).
-- Discovered and designed false-positive AST filtering in `scripts/_ast_guardrails.py` for non-repository variables (`mock_report`, `mock_report_dto`).
-- Synchronized Target Files, 5-Column Architectural Directives Table, Pre-Implementation Cleanups, and verified 100% compliance with `audit_markdown_boundaries.py` (0 errors).
+- Fully completed Phase 2 execution under Continuous Full-Auto Mode (Steps 2.1 through 2.4).
+- Audited and enhanced in-memory repository fakes in `backend_v2/tests/fakes/in_memory_repositories.py` with snapshot isolation and deterministic fault injection across all 16 repositories.
+- Modernized `InMemoryBlueprintTransformerRepository` with clean `__getattribute__` dynamic method wrapping, eliminating `[method-assign]` errors while preserving legacy test drop-in compatibility.
+- Achieved 93% strict TDD coverage on `backend_v2/tests/fakes/in_memory_repositories.py` across 12 comprehensive test contracts.
+- Eradicated all 319 deceptive `AsyncMock`, `MagicMock`, and `@patch` repository fixtures across all 53 test files in `backend_v2/tests/` across 5 granular refactoring batches (Batches A through E).
+- Mathematically verified 0 QGR014 violations remaining in the entire test suite via AST scan.
+- Promoted QGR014 to FATAL severity in `scripts/_ast_guardrails.py` for spec mocks, patch decorators, and mock variable assignments.
+- Implemented AST false-positive exclusions in `visit_Assign` for non-repository variables (`mock_report`, `mock_report_dto`).
+- Reduced advisory warnings from 1,253 down to 913, locking `CURRENT_WARNING_CEILING = 934` in `scripts/audit_warning_baseline.py` and unit tests.
+- Implemented async concurrency stress test suite in `backend_v2/tests/unit/services/orchestrator/test_concurrency_stress.py` verifying 50+ and 100+ concurrent simulated atom tasks, zero deadlocks, zero lock starvation, snapshot isolation, and clean `TaskGroup` cancellation with bracketless `except*`.
+- Passed all validation gate commands: 145/145 touched domain tests passing, warning baseline ledger passing with 0 fatals and 913 warnings, 8-stage audit loop passing on test fakes at 93% coverage, markdown boundaries passing.
 
 ## Learned
-- Dynamic `model_copy(update=...)` calls inside `dag_executor.py` progress tracking occur safely within `async with _update_lock:` concurrency boundaries; tracking `_in_update_lock` in the AST visitor adheres directly to `safe_model_copy_concurrency_boundary` without touching fragile DAG executor code.
-- Heterogeneous input dictionaries in hooks (specifically `source_verification_hook.py`) must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
-- `VersionIncrementDTO` cleanly replaces anonymous 3-tuples in repository versioning, eliminating QGR023 violations.
-- Logfire FastAPI instrumentation requires idempotency protection when testing repeated startup lifecycles; tracking instrumented apps by object ID prevents re-instrumentation crashes.
-- Instantiating Pydantic models with `Annotated[..., Field(default_factory=...)]` requires an explicit argument or assignment to satisfy MyPy's strict argument checker (`MonitorState(cursors={})`).
-- AST visitor variable matching on `_repo` in `scripts/_ast_guardrails.py` matches `mock_report` and `mock_report_dto`; excluding `"report"` and `"response"` from `target_id_lower` eliminates false positives cleanly.
-- MBD007 in `audit_markdown_boundaries.py` treats backticked uppercase member access as an SSOT enum unless defined in `enums.py` or `enums.dart`; script-level enums (specifically GuardrailSeverity) must be referenced without backticks.
-- Target file boundaries in markdown plans should use clean workspace-relative paths without arbitrary line numbers to prevent MBD004 AST bound errors across multi-function files.
+- Dynamic `__getattribute__` on `InMemoryBlueprintTransformerRepository` cleanly synthesizes and caches `DynamicRepoMethod` wrappers without accessing `.__dict__`, calling `getattr()`, or triggering MyPy's `[method-assign]`.
+- Python 3.14 PEP 758 bracketless `except* AppException as eg:` provides elegant, idiomatic exception group handling for managed `asyncio.TaskGroup` workflows.
+- `AppException(message, status_code, details={"error_code": ...})` uses `message` as its primary positional argument; passing error codes directly as the first argument sets the message to the enum name.
 
 ## Remaining
-- Execute Phase 2 under Continuous Full-Auto Mode (eliminating 319 QGR014 mocks, promoting QGR014 to FATAL, concurrency stress suite): `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
 - Run Phase 2 Plan Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
+- Proceed to Phase 3: Create Plan via `/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=3`.
 
 ## Resume Command
 ```powershell
-/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
+/tier8-audit-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]
 ```
