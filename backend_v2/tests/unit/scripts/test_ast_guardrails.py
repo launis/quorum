@@ -894,6 +894,15 @@ def test_qgr012_warning_severity_in_test_files() -> None:
     assert violations[0].severity == GuardrailSeverity.WARNING
 
 
+def test_qgr012_mapping_fatal_in_domain_code() -> None:
+    """Verifies that domain code receives FATAL severity for isinstance Mapping checks."""
+    code = "from collections.abc import Mapping\nif isinstance(payload, Mapping):\n    pass\n"
+    violations = _scan_snippet(code, filepath="backend_v2/services/execution.py")
+    assert len(violations) == 1
+    assert violations[0].rule_code == "QGR012"
+    assert violations[0].severity == GuardrailSeverity.FATAL
+
+
 def test_qgr012_match_case_dict_patterns() -> None:
     """Verifies that match/case dict, MatchMapping, and MatchOr dict patterns are detected."""
     code_match_class = "match data:\n    case dict():\n        pass\n"

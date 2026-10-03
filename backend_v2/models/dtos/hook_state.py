@@ -45,14 +45,12 @@ class ExecutionInputsDTO(V2CoreBase):
 
     model_config = ConfigDict(strict=True, extra="forbid", frozen=True)
 
-    raw_inputs: Annotated[
-        Mapping[str, DomainInputValue],
-        Field(default_factory=dict, description="Raw input mapping by input key or role."),
-    ]
-    dynamic_inputs: Annotated[
-        Mapping[str, DomainInputValue],
-        Field(default_factory=dict, description="Dynamic input parameters extracted from execution context."),
-    ]
+    raw_inputs: Mapping[str, DomainInputValue] = Field(
+        default_factory=dict, description="Raw input mapping by input key or role."
+    )
+    dynamic_inputs: Mapping[str, DomainInputValue] = Field(
+        default_factory=dict, description="Dynamic input parameters extracted from execution context."
+    )
     user_role: Annotated[
         str | None,
         Field(default=None, description="Optional user role identifier for role-specific processing."),

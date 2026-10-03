@@ -7,7 +7,7 @@ synthesis distiller to prevent God Code and maintain Single Responsibility.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
@@ -110,10 +110,11 @@ class MatrixExplanationService:
                 results_list = [dto.payload]
             elif isinstance(dto.payload, list):
                 results_list = dto.payload
-            elif isinstance(dto.payload, Mapping) and "results" in dto.payload:
-                res = dto.payload["results"]
-                if isinstance(res, list):
-                    results_list = res
+            elif not isinstance(dto.payload, (str, int, float, bool, list)) and dto.payload is not None:
+                if "results" in dto.payload:
+                    res = dto.payload["results"]  # type: ignore[index]
+                    if isinstance(res, list):
+                        results_list = res
 
             if not results_list:
                 continue
@@ -156,7 +157,7 @@ class MatrixExplanationService:
             if pb.category_id != PromptBlockCategory.MATRIX:
                 continue
 
-            if isinstance(payload, (str, int, float, bool, list)) or payload is None:
+            if isinstance(payload, (str, int, float, bool, list, set, frozenset, tuple, bytes)) or payload is None:
                 continue
 
             lw_matrix: LightweightMatrixOutput
@@ -174,14 +175,12 @@ class MatrixExplanationService:
                     evaluated_atoms=evaluated_atoms_val,
                     extensions={},
                 )
-            elif isinstance(payload, Mapping):
+            else:
                 # Step 1: Pure immutable dictionary comprehension complying with QGR019
-                payload_to_validate = {k: v for k, v in payload.items() if k != "results"}
-
-                # Strict Pydantic parsing probe boundary
                 try:
+                    payload_to_validate = {k: v for k, v in payload.items() if k != "results"}  # type: ignore[union-attr]
                     lw_matrix = LightweightMatrixOutput.model_validate(payload_to_validate, strict=False)
-                except (ValidationError, ValueError) as e:
+                except (ValidationError, ValueError, AttributeError, TypeError) as e:
                     logger.error(
                         "[MatrixExplanationService] %s: Invalid matrix payload for block %s: %s",
                         ErrorCodes.VALIDATION_FAILED.name,
@@ -194,8 +193,6 @@ class MatrixExplanationService:
                         status_code=422,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from e
-            else:
-                continue
 
             # Precompute claim labels and scale scores localized to target_locale
             tda_to_claim: dict[str, str] = {}

@@ -4,7 +4,7 @@ import logging
 from collections.abc import Mapping
 from typing import Annotated
 
-from pydantic import ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from backend_v2.core.hook_registry import (
     ExecutionInputsDTO,
@@ -123,7 +123,7 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
             filtered_source: dict[str, DomainInputValue] = {}
-            if isinstance(raw_source, Mapping):
+            if not isinstance(raw_source, (str, int, float, bool, list)) and raw_source is not None:
                 filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
             hydrated_state = StateInputWrapper.model_validate(filtered_source)
     except ValidationError as e:
@@ -154,7 +154,12 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                 raise AppException(
                     message=msg, status_code=500, details={"error_code": ErrorCodes.VALIDATION_FAILED.value}
                 ) from e
-        if isinstance(valid_dto.payload, Mapping) and SCORING_PAYLOAD_KEYS.isdisjoint(valid_dto.payload.keys()):
+        payload_keys = (
+            valid_dto.payload.model_fields.keys()
+            if isinstance(valid_dto.payload, BaseModel)
+            else set(valid_dto.payload)
+        )
+        if SCORING_PAYLOAD_KEYS.isdisjoint(payload_keys):
             continue
         try:
             wrapper = ScoringPayloadWrapper.model_validate(valid_dto.payload)
@@ -198,12 +203,14 @@ def _extract_payloads(data: ExecutionInputsDTO | StateInputWrapper) -> list[Scor
                             continue
                         if isinstance(val, (str, int, float, bool, list)) or val is None:
                             continue
-                        if (
-                            k not in SCORING_PAYLOAD_KEYS
-                            and isinstance(val, Mapping)
-                            and SCORING_PAYLOAD_KEYS.isdisjoint(val.keys())
-                        ):
-                            continue
+                        if k not in SCORING_PAYLOAD_KEYS:
+                            val_keys = (
+                                val.model_fields.keys()
+                                if isinstance(val, BaseModel)
+                                else set(val)
+                            )
+                            if SCORING_PAYLOAD_KEYS.isdisjoint(val_keys):
+                                continue
                         try:
                             wrapper = ScoringPayloadWrapper.model_validate(val)
                             if wrapper.has_scoring_data:
@@ -298,7 +305,7 @@ def _extract_passivity_flag(data: ExecutionInputsDTO | StateInputWrapper) -> boo
         else:
             raw_source = data.dynamic_inputs if data.dynamic_inputs else data.raw_inputs
             filtered_source: dict[str, DomainInputValue] = {}
-            if isinstance(raw_source, Mapping):
+            if not isinstance(raw_source, (str, int, float, bool, list)) and raw_source is not None:
                 filtered_source = {k: v for k, v in raw_source.items() if k in STATE_INPUT_KEYS}
             hydrated_state = StateInputWrapper.model_validate(filtered_source)
         if hydrated_state.passivity_detected is True:

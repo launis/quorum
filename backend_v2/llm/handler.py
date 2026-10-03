@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import collections.abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
@@ -358,31 +357,28 @@ class LLMHandler:
 
                 raw_json = resp.json()
                 raw_locations: list[Any] = []
-                if isinstance(raw_json, collections.abc.Mapping) and "locations" in raw_json:
-                    locs_candidate = raw_json["locations"]
-                    if isinstance(locs_candidate, list):
-                        raw_locations = locs_candidate
+                if not isinstance(raw_json, (str, int, float, bool, list)) and raw_json is not None:
+                    if "locations" in raw_json and isinstance(raw_json["locations"], list):
+                        raw_locations = raw_json["locations"]
 
                 for loc in raw_locations:
-                    if isinstance(loc, collections.abc.Mapping) and "locationId" in loc and loc["locationId"]:
-                        loc_id = str(loc["locationId"])
-                        disp_name = loc_id
-                        if "displayName" in loc and loc["displayName"]:
-                            disp_name = str(loc["displayName"])
-                        discovered_locations.append(
-                            GCPLocationDTO(
-                                id=loc_id,
-                                label=f"{disp_name} ({loc_id})",
-                                description=f"Google Cloud Vertex AI region: {disp_name}",
+                    if not isinstance(loc, (str, int, float, bool, list)) and loc is not None:
+                        if "locationId" in loc and loc["locationId"]:
+                            loc_id = str(loc["locationId"])
+                            disp_name = loc_id
+                            if "displayName" in loc and loc["displayName"]:
+                                disp_name = str(loc["displayName"])
+                            discovered_locations.append(
+                                GCPLocationDTO(
+                                    id=loc_id,
+                                    label=f"{disp_name} ({loc_id})",
+                                    description=f"Google Cloud Vertex AI region: {disp_name}",
+                                )
                             )
-                        )
                 next_page_token = None
-                if (
-                    isinstance(raw_json, collections.abc.Mapping)
-                    and "nextPageToken" in raw_json
-                    and raw_json["nextPageToken"]
-                ):
-                    next_page_token = str(raw_json["nextPageToken"])
+                if not isinstance(raw_json, (str, int, float, bool, list)) and raw_json is not None:
+                    if "nextPageToken" in raw_json and raw_json["nextPageToken"]:
+                        next_page_token = str(raw_json["nextPageToken"])
                 if not next_page_token:
                     break
 

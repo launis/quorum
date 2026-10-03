@@ -330,11 +330,11 @@ class BlueprintTransformer:
                         status_code=500,
                         details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
                     ) from val_err
-            elif dto.block_id == "hydrated_references" and isinstance(dto.payload, Mapping):
-                for k, v in dto.payload.items():
+            elif dto.block_id == "hydrated_references" and not isinstance(dto.payload, (str, int, float, bool, list)) and dto.payload is not None:
+                for k, v in dto.payload.items():  # type: ignore[union-attr]
                     if isinstance(v, HydratedAtomDTO):
                         v2_hydrated_refs[str(k)] = v
-                    elif isinstance(v, Mapping):
+                    elif not isinstance(v, (str, int, float, bool, list)) and v is not None:
                         try:
                             v2_hydrated_refs[str(k)] = HydratedAtomDTO.model_validate(v)
                         except ValidationError as val_err:
@@ -403,19 +403,18 @@ class BlueprintTransformer:
                 step_meta: StepTraceMetadataDTO | None = None
                 if isinstance(ev.content, TraceEventMetadataEnvelope):
                     step_meta = ev.content.step_metadata
-                elif isinstance(ev.content, Mapping) and (
-                    "_step_metadata" in ev.content or "step_metadata" in ev.content
-                ):
-                    try:
-                        step_meta = TraceEventMetadataEnvelope.model_validate(ev.content).step_metadata
-                    except (ValidationError, ValueError) as val_err:
-                        msg = f"Corrupted TraceEventMetadataEnvelope in execution trace: {val_err}"
-                        logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
-                        raise AppException(
-                            message=msg,
-                            status_code=500,
-                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                        ) from val_err
+                elif not isinstance(ev.content, (str, int, float, bool, list)) and ev.content is not None:
+                    if "_step_metadata" in ev.content or "step_metadata" in ev.content:
+                        try:
+                            step_meta = TraceEventMetadataEnvelope.model_validate(ev.content).step_metadata
+                        except (ValidationError, ValueError) as val_err:
+                            msg = f"Corrupted TraceEventMetadataEnvelope in execution trace: {val_err}"
+                            logger.error("[BlueprintTransformer] %s: %s", ErrorCodes.VALIDATION_FAILED.name, msg)
+                            raise AppException(
+                                message=msg,
+                                status_code=500,
+                                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                            ) from val_err
                 if step_meta and step_meta.token_usage:
                     u = step_meta.token_usage
                     trace_p += u.prompt_tokens

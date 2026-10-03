@@ -270,7 +270,7 @@ class XAIOutputDTO(ReasoningTraceDTO):
 
     model_config = ConfigDict(strict=True, extra="forbid")
 
-    output_extensions: Annotated[list[XAIExtension], Field(default_factory=list, description="XAI extensions.")]
+    output_extensions: list[XAIExtension] = Field(default_factory=list, description="XAI extensions.")
     comparison_data: Annotated[
         ComparisonDataDTO | None,
         Field(description="Structured comparison data.", json_schema_extra={"x-ui-label": "Comparison Data"}),

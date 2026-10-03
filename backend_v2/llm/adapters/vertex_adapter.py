@@ -57,7 +57,7 @@ def _is_system_turn(m: LLMMessageDTO | dict[str, Any]) -> bool:
     """
     if isinstance(m, LLMMessageDTO):
         return m.role == "system"
-    if isinstance(m, collections.abc.Mapping) and "role" in m:
+    if not isinstance(m, (str, int, float, bool, list)) and m is not None and "role" in m:
         return str(m["role"]) == "system"
     return False
 

@@ -234,10 +234,11 @@ async def execute_tool_loop[T: BaseModel](
             if isinstance(msg, LLMMessageDTO):
                 if msg.role == "user":
                     extraction_messages.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, Mapping) and "role" in msg and msg["role"] == "user":
-                role_val = str(msg["role"])
-                content_val = str(msg["content"]) if "content" in msg else ""
-                extraction_messages.append({"role": role_val, "content": content_val})
+            elif not isinstance(msg, (str, int, float, bool, list)) and msg is not None:
+                if "role" in msg and msg["role"] == "user":
+                    role_val = str(msg["role"])
+                    content_val = str(msg["content"]) if "content" in msg else ""
+                    extraction_messages.append({"role": role_val, "content": content_val})
 
         # Internal Utility rule: lazy load LLMClient
         from backend_v2.llm.client import LLMClient
@@ -438,7 +439,7 @@ async def execute_tool_loop[T: BaseModel](
     for m in messages:
         if isinstance(m, LLMMessageDTO):
             final_messages.append({"role": m.role, "content": m.content})
-        elif isinstance(m, Mapping):
+        elif not isinstance(m, (str, int, float, bool, list)) and m is not None:
             role_val = str(m["role"]) if "role" in m else "user"
             content_val = str(m["content"]) if "content" in m else ""
             final_messages.append({"role": role_val, "content": content_val})
@@ -448,10 +449,13 @@ async def execute_tool_loop[T: BaseModel](
         if validation_context is None:
             validation_context = {}
         source_texts: dict[str, JsonValue] = {}
-        if "mcp_source_texts" in validation_context and isinstance(validation_context["mcp_source_texts"], Mapping):
+        if (
+            "mcp_source_texts" in validation_context
+            and not isinstance(validation_context["mcp_source_texts"], (str, int, float, bool, list))
+            and validation_context["mcp_source_texts"] is not None
+        ):
             source_texts = dict(validation_context["mcp_source_texts"])
-        else:
-            validation_context["mcp_source_texts"] = source_texts
+        validation_context["mcp_source_texts"] = source_texts
 
         # Tier 4 Fix: Use AliasEngine as the single source of truth for alias generation.
         # Removed ad-hoc doc{N} counter and alias_map mutation that bypassed AliasEngine.

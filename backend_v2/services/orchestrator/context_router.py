@@ -7,7 +7,7 @@ and data culling/pruning logic matching the Phase 9 architecture standards.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, ValidationError
@@ -146,7 +146,7 @@ class ContextRouter:
             clean_path = path
 
         if clean_path.startswith("steps."):
-            if not isinstance(steps, Sequence) or isinstance(steps, (str, bytes, Mapping)):
+            if not isinstance(steps, (list, tuple)):
                 msg = "Fail-Fast: Snapshot validation failed. Must match sequence of StepOutputDTO."
                 logger.error(msg, extra={"error_code": ErrorCodes.VALIDATION_FAILED.value})
                 raise AppException(

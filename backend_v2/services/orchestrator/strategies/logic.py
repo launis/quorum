@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from pydantic import BaseModel, JsonValue
@@ -138,9 +138,10 @@ class LogicNodeStrategy(NodeStrategy):
         if not inputs_payload:
             for d in current_steps:
                 if isinstance(d, StepOutputDTO) and d.step_id == "raw_inputs" and d.block_id:
-                    if d.block_id == "dynamic_inputs" and isinstance(d.payload, Mapping):
-                        for k, v in d.payload.items():
-                            inputs_payload[str(k)] = v
+                    if d.block_id == "dynamic_inputs":
+                        if not isinstance(d.payload, (str, int, float, bool, list)) and d.payload is not None:
+                            for k, v in dict(d.payload).items():
+                                inputs_payload[str(k)] = v
                     elif d.block_id not in ("simulation_mode", "language", "organization_id", "user_id"):
                         inputs_payload[d.block_id] = d.payload  # type: ignore[assignment]
 

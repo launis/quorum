@@ -520,14 +520,7 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                 break
                             for tda in claim.tda_assertions:
                                 atom_id = str(tda.tda_id)
-                                if isinstance(dag_results, Mapping):
-                                    if atom_id in dag_results:
-                                        atom_item = dag_results[atom_id]
-                                        if isinstance(atom_item, AtomResultDTO):
-                                            if atom_item.status == ExecutionStatus.PASSED:
-                                                has_evidence = True
-                                                break
-                                else:
+                                if isinstance(dag_results, (list, tuple)):
                                     for step_out in dag_results:
                                         if isinstance(step_out, StepOutputDTO):
                                             payload = step_out.payload
@@ -541,6 +534,13 @@ class GridSchemaStrategy(SchemaBuilderStrategy):
                                                         if item.status == ExecutionStatus.PASSED:
                                                             has_evidence = True
                                                             break
+                                else:
+                                    if atom_id in dag_results:
+                                        atom_item = dag_results[atom_id]  # type: ignore[call-overload]
+                                        if isinstance(atom_item, AtomResultDTO):
+                                            if atom_item.status == ExecutionStatus.PASSED:
+                                                has_evidence = True
+                                                break
                     if not has_evidence:
                         logger.warning("Zero evidence found for Matrix %s, omitting from LLM schema", matrix_id)
                         continue

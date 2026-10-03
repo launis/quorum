@@ -49,12 +49,9 @@ class CompiledPrompt(BaseDTO):
         list[LLMMessageDTO],
         Field(description="Per-chunk/per-retry content (rubrics, atoms, execution params, healing errors)."),
     ]
-    metadata: Annotated[
-        PromptMetadataDTO,
-        Field(
-            default_factory=PromptMetadataDTO, description="Arbitrary execution metadata (e.g., token proxy scores)."
-        ),
-    ]
+    metadata: PromptMetadataDTO = Field(
+        default_factory=PromptMetadataDTO, description="Arbitrary execution metadata (e.g., token proxy scores)."
+    )
 
     model_config = ConfigDict(frozen=True, strict=True, extra="forbid")
 

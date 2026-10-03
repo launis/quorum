@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import copy
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, cast
 
 from pydantic import JsonValue
@@ -269,8 +268,8 @@ def reduce_hook_delta(
             eval_map: dict[str, float] = {}
             if "_evaluative_matrices" in updated_dynamic:
                 raw_eval = updated_dynamic["_evaluative_matrices"]
-                if isinstance(raw_eval, Mapping):
-                    for k, v in raw_eval.items():
+                if not isinstance(raw_eval, (str, int, float, bool, list)) and raw_eval is not None:
+                    for k, v in raw_eval.items():  # type: ignore[union-attr]
                         if isinstance(v, (int, float)):
                             eval_map[str(k)] = float(v)
             for pb_id, matrix_out in delta.matrix_outputs.items():

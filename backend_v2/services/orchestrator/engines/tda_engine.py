@@ -6,7 +6,6 @@ Strategy engine executing Kahn-based causal wave graphs over propositional asser
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from backend_v2.core.telemetry import get_tracer
@@ -91,8 +90,9 @@ class TDAEngine(ExecutionEngine):
             raw_blackboard = ctx_vars.global_atom_blackboard
             if raw_blackboard is None and "__GLOBAL_ATOM_BLACKBOARD__" in ctx_vars:
                 raw_blackboard = ctx_vars["__GLOBAL_ATOM_BLACKBOARD__"]
-        elif isinstance(ctx_vars, Mapping) and "__GLOBAL_ATOM_BLACKBOARD__" in ctx_vars:
-            raw_blackboard = ctx_vars["__GLOBAL_ATOM_BLACKBOARD__"]
+        elif not isinstance(ctx_vars, (str, int, float, bool, list)) and ctx_vars is not None:
+            if "__GLOBAL_ATOM_BLACKBOARD__" in ctx_vars:
+                raw_blackboard = ctx_vars["__GLOBAL_ATOM_BLACKBOARD__"]
 
         is_starved = False
         if raw_blackboard is not None and not isinstance(raw_blackboard, (str, int, float, bool, list)):

@@ -11,7 +11,7 @@ import contextlib
 import dataclasses
 import logging
 import uuid
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 import opentelemetry.trace as otel_trace
@@ -655,7 +655,7 @@ class DAGExecutor:
                             delta_content_dict = delta_payload.model_dump(mode="json")
                         elif isinstance(delta_payload, (str, int, float, bool, list)):
                             delta_content_dict = {"value": delta_payload}
-                        elif isinstance(delta_payload, Mapping):
+                        elif not isinstance(delta_payload, (str, int, float, bool, list)) and delta_payload is not None:
                             delta_content_dict = dict(delta_payload)
                     elif isinstance(processed_result.state_delta, ExecutionInputsDTO):
                         delta_content_dict = {
@@ -666,7 +666,10 @@ class DAGExecutor:
                         delta_content_dict = processed_result.state_delta.model_dump(mode="json")
                     elif isinstance(processed_result.state_delta, (str, int, float, bool, list)):
                         delta_content_dict = {"value": processed_result.state_delta}
-                    elif isinstance(processed_result.state_delta, Mapping):
+                    elif (
+                        not isinstance(processed_result.state_delta, (str, int, float, bool, list))
+                        and processed_result.state_delta is not None
+                    ):
                         delta_content_dict = dict(processed_result.state_delta)
                     delta_content = StepOutputContentDTO(data=delta_content_dict)  # type: ignore[arg-type]
                     proc_event = TraceEvent(step_name="inputs", event_type="input", content=delta_content)
@@ -940,9 +943,10 @@ class DAGExecutor:
                             evt.event_type == "decision"
                             and evt.metadata
                             and evt.metadata.is_context_update
-                            and isinstance(evt.content, Mapping)
+                            and not isinstance(evt.content, (str, int, float, bool, list))
+                            and evt.content is not None
                         ):
-                            new_cv = new_cv.with_update(**dict(evt.content))  # type: ignore[arg-type]
+                            new_cv = new_cv.with_update(**dict(evt.content))
                             has_cv_updates = True
                         match evt:
                             case TraceEvent() if evt.mcp_audit_traces:

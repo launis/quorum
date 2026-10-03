@@ -117,7 +117,7 @@ async def enforce_passivity_penalty_hook(state: HookState, deps: HookDependencie
         judge_model: dict[str, Any]
         if isinstance(judge_model_raw, BaseModel):
             judge_model = judge_model_raw.model_dump()
-        elif isinstance(judge_model_raw, Mapping):
+        elif not isinstance(judge_model_raw, (str, int, float, bool, list)) and judge_model_raw is not None:
             judge_model = {str(k): v for k, v in judge_model_raw.items()}
         else:
             continue

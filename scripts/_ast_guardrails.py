@@ -677,7 +677,7 @@ class QuorumGuardrailVisitor(ast.NodeVisitor):
                 )
             elif is_mapping_check:
                 qgr012_sev = (
-                    GuardrailSeverity.WARNING
+                    GuardrailSeverity.FATAL
                     if (self._is_domain_code and not self._is_boundary_exempt)
                     else GuardrailSeverity.WARNING
                 )

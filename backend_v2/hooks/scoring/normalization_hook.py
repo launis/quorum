@@ -323,7 +323,7 @@ async def recalculate(
         if isinstance(v, LightweightMatrixOutput):
             if not (v.evaluated_atoms or v.justification):
                 continue
-        elif isinstance(v, Mapping):
+        elif not isinstance(v, (str, int, float, bool, list)) and v is not None:
             if "evaluated_atoms" not in v and "justification" not in v:
                 continue
         else:

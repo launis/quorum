@@ -380,7 +380,7 @@ class MatrixDomainParser:
                         for ev in r_dto.payload:
                             if isinstance(ev, AtomResultDTO):
                                 step_evals_map[ev.tda_id] = ev
-                            elif isinstance(ev, Mapping):
+                            else:
                                 try:
                                     atom_dto = AtomResultDTO.model_validate(ev)
                                     step_evals_map[atom_dto.tda_id] = atom_dto

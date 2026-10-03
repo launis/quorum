@@ -144,15 +144,13 @@ class ContextBuilder:
             return ContextBuilder._project_compressed(obj.model_dump(mode="json"))
         elif isinstance(obj, (str, int, float, bool)) or obj is None:
             return obj
-        elif isinstance(obj, Mapping):
+        else:
             result = {}
-            for k, v in obj.items():
+            for k, v in dict(obj).items():
                 if k in ("shuffled_atoms", "original_text", "raw_content"):
                     continue
                 result[k] = ContextBuilder._project_compressed(v)
             return result
-        else:
-            return obj
 
     @staticmethod
     def _collect_rule_descriptions(criteria_blocks: list[Any]) -> list[str]:
@@ -274,12 +272,15 @@ class ContextBuilder:
             extracted_raw_inputs = dict(state_data.inputs.raw_inputs)
             if state_data.inputs.dynamic_inputs:
                 extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_data.inputs.dynamic_inputs))
-        elif isinstance(state_data, Mapping):
-            if "metadata" in state_data and isinstance(state_data["metadata"], ExecutionMetadata):
-                extracted_metadata = state_data["metadata"]
-            if "raw_inputs" in state_data and isinstance(state_data["raw_inputs"], Mapping):
-                state_raw = state_data["raw_inputs"]
-                if "dynamic_inputs" in state_raw and isinstance(state_raw["dynamic_inputs"], Mapping):
+        elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
+            state_dict = dict(state_data)
+            if "metadata" in state_dict and isinstance(state_dict["metadata"], ExecutionMetadata):
+                extracted_metadata = state_dict["metadata"]
+            if "raw_inputs" in state_dict and not isinstance(state_dict["raw_inputs"], (str, int, float, bool, list)):
+                state_raw = dict(state_dict["raw_inputs"])
+                if "dynamic_inputs" in state_raw and not isinstance(
+                    state_raw["dynamic_inputs"], (str, int, float, bool, list)
+                ):
                     extracted_raw_inputs["dynamic_inputs"] = copy.deepcopy(dict(state_raw["dynamic_inputs"]))
 
         raw_mappings = input_mappings.mappings if isinstance(input_mappings, PromptMappingDTO) else input_mappings
@@ -339,17 +340,19 @@ class ContextBuilder:
                             steps_val = state_data.inputs.dynamic_inputs["steps"]
                             if isinstance(steps_val, list):
                                 dto_list = steps_val
-                    elif isinstance(state_data, Mapping) and "steps" in state_data:
-                        dto_list = state_data["steps"]
+                    elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
+                        state_dict = dict(state_data)
+                        if "steps" in state_dict and isinstance(state_dict["steps"], list):
+                            dto_list = state_dict["steps"]
                     resolved_value = _prune_step_dtos(dto_list)
                 elif (
                     clean_path == "global_context_vars"
                     and not isinstance(resolved_value, (str, int, float, bool, list))
                     and resolved_value is not None
                 ):
-                    if isinstance(resolved_value, Mapping) and "steps" in resolved_value:
-                        resolved_dict = dict(resolved_value)
-                        resolved_dict["steps"] = _prune_step_dtos(resolved_value["steps"])
+                    resolved_dict = dict(resolved_value)
+                    if "steps" in resolved_dict:
+                        resolved_dict["steps"] = _prune_step_dtos(resolved_dict["steps"])
                         resolved_value = resolved_dict
 
                 elif clean_path.startswith("steps."):
@@ -373,8 +376,10 @@ class ContextBuilder:
                             steps_val = state_data.inputs.dynamic_inputs["steps"]
                             if isinstance(steps_val, list):
                                 all_steps = steps_val
-                    elif isinstance(state_data, Mapping) and "steps" in state_data:
-                        all_steps = state_data["steps"]
+                    elif not isinstance(state_data, (str, int, float, bool, list)) and state_data is not None:
+                        state_dict = dict(state_data)
+                        if "steps" in state_dict and isinstance(state_dict["steps"], list):
+                            all_steps = state_dict["steps"]
                     dtos = [d for d in all_steps if d.step_id == step_key]
 
                     if len(parts) == 2:
@@ -444,7 +449,7 @@ class ContextBuilder:
                         if i == len(parts) - 1:
                             curr_node[part] = copy.deepcopy(resolved_value)
                         else:
-                            if part not in curr_node or not isinstance(curr_node[part], Mapping):
+                            if part not in curr_node or isinstance(curr_node[part], (str, int, float, bool, list)):
                                 curr_node[part] = {}
                             curr_node = curr_node[part]
                     extracted_inputs[_logical_name] = copy.deepcopy(resolved_value)

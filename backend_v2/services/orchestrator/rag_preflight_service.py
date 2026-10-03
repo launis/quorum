@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from typing import Any
+
+from pydantic import BaseModel
 
 from backend_v2.database.interfaces import ISystemRepository, IWorkflowRepository
 from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
 from backend_v2.models.domain.execution import ExecutionRecord
+from backend_v2.models.domain.inputs import WorkflowInputs
 from backend_v2.models.domain.step import Step, StepRule
 from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
@@ -74,17 +77,25 @@ def _extract_inputs_from_record(exec_record: ExecutionRecord) -> ExecutionInputs
     Returns:
         Strongly typed ExecutionInputsDTO.
     """
-    from backend_v2.models.domain.inputs import WorkflowInputs
-
     for event in reversed(exec_record.execution_trace):
         if event.step_name == "inputs" and event.event_type == "input":
             content = event.content
             if isinstance(content, ExecutionInputsDTO):
                 return content
-            if isinstance(content, Mapping):
-                if "dynamic_inputs" in content and isinstance(content["dynamic_inputs"], Mapping):
+            if isinstance(content, WorkflowInputs):
+                return ExecutionInputsDTO(dynamic_inputs=content.dynamic_inputs)
+            if not isinstance(content, (str, int, float, bool, list, BaseModel)) and content is not None:
+                if (
+                    "dynamic_inputs" in content
+                    and not isinstance(content["dynamic_inputs"], (str, int, float, bool, list, BaseModel))
+                    and content["dynamic_inputs"] is not None
+                ):
                     return ExecutionInputsDTO.model_validate({"dynamic_inputs": content["dynamic_inputs"]})
-                if "inputs" in content and isinstance(content["inputs"], Mapping):
+                if (
+                    "inputs" in content
+                    and not isinstance(content["inputs"], (str, int, float, bool, list, BaseModel))
+                    and content["inputs"] is not None
+                ):
                     return ExecutionInputsDTO.model_validate({"dynamic_inputs": content["inputs"]})
                 return ExecutionInputsDTO.model_validate({"dynamic_inputs": content})
     if isinstance(exec_record.raw_inputs, ExecutionInputsDTO):

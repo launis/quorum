@@ -8,7 +8,6 @@ enforcing strict validation, deterministic sorting, and Zero-Compromise pledges.
 
 import logging
 import secrets
-from collections.abc import MutableMapping
 from typing import Any, Literal, cast
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, create_model, model_validator
@@ -60,23 +59,24 @@ class ExtractedFactsDTOBase(BaseModel):
             AppException: If input data is an unexpected non-dictionary container.
         """
         # Map cosmetic placeholders to None
-        if isinstance(data, MutableMapping):
-            placeholder_set = {"none", "n/a", "", None}
-            for key, val in list(data.items()):
-                if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                    data[key] = None
-        elif data is not None and not isinstance(data, (str, int, float, bool, list)):
-            logger.error(
-                "[ExtractedFactsDTOBase] %s: Expected dictionary for canonicalise_nulls, got %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                type(data).__name__,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message=f"Expected dictionary payload for dynamic extraction, got {type(data).__name__}",
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+        placeholder_set = {"none", "n/a", "", None}
+        if not isinstance(data, (str, int, float, bool, list)) and data is not None:
+            try:
+                for key, val in list(data.items()):
+                    if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                        data[key] = None
+            except (AttributeError, TypeError) as e:
+                logger.error(
+                    "[ExtractedFactsDTOBase] %s: Expected dictionary for canonicalise_nulls, got %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    type(data).__name__,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=f"Expected dictionary payload for dynamic extraction, got {type(data).__name__}",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
         return data
 
 
@@ -104,24 +104,26 @@ class DynamicExtractionResponseBase(BaseModel):
             AppException: If input data is an unexpected non-dictionary container.
         """
         # Map cosmetic placeholders to None silently ONLY for search_context_anchor
-        if isinstance(data, MutableMapping):
-            placeholder_set = {"none", "n/a", "", None}
-            if "search_context_anchor" in data:
-                val = data["search_context_anchor"]
-                if isinstance(val, str) and val.strip().lower() in placeholder_set:
-                    data["search_context_anchor"] = None
-        elif data is not None and not isinstance(data, (str, int, float, bool, list)):
-            logger.error(
-                "[DynamicExtractionResponseBase] %s: Expected dictionary for canonicalise_nulls, got %s",
-                ErrorCodes.VALIDATION_FAILED.name,
-                type(data).__name__,
-                extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
-            raise AppException(
-                message=f"Expected dictionary payload for extraction response, got {type(data).__name__}",
-                status_code=400,
-                details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-            )
+        placeholder_set = {"none", "n/a", "", None}
+        if not isinstance(data, (str, int, float, bool, list)) and data is not None:
+            try:
+                _ = data.items()
+                if "search_context_anchor" in data:
+                    val = data["search_context_anchor"]
+                    if isinstance(val, str) and val.strip().lower() in placeholder_set:
+                        data["search_context_anchor"] = None
+            except (AttributeError, TypeError, KeyError) as e:
+                logger.error(
+                    "[DynamicExtractionResponseBase] %s: Expected dictionary for canonicalise_nulls, got %s",
+                    ErrorCodes.VALIDATION_FAILED.name,
+                    type(data).__name__,
+                    extra={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                )
+                raise AppException(
+                    message=f"Expected dictionary payload for extraction response, got {type(data).__name__}",
+                    status_code=400,
+                    details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                ) from e
         return data
 
     @model_validator(mode="after")

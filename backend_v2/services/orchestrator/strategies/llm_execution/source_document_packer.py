@@ -221,18 +221,21 @@ class SourceDocumentPacker:
                 dict_payload: Mapping[str, object]
                 if isinstance(inputs_payload, ExecutionInputsDTO):
                     dict_payload = {**inputs_payload.raw_inputs, **inputs_payload.dynamic_inputs}
-                elif isinstance(inputs_payload, Mapping):
-                    dict_payload = inputs_payload
                 else:
-                    logger.error("[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload))
-                    raise AppException(
-                        message=(
-                            "Inputs payload validation failed: expected Mapping or ExecutionInputsDTO, "
-                            f"got {type(inputs_payload)}"
-                        ),
-                        status_code=500,
-                        details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
-                    )
+                    try:
+                        dict_payload = dict(inputs_payload.items())  # type: ignore[attr-defined]
+                    except (AttributeError, TypeError) as err:
+                        logger.error(
+                            "[SourceDocumentPacker] Inputs payload validation failed: %s", type(inputs_payload)
+                        )
+                        raise AppException(
+                            message=(
+                                "Inputs payload validation failed: expected Mapping or ExecutionInputsDTO, "
+                                f"got {type(inputs_payload)}"
+                            ),
+                            status_code=500,
+                            details={"error_code": ErrorCodes.VALIDATION_FAILED.value},
+                        ) from err
 
                 for key, value in dict_payload.items():
                     if targets is not None and targets.allowed_input_keys is not None:
@@ -298,8 +301,8 @@ class SourceDocumentPacker:
                         step_dict_payload: Mapping[str, object] | None = None
                         if isinstance(payload, BaseModel):
                             step_dict_payload = payload.model_dump(mode="json")
-                        elif isinstance(payload, Mapping):
-                            step_dict_payload = payload
+                        elif not isinstance(payload, (str, int, float, bool, list)) and payload is not None:
+                            step_dict_payload = dict(payload)
 
                         if step_dict_payload is not None:
                             for field in ("text", "markdown", "content"):
