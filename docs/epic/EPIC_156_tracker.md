@@ -69,7 +69,7 @@
   - [x] Step 3.6: Implement Mutation Invariance Verification Engine
   - [x] Step 3.7: Synchronize Warning Baseline Ledger to Zero Ceiling & Execute Phase 3 Completion Gate
 - [x] **[OK] Test Coverage Assertions:** The Tier 2 execution agent MUST explicitly execute the test coverage assertions for this phase before passing it to the audit.
-- [ ] **[NOK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md]`
+- [x] **[OK] Audit:** `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md]`
 
 ### Phase 4: Universal AST Strictness Lockdown, Mathematical Proof & Permanent CI Enforcement
 **Plan:** @[docs/epic/tasks_EPIC_156/04_phase4_plan.md]
@@ -242,6 +242,7 @@
 - Step 3.5: Eradicated 100% of residual advisory AST warnings across `backend_v2` (`e1480d9a9`).
 - Step 3.6: Implemented pure Python stdlib AST mutation testing engine in `scripts/audit_mutation_coverage.py` with typed Pydantic V2 DTOs (`MutationSpec`, `MutationResult`, `TargetAuditReport`, `MutationCoverageReport`). Tested against mathematical cores (`UnifiedScoringEngine` and `TopologicalEvaluator`), killing 100% of mutants (13/13 in TopologicalEvaluator, 25/25 in UnifiedScoringEngine). Created comprehensive unit test suite in `backend_v2/tests/unit/scripts/test_audit_mutation_coverage.py` (10 tests) and precision trace assertions in `test_unified_engine.py` (`b1823341e`).
 - Step 3.7: Eradicated all remaining advisory AST warnings down to 0 warnings and 0 fatals across all 896 modules in `backend_v2`. Set `CURRENT_WARNING_CEILING = 0` in `scripts/audit_warning_baseline.py`. Verified `--verify-zero` (0 fatals, 0 warnings), strict AST guardrails (`_ast_guardrails.py backend_v2 --strict`), localized unit tests (141/141 passed in `test_ast_guardrails.py`, `test_audit_warning_baseline.py`, `test_audit_mutation_coverage.py`), and the full 8-stage global `backend_audit_loop.py backend_v2/` quality gate with 100% pass rate.
+- Phase 3 Audit: Successfully executed Tier 8 plan audit; 100% mutant kill rate verified (13/13 TopologicalEvaluator, 25/25 UnifiedScoringEngine), 0 AST violations, 0 baseline warnings, and 8-stage global quality gate passed (4,810 tests passed, 96.80% coverage). Resolved minor test assertion regressions in `test_scripts_cli_help.py` (canonical script count 28), `test_matrix_explanation_service.py` (`isinstance` on Annotated alias), and `test_main.py` (state attribute assertion).
 
 ## Learned
 - LiteLLM Exception Re-export Parity: When running with `mypy --strict`, LiteLLM exceptions must be imported directly from `litellm.exceptions` (with domain exceptions disambiguated via `ServiceUnavailableError as LiteLLMServiceUnavailableError`) to prevent shadowing domain AppExceptions and avoiding `[attr-defined]` re-export errors.
@@ -249,13 +250,14 @@
 - Coverage Blindness in Mathematical Traces: `UnifiedScoringEngine` generated `linear_ratio`, `curved_ratio`, and detailed logs for `xai_log.engine_debug_trace` which were not asserted in pre-existing tests. Adding mathematical precision assertions for `linear_ratio` and `curved_ratio` killed 100% of arithmetic mutants (25/25).
 - Windows Terminal Unicode Charmap: Windows `cp1252` encoding throws `UnicodeEncodeError` on emojis like `\u2705`. Enforcing UTF-8 reconfiguration with fallback ASCII badges (`[PASS]`, `[FAIL]`) ensures bulletproof cross-platform CLI output.
 - AST Type Annotation Exclusion: Python 3.10+ union annotations like `CausalEdge | None` are parsed as `ast.BinOp(op=ast.BitOr())`. Mutation engines targeting arithmetic operators must explicitly exclude `AnnAssign.annotation` and function definitions annotations to avoid corrupting type signatures.
+- Concurrent AST Mutation Isolation: AST mutation testing mutates physical source files on disk. Running multiple mutation testing processes or test runners in parallel causes file write contention where one process reads another process's temporary mutant as original code. Mutation runs must execute in clean serial isolation.
 
 ## Remaining
-- Phase 3 Audit: Run `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
+- Phase 4: Create Plan: Run `/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4`.
 
 ## Resume Command
 ```powershell
-/tier8-audit-plan @[docs/epic/tasks_EPIC_156/03_phase3_plan.md] @[docs/epic/EPIC_156_tracker.md]
+/tier0-create-plan @[docs/epic/EPIC_156_Universal_AST_Strictness_and_Advisory_Warning_Eradication.md] @[docs/epic/tasks_EPIC_156/04_phase4_plan.md] @[docs/epic/EPIC_156_tracker.md] --phase=4
 ```
 
 
