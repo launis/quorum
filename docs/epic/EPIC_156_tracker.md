@@ -223,7 +223,7 @@
 | Strategic alignment check across domain model warning baselines and mutation invariance | Section 3, Step 3.0 | Phase 3, Step 0 | [x] Verified |
 | Clean and lock QGR020 mutable defaults and duplicate Field() assignments across domain models | Section 3, Step 3.1 | Phase 3, Step 3.1 | [x] Verified |
 | Clean and lock QGR012 duck-typing isinstance(..., Mapping) cascades across services | Section 3, Step 3.2 | Phase 3, Step 3.2 | [x] Verified |
-| Clean and lock QGR016 ternary lazy fallbacks and falsy or chains across providers and repositories | Section 3, Step 3.3 | Phase 3, Step 3.3 | [ ] Pending |
+| Clean and lock QGR016 ternary lazy fallbacks and falsy or chains across providers and repositories | Section 3, Step 3.3 | Phase 3, Step 3.3 | [x] Verified |
 | Clean and lock QGR002 chained dictionary .get() lookups in tests and domain code | Section 3, Step 3.4 | Phase 3, Step 3.4 | [ ] Pending |
 | Clean and lock residual rules (QGR001 reflection, QGR019 dict.pop, QGR003 exception swallowing, QGR010 naive datetime) | Section 3, Step 3.5 | Phase 3, Step 3.5 | [ ] Pending |
 | Implement automated AST mutation testing engine in `scripts/audit_mutation_coverage.py` asserting 100% mutant kill rate | Section 3, Step 3.6 | Phase 3, Step 3.6 | [ ] Pending |
