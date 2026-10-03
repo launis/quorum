@@ -25,6 +25,7 @@ from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.state import TraceEvent
 from backend_v2.models.view.sdui import ParagraphBlock
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers import VarianceExplanationResult, generate_profile_synthesis_and_pdf_task
 
 
@@ -82,7 +83,7 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
     # Enforce global offline strict mode for unit test isolation
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     mock_execution = ExecutionRecord(
@@ -194,7 +195,9 @@ async def test_worker_extracts_synthesis_from_trace(_mock_driver: AsyncMock, moc
 
 
 def _setup_mock_repo_for_metrics(
-    mock_repo: AsyncMock, trace_content_ling: dict[str, Any] | None, trace_content_det: dict[str, Any] | None
+    mock_repo: InMemoryBlueprintTransformerRepository,
+    trace_content_ling: dict[str, Any] | None,
+    trace_content_det: dict[str, Any] | None,
 ) -> None:
     trace_events = []
     if trace_content_ling is not None:
@@ -286,7 +289,7 @@ async def test_worker_synthesis_extracts_metrics_from_trace(
 ) -> None:
     """Test extracting extension metrics from execution trace during synthesis."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -339,7 +342,7 @@ async def test_worker_synthesis_extracts_metrics_for_coach_goodhart_step(
 ) -> None:
     """Test extracting extension metrics from modernized Coach/Goodhart step."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -390,7 +393,7 @@ async def test_worker_synthesis_missing_metrics_remains_none(
 ) -> None:
     """Test synthesis when extension metrics are missing from trace."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
@@ -412,7 +415,7 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
     """Test synthesis when extension metrics contain malformed score."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -454,7 +457,7 @@ async def test_worker_synthesis_malformed_metrics_remains_none(
 @patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock)
 async def test_worker_synthesis_metrics_no_step_metadata(_mock_driver: AsyncMock, mock_repo_class: AsyncMock) -> None:
     """Test synthesis when step metadata is missing from detector output."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -488,7 +491,7 @@ async def test_worker_synthesis_metrics_no_task_blueprint_in_metadata(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
     """Test synthesis when task_blueprint is missing from step metadata."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -582,7 +585,7 @@ async def test_worker_synthesis_matrix_layout_directives(
     """Test that matrix synthesis groups strictly execute based on profile-level directives matching view_type."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
@@ -697,7 +700,7 @@ async def test_worker_synthesis_disabled_layout_omits_section_instruction(
     """Test that when matrix_synthesis_groups is empty, no group section instruction is generated."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
@@ -768,7 +771,7 @@ async def test_worker_synthesis_executive_summary_instruction_and_cache(
     """Test that executive summary instruction is generated and results are cached properly."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
@@ -849,7 +852,7 @@ async def test_worker_synthesis_multi_section_aggregation(
     """Test that multiple SynthesisSectionDTO items for a matrix group are aggregated into sec_dict[group_id]."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
@@ -936,7 +939,7 @@ async def test_worker_synthesis_empty_sections_not_set_in_cache(
     """Negative Test: Verify that when matrix sections or content_blocks are empty, no key is set in sec_dict."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(mock_repo, trace_content_ling=None, trace_content_det=None)
 
@@ -1005,10 +1008,13 @@ async def test_worker_synthesis_custom_directives_resolution(
     _mock_driver: AsyncMock,
     mock_repo_class: AsyncMock,
 ) -> None:
-    """Test that custom row, XAI, and variance directives configured in profile are dynamically compiled and injected into prompts."""
+    """Test custom row, XAI, and variance directives configured in profile.
+
+    Verifies they are dynamically compiled and injected into prompts.
+    """
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
     _setup_mock_repo_for_metrics(
         mock_repo,
@@ -1107,7 +1113,7 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
 ) -> None:
     """Test that missing variance_target_block when variance is active raises fail-fast AppException."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -1147,9 +1153,12 @@ async def test_worker_synthesis_missing_variance_target_block_raises_configurati
 async def test_worker_synthesis_unevaluated_target_block_handled_gracefully(
     _mock_driver: AsyncMock, mock_repo_class: AsyncMock
 ) -> None:
-    """Test that if the configured target block was never evaluated in the trace, synthesis succeeds without variance metrics."""
+    """Test unevaluated target block in trace.
+
+    If target block was never evaluated in the trace, synthesis succeeds without variance metrics.
+    """
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(
@@ -1185,7 +1194,7 @@ async def test_worker_synthesis_extracts_user_role_from_target_block_determinist
 ) -> None:
     """Test that when user_role_target_block is set, user_role is extracted deterministically from trace."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo_class.return_value = mock_repo
 
     _setup_mock_repo_for_metrics(

@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from backend_v2.models.enums import ExecutionStatus
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers import execute_workflow_job
 
 
@@ -14,7 +15,7 @@ async def test_worker_preserves_models_used() -> None:
     """
     # 1. Arrange Mocks
     mock_engine = AsyncMock()
-    mock_repository = AsyncMock()
+    mock_repository = InMemoryBlueprintTransformerRepository()
     mock_redis = AsyncMock()
 
     ctx = {"engine": mock_engine, "repository": mock_repository, "redis": mock_redis}

@@ -29,24 +29,12 @@ class DummyModel(BaseModel):
     name: str
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
-def mock_repository() -> MagicMock:
-    repo = MagicMock()
-    repo.get_model_registry = AsyncMock(
-        return_value={
-            "models": {
-                "fast": {
-                    "provider": "lite_llm",
-                    "model_name": "gpt-4o-mini",
-                    "temperature": 0.2,
-                    "max_tokens": 1000,
-                    "is_active": True,
-                    "tpm_limit": 10000,
-                    "rpm_limit": 1000,
-                }
-            }
-        }
-    )
+def mock_repository() -> Any:
+    repo = InMemoryBlueprintTransformerRepository()
     return repo
 
 

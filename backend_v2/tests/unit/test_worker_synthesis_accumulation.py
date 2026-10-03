@@ -16,13 +16,14 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.workers import generate_profile_synthesis_and_pdf_task
 
 
-def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
+def _setup_mock_repo(fake_repo: InMemoryBlueprintTransformerRepository, execution: ExecutionRecord) -> None:
     """Helper to populate repository mock data matching test_worker_synthesis conventions."""
-    mock_repo.get_execution.return_value = execution
-    mock_repo.get_workflow_by_id.return_value = {
+    fake_repo.get_execution.return_value = execution
+    fake_repo.get_workflow_by_id.return_value = {
         "id": "wf_1234567812345678",
         "slug": "test_workflow",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -41,8 +42,8 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
             return {"id": "sp_1234567812345678", "type": "logic", "hook": "text_consolidation_hook"}
         return None
 
-    mock_repo.get_step_by_id.side_effect = mock_get_step_by_id
-    mock_repo.get_all_steps.return_value = [
+    fake_repo.get_step_by_id.side_effect = mock_get_step_by_id
+    fake_repo.get_all_steps.return_value = [
         {
             "id": "sp_1234567812345678",
             "slug": "synthesis_step",
@@ -60,7 +61,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "tpm_limit": 100000,
         "rpm_limit": 1000,
     }
-    mock_repo.get_model_registry.return_value = {
+    fake_repo.get_model_registry.return_value = {
         "id": "sys_1111222233334444",
         "name": "Default Test Registry",
         "type": "model_registry",
@@ -73,7 +74,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
             "reasoning": profile,
         },
     }
-    mock_repo.get_all_prompt_blocks.return_value = [
+    fake_repo.get_all_prompt_blocks.return_value = [
         {
             "id": "pb_1111111111111111",
             "slug": "system_prompt",
@@ -83,7 +84,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
             "category_id": "system_rule",
         }
     ]
-    mock_repo.get_prompt_block.return_value = {
+    fake_repo.get_prompt_block.return_value = {
         "id": "pb_2222222222222222",
         "slug": "synthesis_prompt",
         "type": "instruction",
@@ -92,7 +93,7 @@ def _setup_mock_repo(mock_repo: AsyncMock, execution: ExecutionRecord) -> None:
         "ai_description": "You are an AI.",
         "category_id": "system_rule",
     }
-    mock_repo.get_output_profile_by_id.return_value = {
+    fake_repo.get_output_profile_by_id.return_value = {
         "slug": "test_slug",
         "workflow_id": "wf_1234567812345678",
         "name": {"translations": {"en": "Test", "fi": "Test"}},
@@ -122,8 +123,8 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
     """Test that consecutive synthesis runs accumulate costs and tokens monotonically without losing DAG costs."""
     get_settings().use_mock_llm = True
 
-    mock_repo = AsyncMock()
-    mock_repo_class.return_value = mock_repo
+    fake_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo_class.return_value = fake_repo
 
     mock_record_initial = ExecutionRecord(
         id="exe_1234567812345678",
@@ -149,7 +150,7 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
         ],
     )
 
-    _setup_mock_repo(mock_repo, mock_record_initial)
+    _setup_mock_repo(fake_repo, mock_record_initial)
 
     # --- Run 1: First Synthesis Execution ---
     await generate_profile_synthesis_and_pdf_task(
@@ -167,7 +168,7 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
                     return args[1]
         raise AssertionError("No ExecutionUpdateDTO with cumulative_synthesis_tokens found")
 
-    update_dto1 = _find_synthesis_update(mock_repo.update_execution.call_args_list)
+    update_dto1 = _find_synthesis_update(fake_repo.update_execution.call_args_list)
 
     run1_tokens = update_dto1.cumulative_synthesis_tokens
     run1_cost = update_dto1.cumulative_synthesis_cost
@@ -187,8 +188,8 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
             "cost_estimate": run1_estimate,
         }
     )
-    mock_repo.get_execution.return_value = mock_record_after_run1
-    mock_repo.update_execution.reset_mock()
+    fake_repo.get_execution.return_value = mock_record_after_run1
+    fake_repo.update_execution.reset_mock()
 
     await generate_profile_synthesis_and_pdf_task(
         execution_id="exe_1234567812345678",
@@ -197,7 +198,7 @@ async def test_worker_synthesis_accumulates_costs_monotonically(
         redis=None,
     )
 
-    update_dto2 = _find_synthesis_update(mock_repo.update_execution.call_args_list)
+    update_dto2 = _find_synthesis_update(fake_repo.update_execution.call_args_list)
 
     run2_tokens = update_dto2.cumulative_synthesis_tokens
     run2_cost = update_dto2.cumulative_synthesis_cost

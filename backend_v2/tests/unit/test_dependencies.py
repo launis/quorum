@@ -13,11 +13,12 @@ from backend_v2.api.dependencies import (
 from backend_v2.exceptions import AuthenticationError
 from backend_v2.models.auth import TokenData, UserRole
 from backend_v2.settings import Settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
-def mock_repo() -> Any:
-    return AsyncMock()
+def fake_repo() -> InMemoryBlueprintTransformerRepository:
+    return InMemoryBlueprintTransformerRepository()
 
 
 @pytest.fixture
@@ -25,8 +26,8 @@ def mock_settings() -> Any:
     return Settings(use_firebase_auth=False)
 
 
-def test_get_auth_service(mock_repo: Any, mock_settings: Any) -> None:
-    auth_service = get_auth_service(repo=mock_repo, settings=mock_settings)
+def test_get_auth_service(fake_repo: InMemoryBlueprintTransformerRepository, mock_settings: Any) -> None:
+    auth_service = get_auth_service(repo=fake_repo, settings=mock_settings)
     assert auth_service is not None
 
 
@@ -69,11 +70,11 @@ async def test_get_current_user_from_header_token_query() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_studio_simulation_service(mock_repo: Any) -> None:
+async def test_get_studio_simulation_service() -> None:
     """Test get_studio_simulation_service injection."""
     service = await get_studio_simulation_service(
         prompt_block_service=AsyncMock(),
-    )  # noqa: E501
+    )
     assert service is not None
     assert service.prompt_block_service is not None
 
@@ -167,47 +168,41 @@ async def test_service_factory_dependencies() -> None:
     )
 
     mock_driver = MagicMock()
-    mock_identity_repo = AsyncMock()
-    mock_audit_repo = AsyncMock()
-    mock_comp_repo = AsyncMock()
-    mock_workflow_repo = AsyncMock()
-    mock_output_profile_repo = AsyncMock()
-    mock_prompt_block_repo = AsyncMock()
-    mock_system_repo = AsyncMock()
+    fake_repo = InMemoryBlueprintTransformerRepository()
 
-    usage_svc = get_usage_service(identity_repo=mock_identity_repo, audit_repo=mock_audit_repo)
+    usage_svc = get_usage_service(identity_repo=fake_repo, audit_repo=fake_repo)
     assert usage_svc is not None
 
-    export_svc = await get_export_service(comp_repo=mock_comp_repo)
+    export_svc = await get_export_service(comp_repo=fake_repo)
     assert export_svc is not None
 
-    report_svc = await get_report_service(driver=mock_driver, comp_repo=mock_comp_repo)
+    report_svc = await get_report_service(driver=mock_driver, comp_repo=fake_repo)
     assert report_svc is not None
 
     wf_svc = await get_studio_workflow_service(
-        workflow_repo=mock_workflow_repo,
-        output_profile_repo=mock_output_profile_repo,
-        prompt_block_repo=mock_prompt_block_repo,
-        system_repo=mock_system_repo,
+        workflow_repo=fake_repo,
+        output_profile_repo=fake_repo,
+        prompt_block_repo=fake_repo,
+        system_repo=fake_repo,
     )
     assert wf_svc is not None
 
     pb_svc = await get_studio_prompt_block_service(
-        prompt_block_repo=mock_prompt_block_repo,
-        system_repo=mock_system_repo,
+        prompt_block_repo=fake_repo,
+        system_repo=fake_repo,
     )
     assert pb_svc is not None
 
     op_svc = await get_studio_output_profile_service(
-        output_profile_repo=mock_output_profile_repo,
+        output_profile_repo=fake_repo,
         workflow_service=wf_svc,
     )
     assert op_svc is not None
 
-    sys_svc = await get_studio_system_config_service(system_repo=mock_system_repo)
+    sys_svc = await get_studio_system_config_service(system_repo=fake_repo)
     assert sys_svc is not None
 
-    handler = get_llm_handler(repo=mock_comp_repo)
+    handler = get_llm_handler(repo=fake_repo)
     assert handler is not None
 
     mock_request = MagicMock()
@@ -215,29 +210,28 @@ async def test_service_factory_dependencies() -> None:
     assert get_arq_pool(request=mock_request) is not None
 
     mock_compiler = MagicMock()
-    mock_exec_repo = AsyncMock()
     dag_executor = await get_dag_executor(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        component_repo=mock_comp_repo,
-        identity_repo=mock_identity_repo,
-        audit_repo=mock_audit_repo,
-        system_repo=mock_system_repo,
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        component_repo=fake_repo,
+        identity_repo=fake_repo,
+        audit_repo=fake_repo,
+        system_repo=fake_repo,
         prompt_compiler=mock_compiler,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
     )
     assert dag_executor is not None
 
     exec_service = await get_execution_service(
-        exec_repo=mock_exec_repo,
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        identity_repo=mock_identity_repo,
-        system_repo=mock_system_repo,
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        comp_repo=fake_repo,
+        identity_repo=fake_repo,
+        system_repo=fake_repo,
         usage_service=usage_svc,
         executor=dag_executor,
-        prompt_block_repo=mock_prompt_block_repo,
-        output_profile_repo=mock_output_profile_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
     )
     assert exec_service is not None

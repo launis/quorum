@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from pydantic import BaseModel
 
@@ -1758,21 +1758,15 @@ class DynamicRepoMethod:
     @side_effect.setter
     def side_effect(self, val: Any) -> None:
         self._side_effect = val
+        self._mock.side_effect = val
 
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        self._mock(*args, **kwargs)
         if self._side_effect is not None:
-            if isinstance(self._side_effect, type) and issubclass(self._side_effect, BaseException):
-                raise self._side_effect()
-            if isinstance(self._side_effect, BaseException):
-                raise self._side_effect
-            if callable(self._side_effect):
-                res = self._side_effect(*args, **kwargs)
-            else:
-                res = self._side_effect
+            res = self._mock(*args, **kwargs)
             if asyncio.iscoroutine(res):
                 return await res
             return res
+        self._mock(*args, **kwargs)
         if self._has_return_value:
             res = self._mock.return_value
             if asyncio.iscoroutine(res):
@@ -1880,6 +1874,9 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
         self.append_trace_event = DynamicRepoMethod("append_trace_event", super().append_trace_event)
         self.delete_execution = DynamicRepoMethod("delete_execution", super().delete_execution)
         self.get_model_registry = DynamicRepoMethod("get_model_registry", super().get_model_registry)
+        self.get_all_model_registries = DynamicRepoMethod(
+            "get_all_model_registries", super().get_all_model_registries
+        )
         self.save_report_artifact = DynamicRepoMethod("save_report_artifact", super().save_report_artifact)
         self.create_report_artifact = DynamicRepoMethod("create_report_artifact", super().create_report_artifact)
         self.get_report_artifact = DynamicRepoMethod("get_report_artifact", super().get_report_artifact)
@@ -1888,5 +1885,20 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
         )
         self.update_report_artifact = DynamicRepoMethod("update_report_artifact", super().update_report_artifact)
         self.delete_report_artifact = DynamicRepoMethod("delete_report_artifact", super().delete_report_artifact)
+
+        for attr_name in dir(self):
+            if not attr_name.startswith("_") and attr_name not in self.__dict__:
+                val = getattr(self, attr_name)
+                if callable(val) and not isinstance(val, type):
+                    self.__dict__[attr_name] = DynamicRepoMethod(attr_name, val)
+
+    def __getattr__(self, name: str) -> Any:
+        """Dynamically synthesize a DynamicRepoMethod for un-mocked repo calls."""
+        if name.startswith("_"):
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{name}'")
+        method = DynamicRepoMethod(name, None)
+        self.__dict__[name] = method
+        return method
+
 
 

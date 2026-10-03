@@ -18,6 +18,7 @@ from backend_v2.models.enums import ExecutionStatus
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 from backend_v2.tests.unit.test_worker_dlq_fallback import (
     test_render_profile_job_catches_service_unavailable_error,
 )
@@ -141,7 +142,7 @@ async def test_startup() -> None:
     """Verify worker startup initializes repos, registries, and context dependencies."""
     with patch("backend_v2.worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             with patch("backend_v2.worker.LLMClient"):
                 with patch("backend_v2.worker.PromptCompilerAdapter"):
@@ -156,7 +157,7 @@ async def test_startup() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_not_found() -> None:
     """Negative test: verify workflow not found routes to DLQ and marks failed."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = None
 
     mock_engine = AsyncMock()
@@ -170,7 +171,7 @@ async def test_execute_workflow_job_not_found() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_execution_missing_in_db() -> None:
     """Negative test: verify missing execution record in DB triggers Fail-Fast."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -194,7 +195,7 @@ async def test_execute_workflow_job_execution_missing_in_db() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_missing_strictness_level() -> None:
     """Negative test: verify missing strictness level triggers Fail-Fast AppException."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -225,7 +226,7 @@ async def test_execute_workflow_job_missing_strictness_level() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> None:
     """Verify execute_workflow_job fails fast when target_locale is missing in metadata."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "slug": "wf-1",
@@ -264,7 +265,7 @@ async def test_execute_workflow_job_missing_target_locale_raises_fail_fast() -> 
 @pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled() -> None:
     """Verify execute_workflow_job handles asyncio.CancelledError gracefully."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.side_effect = asyncio.CancelledError()
 
     ctx: dict[str, Any] = {"repository": mock_repo, "engine": AsyncMock()}
@@ -275,7 +276,7 @@ async def test_execute_workflow_job_cancelled() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_failure_update_error() -> None:
     """Negative test: verify execute_workflow_job logs error when failure update raises exception."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.side_effect = RuntimeError("Initial crash")
     mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
 
@@ -287,7 +288,7 @@ async def test_execute_workflow_job_failure_update_error() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_cancelled_update_error() -> None:
     """Negative test: verify execute_workflow_job logs error when cancellation update raises exception."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.side_effect = asyncio.CancelledError()
     mock_repo.update_execution.side_effect = RuntimeError("DB write crash")
 
@@ -299,7 +300,7 @@ async def test_execute_workflow_job_cancelled_update_error() -> None:
 @pytest.mark.asyncio
 async def test_execute_workflow_job_success_with_metrics_and_no_redis() -> None:
     """Verify execute_workflow_job extracts trace metrics and updates status to PASSED when redis is absent."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -468,7 +469,7 @@ async def test_generate_pdf_task_execution_not_found() -> None:
     """Verify generate_pdf_task skips processing when execution does not exist in repo."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
 
@@ -481,7 +482,7 @@ async def test_generate_pdf_task_success_path() -> None:
     """Verify generate_pdf_task happy path: builds DTO, creates PDF, saves to storage, updates execution."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -523,7 +524,7 @@ async def test_generate_pdf_task_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches failure and updates execution status to FAILED."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -557,7 +558,7 @@ async def test_generate_profile_synthesis_and_pdf_task_not_found() -> None:
     """Verify generate_profile_synthesis_and_pdf_task gracefully exits when execution missing."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
             mock_repo.get_execution.return_value = None
 
@@ -583,7 +584,7 @@ async def test_generate_profile_synthesis_and_pdf_task_already_cached(
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -622,7 +623,7 @@ async def test_generate_profile_synthesis_and_pdf_task_succeeds_without_synthesi
     mock_redis = AsyncMock()
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -681,7 +682,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
     """Negative test: verify visible extensions with missing max_extension_items triggers AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -741,13 +742,16 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_max_extension_ite
 async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
     mock_worker_report_service: MagicMock,
 ) -> None:
-    """Verify complete end-to-end execution of generate_profile_synthesis_and_pdf_task with synthesis, row explanations, and variance."""
+    """Verify complete end-to-end execution of generate_profile_synthesis_and_pdf_task.
+
+    Includes synthesis, row explanations, and variance.
+    """
     get_settings().use_mock_llm = True
     mock_redis = AsyncMock()
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -888,7 +892,7 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
 @pytest.mark.asyncio
 async def test_execute_workflow_job_with_redis_enqueues_render_job() -> None:
     """Verify execute_workflow_job enqueues render_profile_job and updates status to RUNNING when redis is present."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -958,7 +962,7 @@ async def test_generate_profile_synthesis_and_pdf_task_dynamic_score_calculation
 
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -1098,7 +1102,7 @@ async def test_generate_profile_synthesis_and_pdf_task_database_failure_raises()
     """Negative test: verify database update failure in synthesis task raises AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.side_effect = RuntimeError("DB connection lost")
@@ -1114,7 +1118,7 @@ async def test_generate_profile_synthesis_and_pdf_task_missing_workflow_raises_a
     """Negative test: verify missing workflow in synthesis task raises Fail-Fast AppException."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -1148,7 +1152,7 @@ async def test_generate_pdf_task_app_exception_handling() -> None:
     """Negative test: verify generate_pdf_task catches AppException and re-raises with execution update."""
     with patch("backend_v2.workers.report_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.report_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -1184,7 +1188,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
     """Tests that data starvation in trace short-circuits synthesis and saves starvation cache."""
     with patch("backend_v2.workers.synthesis_worker.get_driver", new_callable=AsyncMock):
         with patch("backend_v2.workers.synthesis_worker.UnifiedWorkflowRepository") as mock_repo_class:
-            mock_repo = AsyncMock()
+            mock_repo = InMemoryBlueprintTransformerRepository()
             mock_repo_class.return_value = mock_repo
 
             mock_repo.get_execution.return_value = {
@@ -1246,7 +1250,7 @@ async def test_generate_profile_synthesis_and_pdf_task_starvation_short_circuit(
 @pytest.mark.asyncio
 async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None:
     """Verify execute_workflow_job hydrates offloaded trace when in-memory trace lacks metadata."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -1358,7 +1362,7 @@ async def test_execute_workflow_job_hydrates_offloaded_trace_telemetry() -> None
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_recovers_dag_cost_when_zero() -> None:
     """Verify render_profile_job recovers DAG telemetry from blob if dag_cost_usd is 0."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -1478,7 +1482,7 @@ async def test_job_wrappers_call_tasks() -> None:
 async def test_generate_profile_synthesis_recovers_dag_cost_from_cost_estimate_fallback() -> None:
     """Verify DAG cost is recovered from cost_estimate - prev_cost when storage path is missing."""
     get_settings().use_mock_llm = True
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_workflow.return_value = {
         "id": "wf_1234567890123456",
         "name": "Test WF",
@@ -1606,7 +1610,7 @@ def _get_base_profile_dict() -> dict[str, Any]:
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_matrix_directive_skips_group() -> None:
     """Positive: Verify missing matrix synthesis directive skips group synthesis gracefully with a warning."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1652,7 +1656,7 @@ async def test_generate_profile_synthesis_missing_matrix_directive_skips_group()
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> None:
     """Positive: Verify missing XAI synthesis directive skips XAI synthesis gracefully with a warning."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1698,7 +1702,7 @@ async def test_generate_profile_synthesis_missing_xai_directive_skips_xai() -> N
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_row_explanation_directive_skips_row_explanations() -> None:
     """Positive: Verify missing row explanation directive skips row explanation synthesis gracefully."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1753,7 +1757,7 @@ async def test_generate_profile_synthesis_missing_row_explanation_directive_skip
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_state_delta_raises_app_exception() -> None:
     """Negative: Verify missing state_delta from distiller hook raises AppException."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1786,7 +1790,7 @@ async def test_generate_profile_synthesis_missing_state_delta_raises_app_excepti
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_exception() -> None:
     """Negative: Verify missing distilled_inputs from state_delta raises AppException."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",
@@ -1819,7 +1823,7 @@ async def test_generate_profile_synthesis_missing_distilled_inputs_raises_app_ex
 @pytest.mark.asyncio
 async def test_generate_profile_synthesis_no_profile_for_row_explanations_skips_gracefully() -> None:
     """Positive: Verify missing output profile when synthesizing row explanations skips gracefully with a warning."""
-    mock_repo = AsyncMock()
+    mock_repo = InMemoryBlueprintTransformerRepository()
     mock_repo.get_execution.return_value = {
         "id": "exe_1234567890123456",
         "workflow_id": "wf_1234567890123456",

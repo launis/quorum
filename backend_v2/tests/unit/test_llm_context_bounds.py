@@ -36,9 +36,12 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("backend_v2.llm.provider.apply_provider_pacing", AsyncMock())
 
 
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+
 @pytest.fixture
-def mock_repo() -> AsyncMock:
-    repo = AsyncMock()
+def mock_repo() -> InMemoryBlueprintTransformerRepository:
+    repo = InMemoryBlueprintTransformerRepository()
     repo.get_step_by_id.return_value = {
         "id": "stp_1234567890abcdef",
         "type": "llm",
@@ -141,7 +144,7 @@ def _create_workflow() -> Workflow:
 
 @pytest.mark.asyncio
 async def test_context_window_exceeded_error_maps_critical(
-    mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove ContextWindowExceededError maps to AGENT_EXECUTION_CRITICAL with Fail-Fast."""
     mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3})
@@ -205,7 +208,7 @@ async def test_context_window_exceeded_error_maps_critical(
 
 @pytest.mark.asyncio
 async def test_non_context_400_error_maps_malformed(
-    mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove Non-Context 400 Error maps to AGENT_RESPONSE_MALFORMED."""
     mock_settings = get_settings().model_copy(update={"llm_max_transient_retries": 3, "llm_max_schema_retries": 1})
@@ -264,7 +267,7 @@ async def test_non_context_400_error_maps_malformed(
 
 @pytest.mark.asyncio
 async def test_transient_503_error_triggers_resilience_loop(
-    mock_repo: AsyncMock, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
+    mock_repo: InMemoryBlueprintTransformerRepository, mock_compiler: AsyncMock, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Prove Transient 503 Error Path asserts mock call_count > 1 (Tenacity resilience loop triggered)."""
     mock_settings = get_settings().model_copy(

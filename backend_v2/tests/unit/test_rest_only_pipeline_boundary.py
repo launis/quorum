@@ -152,10 +152,11 @@ async def test_execution_worker_zero_report_side_effects() -> None:
         steps=[],
     )
 
-    mock_repo = MagicMock()
-    mock_repo.get_workflow = AsyncMock(return_value=mock_workflow)
-    mock_repo.get_execution = AsyncMock(return_value=mock_record)
-    mock_repo.update_execution = AsyncMock()
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+    fake_repo = InMemoryBlueprintTransformerRepository()
+    fake_repo.get_workflow.return_value = mock_workflow
+    fake_repo.get_execution.return_value = mock_record
 
     mock_engine = MagicMock()
     mock_engine.execute_workflow = AsyncMock(return_value=mock_record)
@@ -163,7 +164,7 @@ async def test_execution_worker_zero_report_side_effects() -> None:
     mock_redis = AsyncMock()
 
     ctx = {
-        "repository": mock_repo,
+        "repository": fake_repo,
         "engine": mock_engine,
         "preflight_service": MagicMock(run=AsyncMock()),
         "redis": mock_redis,
@@ -181,7 +182,7 @@ async def test_execution_worker_zero_report_side_effects() -> None:
     if hasattr(mock_redis, "enqueue_job"):
         assert not mock_redis.enqueue_job.called
     # Invariant: update_execution was called with status=PASSED
-    update_call = mock_repo.update_execution.call_args
+    update_call = fake_repo.update_execution.call_args
     assert update_call is not None
     assert update_call[0][1].status == ExecutionStatus.PASSED
 

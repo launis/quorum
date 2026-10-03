@@ -14,6 +14,7 @@ from backend_v2.exceptions import (
 from backend_v2.llm.client import LLMClient
 from backend_v2.models.enums import CognitiveTier, ExecutionProfile
 from backend_v2.models.llm import LLMMessageDTO
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 class DummyConfig(BaseModel):
@@ -437,13 +438,13 @@ async def test_client_run_chat_compiled_prompt(mock_create_provider: MagicMock) 
 @pytest.mark.asyncio
 @patch("backend_v2.llm.provider.LLMFactory.create_provider")
 async def test_from_tier_one_shot_execution_profile(
-    mock_create_provider: MagicMock, mock_repository: AsyncMock
+    mock_create_provider: MagicMock, fake_repository: InMemoryBlueprintTransformerRepository
 ) -> None:
     """Verify from_tier disables caching when ExecutionProfile.ONE_SHOT is requested."""
     mock_create_provider.return_value = AsyncMock()
     client = await LLMClient.from_tier(
         tier=CognitiveTier.FAST,
-        repository=mock_repository,
+        repository=fake_repository,
         execution_profile=ExecutionProfile.ONE_SHOT,
     )
     assert client.config is not None
@@ -571,7 +572,7 @@ from backend_v2.tests.unit.llm.test_llm_client_tiers import (
     TestLLMClientTiersFailFast as TestLLMClientTiersFailFast,
 )
 from backend_v2.tests.unit.llm.test_llm_client_tiers import (
-    mock_repository as mock_repository,
+    fake_repository as fake_repository,
 )
 
 
@@ -586,9 +587,9 @@ def test_client_properties_unconfigured() -> None:
 @pytest.mark.asyncio
 async def test_from_tier_query_failure_raises_configuration_error() -> None:
     """Verify repository query error bubbles up as ConfigurationError."""
-    mock_repo = MagicMock()
-    mock_repo.get_model_registry = AsyncMock(side_effect=ConnectionError("Database offline"))
-    mock_repo.get_all_model_registries = AsyncMock(side_effect=ConnectionError("Database offline"))
+    mock_repo = InMemoryBlueprintTransformerRepository()
+    mock_repo.get_model_registry.side_effect = ConnectionError("Database offline")
+    mock_repo.get_all_model_registries.side_effect = ConnectionError("Database offline")
     with pytest.raises(ConfigurationError, match="missing or query failed"):
         await LLMClient.from_tier(CognitiveTier.FAST, repository=mock_repo)
 

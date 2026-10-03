@@ -13,13 +13,14 @@ from backend_v2.models.domain.usage import PricingConfig, TokenUsage
 from backend_v2.models.llm import LLMMessageDTO
 from backend_v2.models.prompt import CompiledPrompt
 from backend_v2.services.usage_service import UsageService
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
 def usage_service() -> UsageService:
-    """Fixture providing a UsageService instance with mocked repositories."""
-    identity_repo = AsyncMock()
-    audit_repo = AsyncMock()
+    """Fixture providing a UsageService instance with in-memory repositories."""
+    identity_repo = InMemoryBlueprintTransformerRepository()
+    audit_repo = InMemoryBlueprintTransformerRepository()
     return UsageService(identity_repo=identity_repo, audit_repo=audit_repo)
 
 

@@ -14,6 +14,7 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
 from backend_v2.settings import get_settings
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture(autouse=True)
@@ -36,8 +37,8 @@ def mock_pacing_lock(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def mock_repo() -> AsyncMock:
-    repo = AsyncMock()
+def mock_repo() -> Any:
+    repo = InMemoryBlueprintTransformerRepository()
 
     def _mock_step_data() -> dict[str, Any]:
         return {

@@ -18,11 +18,12 @@ from backend_v2.models.auth import (
     UserUpdate,
 )
 from backend_v2.services.auth import AuthService, OrganizationRepository, UserRepository
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
 def mock_repo() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     return repo
 
 

@@ -12,11 +12,12 @@ from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.enums import ExecutionStatus
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
 def mock_repo() -> Any:
-    repo = AsyncMock()
+    repo = InMemoryBlueprintTransformerRepository()
     from backend_v2.models.domain.prompt_blocks import PromptBlockAdapter
     from backend_v2.models.enums import BlockDataType
 

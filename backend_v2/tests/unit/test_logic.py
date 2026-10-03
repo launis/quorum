@@ -6,21 +6,22 @@ import pytest
 from backend_v2.exceptions import AppException
 from backend_v2.services.orchestrator.strategies.base import StrategyDependencies
 from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.mark.asyncio
 async def test_logic_strategy_missing_blueprint() -> None:
-    repo = MagicMock()
+    fake_repo = InMemoryBlueprintTransformerRepository()
     compiler = MagicMock()
     deps = StrategyDependencies(
-        exec_repo=repo,
-        workflow_repo=repo,
-        comp_repo=repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo,
-        audit_repo=repo,
-        system_repo=repo,
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        comp_repo=fake_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
+        identity_repo=fake_repo,
+        audit_repo=fake_repo,
+        system_repo=fake_repo,
         prompt_compiler=compiler,
     )
     strategy = LogicNodeStrategy(deps=deps)
@@ -45,20 +46,20 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
     from backend_v2.models.state import StepOutputDTO
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
-    repo = AsyncMock()
+    fake_repo = InMemoryBlueprintTransformerRepository()
     # Mock get_step_by_id to return a valid step def
-    repo.get_step_by_id.return_value = {"id": "st_1234567890123456"}
+    fake_repo.get_step_by_id.return_value = {"id": "st_1234567890123456"}
 
     compiler = MagicMock()
     deps = StrategyDependencies(
-        exec_repo=repo,
-        workflow_repo=repo,
-        comp_repo=repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo,
-        audit_repo=repo,
-        system_repo=repo,
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        comp_repo=fake_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
+        identity_repo=fake_repo,
+        audit_repo=fake_repo,
+        system_repo=fake_repo,
         prompt_compiler=compiler,
     )
     strategy = LogicNodeStrategy(deps=deps)
@@ -113,19 +114,19 @@ async def test_logic_strategy_signature_parity() -> None:
     from backend_v2.models.domain.execution import FrozenContext
     from backend_v2.services.orchestrator.strategies.logic import LogicNodeStrategy
 
-    repo = AsyncMock()
-    repo.get_step_by_id.return_value = None
+    fake_repo = InMemoryBlueprintTransformerRepository()
+    fake_repo.get_step_by_id.return_value = None
 
     compiler = MagicMock()
     deps = StrategyDependencies(
-        exec_repo=repo,
-        workflow_repo=repo,
-        comp_repo=repo,
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=repo,
-        audit_repo=repo,
-        system_repo=repo,
+        exec_repo=fake_repo,
+        workflow_repo=fake_repo,
+        comp_repo=fake_repo,
+        prompt_block_repo=fake_repo,
+        output_profile_repo=fake_repo,
+        identity_repo=fake_repo,
+        audit_repo=fake_repo,
+        system_repo=fake_repo,
         prompt_compiler=compiler,
     )
     strategy = LogicNodeStrategy(deps=deps)

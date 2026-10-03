@@ -13,11 +13,12 @@ from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.enums import ExecutionStatus, HistoricalContextMode
 from backend_v2.models.state import ErrorTraceEvent, TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.fixture
-def mock_repo() -> AsyncMock:
-    repo = AsyncMock()
+def mock_repo() -> Any:
+    repo = InMemoryBlueprintTransformerRepository()
 
     repo.get_step_by_id.return_value = {
         "id": "stp_1234567890abcdef",
