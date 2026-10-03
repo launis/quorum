@@ -13,8 +13,6 @@ from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.domain.workflow import Workflow
 from backend_v2.models.state import TraceEvent
 from backend_v2.services.orchestrator.dag_executor import DAGExecutor
-
-
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 

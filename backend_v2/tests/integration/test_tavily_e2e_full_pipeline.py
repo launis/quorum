@@ -26,6 +26,7 @@ from backend_v2.hooks.source_verification_hook import source_verification_hook
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.hook_delta import ExternalEvidenceResultDTO
 from backend_v2.models.enums import TargetBlockType
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.view.sdui import MarkdownBlock
@@ -83,26 +84,24 @@ async def test_full_e2e_tavily_extraction_to_sdui_bibliography_live() -> None:
     assert hook_result.state_delta is not None
     assert hook_result.state_delta.metadata_updates is not None
 
-    metadata_dict = hook_result.state_delta.metadata_updates
-    assert isinstance(metadata_dict, dict)
-    assert "mcp_audit_traces" in metadata_dict
+    metadata_delta = hook_result.state_delta.metadata_updates
+    assert metadata_delta.mcp_audit_traces is not None
 
-    raw_traces = metadata_dict["mcp_audit_traces"]
+    raw_traces = metadata_delta.mcp_audit_traces
     assert isinstance(raw_traces, list)
     assert len(raw_traces) >= 1
 
-    # Convert raw trace dicts to typed MCPAuditTrace instances
+    # Map typed MCPAuditTrace instances
     audit_map: dict[str, MCPAuditTrace] = {}
-    for trace_data in raw_traces:
-        typed_trace = MCPAuditTrace.model_validate(trace_data)
+    for typed_trace in raw_traces:
         audit_map[typed_trace.id] = typed_trace
         assert typed_trace.tool_id == "mcp_tavily_search"
         assert len(typed_trace.source_urls) >= 1
         assert any(url.startswith("http") for url in typed_trace.source_urls)
 
     # 2. Pipeline Step 2: Verify Evidence XML for Step LLM Context
-    assert "external_evidence" in hook_result.state_delta.delta
-    evidence_xml = hook_result.state_delta.delta["external_evidence"]
+    assert isinstance(hook_result.state_delta.delta, ExternalEvidenceResultDTO)
+    evidence_xml = hook_result.state_delta.delta.external_evidence
     assert isinstance(evidence_xml, str)
     assert "<external_evidence>" in evidence_xml
     assert "<claim status=" in evidence_xml
@@ -194,8 +193,8 @@ async def test_full_e2e_tavily_empty_claims_skips_search_and_hides_sdui_block() 
     assert hook_result.success is True
     assert hook_result.state_delta is not None
 
-    metadata_dict = hook_result.state_delta.metadata_updates
-    traces = metadata_dict.get("mcp_audit_traces", []) if metadata_dict else []
+    metadata_delta = hook_result.state_delta.metadata_updates
+    traces = metadata_delta.mcp_audit_traces if (metadata_delta and metadata_delta.mcp_audit_traces) else []
     assert len(traces) == 0
 
     # Build SDUI with empty audit map

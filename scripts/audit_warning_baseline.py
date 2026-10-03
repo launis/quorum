@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import argparse
 import io
-import json
 import sys
 from collections import Counter
 from pathlib import Path
@@ -79,8 +78,7 @@ def generate_baseline_report(
 
     counts = Counter(v.rule_code for v in warnings)
     breakdown = [
-        RuleWarningStatDTO(rule_code=code, count=count)
-        for code, count in sorted(counts.items(), key=lambda x: x[0])
+        RuleWarningStatDTO(rule_code=code, count=count) for code, count in sorted(counts.items(), key=lambda x: x[0])
     ]
 
     effective_ceiling = 0 if verify_zero else ceiling
@@ -124,9 +122,7 @@ def format_report_table(report: BaselineLedgerReportDTO) -> str:
     if not report.is_clean_of_fatals:
         lines.append(f"❌ FAILED: Detected {report.fatal_count} fatal violations. All fatals must be 0.")
     elif not report.is_under_ceiling:
-        lines.append(
-            f"❌ FAILED: Warning count ({report.warning_count}) exceeds ceiling ({report.warning_ceiling})."
-        )
+        lines.append(f"❌ FAILED: Warning count ({report.warning_count}) exceeds ceiling ({report.warning_ceiling}).")
     else:
         lines.append("✅ PASSED: 0 fatal violations and warning count is within baseline ceiling.")
 

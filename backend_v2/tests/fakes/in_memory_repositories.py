@@ -878,10 +878,13 @@ class InMemorySystemRepository(BaseInMemoryRepository[AnySystemConfig], ISystemR
 
     async def get_all_model_registries(self) -> list[SystemConfigModelRegistry]:
         self._check_fault("get_all_model_registries")
-        return [
-            SystemConfigModelRegistry.model_validate(reg.model_dump(mode="python"), strict=False)
-            for reg in self._model_registries.values()
-        ]
+        seen_ids: set[str] = set()
+        result: list[SystemConfigModelRegistry] = []
+        for reg in self._model_registries.values():
+            if reg.id not in seen_ids:
+                seen_ids.add(reg.id)
+                result.append(SystemConfigModelRegistry.model_validate(reg.model_dump(mode="python"), strict=False))
+        return result
 
     async def update_model_registry(self, registry_data: SystemConfigModelRegistry) -> bool:
         self._check_fault("update_model_registry")
@@ -1761,22 +1764,19 @@ class DynamicRepoMethod:
         self._mock.side_effect = val
 
     async def __call__(self, *args: Any, **kwargs: Any) -> Any:
-        if self._side_effect is not None:
+        if self._side_effect is not None or self._has_return_value:
             res = self._mock(*args, **kwargs)
             if asyncio.iscoroutine(res):
                 return await res
             return res
-        self._mock(*args, **kwargs)
-        if self._has_return_value:
-            res = self._mock.return_value
-            if asyncio.iscoroutine(res):
-                return await res
-            return res
+        res = self._mock(*args, **kwargs)
+        if asyncio.iscoroutine(res):
+            await res
         if self._fallback:
-            res = self._fallback(*args, **kwargs)
-            if asyncio.iscoroutine(res):
-                return await res
-            return res
+            res_fb = self._fallback(*args, **kwargs)
+            if asyncio.iscoroutine(res_fb):
+                return await res_fb
+            return res_fb
         return None
 
     @property
@@ -1853,3 +1853,26 @@ class InMemoryBlueprintTransformerRepository(InMemoryUnifiedWorkflowRepository):
             dyn_methods[name] = method
             return method
         return val
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        """Sets attributes, synchronizing dynamic method replacements with _dynamic_methods."""
+        if name.startswith("_"):
+            super().__setattr__(name, value)
+            return
+        try:
+            dyn_methods = super().__getattribute__("_dynamic_methods")
+        except AttributeError:
+            super().__setattr__(name, value)
+            return
+        if isinstance(value, DynamicRepoMethod):
+            dyn_methods[name] = value
+        elif callable(value):
+            method = DynamicRepoMethod(name, value)
+            if hasattr(value, "return_value") or hasattr(value, "_mock_return_value"):
+                method.return_value = value.return_value
+            if hasattr(value, "side_effect") and value.side_effect is not None:
+                method.side_effect = value.side_effect
+            dyn_methods[name] = method
+        else:
+            dyn_methods.pop(name, None)
+            super().__setattr__(name, value)

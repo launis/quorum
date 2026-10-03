@@ -1,7 +1,6 @@
 """Test FastDev frozen instance override handling."""
 
 import os
-from unittest.mock import AsyncMock
 
 import pytest
 

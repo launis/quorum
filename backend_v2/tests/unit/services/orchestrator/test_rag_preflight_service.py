@@ -24,8 +24,6 @@ from backend_v2.services.orchestrator.rag_preflight_service import (
     RAGPreflightService,
     _extract_inputs_from_record,
 )
-
-
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 

@@ -41,7 +41,7 @@ def test_lazy_llm_unauthorized_override_failed() -> None:
             depends_on_tda_ids=[],
             short_circuit_reason_tda_ids=[],
         )
-    assert "source_quote is mandatory unless contextual_override is True" in str(exc.value)
+    assert "source_quote is mandatory unless contextual_override" in str(exc.value)
 
 
 def test_lazy_llm_spatial_anchoring_rules() -> None:

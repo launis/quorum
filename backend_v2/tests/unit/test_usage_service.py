@@ -19,9 +19,7 @@ def usage_service(fake_repo: InMemoryBlueprintTransformerRepository) -> UsageSer
 
 
 @pytest.mark.asyncio
-async def test_track_usage(
-    usage_service: UsageService, fake_repo: InMemoryBlueprintTransformerRepository
-) -> None:
+async def test_track_usage(usage_service: UsageService, fake_repo: InMemoryBlueprintTransformerRepository) -> None:
     # Setup mock to return cleanly
     fake_repo.log_usage.return_value = None
 
@@ -53,9 +51,7 @@ async def test_check_quota_system_root(
 
 
 @pytest.mark.asyncio
-async def test_check_quota_pass(
-    usage_service: UsageService, fake_repo: InMemoryBlueprintTransformerRepository
-) -> None:
+async def test_check_quota_pass(usage_service: UsageService, fake_repo: InMemoryBlueprintTransformerRepository) -> None:
     fake_repo.get_organization.return_value = Organization(
         id="org_1234abcd",
         name="Test Org",

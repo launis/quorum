@@ -21,6 +21,7 @@ from backend_v2.database.repositories.system import SystemRepositoryImpl
 from backend_v2.exceptions import ConfigurationError
 from backend_v2.models.domain.mcp import TavilySearchResult
 from backend_v2.models.domain.system_config import MCPAuditTrace
+from backend_v2.models.dtos.hook_delta import ExternalEvidenceResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.mcp.mcp_tool_loop import DISPATCHER
 from backend_v2.services.mcp.tavily_search_client import tavily_search
@@ -129,22 +130,20 @@ async def test_live_source_verification_hook_pipeline() -> None:
     assert result.state_delta is not None
     assert result.state_delta.metadata_updates is not None
 
-    metadata_dict = result.state_delta.metadata_updates
-    assert isinstance(metadata_dict, dict)
-    assert "mcp_audit_traces" in metadata_dict
+    metadata_delta = result.state_delta.metadata_updates
+    assert metadata_delta.mcp_audit_traces is not None
 
-    traces = metadata_dict["mcp_audit_traces"]
+    traces = metadata_delta.mcp_audit_traces
     assert isinstance(traces, list)
     assert len(traces) >= 1
 
     first_trace = traces[0]
-    assert isinstance(first_trace, dict)
-    assert first_trace["tool_id"] == "mcp_tavily_search"
-    assert isinstance(first_trace["source_urls"], list)
-    assert len(first_trace["source_urls"]) >= 1
+    assert first_trace.tool_id == "mcp_tavily_search"
+    assert isinstance(first_trace.source_urls, list)
+    assert len(first_trace.source_urls) >= 1
 
-    assert "external_evidence" in result.state_delta.delta
-    evidence_xml = result.state_delta.delta["external_evidence"]
+    assert isinstance(result.state_delta.delta, ExternalEvidenceResultDTO)
+    evidence_xml = result.state_delta.delta.external_evidence
     assert isinstance(evidence_xml, str)
     assert "<external_evidence>" in evidence_xml
     assert "</external_evidence>" in evidence_xml
@@ -156,6 +155,7 @@ async def test_live_tavily_search_missing_key_fail_fast() -> None:
     """Ensures ConfigurationError is raised when API key is missing."""
     with patch("backend_v2.services.mcp.tavily_search_client.get_settings") as mock_get:
         mock_get.return_value.tavily_api_key = None
+        mock_get.return_value.tavily_max_results = 5
         with pytest.raises(ConfigurationError) as exc_info:
             await tavily_search("Test query without key")
         assert "Tavily API key is not configured" in str(exc_info.value)

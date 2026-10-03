@@ -1,13 +1,15 @@
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from pydantic import BaseModel
 
 from backend_v2.exceptions import AgentExecutionError
 from backend_v2.llm.client import LLMClient
+from backend_v2.models.domain.system_config import ChatMessageDTO
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.llm_task_executor import LLMTaskExecutor
 from backend_v2.services.orchestrator.prompt_compiler import PromptCompiler
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 class MockLLMResponse:
@@ -29,17 +31,16 @@ class DummyModel(BaseModel):
     name: str
 
 
-from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
-
-
 @pytest.fixture
-def mock_repository() -> Any:
+def mock_repository() -> InMemoryBlueprintTransformerRepository:
     repo = InMemoryBlueprintTransformerRepository()
     return repo
 
 
 @pytest.mark.asyncio
-async def test_run_structured_task_self_healing_success(mock_repository: MagicMock) -> None:
+async def test_run_structured_task_self_healing_success(
+    mock_repository: InMemoryBlueprintTransformerRepository,
+) -> None:
     """Tests that the self-healing retry loop successfully catches a JSON error
     on the first attempt and successfully recovers with valid JSON on the second.
     """
@@ -70,7 +71,12 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
         patch("backend_v2.llm.adapters.adapter_factory.LLMCacheAdapterFactory.get_adapter") as mock_adapter,
     ):
         mock_adapter.return_value.prepare_provider_kwargs.return_value = {}
-        messages = [{"role": "user", "content": "Hello world this is a properly sized payload for testing"}]
+        messages = [
+            ChatMessageDTO(
+                role="user",
+                content="Hello world this is a properly sized payload for testing",
+            )
+        ]
 
         result, usage = await executor.execute_structured_task(
             client=client,
@@ -88,7 +94,9 @@ async def test_run_structured_task_self_healing_success(mock_repository: MagicMo
 
 
 @pytest.mark.asyncio
-async def test_run_structured_task_self_healing_exhaustion(mock_repository: MagicMock) -> None:
+async def test_run_structured_task_self_healing_exhaustion(
+    mock_repository: InMemoryBlueprintTransformerRepository,
+) -> None:
     """Tests that the self-healing circuit breaker triggers an AgentExecutionError
     if the maximum number of retries is exhausted with invalid schema outputs.
     """
@@ -125,7 +133,10 @@ async def test_run_structured_task_self_healing_exhaustion(mock_repository: Magi
             await executor.execute_structured_task(
                 client=client,
                 messages=[
-                    {"role": "user", "content": "Execute! This is a long enough payload to pass the fail-fast check"}
+                    ChatMessageDTO(
+                        role="user",
+                        content="Execute! This is a long enough payload to pass the fail-fast check",
+                    )
                 ],
                 response_model=DummyModel,
                 max_schema_retries=1,

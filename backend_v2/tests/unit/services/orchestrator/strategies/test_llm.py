@@ -14,8 +14,6 @@ from backend_v2.models.dtos.hook_state import ExecutionInputsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.llm import LLMProviderConfig
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-
-
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 

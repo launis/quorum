@@ -17,8 +17,6 @@ from backend_v2.models.dtos.hook_delta import ProjectedResultsDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.services.orchestrator.strategies.base import StrategyContext
 from backend_v2.services.orchestrator.strategies.llm import LLMNodeStrategy
-
-
 from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 

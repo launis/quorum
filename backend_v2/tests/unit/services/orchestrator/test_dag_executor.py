@@ -1809,9 +1809,7 @@ async def test_dag_executor_step_generated_schemas_merged_into_frozen_context(
 
 
 @pytest.mark.asyncio
-async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(
-    mock_repo: Any, mock_compiler: Any
-) -> None:
+async def test_node_executor_with_arq_pool_and_metadata_global_context_vars(mock_repo: Any, mock_compiler: Any) -> None:
     """Verify NodeExecutor accepts arq_pool and derives global_context_vars from metadata."""
     from backend_v2.models.enums import StepType
     from backend_v2.models.state import StateProjector

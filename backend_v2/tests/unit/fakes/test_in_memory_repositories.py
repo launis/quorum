@@ -93,7 +93,10 @@ async def test_in_memory_repo_fault_injection() -> None:
 
 @pytest.mark.asyncio
 async def test_in_memory_repo_snapshot_isolation() -> None:
-    """Retrieve model from repo, mutate local variable, re-fetch from repo: original stored model remains unmutated; repo.get(id) is not repo.get(id)."""
+    """Retrieve model from repo, mutate local variable, and re-fetch from repo.
+
+    Asserts that original stored model remains unmutated and repo.get(id) is not repo.get(id).
+    """
     repo = InMemoryWorkflowRepository()
     dto = WorkflowCreateDTO(slug="iso-slug", name="Snapshot Iso", description="Isolation Desc")
     wf_id = await repo.create_workflow(dto)

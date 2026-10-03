@@ -92,8 +92,12 @@ async def test_process_artifact_compilation_calls_synthesis_with_correct_argumen
     pos_args = call_args.args
     kwargs = call_args.kwargs
 
-    called_exec_id = kwargs["execution_id"] if "execution_id" in kwargs else (pos_args[0] if len(pos_args) > 0 else None)
-    called_lang = kwargs["accept_language"] if "accept_language" in kwargs else (pos_args[1] if len(pos_args) > 1 else None)
+    called_exec_id = (
+        kwargs["execution_id"] if "execution_id" in kwargs else (pos_args[0] if len(pos_args) > 0 else None)
+    )
+    called_lang = (
+        kwargs["accept_language"] if "accept_language" in kwargs else (pos_args[1] if len(pos_args) > 1 else None)
+    )
     called_profile_id = kwargs["profile_id"] if "profile_id" in kwargs else (pos_args[2] if len(pos_args) > 2 else None)
 
     assert called_exec_id == report.execution_id
