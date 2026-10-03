@@ -84,6 +84,8 @@ patch_pydantic_base_model_cache()
 # Removed global mock of backend_v2.llm.client to allow unit tests to run.
 
 os.environ["DISABLE_LOGFIRE"] = "true"
+os.environ["LOGFIRE_TOKEN"] = ""
+os.environ["OTEL_ENABLED"] = "false"
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 # Set environment to development so all automated tests run under the fast, deterministic profile
 os.environ["ENVIRONMENT"] = "development"
@@ -241,5 +243,3 @@ def pytest_terminal_summary(terminalreporter: Any, exitstatus: int, config: Any)
         )
         terminalreporter.write_line("   data/files/traces/latest_execution_trace.json", bold=True)
         terminalreporter.write_line("   Or query trace spans via Logfire MCP: query_spans or get_trace.", bold=True)
-
-

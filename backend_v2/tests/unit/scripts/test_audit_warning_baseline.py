@@ -9,7 +9,6 @@ import pytest
 
 from scripts._ast_guardrails import GuardrailSeverity, GuardrailViolation
 from scripts.audit_warning_baseline import (
-    CURRENT_WARNING_CEILING,
     BaselineLedgerReportDTO,
     RuleWarningStatDTO,
     format_report_table,

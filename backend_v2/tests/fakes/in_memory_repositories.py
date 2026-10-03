@@ -170,7 +170,7 @@ class InMemoryExecutionRepository(BaseInMemoryRepository[ExecutionRecord], IExec
 
     async def create_execution(self, execution_data: ExecutionCreateDTO) -> str:
         self._check_fault("create_execution")
-        exec_id = execution_data.id or f"exe_{uuid.uuid4().hex[:16]}"
+        exec_id = f"exe_{uuid.uuid4().hex[:16]}"
         data_dict = execution_data.model_dump(mode="python")
         data_dict["id"] = exec_id
         if "raw_inputs" not in data_dict or data_dict["raw_inputs"] is None:

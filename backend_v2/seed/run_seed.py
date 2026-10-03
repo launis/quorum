@@ -29,6 +29,7 @@ uv run python backend_v2/seed/run_seed.py all
 
 import argparse
 import asyncio
+import importlib.util
 import json
 import logging
 import shutil
@@ -37,7 +38,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import importlib.util
 from pydantic import BaseModel, ValidationError
 from tinydb import Query, TinyDB
 

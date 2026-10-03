@@ -16,8 +16,8 @@ import fitz
 from pydantic import ConfigDict, Field
 
 from backend_v2.exceptions import AppException, ErrorCodes
-from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 from backend_v2.models.core_base import V2CoreBase
+from backend_v2.models.domain.system_config import ChatHistoryDTO, ChatMessageDTO
 
 if TYPE_CHECKING:
     pass
@@ -596,11 +596,7 @@ class PdfChatExtractorService:
             raw_turns.append(RawTurnDTO(role=current_role, content="\n\n".join(current_content)))
 
         # Build ChatMessageDTO list
-        messages = [
-            ChatMessageDTO(role=turn.role, content=turn.content)
-            for turn in raw_turns
-            if turn.content.strip()
-        ]
+        messages = [ChatMessageDTO(role=turn.role, content=turn.content) for turn in raw_turns if turn.content.strip()]
 
         if not messages:
             logger.error("[PdfChatExtractorService] No conversational messages extracted from PDF.")

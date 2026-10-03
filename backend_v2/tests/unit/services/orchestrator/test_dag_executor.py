@@ -1125,7 +1125,9 @@ def test_dag_executor_mcp_audit_decision_event_invalid_payload_fails_fast() -> N
             mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
         )
 
-    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
+    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
+        exc_info.value
+    )
 
 
 @pytest.mark.asyncio

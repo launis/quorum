@@ -247,7 +247,4 @@ def test_distilled_matrix_payload_dto_valid_and_boundaries() -> None:
 
     # Negative boundary: extra fields forbidden
     with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
-        DistilledMatrixPayloadDTO.model_validate(
-            {"results": [{"atom_id": "atm_1"}], "unauthorized_extra": "forbidden"}
-        )
-
+        DistilledMatrixPayloadDTO.model_validate({"results": [{"atom_id": "atm_1"}], "unauthorized_extra": "forbidden"})

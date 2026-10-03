@@ -22,6 +22,5 @@ def test_build_phase_1_system_prompt() -> None:
     rendered = TemplateProcessor.render_prompt(tmpl)
     assert "ROLE: ATOM EXTRACTION SPECIALIST" in rendered
     assert "<execution_parameters>" in rendered
-    assert "<![CDATA[{\"entities\": [\"User\"]}]]>" in rendered
+    assert '<![CDATA[{"entities": ["User"]}]]>' in rendered
     assert "</execution_parameters>" in rendered
-

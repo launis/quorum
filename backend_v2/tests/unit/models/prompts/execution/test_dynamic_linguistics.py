@@ -46,4 +46,3 @@ def test_build_dynamic_performative_user_prompt() -> None:
     assert "<![CDATA[sample content <test>]]>" in rendered
     assert "</user_payload>" in rendered
     assert "</source_data>" in rendered
-

@@ -978,9 +978,7 @@ def test_extract_value_from_state_reduced_atom_dto_list() -> None:
             reasoning="Missing premise",
         ),
     ]
-    exec_inputs = ExecutionInputsDTO(
-        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": atoms}
-    )
+    exec_inputs = ExecutionInputsDTO(dynamic_inputs={"steps.matrix_reducer.reduced_atoms": atoms})
 
     result = compiler._extract_value_from_state("steps.matrix_reducer.reduced_atoms", exec_inputs)
     assert "tda_01" in result
@@ -991,9 +989,7 @@ def test_extract_value_from_state_reduced_atom_dto_list() -> None:
 def test_extract_value_from_state_reduced_atom_dto_list_empty_boundary() -> None:
     """Boundary partition: empty list of models should serialize to '[]' without error."""
     compiler = PromptCompiler()
-    exec_inputs = ExecutionInputsDTO(
-        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []}
-    )
+    exec_inputs = ExecutionInputsDTO(dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []})
 
     result = compiler._extract_value_from_state("steps.matrix_reducer.reduced_atoms", exec_inputs)
     assert result == "[]"
@@ -1002,14 +998,10 @@ def test_extract_value_from_state_reduced_atom_dto_list_empty_boundary() -> None
 def test_extract_value_from_state_missing_step_negative() -> None:
     """Negative partition: querying missing step in state raises AppException with VALIDATION_FAILED."""
     compiler = PromptCompiler()
-    exec_inputs = ExecutionInputsDTO(
-        dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []}
-    )
+    exec_inputs = ExecutionInputsDTO(dynamic_inputs={"steps.matrix_reducer.reduced_atoms": []})
 
     with pytest.raises(AppException) as exc_info:
         compiler._extract_value_from_state("steps.nonexistent.reduced_atoms", exec_inputs)
 
     assert exc_info.value.status_code == 400
     assert exc_info.value.details["error_code"] == ErrorCodes.VALIDATION_FAILED.value
-
-

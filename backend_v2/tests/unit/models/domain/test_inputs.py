@@ -201,4 +201,3 @@ def test_domain_input_value_accepts_reduced_atoms() -> None:
     )
     assert inputs.dynamic_inputs["single_reduced"] == atom
     assert inputs.dynamic_inputs["list_reduced"] == atoms_list
-

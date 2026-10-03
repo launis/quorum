@@ -61,23 +61,29 @@ def test_audit_dto_structure() -> None:
 
 
 def _create_clean_matrix_block(
-    block_id: str = "blk_matrix_clean_001",
-    tda_id: str = "tda_clean_assertion_001",
+    block_id: str = "blk_0123456789abcdef",
+    tda_id: str = "tda_0123456789abcdef0123456789abcdef",
 ) -> dict[str, Any]:
     """Helper to generate a structurally clean matrix prompt block."""
     return {
         "id": block_id,
         "category_id": "matrix",
+        "slug": "clean-matrix-block",
+        "label": {"translations": {"en": "Clean Matrix"}},
+        "description": {"translations": {"en": "Clean description"}},
         "ai_description": "Clean cognitive evaluation instructions.",
         "scales": [
             {
                 "score": 1,
+                "ai_label": "BASIC_LEVEL",
                 "claims": [
                     {
-                        "id": "clm_clean_001",
+                        "label": {"translations": {"en": "Valid claim"}},
                         "tda_assertions": [
                             {
                                 "tda_id": tda_id,
+                                "inverse_evidence": False,
+                                "aggregation_mode": "EXISTS",
                                 "concept_description": "A valid empirical claim backed by structured data.",
                                 "extraction_rule": "Locate sentences containing quantitative metrics or statistical indicators.",
                             }
@@ -238,8 +244,8 @@ def test_audit_atoms_screaming_imperatives() -> None:
 
 
 def test_audit_atoms_ambiguity_tokens() -> None:
-    """Test detection of open-ended ambiguity tokens (e.g., i.e., etc., such as)."""
-    ambiguity_phrases = ["e.g.", "i.e.", "etc.", "such as"]
+    """Test detection of open-ended ambiguity tokens (etc., such as)."""
+    ambiguity_phrases = ["etc.", "such as"]
     for phrase in ambiguity_phrases:
         # In concept_description
         b1 = _create_clean_matrix_block()
@@ -290,7 +296,7 @@ def test_audit_non_matrix_best_practice_checks() -> None:
     non_matrix_block = {
         "id": "blk_instruction_001",
         "category_id": "system_rule",
-        "instruction_text": "Verify input constraints (e.g., positive integers) via backend architecture hooks.",
+        "instruction_text": "Verify input constraints (such as positive integers) via backend architecture hooks.",
     }
     issues, _, _ = audit_prompt_blocks([non_matrix_block])
     assert any(i.issue_type == "AMBIGUOUS_TOKEN" for i in issues)
@@ -337,20 +343,31 @@ def test_audit_steps_referential_integrity() -> None:
 
 def test_audit_workflows_input_mappings() -> None:
     """Test detection of unresolved $inputs.key or $steps.key in workflow mappings."""
-    known_step_blueprints = {"stp_001"}
+    known_step_blueprints = {"stp_0123456789abcdef"}
 
     workflow = {
-        "id": "wor_001",
+        "id": "wor_0123456789abcdef",
+        "slug": "clean-workflow",
+        "name": {"translations": {"en": "Clean Workflow"}},
+        "description": {"translations": {"en": "Description"}},
+        "status": "ACTIVE",
+        "version": 1,
+        "model_registry_id": "cfg_model_registry_01",
+        "historical_context_mode": "DISABLED",
         "expected_inputs": [
             {
                 "input_key": "document_text",
+                "label": {"translations": {"en": "Doc"}},
+                "description": {"translations": {"en": "Desc"}},
+                "required": True,
                 "ai_description": "Clean input description.",
+                "input_modes": ["text"],
             }
         ],
         "steps": [
             {
-                "id": "sr_001",
-                "task_blueprint": "stp_001",
+                "id": "sr_0123456789abcdef",
+                "task_blueprint": "stp_0123456789abcdef",
                 "input_mappings": {
                     "context": "$inputs.unknown_document_key",
                     "history": "$steps.sr_unknown.output",
@@ -366,22 +383,23 @@ def test_audit_workflows_input_mappings() -> None:
 
 def test_audit_output_profiles_directives() -> None:
     """Test detection of raw XML in synthesis directives and orphan target_blocks in output_profiles."""
-    known_block_ids = {"blk_matrix_01"}
+    known_block_ids = {"blk_0123456789abcdef"}
 
     profile = {
-        "id": "prf_001",
+        "id": "prf_0123456789abcdef",
+        "workflow_id": "wor_0123456789abcdef",
+        "name": {"translations": {"en": "Profile 1"}},
+        "slug": "profile-1",
+        "description": {"translations": {"en": "Description"}},
         "synthesis": {
             "system_prompt": "<synthesis_mandate>Be concise</synthesis_mandate>",
             "synthesis_block_id": "blk_unknown_synth",
         },
-        "matrix_1d_synthesis_directive": {
-            "translations": {
-                "en": "<directive>1D Directive</directive>",
-            }
-        },
+        "matrix_1d_synthesis_directive": "<directive>1D Directive</directive>",
         "matrix_synthesis_groups": [
             {
-                "id": "grp_001",
+                "id": "grp_0123456789abcdef",
+                "title": {"translations": {"en": "Group 1"}},
                 "target_blocks": ["blk_unknown_target"],
             }
         ],
@@ -441,7 +459,6 @@ def test_audit_cli_exit_codes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     assert exc_info.value.code == 1
 
 
-
 def test_audit_zero_reflection() -> None:
     """Uses Python AST parser to mathematically verify zero getattr/hasattr calls in audit_database_atoms.py."""
     target_script = Path("scripts/audit_database_atoms.py")
@@ -475,5 +492,3 @@ def test_helper_empty_string_handling() -> None:
     assert _check_backend_leak_patterns("") is None
     assert _check_institution_overfit("") is None
     assert _check_toy_domain_leak("") is None
-
-

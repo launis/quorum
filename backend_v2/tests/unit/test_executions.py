@@ -78,7 +78,7 @@ async def test_start_execution(
 
     payload = ExecutionCreate.model_validate(
         {
-            "workflow_id": "wf_1",
+            "workflow_id": "wor_0123456789abcdef",
             "target_locale": "fi",
             "raw_inputs": {"dynamic_inputs": {"file1": "test"}},
         }
@@ -88,7 +88,7 @@ async def test_start_execution(
         id="exe_1234567890abcdef1234567890abcdef",
         output_profile_id="prof_1",
         status=ExecutionStatus.PENDING,
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )
@@ -130,7 +130,7 @@ async def test_resume_execution(
         id="exe_1234567890abcdef1234567890abcdef",
         output_profile_id="prof_1",
         status=ExecutionStatus.PENDING,
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )

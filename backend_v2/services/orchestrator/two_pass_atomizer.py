@@ -240,7 +240,9 @@ class TwoPassAtomizer:
                     return res
 
                 for idx, packet in enumerate(packets):
-                    tasks.append(tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx)))
+                    tasks.append(
+                        tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx))
+                    )
 
             for task in tasks:
                 atoms, chunk_usage = task.result()
@@ -417,7 +419,9 @@ class TwoPassAtomizer:
                     return res
 
                 for idx, packet in enumerate(packets):
-                    tasks.append(tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx)))
+                    tasks.append(
+                        tg.create_task(track_task(packet.start_block, packet.end_block, packet.packet_keys, idx))
+                    )
 
             for task in tasks:
                 result, chunk_usage = task.result()

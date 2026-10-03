@@ -31,8 +31,6 @@ logger = logging.getLogger(__name__)
 __all__ = ["LLMTaskExecutor"]
 
 
-
-
 def _validate_non_empty_payload(
     messages: Sequence[LLMMessageDTO | ChatMessageDTO] | CompiledPrompt | PromptContextDTO,
 ) -> None:

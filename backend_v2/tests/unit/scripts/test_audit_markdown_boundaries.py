@@ -459,7 +459,7 @@ def test_markdown_auditor_table_protocol_parity_clean(tmp_path: Path) -> None:
         "| **Context**<br>@[backend_v2/services/context.py] | No duct-tape | Strict DTO | Pruned | Tests |\n"
         "\n"
         "<execution_protocol>\n"
-        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        '  <step id="1" name="STEP_ONE">\n'
         "    <action>In @[backend_v2/models/state.py#L10-L20], update model.</action>\n"
         "    <action>In @[backend_v2/services/context.py], harden context.</action>\n"
         "  </step>\n"
@@ -483,7 +483,7 @@ def test_markdown_auditor_table_protocol_parity_mismatch(tmp_path: Path) -> None
         "| **Context Builder**<br>@[backend_v2/services/orchestrator/context_builder.py#L98-L101] | Banned del | Immutable dump | Pruned | Tests |\n"
         "\n"
         "<execution_protocol>\n"
-        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        '  <step id="1" name="STEP_ONE">\n'
         "    <action>In @[backend_v2/models/state.py#L10-L20], update model.</action>\n"
         "  </step>\n"
         "</execution_protocol>\n",
@@ -526,7 +526,7 @@ def test_markdown_auditor_table_protocol_parity_ignores_ki_files(tmp_path: Path)
         "| **State**<br>@[backend_v2/models/state.py]<br>@[ki_sdui_matrix_synthesis.md] | Banned duct-tape | Pydantic V2 | Pruned | Tests |\n"
         "\n"
         "<execution_protocol>\n"
-        "  <step id=\"1\" name=\"STEP_ONE\">\n"
+        '  <step id="1" name="STEP_ONE">\n'
         "    <action>In @[backend_v2/models/state.py], update state.</action>\n"
         "  </step>\n"
         "</execution_protocol>\n",

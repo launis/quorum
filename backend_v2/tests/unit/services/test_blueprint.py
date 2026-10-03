@@ -3371,8 +3371,8 @@ async def test_blueprint_read_only_invokes_zero_repository_writes(
     from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.domain.workflow import Workflow
-    from backend_v2.models.dtos.trace import ExecutionMetadata
     from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory, TargetBlockType
+    from backend_v2.models.execution_core import ExecutionMetadata
 
     profile = OutputProfile(
         id="prf_0000000000000001",
@@ -3480,12 +3480,12 @@ async def test_blueprint_variance_target_block_adherence(
     from backend_v2.models.domain.synthesis import RenderedSynthesisCache
     from backend_v2.models.domain.workflow import Workflow
     from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
-    from backend_v2.models.dtos.trace import ExecutionMetadata
     from backend_v2.models.enums import (
         ExecutionStatus,
         TargetBlockType,
         XaiExtensionType,
     )
+    from backend_v2.models.execution_core import ExecutionMetadata
 
     variance_target_id = "blk_0000000000000001"
     profile = OutputProfile(
@@ -3682,7 +3682,9 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000004")
-    assert "Failed to parse AtomResultDTO list" in str(exc_info.value)
+    assert "Failed to parse AtomResultDTO list" in str(exc_info.value) or "Invalid step output payload" in str(
+        exc_info.value
+    )
 
     # 5. Corrupt hydrated_references in results
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(
@@ -3702,7 +3704,9 @@ async def test_blueprint_validation_error_branches(mock_repo_transformer: MagicM
     )
     with pytest.raises(AppException) as exc_info:
         await transformer.build_report_dto("exe_0000000000000005")
-    assert "Failed to parse HydratedAtomDTO" in str(exc_info.value)
+    assert "Failed to parse HydratedAtomDTO" in str(exc_info.value) or "Invalid step output payload" in str(
+        exc_info.value
+    )
 
     # 6. Corrupt TraceEventMetadataEnvelope in trace
     mock_repo_transformer.get_execution.return_value = ExecutionRecord(

@@ -249,7 +249,7 @@ class ChatParserService:
                         details={"error_code": ErrorCodes.PARSING_FAILED.value, "anchor": turn.end_phrase},
                     ) from None
 
-                content = raw_paste[start_span.start:end_span.end].strip(" \t\r\n")
+                content = raw_paste[start_span.start : end_span.end].strip(" \t\r\n")
                 if content:
                     turns.append(ChatMessageDTO(role=turn.speaker, content=content))
                 current_pos = end_span.end

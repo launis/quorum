@@ -246,4 +246,3 @@ def test_unified_scoring_engine_xai_log_stats_key_stringification() -> None:
         assert isinstance(val, dict)
         assert "hits" in val
         assert "total" in val
-

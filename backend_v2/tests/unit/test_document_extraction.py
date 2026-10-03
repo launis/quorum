@@ -193,4 +193,3 @@ def test_extract_pdf_sync_sitra_conversation_no_segfault() -> None:
     assert '"role": "user"' in extracted_text or '"role":"user"' in extracted_text
     assert "Sitra" in extracted_text or "sitra" in extracted_text
     assert parsed_date is not None
-

@@ -555,5 +555,3 @@ def test_backend_audit_loop_runs_all_8_stages(mock_sub: MagicMock, mock_scan: Ma
         assert any("audit_database_atoms.py" in cmd for cmd in invoked_cmds)
         assert any("audit_clean_imports.py" in cmd for cmd in invoked_cmds)
         assert any("audit_dto_parity.py" in cmd for cmd in invoked_cmds)
-
-

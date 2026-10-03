@@ -43,6 +43,7 @@ __all__ = [
 ]
 
 _TELEMETRY_CONFIGURED: bool = False
+_INSTRUMENTED_APPS: set[int] = set()
 _ID_GENERATOR = RandomIdGenerator()
 
 
@@ -281,14 +282,18 @@ def configure_telemetry(
     """
     global _TELEMETRY_CONFIGURED
     if _TELEMETRY_CONFIGURED:
-        if app is not None and settings.logfire_token:
+        if app is not None and id(app) not in _INSTRUMENTED_APPS and settings.logfire_token:
             try:
                 import logfire
 
                 logfire.instrument_fastapi(app)
+                _INSTRUMENTED_APPS.add(id(app))
             except Exception as e:
-                logger.error("Failed to instrument FastAPI with Logfire: %s", e)
-                raise
+                if "already been instrumented" in str(e):
+                    _INSTRUMENTED_APPS.add(id(app))
+                else:
+                    logger.error("Failed to instrument FastAPI with Logfire: %s", e)
+                    raise
         return
     _TELEMETRY_CONFIGURED = True
 
@@ -316,8 +321,9 @@ def configure_telemetry(
             logfire.instrument_requests()
             logfire.instrument_system_metrics()
             logfire.instrument_litellm()
-            if app is not None:
+            if app is not None and id(app) not in _INSTRUMENTED_APPS:
                 logfire.instrument_fastapi(app)
+                _INSTRUMENTED_APPS.add(id(app))
             logger.info("Configured Pydantic Logfire cloud distributed tracing for %s", service_name)
         except (RuntimeError, ValueError, TypeError, AttributeError, ImportError, OSError) as e:
             logger.warning("Failed to configure Logfire cloud telemetry: %s", e)

@@ -68,10 +68,7 @@ class SchemaCompilerService:
         Returns:
             The dynamically generated Pydantic model class.
         """
-        fields: dict[str, Any] = {
-            spec.name: spec.to_field_definition()
-            for spec in fields_tuple
-        }
+        fields: dict[str, Any] = {spec.name: spec.to_field_definition() for spec in fields_tuple}
         return create_model(
             f"DynamicSchema_{schema_hash[:8]}",
             __config__=ConfigDict(extra="forbid", strict=True, frozen=True, populate_by_name=True),

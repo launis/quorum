@@ -193,4 +193,3 @@ def test_main_cli_all_with_trackers(tmp_path: Path, monkeypatch: pytest.MonkeyPa
     with pytest.raises(SystemExit) as exc_info:
         main(["--all"])
     assert exc_info.value.code == 1
-

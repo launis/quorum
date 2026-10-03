@@ -198,9 +198,7 @@ async def test_compile_and_persist_artifact() -> None:
     job_key = f"compile_report_{report.id}"
     arq_pool.delete.assert_awaited_once_with(f"arq:result:{job_key}")
     repo.update_report_artifact.assert_called_once()
-    arq_pool.enqueue_job.assert_called_once_with(
-        "generate_report_artifact_job", report_id=report.id, _job_id=job_key
-    )
+    arq_pool.enqueue_job.assert_called_once_with("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
 
 
 @pytest.mark.asyncio
@@ -413,9 +411,7 @@ async def test_regenerate_report_artifact_clears_stale_arq_result() -> None:
 
     job_key = f"compile_report_{report.id}"
     arq.delete.assert_awaited_once_with(f"arq:result:{job_key}")
-    arq.enqueue_job.assert_awaited_once_with(
-        "generate_report_artifact_job", report_id=report.id, _job_id=job_key
-    )
+    arq.enqueue_job.assert_awaited_once_with("generate_report_artifact_job", report_id=report.id, _job_id=job_key)
 
 
 @pytest.mark.asyncio
@@ -642,4 +638,3 @@ async def test_process_artifact_compilation_idempotent_when_ready() -> None:
     # Idempotency: repo.update_report_artifact is NEVER called when already ready and file exists
     repo.update_report_artifact.assert_not_called()
     storage.exists.assert_awaited_once_with("artifacts/reports/rep_123/report.pdf")
-

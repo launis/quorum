@@ -46,11 +46,7 @@ class SourceVerificationPayloadDTO(V2CoreBase):
             if candidate is not None and candidate.strip():
                 return candidate.strip()
         if self.extra_sections:
-            text_parts = [
-                str(v).strip()
-                for v in self.extra_sections.values()
-                if v is not None and str(v).strip()
-            ]
+            text_parts = [str(v).strip() for v in self.extra_sections.values() if v is not None and str(v).strip()]
             return "\n\n".join(text_parts).strip()
         return ""
 

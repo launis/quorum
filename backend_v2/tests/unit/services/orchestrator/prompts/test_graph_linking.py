@@ -24,8 +24,7 @@ def test_build_linker_user_prompt() -> None:
     assert isinstance(tmpl, Template)
     rendered = TemplateProcessor.render_prompt(tmpl)
     assert "<global_ontology_map>" in rendered
-    assert "<![CDATA[{\"entity\": \"User\"}]]>" in rendered
+    assert '<![CDATA[{"entity": "User"}]]>' in rendered
     assert "<claims_window>" in rendered
     assert "<![CDATA[[a0] Claim A\nQuote: Quote A]]>" in rendered
     assert "Analyze the claims in the window" in rendered
-

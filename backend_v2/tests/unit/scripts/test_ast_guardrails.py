@@ -1462,4 +1462,3 @@ async def sync_progress():
     violations = _scan_snippet(code, filepath="backend_v2/services/orchestrator/dag_executor.py")
     qgr025 = [v for v in violations if v.rule_code == "QGR025"]
     assert len(qgr025) == 0
-

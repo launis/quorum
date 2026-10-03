@@ -29,10 +29,28 @@ class SecurityPayloadDTO(V2CoreBase):
     root: Annotated[dict[str, Any], Field(default_factory=dict)]
 
     @classmethod
-    def model_validate(cls, data: Any) -> SecurityPayloadDTO:
-        if type(data) is dict:
-            return cls(root=data)
-        return super().model_validate(data)
+    def model_validate(
+        cls,
+        obj: Any,
+        *,
+        strict: bool | None = None,
+        from_attributes: bool | None = None,
+        context: Any | None = None,
+        by_alias: bool | None = None,
+        by_name: bool | None = None,
+        extra: Any | None = None,
+    ) -> SecurityPayloadDTO:
+        if type(obj) is dict:
+            return cls(root=obj)
+        return super().model_validate(
+            obj,
+            strict=strict,
+            from_attributes=from_attributes,
+            context=context,
+            by_alias=by_alias,
+            by_name=by_name,
+            extra=extra,
+        )
 
 
 class SanitizationResultDTO(V2CoreBase):

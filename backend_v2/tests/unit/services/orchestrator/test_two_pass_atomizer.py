@@ -204,7 +204,6 @@ def test_calculate_packets_dto_structure(mock_executor):
     assert packets[1].packet_keys == ["B2"]
 
 
-
 @pytest.mark.asyncio
 async def test_empty_packets_zero_llm_calls_short_circuit(mock_executor, mock_client, settings_mock):
     """PROMISE: Zero LLM calls dispatched and empty models returned on text lacking block markers."""

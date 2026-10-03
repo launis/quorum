@@ -305,9 +305,12 @@ async def test_dynamic_synthesis_model_strategy_routing(
     mock_compiler: AsyncMock,
 ) -> None:
     """PROMISE: Validate dynamic model_strategy == 'synthesis' routing logic invokes MatrixReducer."""
+    from backend_v2.models.domain.blackboard import GlobalAtomBlackboard
     from backend_v2.models.domain.step import StepRule
     from backend_v2.models.enums import HistoricalContextMode
-    from backend_v2.services.orchestrator.dag_executor import DAGExecutor
+
+    mock_rag = AsyncMock()
+    mock_rag.execute.return_value = GlobalAtomBlackboard(atoms_by_input={})
 
     executor = DAGExecutor(
         exec_repo=mock_repo,
@@ -319,7 +322,7 @@ async def test_dynamic_synthesis_model_strategy_routing(
         audit_repo=mock_repo,
         system_repo=mock_repo,
         prompt_compiler=mock_compiler,
-        rag_preflight=AsyncMock(),
+        rag_preflight=mock_rag,
     )
 
     workflow = Workflow.model_construct(

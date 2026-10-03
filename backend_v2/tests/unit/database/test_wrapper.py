@@ -98,8 +98,9 @@ def test_atomic_json_storage_temp_cleanup_os_error(tmp_path: Any) -> None:
     file_path = str(tmp_path / "clean_err.json")
     storage = AtomicJSONStorage(file_path)
 
-    with patch("os.replace", side_effect=PermissionError("Locked")), patch(
-        "os.remove", side_effect=OSError("Cannot remove")
+    with (
+        patch("os.replace", side_effect=PermissionError("Locked")),
+        patch("os.remove", side_effect=OSError("Cannot remove")),
     ):
         with pytest.raises(PermissionError):
             storage.write({"data": "test"})
@@ -122,9 +123,11 @@ def test_db_lock_msvcrt_timeout(tmp_path: Any) -> None:
     mock_msvcrt.locking.side_effect = OSError("Locked")
     mock_msvcrt.LK_NBLCK = 1
 
-    with patch("backend_v2.database.wrapper.HAS_MSVCRT", True), patch(
-        "backend_v2.database.wrapper.msvcrt", mock_msvcrt
-    ), patch("time.time", side_effect=[0.0, 0.0, 16.0, 16.0]):
+    with (
+        patch("backend_v2.database.wrapper.HAS_MSVCRT", True),
+        patch("backend_v2.database.wrapper.msvcrt", mock_msvcrt),
+        patch("time.time", side_effect=[0.0, 0.0, 16.0, 16.0]),
+    ):
         with pytest.raises(TimeoutError):
             with db_lock(db_file):
                 pass
@@ -139,9 +142,11 @@ def test_db_lock_fcntl_support(tmp_path: Any) -> None:
     mock_fcntl.LOCK_NB = 2
     mock_fcntl.LOCK_UN = 4
 
-    with patch("backend_v2.database.wrapper.HAS_MSVCRT", False), patch(
-        "backend_v2.database.wrapper.HAS_FCNTL", True
-    ), patch("backend_v2.database.wrapper.fcntl", mock_fcntl, create=True):
+    with (
+        patch("backend_v2.database.wrapper.HAS_MSVCRT", False),
+        patch("backend_v2.database.wrapper.HAS_FCNTL", True),
+        patch("backend_v2.database.wrapper.fcntl", mock_fcntl, create=True),
+    ):
         with db_lock(db_file):
             assert mock_fcntl.flock.called
 
@@ -161,10 +166,11 @@ def test_db_lock_fcntl_timeout(tmp_path: Any) -> None:
 
     mock_fcntl.flock.side_effect = mock_flock
 
-    with patch("backend_v2.database.wrapper.HAS_MSVCRT", False), patch(
-        "backend_v2.database.wrapper.HAS_FCNTL", True
-    ), patch("backend_v2.database.wrapper.fcntl", mock_fcntl, create=True), patch(
-        "time.time", side_effect=[0.0, 0.0, 16.0, 16.0]
+    with (
+        patch("backend_v2.database.wrapper.HAS_MSVCRT", False),
+        patch("backend_v2.database.wrapper.HAS_FCNTL", True),
+        patch("backend_v2.database.wrapper.fcntl", mock_fcntl, create=True),
+        patch("time.time", side_effect=[0.0, 0.0, 16.0, 16.0]),
     ):
         with pytest.raises(TimeoutError):
             with db_lock(db_file):
@@ -186,9 +192,12 @@ def test_db_lock_directory_stale_lock_cleanup(tmp_path: Any) -> None:
     lock_dir = f"{db_file}.lock_dir"
     os.makedirs(lock_dir)
 
-    with patch("backend_v2.database.wrapper.HAS_MSVCRT", False), patch(
-        "backend_v2.database.wrapper.HAS_FCNTL", False
-    ), patch("os.path.getmtime", return_value=0.0), patch("time.time", side_effect=[15.0, 15.0, 15.1, 15.2, 15.3]):
+    with (
+        patch("backend_v2.database.wrapper.HAS_MSVCRT", False),
+        patch("backend_v2.database.wrapper.HAS_FCNTL", False),
+        patch("os.path.getmtime", return_value=0.0),
+        patch("time.time", side_effect=[15.0, 15.0, 15.1, 15.2, 15.3]),
+    ):
         with db_lock(db_file):
             assert os.path.exists(lock_dir)
         assert not os.path.exists(lock_dir)
@@ -396,9 +405,12 @@ def test_firestore_client(tmp_path: Any) -> None:
     mock_col.limit.return_value.stream.return_value = []
     mock_client_instance.collection.return_value = mock_col
 
-    with patch("backend_v2.database.wrapper.firebase_admin") as mock_fb, patch(
-        "backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance
-    ), patch("os.path.exists", return_value=True), patch("backend_v2.database.wrapper.credentials.Certificate"):
+    with (
+        patch("backend_v2.database.wrapper.firebase_admin") as mock_fb,
+        patch("backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance),
+        patch("os.path.exists", return_value=True),
+        patch("backend_v2.database.wrapper.credentials.Certificate"),
+    ):
         mock_fb._apps = []
         client = FirestoreClient()
         assert client.db is mock_client_instance
@@ -415,9 +427,12 @@ def test_firestore_client_missing_service_account() -> None:
     mock_col.limit.return_value.stream.return_value = []
     mock_client_instance.collection.return_value = mock_col
 
-    with patch("backend_v2.database.wrapper.firebase_admin") as mock_fb, patch(
-        "backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance
-    ), patch("os.path.exists", return_value=False), patch("backend_v2.database.wrapper.credentials.Certificate"):
+    with (
+        patch("backend_v2.database.wrapper.firebase_admin") as mock_fb,
+        patch("backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance),
+        patch("os.path.exists", return_value=False),
+        patch("backend_v2.database.wrapper.credentials.Certificate"),
+    ):
         mock_fb._apps = []
         client = FirestoreClient()
         assert client.db is mock_client_instance
@@ -431,9 +446,12 @@ def test_firestore_client_ping_failure() -> None:
     mock_col.limit.return_value.stream.side_effect = RuntimeError("Network error")
     mock_client_instance.collection.return_value = mock_col
 
-    with patch("backend_v2.database.wrapper.firebase_admin") as mock_fb, patch(
-        "backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance
-    ), patch("os.path.exists", return_value=True), patch("backend_v2.database.wrapper.credentials.Certificate"):
+    with (
+        patch("backend_v2.database.wrapper.firebase_admin") as mock_fb,
+        patch("backend_v2.database.wrapper.firestore.client", return_value=mock_client_instance),
+        patch("os.path.exists", return_value=True),
+        patch("backend_v2.database.wrapper.credentials.Certificate"),
+    ):
         mock_fb._apps = [MagicMock()]
         with pytest.raises(AppException) as exc_info:
             FirestoreClient()
@@ -452,14 +470,17 @@ def test_get_db_client(tmp_path: Any) -> None:
         assert isinstance(client, TinyDBClient)
 
     mock_settings.active_backend = "FIRESTORE"
-    with patch("backend_v2.database.wrapper.get_settings", return_value=mock_settings), patch(
-        "backend_v2.database.wrapper.FirestoreClient"
-    ) as mock_fc, patch("backend_v2.database.wrapper.FIRESTORE_AVAILABLE", True):
+    with (
+        patch("backend_v2.database.wrapper.get_settings", return_value=mock_settings),
+        patch("backend_v2.database.wrapper.FirestoreClient") as mock_fc,
+        patch("backend_v2.database.wrapper.FIRESTORE_AVAILABLE", True),
+    ):
         get_db_client()
         mock_fc.assert_called_once()
 
-    with patch("backend_v2.database.wrapper.get_settings", return_value=mock_settings), patch(
-        "backend_v2.database.wrapper.FIRESTORE_AVAILABLE", False
+    with (
+        patch("backend_v2.database.wrapper.get_settings", return_value=mock_settings),
+        patch("backend_v2.database.wrapper.FIRESTORE_AVAILABLE", False),
     ):
         with pytest.raises(ImportError):
             get_db_client()

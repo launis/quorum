@@ -58,4 +58,3 @@ def test_anti_jargon_evidence_grounding_structure() -> None:
     assert "verbatim quotes" in ANTI_JARGON_MANDATE_BLOCK
     assert "DEFICIT GROUNDING" in ANTI_JARGON_MANDATE_BLOCK
     assert "without fabricating quotes" in ANTI_JARGON_MANDATE_BLOCK
-

@@ -273,9 +273,7 @@ class ExecutionIngressService:
                 details={"error_code": ErrorCodes.SERVICE_DEPENDENCY_MISSING.value},
             )
 
-        sdui_hints = await _generate_sdui_hints(
-            workflow, self.prompt_block_repo, self.workflow_repo, target_locale
-        )
+        sdui_hints = await _generate_sdui_hints(workflow, self.prompt_block_repo, self.workflow_repo, target_locale)
         ui_hints = sdui_hints.ui_hints
         steps = sdui_hints.steps
         step_states = sdui_hints.step_states
@@ -329,7 +327,33 @@ class ExecutionIngressService:
                 details={"error_code": ErrorCodes.RESOURCE_NOT_FOUND.value},
             )
 
-        execution_id = generate_opaque_id(EntityPrefix.EXECUTION)
+        injected_carrier = inject_trace_context()
+        exec_metadata = ExecutionMetadata(
+            matrix_sampling_strategy=payload.matrix_sampling_strategy,
+            workflow_version=workflow.version,
+            provider_override=payload.provider_override,
+            model_registry_id=resolved_registry_id,
+            telemetry=injected_carrier,
+        )
+
+        create_dto = ExecutionCreateDTO(
+            workflow_id=workflow.id,
+            target_locale=target_locale,
+            status=ExecutionStatus.PENDING.value,
+            active_profile_id=resolved_profile_id,
+            output_profile_id=resolved_profile_id,
+            raw_inputs=payload.raw_inputs,
+            organization_id=initiator.organization_id,
+            created_by=initiator.id,
+            metadata=exec_metadata,
+        )
+        created_id = await self.exec_repo.create_execution(create_dto)
+        execution_id = (
+            created_id
+            if isinstance(created_id, str) and created_id.startswith("exe_")
+            else generate_opaque_id(EntityPrefix.EXECUTION)
+        )
+
         initial_record = create_execution_record(
             execution_id=execution_id,
             workflow_id=workflow.id,
@@ -340,29 +364,10 @@ class ExecutionIngressService:
             target_locale=target_locale,
             steps=steps,
             step_states=step_states,
-            metadata=ExecutionMetadata(
-                matrix_sampling_strategy=payload.matrix_sampling_strategy,
-                workflow_version=workflow.version,
-                provider_override=payload.provider_override,
-                model_registry_id=resolved_registry_id,
-            ),
+            metadata=exec_metadata,
             created_by=initiator.id,
             organization_id=initiator.organization_id,
         )
-
-        create_dto = ExecutionCreateDTO(
-            workflow_id=workflow.id,
-            id=execution_id,
-            target_locale=target_locale,
-            status=ExecutionStatus.PENDING.value,
-            active_profile_id=resolved_profile_id,
-            output_profile_id=resolved_profile_id,
-            raw_inputs=payload.raw_inputs,
-            organization_id=initiator.organization_id,
-            created_by=initiator.id,
-            metadata=initial_record.metadata,
-        )
-        await self.exec_repo.create_execution(create_dto)
 
         await arq_pool.enqueue_job(
             "execute_workflow_job",

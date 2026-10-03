@@ -202,7 +202,8 @@ class TraceEvent(V2CoreBase):
     ]
 
     content: Annotated[
-        StepPayloadValue
+        EvidenceOverrideDTO
+        | StepPayloadValue
         | DomainInputValue
         | StepOutputContentDTO
         | Mapping[str, StepPayloadValue | DomainInputValue | JsonValue]

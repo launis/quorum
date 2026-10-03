@@ -188,4 +188,3 @@ async def test_simulate_step_with_null_context_text_and_locale(
     response = client.post("/steps/simulate", json=payload)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
     assert response.json()["valid"] is True
-

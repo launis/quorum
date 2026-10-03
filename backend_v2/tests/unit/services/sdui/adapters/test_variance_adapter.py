@@ -48,7 +48,7 @@ def _create_execution(
         workflow_id="wf_0123456789abcdef0123456789abcdef",
         output_profile_id="prf_0123456789abcdef0123456789abcdef",
         execution_trace=[],
-        context_variables=context_vars if context_vars is not None else {},
+        context_variables={"variables": context_vars} if context_vars is not None else {},
         target_locale="fi",
         metadata=ExecutionMetadata(),
     )

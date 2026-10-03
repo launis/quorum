@@ -101,10 +101,10 @@ async def test_logic_strategy_raw_inputs_extraction_bug() -> None:
         await strategy.execute(step, projector, context, None, [], semaphore=asyncio.Semaphore(2))
         hook_state = mock_hook.call_args[0][1]
 
-    assert isinstance(hook_state.inputs.dynamic_inputs["raw_inputs"], dict), (
-        f"Bug! raw_inputs is {type(hook_state.inputs.dynamic_inputs['raw_inputs'])} instead of dict"
+    assert isinstance(hook_state.inputs.raw_inputs, dict), (
+        f"Bug! raw_inputs is {type(hook_state.inputs.raw_inputs)} instead of dict"
     )
-    assert hook_state.inputs.dynamic_inputs["raw_inputs"]["chat_log"] == "**Gemini Chat**..."
+    assert hook_state.inputs.raw_inputs["chat_log"] == "**Gemini Chat**..."
 
 
 @pytest.mark.asyncio

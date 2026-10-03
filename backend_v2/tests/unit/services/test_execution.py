@@ -304,7 +304,7 @@ async def test_start_execution_success() -> None:
     valid_profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
@@ -330,7 +330,7 @@ async def test_start_execution_success() -> None:
     from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_1"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
     mock_wf.default_profile_id = valid_profile.id
     mock_wf.expected_inputs = []
@@ -339,13 +339,13 @@ async def test_start_execution_success() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     from backend_v2.models.domain.execution import ExecutionCreate
     from backend_v2.models.domain.inputs import WorkflowInputs
 
     payload = ExecutionCreate(
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=valid_profile.id,
@@ -359,7 +359,7 @@ async def test_start_execution_success() -> None:
     with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=arq_pool)
 
-    assert result.workflow_id == "wf_1"
+    assert result.workflow_id == "wor_0123456789abcdef"
     assert result.status == ExecutionStatus.PENDING
     assert result.metadata is not None
     assert result.metadata.model_registry_id == "sys_e26807f3bfa3454d"
@@ -376,7 +376,7 @@ async def test_start_execution_model_registry_override() -> None:
     valid_profile = OutputProfile(
         id="prf_0123456789abcdef0123456789abcdef",
         slug="test-profile",
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         name=I18nText(translations={"en": "Test Profile"}),
         target_block_order=[],
     )
@@ -401,7 +401,7 @@ async def test_start_execution_model_registry_override() -> None:
     from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_1"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
     mock_wf.default_profile_id = valid_profile.id
     mock_wf.expected_inputs = []
@@ -410,10 +410,10 @@ async def test_start_execution_model_registry_override() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=valid_profile.id,
@@ -452,17 +452,17 @@ async def test_start_execution_permission_denied() -> None:
     from backend_v2.models.domain.workflow import Workflow
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_private"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.organization_id = "org_other"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_private"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_private",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
-        profile_id="prof_1",
+        profile_id="prf_0123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u2", role=UserRole.MEMBER, organization_id="org_my")
@@ -1008,13 +1008,13 @@ def test_execution_create_dto_preserves_output_profile_id() -> None:
 
     dto = ExecutionCreateDTO(
         workflow_id="wf_1234567890abcdef",
-        id="exe_1234567890abcdef",
         target_locale="fi",
         active_profile_id="prof_1234567890abcdef",
         output_profile_id="prof_1234567890abcdef",
         metadata=ExecutionMetadata(),
     )
     raw_dict = dto.model_dump(mode="json", exclude_unset=True)
+    raw_dict["id"] = "exe_1234567890abcdef"
     record = ExecutionRecord.model_validate(raw_dict, strict=False)
     assert record.output_profile_id == "prof_1234567890abcdef"
 
@@ -1041,7 +1041,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_no_prof"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
     mock_wf.default_profile_id = None
     mock_wf.expected_inputs = []
@@ -1050,10 +1050,10 @@ async def test_start_execution_succeeds_without_profile() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_no_prof"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_no_prof",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=None,
@@ -1066,7 +1066,7 @@ async def test_start_execution_succeeds_without_profile() -> None:
     with patch("backend_v2.models.domain.workflow.Workflow.model_validate", return_value=mock_wf):
         result = await service.start_execution(initiator=initiator, payload=payload, arq_pool=AsyncMock())
 
-    assert result.workflow_id == "wf_no_prof"
+    assert result.workflow_id == "wor_0123456789abcdef"
     assert result.output_profile_id is None
     assert result.status == ExecutionStatus.PENDING
 
@@ -1096,22 +1096,22 @@ async def test_start_execution_fails_fast_when_profile_not_in_db() -> None:
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_1"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
-    mock_wf.default_profile_id = "prof_missing"
+    mock_wf.default_profile_id = "prf_0123456789abcdef"
     mock_wf.expected_inputs = []
     mock_wf.steps = []
     mock_wf.model_registry_id = "sys_e26807f3bfa3454d"
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
-        profile_id="prof_missing",
+        profile_id="prf_0123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -1155,7 +1155,7 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_1"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
     mock_wf.default_profile_id = None
     mock_wf.expected_inputs = []
@@ -1164,10 +1164,10 @@ async def test_start_execution_fails_fast_when_model_registry_not_found() -> Non
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_1"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_1",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"k": "v"}),
         target_locale="en",
         profile_id=None,
@@ -1285,9 +1285,9 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_collision"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
-    mock_wf.default_profile_id = "prf_1"
+    mock_wf.default_profile_id = "prf_0123456789abcdef"
     mock_wf.expected_inputs = [
         ExpectedInput(
             input_key="chat_log",
@@ -1302,10 +1302,10 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_collision"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_collision",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputsIngress(
             dynamic_inputs={
                 "keskusteluhistoria": {"filename": "keskusteluhistoria.pdf", "content_base64": "SGVsbG8="},
@@ -1316,7 +1316,7 @@ async def test_start_execution_fails_fast_on_input_collision() -> None:
             }
         ),
         target_locale="fi",
-        profile_id="prf_1",
+        profile_id="prf_0123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -1357,9 +1357,9 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     service.usage_service.check_quota.return_value = True  # type: ignore[attr-defined]
 
     mock_wf = Mock(spec=Workflow)
-    mock_wf.id = "wf_missing_req"
+    mock_wf.id = "wor_0123456789abcdef"
     mock_wf.version = 1
-    mock_wf.default_profile_id = "prf_1"
+    mock_wf.default_profile_id = "prf_0123456789abcdef"
     mock_wf.expected_inputs = [
         ExpectedInput(
             input_key="chat_log",
@@ -1374,13 +1374,13 @@ async def test_start_execution_fails_fast_on_missing_required_input() -> None:
     mock_wf.organization_id = "org_1"
     mock_wf.is_public = False
 
-    repo_mock.get_workflow_by_id.return_value = {"id": "wf_missing_req"}
+    repo_mock.get_workflow_by_id.return_value = {"id": "wor_0123456789abcdef"}
 
     payload = ExecutionCreate(
-        workflow_id="wf_missing_req",
+        workflow_id="wor_0123456789abcdef",
         raw_inputs=WorkflowInputs(dynamic_inputs={"product_text": "Delivered material"}),
         target_locale="fi",
-        profile_id="prf_1",
+        profile_id="prf_0123456789abcdef",
         matrix_sampling_strategy=10,
     )
     initiator = TokenData(id="u1", role=UserRole.MEMBER, organization_id="org_1")
@@ -2455,12 +2455,17 @@ async def test_override_atom_branches() -> None:
         scorecard_atoms={"atm_1": atom_obj},
     )
     rec.step_states = {"stp_1": step_state}
-    rec.context_variables = {
-        "var_1": {
-            "evaluated_atoms": {"atm_1": "FAIL"},
-            "raw_atoms": [{"tda_id": "atm_1", "human_override": None}],
+    from backend_v2.models.dtos.atom_result import EvaluatedAtomDTO
+    from backend_v2.models.dtos.context_variables import ContextVariablesDTO, EvaluatedMatrixContextDTO
+
+    rec.context_variables = ContextVariablesDTO(
+        variables={
+            "var_1": EvaluatedMatrixContextDTO(
+                evaluated_atoms={"atm_1": "FAIL"},
+                raw_atoms=[EvaluatedAtomDTO(tda_id="atm_1", human_override=None)],
+            )
         }
-    }
+    )
     rec.active_profile_id = "prf_1"
     with patch("backend_v2.hooks.scoring.recalculate", return_value=None):
         await service.override_atom(initiator, "exe_0123456789abcdef", "atm_1", req)

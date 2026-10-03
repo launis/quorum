@@ -108,7 +108,7 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
 
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -116,7 +116,7 @@ def test_start_execution_null_matrix_sampling_strategy_regression(
     mock_execution_service.start_execution.return_value = mock_record
 
     payload = {
-        "workflow_id": "wor_standard_audit",
+        "workflow_id": "wor_1234567890abcdef",
         "target_locale": "fi",
         "raw_inputs": {"dynamic_inputs": {}},
         "profile_id": None,
@@ -134,7 +134,7 @@ def test_list_executions_returns_records(override_dependencies: Any, mock_execut
     client = TestClient(app)
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -153,7 +153,7 @@ def test_get_execution_status(override_dependencies: Any, mock_execution_service
     client = TestClient(app)
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -170,7 +170,7 @@ def test_resume_execution(override_dependencies: Any, mock_execution_service: An
     client = TestClient(app)
     mock_record = ExecutionRecord(
         id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         output_profile_id="prf_001",
         target_locale="fi",
         metadata=ExecutionMetadata(matrix_sampling_strategy=10),
@@ -232,7 +232,7 @@ def test_render_execution_json(override_dependencies: Any, mock_execution_servic
     client = TestClient(app)
     mock_rep = ReportDataDTO(
         execution_id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         profile_id="prf_001",
         global_score=95.0,
     )
@@ -331,7 +331,7 @@ def test_render_execution_flat(
     client = TestClient(app)
     mock_flat = FlatExecutionRecordDTO(
         execution_id="exe_1234567890abcdef",
-        workflow_id="wor_standard_audit",
+        workflow_id="wor_1234567890abcdef",
         status="PASSED",
         global_score=90.0,
     )

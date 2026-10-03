@@ -487,5 +487,3 @@ async def test_synthesis_engine_with_lightweight_matrix_output(
     messages = call_kwargs["messages"]
     user_msg = messages[-1]
     assert "<raw_xai_extensions>" in user_msg.content
-
-

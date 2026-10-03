@@ -206,14 +206,18 @@ async def test_generate_sdui_hints_and_matrix_scales() -> None:
 
     prompt_block_repo.get_prompt_block_by_id = AsyncMock(side_effect=mock_get_pb)
 
-    ui_hints, steps, step_states = await _generate_sdui_hints(
+    hints_dto = await _generate_sdui_hints(
         workflow=workflow,
         prompt_block_repo=prompt_block_repo,
         workflow_repo=workflow_repo,
         target_locale="en",
     )
+    ui_hints = hints_dto.ui_hints
+    steps = hints_dto.steps
+    step_states = hints_dto.step_states
 
     assert len(steps) == 1
+    assert len(step_states) == 1
     assert steps[0].id == "stp_0123456789abcdef"
     assert steps[0].label == "Analytical Step"
     assert "blk_2123456789abcdef" in ui_hints

@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 from pydantic import ConfigDict, Field, JsonValue
 
-from backend_v2.models.core_base import OPAQUE_STRIPE_ID_REGEX, V2CoreBase
+from backend_v2.models.core_base import V2CoreBase
 from backend_v2.models.domain.system_config import MCPAuditTrace
 from backend_v2.models.dtos.base import BaseDTO, DataStarvationEvent
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO
@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from backend_v2.models.state import ErrorTraceEvent, TombstoneEvent, TraceEvent
 
 __all__ = [
+    "AtomQuoteItemDTO",
     "DataStarvationEvent",
     "ExecutionCreateDTO",
     "ExecutionUpdateDTO",
@@ -157,10 +158,11 @@ class TraceEventMetadataEnvelope(BaseDTO):
     def model_validate(
         cls,
         obj: Any,
-        *,
+        *args: Any,
         strict: bool | None = None,
         from_attributes: bool | None = None,
         context: Any | None = None,
+        **kwargs: Any,
     ) -> TraceEventMetadataEnvelope:
         if type(obj) is dict:
             extracted: dict[str, Any] = {}
@@ -168,8 +170,12 @@ class TraceEventMetadataEnvelope(BaseDTO):
                 extracted["_step_metadata"] = obj["_step_metadata"]
             elif "step_metadata" in obj:
                 extracted["step_metadata"] = obj["step_metadata"]
-            return super().model_validate(extracted, strict=strict, from_attributes=from_attributes, context=context)
-        return super().model_validate(obj, strict=strict, from_attributes=from_attributes, context=context)
+            return super().model_validate(
+                extracted, *args, strict=strict, from_attributes=from_attributes, context=context, **kwargs
+            )
+        return super().model_validate(
+            obj, *args, strict=strict, from_attributes=from_attributes, context=context, **kwargs
+        )
 
 
 class TraceMatrixExtensionsDTO(BaseDTO):
@@ -193,6 +199,22 @@ class TraceMatrixExtensionsDTO(BaseDTO):
     semantic_reasoning: Annotated[str | None, Field(default=None)] = None
 
 
+class AtomQuoteItemDTO(BaseDTO):
+    """Structured quote evidence associated with an atom level.
+
+    Attributes:
+        quote: The exact text of the quote.
+        level: The associated scale score or level.
+        level_name: Optional level name or label.
+    """
+
+    model_config = ConfigDict(strict=True, frozen=True, extra="forbid")
+
+    quote: Annotated[str, Field(description="The exact text of the quote")]
+    level: Annotated[float | int | None, Field(default=None, description="The associated scale score or level")] = None
+    level_name: Annotated[str | None, Field(default=None, description="Optional level name or label")] = None
+
+
 class TraceMatrixPayloadDTO(BaseDTO):
     """Strict hydration schema for extracting matrix payloads from execution trace."""
 
@@ -212,7 +234,7 @@ class TraceMatrixPayloadDTO(BaseDTO):
     ] = None
     allowed_extensions: Annotated[list[str] | None, Field(description="List of allowed extensions")] = None
     atom_quotes: Annotated[
-        list[str] | None,
+        list[AtomQuoteItemDTO | str] | None,
         Field(default=None, description="Optional accumulated atom quotes from matrix evaluation"),
     ] = None
 

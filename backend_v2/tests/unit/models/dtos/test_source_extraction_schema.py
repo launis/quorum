@@ -13,7 +13,11 @@ from backend_v2.models.dtos.source_extraction_schema import (
 
 def test_source_extraction_schema_module_exports() -> None:
     """Verify that source_extraction_schema.py exports expected symbols via __all__."""
-    expected = {"SourceExtractionResponseSchema", "SourceVerificationInputsDTO"}
+    expected = {
+        "SourceExtractionResponseSchema",
+        "SourceVerificationInputsDTO",
+        "SourceVerificationPayloadDTO",
+    }
     assert set(schema_module.__all__) == expected
     for name in schema_module.__all__:
         assert hasattr(schema_module, name)

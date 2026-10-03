@@ -127,7 +127,6 @@ async def test_get_all_executions_and_recent(
 async def test_crud_and_query_operations(repo: ExecutionRepositoryImpl, mock_driver: AsyncMock) -> None:
     """Positive: tests create, update, append_trace_event, delete, and count operations."""
     create_dto = ExecutionCreateDTO(
-        id="exe_1234567890abcdef",
         workflow_id="wf_1234567890abcdef",
         output_profile_id="prof_1",
         target_locale="fi",
@@ -305,7 +304,7 @@ async def test_hydrate_frozen_context_and_context_vars(repo: ExecutionRepository
                 "mcp_tool_audit": [],
             }
         ),
-        json.dumps({"var1": "val1"}),
+        json.dumps({"variables": {"var1": "val1"}}),
     ]
 
     with patch("backend_v2.database.repositories.execution.get_storage_driver", return_value=mock_storage):

@@ -530,7 +530,7 @@ def test_output_profile_language_enum_validation() -> None:
 
     # Negative: invalid language string
     with pytest.raises(ValidationError, match="Input should be"):
-        OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": "sv"})
+        OutputProfileCreateDTO.model_validate({**_VALID_CREATE_PAYLOAD, "language": "invalid_lang"})
 
     with pytest.raises(ValidationError, match="Input should be"):
         OutputProfileUpdateDTO.model_validate({"language": "invalid_lang"})

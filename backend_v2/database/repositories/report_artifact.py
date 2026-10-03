@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
-from typing import Any
 
 from backend_v2.database.driver import Filter, StorageDriver
 from backend_v2.database.interfaces import IReportArtifactRepository
@@ -131,9 +130,13 @@ class ReportArtifactRepositoryImpl(BaseRepository, IReportArtifactRepository):
         updated = current.model_copy(
             update={
                 "status": update_dto.status if update_dto.status is not None else current.status,
-                "storage_paths": update_dto.storage_paths if update_dto.storage_paths is not None else current.storage_paths,
+                "storage_paths": update_dto.storage_paths
+                if update_dto.storage_paths is not None
+                else current.storage_paths,
                 "metadata": update_dto.metadata if update_dto.metadata is not None else current.metadata,
-                "error_message": update_dto.error_message if update_dto.error_message is not None else current.error_message,
+                "error_message": update_dto.error_message
+                if update_dto.error_message is not None
+                else current.error_message,
                 "updated_at": datetime.now(UTC),
             }
         )

@@ -13,6 +13,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO, PerformativePatternDTO
 from backend_v2.models.domain.output_profile import OutputProfile
 from backend_v2.models.dtos.atom_result import ExtensionMetricsDTO
+from backend_v2.models.dtos.context_variables import ContextVariablesDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, TargetBlockType, XaiExtensionType
 from backend_v2.models.execution_core import ExecutionMetadata
@@ -29,6 +30,7 @@ def _make_execution(
     trace_events: list[TraceEvent] | None = None,
     context_vars: dict[str, Any] | None = None,
 ) -> ExecutionRecord:
+    cv = ContextVariablesDTO(variables=context_vars or {})
     return ExecutionRecord(
         id="exe_0123456789abcdef01",
         workflow_id="wor_0123456789abcdef01",
@@ -37,7 +39,7 @@ def _make_execution(
         target_locale="en",
         metadata=ExecutionMetadata(),
         execution_trace=trace_events or [],
-        context_variables=context_vars or {},
+        context_variables=cv,
     )
 
 

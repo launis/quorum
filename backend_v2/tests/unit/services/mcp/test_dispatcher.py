@@ -115,4 +115,3 @@ async def test_tool_dispatcher_execute_generic_exception_recorded(monkeypatch: p
     dispatcher = ToolDispatcher([tool_a])
     with pytest.raises(ValueError, match="Simulated tool crash"):
         await dispatcher.execute_tool("error_tool")
-

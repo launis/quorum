@@ -171,4 +171,3 @@ async def test_simulate_prompt_block_with_null_context_text_and_locale(
     response = client.post("/prompt-blocks/simulate", json=payload)
     assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
     assert response.json()["valid"] is True
-

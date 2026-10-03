@@ -46,7 +46,6 @@ async def test_audit_logs_filters_and_corruption(repo: AuditRepositoryImpl, mock
         message="Workflow started",
         context={"org_id": "org_123"},
     ).model_dump(mode="json")
-    corrupted_audit = {"id": "aud_corrupted", "timestamp": "invalid_date"}
     mock_driver.query.return_value = [valid_audit]
 
     logs = await repo.get_audit_logs(
@@ -102,7 +101,6 @@ async def test_get_usage_records_scopes_and_corruption(repo: AuditRepositoryImpl
         cost_usd=0.005,
         timestamp=datetime.now(timezone.utc),
     ).model_dump(mode="json")
-    corrupted_usage = {"id": "usg_bad", "input_tokens": "not_an_int"}
     mock_driver.query.return_value = [valid_usage]
 
     org_records = await repo.get_usage_records("organization", "org_123", since="2026-08-01T00:00:00Z")

@@ -142,5 +142,3 @@ def test_main_cli_errors(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as exc2:
         main([str(txt_file)])
     assert exc2.value.code == 1
-
-

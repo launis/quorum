@@ -15,9 +15,11 @@ from backend_v2.models.domain.evaluation import EvaluationResult
 from backend_v2.models.domain.interaction import InteractionAnalysisDTO
 from backend_v2.models.domain.judge import JudgeOutput
 from backend_v2.models.domain.linguistics import LinguisticsResultDTO
+from backend_v2.models.domain.logician import LogicianOutput
 from backend_v2.models.domain.matrix import FlattenedAtom
 from backend_v2.models.domain.metadata import MetadataHookPayloadDTO, MetadataHookResultDTO, StepMetadataDTO
 from backend_v2.models.domain.metrics import ProfilerMetricsDTO, TextMetricsDTO
+from backend_v2.models.domain.performativity import PerformativityOutput
 from backend_v2.models.domain.references import BibliographyResultDTO
 from backend_v2.models.domain.security import InputProcessingOutputDTO, SanitizationResultDTO
 from backend_v2.models.domain.validation import GuttmanAtomItemDTO, ValidationResultDTO
@@ -127,6 +129,8 @@ type DomainInputValue = Annotated[
     | TextMetricsDTO
     | BibliographyResultDTO
     | InteractionAnalysisDTO
+    | LogicianOutput
+    | PerformativityOutput
     | LLMProviderConfig
     | str
     | int

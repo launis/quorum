@@ -78,13 +78,15 @@ def test_route_and_prune_strictly_follows_block_extensions() -> None:
         visible_workflow_extensions=[XaiExtensionType.VARIANCE_VALIDATION],
     )
 
-    trace_event = LightweightMatrixOutput.model_validate({
-        "raw_score": 3.0,
-        "normalized_score": 100.0,
-        "justification": "Test justification",
-        "evaluated_atoms": {},
-        "extensions": {"falsification": "Some falsification evidence"},
-    })
+    trace_event = LightweightMatrixOutput.model_validate(
+        {
+            "raw_score": 3.0,
+            "normalized_score": 100.0,
+            "justification": "Test justification",
+            "evaluated_atoms": {},
+            "extensions": {"falsification": "Some falsification evidence"},
+        }
+    )
 
     # Should only prune based on visible_block_extensions and succeed
     pruned = ContextRouter.route_and_prune(trace_event, output_profile)
@@ -106,20 +108,22 @@ def test_route_and_prune_with_allowed_extensions() -> None:
     )
 
     # The block ONLY allows Falsification and Coaching. Sentiment is not supported by this block.
-    trace_event = LightweightMatrixOutput.model_validate({
-        "raw_score": 4.0,
-        "normalized_score": 80.0,
-        "justification": "Block logic.",
-        "evaluated_atoms": {},
-        "extensions": {
-            "falsification": "Valid falsification",
-            "coaching": "Good coaching insight",
-        },
-        "allowed_extensions": [
-            XaiExtensionType.FALSIFICATION,
-            XaiExtensionType.COACHING,
-        ],
-    })
+    trace_event = LightweightMatrixOutput.model_validate(
+        {
+            "raw_score": 4.0,
+            "normalized_score": 80.0,
+            "justification": "Block logic.",
+            "evaluated_atoms": {},
+            "extensions": {
+                "falsification": "Valid falsification",
+                "coaching": "Good coaching insight",
+            },
+            "allowed_extensions": [
+                XaiExtensionType.FALSIFICATION,
+                XaiExtensionType.COACHING,
+            ],
+        }
+    )
 
     # 1. Success case: emotional_sentiment is required by output_profile, but not allowed by this block.
     # Therefore, prune should skip it and succeed!
@@ -131,19 +135,21 @@ def test_route_and_prune_with_allowed_extensions() -> None:
 
     # 2. Failure case: coaching is in allowed_extensions, but missing from extensions.
     # It must gracefully skip the extension instead of raising an error or inserting a fallback!
-    trace_event_missing = LightweightMatrixOutput.model_validate({
-        "raw_score": 4.0,
-        "normalized_score": 80.0,
-        "justification": "Block logic.",
-        "evaluated_atoms": {},
-        "extensions": {
-            "falsification": "Valid falsification",
-        },
-        "allowed_extensions": [
-            XaiExtensionType.FALSIFICATION,
-            XaiExtensionType.COACHING,
-        ],
-    })
+    trace_event_missing = LightweightMatrixOutput.model_validate(
+        {
+            "raw_score": 4.0,
+            "normalized_score": 80.0,
+            "justification": "Block logic.",
+            "evaluated_atoms": {},
+            "extensions": {
+                "falsification": "Valid falsification",
+            },
+            "allowed_extensions": [
+                XaiExtensionType.FALSIFICATION,
+                XaiExtensionType.COACHING,
+            ],
+        }
+    )
 
     pruned_missing = ContextRouter.route_and_prune(trace_event_missing, output_profile)
     assert pruned_missing.raw_score == 4.0
@@ -155,17 +161,19 @@ def test_route_and_prune_success() -> None:
     """Test successful pruning of a trace event."""
     from backend_v2.models.enums import ExecutionStatus
 
-    trace_event = LightweightMatrixOutput.model_validate({
-        "normalized_score": 85.0,
-        "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
-        "justification": "Good logic.",
-        "evaluated_atoms": {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED},
-        "extensions": {
-            XaiExtensionType.CITATION: "Source A",
-            XaiExtensionType.COACHING: "Improve here.",
-            "falsification": "No issues found.",
-        },
-    })
+    trace_event = LightweightMatrixOutput.model_validate(
+        {
+            "normalized_score": 85.0,
+            "level_breakdown": {"4.0": {"hits": 1, "total": 1}},
+            "justification": "Good logic.",
+            "evaluated_atoms": {"atom_1": ExecutionStatus.PASSED, "atom_2": ExecutionStatus.FAILED},
+            "extensions": {
+                XaiExtensionType.CITATION: "Source A",
+                XaiExtensionType.COACHING: "Improve here.",
+                "falsification": "No issues found.",
+            },
+        }
+    )
 
     output_profile = OutputProfileConfig(
         visible_block_extensions=[XaiExtensionType.CITATION, XaiExtensionType.FALSIFICATION],
@@ -187,13 +195,15 @@ def test_route_and_prune_success() -> None:
 
 def test_route_and_prune_missing_profile() -> None:
     """Test that all extensions are omitted when output profile is missing (zero all-inclusive fallback)."""
-    trace_event = LightweightMatrixOutput.model_validate({
-        "normalized_score": 50.0,
-        "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
-        "justification": "Test",
-        "evaluated_atoms": {},
-        "extensions": {"falsification": "Some falsification"},
-    })
+    trace_event = LightweightMatrixOutput.model_validate(
+        {
+            "normalized_score": 50.0,
+            "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
+            "justification": "Test",
+            "evaluated_atoms": {},
+            "extensions": {"falsification": "Some falsification"},
+        }
+    )
 
     result = ContextRouter.route_and_prune(trace_event, None)
     assert result.extensions == {}
@@ -219,13 +229,15 @@ def test_route_and_prune_missing_base_field() -> None:
 
 def test_route_and_prune_missing_extension() -> None:
     """Test that missing required extensions are gracefully skipped."""
-    trace_event = LightweightMatrixOutput.model_validate({
-        "normalized_score": 50.0,
-        "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
-        "justification": "Test",
-        "evaluated_atoms": {},
-        "extensions": {XaiExtensionType.CITATION: "Source A"},
-    })
+    trace_event = LightweightMatrixOutput.model_validate(
+        {
+            "normalized_score": 50.0,
+            "level_breakdown": {"2.0": {"hits": 1, "total": 1}},
+            "justification": "Test",
+            "evaluated_atoms": {},
+            "extensions": {XaiExtensionType.CITATION: "Source A"},
+        }
+    )
 
     # We require COACHING, but it's not in the trace
     output_profile = OutputProfileConfig(

@@ -417,4 +417,3 @@ def test_context_filter_and_json_formatter_trace_correlation() -> None:
     assert parsed["trace_id"] == "12345678123456781234567812345678"
     assert parsed["span_id"] == "abcdef1234567890"
     assert parsed["message"] == "Test message with trace context"
-

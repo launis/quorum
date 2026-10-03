@@ -439,13 +439,7 @@ def test_compress_payload_matrix_payload_dto_with_empty_results_fails_fast() -> 
 
 def test_compress_payload_results_item_missing_atom_id_fails_fast() -> None:
     """PROMISE: Prove that an evaluation item missing an atom_id triggers AppException with VALIDATION_FAILED."""
-    payload = {
-        "results": [
-            {"exact_quotes": ["valid quote"], "status": "PASSED"}
-        ]
-    }
+    payload = {"results": [{"exact_quotes": ["valid quote"], "status": "PASSED"}]}
     with pytest.raises(AppException) as exc_info:
         SynthesisPayloadCompressor.compress_synthesis_payload(payload)
     assert exc_info.value.details["error_code"] == "VALIDATION_FAILED"
-
-

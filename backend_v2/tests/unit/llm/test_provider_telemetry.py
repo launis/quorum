@@ -108,4 +108,3 @@ def test_gen_ai_none_span_caching_boundary() -> None:
     """ISTQB Negative Boundary 2: record_cache_hit without active span does not raise exception."""
     # Should safely return without exception
     LLMCachingService.record_cache_hit(is_hit=True)
-

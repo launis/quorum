@@ -1084,4 +1084,3 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
     )
     assert len(result) == 1
     assert result[0].real_matrix_id == matrix_block_id
-

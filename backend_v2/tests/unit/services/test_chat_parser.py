@@ -284,7 +284,7 @@ def test_find_anchor_span_markdown_table_pipe_resilience() -> None:
     )
     phrase = "ja osaamistarpeidenjatkuvaakehitystä"
     span = ChatParserService._find_anchor_span(table_text, phrase, 0)
-    matched = table_text[span.start:span.end]
+    matched = table_text[span.start : span.end]
     assert "ja" in matched
     assert "osaamistarpeidenjatkuvaakehitystä" in matched
     assert span.start == table_text.find("ja")

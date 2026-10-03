@@ -762,7 +762,9 @@ async def test_generate_profile_synthesis_and_pdf_task_full_execution_flow(
                 "context_variables": {
                     "variables": {
                         "step_linguistics": {
-                            "performative_patterns": [{"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}],
+                            "performative_patterns": [
+                                {"pattern_id": "1", "detected_phrase": "phrase", "category": "cat"}
+                            ],
                         }
                     }
                 },

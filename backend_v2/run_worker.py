@@ -8,7 +8,6 @@ to ensure immediate fail-fast logging configuration on startup.
 
 import asyncio
 import logging
-import sys
 from typing import Any  # noqa: F401
 
 from arq.typing import WorkerSettingsType
@@ -44,7 +43,7 @@ async def main() -> None:
         await worker.async_run()
     except KeyboardInterrupt:
         logger.info("Worker stopped by user.")
-        raise SystemExit(0)
+        raise SystemExit(0) from None
     except Exception as e:
         # 3. Fail Fast with structured error
         msg = f"[Worker] Worker startup failed: {e}"
@@ -67,7 +66,7 @@ def cli_entrypoint() -> None:
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Worker process interrupted by user. Shutting down.")
-        raise SystemExit(0)
+        raise SystemExit(0) from None
     except SystemExit:
         raise
     except Exception as e:

@@ -112,6 +112,7 @@ class RecoveredTelemetryDTO(V2CoreBase):
     cached_tokens: int | None = Field(default=None, description="Recovered cached tokens")
     reasoning_tokens: int | None = Field(default=None, description="Recovered reasoning tokens")
 
+
 logger = logging.getLogger(__name__)
 
 

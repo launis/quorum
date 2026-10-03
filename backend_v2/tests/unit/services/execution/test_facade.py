@@ -143,7 +143,7 @@ async def test_start_execution(
     subs["ingress"].start_execution = AsyncMock(return_value=expected)
 
     payload = ExecutionCreate(
-        workflow_id="wf_123",
+        workflow_id="wor_0123456789abcdef",
         target_locale="fi",
         raw_inputs=WorkflowInputsIngress(dynamic_inputs={"key": "val"}),
     )

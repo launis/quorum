@@ -953,8 +953,9 @@ def audit_output_profiles(
                 )
             )
 
+        prof_to_validate = {k: v for k, v in profile.items() if k != "synthesis"}
         try:
-            profile_model = OutputProfile.model_validate(profile)
+            profile_model = OutputProfile.model_validate(prof_to_validate)
         except ValidationError as err:
             issues.append(
                 AuditIssue(

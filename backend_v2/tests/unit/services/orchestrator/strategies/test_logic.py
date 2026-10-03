@@ -352,4 +352,3 @@ async def test_execute_succeeds_with_projector_raw_inputs_event(logic_strategy: 
         assert hook_name == "apply_scoring_logic"
         assert isinstance(hook_state.inputs, ExecutionInputsDTO)
         assert "steps" in hook_state.inputs.dynamic_inputs
-

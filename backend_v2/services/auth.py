@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import importlib.util
 import logging
 import time
 import uuid
@@ -10,8 +11,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 import jwt
-
-import importlib.util
 
 if importlib.util.find_spec("firebase_admin") is not None:
     from firebase_admin import auth as firebase_auth_module

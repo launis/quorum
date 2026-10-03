@@ -247,4 +247,3 @@ class ChunkPacketDTO(BaseModel):
     start_block: Annotated[str, Field(description="Starting block marker ID")]
     end_block: Annotated[str, Field(description="Ending block marker ID")]
     packet_keys: Annotated[list[str], Field(description="List of block keys in packet")]
-

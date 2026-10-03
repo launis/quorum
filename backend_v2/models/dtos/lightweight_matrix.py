@@ -118,9 +118,7 @@ class LightweightMatrixOutput(V2CoreBase):
         list[LaxXaiExtensionType] | None,
         Field(default=None, description="Explicit list restricting dynamic schema mappings"),
     ] = None
-    atom_quotes: Annotated[
-        list[str] | None, Field(default=None, description="Atom quotes list if provided")
-    ] = None
+    atom_quotes: Annotated[list[str] | None, Field(default=None, description="Atom quotes list if provided")] = None
 
     @field_validator("normalized_score")
     @classmethod

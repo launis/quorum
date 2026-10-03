@@ -109,11 +109,13 @@ def test_tinydb_table_atomic_mutation_and_truncation_resilience(tmp_path: Path) 
     table = TinyDBTable(db_path=str(db_file), table_name="test_collection")
 
     # 1. Insert large payload
-    doc_id = table.insert({
-        "id": "doc_1",
-        "title": "Initial Large Document " + ("X" * 1000),
-        "status": "READY",
-    })
+    doc_id = table.insert(
+        {
+            "id": "doc_1",
+            "title": "Initial Large Document " + ("X" * 1000),
+            "status": "READY",
+        }
+    )
     assert doc_id == 1
     assert len(table.all()) == 1
 

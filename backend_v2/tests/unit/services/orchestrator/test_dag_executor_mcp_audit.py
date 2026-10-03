@@ -196,9 +196,8 @@ def test_dag_executor_mcp_audit_invalid_trace_fails_fast() -> None:
             mcp_audit_traces=[malformed_trace],  # type: ignore[list-item]
         )
 
-    assert (
-        "tool_id" in str(exc_info.value)
-        or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_info.value)
+    assert "tool_id" in str(exc_info.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
+        exc_info.value
     )
 
 
@@ -274,9 +273,8 @@ def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
             event_type="decision",
             mcp_audit_traces=[{"invalid_field": 123}],  # type: ignore[list-item]
         )
-    assert (
-        "tool_id" in str(exc_neg1.value)
-        or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(exc_neg1.value)
+    assert "tool_id" in str(exc_neg1.value) or "Input should be a valid dictionary or instance of MCPAuditTrace" in str(
+        exc_neg1.value
     )
 
     # Partition Neg-2: Attempting to instantiate MCPAuditTrace without mandatory fields fails fast
@@ -297,4 +295,3 @@ def test_mcp_audit_trace_istqb_negative_boundary_partitions() -> None:
     with pytest.raises(pydantic.ValidationError) as exc_neg3:
         MCPAuditTrace.model_validate(raw_with_str_timestamp, strict=True)
     assert "Input should be a valid datetime" in str(exc_neg3.value)
-

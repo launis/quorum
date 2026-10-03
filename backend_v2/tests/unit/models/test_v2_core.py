@@ -734,7 +734,7 @@ def test_execution_create_resolve_matrix_sampling_strategy() -> None:
 
     ec = ExecutionCreate.model_validate(
         {
-            "workflow_id": "wf_1",
+            "workflow_id": "wor_1234567890abcdef",
             "target_locale": "fi",
             "matrix_sampling_strategy": None,
         }

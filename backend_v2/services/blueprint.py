@@ -4,7 +4,7 @@ import logging
 import re
 from collections.abc import Callable, Mapping
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from backend_v2.database.interfaces import (
     IComponentRepository,
@@ -292,7 +292,11 @@ class BlueprintTransformer:
             for ev in execution.execution_trace:
                 if ev.event_type == "evidence_override" and ev.content:
                     try:
-                        override_dto = TypeAdapter(EvidenceOverrideDTO).validate_python(ev.content)
+                        if isinstance(ev.content, EvidenceOverrideDTO):
+                            override_dto = ev.content
+                        else:
+                            content_data = ev.content.model_dump() if isinstance(ev.content, BaseModel) else ev.content
+                            override_dto = TypeAdapter(EvidenceOverrideDTO).validate_python(content_data)
                         if override_dto.user_rejected and override_dto.evq_id:
                             rejected_evq_ids.add(override_dto.evq_id)
                     except ValidationError as val_err:

@@ -140,4 +140,3 @@ def test_record_cache_hit_with_recording_span() -> None:
         mock_span.is_recording.return_value = False
         LLMCachingService.record_cache_hit(False)
         mock_span.set_attribute.assert_not_called()
-
