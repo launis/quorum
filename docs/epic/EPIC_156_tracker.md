@@ -191,43 +191,34 @@
 # Session Handover Context
 
 ## Achieved
-- Fully completed Phase 1 execution under Continuous Full-Auto Mode (Steps 0 through 1.10).
-- Implemented QGR024 (String-Quoted Annotation Ban) and QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py`.
+- Fully completed Phase 1 execution under Continuous Full-Auto Mode (Steps 0 through 1.10) and achieved formal Tier 8 Plan Audit sign-off (`red_team_audit_01_phase1_plan.md`).
+- Implemented QGR024 (String-Quoted Annotation Ban) and QGR025 (Untyped Dict in model_copy Ban) in `scripts/_ast_guardrails.py` with false-positive defenses for `Literal[...]`, `Annotated[...]`, and concurrency locks.
 - Implemented clean import smoke test tool `scripts/audit_clean_imports.py` and unit test `backend_v2/tests/unit/scripts/test_clean_imports.py` (355/355 modules imported cleanly).
-- Expanded `scripts/backend_audit_loop.py` to an 8-stage pipeline with hardened Jinja Dumb Painter regex and fixed all template fallbacks in `report_template.jinja2`.
+- Expanded `scripts/backend_audit_loop.py` to an 8-stage pipeline with hardened Jinja Dumb Painter regex, clean imports (Stage 7), and DTO parity (Stage 8).
 - Eradicated all 79 domain fatal violations across 27 files, achieving mathematical proof of 0 fatal violations across `backend_v2`.
 - Eradicated low-count advisory warning violations across domain code (QGR007, QGR023, QGR009, QGR008, QGR006, QGR011).
 - Eradicated all 22 active tooling script warnings across 6 scripts (`audit_database_atoms.py`, `reconcile_storage.py`, `audit_rules_staleness.py`, `audit_matrix_auto_filler.py`, `audit_matrix_manager.py`, `matrix_slice_engine.py`).
 - Promoted QGR006, QGR007, QGR008, QGR009, QGR011, QGR023, QGR024, QGR025 to FATAL severity in `scripts/_ast_guardrails.py`.
-- Implemented `scripts/audit_warning_baseline.py` and unit tests in `test_audit_warning_baseline.py` (0 fatals, 1,253 warnings under ceiling).
-- Synchronized `AGENTS.md` and agentic workflows (`tier2-execute.md`, `tier1-tracker-generator.md`, `tier1-plan-tracker-generator.md`, `tier8-audit-plan.md`, `tier8-red-teaming-audit.md`, `tier2-hardening-knowledge.md`, `tier0-create-epic.md`, `tier0-research-epic.md`, `tier3-minify-customization.md`, `tier3-database-reset.md`).
-- Passed all 7 validation gate checks and 8-stage backend audit loop with 120/120 AST unit tests passing at 91% coverage.
-- Remediated all 6 Phase 1 quality gate blockers identified in Tier 8 audit (`report_template.jinja2`, `trace.py`, `ExecutionCreateDTO` ID generation authority, `model_validate` signatures, Ruff B904/F841, and global quality loop).
-- Verified full 8-stage global backend audit loop (`backend_audit_loop.py backend_v2/ --test`): 4,781 tests passed, 0 failed, 96.90% line coverage (exceeds >=90% threshold), 355/355 modules imported cleanly, 45 DTOs in 1:1 parity, 0 fatal AST violations.
-- Verified AST advisory warning baseline ledger (`audit_warning_baseline.py`): 0 fatals, 1,253 warnings (below 1,254 ceiling).
-- Verified database atom audit (`audit_database_atoms.py`): 13 matrices, 305 atoms, 19 steps, 6 workflows, 6 profiles clean with 0 issues.
-- Verified plan-tracker parity (`audit_plan_tracker_parity.py`): 0 fatal errors.
+- Implemented warning baseline ledger `scripts/audit_warning_baseline.py` and unit tests in `test_audit_warning_baseline.py` (0 fatals, 1,253 warnings under ceiling).
+- Synchronized `AGENTS.md` and 10 agentic workflows (`tier2-execute.md`, `tier1-tracker-generator.md`, `tier1-plan-tracker-generator.md`, `tier8-audit-plan.md`, `tier8-red-teaming-audit.md`, `tier2-hardening-knowledge.md`, `tier0-create-epic.md`, `tier0-research-epic.md`, `tier3-minify-customization.md`, `tier3-database-reset.md`).
+- Resolved strict MyPy call-arg requirement on `MonitorState(cursors={})` in `backend_v2/utils/finops_trace_analyzer.py`.
+- Passed all 8 stages of the global backend audit loop (`backend_audit_loop.py backend_v2/`): 0 fatal AST violations, 355/355 modules imported cleanly, 45 DTOs in 1:1 parity, clean seeder validation.
+- Passed full test suite: 120/120 AST unit tests passing at 91% coverage.
+- Formally signed off on Phase 1 via Tier 8 Plan Audit (`red_team_audit_01_phase1_plan.md`).
 
 ## Learned
 - Dynamic `model_copy(update=...)` calls inside `dag_executor.py` progress tracking occur safely within `async with _update_lock:` concurrency boundaries; tracking `_in_update_lock` in the AST visitor adheres directly to `safe_model_copy_concurrency_boundary` without touching fragile DAG executor code.
 - Heterogeneous input dictionaries in hooks like `source_verification_hook.py` must be cleanly partitioned into canonical fields and typed `extra_sections: dict[str, str]` on `extra="forbid"` DTOs.
 - `VersionIncrementDTO` cleanly replaces anonymous 3-tuples in repository versioning, eliminating QGR023 violations.
 - Logfire FastAPI instrumentation requires idempotency protection when testing repeated startup lifecycles; tracking instrumented apps by object ID prevents re-instrumentation crashes.
-
-## Achieved (Audit Update)
-- Successfully completed Tier 8 Red Team Plan Audit (`red_team_audit_01_phase1_plan.md`) with 100% compliance across all 11 steps of Phase 1.
-- Verified physical implementation of QGR024 (deferred annotations without quotes) and QGR025 (model_copy dictionary ban).
-- Verified clean import tool across 355/355 modules and 7/7 unit tests.
-- Verified full 8-stage global backend audit loop (`backend_audit_loop.py backend_v2/`): exit code 0 across all 8 stages.
-- Verified AST advisory warning baseline ledger (`audit_warning_baseline.py`): 0 fatals, 1,253 warnings (below 1,254 ceiling).
-- Verified database atom audit (`audit_database_atoms.py --strict`): 0 errors across 13 matrices and 305 atoms.
-- Resolved MyPy strict call-arg requirement on `MonitorState(cursors={})` in `finops_trace_analyzer.py`.
-- Formally approved and signed off on Phase 1.
+- Instantiating Pydantic models with `Annotated[..., Field(default_factory=...)]` requires an explicit argument or assignment to satisfy MyPy's strict argument checker (`MonitorState(cursors={})`).
 
 ## Remaining
-- Proceed to Phase 2: `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
+- Run Phase 2 Red-Teaming (System 2 Five-Axis Deconstruction): `/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
+- Execute Phase 2 under Continuous Full-Auto Mode (eliminating 319 QGR014 mocks, promoting QGR014 to FATAL, concurrency stress suite): `/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto`.
+- Run Phase 2 Plan Audit: `/tier8-audit-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]`.
 
 ## Resume Command
 ```powershell
-/tier2-execute @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md] --full-auto
+/tier0-research-plan @[docs/epic/tasks_EPIC_156/02_phase2_plan.md] @[docs/epic/EPIC_156_tracker.md]
 ```
