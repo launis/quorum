@@ -91,7 +91,7 @@ async def test_lifespan_test_environment() -> None:
     test_app = FastAPI()
     with patch("backend_v2.main._validate_database_preflight"):
         async with lifespan(test_app):
-            assert "arq_pool" in dir(test_app.state)
+            assert test_app.state.arq_pool is not None
 
 
 @pytest.mark.asyncio

@@ -15,7 +15,7 @@ from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBloc
 from backend_v2.models.dtos.atom_evaluation import ReducedAtomDTO
 from backend_v2.models.dtos.atom_result import AtomResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LevelStatsDTO, LightweightMatrixOutput
-from backend_v2.models.enums import BlockDataType, ExecutionStatus, LaxExecutionStatus, PromptBlockCategory
+from backend_v2.models.enums import BlockDataType, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.state import StepOutputDTO
 from backend_v2.services.orchestrator.matrix_explanation_service import (
     MatrixExplanationService,
@@ -69,8 +69,6 @@ def _to_status(val: Any) -> ExecutionStatus:
     """Helper to safely convert raw string or enum to ExecutionStatus."""
     if isinstance(val, ExecutionStatus):
         return val
-    if isinstance(val, LaxExecutionStatus):
-        return ExecutionStatus(val.value)
     return ExecutionStatus(str(val))
 
 
@@ -888,7 +886,7 @@ def test_assemble_matrices_to_explain_atom_missing_from_claim_map_raises() -> No
             data_type="matrix",
             payload=LightweightMatrixOutput(
                 normalized_score=50.0,
-                evaluated_atoms={"tda_undeclared00000000000000000000": LaxExecutionStatus.PASSED},
+                evaluated_atoms={"tda_undeclared00000000000000000000": ExecutionStatus.PASSED},
             ),
         ),
     ]
@@ -1047,7 +1045,7 @@ def test_assemble_matrices_to_explain_with_matrix_reducer_output_does_not_crash(
             payload=[
                 ReducedAtomDTO(
                     tda_id=tda_id,
-                    status=LaxExecutionStatus.FAILED,
+                    status=ExecutionStatus.FAILED,
                     reasoning="Käyttäjä ei esitä kriittisiä tai sokraattisia kysymyksiä...",
                     source_quote=None,
                     extracted_data=None,
