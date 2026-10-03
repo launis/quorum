@@ -1,5 +1,4 @@
 from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
 
@@ -13,28 +12,32 @@ from backend_v2.exceptions import AppException, ErrorCodes
 from backend_v2.hooks.atom_flattening import process_matrix_flattening
 from backend_v2.models.core_base import I18nText
 from backend_v2.models.domain.matrix import MatrixClaim, MatrixScale, TDAAssertion
-from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock, PromptBlock
+from backend_v2.models.domain.prompt_blocks import MatrixPromptBlock
 from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.dag_models import CausalEdge
 from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 from backend_v2.models.enums import BlockDataType, CognitiveTier, ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
-class MockRepository:
-    """A minimal repository mock for testing atomization hooks."""
-
-    def __init__(self, step: Step, blocks: list[PromptBlock]) -> None:
-        self._step = step
-        self._blocks = blocks
-
-    async def get_step_by_id(self, step_id: str) -> dict[str, Any]:
-        if step_id == self._step.id:
-            return self._step.model_dump()
-        return {}
-
-    async def get_all_prompt_blocks(self) -> list[dict[str, Any]]:
-        return [b.model_dump() for b in self._blocks]
+def _make_deps(
+    workflow_repo: Any = ...,
+    comp_repo: Any = None,
+) -> HookDependencies:
+    default_fake = InMemoryBlueprintTransformerRepository()
+    wf = default_fake if workflow_repo is ... else workflow_repo
+    comp = default_fake if comp_repo is None else comp_repo
+    return HookDependencies(
+        exec_repo=default_fake,
+        workflow_repo=wf,
+        comp_repo=comp,
+        prompt_block_repo=comp,
+        output_profile_repo=default_fake,
+        identity_repo=default_fake,
+        audit_repo=default_fake,
+        system_repo=default_fake,
+    )
 
 
 def create_mock_matrix_block(block_id: str, num_atoms_per_scale: int) -> MatrixPromptBlock:
@@ -107,18 +110,9 @@ async def test_atom_flattening_missing_strategy_fails_fast(base_hook_state: Hook
         update={"metadata": ExecutionMetadata.model_construct(matrix_sampling_strategy=-5)}
     )
 
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo)
 
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(state, deps)
@@ -135,18 +129,9 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
         update={"metadata": ExecutionMetadata.model_construct(matrix_sampling_strategy=-1)}
     )
 
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo)
 
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(state, deps)
@@ -160,20 +145,11 @@ async def test_atom_flattening_invalid_strategy_fails_fast(base_hook_state: Hook
 async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test Stratified sampling selects exactly N elements per scale."""
     mock_block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=10)
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
 
     # Use STRATIFIED_3
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=3)})
@@ -199,20 +175,11 @@ async def test_atom_flattening_stratified_sampling(base_hook_state: HookState, m
 async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookState, mock_step: Step) -> None:
     """Test ALL sampling strategy flattens everything without dropping."""
     mock_block = create_mock_matrix_block("blk_0123456789abcdef0123456789abcdef", num_atoms_per_scale=5)
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
 
     # Use ALL
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
@@ -237,16 +204,7 @@ async def test_atom_flattening_all_strategy_no_sampling(base_hook_state: HookSta
 async def test_atom_flattening_no_task_blueprint(base_hook_state: HookState) -> None:
     """Test hook exits cleanly when no task_blueprint is set."""
     state = base_hook_state.model_copy(update={"task_blueprint": None})
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=AsyncMock(),
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps()
     result = await process_matrix_flattening(state, deps)
     assert result.success is True
     assert result.state_delta is not None
@@ -257,16 +215,7 @@ async def test_atom_flattening_no_task_blueprint(base_hook_state: HookState) -> 
 async def test_atom_flattening_missing_workflow_repo(base_hook_state: HookState) -> None:
     """Test hook raises AppException if workflow_repo dependency is missing."""
     state = base_hook_state
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=None,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=None)
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(state, deps)
     assert exc_info.value.status_code == 500
@@ -276,18 +225,9 @@ async def test_atom_flattening_missing_workflow_repo(base_hook_state: HookState)
 @pytest.mark.asyncio
 async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> None:
     """Test hook returns empty state delta if step blueprint not found."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = None
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo)
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
@@ -298,18 +238,9 @@ async def test_atom_flattening_step_not_found(base_hook_state: HookState) -> Non
 async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState, mock_step: Step) -> None:
     """Test hook returns empty state delta if step has no criteria blocks."""
     step_no_blocks = mock_step.model_copy(update={"type": "logic", "hook": "some_hook", "criteria_block_ids": []})
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = step_no_blocks.model_dump(mode="json")
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=AsyncMock(),
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo)
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
@@ -319,20 +250,11 @@ async def test_atom_flattening_empty_criteria_blocks(base_hook_state: HookState,
 @pytest.mark.asyncio
 async def test_atom_flattening_invalid_block_format_fails_fast(base_hook_state: HookState, mock_step: Step) -> None:
     """Test hook raises VALIDATION_FAILED when raw block fails Pydantic validation."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = [{"invalid": "format_no_id"}]
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
     with pytest.raises(AppException) as exc_info:
         await process_matrix_flattening(base_hook_state, deps)
     assert exc_info.value.status_code == 500
@@ -342,20 +264,11 @@ async def test_atom_flattening_invalid_block_format_fails_fast(base_hook_state: 
 @pytest.mark.asyncio
 async def test_atom_flattening_no_matching_matrix_blocks(base_hook_state: HookState, mock_step: Step) -> None:
     """Test hook returns empty state delta if all_blocks has no matching IDs."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = []
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
     result = await process_matrix_flattening(base_hook_state, deps)
     assert result.success is True
     assert result.state_delta is not None
@@ -399,20 +312,11 @@ async def test_atom_flattening_propagates_causal_dependencies(base_hook_state: H
         scales=[scale],
     )
 
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
 
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=0)})
     result = await process_matrix_flattening(state, deps)
@@ -493,20 +397,11 @@ async def test_atom_flattening_transitive_causal_closure(base_hook_state: HookSt
         scales=[scale],
     )
 
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_step_by_id.return_value = mock_step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
+    mock_comp_repo = InMemoryBlueprintTransformerRepository()
     mock_comp_repo.get_all_prompt_blocks.return_value = [mock_block.model_dump(mode="json")]
-    deps = HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
-    )
+    deps = _make_deps(workflow_repo=mock_workflow_repo, comp_repo=mock_comp_repo)
 
     # Use sampling strategy 1 (select 1 atom initially)
     state = base_hook_state.model_copy(update={"metadata": ExecutionMetadata(matrix_sampling_strategy=1)})

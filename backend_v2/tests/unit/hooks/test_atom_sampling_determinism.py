@@ -1,7 +1,5 @@
 """Unit tests for atom sampling determinism and boundary value analysis."""
 
-from unittest.mock import AsyncMock
-
 import pytest
 
 from backend_v2.core.hook_registry import (
@@ -19,6 +17,7 @@ from backend_v2.models.domain.step import Step
 from backend_v2.models.dtos.hook_delta import FlatteningHookOutput
 from backend_v2.models.enums import BlockDataType, CognitiveTier, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def _build_test_matrix_block(block_id: str, num_atoms_per_scale: int = 10) -> MatrixPromptBlock:
@@ -73,20 +72,19 @@ def _build_test_step(step_id: str, block_id: str) -> Step:
 
 def _build_dependencies(step: Step, block: MatrixPromptBlock) -> HookDependencies:
     """Creates mocked HookDependencies returning the test step and block."""
-    mock_workflow_repo = AsyncMock()
-    mock_workflow_repo.get_step_by_id.return_value = step.model_dump(mode="json")
-    mock_comp_repo = AsyncMock()
-    mock_comp_repo.get_all_prompt_blocks.return_value = [block.model_dump(mode="json")]
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_step_by_id.return_value = step.model_dump(mode="json")
+    repo.get_all_prompt_blocks.return_value = [block.model_dump(mode="json")]
 
     return HookDependencies(
-        exec_repo=AsyncMock(),
-        workflow_repo=mock_workflow_repo,
-        comp_repo=mock_comp_repo,
-        prompt_block_repo=mock_comp_repo,
-        output_profile_repo=AsyncMock(),
-        identity_repo=AsyncMock(),
-        audit_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        audit_repo=repo,
+        system_repo=repo,
     )
 
 

@@ -1816,6 +1816,18 @@ class DynamicRepoMethod:
     def assert_not_called(self) -> None:
         self._mock.assert_not_called()
 
+    def assert_awaited(self) -> None:
+        self._mock.assert_called()
+
+    def assert_awaited_once(self) -> None:
+        self._mock.assert_called_once()
+
+    def assert_awaited_with(self, *args: Any, **kwargs: Any) -> None:
+        self._mock.assert_called_with(*args, **kwargs)
+
+    def assert_awaited_once_with(self, *args: Any, **kwargs: Any) -> None:
+        self._mock.assert_called_once_with(*args, **kwargs)
+
     def reset_mock(self, *args: Any, **kwargs: Any) -> None:
         self._mock.reset_mock(*args, **kwargs)
 

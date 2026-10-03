@@ -126,21 +126,21 @@ async def test_process_inputs_missing_language() -> None:
         metadata=ExecutionMetadata(),
     )
 
-    mock_workflow_repo = MagicMock()
-    mock_workflow_repo.get_workflow_by_id = AsyncMock(
-        return_value={
-            "id": "wor_1234567890123456",
-            "model_registry_id": "sys_b1c2d3e4f5a60718",
-            "historical_context_mode": "DISABLED",
-            "slug": "test_workflow",
-            "name": "Test Workflow",
-            "description": "desc",
-            "status": "draft",
-            "version": 1,
-            "default_profile_id": "out_1234567890123456",
-            "expected_inputs": [],
-        }
-    )
+    from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
+
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
+    mock_workflow_repo.get_workflow_by_id.return_value = {
+        "id": "wor_1234567890123456",
+        "model_registry_id": "sys_b1c2d3e4f5a60718",
+        "historical_context_mode": "DISABLED",
+        "slug": "test_workflow",
+        "name": "Test Workflow",
+        "description": "desc",
+        "status": "draft",
+        "version": 1,
+        "default_profile_id": "out_1234567890123456",
+        "expected_inputs": [],
+    }
 
     deps = MagicMock()
     deps.workflow_repo = mock_workflow_repo

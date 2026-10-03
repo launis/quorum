@@ -44,6 +44,7 @@ from backend_v2.models.enums import (
 )
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import StepOutputDTO
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def generate_atom_hash(text: str, mandate: Any = None) -> str:
@@ -3645,7 +3646,7 @@ async def test_apply_scoring_logic_hook_missing_workflow_repo_raises() -> None:
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
     """Test that apply_scoring_logic_hook raises RESOURCE_NOT_FOUND when workflow is not found."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_workflow_by_id.return_value = None
     state = HookState(
         execution_id="exec_0000000000000001",
@@ -3672,7 +3673,7 @@ async def test_apply_scoring_logic_hook_workflow_not_found_raises() -> None:
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> None:
     """Test that non-zero workflow penalties deduct from score and format tokens with percentage."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wflow_1234567890123456",
         "slug": "penalized_workflow",
@@ -3748,7 +3749,7 @@ async def test_apply_scoring_logic_hook_with_nonzero_workflow_penalties() -> Non
 @pytest.mark.asyncio
 async def test_apply_scoring_logic_hook_cumulative_clamped_at_max_ratio() -> None:
     """Test that cumulative penalties exceeding MAX_TOTAL_PENALTY_RATIO (0.40) are clamped."""
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wflow_1234567890123456",
         "slug": "heavy_penalty_workflow",
@@ -4073,7 +4074,7 @@ async def test_enforce_passivity_penalty_hook_missing_blueprint_id_raises() -> N
 async def test_enforce_passivity_penalty_hook_non_matrix_prompt_block_skipped() -> None:
     """Test that enforce_passivity_penalty_hook skips non-matrix prompt blocks."""
     mock_workflow = MockRepoWaterfall()
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = {
         "id": "pb_1234567890123456",
         "slug": "instruction",
@@ -4372,7 +4373,7 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
     """Test recalculate missing default_strictness_level and branch skips."""
     from backend_v2.hooks.scoring.normalization_hook import recalculate
 
-    mock_profile_repo = AsyncMock()
+    mock_profile_repo = InMemoryBlueprintTransformerRepository()
     mock_profile_repo.get_output_profile_by_id.return_value = {
         "id": "prf_1111222233334444",
         "slug": "prof_test",
@@ -4381,7 +4382,7 @@ async def test_recalculate_missing_strictness_and_branches() -> None:
         "target_block_order": [],
         "visible_block_extensions": [],
     }
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_workflow_by_id.return_value = {
         "id": "wor_1111222233334444",
         "slug": "wf_test",
@@ -4514,7 +4515,7 @@ async def test_apply_scoring_logic_hook_with_workflow_domain_instance() -> None:
         default_strictness_level=70,
         steps=[],
     )
-    mock_workflow_repo = AsyncMock()
+    mock_workflow_repo = InMemoryBlueprintTransformerRepository()
     mock_workflow_repo.get_workflow_by_id.return_value = workflow_model
 
     state = HookState(

@@ -23,6 +23,7 @@ from backend_v2.models.dtos.hook_delta import PassivityDetectionResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def _build_test_matrix_block(pb_id: str, scales: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -61,7 +62,7 @@ def _build_mock_deps(
     prompt_block_repo: Any = None,
 ) -> HookDependencies:
     """Build mock HookDependencies container."""
-    dummy_repo = AsyncMock()
+    dummy_repo = InMemoryBlueprintTransformerRepository()
     return HookDependencies(
         exec_repo=dummy_repo,
         workflow_repo=workflow_repo if workflow_repo is not None else dummy_repo,
@@ -168,7 +169,7 @@ async def test_passivity_hook_matrix_has_no_scales_raises() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id, scales=[])
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -196,7 +197,7 @@ async def test_passivity_hook_non_matrix_prompt_block_skipped() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = {
         "id": pb_id,
         "slug": "system_instruction",
@@ -251,7 +252,7 @@ async def test_passivity_hook_corrupted_matrix_payload_raises() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -279,7 +280,7 @@ async def test_passivity_hook_penalty_triggered_when_score_at_min() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -312,7 +313,7 @@ async def test_passivity_hook_no_penalty_when_score_above_min() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -345,7 +346,7 @@ async def test_passivity_hook_raw_score_none_does_not_trigger_penalty() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -378,7 +379,7 @@ async def test_passivity_hook_dynamic_inputs_preference() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -405,14 +406,16 @@ async def test_passivity_hook_dynamic_inputs_preference() -> None:
 
 @pytest.mark.asyncio
 async def test_passivity_hook_with_base_model_input() -> None:
-    """Test that enforce_passivity_penalty_hook handles LightweightMatrixOutput model instances directly in raw_inputs."""
+    """Test that enforce_passivity_penalty_hook handles
+    LightweightMatrixOutput model instances directly in raw_inputs.
+    """
     step_id = "stp_1111222233334444"
     pb_id = "blk_1111222233334444"
 
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = _build_test_matrix_block(pb_id)
 
     deps = _build_mock_deps(workflow_repo=mock_workflow, prompt_block_repo=mock_pb_repo)
@@ -483,7 +486,7 @@ async def test_passivity_hook_prompt_block_validation_error_raises() -> None:
     mock_workflow = AsyncMock()
     mock_workflow.get_step_by_id.return_value = _build_test_step(step_id, [pb_id])
 
-    mock_pb_repo = AsyncMock()
+    mock_pb_repo = InMemoryBlueprintTransformerRepository()
     mock_pb_repo.get_prompt_block_by_id.return_value = {
         "id": pb_id,
         "category_id": PromptBlockCategory.MATRIX.value,

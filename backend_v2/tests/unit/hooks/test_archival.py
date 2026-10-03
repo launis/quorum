@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,6 +15,7 @@ from backend_v2.models.domain.execution import ExecutionRecord
 from backend_v2.models.dtos.hook_delta import ArchivistPrecedentsResultDTO
 from backend_v2.models.execution_core import ExecutionMetadata
 from backend_v2.models.state import TraceEvent
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 @pytest.mark.asyncio
@@ -66,7 +67,7 @@ async def test_retrieve_precedent_hook_missing_updated_at_integrity_error() -> N
     )
     object.__setattr__(mock_record, "updated_at", None)
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)
@@ -132,7 +133,7 @@ async def test_retrieve_precedent_hook_success() -> None:
         ],
     )
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)
@@ -190,7 +191,7 @@ async def test_retrieve_precedent_hook_disk_fallback(monkeypatch: pytest.MonkeyP
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorage())
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)
@@ -234,7 +235,7 @@ async def test_retrieve_precedent_hook_invalid_judge_output_raises() -> None:
         ],
     )
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)
@@ -278,7 +279,7 @@ async def test_retrieve_precedent_hook_disk_file_not_found(monkeypatch: pytest.M
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageMissing())
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)
@@ -326,7 +327,7 @@ async def test_retrieve_precedent_hook_disk_read_error(monkeypatch: pytest.Monke
 
     monkeypatch.setattr(backend_v2.services.storage, "get_storage_driver", lambda: MockDiskStorageError())
 
-    mock_exec_repo = AsyncMock()
+    mock_exec_repo = InMemoryBlueprintTransformerRepository()
     mock_exec_repo.get_recent_completed_executions.return_value = [mock_record]
 
     deps = MagicMock(spec=HookDependencies)

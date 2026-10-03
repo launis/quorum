@@ -26,6 +26,7 @@ from backend_v2.models.dtos.hook_delta import MatrixHookResultDTO
 from backend_v2.models.dtos.lightweight_matrix import LightweightMatrixOutput
 from backend_v2.models.enums import ExecutionStatus, PromptBlockCategory
 from backend_v2.models.execution_core import ExecutionMetadata
+from backend_v2.tests.fakes.in_memory_repositories import InMemoryBlueprintTransformerRepository
 
 
 def _build_test_matrix_block(pb_id: str, tda_id: str) -> dict[str, Any]:
@@ -159,27 +160,21 @@ def matrix_setup() -> dict[str, Any]:
     exec_dict = _build_test_execution(execution_id, workflow_id, profile_id)
     profile_dict = _build_test_output_profile(profile_id, workflow_id, pb_id)
 
-    workflow_repo = AsyncMock()
-    workflow_repo.get_step_by_id = AsyncMock(return_value=step_dict)
-    workflow_repo.get_workflow_by_id = AsyncMock(return_value=wf_dict)
-
-    prompt_block_repo = AsyncMock()
-    prompt_block_repo.get_prompt_block_by_id = AsyncMock(return_value=pb_dict)
-
-    exec_repo = AsyncMock()
-    exec_repo.get_execution = AsyncMock(return_value=exec_dict)
-
-    output_profile_repo = AsyncMock()
-    output_profile_repo.get_output_profile_by_id = AsyncMock(return_value=profile_dict)
+    repo = InMemoryBlueprintTransformerRepository()
+    repo.get_step_by_id.return_value = step_dict
+    repo.get_workflow_by_id.return_value = wf_dict
+    repo.get_prompt_block_by_id.return_value = pb_dict
+    repo.get_execution.return_value = exec_dict
+    repo.get_output_profile_by_id.return_value = profile_dict
 
     deps = HookDependencies(
-        exec_repo=exec_repo,
-        workflow_repo=workflow_repo,
-        comp_repo=AsyncMock(),
-        prompt_block_repo=prompt_block_repo,
-        output_profile_repo=output_profile_repo,
-        identity_repo=AsyncMock(),
-        system_repo=AsyncMock(),
+        exec_repo=repo,
+        workflow_repo=repo,
+        comp_repo=repo,
+        prompt_block_repo=repo,
+        output_profile_repo=repo,
+        identity_repo=repo,
+        system_repo=repo,
     )
 
     return {
